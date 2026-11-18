@@ -9,6 +9,7 @@ vez; a las 72 h Oído lo cierra solo, con la puntualidad de la llegada.
 Mismo patrón que `test_scheduler.py`: el chequeo usa `AsyncSessionLocal`, que
 se apunta a la base en memoria del test."""
 
+import asyncio
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock
 from uuid import UUID
@@ -16,6 +17,7 @@ from uuid import UUID
 import pytest
 from httpx import AsyncClient
 
+from app.core.tz import format_inicio_art, to_art
 from app.modules.identity.domain.value_objects import UserStatus
 from app.modules.identity.infrastructure.models import UserModel
 from app.modules.shift.application import scheduler
@@ -110,7 +112,7 @@ async def test_no_reminder_before_24_hours(client, session_factory, monkeypatch)
     next_deadline = await scheduler.run_finish_check()
 
     assert next_deadline == checked_out + FINISH_REMINDER_DELAY
-    assert await _notices(client, employer, "shift_checked_out") == []
+    assert await _notices(client, employer, "shift_finish_reminder") == []
     row = await _shift_row(session_factory, shift_id)
     assert row.finish_reminder_sent_at is None
     assert row.status == ShiftStatus.CHECK_OUT.value
@@ -131,17 +133,21 @@ async def test_reminder_at_24_hours_goes_once_and_only_to_the_company(
     # Ya recordado: la próxima (y última) deadline es el cierre.
     assert first == checked_out + AUTO_FINISH_DELAY
     assert second == checked_out + AUTO_FINISH_DELAY
-    avisos = await _notices(client, employer, "shift_checked_out")
+    avisos = await _notices(client, employer, "shift_finish_reminder")
     assert len(avisos) == 1
     assert avisos[0]["title"] == "Te falta cerrar un turno"
-    assert avisos[0]["message"].startswith(
-        f'La persona marcó la salida de "{_TITLE}" hace un día. Cerralo para poder '
-        "calificarla y registrar el pago. Si no lo cerrás, se cierra solo el "
+    salida = format_inicio_art(checked_out)
+    cierre = format_inicio_art(checked_out + AUTO_FINISH_DELAY)
+    assert avisos[0]["message"] == (
+        f'La persona marcó la salida de "{_TITLE}" {salida}. Cerralo para poder '
+        f"calificarla y registrar el pago. Si no lo cerrás, se cierra solo {cierre}."
     )
     assert avisos[0]["link"] == "/shifts"
     # Al trabajador no le llega nada.
     worker_notifs = (await client.get("/api/v1/notifications", headers=worker)).json()
-    assert not any(n["type"] in ("shift_checked_out", "shift_finished") for n in worker_notifs)
+    assert not any(n["type"] in ("shift_finish_reminder", "shift_finished") for n in worker_notifs)
+    # Ni otro «Terminó un turno» al comercio: el recordatorio tiene tipo propio.
+    assert await _notices(client, employer, "shift_checked_out") == []
 
     row = await _shift_row(session_factory, shift_id)
     assert row.finish_reminder_sent_at is not None
@@ -150,22 +156,55 @@ async def test_reminder_at_24_hours_goes_once_and_only_to_the_company(
     assert row.version == version_before
 
 
-async def test_reminder_says_when_it_closes_in_argentine_time(
+async def test_late_reminder_says_the_real_checkout_date_in_argentine_time(
     client, session_factory, monkeypatch
 ):
-    """La hora del cierre se dice en hora argentina, no en UTC."""
-    from app.core.tz import format_inicio_art
-
+    """La pasada puede llegar tarde (primer despliegue, Render dormido): el
+    aviso dice cuándo marcó la salida de verdad, en hora argentina, y no
+    «hace un día»."""
     monkeypatch.setattr(scheduler, "AsyncSessionLocal", session_factory)
     _id, employer, _worker, checked_out = await _checked_out_shift(
-        client, session_factory, "fin_hora", out_ago=FINISH_REMINDER_DELAY + timedelta(minutes=5)
+        client, session_factory, "fin_hora", out_ago=timedelta(hours=60)
     )
 
     await scheduler.run_finish_check()
 
-    aviso = (await _notices(client, employer, "shift_checked_out"))[0]
-    expected = format_inicio_art(checked_out + AUTO_FINISH_DELAY)
-    assert aviso["message"].endswith(f"se cierra solo {expected}.")
+    avisos = await _notices(client, employer, "shift_finish_reminder")
+    assert len(avisos) == 1
+    salida_art = to_art(checked_out)
+    assert "hace un día" not in avisos[0]["message"]
+    # Hace 60 h no es «hoy» ni «mañana»: va con día de la semana y fecha.
+    assert f"{salida_art:%d/%m} a las {salida_art:%H:%M}. Cerralo" in avisos[0]["message"]
+    assert avisos[0]["message"].endswith(
+        f"se cierra solo {format_inicio_art(checked_out + AUTO_FINISH_DELAY)}."
+    )
+
+
+async def test_two_passes_at_once_send_a_single_reminder(client, session_factory):
+    """Dos pasadas a la vez (cada una con su sesión, y las dos con el turno
+    leído antes de que la otra lo marque): un solo aviso. Lo corta el UPDATE
+    condicional (`finish_reminder_sent_at IS NULL`), y el servicio sólo avisa
+    si reclamó la marca."""
+    shift_id, employer, _worker, _ = await _checked_out_shift(
+        client, session_factory, "fin_doble", out_ago=FINISH_REMINDER_DELAY + timedelta(minutes=5)
+    )
+
+    async with session_factory() as session_a, session_factory() as session_b:
+        service_a = scheduler._build_service(session_a)
+        service_b = scheduler._build_service(session_b)
+        # Las dos pasadas listaron el turno sin marca.
+        listed_a = await service_a.list_shifts_awaiting_finish()
+        listed_b = await service_b.list_shifts_awaiting_finish()
+        assert all(s.finish_reminder_sent_at is None for s in listed_a + listed_b)
+
+        await asyncio.gather(
+            service_a.send_finish_reminder(UUID(shift_id)),
+            service_b.send_finish_reminder(UUID(shift_id)),
+        )
+        # Y una tercera, secuencial, tampoco.
+        await service_b.send_finish_reminder(UUID(shift_id))
+
+    assert len(await _notices(client, employer, "shift_finish_reminder")) == 1
 
 
 async def test_reminder_to_suspended_company_is_marked_but_not_sent(
@@ -196,7 +235,7 @@ async def test_reminder_to_suspended_company_is_marked_but_not_sent(
                 select(NotificationModel).where(NotificationModel.user_id == owner.id)
             )
         ).scalars().all()
-    assert not any(n.type == "shift_checked_out" for n in notifs)
+    assert not any(n.type == "shift_finish_reminder" for n in notifs)
 
 
 async def test_reminder_is_not_claimed_on_a_closed_shift(client, session_factory):
@@ -268,7 +307,7 @@ async def test_auto_finish_at_72_hours_with_punctual_arrival(
     )
     assert company_avisos[0]["link"] == "/shifts"
     # Nada más: ni recordatorio tardío ni aviso de cierre del comercio.
-    assert await _notices(client, employer, "shift_checked_out") == []
+    assert await _notices(client, employer, "shift_finish_reminder") == []
 
     # Una segunda pasada no lo vuelve a tocar.
     assert await scheduler.run_finish_check() is None
@@ -405,3 +444,48 @@ async def test_domain_auto_finish_only_from_check_out():
     shift.auto_finish()
     assert shift.status == ShiftStatus.FINALIZADO
     assert shift.auto_finished_at is not None
+
+
+async def test_the_loop_runs_the_finish_check(monkeypatch):
+    """`scheduler_loop` corre el chequeo de cierre y duerme hasta su deadline:
+    si se saca la llamada del loop, esto falla."""
+    from app.core.dt import naive
+
+    async def nada(*_args, **_kwargs):
+        return None
+
+    for name in (
+        "run_attendance_check",
+        "run_escalation_check",
+        "run_coverage_check",
+        "run_available_now_cleanup",
+        "run_subscription_expiry_check",
+        "run_retention_cleanup",
+    ):
+        monkeypatch.setattr(scheduler, name, nada)
+
+    calls: list[str] = []
+    in_twenty_minutes = naive(datetime.now(timezone.utc)) + timedelta(minutes=20)
+
+    async def finish_check() -> datetime:
+        calls.append("finish")
+        return in_twenty_minutes
+
+    monkeypatch.setattr(scheduler, "run_finish_check", finish_check)
+
+    class Corte(Exception):
+        pass
+
+    sleeps: list[float] = []
+
+    async def wait(seconds: float) -> None:
+        sleeps.append(seconds)
+        raise Corte
+
+    monkeypatch.setattr(scheduler, "wait_for_wakeup", wait)
+
+    with pytest.raises(Corte):
+        await scheduler.scheduler_loop()
+
+    assert calls == ["finish"]
+    assert 19 * 60 < sleeps[0] <= 20 * 60

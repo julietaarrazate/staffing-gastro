@@ -2115,14 +2115,18 @@ class ShiftService(AccountSuspensionEffects):
             and updated.check_out_at is not None
             and await self.company_account_active(updated.company_id)
         ):
-            closes_at = format_inicio_art(updated.check_out_at + AUTO_FINISH_DELAY)
+            # La fecha real de la salida, no «hace un día»: la pasada puede
+            # llegar tarde (primer despliegue, Render dormido).
+            now = datetime.now(timezone.utc)
+            checked_out = format_inicio_art(updated.check_out_at, now)
+            closes_at = format_inicio_art(updated.check_out_at + AUTO_FINISH_DELAY, now)
             await self._notify_company(
                 updated.company_id,
-                NotificationType.SHIFT_CHECKED_OUT,
+                NotificationType.SHIFT_FINISH_REMINDER,
                 "Te falta cerrar un turno",
                 (
                     f"La persona marcó la salida de \"{updated.title or updated.position.label}\" "
-                    "hace un día. Cerralo para poder calificarla y registrar el pago. "
+                    f"{checked_out}. Cerralo para poder calificarla y registrar el pago. "
                     f"Si no lo cerrás, se cierra solo {closes_at}."
                 ),
                 link="/shifts",
