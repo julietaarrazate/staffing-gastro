@@ -356,12 +356,14 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   /* Tipografía (todas libres): Young Serif para títulos de pantalla
-     (font-display, desde el 2026-11-16; un solo peso); Fraunces sólo para el wordmark
-     (font-serif); Inter para texto y encabezados de sección; DM Mono cargada
-     para datos (los precios no la usan, decisión de Julieta). */
+     (font-display, desde el 2026-11-16; un solo peso); Shrikhand sólo para la
+     palabra «oído» (font-oido, desde el 2026-11-17; hasta ahí el wordmark iba
+     en Fraunces, que ya no se carga); Inter para texto y encabezados de
+     sección; DM Mono cargada para datos (los precios no la usan, decisión de
+     Julieta). */
   --font-sans: var(--font-inter);
   --font-display: var(--font-young-serif), ui-serif, Georgia, serif;
-  --font-serif: var(--font-fraunces);
+  --font-oido: var(--font-shrikhand), Georgia, serif;
   --font-mono: var(--font-dm-mono);
 }
 
@@ -2021,12 +2023,12 @@ body:has([data-landing]) main {
 }
 
 /* La marca en el encabezado: la misma letra del «oído» fileteado, plana y en
-   azul hondo (2026-11-13). El fileteado completo queda una sola vez, al
-   cierre. */
+   azul hondo (2026-11-13; Shrikhand desde el 2026-11-17). El fileteado
+   completo queda una sola vez, al cierre. */
 .landing-marca {
   display: block;
   padding-top: 5px;
-  font-family: var(--font-sancreek), Georgia, serif;
+  font-family: var(--font-shrikhand), Georgia, serif;
   font-size: 2rem;
   line-height: 1;
   letter-spacing: 0.01em;
