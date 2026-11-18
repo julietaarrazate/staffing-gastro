@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./mocks";
+import { blockExternalHosts, injectSession, mockEmptyNotifications, setTheme } from "./mocks";
 
 /**
  * Stepper del ciclo de vida del turno (`components/ShiftLifecycleStepper.tsx`,
@@ -302,3 +302,30 @@ test("el panel se refresca solo mientras alguien puede venir en camino", async (
   await page.clock.runFor(31_000);
   await expect(card.getByText("Juana Pérez va en camino")).toBeVisible({ timeout: 10_000 });
 });
+
+// El paso actual va en azul de marca (no en ámbar, que es del botón de la
+// tarjeta) y el completado en el tinte de marca, en los dos temas.
+const COLORES = {
+  light: { actualBg: "rgb(28, 84, 120)", actualInk: "rgb(255, 255, 255)", hechoBg: "rgb(222, 236, 240)", hechoInk: "rgb(28, 84, 120)" },
+  dark: { actualBg: "rgb(154, 201, 231)", actualInk: "rgb(21, 29, 38)", hechoBg: "rgba(154, 201, 231, 0.14)", hechoInk: "rgb(154, 201, 231)" },
+} as const;
+
+for (const theme of ["light", "dark"] as const) {
+  test(`comercio, ${theme}: paso actual en azul de marca y paso completado con su tinte`, async ({ page }) => {
+    await injectSession(page);
+    await setTheme(page, theme);
+    await blockExternalHosts(page);
+    await mockEmptyNotifications(page);
+    await mockEmployerShifts(page, [shift({ id: "shift-asignado", status: "asignado", worker_profile_id: "wp-1" })]);
+    await page.goto("/shifts");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+    const lista = page.locator('[data-shift-id="shift-asignado"]').getByRole("list", { name: "Paso 2 de 4: Asignado" });
+    const actual = lista.locator('[aria-current="step"]');
+    const hecho = lista.getByRole("listitem").first().locator("span").first();
+    const esperado = COLORES[theme];
+    await expect(actual).toHaveCSS("background-color", esperado.actualBg);
+    await expect(actual).toHaveCSS("color", esperado.actualInk);
+    await expect(hecho).toHaveCSS("background-color", esperado.hechoBg);
+    await expect(hecho).toHaveCSS("color", esperado.hechoInk);
+  });
+}

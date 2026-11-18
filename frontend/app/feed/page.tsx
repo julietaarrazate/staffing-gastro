@@ -141,9 +141,33 @@ function useIsDesktop(): boolean {
 export default function WorkerHomePage() {
   return (
     <Suspense fallback={null}>
-      <WorkerFeedPanel />
+      <FeedGuard />
     </Suspense>
   );
+}
+
+// Hasta conocer el rol no se monta nada. La guarda de rol va por fuera del panel: con otro rol el panel ni se monta,
+// así que no pinta el feed cacheado, no pide nada ni la ubicación del navegador
+// mientras la guarda redirige a la home de su rol.
+function FeedGuard() {
+  const { allowed, user } = useRequireAuth({ roles: ["worker"] });
+  // Con rol equivocado ya conocido, nada (redirige). Mientras el rol no se
+  // conoce (el backend dormido puede tardar segundos en `/auth/me`), el mismo
+  // esqueleto de siempre, sin pedir datos ni ubicación.
+  if (!allowed) return null;
+  if (!user) {
+    return (
+      <div data-testid="guarda-cargando" aria-busy className="mx-auto max-w-md space-y-5 px-4 pb-8 pt-4 md:max-w-5xl">
+        <Skeleton className="h-[232px] w-full rounded-[var(--radius-card)]" />
+        <div className="flex gap-3">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-[170px] w-[156px] shrink-0 rounded-[var(--radius-chip)]" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return <WorkerFeedPanel />;
 }
 
 function WorkerFeedPanel() {

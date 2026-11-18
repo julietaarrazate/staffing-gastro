@@ -41,6 +41,26 @@ describe("SwipeDeck", () => {
     expect(onApply).not.toHaveBeenCalled();
   });
 
+  it("una flecha del teclado apretada justo cuando «Turno siguiente» se habilita avanza", async () => {
+    renderDeck();
+    const siguiente = screen.getByRole("button", { name: "Turno siguiente" });
+    // Aprieta la flecha en el primer microtask después del commit que habilita
+    // el botón: antes de los efectos pasivos. Con el listener en un `useEffect`
+    // éste todavía veía `busy` en true y la flecha se perdía.
+    let apretada = false;
+    const observer = new MutationObserver(() => {
+      if (!apretada && !(siguiente as HTMLButtonElement).disabled && screen.getByTestId("swipe-deck-position").textContent === "2 de 3") {
+        apretada = true;
+        fireEvent.keyDown(window, { key: "ArrowRight" });
+      }
+    });
+    observer.observe(siguiente, { attributes: true, attributeFilter: ["disabled"] });
+    await userEvent.click(siguiente);
+    await waitFor(() => expect(screen.getByTestId("swipe-deck-position")).toHaveTextContent("3 de 3"));
+    observer.disconnect();
+    expect(apretada).toBe(true);
+  });
+
   it("postularse es explícito y saca sólo ese turno del mazo", async () => {
     const onApply = renderDeck();
     await userEvent.click(screen.getByRole("button", { name: "Turno siguiente" }));

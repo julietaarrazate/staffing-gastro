@@ -19,8 +19,11 @@ const VARIANTS: Record<Variant, string> = {
   secondary:
     "bg-success text-white shadow-[var(--shadow-success)] hover:brightness-[1.04]",
   danger: "bg-danger text-white shadow-[var(--shadow-danger)] hover:brightness-[1.04]",
-  surface: "bg-card text-ink ring-1 ring-line hover:bg-surface",
-  ghost: "bg-transparent text-ink/80 hover:bg-surface",
+  // Desactivados como el de `primary`: sin opacidad (a opacity-50 la tinta sobre
+  // la tarjeta blanca quedaba tenue en claro), fondo `surface` y tinta apagada.
+  surface:
+    "bg-card text-ink ring-1 ring-line hover:bg-surface disabled:bg-surface disabled:text-ink-mute disabled:opacity-100",
+  ghost: "bg-transparent text-ink/80 hover:bg-surface disabled:text-ink-mute disabled:opacity-100",
 };
 
 // Touch targets >= 44px (accesibilidad móvil).
