@@ -302,8 +302,11 @@ class Shift:
     @property
     def amount_due(self) -> Decimal:
         """Lo que se paga por este turno: el monto prorrateado si es un
-        turno reofrecido con la llegada marcada, si no el publicado. Es el
-        único lugar que lo decide (ganancias, avisos y pantallas leen esto)."""
+        turno reofrecido con la llegada marcada, si no el publicado. Es la
+        referencia: la ficha del admin lo lee directo, y tiene dos espejos
+        que repiten la regla y hay que cambiar con ella: el `COALESCE` de
+        `sum_worker_earnings` (ganancias, en SQL) y `payView` en
+        `frontend/lib/pay.ts` (pantallas, con los campos de la API)."""
         if self.prorated_pay_amount is not None:
             return self.prorated_pay_amount
         return self.pay_amount

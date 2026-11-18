@@ -1023,3 +1023,30 @@ async def test_la_reapertura_por_suspension_sin_una_hora_cierra_sin_restaurar(
     assert len(avisos) == 1
     assert "ya no puede tomarlo" in avisos[0]["message"]
     assert await _avisos(client, comercio, "shift_reopened") == []
+
+
+@asyncio
+async def test_la_ficha_del_admin_muestra_lo_que_se_cobra(client: AsyncClient, session_factory):
+    """La ficha del admin muestra lo que se cobra (`amount_due`), no sólo lo
+    publicado: en un reofrecido con la llegada marcada, lo que restaba."""
+    from tests.conftest import make_admin
+
+    admin = await make_admin(client, session_factory, "reof_admin_ficha@staffya.com")
+    b, b_id = await _trabajador(client, "reof_b_ficha@staffya.com")
+    shift_id, comercio, _a, _a_id = await _turno_confirmado_y_empezado(client, "ficha")
+    await client.post(f"/api/v1/shifts/{shift_id}/no-show", headers=comercio)
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/assign", headers=comercio, json={"worker_profile_id": b_id}
+    )
+    await client.post(f"/api/v1/shifts/{shift_id}/confirm", headers=b)
+    checked = await client.post(f"/api/v1/shifts/{shift_id}/check-in", headers=b, json=PALERMO)
+    fijo = Decimal(checked.json()["prorated_pay_amount"])
+
+    users = await client.get(
+        "/api/v1/admin/users", headers=admin, params={"q": "reof_b_ficha@staffya.com"}
+    )
+    user_id = next(u["id"] for u in users.json() if u["email"] == "reof_b_ficha@staffya.com")
+    ficha = (await client.get(f"/api/v1/admin/users/{user_id}", headers=admin)).json()
+    [fila] = [s for s in ficha["recent_shifts"] if s["id"] == shift_id]
+    assert Decimal(fila["pay_amount"]) == Decimal("40000")
+    assert Decimal(fila["amount_due"]) == fijo < Decimal("40000")

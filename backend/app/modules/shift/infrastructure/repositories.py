@@ -383,8 +383,8 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         window_end = window_end.astimezone(timezone.utc)
         in_window = (ShiftModel.start_at >= window_start) & (ShiftModel.start_at < window_end)
         # Lo que se paga por el turno: el monto prorrateado si es un turno
-        # reofrecido (U080), si no el publicado. Misma regla que
-        # `Shift.amount_due`.
+        # reofrecido (U080), si no el publicado. Es el espejo en SQL de
+        # `Shift.amount_due` (la referencia): si cambia esa regla, cambia acá.
         due = func.coalesce(ShiftModel.prorated_pay_amount, ShiftModel.pay_amount)
         stmt = select(
             func.sum(due),

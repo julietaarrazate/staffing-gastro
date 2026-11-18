@@ -73,6 +73,9 @@ class AdminShiftRowResponse(BaseModel):
     start_at: datetime
     status: str
     pay_amount: Decimal
+    # Lo que se cobra (`Shift.amount_due`): en un turno reofrecido con la
+    # llegada marcada, lo que restaba desde la llegada (U080).
+    amount_due: Decimal
     absent: bool = False
 
 

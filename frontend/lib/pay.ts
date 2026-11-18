@@ -45,6 +45,10 @@ export interface PayView {
  * hasta que llega se muestra el valor por hora, y desde ahí el monto que
  * quedó fijo. Cualquier otro turno muestra su monto publicado. Los dos campos
  * los calcula el backend; acá no se hace ninguna cuenta.
+ *
+ * Fuera del caso `por_hora` (todavía no hay monto), es el espejo de
+ * `Shift.amount_due` en el backend (`prorated_pay_amount ?? pay_amount`): si
+ * cambia esa regla, cambia acá.
  */
 export function payView(shift: PaidFields): PayView {
   if (shift.prorated_pay_amount != null) {
@@ -81,6 +85,16 @@ export function formatPayAmount(shift: PaidFields): string {
 export function formatPayCompact(shift: PaidFields): string {
   const view = payView(shift);
   return view.kind === "por_hora" ? `${view.amount}/h` : view.amount;
+}
+
+/** Lo que se cobra de un turno ya resuelto, para listas de una sola línea
+ *  (la ficha del admin): "$40.000", o "$34.932 de $40.000" cuando lo que se
+ *  cobra (`amount_due`, del backend) no es lo publicado: un turno reofrecido
+ *  con la llegada marcada (U080). Sin `amount_due`, lo publicado. */
+export function formatAmountDue(row: { pay_amount: string; amount_due?: string | null }): string {
+  const publicado = formatArs(Number(row.pay_amount));
+  if (row.amount_due == null || Number(row.amount_due) === Number(row.pay_amount)) return publicado;
+  return `${formatArs(Number(row.amount_due))} de ${publicado}`;
 }
 
 /** Monto + extras: "$42.000 + propinas". */

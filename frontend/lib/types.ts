@@ -529,6 +529,9 @@ export interface AdminUserDetail {
     start_at: string;
     status: string;
     pay_amount: string;
+    /** Lo que se cobra (`Shift.amount_due`): difiere de `pay_amount` en un
+     *  turno reofrecido con la llegada marcada (U080). */
+    amount_due?: string;
     /** La persona de la ficha faltó a este turno (ya no figura asignada). */
     absent?: boolean;
   }[];
