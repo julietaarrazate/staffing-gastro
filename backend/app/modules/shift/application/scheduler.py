@@ -220,11 +220,13 @@ async def run_attendance_check() -> datetime | None:
                 # recordatorio de salida ("va en camino"), y sólo si no lo
                 # recibió y no salió ya (si ya comparte ubicación, recordarle
                 # que avise sería ruido).
-                # «Ya salió» es el aviso al comercio (`en_route_announced_at`),
-                # no la posición: quien salió y dejó de compartir (U072) borró
-                # su posición, pero no hay que recordarle que avise.
+                # «Ya salió» es estar compartiendo ahora o haberle avisado ya
+                # al comercio (`en_route_announced_at`): quien salió y dejó de
+                # compartir (U072) borró su posición, pero no hay que
+                # recordarle que avise.
                 if (
                     shift.departure_reminder_sent_at is None
+                    and shift.en_route_at is None
                     and shift.en_route_announced_at is None
                 ):
                     departure_at = start - DEPARTURE_REMINDER_LEAD

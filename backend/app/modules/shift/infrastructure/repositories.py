@@ -276,8 +276,10 @@ class SqlAlchemyShiftRepository(ShiftRepository):
                     [ShiftStatus.ASIGNADO.value, ShiftStatus.CONFIRMADO.value]
                 ),
                 ShiftModel.departure_reminder_sent_at.is_(None),
-                # «Ya salió» = ya se le avisó al comercio, comparta o no ahora
-                # (U072: la posición se borra al apagar; el aviso, no).
+                # «Ya salió» = está compartiendo ahora, o ya se le avisó al
+                # comercio aunque después haya apagado (U072: la posición se
+                # borra al apagar; el aviso, no).
+                ShiftModel.en_route_at.is_(None),
                 ShiftModel.en_route_announced_at.is_(None),
             )
             .values(departure_reminder_sent_at=sent_at)
