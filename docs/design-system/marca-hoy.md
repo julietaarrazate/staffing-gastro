@@ -34,11 +34,11 @@ Buenos Aires, el papel de la comanda y el filete de los carteles de bodegón.
    iba al Far West y se parecía a la letra de otra marca del rubro). Fileteada en
    `components/landing/Filete.tsx`:
    - `firma` (con adornos finos dorados): pantalla de inicio;
-   - el final de la landing: la palabra grande, cortada por el borde, con el
-     Sol de Mayo saliendo detrás, sobre un domo de cielo que sube desde el
-     borde (degradado radial, sin franjas) y con el pie encima, sobre blanco
-     (como el cierre de coofounder). A ese tamaño va sin la sombra beige y
-     con menos relieve (`Letras` con `sombra={false}`);
+   - el final de la landing: la misma `firma`, entera, apoyada sobre un banco
+     de nubes, que cierra el panel de cielo de «¿Te falta alguien hoy?»;
+     sobre las nubes, sólo lo legal y el ©. Desde el 2026-11-18 (antes iba
+     gigante y cortada por el borde, con el Sol de Mayo detrás: Julieta, «queda
+     raro ese oído cortado»);
    - en el **encabezado de la landing y de la app** va la misma letra, **plana
      y en azul hondo** (`.landing-marca` desde el 2026-11-13; `components/Logo.tsx`
      desde el 2026-11-17, celeste en oscuro): con el relieve y el dorado
@@ -142,7 +142,10 @@ Palermo dibujado, la rueda de fotos del inicio y la miniatura al compartir.
   que parta de `marca/isotipo-pinche*.svg` y mantenga el concepto cerrado.
 - **Llevar la dirección «con relieve» a la app** (Julieta, 2026-11-17: la sombra
   dura azul hondo del filete como profundidad de la interfaz), pantalla por
-  pantalla: [`direccion-relieve.md`](./direccion-relieve.md).
+  pantalla: [`direccion-relieve.md`](./direccion-relieve.md). En la landing
+  ya rige desde el 2026-11-18, con la letra mixta
+  ([`typography.md`](./typography.md)) y los tokens de
+  [ADR-0027](../adr/ADR-0027-relieve-como-profundidad.md).
 - **Fotos propias** de locales porteños (hoy son de banco); qué va en cada
   lugar, en [`fotos-landing.md`](./fotos-landing.md).
 - Una **cita real** de un local cuando haya locales usando Oído.

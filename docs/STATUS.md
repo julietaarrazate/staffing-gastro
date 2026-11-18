@@ -66,9 +66,14 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
    como riel, los pasos tachados a mano:
    https://claude.ai/artifact/MEN8VhUv43HM2sE9pH6kmF). Julieta eligió la
    **letra mixta** (brocha en el inicio, el cierre y la carta; Abril Fatface
-   en los títulos de sección). **Sigue:** llevarlo al código en el orden de
-   `direccion-relieve.md`. Después, llevarla a la app pantalla por pantalla, un
-   PR cada una, sin tocar la lógica. Qué tiene, las referencias de Julieta,
+   en los títulos de sección). **El híbrido ya está en el código de la
+   landing** (letra mixta, botones con relieve, los planes como carta con
+   pizarra, mapa sin reloj, final de cielo con el «oído» entero y sólo lo
+   legal debajo, sin el Sol de Mayo; tokens del
+   relieve y ADR-0027;
+   [historial](./historial/2026-11-18-landing-hibrida.md)). **Sigue:** la
+   app pantalla por pantalla, un PR cada una, sin tocar la lógica; falta que
+   Julieta diga qué de la segunda prueba de la app entra y en qué orden. Qué tiene, las referencias de Julieta,
    lo que falta decidir y el orden, en
    [`design-system/direccion-relieve.md`](./design-system/direccion-relieve.md).
 Revisado contra el código y los PRs el 2026-10-03.

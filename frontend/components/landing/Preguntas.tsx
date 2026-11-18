@@ -18,7 +18,7 @@ export default function Preguntas() {
       <div className="landing-sec-cosa w-full max-w-[640px] divide-y divide-line border-y border-line text-left">
         {PREGUNTAS.map((p) => (
           <details key={p.pregunta} id={p.pregunta === PREGUNTA_INSTALAR ? "instalar" : undefined} className="group scroll-mt-[var(--lht)]">
-            <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-4 font-display text-[clamp(1.125rem,1.8vw,1.375rem)] font-medium tracking-[-0.02em] text-ink [&::-webkit-details-marker]:hidden">
+            <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-4 text-[clamp(1.0625rem,1.6vw,1.1875rem)] font-semibold tracking-[-0.01em] text-ink [&::-webkit-details-marker]:hidden">
               {p.pregunta}
               <span
                 aria-hidden

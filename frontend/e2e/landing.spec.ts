@@ -120,7 +120,9 @@ test("las preguntas frecuentes también van como datos estructurados", async ({ 
   const faq = datos.find((d) => d?.["@type"] === "FAQPage");
   const visibles = await page.locator("#preguntas summary").allTextContents();
   expect(faq.mainEntity.map((q: { name: string }) => q.name)).toEqual(visibles.map((t) => t.trim()));
-  expect(datos.some((d) => d?.["@type"] === "Organization")).toBe(true);
+  const marca = datos.find((d) => d?.["@type"] === "Organization");
+  // La cuenta oficial de Instagram va declarada para los buscadores.
+  expect(marca.sameAs).toEqual(["https://www.instagram.com/oidoapp/"]);
   // Se abre sin JavaScript (details/summary).
   await page.getByText("¿Qué pasa si no viene?").click();
   await expect(page.getByText(/elegís a otra persona de las que se postularon/)).toBeVisible();
@@ -158,13 +160,57 @@ test("los precios salen de la API cuando contesta", async ({ page }) => {
   const precios = page.locator("#precios");
   await expect(precios).toContainText("$21.500");
   await expect(precios).toContainText("$47.000");
-  // Cada plan lleva su botón al alta de comercio con el plan (2026-10-30).
-  for (const [nombre, code] of [["Inicial", "inicial"], ["Básico", "basico"], ["Pro", "pro"]]) {
-    await expect(precios.getByRole("link", { name: `Empezar con ${nombre}` })).toHaveAttribute(
-      "href",
-      `/register?rol=comercio&plan=${code}`
-    );
+  // La carta (2026-11-18): cada plan es un plato que se elige, y el camino
+  // al alta es un solo botón que lleva el plan elegido. Sale el Básico.
+  const empezar = precios.getByRole("link", { name: /^Empezar con / });
+  await expect(empezar).toHaveCount(1);
+  await expect(empezar).toHaveAccessibleName("Empezar con Básico");
+  await expect(precios.getByRole("button", { name: /Básico/ })).toHaveAttribute("aria-pressed", "true");
+  const pizarra = precios.locator(".landing-pizarra");
+  await expect(pizarra).toContainText("$21.500");
+  for (const [nombre, code, tope] of [
+    ["Inicial", "inicial", "hasta 5 turnos por mes"],
+    ["Pro", "pro", "turnos sin tope"],
+    ["Básico", "basico", "hasta 15 turnos por mes"],
+  ]) {
+    const plato = precios.getByRole("button", { name: new RegExp(`^${nombre}`) });
+    await plato.click();
+    await expect(plato).toHaveAttribute("aria-pressed", "true");
+    await expect(precios.getByRole("button", { pressed: true })).toHaveCount(1);
+    await expect(empezar).toHaveAccessibleName(`Empezar con ${nombre}`);
+    await expect(empezar).toHaveAttribute("href", `/register?rol=comercio&plan=${code}`);
+    // La pizarra escribe el plan elegido, con su tope y sin comisión.
+    await expect(pizarra).toContainText(tope);
+    await expect(pizarra).toContainText("comisión por turno: $0");
   }
+});
+
+test("un plan incompleto de la API no tira la carta, y a 320 px el nombre no pisa el precio", async ({ page }) => {
+  // La revisión del 2026-11-18 encontró las dos cosas: sin `features` se caía
+  // la sección entera, y a 320 px el nombre en brocha se encimaba al precio.
+  await page.setViewportSize({ width: 320, height: 700 });
+  await sinSesion(page, {
+    status: 200,
+    body: {
+      plans: [
+        { code: "inicial", name: "Inicial", price_ars: 9900, max_turnos_mes: 5 },
+        { code: "basico", name: "Básico", price_ars: 20000, features: ["Soporte prioritario"] },
+      ],
+    },
+  });
+  await page.goto("/#precios");
+  const precios = page.locator("#precios");
+  await expect(precios.getByRole("button", { name: /por mes/ })).toHaveCount(2);
+  // Sin `max_turnos_mes`, la pizarra lo escribe como sin tope.
+  await expect(precios.locator(".landing-pizarra")).toContainText("turnos sin tope");
+  const cajas = await precios.locator(".landing-plato").evaluateAll((platos) =>
+    platos.map((plato) => {
+      const nombre = plato.querySelector(".landing-plato-nombre")!.getBoundingClientRect();
+      const precio = plato.querySelector(".landing-plato-precio")!.getBoundingClientRect();
+      return { nombreAbajo: Math.round(nombre.bottom), precioArriba: Math.round(precio.top) };
+    })
+  );
+  for (const c of cajas) expect(c.precioArriba).toBeGreaterThanOrEqual(c.nombreAbajo);
 });
 
 test("si la API de precios falla, la carta sigue estando (respaldo)", async ({ page }) => {
@@ -173,9 +219,13 @@ test("si la API de precios falla, la carta sigue estando (respaldo)", async ({ p
   const precios = page.locator("#precios");
   await expect(precios).toContainText("$20.000");
   await expect(precios).toContainText("$45.000");
-  // Lo que suma cada plan, y su botón (sin botones del 2026-10-18 al 2026-10-30).
+  // Lo que suma cada plan, los tres platos y el botón del elegido.
   await expect(precios).toContainText("Soporte por email");
-  await expect(precios.getByRole("link", { name: /^Empezar con / })).toHaveCount(3);
+  await expect(precios.getByRole("button", { name: /por mes/ })).toHaveCount(3);
+  await expect(precios.getByRole("link", { name: "Empezar con Básico" })).toHaveAttribute(
+    "href",
+    "/register?rol=comercio&plan=basico"
+  );
 });
 
 test("con el tema oscuro elegido, la landing mantiene su paleta propia", async ({ page }) => {

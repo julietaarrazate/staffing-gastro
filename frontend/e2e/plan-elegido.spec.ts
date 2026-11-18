@@ -141,27 +141,27 @@ test("Empezar con Básico: alta, bienvenida y Mi plan con Básico resaltado", as
   expect(planesRegistrados).toEqual([{ plan_code: "basico" }]);
 });
 
-test("las tres tarjetas de precios tienen su botón alineado abajo", async ({ page }) => {
+test("la carta de precios: se elige otro plato y el botón lleva ese plan", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await skipSplash(page);
   await blockExternalHosts(page);
   await page.route("**/api/v1/**", (route) => route.fulfill(json({}, 404)));
   await page.goto("/#precios");
-  const botones = page.locator("#precios").getByRole("link", { name: /^Empezar con / });
-  await expect(botones).toHaveCount(3);
-  const cajas = await botones.evaluateAll((els) =>
-    els.map((el) => {
-      const r = el.getBoundingClientRect();
-      const tarjeta = el.closest("li")!.getBoundingClientRect();
-      return { arriba: Math.round(r.top), ancho: Math.round(r.width), anchoUtil: Math.round(tarjeta.width - 48) };
-    })
-  );
-  // Misma altura en las tres, aunque cada plan sume distinto; ancho completo.
-  expect(new Set(cajas.map((c) => c.arriba)).size).toBe(1);
-  for (const c of cajas) expect(c.ancho).toBe(c.anchoUtil);
-  // Sin ámbar: ninguno de los tres va en el color de la acción de la app.
-  const fondos = await botones.evaluateAll((els) => els.map((el) => getComputedStyle(el).backgroundColor));
-  expect(fondos).not.toContain("rgb(217, 119, 6)");
+  const precios = page.locator("#precios");
+  // Desde el 2026-11-18 los planes son una carta: tres platos que se eligen
+  // y un solo botón, debajo de la pizarra, del ancho de la pizarra.
+  const boton = precios.getByRole("link", { name: /^Empezar con / });
+  await expect(boton).toHaveCount(1);
+  await precios.getByRole("button", { name: /^Pro/ }).click();
+  await expect(boton).toHaveAccessibleName("Empezar con Pro");
+  await expect(boton).toHaveAttribute("href", "/register?rol=comercio&plan=pro");
+  const anchos = await boton.evaluate((el) => ({
+    boton: Math.round(el.getBoundingClientRect().width),
+    columna: Math.round(el.parentElement!.getBoundingClientRect().width),
+  }));
+  expect(anchos.boton).toBe(anchos.columna);
+  // Sin ámbar: el botón no va en el color de la acción de la app.
+  expect(await boton.evaluate((el) => getComputedStyle(el).backgroundColor)).not.toBe("rgb(217, 119, 6)");
 });
 
 test("con un plan que no existe, Mi plan queda como siempre", async ({ page }) => {
