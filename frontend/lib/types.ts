@@ -130,6 +130,16 @@ export interface Shift {
   event_id: string | null;
   event_name: string | null;
   created_at: string | null;
+  // Turno reofrecido (U080): se reabrió con el horario ya empezado y se
+  // ofrece como urgente hasta `end_at`. Mientras nadie marcó la llegada, el
+  // backend manda el valor por hora (`hourly_pay_amount`); al marcarla queda
+  // fijo `prorated_pay_amount` (sólo lo reciben el comercio dueño y la
+  // persona asignada). Qué mostrar lo decide `payView` (`lib/pay.ts`).
+  reoffered_at?: string | null;
+  hourly_pay_amount?: string | null;
+  prorated_pay_amount?: string | null;
+  /** Cuándo confirmó quien tiene el turno ahora (sólo para las partes). */
+  confirmed_at?: string | null;
   company_name: string | null;
   company_logo_url: string | null;
   /** Foto del local (fachada/salón). Opcional: mocks y respuestas viejas no la traen. */
@@ -253,6 +263,9 @@ export interface ShiftPublic {
   city: string | null;
   pay_amount: string;
   currency: string;
+  /** Turno reofrecido (U080): ver `Shift`. */
+  reoffered_at?: string | null;
+  hourly_pay_amount?: string | null;
   company_name: string | null;
   // Condiciones del turno (van también sin sesión desde 2026-09-22). La
   // dirección exacta, la descripción y el logo siguen fuera.
@@ -516,6 +529,9 @@ export interface AdminUserDetail {
     start_at: string;
     status: string;
     pay_amount: string;
+    /** Lo que se cobra (`Shift.amount_due`): difiere de `pay_amount` en un
+     *  turno reofrecido con la llegada marcada (U080). */
+    amount_due?: string;
     /** La persona de la ficha faltó a este turno (ya no figura asignada). */
     absent?: boolean;
   }[];

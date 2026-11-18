@@ -1,4 +1,5 @@
 import type { Shift, ShiftStatus } from "@/lib/types";
+import { reofferedHint } from "@/lib/turno-reofrecido";
 
 /**
  * Qué tiene que hacer el comercio AHORA con un turno, en una sola acción.
@@ -134,7 +135,16 @@ export function nextStepFor(shift: Shift): NextStep {
   const base = NEXT_STEP[status] ?? { hint: "", action: null };
   const hint = hintWithWorker(status, firstNameOf(shift.worker_name));
   if (base.action === "candidates") {
-    return { ...base, actionLabel: candidatesLabel(shift.pending_applicants_count) };
+    return {
+      ...base,
+      // Turno reofrecido (U080): acá sí hace falta una línea, porque el chip
+      // «Buscando personal» no dice que ya empezó ni hasta cuándo se ofrece.
+      hint:
+        shift.reoffered_at != null && shift.status === "buscando_personal"
+          ? reofferedHint(shift)
+          : base.hint,
+      actionLabel: candidatesLabel(shift.pending_applicants_count),
+    };
   }
   return hint === null ? base : { ...base, hint };
 }

@@ -478,7 +478,8 @@ async def get_shift_public(
     """Sin auth. Tres respuestas:
 
     - **200** mientras el turno está abierto a postulaciones: PUBLICADO o
-      BUSCANDO_PERSONAL (`OPEN_STATUSES`) y con la hora de inicio por delante.
+      BUSCANDO_PERSONAL (`OPEN_STATUSES`) y con la hora de inicio por delante
+      (o, si es un turno reofrecido, U080, mientras le quede horario).
       Es lo mismo que ofrece el Inicio. Hasta el 2026-11-12 sólo respondía en
       PUBLICADO, y un turno reabierto (la persona asignada lo rechazó, se bajó
       o no se presentó) aparecía en el Inicio pero su página no abría.
@@ -520,6 +521,8 @@ async def get_shift_public(
         city=shift.city,
         pay_amount=shift.pay_amount,
         currency=shift.currency,
+        reoffered_at=shift.reoffered_at,
+        hourly_pay_amount=shift.hourly_pay_amount,
         company_name=company.name if company else None,
         tips=shift.tips,
         meal=shift.meal,

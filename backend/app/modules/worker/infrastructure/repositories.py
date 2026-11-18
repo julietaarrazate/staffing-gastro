@@ -132,7 +132,9 @@ class SqlAlchemyWorkerProfileRepository(WorkerProfileRepository):
         model.rating = rating
         await self._session.commit()
 
-    async def record_completed_shift(self, profile_id: UUID, *, punctual: bool) -> None:
+    async def record_completed_shift(
+        self, profile_id: UUID, *, punctual: bool | None
+    ) -> None:
         model = await self._session.get(WorkerProfileModel, profile_id)
         if model is None:
             return
@@ -142,9 +144,17 @@ class SqlAlchemyWorkerProfileRepository(WorkerProfileRepository):
         # cantidad de eventos previos.
         previous_events = model.events_completed
         new_events = previous_events + 1
-        model.punctuality_rate = (
-            model.punctuality_rate * previous_events + (1.0 if punctual else 0.0)
-        ) / new_events
+        # `punctual=None`: el turno se completó pero no tiene hora pactada
+        # contra la cual medir la llegada (lo tomó ya empezado, U080). Suma
+        # como completado y deja la puntualidad como estaba.
+        if punctual is not None:
+            model.punctuality_rate = (
+                model.punctuality_rate * previous_events + (1.0 if punctual else 0.0)
+            ) / new_events
+        elif previous_events == 0:
+            # Primer turno de la persona: sin esto quedaría en 0 % con un
+            # turno hecho, que sí es en contra. No registró llegadas tarde.
+            model.punctuality_rate = 1.0
         model.events_completed = new_events
         self._recompute_badges_and_level(model)
         await self._session.commit()

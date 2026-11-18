@@ -19,12 +19,12 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
 | `new_applicant` | un trabajador se postula a un turno | comercio |
 | `shift_assigned` | el comercio asigna el turno a un trabajador | trabajador |
 | `shift_confirmed` | el trabajador confirma la asistencia | comercio |
-| `shift_rejected` | el trabajador rechaza la asignación | comercio |
+| `shift_rejected` | el trabajador rechaza la asignación. Si el turno ya había empezado, el texto dice que se reofreció (U080, ver «Turno reofrecido») | comercio |
 | `shift_checked_out` | el trabajador marca la salida (check-out) | comercio |
 | `shift_paid` | el comercio marca el turno como pagado | trabajador |
-| `shift_reopened` | el trabajador cancela su asignación ya confirmada ([ADR-0004](../adr/ADR-0004-cancelacion-trabajador-e-insignias.md)), o se suspende la cuenta de la persona asignada o confirmada ([ADR-0024](../adr/ADR-0024-efectos-de-una-suspension.md)); el turno vuelve a buscar personal | comercio |
+| `shift_reopened` | el trabajador cancela su asignación ya confirmada ([ADR-0004](../adr/ADR-0004-cancelacion-trabajador-e-insignias.md)), o se suspende la cuenta de la persona asignada o confirmada ([ADR-0024](../adr/ADR-0024-efectos-de-una-suspension.md)); el turno vuelve a buscar personal. También cuando una persona confirmada **falta** y el turno se reofrece (U080, ver «Turno reofrecido») | comercio |
 | `shift_cancelled_late` | el comercio cancela un turno con el trabajador ya confirmado o en pleno turno (cancelación tardía, [ADR-0007](../adr/ADR-0007-no-show-y-cancelacion-tardia.md)) | trabajador asignado |
-| `shift_no_show` | el comercio marca «No se presentó» (`manual`) o el sistema no vio su llegada pasado el plazo (`automatic`, scheduler de asistencia, [ADR-0008](../adr/ADR-0008-asistencia-simplificada-y-no-show-automatico.md)); el turno vuelve a buscar personal | trabajador ausente (el comercio no recibe aviso de este tipo); abre `/profile` |
+| `shift_no_show` | el comercio marca «No se presentó» (`manual`) o el sistema no vio su llegada pasado el plazo (`automatic`, scheduler de asistencia, [ADR-0008](../adr/ADR-0008-asistencia-simplificada-y-no-show-automatico.md)); el turno vuelve a buscar personal | trabajador ausente (el comercio recibe el suyo como `shift_reopened` o `shift_not_covered`, ver «Turno reofrecido»); abre `/profile` |
 | `shift_cancelled` | el comercio cancela un turno asignado que el trabajador todavía no había confirmado, o el turno se cancela porque se suspendió la cuenta del comercio ([ADR-0024](../adr/ADR-0024-efectos-de-una-suspension.md)) | trabajador asignado |
 | `applied_shift_cancelled` | el comercio cancela un turno con postulaciones pendientes | cada persona con la postulación pendiente |
 | `applications_withdrawn` | el trabajador confirma un turno y la app retira sus postulaciones pendientes a turnos del mismo horario (U123). Un solo aviso por confirmación; abre `/my-shifts`. Push con la política por defecto | el trabajador que confirmó |
@@ -43,20 +43,40 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
   - Manual: título «Te marcaron como no presentado»; texto «El comercio marcó
     que no te presentaste al turno "X". Esto impacta tu reputación. Si fue un
     error, escribinos desde Soporte.»
-  - El comercio no recibe un aviso propio de la ausencia (decisión G3). Si tras
-    la ausencia el turno termina en «no cubierto» (`shift_not_covered`), su
-    aviso dice la verdad: «"X" quedó sin cubrir: una persona confirmada no se
-    presentó y no se consiguió reemplazo a tiempo. Podés publicarlo de nuevo.»
-    (mismo título, tipo y destinatario). Vale en todos los caminos con ausencia
-    (`no_show_at` no se limpia): sin reemplazo, o con un reemplazo que no
-    confirmó o canceló. Sin ausencia previa queda el de siempre: «Se agotó el
-    tiempo para cubrir "X" sin que nadie confirmara. Podés publicarlo de nuevo.»
-    Si tras la ausencia el turno se vuelve a cubrir, no hay texto que corregir.
-  - En el perfil propio, con al menos una ausencia o cancelación se ve «¿Alguna
-    no corresponde? Escribinos a Soporte» (link a `/support`).
-- **Por usuario:** cada notificación pertenece a un usuario; sólo él la ve.
-- **Entrega en tiempo real:** se empujan por **WebSocket** (`/notifications/ws`);
-  si el usuario no está conectado, quedan para consultarse.
+  - **El comercio recibe un aviso propio desde U080** (2026-11-18; antes no,
+    decisión G3): ver «Turno reofrecido» abajo.
+- **Turno reofrecido (U080, [ADR-0015](../adr/ADR-0015-turno-no-cubierto.md)).**
+  Cuando quien tenía un turno lo deja con el horario ya empezado:
+  - **Al comercio, un solo aviso por reapertura**, que dice qué pasó y qué
+    sigue. Si se reofreció (quedan al menos 2 horas), con el tipo de siempre
+    (`shift_reopened`; `shift_rejected` si fue un rechazo) y link a
+    `/shifts/<id>/candidates`: «<qué pasó> Como ya había empezado, lo
+    reofrecimos como urgente hasta las HH:MM; se paga lo que reste desde que
+    llegue el reemplazo.» La hora es hasta cuándo se ofrece: 2 horas antes
+    del fin del horario. Qué pasó: «No registramos la llegada de <nombre> a
+    "X".» (ausencia automática, título «No registramos la llegada a tu
+    turno»), «Marcaste que <nombre> no se presentó a "X".» (ausencia manual,
+    título «Reofrecimos tu turno como urgente»), o el texto de la cancelación
+    o del rechazo. El nombre es el de la persona que el comercio ya ve en su
+    panel.
+  - Si no quedaban 2 horas, el único aviso es `shift_not_covered`: «"X" quedó
+    sin cubrir: <motivo> y quedan menos de 2 horas de horario, así que no lo
+    reofrecimos. Podés publicarlo de nuevo.»
+  - **A quienes están cerca** (`urgent_shift_nearby`, el círculo de la
+    escalada y los favoritos; no a quien ya tuvo ese turno y lo dejó): título
+    «¡Urgente! <puesto> para ahora, cerca tuyo»; texto «<comercio> necesita
+    cubrir <puesto> ya: el turno empezó y va hasta las HH:MM. Paga $X por
+    hora, desde que llegás. Postulate ahora.» Abre `/turno/<id>`. Uno por
+    reapertura; la escalada no lo repite.
+  - Si al turno reofrecido le quedan menos de 2 horas y nadie confirmó
+    (`shift_not_covered`): «"X" quedó sin cubrir: lo reofrecimos como urgente
+    y no se consiguió reemplazo a tiempo. Podés publicarlo de nuevo.»
+  - Un turno que quedó reabierto por una ausencia **antes** de este cambio (sin
+    la marca de reofrecido) conserva el texto anterior: «"X" quedó sin
+    cubrir: una persona confirmada no se presentó y no se consiguió reemplazo
+    a tiempo. Podés publicarlo de nuevo.» Sin ausencia previa queda el de
+    siempre: «Se agotó el tiempo para cubrir "X" sin que nadie confirmara.
+    Podés publicarlo de nuevo.»
 - **Leídas/no leídas:** se marcan de a una al tocarlas, o todas juntas con
   "Marcar todas como leídas" en el panel de la campanita
   (`POST /notifications/read-all`).

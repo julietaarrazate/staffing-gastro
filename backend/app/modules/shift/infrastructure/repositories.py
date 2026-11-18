@@ -14,7 +14,7 @@ from sqlalchemy.orm.exc import StaleDataError
 from app.modules.company.infrastructure.models import CompanyProfileModel
 from app.modules.identity.domain.value_objects import UserStatus
 from app.modules.identity.infrastructure.models import UserModel
-from app.modules.shift.domain.entities import Shift
+from app.modules.shift.domain.entities import REOFFER_MIN_REMAINING, Shift
 from app.modules.shift.domain.exceptions import ShiftConcurrentModificationError
 from app.modules.shift.domain.pay_benchmark import hourly_rate
 from app.modules.shift.domain.repositories import (
@@ -112,6 +112,9 @@ def _to_entity(model: ShiftModel) -> Shift:
         first_assigned_at=model.first_assigned_at,
         first_confirmed_at=model.first_confirmed_at,
         escalated_at=model.escalated_at,
+        reoffered_at=model.reoffered_at,
+        confirmed_at=model.confirmed_at,
+        prorated_pay_amount=model.prorated_pay_amount,
         created_at=model.created_at,
         updated_at=model.updated_at,
         version=model.version,
@@ -157,6 +160,9 @@ def _apply_fields(model: ShiftModel, shift: Shift) -> None:
     model.first_assigned_at = shift.first_assigned_at
     model.first_confirmed_at = shift.first_confirmed_at
     model.escalated_at = shift.escalated_at
+    model.reoffered_at = shift.reoffered_at
+    model.confirmed_at = shift.confirmed_at
+    model.prorated_pay_amount = shift.prorated_pay_amount
 
 
 def _from_active_company():
@@ -376,10 +382,14 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         window_start = window_start.astimezone(timezone.utc)
         window_end = window_end.astimezone(timezone.utc)
         in_window = (ShiftModel.start_at >= window_start) & (ShiftModel.start_at < window_end)
+        # Lo que se paga por el turno: el monto prorrateado si es un turno
+        # reofrecido (U080), si no el publicado. Es el espejo en SQL de
+        # `Shift.amount_due` (la referencia): si cambia esa regla, cambia acá.
+        due = func.coalesce(ShiftModel.prorated_pay_amount, ShiftModel.pay_amount)
         stmt = select(
-            func.sum(ShiftModel.pay_amount),
+            func.sum(due),
             func.count(ShiftModel.id),
-            func.sum(case((in_window, ShiftModel.pay_amount))),
+            func.sum(case((in_window, due))),
         ).where(
             ShiftModel.worker_profile_id == worker_profile_id,
             ShiftModel.status.in_([s.value for s in statuses]),
@@ -587,7 +597,18 @@ class SqlAlchemyShiftRepository(ShiftRepository):
             # sea correcta. Dejar que cada motor calcule su propio "ahora"
             # evita el mismatch naive/aware entre SQLite (tests) y Postgres
             # (producción) que la comparación en Python evita de otra forma.
-            ShiftModel.start_at > func.now(),
+            #
+            # La excepción es el turno reofrecido (U080): se reabrió con el
+            # horario ya empezado y se ofrece mientras le queden al menos
+            # `REOFFER_MIN_REMAINING` de horario. Es la misma regla que
+            # `Shift.is_open_for_applications` (`offered_until`). El límite va
+            # como parámetro en UTC (la suma de un intervalo a `now()` es
+            # distinta en cada motor), igual que los de `sum_worker_earnings`.
+            or_(
+                ShiftModel.start_at > func.now(),
+                ShiftModel.reoffered_at.is_not(None)
+                & (ShiftModel.end_at > datetime.now(timezone.utc) + REOFFER_MIN_REMAINING),
+            ),
         )
         if city is not None:
             stmt = stmt.where(func.lower(ShiftModel.city) == city.lower())

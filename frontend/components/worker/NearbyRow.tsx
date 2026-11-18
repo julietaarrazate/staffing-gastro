@@ -5,8 +5,8 @@ import { memo, useState } from "react";
 import { SKILL_LABELS, Shift } from "@/lib/types";
 import { SKILL_ACCENT } from "@/lib/skill-style";
 import { cldThumb } from "@/lib/cloudinary";
-import { formatShiftWhen } from "@/lib/datetime";
-import { formatPayAmount } from "@/lib/pay";
+import { formatShiftWhenLive } from "@/lib/datetime";
+import { formatPayCompact } from "@/lib/pay";
 import { formatDistance } from "@/lib/format";
 import { ChevronRightIcon, FlameIcon, ShieldIcon } from "@/components/icons";
 import { shiftHeroPhoto } from "@/lib/company-photo";
@@ -77,10 +77,10 @@ function NearbyItem({ shift, distanceKm }: { shift: Shift; distanceKm: number | 
                 <FlameIcon size={11} /> Urgente
               </span>
             )}
-            <span>{formatShiftWhen(shift.start_at, shift.end_at)}</span>
+            <span>{formatShiftWhenLive(shift)}</span>
           </span>
         </span>
-        <span className="text-body font-bold tabular-nums text-ink">{formatPayAmount(shift)}</span>
+        <span className="text-body font-bold tabular-nums text-ink">{formatPayCompact(shift)}</span>
       </Link>
     </li>
   );

@@ -187,6 +187,22 @@ export function formatShiftWhen(startIso: string, endIso: string, now: Date = ne
 }
 
 /**
+ * El horario de una tarjeta, sabiendo si el turno es uno reofrecido que
+ * todavía se puede tomar (U080, lo marca `hourly_pay_amount`): ese ya empezó,
+ * así que "Hoy · 20:00 – 23:00" invita a algo que ya pasó. Dice "Ya empezó ·
+ * hasta las 23:00". Para cualquier otro turno es `formatShiftWhen`.
+ */
+export function formatShiftWhenLive(
+  shift: { start_at: string; end_at: string; hourly_pay_amount?: string | null },
+  now: Date = new Date()
+): string {
+  if (shift.hourly_pay_amount != null) {
+    return `Ya empezó · hasta las ${formatShiftTime(shift.end_at)}`;
+  }
+  return formatShiftWhen(shift.start_at, shift.end_at, now);
+}
+
+/**
  * Cuándo empieza el turno, para una frase: "hoy a las 20:00", "mañana a las
  * 20:00" o "el sábado 27/9 a las 20:00". Hora de Argentina, 24 h.
  */

@@ -14,8 +14,8 @@ import {
   RouteIcon,
   ShieldIcon,
 } from "@/components/icons";
-import { formatAgo, formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
-import { formatPayAmount } from "@/lib/pay";
+import { formatAgo, formatDuration, formatShiftWhen, formatShiftWhenLive, shiftDurationMinutes } from "@/lib/datetime";
+import { payView } from "@/lib/pay";
 import { effectiveStatus } from "@/lib/shift-next-step";
 import { cldThumb } from "@/lib/cloudinary";
 import { downloadShiftIcs } from "@/lib/calendar";
@@ -337,9 +337,30 @@ export default function ShiftCard({
             <p className={comanda ? "text-label font-semibold text-ink-soft" : "font-mono text-label font-bold uppercase tracking-wide text-ink/45"}>
               Pago
             </p>
-            <p className="text-price font-extrabold tracking-tight text-ink">
-              {formatPayAmount(shift)}
-            </p>
+            {(() => {
+              // Turno reofrecido (U080): por hora hasta que llega el
+              // reemplazo, y desde ahí el monto que quedó fijo.
+              const pay = payView(shift);
+              return (
+                <>
+                  <p className="text-price font-extrabold tracking-tight text-ink">
+                    {pay.amount}
+                    {pay.suffix && (
+                      <span className="ml-1.5 text-body font-bold tracking-normal text-ink/70">
+                        {pay.suffix}
+                      </span>
+                    )}
+                  </p>
+                  {pay.note && (
+                    <p className="text-xs font-medium text-ink/60">
+                      {pay.kind === "por_hora" && perspective === "employer"
+                        ? "Se paga lo que reste desde que llegue el reemplazo"
+                        : pay.note}
+                    </p>
+                  )}
+                </>
+              );
+            })()}
           </div>
           {(shift.tips || shift.meal) && (
             <div className="flex flex-wrap gap-1.5">
@@ -407,8 +428,16 @@ export default function ShiftCard({
         <p className="mt-3 flex items-center gap-1.5 text-sm text-ink/80">
           <ClockIcon size={15} className="shrink-0 text-ink/50" />
           <span>
-            {formatShiftWhen(shift.start_at, shift.end_at)}
-            {durationMin != null && <span className="text-ink/45"> · {formatDuration(durationMin)}</span>}
+            {/* A quien va a trabajar un turno reofrecido se le dice que ya
+                empezó; el comercio sigue viendo su horario. */}
+            {perspective === "worker"
+              ? formatShiftWhenLive(shift)
+              : formatShiftWhen(shift.start_at, shift.end_at)}
+            {/* «Ya empezó · hasta las 23:00 · 4 h» mentiría: ya no son 4 h. */}
+            {durationMin != null &&
+              !(perspective === "worker" && shift.hourly_pay_amount != null) && (
+                <span className="text-ink/45"> · {formatDuration(durationMin)}</span>
+              )}
           </span>
         </p>
 

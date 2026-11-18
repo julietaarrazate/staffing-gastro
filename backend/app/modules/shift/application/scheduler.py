@@ -100,8 +100,7 @@ from app.modules.shift.application.services import (
     CHECKIN_REMINDER_DELAY,
     DEPARTURE_REMINDER_LEAD,
     ESCALATION_DELAY,
-    NOT_COVERED_GRACE_NORMAL,
-    NOT_COVERED_GRACE_URGENT,
+    coverage_deadline,
     NO_SHOW_GRACE_PERIOD,
     ShiftService,
 )
@@ -215,9 +214,14 @@ async def run_attendance_check() -> datetime | None:
         next_deadline: datetime | None = None
         for shift in shifts:
             start = _naive(shift.start_at)
-            reminder_at = start + CHECKIN_REMINDER_DELAY
-            no_show_at = start + NO_SHOW_GRACE_PERIOD
-            elapsed = now - start
+            # Desde cuándo se espera a la persona: el inicio o, si confirmó
+            # con el turno ya empezado (el reemplazo de un turno reofrecido,
+            # U080), el momento en que confirmó. A quien lo toma a las 21:10
+            # no se le cuenta la ausencia desde las 20:00.
+            expected = _naive(shift.expected_from)
+            reminder_at = expected + CHECKIN_REMINDER_DELAY
+            no_show_at = expected + NO_SHOW_GRACE_PERIOD
+            elapsed = now - expected
             if elapsed < timedelta(0):
                 # Todavía no empezó: lo único que puede tocarle es el
                 # recordatorio de salida ("va en camino"), y sólo si no lo
@@ -303,15 +307,15 @@ async def run_coverage_check() -> datetime | None:
     (`NOT_COVERED_GRACE_URGENT`) si el turno era urgente —el comercio
     necesita saber rápido si quedó sin cubrir—, normal
     (`NOT_COVERED_GRACE_NORMAL`, mismo valor que `NO_SHOW_GRACE_PERIOD`) si
-    no."""
+    no. Un turno reofrecido (U080) se espera mientras le queden 2 horas de
+    horario (`offered_until`, ver `coverage_deadline`)."""
     async with AsyncSessionLocal() as session:
         service = _build_service(session)
         now = _naive(datetime.now(timezone.utc))
         shifts = await service.list_shifts_awaiting_coverage_check()
         next_deadline: datetime | None = None
         for shift in shifts:
-            grace = NOT_COVERED_GRACE_URGENT if shift.urgent else NOT_COVERED_GRACE_NORMAL
-            deadline = _naive(shift.start_at) + grace
+            deadline = coverage_deadline(shift)
             if now >= deadline:
                 await _act(service.mark_not_covered, shift.id)
             else:

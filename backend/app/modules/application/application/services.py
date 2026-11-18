@@ -1,6 +1,7 @@
 """Casos de uso del módulo application (postulación del trabajador a un turno)."""
 
 import logging
+from datetime import datetime, timezone
 from uuid import UUID
 
 from app.modules.application.domain.entities import EnrichedApplicant, ShiftApplication
@@ -65,6 +66,14 @@ class ApplicationService:
         decide si lo vuelve a elegir."""
         shift = await self._shifts.get_by_id(shift_id)
         if shift is None or shift.status not in OPEN_STATUSES:
+            raise ShiftNotApplicableError(str(shift_id))
+        if shift.is_reoffered and not shift.is_open_for_applications(
+            datetime.now(timezone.utc)
+        ):
+            # Turno reofrecido (U080): se ofrece mientras le queden al menos 2
+            # horas de horario (`Shift.offered_until`). Desde ahí, y hasta la
+            # pasada que lo cierra como «no cubierto», ya no acepta
+            # postulaciones.
             raise ShiftNotApplicableError(str(shift_id))
         company = await self._companies.get_by_id(shift.company_id)
         if not await self._account_active(company.user_id if company else None):

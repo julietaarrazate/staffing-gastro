@@ -4,11 +4,11 @@ import Link from "next/link";
 import { useState } from "react";
 import { SKILL_LABELS, Shift } from "@/lib/types";
 import { SKILL_ACCENT, SKILL_HERO_TONE, heroInk } from "@/lib/skill-style";
-import { formatMoney, formatPayAmount, payPerHour } from "@/lib/pay";
+import { formatMoney, payPerHour, payView } from "@/lib/pay";
 import { Avatar, Badge } from "@/components/ui";
 import { CheckIcon, ClockIcon, CloseIcon, FlameIcon, MapPinIcon, RouteIcon, ShareIcon, ShieldIcon } from "@/components/icons";
 import { shareShift } from "@/lib/shift-share";
-import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
+import { formatDuration, formatShiftWhenLive, shiftDurationMinutes } from "@/lib/datetime";
 import { cldThumb } from "@/lib/cloudinary";
 import { Button } from "@/components/ui";
 import SaveShiftButton from "@/components/worker/SaveShiftButton";
@@ -76,6 +76,7 @@ export default function OpportunityCard({
   const ink = heroInk(shift.position, hasPhoto);
   const minutes = shiftDurationMinutes(shift.start_at, shift.end_at);
   const perHour = payPerHour(shift);
+  const pay = payView(shift);
   const hasDirections = shift.latitude != null && shift.longitude != null;
 
   return (
@@ -265,11 +266,22 @@ export default function OpportunityCard({
             la fase N; el tamaño (`text-price`) es lo que lo hace dominar. */}
         <div>
           <p className="text-label font-bold uppercase tracking-wide text-ink/40">Pago</p>
-          <p className="text-price font-extrabold tracking-tight text-ink">{formatPayAmount(shift)}</p>
-          {perHour && (
-            <p className="text-xs font-medium text-ink/50">
-              ≈ {formatMoney(perHour, shift.currency)} por hora
-            </p>
+          <p className="text-price font-extrabold tracking-tight text-ink">
+            {pay.amount}
+            {pay.suffix && (
+              <span className="ml-1.5 text-body font-bold tracking-normal text-ink/70">{pay.suffix}</span>
+            )}
+          </p>
+          {/* Turno reofrecido (U080): el número ya es por hora; la línea dice
+              por qué. En los demás, el pago por hora de siempre. */}
+          {pay.note ? (
+            <p className="text-xs font-medium text-ink/60">{pay.note}</p>
+          ) : (
+            perHour && (
+              <p className="text-xs font-medium text-ink/50">
+                ≈ {formatMoney(perHour, shift.currency)} por hora
+              </p>
+            )
           )}
         </div>
 
@@ -277,8 +289,10 @@ export default function OpportunityCard({
           <p className="flex items-center gap-2">
             <ClockIcon size={18} className="shrink-0 text-ink/35" />
             <span>
-              {formatShiftWhen(shift.start_at, shift.end_at)}
-              {minutes != null && <span className="text-ink/45"> · {formatDuration(minutes)}</span>}
+              {formatShiftWhenLive(shift)}
+              {minutes != null && pay.kind !== "por_hora" && (
+                <span className="text-ink/45"> · {formatDuration(minutes)}</span>
+              )}
             </span>
           </p>
         </div>

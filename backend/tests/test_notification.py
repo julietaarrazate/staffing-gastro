@@ -3,6 +3,7 @@
 import pytest
 from httpx import AsyncClient
 
+from tests._turno_empezado import correr_reloj_del_turno
 from tests.conftest import auth_headers, make_admin
 
 
@@ -138,6 +139,9 @@ async def test_reject_notifies_company(client: AsyncClient):
         headers=employer_headers,
         json={"worker_profile_id": worker_profile_id},
     )
+    # El rechazo tiene que caer antes del inicio: con el horario ya terminado
+    # el turno pasa a «no cubierto» y el aviso es otro (U080).
+    await correr_reloj_del_turno(shift_id, -(60 * 24 * 365))
     await client.post(f"/api/v1/shifts/{shift_id}/reject", headers=worker_headers)
 
     notifications = await client.get("/api/v1/notifications", headers=employer_headers)

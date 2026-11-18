@@ -172,7 +172,10 @@ class AdminShiftRow:
     position: str
     start_at: datetime
     status: str
+    # El monto publicado y lo que se cobra (`Shift.amount_due`): difieren en
+    # un turno reofrecido con la llegada del reemplazo marcada (U080).
     pay_amount: Decimal
+    amount_due: Decimal
     # La persona de la ficha faltó a este turno (ya no figura como asignada).
     absent: bool = False
 

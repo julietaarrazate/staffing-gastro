@@ -20,6 +20,7 @@ Mismo patrón que test_scheduler.py: usa `AsyncSessionLocal` directo
 """
 
 from datetime import datetime, timedelta, timezone
+from uuid import UUID
 
 import pytest
 from httpx import AsyncClient
@@ -29,6 +30,8 @@ from app.modules.shift.application.services import (
     NOT_COVERED_GRACE_NORMAL,
     NOT_COVERED_GRACE_URGENT,
 )
+from app.modules.shift.domain.entities import REOFFER_MIN_REMAINING
+from app.modules.shift.infrastructure.models import ShiftModel
 from tests.conftest import auth_headers
 from tests.test_attendance import _shift_payload
 
@@ -195,11 +198,16 @@ async def test_published_never_assigned_expires_to_not_covered(client, session_f
     assert any(n["type"] == "shift_not_covered" for n in notifications.json())
 
 
-# --- Texto del aviso tras una ausencia (U082) ------------------------------
+# --- Tras una ausencia: el turno se reofrece (U082, U080) -------------------
+#
+# Hasta U080 un turno reabierto por una ausencia quedaba fuera del feed (ya
+# había empezado) y la pasada de cobertura lo cerraba enseguida. Ahora se
+# reofrece como urgente mientras le queden 2 horas de horario, y recién ahí
+# pasa a «no cubierto», con un texto que cuenta lo que pasó.
 
-TEXTO_TRAS_AUSENCIA = (
-    "quedó sin cubrir: una persona confirmada no se presentó y no se consiguió "
-    "reemplazo a tiempo. Podés publicarlo de nuevo."
+TEXTO_REOFRECIDO_SIN_REEMPLAZO = (
+    "quedó sin cubrir: lo reofrecimos como urgente y no se consiguió reemplazo "
+    "a tiempo. Podés publicarlo de nuevo."
 )
 
 
@@ -210,7 +218,21 @@ def _aviso_no_cubierto(notifications) -> dict:
     return avisos[0]
 
 
-async def test_not_covered_after_automatic_no_show_says_what_happened(
+async def _quedan_menos_de_dos_horas(session_factory, shift_id: str) -> None:
+    """Hace de cuenta que al turno le quedan 1 h 59 de horario: menos de lo
+    que hace falta para seguir ofreciéndolo (`REOFFER_MIN_REMAINING`)."""
+    async with session_factory() as session:
+        model = await session.get(ShiftModel, UUID(shift_id))
+        assert model is not None
+        duracion = model.end_at - model.start_at
+        model.end_at = (
+            datetime.now(timezone.utc) + REOFFER_MIN_REMAINING - timedelta(minutes=1)
+        )
+        model.start_at = model.end_at - duracion
+        await session.commit()
+
+
+async def test_automatic_no_show_reoffers_and_closes_with_less_than_two_hours_left(
     client, session_factory, monkeypatch
 ):
     monkeypatch.setattr(scheduler, "AsyncSessionLocal", session_factory)
@@ -220,19 +242,33 @@ async def test_not_covered_after_automatic_no_show_says_what_happened(
     )
 
     await scheduler.run_attendance_check()  # ausencia automática: reabre el turno
+    await scheduler.run_coverage_check()  # le quedan casi 3 horas: no lo cierra
+
+    shift = (await client.get(f"/api/v1/shifts/{shift_id}", headers=employer_headers)).json()
+    assert shift["status"] == "buscando_personal"
+    assert shift["reoffered_at"] is not None
+    assert shift["urgent"] is True
+    avisos = (await client.get("/api/v1/notifications", headers=employer_headers)).json()
+    assert not any(n["type"] == "shift_not_covered" for n in avisos)
+    [reabierto] = [n for n in avisos if n["type"] == "shift_reopened"]
+    assert reabierto["title"] == "No registramos la llegada a tu turno"
+    assert "lo reofrecimos como urgente hasta las" in reabierto["message"]
+    assert "se paga lo que reste desde que llegue el reemplazo" in reabierto["message"]
+
+    await _quedan_menos_de_dos_horas(session_factory, shift_id)
     await scheduler.run_coverage_check()
 
     shift = await client.get(f"/api/v1/shifts/{shift_id}", headers=employer_headers)
     assert shift.json()["status"] == "no_cubierto"
     aviso = _aviso_no_cubierto(await client.get("/api/v1/notifications", headers=employer_headers))
-    assert aviso["message"].endswith(TEXTO_TRAS_AUSENCIA)
+    assert aviso["message"].endswith(TEXTO_REOFRECIDO_SIN_REEMPLAZO)
     assert "nadie confirmara" not in aviso["message"]
     # El trabajador sólo tiene su aviso de ausencia, nada de «no cubierto».
     worker_notifs = await client.get("/api/v1/notifications", headers=worker_headers)
     assert not any(n["type"] == "shift_not_covered" for n in worker_notifs.json())
 
 
-async def test_not_covered_after_manual_no_show_says_what_happened(
+async def test_manual_no_show_reoffers_and_closes_with_less_than_two_hours_left(
     client, session_factory, monkeypatch
 ):
     monkeypatch.setattr(scheduler, "AsyncSessionLocal", session_factory)
@@ -242,11 +278,20 @@ async def test_not_covered_after_manual_no_show_says_what_happened(
     )
     marked = await client.post(f"/api/v1/shifts/{shift_id}/no-show", headers=employer_headers)
     assert marked.status_code == 200
+    assert marked.json()["status"] == "buscando_personal"
+    assert marked.json()["reoffered_at"] is not None
 
+    await scheduler.run_coverage_check()
+    avisos = (await client.get("/api/v1/notifications", headers=employer_headers)).json()
+    assert not any(n["type"] == "shift_not_covered" for n in avisos)
+    [reabierto] = [n for n in avisos if n["type"] == "shift_reopened"]
+    assert reabierto["message"].startswith("Marcaste que ")
+
+    await _quedan_menos_de_dos_horas(session_factory, shift_id)
     await scheduler.run_coverage_check()
 
     aviso = _aviso_no_cubierto(await client.get("/api/v1/notifications", headers=employer_headers))
-    assert aviso["message"].endswith(TEXTO_TRAS_AUSENCIA)
+    assert aviso["message"].endswith(TEXTO_REOFRECIDO_SIN_REEMPLAZO)
     worker_notifs = await client.get("/api/v1/notifications", headers=worker_headers)
     assert not any(n["type"] == "shift_not_covered" for n in worker_notifs.json())
 
@@ -281,13 +326,20 @@ async def test_not_covered_after_no_show_and_replacement_who_cancelled(
     assert (await client.post(f"/api/v1/shifts/{shift_id}/confirm", headers=b_headers)).status_code == 200
     cancelled = await client.post(f"/api/v1/shifts/{shift_id}/worker-cancel", headers=b_headers)
     assert cancelled.status_code == 200
+    # Se reofrece otra vez (ciclo nuevo): le sigue quedando horario.
+    assert cancelled.json()["status"] == "buscando_personal"
 
+    await scheduler.run_coverage_check()
+    shift = await client.get(f"/api/v1/shifts/{shift_id}", headers=employer_headers)
+    assert shift.json()["status"] == "buscando_personal"
+
+    await _quedan_menos_de_dos_horas(session_factory, shift_id)
     await scheduler.run_coverage_check()
 
     shift = await client.get(f"/api/v1/shifts/{shift_id}", headers=employer_headers)
     assert shift.json()["status"] == "no_cubierto"
     aviso = _aviso_no_cubierto(await client.get("/api/v1/notifications", headers=employer_headers))
-    assert aviso["message"].endswith(TEXTO_TRAS_AUSENCIA)
+    assert aviso["message"].endswith(TEXTO_REOFRECIDO_SIN_REEMPLAZO)
 
 
 async def test_not_covered_after_no_show_and_replacement_never_confirmed(
@@ -297,12 +349,18 @@ async def test_not_covered_after_no_show_and_replacement_never_confirmed(
         client, session_factory, monkeypatch, 2
     )
 
+    # Asignado sin confirmar, reofrecido: se espera hasta el final del horario.
+    await scheduler.run_coverage_check()
+    shift = await client.get(f"/api/v1/shifts/{shift_id}", headers=employer_headers)
+    assert shift.json()["status"] == "asignado"
+
+    await _quedan_menos_de_dos_horas(session_factory, shift_id)
     await scheduler.run_coverage_check()
 
     shift = await client.get(f"/api/v1/shifts/{shift_id}", headers=employer_headers)
     assert shift.json()["status"] == "no_cubierto"
     aviso = _aviso_no_cubierto(await client.get("/api/v1/notifications", headers=employer_headers))
-    assert aviso["message"].endswith(TEXTO_TRAS_AUSENCIA)
+    assert aviso["message"].endswith(TEXTO_REOFRECIDO_SIN_REEMPLAZO)
 
 
 async def test_not_covered_without_prior_no_show_keeps_the_usual_text(

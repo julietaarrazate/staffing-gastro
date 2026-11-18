@@ -184,4 +184,4 @@ cancelación unilateral.
 
 ## Actualización 2026-11-13 (#550)
 
-El no-show manual sólo se puede marcar desde 15 minutos después del inicio del turno (`Shift.no_show()`); antes responde 400 con la hora en que se habilita. La ausencia automática (ADR-0008) no cambia. Consecuencia: un turno reabierto por ausencia siempre ya empezó, así que no vuelve al feed (ADR-0015); re-ofrecerlo es una decisión pendiente (hallazgo U080).
+El no-show manual sólo se puede marcar desde 15 minutos después del inicio del turno (`Shift.no_show()`); antes responde 400 con la hora en que se habilita. La ausencia automática (ADR-0008) no cambia. Consecuencia: un turno reabierto por ausencia siempre ya empezó. Desde el 2026-11-18 (U080) se reofrece como urgente si le quedan al menos 2 horas (y se ofrece hasta que le quedan menos de 2), y con menos pasa a «no cubierto» ([ADR-0015](./ADR-0015-turno-no-cubierto.md), actualización de ese día).

@@ -18,10 +18,10 @@ import { SKILL_LABELS, Shift, ShiftApplication, WorkerProfile } from "@/lib/type
 import { SKILL_ACCENT, SKILL_RAIL_BORDER, heroTile } from "@/lib/skill-style";
 import { Button, EmptyState, Sheet, Skeleton, useToast } from "@/components/ui";
 import { BikeIcon, CalendarIcon, CarIcon, FlameIcon, FootprintsIcon, MapPinIcon, UsersIcon, WalletIcon } from "@/components/icons";
-import { formatShiftRange } from "@/lib/datetime";
+import { formatShiftRange, formatShiftTime } from "@/lib/datetime";
 import MapSheet from "@/components/worker/MapSheet";
 import ConfirmOverlay from "@/components/ui/ConfirmOverlay";
-import { formatPayAmount } from "@/lib/pay";
+import { formatPayAmount, formatPayCompact, payView } from "@/lib/pay";
 import { formatDistance, plural } from "@/lib/format";
 
 const ShiftMap = dynamic(() => import("@/components/worker/ShiftMap"), {
@@ -144,7 +144,7 @@ function ShiftRow({
       </div>
       <div className="mt-2.5 flex items-end justify-between gap-2">
         <p className="text-base font-extrabold text-primary-text">
-          {formatPayAmount(shift)}
+          {formatPayCompact(shift)}
         </p>
         <p className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-ink/50">
           <MapPinIcon size={12} />
@@ -702,17 +702,21 @@ export default function MapPage() {
                     <WalletIcon size={18} />
                   </span>
                   <p className="font-display text-price font-extrabold tracking-tight text-white">
-                    {formatPayAmount(shift)}
+                    {payView(shift).amount}
                   </p>
                   <p className="mt-1 text-label font-bold font-mono uppercase tracking-wide text-manteca">
-                    Pago ofrecido{shift.tips ? " + propinas" : ""}{shift.meal ? " + comida" : ""}
+                    {/* Turno reofrecido (U080): el número es por hora. */}
+                    {payView(shift).kind === "por_hora" ? "Por hora, desde que llegás" : "Pago ofrecido"}
+                    {shift.tips ? " + propinas" : ""}{shift.meal ? " + comida" : ""}
                   </p>
                 </div>
 
                 <div className="mt-4 space-y-2.5 text-body text-ink/80">
                   <p className="inline-flex items-center gap-2">
                     <CalendarIcon size={18} className="text-ink/35" />
-                    {formatShiftRange(shift.start_at, shift.end_at)}
+                    {payView(shift).kind === "por_hora"
+                      ? `Ya empezó · hasta las ${formatShiftTime(shift.end_at)}`
+                      : formatShiftRange(shift.start_at, shift.end_at)}
                   </p>
                   <p className="inline-flex items-center gap-2">
                     <UsersIcon size={18} className="text-ink/35" />

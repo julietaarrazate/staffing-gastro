@@ -243,6 +243,7 @@ class AdminService:
                     start_at=s.start_at,
                     status=s.status.value,
                     pay_amount=s.pay_amount,
+                    amount_due=s.amount_due,
                     # `mark_not_covered()` también guarda quién estaba asignado
                     # sin confirmar (no faltó): en NO_CUBIERTO el campo es
                     # ambiguo, así que ahí no se acusa y la ficha muestra el

@@ -14,7 +14,7 @@ import { getErrorMessage, isNotFound } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { STATUS_LABELS as SHIFT_STATUS_LABELS, SKILL_LABELS } from "@/lib/types";
 import type { AdminUserDetail, ShiftStatus, SuspensionPreview, WorkerSkill } from "@/lib/types";
-import { formatArs } from "@/lib/format";
+import { formatAmountDue } from "@/lib/pay";
 import { formatShiftDate } from "@/lib/datetime";
 import { formatPunctuality, formatRateOrNone, formatRatingOrNone, hasPaymentRate, levelLabel } from "@/lib/reputation";
 import {
@@ -368,7 +368,7 @@ export default function AdminPersonPage() {
                   <div className="min-w-0">
                     <p className="truncate font-medium text-ink">{s.title || skillLabel(s.position)}</p>
                     <p className="text-xs text-ink/50">
-                      {formatShiftDate(s.start_at)} · {formatArs(s.pay_amount)}
+                      {formatShiftDate(s.start_at)} · {formatAmountDue(s)}
                     </p>
                   </div>
                   {s.absent ? (
