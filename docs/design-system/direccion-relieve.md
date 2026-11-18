@@ -121,9 +121,18 @@ El híbrido parte de la landing de hoy, sección por sección y con sus textos
 (`HeroRueda`, `Comanda`, `MapaCamino`, `Precios`, `ParaTrabajar`, `Preguntas`,
 `Cierre`), y cambia sólo esto:
 
-- **Títulos en brocha**, en mayúsculas y azul de la marca; la palabra que
-  cambia sigue en ámbar. Interruptor contra Cartel y Young Serif (la de hoy).
-- **El isotipo «grito y respuesta»** junto al «oído» del encabezado y del pie.
+- **Letra mixta** (propuesta tras verla Julieta: «en el héroe queda muy
+  bien», en títulos largos se lee más lento): brocha sólo donde habría un
+  cartel pintado (el título del inicio, el cierre y los nombres de la carta),
+  en mayúsculas y azul de la marca; los títulos de sección siguen en Young
+  Serif. La palabra que cambia sigue en ámbar. Interruptor contra «toda
+  brocha» y «Young Serif».
+- **El isotipo no va junto al «oído»** (decisión de Julieta, 2026-11-18):
+  queda sólo como ícono de la app. Se sacó del encabezado y del pie, y del
+  encabezado de la prueba de la app.
+- **El mapa** va en celeste, con quien va acercándose al bar y la ficha «Va
+  en camino», sin reloj ni horarios: en la landing un reloj se lee como
+  promesa.
 - **Los precios como carta**, con «sugerencia de la casa» en Mansalva y la
   comanda de la caja que se imprime al elegir un plan.
 - **La comanda** sale de la misma impresora oscura de hoy, como papel de
@@ -155,8 +164,7 @@ dos celulares que se hablan, en claro y en noche:
   rectos, listas con filete fino, y la barra de abajo pegada al borde con una
   raya azul hondo en lo activo (antes flotaba, de vidrio).
 - Brocha sólo en el título de cada pantalla y en el puesto de la comanda;
-  Mansalva en dos apuntes («para hoy», «el que te recomendamos»); el isotipo
-  nuevo junto al «oído».
+  Mansalva en dos apuntes («para hoy», «el que te recomendamos»).
 
 Falta mirarla con Julieta y decidir qué de esto entra a la app real.
 
@@ -188,10 +196,10 @@ como exploración abierta):
 ## Falta que decida Julieta
 
 1. Qué le cambia al híbrido (es la base desde el 2026-11-18).
-2. La letra de los títulos: le gusta la brocha; falta confirmarla viéndola
-   en el híbrido. Si cambia, se actualiza `typography.md`.
-3. El isotipo: pidió usar «el nuevo» en el híbrido; falta que confirme
-   «grito y respuesta» y si se encarga al fileteador.
+2. La letra: falta que confirme la mixta (brocha en el inicio, el cierre y
+   la carta; Young Serif en el resto). Si queda, se actualiza `typography.md`.
+3. El isotipo: va sólo como ícono de la app; falta que confirme «grito y
+   respuesta» y si se encarga al fileteador.
 4. Antes de producción, confirmar contra el producto lo que la prueba afirma:
    «Gratis para quien trabaja», «gente verificada» y «Hecho en Buenos Aires».
 
