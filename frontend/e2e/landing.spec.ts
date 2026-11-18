@@ -183,6 +183,34 @@ test("los precios salen de la API cuando contesta", async ({ page }) => {
   }
 });
 
+test("un plan incompleto de la API no tira la carta, y a 320 px el nombre no pisa el precio", async ({ page }) => {
+  // La revisión del 2026-11-18 encontró las dos cosas: sin `features` se caía
+  // la sección entera, y a 320 px el nombre en brocha se encimaba al precio.
+  await page.setViewportSize({ width: 320, height: 700 });
+  await sinSesion(page, {
+    status: 200,
+    body: {
+      plans: [
+        { code: "inicial", name: "Inicial", price_ars: 9900, max_turnos_mes: 5 },
+        { code: "basico", name: "Básico", price_ars: 20000, features: ["Soporte prioritario"] },
+      ],
+    },
+  });
+  await page.goto("/#precios");
+  const precios = page.locator("#precios");
+  await expect(precios.getByRole("button", { name: /por mes/ })).toHaveCount(2);
+  // Sin `max_turnos_mes`, la pizarra lo escribe como sin tope.
+  await expect(precios.locator(".landing-pizarra")).toContainText("turnos sin tope");
+  const cajas = await precios.locator(".landing-plato").evaluateAll((platos) =>
+    platos.map((plato) => {
+      const nombre = plato.querySelector(".landing-plato-nombre")!.getBoundingClientRect();
+      const precio = plato.querySelector(".landing-plato-precio")!.getBoundingClientRect();
+      return { nombreAbajo: Math.round(nombre.bottom), precioArriba: Math.round(precio.top) };
+    })
+  );
+  for (const c of cajas) expect(c.precioArriba).toBeGreaterThanOrEqual(c.nombreAbajo);
+});
+
 test("si la API de precios falla, la carta sigue estando (respaldo)", async ({ page }) => {
   await sinSesion(page, { status: 500 });
   await page.goto("/#precios");

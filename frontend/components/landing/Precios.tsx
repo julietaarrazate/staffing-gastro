@@ -53,7 +53,9 @@ type Trazo = { d: string; k: number };
  * es fija (no hay azar) para que el servidor y el navegador dibujen lo mismo.
  */
 function palitos(max: number | null) {
-  const sinTope = max === null;
+  // `== null` y no `=== null`: si la API manda el plan sin el campo, se
+  // dibuja como sin tope en lugar de romper el dibujo con un NaN.
+  const sinTope = max == null || !Number.isFinite(max);
   const enteros = sinTope ? 4 : Math.floor(max / 5);
   const grupos = Math.min(enteros, GRUPOS_MAX);
   const sueltos = sinTope || enteros > GRUPOS_MAX ? 0 : max % 5;
@@ -162,7 +164,8 @@ export default function Precios() {
                       {formatArs(p.price_ars)} <small>por mes</small>
                       <Ovalo />
                     </span>
-                    <span className="landing-plato-detalle">{p.features.join(" · ")}</span>
+                    {/* `?? []`: un plan sin `features` no puede tirar la landing. */}
+                    <span className="landing-plato-detalle">{(p.features ?? []).join(" · ")}</span>
                   </button>
                 </li>
               ))}
@@ -192,7 +195,7 @@ export default function Precios() {
                 ))}
               </svg>
               <p className="landing-tiza" style={demora(t3)}>
-                {plan.max_turnos_mes === null ? "turnos sin tope" : `hasta ${plan.max_turnos_mes} turnos por mes`}
+                {plan.max_turnos_mes == null ? "turnos sin tope" : `hasta ${plan.max_turnos_mes} turnos por mes`}
               </p>
               <p className="landing-tiza landing-tiza-precio" style={demora(t3 + 0.35)}>
                 {formatArs(plan.price_ars)} <small>por mes</small>

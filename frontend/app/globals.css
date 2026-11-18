@@ -1166,6 +1166,12 @@ body:has([data-landing]) main {
 .landing-cartel-inicio {
   font-size: clamp(3.25rem, 6.4vw, 6rem);
 }
+/* A 320 px «ENCONTRÁ TU» no entraba en un renglón y «TU» quedaba solo. */
+@media (max-width: 359px) {
+  .landing-cartel-inicio {
+    font-size: 2.75rem;
+  }
+}
 .landing-cartel-cierre {
   max-width: 15ch;
   margin-inline: auto;
@@ -2158,8 +2164,19 @@ body:has([data-landing]) main {
   text-align: left;
   cursor: pointer;
 }
-li:first-child > .landing-plato {
+.landing-carta li:first-child > .landing-plato {
   border-top: 1.5px solid var(--relieve);
+}
+/* En pantallas muy angostas el nombre en brocha y el precio no entran en un
+   renglón (a 320 px se encimaban): el precio baja a su propio renglón. */
+@media (max-width: 380px) {
+  .landing-plato {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .landing-plato-precio {
+    justify-self: start;
+    margin-left: -8px;
+  }
 }
 @media (hover: hover) {
   .landing-plato:hover {

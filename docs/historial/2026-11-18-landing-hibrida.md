@@ -45,6 +45,16 @@ no repite la palabra «oído», que ya está gigante justo arriba. La landing
 sigue siendo siempre clara (la noche de la prueba era un interruptor de la
 prueba, no un pedido).
 
+La revisión independiente (otro agente, en siete anchos de 320 a 1920 px,
+con teclado, con «reducir movimiento» y con la app en oscuro) encontró tres
+cosas que se arreglaron acá: a 320 y 360 px el nombre del plato en brocha se
+encimaba con el precio (de 380 px para abajo el precio baja a su renglón); a
+320 px «TU» quedaba solo en el título del inicio (baja a 2,75 rem); y un plan
+de la API sin `features` tiraba la sección entera. Las tres tienen su test en
+`e2e/landing.spec.ts`. Anotó además que la palabra ámbar sobre el cielo da
+entre 3,0 y 3,2 de contraste: pasa para texto grande, justo; es el mismo
+ámbar de antes y no se tocó.
+
 **Queda abierto:** la app, pantalla por pantalla (ítem 0 de `STATUS.md`).
 Julieta todavía no dijo qué de la segunda prueba de la app entra y en qué
 orden. La comanda conserva su hora («Comanda · Tu bar · 20:46»); si también
