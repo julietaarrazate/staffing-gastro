@@ -8,7 +8,7 @@ paga (Saans, que mostraba el style-guide) se descartó por decisión de Julieta.
 | Familia | Rol | Token / utilidad |
 |---|---|---|
 | **Young Serif** | Títulos de pantalla ("Hola, Sofía", "Camarero/a", el nombre en el perfil) y titulares de la landing. Un solo peso (400) | `--font-young-serif` → `font-display` |
-| **Fraunces** (serif) | Sólo el wordmark "oído" (logo). Desde 2026-10-23 es un recorte local con los glifos "o í d O" (`frontend/app/fonts/fraunces-oido.woff2`, 2 KB): otra palabra en `font-serif` cae a la serif de respaldo (ver comentario en `app/layout.tsx` para regenerarlo) | `--font-fraunces` → `font-serif` |
+| **Shrikhand** | Sólo la palabra «oído»: fileteada (`components/landing/Filete.tsx`) o plana (encabezado de la landing y de la app, `components/Logo.tsx`). Desde el 2026-11-17 (antes Sancreek). Recorte local con "o í d O ¡ !" (`frontend/app/fonts/shrikhand-oido.woff2`, 1,5 KB): otra palabra cae a la serif de respaldo | `--font-shrikhand` → `font-oido` |
 | **Inter** | Texto, botones, inputs **y encabezados de sección** ("Cerca tuyo", "Sobre el puesto") | `--font-inter` → `font-sans` |
 | **DM Mono** | Datos y eyebrows en mayúscula (métricas, rótulos) | `--font-dm-mono` → `font-mono` |
 
@@ -47,8 +47,9 @@ tocaban.
 Julieta sentía que Fraunces con Inter daba una sensación genérica, de
 plantilla. Comparó cuatro combinaciones gratuitas y eligió **Bricolage
 Grotesque sólo para los títulos**, sin tocar el texto (Inter) ni los datos
-(DM Mono). El wordmark "oído" sigue en Fraunces para no cambiar el logo:
-todo lo que dice "oído" usa `font-serif`, nunca `font-display`.
+(DM Mono). El wordmark "oído" siguió en Fraunces para no cambiar el logo
+(hasta el 2026-11-17: desde entonces la palabra es Shrikhand, `font-oido`, y
+Fraunces ya no se carga).
 
 Bricolage es más compacta que Fraunces: el espaciado negativo de los
 titulares de la landing se redujo a la mitad (por ejemplo, `-0.03em` pasó a

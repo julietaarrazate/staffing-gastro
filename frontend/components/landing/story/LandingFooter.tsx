@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { LogoMark } from "@/components/Logo";
 
 /** La misma noche del principio, ahora en calma. Los links de registro van
  *  con su rol (antes "Crear cuenta" abría la pestaña de trabajador por
@@ -10,8 +9,7 @@ export default function LandingFooter() {
       <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <span className="no-select inline-flex items-center gap-2">
-            <LogoMark size={28} />
-            <span className="font-serif text-xl font-semibold tracking-tight text-white">oído</span>
+            <span className="font-oido pt-1 text-2xl leading-none text-white">oído</span>
           </span>
           <p className="mt-3 font-display text-h2 font-medium text-manteca">Personal gastronómico, ya.</p>
         </div>

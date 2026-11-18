@@ -33,11 +33,19 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
   fila, en [`planning/BETA_TABLERO.md`](./planning/BETA_TABLERO.md). Es lo
   primero que se lee y lo que se edita en cada PR de la beta.
 
-0. 🟡 **El «oído» con letra de cartel (2026-10-23) en el resto de la marca:**
-   la ficha de marca, el brand system y el paquete siguen con el filete
-   anterior. La miniatura para compartir ya usa la `firma` actual
-   (2026-10-30, pedido de Julieta). Antes de rehacer el resto, confirmar con
-   ella la letra (Sancreek) y el acento (ámbar o bordó).
+0. 🟡 **Marca: Shrikhand e ícono «oí» (beta, etapa 4).** Julieta eligió el
+   2026-11-17 la letra Shrikhand y seguir con el ámbar. El «oí» es
+   provisorio: falta **diseñar un isotipo propio** (Julieta: «no ese
+   genérico»). La app, la landing,
+   los íconos, la miniatura, los vectores y el manual en PDF de
+   `design-system/marca/` y el brand system navegable ya están
+   ([historial](./historial/2026-11-17-marca-shrikhand-isotipo-oi.md)). Sigue
+   **la dirección «con relieve»** (Julieta eligió
+   seguirla: la sombra dura azul hondo del filete como profundidad de la
+   interfaz; prueba en https://claude.ai/artifact/WNXBXhkNgGrFdBbqFNsQan),
+   afinarla y llevarla a la app pantalla por pantalla, un PR cada una, sin
+   tocar la lógica. Qué tiene, las referencias de Julieta y el orden, en
+   [`design-system/direccion-relieve.md`](./design-system/direccion-relieve.md).
 Revisado contra el código y los PRs el 2026-10-03.
 
 1. 🟡 **Paleta celeste (v6) en toda la app** (pedido de Julieta,
@@ -46,8 +54,8 @@ Revisado contra el código y los PRs el 2026-10-03.
    volvió al ámbar de siempre `#d97706`, el del logo). Primero en la
    landing; ahora rige en `:root` de `globals.css`, con su versión oscura.
    Desde #412 lleva vidrio esmerilado (cromo translúcido, velo ámbar,
-   `bg-glow`) y menos celeste lleno. Falta rehacer el PDF y el paquete del
-   diseñador, que siguen en violeta. Detalle en
+   `bg-glow`) y menos celeste lleno. El PDF y el paquete del diseñador se
+   rehicieron el 2026-11-17 (ítem 0). Detalle en
    [`historial/2026-10-09-paleta-celeste-app.md`](./historial/2026-10-09-paleta-celeste-app.md)
    y [`design-system/color-system.md`](./design-system/color-system.md),
    "Propuesta v6".
@@ -59,20 +67,19 @@ Revisado contra el código y los PRs el 2026-10-03.
    con `sticky` y por qué la landing no se oscurece, en
    [`historial/2026-10-06-landing-historia-de-un-turno.md`](./historial/2026-10-06-landing-historia-de-un-turno.md)
    y [`design-system/motion.md`](./design-system/motion.md).
-3. ⏸️ **Identidad de marca, en pausa.** Julieta rechazó las tres
-   direcciones propuestas (2026-10-06) y pidió primero la landing. Riesgo
-   que sigue en pie: Oído usa serif + mono + crema y un componente "ticket",
-   como Bachero; la metáfora propia es el "¡oído!" de la cocina. Desde el
-   2026-10-18 la landing la usa: celeste y blanco con el ámbar, y una comanda
-   con filete porteño que se canta "¡Oído!". Contexto:
-   [`historial/ARCHIVO…`](./historial/ARCHIVO-2026-07-a-2026-10-03.md), sección
-   "Ideas de la competencia (2026-10-02)", y
-   [`design-system/brand-foundation.md`](./design-system/brand-foundation.md).
+3. 🟡 **Que la marca no se parezca a Bachero** (crema, azul francia,
+   grabados y un ticket). Análisis del 2026-11-17:
+   https://claude.ai/artifact/KunFKqPLnUuuaZCDNy9WWW. El ícono y la letra ya
+   se resolvieron (ítem 0). Falta que **la comanda** de la landing deje de
+   parecer un ticket (sin número, sin raya punteada, datos en Inter); las
+   reglas que quedan están en `design-system/marca-hoy.md`, regla 5.
 4. 🟡 **Landing "cielo": fotos propias y prueba real** (2026-10-18). La
    rueda del inicio y la oferta usan fotos de banco (dominio público/CC0,
    de otros países); hay que reemplazarlas por fotos de locales porteños
-   (`frontend/public/landing/`). Cuando haya locales usando Oído, sumar una
-   cita corta con nombre. Detalle en
+   (`frontend/public/landing/`): qué foto va en cada lugar, con tamaño,
+   encuadre y permisos, en
+   [`design-system/fotos-landing.md`](./design-system/fotos-landing.md).
+   Cuando haya locales usando Oído, sumar una cita corta con nombre. Detalle en
    [`historial/2026-10-18-landing-cielo.md`](./historial/2026-10-18-landing-cielo.md).
 5. 🟡 **"Datos del comercio" muestra la dirección tres veces**: en el
    buscador, en el campo Dirección y en "Ubicación" (`/profile/edit`, rol
@@ -172,11 +179,6 @@ Revisado contra el código y los PRs el 2026-10-03.
      inyecta `NEXT_PUBLIC_API_URL=https://api.oido.com.ar/api/v1`. Pero si
      esa variable faltara, el frontend llamaría a una API que responde 403.
      El límite de intentos con IP real ya está (etapa 3, 2026-10-15).
-13. 🟢 **Campanita en claro: no se ven las líneas entre avisos sin leer**
-    seguidos (`NotificationBell.tsx`): el tinte de no leído (`primary-tint`)
-    y la hairline (`line`) son el mismo `#deecf0`. Visto el 2026-10-30 en las
-    capturas de "Marcar todas como leídas"
-    ([historial](./historial/2026-10-30-notificaciones-marcar-todas.md)).
 
 Deuda técnica priorizada: [`TECH_DEBT.md`](./TECH_DEBT.md). Bugs que ya
 pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
