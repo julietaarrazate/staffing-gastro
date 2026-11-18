@@ -266,31 +266,32 @@ el modelo del dominio, un ADR vigente o un texto legal:
   [ADR-0026](../adr/ADR-0026-postulacion-desasignada.md)).
 - **U080, U081 y U072** (decisiones 2, 3, 4 y 16). Al 2026-11-18:
   - ✅ **U081** en `main` (#632, ADR-0007 actualizado).
-  - 🟡 **U072** escrito, revisado y probado en la app (rama local
-    `claude/u072`, migración 0052, ADR-0014 actualizado, versión legal
-    `2026-11-18-1`). Su PR se abre al cerrar la tanda y **espera el «sí» de
-    Julieta al texto de `/privacidad`**.
-  - ⚪ **U080** diseñado, sin escribir. Espera dos datos de Julieta: desde
-    cuándo se cuenta «lo que resta» (recomendado: desde la llegada del
-    reemplazo, con el valor por hora en el aviso) y cuánto horario tiene que
-    quedar para reofrecer (recomendado: 1 hora). El diseño: marca
+  - ✅ **U072** en `main` (#PRU072; migración 0052, ADR-0014 actualizado,
+    versión legal `2026-11-18-1`; Julieta aprobó el texto, decisión 20).
+  - ⚪ **U080** diseñado y con sus datos decididos (18 y 19), **sin
+    escribir**: es lo primero de la sesión que sigue. El diseño: marca
     `reoffered_at` en el turno; el Inicio, la página pública y postularse lo
     aceptan hasta que termina su horario; «no cubierto» pasa al final del
     horario; aviso urgente a quienes están cerca y aviso al comercio cuando
     falta alguien confirmado; para quien lo toma ya empezado, recordatorio,
-    ausencia y puntualidad se miden desde que confirmó, no desde el inicio.
-    Cambia el ADR-0008 y el ADR-0015. La próxima migración libre es la 0053.
+    ausencia y puntualidad se miden desde que confirmó, no desde el inicio;
+    el pago se prorratea desde la llegada (valor por hora en el aviso, monto
+    fijo al llegar, y las ganancias del trabajador usan ese monto). Cambia
+    el ADR-0008 y el ADR-0015. La próxima migración libre es la 0053.
+- **Decisiones 21, 22 y 24** (2026-11-18): tres reglas nuevas ya decididas y
+  sin escribir. Un PR cada una, con su ADR.
 - **P1 a P5**, las mejoras de producto aprobadas. Sin empezar: van en una
   sesión nueva, en el orden del tablero.
 - ✅ **Una segunda mirada a G6** (cuentas suspendidas, ADR-0024), hecha el
-  2026-11-18: 2 graves y 7 menores verificados, nada bloqueante. Cinco
+  2026-11-18: 2 graves y 7 menores verificados, nada bloqueante. Seis
   arreglados en #PRG6 (los postulantes que quedaban rechazados para siempre
   si fallaba la reapertura; `/assign` dejaba averiguar si alguien está
   suspendido; el socket de avisos y los push seguían saliendo; «Mis
   postulaciones» mostraba el turno oculto; el asistente de IA encontraba al
-  postulante suspendido) y uno en #629 (el aviso «N postulantes» contaba a
-  los suspendidos). Tres esperan decisión: ver «Decisiones que esperan a
-  Julieta».
+  postulante suspendido; se le podía escribir por chat, decisión 23) y uno
+  en #629 (el aviso «N postulantes» contaba a los suspendidos). **Quedan sin
+  escribir** las decisiones 21 y 22 (cerrar un turno empezado de una cuenta
+  suspendida; los turnos ocultos que vencen sin aviso).
 - **Pasada por clase de error** (propuesta del 2026-11-14; sin empezar, va
   en una sesión nueva junto con los tests de contrato). Lo que dejó la tanda
   del 2026-11-18 para tener en cuenta: en tres de cuatro cambios la revisión
@@ -378,33 +379,38 @@ Julieta, el mismo día, sobre estas cinco y sobre la propuesta: «Confío en tu
 criterio y recomendación con la visión de negocio y producto». Se tomaron las
 recomendaciones de quien coordina.
 
+### Decisiones tomadas el 2026-11-18
+
+Julieta aceptó las recomendaciones de quien coordina («todo ok a lo que
+recomendaste»). Cada una lleva su ADR, nuevo o actualizado, en el PR que la
+implemente.
+
+- **18.** U080, «se paga lo que resta»: se cuenta **desde que el reemplazo
+  marca la llegada**. El aviso muestra el valor por hora y el monto queda
+  fijo al llegar.
+- **19.** U080: un turno reabierto que ya empezó se reofrece sólo si le queda
+  **al menos 1 hora** de horario; con menos, pasa a «no cubierto».
+- **20.** U072: el texto nuevo de `/privacidad` (versión `2026-11-18-1`),
+  aprobado: al apagar «va en camino» se borra la posición y el comercio deja
+  de verla; «desde dos horas antes»; el identificador del dispositivo se
+  borra también al cerrar sesión en ese dispositivo.
+- **21.** Un turno ya empezado de una cuenta suspendida: acción de admin
+  **«cerrar turno»** (marca la salida y finaliza en nombre de la parte
+  suspendida), con registro. Actualiza el ADR-0024.
+- **22.** Los turnos ocultos de un comercio suspendido **vencen igual** («no
+  cubierto», su horario pasó), pero sin aviso a la cuenta suspendida y fuera
+  de las métricas de cobertura. Actualiza el ADR-0024 y el ADR-0015.
+- **23.** No se le puede escribir por chat a una cuenta suspendida: el
+  mensaje nuevo se rechaza como un chat ajeno; lo ya escrito se puede leer
+  (#PRG6).
+- **24.** Un turno con la salida marcada que el comercio no cierra:
+  **recordatorio al comercio a las 24 horas y cierre automático a las 72**,
+  con la puntualidad que ya quedó registrada. Cambia el ADR-0008.
+
 ### Decisiones que esperan a Julieta
 
-Al 2026-11-18, de la segunda mirada a G6 y de la revisión de U081 (cada una
-con la recomendación de quien coordina):
-
-- **Un turno ya empezado de una cuenta suspendida no se puede cerrar ni pagar
-  nunca.** El comercio suspendido no puede finalizar ni marcar pagado; el
-  trabajador suspendido con la llegada marcada no puede marcar la salida, y
-  sin salida el comercio no puede cerrar. El ADR-0024 dice «se termina y se
-  paga como siempre», y hoy nadie puede. *Recomendación:* una acción de admin
-  «cerrar turno» (marca la salida y finaliza en nombre de la parte
-  suspendida), con registro.
-- **Los turnos ocultos de un comercio suspendido pasan a «no cubierto»**
-  mientras dura la suspensión, con aviso a la cuenta suspendida, y cuentan en
-  las métricas de cobertura. *Recomendación:* que venzan igual (su horario
-  pasó), sin aviso y fuera de las métricas.
-- **Se le puede seguir escribiendo por chat a una cuenta suspendida** (el
-  turno cancelado por la suspensión conserva el chat; el mensaje no lo lee
-  nadie). *Recomendación:* rechazar el mensaje nuevo como un chat ajeno y
-  dejar leer lo ya escrito. El arreglo está escrito y probado en la rama
-  local `claude/g6-chat`; no se mergeó porque es una regla nueva.
-- **Un turno con la salida marcada que el comercio nunca cierra** queda «en
-  marcha» para siempre (ver «Lo que salió de las revisiones»).
-  *Recomendación:* recordatorio al comercio a las 24 h y cierre automático a
-  las 72 h, con la puntualidad que ya quedó registrada.
-
-El ingreso de invitado (decisión 5) se apaga al abrir
+Ninguna al 2026-11-18 (las de la segunda mirada a G6, U081, U080 y U072 se
+tomaron ese día: ver «Decisiones tomadas el 2026-11-18»). El ingreso de invitado (decisión 5) se apaga al abrir
 la beta, en la lista de salida (etapa 5): hasta entonces sirve para mostrar y
 probar la app.
 

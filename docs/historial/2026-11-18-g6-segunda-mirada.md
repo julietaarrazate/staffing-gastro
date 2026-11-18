@@ -12,4 +12,10 @@
 
 **Por qué así:** la restauración ya era idempotente, así que se repite en vez de rediseñar la reapertura. Los sockets de chat no se cortan (el chat se bloquea al enviar).
 
-**Queda abierto:** dos cosas esperan una decisión de Julieta y NO se tocaron: (1) un turno ya empezado de una cuenta suspendida no se puede cerrar ni pagar nunca (el comercio suspendido no puede finalizar, el trabajador suspendido no puede marcar la salida); (2) los turnos ocultos de un comercio suspendido pasan a «no cubierto» mientras dura la suspensión.
+**Queda abierto:** dos reglas que Julieta decidió el 2026-11-18 y todavía no
+están escritas (decisiones 21 y 22 del tablero): la acción de admin «cerrar
+turno» para un turno ya empezado de una cuenta suspendida (hoy no se puede
+cerrar ni pagar: el comercio suspendido no puede finalizar y el trabajador
+suspendido no puede marcar la salida), y que los turnos ocultos de un
+comercio suspendido venzan sin avisarle y fuera de las métricas. El chat
+(decisión 23) entró en este PR.
