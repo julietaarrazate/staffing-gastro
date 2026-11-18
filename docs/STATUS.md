@@ -143,7 +143,9 @@ Revisado contra el código y los PRs el 2026-10-03.
    [`reference/PENDIENTE_OPERATIVO.md`](./reference/PENDIENTE_OPERATIVO.md),
    "Cobro mensual con Mercado Pago"). Decidir qué hacer con los comercios de
    la beta que hoy publican sin pagar cuando se exija (quedan bloqueados
-   hasta su primer pago).
+   hasta su primer pago). Para los **fundadores** ya está decidido
+   (2026-11-18): sin cargo hasta el 28/2 y después precio congelado 12
+   meses, así que antes de exigir el pago tienen que quedar eximidos.
 7. ⏸️ **Post-beta, a propósito:** pago al trabajador y facturación dentro de
    la app (lo que tienen todos los competidores grandes), passkeys (diseñado
    en [`reference/ACCESO_MODERNO.md`](./reference/ACCESO_MODERNO.md), Feature
@@ -185,7 +187,8 @@ Revisado contra el código y los PRs el 2026-10-03.
 
 10. 🟠 **Cubrir el turno en minutos: propuesta para pulir** (pedido de
     Julieta, 2026-10-14). Lo primero es sacar el backend de Render free
-    (se duerme a los 15 min y con él el scheduler de la escalada); después,
+    (se duerme a los 15 min y con él el scheduler de la escalada): **decidido
+    el 2026-11-18, Render Starter antes del piloto**; después,
     "el primero que toma" para urgentes, cascada por tandas y verificación
     de identidad gratis. Nada decidido:
     [`planning/PROPUESTA_COBERTURA_URGENTE.md`](./planning/PROPUESTA_COBERTURA_URGENTE.md).
@@ -227,13 +230,20 @@ pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
 
 - **Estrategia de crecimiento, fase 2 (plan de 90 días):** está en el mismo
   documento privado, una pestaña por entregable
-  (https://claude.ai/artifact/CbFduaLLSNXNkgTq1EYFrk). Antes de arrancar la
-  fase 0 el 23/11: decidir las tres cosas de «Lo que todavía decidís vos»
-  (pestaña Plan de 90 días) y pedir la consulta con un laboralista y un
-  abogado de datos, con el cuestionario de la pestaña Lanzamiento de beta.
-  Del lado del código, la fase 0 pide un cambio chico (guardar el origen de
-  cada alta) y la serie semanal M7 del tablero
-  ([`historial/2026-11-18-plan-90-dias-growth.md`](./historial/2026-11-18-plan-90-dias-growth.md)).
+  (https://claude.ai/artifact/CbFduaLLSNXNkgTq1EYFrk). **Decidido el
+  18/11** (pestaña Plan de 90 días, «Lo que decidiste para arrancar»): los
+  **comercios fundadores** (5 a 8) no pagan hasta el **28/2** y después
+  tienen el plan que elijan a **precio congelado por 12 meses**; **Villa
+  Crespo** entra en la lista de barrios a evaluar, segundo en el orden; la
+  **consulta legal** (laboral y de datos personales) la hace gratis una
+  abogada amiga; y el backend pasa a **Render Starter** (USD 7 por mes)
+  antes del piloto, con todo lo demás en $0. Falta de Julieta: hacer la
+  consulta con el cuestionario de la pestaña Lanzamiento de beta (antes del
+  4/12) y contratar Render Starter antes del piloto. Del lado del código, la
+  fase 0 pide un cambio chico (guardar el origen de cada alta, aprobado el
+  18/11) y la serie semanal M7 del tablero
+  ([`historial/2026-11-18-plan-90-dias-growth.md`](./historial/2026-11-18-plan-90-dias-growth.md),
+  [`historial/2026-11-18-decisiones-fase-0.md`](./historial/2026-11-18-decisiones-fase-0.md)).
 - **Verificación en dos pasos del admin (ADR-0023):** **antes del merge**,
   generar `TWO_FACTOR_ENCRYPTION_KEY` y cargarla en Render (sin ella el
   panel de admin queda cerrado); **apenas se deploya**, entrar y activarla en
