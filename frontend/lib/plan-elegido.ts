@@ -10,6 +10,8 @@
  * bloqueado puede tirar; sin almacenamiento el alta sigue igual que siempre.
  */
 
+import { api } from "@/lib/api";
+
 /** Los códigos de `backend/app/modules/subscription/domain/plans.py` (y de
  *  `components/landing/planes.ts`, que un test compara con éstos). */
 export const PLANES_CONOCIDOS = ["inicial", "basico", "pro"] as const;
@@ -62,9 +64,12 @@ export function borrarPlanElegido(): void {
  * que eligió en la landing (y lo guardado se borra, para que no vuelva a
  * pasar), o a `porDefecto` si no eligió ninguno.
  */
-export function destinoTrasBienvenida(porDefecto: string): string {
+export function destinoTrasBienvenida(porDefecto: string, token?: string | null): string {
   const plan = leerPlanElegido();
   if (!plan) return porDefecto;
+  // Medición de la beta (M6): acá, y no al abrir «Mi plan», es «al darse de
+  // alta». Best-effort: sin esperar y sin error a la vista.
+  if (token) api.post("/subscription/plan-elegido", { plan_code: plan }, token).catch(() => undefined);
   borrarPlanElegido();
   return urlMiPlan(plan);
 }

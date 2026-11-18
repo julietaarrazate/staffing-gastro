@@ -573,7 +573,7 @@ function EmployerOnboarding({ next }: { next: string | null }) {
     setSaving(true);
     if (await save(true)) {
       borrarSesion(CLAVE_COMERCIO);
-      router.replace(destinoTrasBienvenida(next ?? "/shifts"));
+      router.replace(destinoTrasBienvenida(next ?? "/shifts", token));
     }
     else setSaving(false);
   }
@@ -582,7 +582,7 @@ function EmployerOnboarding({ next }: { next: string | null }) {
     setSkipping(true);
     if (await save(false)) {
       borrarSesion(CLAVE_COMERCIO);
-      router.replace(destinoTrasBienvenida(next ?? "/shifts"));
+      router.replace(destinoTrasBienvenida(next ?? "/shifts", token));
     }
     else setSkipping(false);
   }
@@ -597,7 +597,7 @@ function EmployerOnboarding({ next }: { next: string | null }) {
     setSkippingAll(true);
     if (await save(false, name.trim() || "Mi comercio", true)) {
       borrarSesion(CLAVE_COMERCIO);
-      router.replace(destinoTrasBienvenida(next ?? "/shifts"));
+      router.replace(destinoTrasBienvenida(next ?? "/shifts", token));
     }
     else setSkippingAll(false);
   }

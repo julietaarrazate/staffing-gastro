@@ -116,6 +116,12 @@ class SubscriptionStats:
     total_companies: int
     companies_by_plan: dict[str, int]
     companies_at_plan_limit: int
+    # Medición de la beta (M6), sin cuentas de prueba ni invitadas.
+    # Comercios por plan elegido al darse de alta (`chosen_plan_code`).
+    companies_with_chosen_plan: dict[str, int]
+    committed_companies: int
+    # Suma de los precios mensuales comprometidos, en pesos.
+    committed_mrr_ars: Decimal
     # False mientras no haya credenciales de Mercado Pago
     # (`BillingGateway.enabled`): `mrr_ars` es entonces un monto POTENCIAL
     # (lo que se cobraría si el cobro estuviera activo), nunca ingreso real
@@ -182,6 +188,28 @@ class AdminTicketRow:
 
 
 @dataclass
+class AdminCommitmentSummary:
+    """Compromiso de pago («precio fundador») registrado por la admin."""
+
+    at: datetime
+    plan_code: str
+    plan_name: str
+    price_ars: Decimal
+
+
+@dataclass
+class AdminSubscriptionSummary:
+    """Bloque «Plan» de la ficha de un comercio."""
+
+    plan_code: str
+    plan_name: str
+    chosen_plan_code: str | None = None
+    chosen_plan_name: str | None = None
+    chosen_plan_at: datetime | None = None
+    commitment: AdminCommitmentSummary | None = None
+
+
+@dataclass
 class AdminUserDetail:
     """Ficha de una persona en el panel de admin (`/admin/personas/{id}`):
     datos de la cuenta, su perfil según el rol, turnos y tickets recientes."""
@@ -191,6 +219,7 @@ class AdminUserDetail:
     company: AdminCompanySummary | None
     recent_shifts: list[AdminShiftRow]
     tickets: list[AdminTicketRow]
+    subscription: AdminSubscriptionSummary | None = None
 
 
 @dataclass

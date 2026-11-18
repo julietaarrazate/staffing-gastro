@@ -386,7 +386,7 @@ test("el aviso al postulante se lee en la campanita y abre el Inicio", async ({ 
   await expect(page).toHaveURL(/\/feed$/);
 });
 
-test("el aviso al asignado sin confirmar abre «Mis turnos»", async ({ page }) => {
+test("el aviso al asignado sin confirmar abre «Matches»", async ({ page }) => {
   await mockWorkerWithNotice(
     page,
     notice(

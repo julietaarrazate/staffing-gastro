@@ -72,6 +72,11 @@ test("Empezar con Básico: alta, bienvenida y Mi plan con Básico resaltado", as
   await page.route("**/api/v1/**", (route) => route.fulfill(json({}, 404)));
   await mockEmptyNotifications(page);
   await page.route("**/api/v1/subscription/plans/public", (route) => route.fulfill(json({ plans: PLANS })));
+  const planesRegistrados: unknown[] = [];
+  await page.route("**/api/v1/subscription/plan-elegido", (route) => {
+    planesRegistrados.push(route.request().postDataJSON());
+    return route.fulfill(json({ ok: true }));
+  });
   let alta: Record<string, unknown> | null = null;
   await page.route("**/api/v1/auth/register", (route) => {
     alta = route.request().postDataJSON();
@@ -132,6 +137,8 @@ test("Empezar con Básico: alta, bienvenida y Mi plan con Básico resaltado", as
   await expect(aviso).toContainText("Ya es tu plan.");
   await expect(aviso.getByRole("button")).toHaveCount(0);
   expect(suscripciones).toEqual([{ plan_code: "basico" }]);
+  // Al terminar el alta, el servidor se enteró del plan elegido (una vez).
+  expect(planesRegistrados).toEqual([{ plan_code: "basico" }]);
 });
 
 test("las tres tarjetas de precios tienen su botón alineado abajo", async ({ page }) => {
@@ -188,4 +195,50 @@ test("con el cobro prendido, el aviso lleva a pagar el plan elegido con Mercado 
   await aviso.getByRole("button", { name: "Pagar con Mercado Pago" }).click();
   await expect(page.getByRole("dialog")).toContainText("del plan Pro");
   await expect(page.getByRole("button", { name: "Ir a Mercado Pago" })).toBeVisible();
+});
+
+test("abrir Mi plan con ?plan= (comercio ya existente, «Ver como») no registra ningún plan elegido", async ({ page }) => {
+  await comercioConSesion(page);
+  await mockMiPlan(page);
+  const registros: unknown[] = [];
+  await page.route("**/api/v1/subscription/plan-elegido", (route) => {
+    registros.push(route.request().postDataJSON());
+    return route.fulfill(json({ ok: true }));
+  });
+  await page.goto("/subscription?plan=basico");
+  await expect(page.getByTestId("plan-elegido")).toContainText("Elegiste el plan Básico");
+  await page.goto("/subscription");
+  await expect(page.getByRole("heading", { name: "Planes disponibles" })).toBeVisible();
+  expect(registros).toEqual([]);
+});
+
+test("si el servidor no registra el plan elegido en el alta, la bienvenida sigue a Mi plan sin error", async ({ page }) => {
+  await skipSplash(page);
+  await blockExternalHosts(page);
+  await page.route("**/api/v1/**", (route) => route.fulfill(json({}, 404)));
+  await mockEmptyNotifications(page);
+  await page.route("**/api/v1/subscription/plans/public", (route) => route.fulfill(json({ plans: PLANS })));
+  await page.route("**/api/v1/auth/register", (route) => route.fulfill(json(EMPLOYER, 201)));
+  await page.route("**/api/v1/auth/login", (route) =>
+    route.fulfill(json({ access_token: "tok-nuevo", token_type: "bearer" }))
+  );
+  await page.route("**/api/v1/auth/me", (route) => route.fulfill(json(EMPLOYER)));
+  await page.route("**/api/v1/companies/me/profile", (route) =>
+    route.request().method() === "POST"
+      ? route.fulfill(json({ id: "company-9", user_id: "user-9", name: "Mi comercio" }, 201))
+      : route.continue()
+  );
+  await mockMiPlan(page);
+  await page.route("**/api/v1/subscription/plan-elegido", (route) => route.fulfill(json({}, 500)));
+  await page.goto("/register?rol=comercio&plan=pro");
+  await page.getByPlaceholder("Nombre completo").fill("Dueña Nueva");
+  await page.getByLabel("Fecha de nacimiento").fill("1995-05-20");
+  await page.getByPlaceholder("Email").fill("nuevo.bodegon@staffya.com");
+  await page.getByPlaceholder("Contraseña (mín. 8 caracteres)").fill("unaClaveLarga1");
+  await page.getByRole("checkbox").check();
+  await page.getByRole("button", { name: "Crear cuenta" }).click();
+  await page.waitForURL("**/bienvenida");
+  await page.getByRole("button", { name: "Omitir por ahora" }).click();
+  await page.waitForURL("**/subscription?plan=pro");
+  await expect(page.getByTestId("plan-elegido")).toContainText("Elegiste el plan Pro");
 });

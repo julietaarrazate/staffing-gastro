@@ -13,6 +13,13 @@ class UnknownPlanError(SubscriptionError):
         super().__init__(f"El plan '{plan_code}' no existe")
 
 
+class InvalidPaymentCommitmentError(SubscriptionError):
+    """El precio del compromiso de pago tiene que ser un entero mayor a cero."""
+
+    def __init__(self) -> None:
+        super().__init__("El precio mensual tiene que ser un monto en pesos mayor a cero")
+
+
 class PublishingNotAllowedError(SubscriptionError):
     """Base de lo que impide publicar por el plan. La API de `shift` la mapea
     a 402 Payment Required."""
