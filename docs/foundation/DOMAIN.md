@@ -109,7 +109,11 @@ campos, estados o transiciones. Se documenta la realidad y se marca cada caso.
     `frontend/lib/turno-horario.ts`). Un turno ya creado puede tener otro
     horario: la regla no corre al leerlo ni al operarlo. Los turnos de un
     evento pasan por la misma regla.
-  - Sólo editable/cancelable por su comercio dueño.
+  - Sólo editable/cancelable por su comercio dueño. **No se cancela un turno
+    con la salida marcada** (`check_out`): ya se trabajó, el comercio lo
+    finaliza y lo paga, y un problema va por soporte (`Shift.is_cancellable`,
+    [ADR-0007](../adr/ADR-0007-no-show-y-cancelacion-tardia.md), actualización
+    2026-11-18).
   - Aparece en el **feed** sólo si está en estados abiertos
     (`publicado`/`buscando_personal`, `OPEN_STATUSES`).
   - `reject` de un asignado vuelve el turno a `buscando_personal`.

@@ -21,10 +21,16 @@ const CANCELLABLE: ShiftStatus[] = [
   "en_camino",
   "check_in",
   "trabajando",
-  "check_out",
 ];
-// Los terminales del dominio (`TERMINAL_STATUSES`): no admiten más transiciones.
-const NOT_CANCELLABLE: ShiftStatus[] = ["finalizado", "pagado", "cancelado", "no_cubierto"];
+// `NOT_CANCELLABLE_STATUSES` del dominio: los terminales y el turno con la
+// salida marcada, que ya se trabajó y se finaliza y se paga (U081).
+const NOT_CANCELLABLE: ShiftStatus[] = [
+  "check_out",
+  "finalizado",
+  "pagado",
+  "cancelado",
+  "no_cubierto",
+];
 
 function openMenu(status: ShiftStatus) {
   render(

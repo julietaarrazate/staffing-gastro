@@ -33,9 +33,11 @@ EN_CAMINO → CHECK_IN → TRABAJANDO → CHECK_OUT → FINALIZADO → PAGADO
                          │              └── (cancelación del trabajador,      │
                          │                   ADR-0004) ──────┐                │
                          └──── (rechazo del trabajador) ─────┴────────────────┘
-CANCELADO: alcanzable desde cualquier estado no terminal (comercio). Si el
-trabajador ya estaba CONFIRMADO o más adelante, es cancelación tardía
-(ADR-0007): notifica al trabajador y le cuesta reputación al comercio.
+CANCELADO: alcanzable desde cualquier estado no terminal (comercio), salvo
+CHECK_OUT: con la salida marcada el turno ya se trabajó, se finaliza y se
+paga (U081, ADR-0007 act. 2026-11-18). Si el trabajador ya estaba CONFIRMADO
+o más adelante, es cancelación tardía (ADR-0007): notifica al trabajador y
+le cuesta reputación al comercio.
 ```
 
 - **BORRADOR:** creado por el comercio; editable; no visible.

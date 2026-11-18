@@ -95,7 +95,8 @@ El corazón del producto es el turno y su ciclo:
 ```
 BORRADOR → PUBLICADO → BUSCANDO_PERSONAL → ASIGNADO → CONFIRMADO →
 EN_CAMINO → CHECK_IN → TRABAJANDO → CHECK_OUT → FINALIZADO → PAGADO
-(CANCELADO alcanzable desde cualquier estado no terminal)
+(CANCELADO alcanzable desde cualquier estado no terminal, salvo CHECK_OUT:
+ con la salida marcada el turno se finaliza y se paga)
 ```
 
 El detalle vive en [SHIFT.md](../reference/SHIFT.md) (Fase 2) y en el futuro

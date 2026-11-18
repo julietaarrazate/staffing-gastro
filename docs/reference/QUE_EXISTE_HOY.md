@@ -81,6 +81,9 @@ listados más abajo.
   confirmación del panel le dice al comercio, antes de confirmar, si suma una
   cancelación tardía (sólo con el trabajador ya confirmado), y la cuenta se
   ve en su `/profile`.
+- **Un turno ya trabajado no se cancela** (U081, 2026-11-18): con la salida
+  marcada el panel no ofrece «Cancelar turno» y el servidor lo rechaza; el
+  comercio lo finaliza y lo paga, y un problema va por soporte.
 - **Turno "no cubierto"** (ADR-0015): un turno ASIGNADO cuyo trabajador nunca
   confirma ni rechaza, o uno PUBLICADO/BUSCANDO_PERSONAL que nadie tomó,
   cuyo `start_at` ya pasó, se resuelve solo — **sin** impacto de reputación

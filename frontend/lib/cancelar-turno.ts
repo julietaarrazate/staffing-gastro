@@ -17,8 +17,14 @@ const COMMITTED_STATUSES: readonly ShiftStatus[] = [
 /** Estados en los que todavía puede haber gente postulada esperando respuesta. */
 const OPEN_STATUSES: readonly ShiftStatus[] = ["publicado", "buscando_personal"];
 
-/** Estados terminales: ya no hay nada que cancelar (`TERMINAL_STATUSES` del backend). */
-const TERMINAL_STATUSES: readonly ShiftStatus[] = [
+/**
+ * Estados desde los que el comercio ya no puede cancelar
+ * (`NOT_CANCELLABLE_STATUSES` del backend): los terminales y el turno con la
+ * salida marcada. Ese turno ya se trabajó: se finaliza y se paga, y un
+ * problema va por soporte (U081, ADR-0007).
+ */
+const NOT_CANCELLABLE_STATUSES: readonly ShiftStatus[] = [
+  "check_out",
   "finalizado",
   "pagado",
   "cancelado",
@@ -29,7 +35,7 @@ type CancellableShift = Pick<Shift, "status" | "worker_profile_id">;
 
 /** ¿El backend todavía acepta cancelar un turno en este estado? */
 export function isCancellable(status: ShiftStatus): boolean {
-  return !TERMINAL_STATUSES.includes(status);
+  return !NOT_CANCELLABLE_STATUSES.includes(status);
 }
 
 /**
