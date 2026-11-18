@@ -1,20 +1,17 @@
 /**
- * Marca Oído: mano ahuecada sobre la oreja (gesto de "¡oído!, va la orden"),
- * SVG vectorial final del diseñador (reemplazó el placeholder rasterizado,
- * ver docs/design/BRIEF_IDENTIDAD_VISUAL.md). Un solo `path` vectorizado (contornos
- * trazados a 6×, `fill-rule="evenodd"`) reusado en cada asset con distinto
- * recorte/escala/color — detalle en `frontend/public/oido-isotipo.svg` y
- * hermanos.
+ * Marca Oído (desde el 2026-11-17, ver docs/design-system/marca-hoy.md):
  *
- * `LogoGlyph` es sólo el trazo (mano + oreja), sin tile de fondo — se tiñe
- * del color pedido vía CSS mask (`logo-figure.svg` sólo aporta la silueta
- * en su canal alfa, el fill del SVG es irrelevante para una máscara). Lo
- * reusa EmptyState sobre superficie neutra. `LogoMark` agrega el tile ya
- * horneado (uso estándar: Navbar, favicon/app icons): azul hondo #1c5478 con
- * la figura blanca desde el 2026-10-19 (era ámbar con crema), hasta que haya
- * un isotipo nuevo.
- * `Logo` agrega el wordmark y es el default export que ya consumen Navbar,
- * login/register/recuperar/restablecer y la landing.
+ * - `LogoGlyph`: la silueta de «oí» (Shrikhand, letra convertida a trazos en
+ *   `public/logo-figure.svg`), sin fondo, teñida del color pedido con una
+ *   máscara CSS. La usan EmptyState, OidoLoader y los avisos de página. Hasta
+ *   el 2026-11-17 era la mano ahuecada sobre la oreja.
+ * - `LogoMark`: el ícono «oí» en su tile azul hondo, en la versión plana para
+ *   tamaños chicos (`public/logo-mark-chico.svg`). La fileteada con relieve
+ *   (`public/logo-mark.svg`) es la de los íconos grandes de la app
+ *   (`scripts/build-icons.mjs`).
+ * - `Logo` (default): la palabra «oído» plana en Shrikhand, en azul hondo
+ *   (celeste en oscuro), como el encabezado de la landing. Sin la palabra,
+ *   el ícono.
  */
 export function LogoGlyph({ size = 28, color = "#fff" }: { size?: number; color?: string }) {
   return (
@@ -41,7 +38,7 @@ export function LogoGlyph({ size = 28, color = "#fff" }: { size?: number; color?
 
 export function LogoMark({ size = 28 }: { size?: number }) {
   // eslint-disable-next-line @next/next/no-img-element -- ícono chico (≤48px), no amerita next/image
-  return <img src="/logo-mark.svg" width={size} height={size} alt="Oído" />;
+  return <img src="/logo-mark-chico.svg" width={size} height={size} alt="Oído" />;
 }
 
 export default function Logo({
@@ -51,16 +48,15 @@ export default function Logo({
   size?: number;
   withWordmark?: boolean;
 }) {
+  if (!withWordmark) return <LogoMark size={size} />;
   return (
-    <span className="inline-flex items-center gap-2">
-      <LogoMark size={size} />
-      {/* Wordmark en serif (Fraunces): el logo del board v5.0 es serif; NO usa
-          font-display, que ahora es Saans (títulos de UI). */}
-      {withWordmark && (
-        <span className="font-serif text-xl font-semibold tracking-tight text-ink">
-          oído
-        </span>
-      )}
+    <span
+      role="img"
+      aria-label="Oído"
+      className="inline-block font-oido leading-none text-primary-text"
+      style={{ fontSize: Math.round(size * 0.93), paddingTop: Math.round(size * 0.08) }}
+    >
+      oído
     </span>
   );
 }

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
-import { LogoMark } from "@/components/Logo";
 import type { Tone } from "./Stage";
 import { RelojFijo } from "./RelojDelTurno";
 import { useReloj } from "./relojStore";
@@ -119,8 +118,7 @@ export default function LandingHeader({ heroCtaId, reloj = false }: { heroCtaId:
     >
       <div className="flex h-[var(--lh)] items-center justify-between gap-3 px-4 sm:px-6 lg:px-12">
         <Link href="/" aria-label="Oído, inicio" className="inline-flex shrink-0 items-center gap-2">
-          <LogoMark size={28} />
-          <span className={cn("font-serif text-xl font-semibold tracking-tight transition-colors duration-400", t.word)}>
+          <span className={cn("font-oido pt-1 text-2xl leading-none transition-colors duration-400", t.word)}>
             oído
           </span>
         </Link>

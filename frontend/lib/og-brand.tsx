@@ -14,7 +14,7 @@ import { ImageResponse } from "next/og";
  * (letra de cartel con adornos dorados, la de la pantalla de inicio): hasta
  * ahí seguía el filete anterior al 2026-10-23. Para regenerarlo, renderizar
  * `<Filete palabra="oído" tam="firma" />` a 1200 px de ancho con fondo
- * transparente (la fuente es `app/fonts/sancreek-oido.woff2`). Sin el isotipo (Julieta): el ícono ya lo muestra la
+ * transparente (la fuente es `app/fonts/shrikhand-oido.woff2`; el mismo dibujo en vector está en `docs/design-system/marca/oido-filete.svg`). Sin el isotipo (Julieta): el ícono ya lo muestra la
  * app y su ámbar competía con el del filete. Todo centrado: hasta el 2026-10-05 era apaisada
  * con el logo a la izquierda y una tarjeta de turno a la derecha, y en
  * WhatsApp se veía como "un pedazo recortado del ticket": WhatsApp la
