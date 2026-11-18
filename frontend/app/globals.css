@@ -839,8 +839,11 @@ textarea,
 input[data-foco-contenedor]:focus-visible {
   outline: none;
 }
-/* El contenedor dibuja ese único contorno, el mismo de la marca. */
-.foco-contenedor:has(:focus-visible) {
+/* El contenedor dibuja ese único contorno, el mismo de la marca. Sólo cuando
+ * el foco está en SU campo: otro control adentro (la «X» de borrar del buscador
+ * de direcciones) lleva su propio contorno global, y si el contenedor también
+ * se encendiera serían dos (revisión de #627). */
+.foco-contenedor:has([data-foco-contenedor]:focus-visible) {
   outline: 2px solid var(--focus-ring, var(--color-primary));
   outline-offset: 2px;
 }

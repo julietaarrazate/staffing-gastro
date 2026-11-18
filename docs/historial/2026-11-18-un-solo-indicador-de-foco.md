@@ -29,3 +29,10 @@ elemento interactivo y es el que la marca define; no se tocaron colores ni
 `frontend/e2e/un-solo-foco.spec.ts` (falla con el código anterior).
 
 **Queda abierto:** nada.
+
+**Revisión independiente:** encontró dos dobles contornos que quedaban y se
+corrigieron en el mismo PR: el contenedor del buscador de direcciones también
+se encendía con el foco en su «X» de borrar (ahora sólo con el foco en su
+campo: `.foco-contenedor:has([data-foco-contenedor]:focus-visible)`), y el
+enlace oculto «Ver el detalle del turno» de «Descubrir rápido» sumaba un
+anillo ámbar. Más un e2e del contenedor en `/admin/personas`.
