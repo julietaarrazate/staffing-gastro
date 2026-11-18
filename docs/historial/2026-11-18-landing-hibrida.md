@@ -33,7 +33,10 @@ fotos, las secciones y casi todos sus textos. Cambia esto:
   El © dice «© 2026 Oído · Personal gastronómico en Buenos Aires» (antes
   «© 2026 Julieta Arrazate — Oído. Hecho en Argentina.»): Julieta preguntó
   qué convenía para los buscadores y eligió la marca con el rubro y la
-  ciudad. Su nombre como titular sigue en Términos y Privacidad.
+  ciudad. Su nombre como titular sigue en Términos y Privacidad. Además,
+  los datos de organización que la landing les da a los buscadores
+  (`frontend/app/page.tsx`) declaran el Instagram de la marca,
+  `instagram.com/oidoapp`; no se ve en la página.
 
 Técnico: tokens del relieve en `frontend/app/globals.css` (`--relieve`,
 `--shadow-relieve*`, `--radius-relieve`; ADR-0027), clases nuevas

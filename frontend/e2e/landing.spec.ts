@@ -120,7 +120,9 @@ test("las preguntas frecuentes también van como datos estructurados", async ({ 
   const faq = datos.find((d) => d?.["@type"] === "FAQPage");
   const visibles = await page.locator("#preguntas summary").allTextContents();
   expect(faq.mainEntity.map((q: { name: string }) => q.name)).toEqual(visibles.map((t) => t.trim()));
-  expect(datos.some((d) => d?.["@type"] === "Organization")).toBe(true);
+  const marca = datos.find((d) => d?.["@type"] === "Organization");
+  // La cuenta oficial de Instagram va declarada para los buscadores.
+  expect(marca.sameAs).toEqual(["https://www.instagram.com/oidoapp/"]);
   // Se abre sin JavaScript (details/summary).
   await page.getByText("¿Qué pasa si no viene?").click();
   await expect(page.getByText(/elegís a otra persona de las que se postularon/)).toBeVisible();
