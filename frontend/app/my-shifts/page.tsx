@@ -438,8 +438,10 @@ function MatchesContent() {
       <div
         key={shift.id}
         id={`turno-${shift.id}`}
-        className={`scroll-mt-24 rounded-[var(--radius-card)] transition-shadow motion-reduce:transition-none ${
-          highlightId === shift.id ? "ring-2 ring-primary-text" : ""
+        // El anillo del turno resaltado (`?turno=`) va despegado del papel:
+        // pegado, quedaba encimado al relieve de la comanda.
+        className={`scroll-mt-24 rounded-[2px] transition-shadow motion-reduce:transition-none ${
+          highlightId === shift.id ? "ring-2 ring-primary-text ring-offset-8 ring-offset-background" : ""
         }`}
       >
               <ShiftCard shift={shift} perspective="worker" comanda>
@@ -640,9 +642,14 @@ function MatchesContent() {
             />
           ) : (
             activeShifts.length > 0 && (
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {activeShifts.map(renderAssigned)}
-              </div>
+              <>
+                {/* Oculto: los puestos de las comandas son h3 y no tienen que
+                    saltar desde el h1. */}
+                <h2 className="sr-only">Asignados</h2>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {activeShifts.map(renderAssigned)}
+                </div>
+              </>
             )
           )}
           {/* U066: lo terminado (pagado, cancelado, no cubierto) va aparte,
@@ -650,7 +657,7 @@ function MatchesContent() {
           {finishedShifts.length > 0 && (
             <>
               <h2
-                className={`mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50 ${
+                className={`mb-3 text-sm font-semibold uppercase tracking-wide text-ink-soft ${
                   activeShifts.length > 0 ? "mt-8" : ""
                 }`}
               >
@@ -673,6 +680,8 @@ function MatchesContent() {
               subtitle="Postulate a un turno desde Inicio. Acá vas a seguir su estado."
             />
           ) : (
+            <>
+            <h2 className="sr-only">Postulaciones</h2>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {pending.map((application) => {
               const shift = appShifts[application.shift_id];
@@ -723,6 +732,7 @@ function MatchesContent() {
               );
             })}
             </div>
+            </>
           )}
         </div>
       )}
@@ -758,6 +768,7 @@ function MatchesContent() {
                 </div>
               )}
 
+              <h2 className="sr-only">Guardados</h2>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {savedShifts.map((shift) => {
                   const selected = selectedForCompare.includes(shift.id);
@@ -773,7 +784,9 @@ function MatchesContent() {
                           // Arriba a la derecha, por fuera del papel: adentro
                           // tapaba el sello «Urgente» de la comanda.
                           className={`absolute -right-2 -top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full ring-2 ring-card transition disabled:opacity-40 ${
-                            selected ? "bg-primary-text text-card" : "bg-card/95 text-ink/40 shadow-sm"
+                            // Sin elegir va con borde azul: afuera del papel,
+                            // sobre el lienzo, el círculo blanco no se veía.
+                            selected ? "bg-primary-text text-card" : "bg-card text-ink/40 ring-primary-text"
                           }`}
                         >
                           {selected ? <CheckIcon size={14} /> : null}

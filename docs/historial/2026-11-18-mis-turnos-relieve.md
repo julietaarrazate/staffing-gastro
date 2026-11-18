@@ -34,6 +34,16 @@ riel del Panel). Spec nuevo: `mis-turnos-relieve.spec.ts`.
   `ShiftLifecycleStepper`, que comparten el Panel, el detalle y el admin:
   cambiarlo es su propio PR.
 
+**Revisión independiente** (otro agente; 320 a 1280 px, claro y oscuro, las
+tres pestañas, comparar, «Voy en camino», calificar): aprobado con arreglos
+menores, hechos acá. El círculo de «Comparar» sin elegir no se veía sobre el
+lienzo oscuro (ahora lleva borde azul); «Terminados» daba 3,5 de contraste
+(pasa a `ink-soft`); cada pestaña tiene su h2 oculto para que no salte del h1
+a los h3 de las comandas; y el anillo del turno resaltado (`?turno=`) va
+despegado del papel. Anotó que el sello «Confirmado» en el papel de noche da
+4,49 (el mínimo es 4,5): queda para el PR que revise los colores de los
+sellos, porque lo comparten el Panel y Mis turnos.
+
 **Queda abierto:** con esto termina el orden de pantallas de la etapa 4. Lo
 que es de toda la app sigue en PRs propios: la barra de navegación, las
 pestañas (`SegmentedControl`), los botones secundarios y los pasos tachados
