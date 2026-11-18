@@ -879,3 +879,147 @@ async def test_marcar_dos_veces_la_ausencia_reofrece_y_avisa_una_sola_vez(client
     assert len(await _avisos(client, comercio, "shift_reopened")) == 1
     perfil_a = (await client.get("/api/v1/workers/me/profile", headers=a)).json()
     assert perfil_a["no_shows"] == 1
+
+
+# --- Suspensión de la cuenta (ADR-0024) ------------------------------------
+
+
+@asyncio
+async def test_suspender_al_reemplazo_no_reofrece_y_sigue_hasta_la_ausencia(
+    client: AsyncClient, session_factory, monkeypatch
+):
+    """Suspender a quien tomó un turno reofrecido no lo vuelve a reofrecer:
+    ya empezó, y lo empezado no se toca (ADR-0024, punto 3). Sigue su curso
+    hasta la ausencia automática, contada desde que confirmó, y ahí se
+    reofrece si le queda al menos una hora."""
+    from tests.conftest import make_admin
+
+    monkeypatch.setattr(scheduler, "AsyncSessionLocal", session_factory)
+    admin = await make_admin(client, session_factory, "reof_admin_susp@staffya.com")
+    b, b_id = await _trabajador(client, "reof_b_susp@staffya.com")
+    shift_id, comercio, _a, _a_id = await _turno_confirmado_y_empezado(
+        client, "susp", empezo_hace=timedelta(hours=2, minutes=30), horas=8
+    )
+    await client.post(f"/api/v1/shifts/{shift_id}/no-show", headers=comercio)
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/assign", headers=comercio, json={"worker_profile_id": b_id}
+    )
+    assert (await client.post(f"/api/v1/shifts/{shift_id}/confirm", headers=b)).status_code == 200
+    avisos_antes = len(await _avisos(client, comercio, "shift_reopened"))
+
+    users = await client.get(
+        "/api/v1/admin/users", headers=admin, params={"q": "reof_b_susp@staffya.com"}
+    )
+    user_id = next(u["id"] for u in users.json() if u["email"] == "reof_b_susp@staffya.com")
+    suspended = await client.post(f"/api/v1/admin/users/{user_id}/suspend", headers=admin)
+    assert suspended.status_code == 200, suspended.text
+
+    detalle = (await client.get(f"/api/v1/shifts/{shift_id}", headers=comercio)).json()
+    assert detalle["status"] == "confirmado"
+    assert detalle["worker_profile_id"] == b_id
+    assert len(await _avisos(client, comercio, "shift_reopened")) == avisos_antes
+
+    # A las 2 horas de que confirmó: ausencia automática, y se reofrece.
+    async with session_factory() as session:
+        model = await session.get(ShiftModel, UUID(shift_id))
+        model.confirmed_at = _now() - NO_SHOW_GRACE_PERIOD - timedelta(minutes=1)
+        await session.commit()
+    await scheduler.run_attendance_check()
+    detalle = (await client.get(f"/api/v1/shifts/{shift_id}", headers=comercio)).json()
+    assert detalle["status"] == "buscando_personal"
+    assert detalle["worker_profile_id"] is None
+    assert len(await _avisos(client, comercio, "shift_reopened")) == avisos_antes + 1
+
+
+async def _turno_con_rechazado(
+    client: AsyncClient, tag: str, *, empezo_hace: timedelta, horas: float = 4
+) -> tuple[str, dict, str]:
+    """Un turno común ya empezado, confirmado por A, con C postulado y
+    rechazado al asignar a A."""
+    comercio = await _comercio(client, f"reof_emp_{tag}@staffya.com")
+    a, a_id = await _trabajador(client, f"reof_a_{tag}@staffya.com")
+    c, c_id = await _trabajador(client, f"reof_c_{tag}@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts", headers=comercio, json=_payload(_now() - empezo_hace, horas=horas)
+    )
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=comercio)
+    for quien in (a, c):
+        aplico = await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=quien)
+        assert aplico.status_code in (200, 201), aplico.text
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/assign", headers=comercio, json={"worker_profile_id": a_id}
+    )
+    assert (await client.post(f"/api/v1/shifts/{shift_id}/confirm", headers=a)).status_code == 200
+    return shift_id, comercio, c_id
+
+
+async def _estado_de_postulacion(session_factory, shift_id: str, profile_id: str) -> str:
+    from sqlalchemy import select
+
+    from app.modules.application.infrastructure.models import ShiftApplicationModel
+
+    async with session_factory() as session:
+        row = (
+            await session.execute(
+                select(ShiftApplicationModel).where(
+                    ShiftApplicationModel.shift_id == UUID(shift_id),
+                    ShiftApplicationModel.worker_profile_id == UUID(profile_id),
+                )
+            )
+        ).scalar_one()
+        return row.status.value if hasattr(row.status, "value") else str(row.status)
+
+
+async def _reabrir_por_suspension(session_factory, shift_id: str) -> None:
+    """Llama directo a la reapertura por suspensión: por la API no se llega
+    con un turno empezado (`shifts_taken_not_started`), pero el caso de uso
+    tiene que respetar lo que decida `release_worker` si eso cambia."""
+    async with session_factory() as session:
+        service = scheduler._build_service(session)
+        shift = await service._shifts.get_by_id(UUID(shift_id))
+        await service._reopen_for_worker_suspension(shift)
+        await session.commit()
+
+
+@asyncio
+async def test_la_reapertura_por_suspension_de_un_turno_empezado_lo_reofrece(
+    client: AsyncClient, session_factory
+):
+    shift_id, comercio, c_id = await _turno_con_rechazado(
+        client, "susp_reof", empezo_hace=timedelta(minutes=30)
+    )
+    assert await _estado_de_postulacion(session_factory, shift_id, c_id) == "rechazada"
+    cerca, _ = await _trabajador(client, "reof_cerca_susp@staffya.com")
+    antes = len(await _avisos(client, cerca, "urgent_shift_nearby"))
+
+    await _reabrir_por_suspension(session_factory, shift_id)
+
+    detalle = (await client.get(f"/api/v1/shifts/{shift_id}", headers=comercio)).json()
+    assert detalle["status"] == "buscando_personal"
+    assert detalle["reoffered_at"] is not None
+    assert await _estado_de_postulacion(session_factory, shift_id, c_id) == "pendiente"
+    aviso = (await _avisos(client, comercio, "shift_reopened"))[-1]
+    assert "ya no puede tomarlo" in aviso["message"]
+    assert "lo reofrecimos como urgente" in aviso["message"]
+    assert len(await _avisos(client, cerca, "urgent_shift_nearby")) == antes + 1
+
+
+@asyncio
+async def test_la_reapertura_por_suspension_sin_una_hora_cierra_sin_restaurar(
+    client: AsyncClient, session_factory
+):
+    shift_id, comercio, c_id = await _turno_con_rechazado(
+        client, "susp_cierra", empezo_hace=timedelta(hours=3, minutes=30)
+    )
+
+    await _reabrir_por_suspension(session_factory, shift_id)
+
+    detalle = (await client.get(f"/api/v1/shifts/{shift_id}", headers=comercio)).json()
+    assert detalle["status"] == "no_cubierto"
+    # Turno cerrado: ya no hay carrera a la que volver.
+    assert await _estado_de_postulacion(session_factory, shift_id, c_id) == "rechazada"
+    avisos = await _avisos(client, comercio, "shift_not_covered")
+    assert len(avisos) == 1
+    assert "ya no puede tomarlo" in avisos[0]["message"]
+    assert await _avisos(client, comercio, "shift_reopened") == []

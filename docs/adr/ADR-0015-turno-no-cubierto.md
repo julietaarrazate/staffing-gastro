@@ -228,6 +228,17 @@ horas de turno por delante.
    ([ADR-0008](./ADR-0008-asistencia-simplificada-y-no-show-automatico.md),
    actualización del mismo día).
 
+7. **Suspender al reemplazo no reofrece el turno.** Suspender una cuenta sólo
+   reabre los turnos que todavía no empezaron
+   ([ADR-0024](./ADR-0024-efectos-de-una-suspension.md), punto 3: lo empezado no se
+   toca), y un turno reofrecido ya empezó. Si se suspende a quien lo tomó, el
+   turno sigue su curso hasta la ausencia automática, contada desde que
+   confirmó (punto 6), y ahí se reofrece si le queda al menos 1 hora (o pasa
+   a «no cubierto»). Por si eso cambia, la reapertura por suspensión ya usa
+   lo que devuelve `release_worker` y el mismo aviso que el resto
+   (`_announce_reopen`): reofrecido, con el aviso urgente a quienes están
+   cerca; sin cubrir, sin devolver a la carrera a los rechazados.
+
 Migración `0053`: `shifts.reoffered_at`, `confirmed_at` y
 `prorated_pay_amount`, las tres nullable y sin datos que copiar.
 

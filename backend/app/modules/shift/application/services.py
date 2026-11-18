@@ -765,12 +765,13 @@ class ShiftService(AccountSuspensionEffects):
         outcome: Reapertura,
         *,
         left_worker_profile_id: UUID | None,
-        motivo: MotivoDesasignacion,
+        motivo: MotivoDesasignacion | None,
         automatic: bool = False,
     ) -> None:
         """Segunda mitad: **un** aviso al comercio que dice qué pasó y qué
         sigue y, si el turno se reofreció, el aviso urgente a quienes están
-        cerca (U080)."""
+        cerca (U080). `motivo=None` es la suspensión de la cuenta de la
+        persona (ADR-0024): no fue una decisión suya y no deja marca."""
         await self._notify_company_reopened(
             updated,
             outcome,
@@ -787,7 +788,7 @@ class ShiftService(AccountSuspensionEffects):
         outcome: Reapertura,
         *,
         left_worker_profile_id: UUID | None,
-        motivo: MotivoDesasignacion,
+        motivo: MotivoDesasignacion | None,
         automatic: bool,
     ) -> None:
         """El aviso al comercio cuando quien tenía su turno lo dejó. Uno
@@ -817,6 +818,12 @@ class ShiftService(AccountSuspensionEffects):
             )
             titulo = "El trabajador canceló su asignación"
             motivo_cierre = "la persona confirmada canceló"
+            tipo = NotificationType.SHIFT_REOPENED
+        elif motivo is None:
+            # Suspensión de la cuenta (ADR-0024): no se dice por qué.
+            paso = f"La persona asignada a \"{turno}\" ya no puede tomarlo."
+            titulo = "Tu turno volvió a buscar personal"
+            motivo_cierre = "la persona asignada ya no puede tomarlo"
             tipo = NotificationType.SHIFT_REOPENED
         else:
             paso = f"El trabajador asignado rechazó el turno \"{turno}\"."
@@ -851,11 +858,17 @@ class ShiftService(AccountSuspensionEffects):
             )
         else:
             # Todavía no había empezado: el aviso de siempre.
+            sigue = (
+                "El turno volvió a buscar personal: elegí a otra persona entre "
+                "los postulantes."
+                if motivo is None
+                else "Volvió a buscar personal."
+            )
             await self._notify_company(
                 shift.company_id,
                 tipo,
                 titulo,
-                f"{paso} Volvió a buscar personal.",
+                f"{paso} {sigue}",
                 link=candidatos,
             )
 
@@ -1845,27 +1858,44 @@ class ShiftService(AccountSuspensionEffects):
         """Reabre un turno de un trabajador suspendido, como `worker_cancel`
         (vuelve a buscar personal y los demás postulantes vuelven a estar en
         carrera), pero sin `record_cancellation`: la medida es la
-        suspensión, no una cancelación suya."""
+        suspensión, no una cancelación suya.
+
+        Hoy sólo llegan acá turnos que no empezaron (`shifts_taken_not_started`,
+        ADR-0024 punto 3: lo empezado no se toca), así que el resultado es
+        siempre `ABIERTO`. Igual se respeta lo que decida `release_worker`
+        (U080) por si eso cambia: reofrecido, con el mismo aviso que el resto
+        de las reaperturas; sin cubrir, sin devolver a nadie a la carrera."""
         released_worker_profile_id = shift.worker_profile_id
-        shift.release_worker()
+        outcome = shift.release_worker()
         updated = await self._shifts.update(shift)
         logger.info(
             "shift.reopened_by_suspension",
-            extra={"shift_id": str(updated.id), "company_id": str(updated.company_id)},
+            extra={
+                "shift_id": str(updated.id),
+                "company_id": str(updated.company_id),
+                "outcome": outcome.value,
+            },
         )
-        await self._finish_reopen(updated, released_worker_profile_id)
+        await self._finish_reopen(updated, released_worker_profile_id, outcome)
 
     async def _finish_reopen(
-        self, updated: Shift, released_worker_profile_id: UUID | None
+        self,
+        updated: Shift,
+        released_worker_profile_id: UUID | None,
+        outcome: Reapertura = Reapertura.ABIERTO,
     ) -> None:
-        """La cola de reabrir por suspensión, con el turno ya guardado como
-        abierto: restaurar a los rechazados, soltar la postulación de quien
-        perdió el turno y avisarle al comercio. Un fallo al restaurar se
-        registra y NO impide el aviso; en ese caso la postulación sigue
-        ACEPTADA a propósito, para que `_finish_half_reopened` lo reintente
-        en la repetición de la suspensión."""
+        """La cola de reabrir por suspensión, con el turno ya guardado:
+        restaurar a los rechazados (salvo que haya quedado sin cubrir: ya no
+        hay carrera), soltar la postulación de quien perdió el turno y avisar
+        (`_announce_reopen`, el mismo aviso que el resto de las reaperturas).
+        Un fallo al restaurar se registra y NO impide el aviso; en ese caso la
+        postulación sigue ACEPTADA a propósito, para que
+        `_finish_half_reopened` lo reintente en la repetición de la
+        suspensión (ese reintento pasa `ABIERTO`: el turno ya está abierto y
+        el aviso a quienes están cerca, si correspondía, ya salió)."""
         try:
-            await self._restore_rejected_applicants(updated.id)
+            if outcome is not Reapertura.SIN_CUBRIR:
+                await self._restore_rejected_applicants(updated.id)
             if released_worker_profile_id is not None:
                 await self._release_application(updated.id, released_worker_profile_id)
         except Exception:
@@ -1874,18 +1904,12 @@ class ShiftService(AccountSuspensionEffects):
                 "se reintenta al repetir la suspensión (shift_id=%s)",
                 updated.id,
             )
-        name = updated.title or updated.position.label
         try:
-            await self._notify_company(
-                updated.company_id,
-                NotificationType.SHIFT_REOPENED,
-                "Tu turno volvió a buscar personal",
-                (
-                    f"La persona asignada a \"{name}\" ya no puede tomarlo. "
-                    "El turno volvió a buscar personal: elegí a otra persona "
-                    "entre los postulantes."
-                ),
-                link=f"/shifts/{updated.id}/candidates",
+            await self._announce_reopen(
+                updated,
+                outcome,
+                left_worker_profile_id=released_worker_profile_id,
+                motivo=None,
             )
         except Exception:
             logger.exception(
