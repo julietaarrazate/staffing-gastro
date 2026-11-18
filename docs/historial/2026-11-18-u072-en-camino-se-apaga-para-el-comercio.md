@@ -1,4 +1,4 @@
-# U072: «va en camino» se apaga al instante también para el comercio (#PRU072)
+# U072: «va en camino» se apaga al instante también para el comercio (#633)
 
 **Pedido:** Julieta, salida a beta, etapa 2 (decisiones 3 y 1 del tablero):
 «"va en camino" se apaga al instante también para el comercio, que vuelve a
