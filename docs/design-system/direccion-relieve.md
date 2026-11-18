@@ -124,9 +124,12 @@ El híbrido parte de la landing de hoy, sección por sección y con sus textos
 - **Letra mixta** (propuesta tras verla Julieta: «en el héroe queda muy
   bien», en títulos largos se lee más lento): brocha sólo donde habría un
   cartel pintado (el título del inicio, el cierre y los nombres de la carta),
-  en mayúsculas y azul de la marca; los títulos de sección siguen en Young
-  Serif. La palabra que cambia sigue en ámbar. Interruptor contra «toda
-  brocha» y «Young Serif».
+  en mayúsculas y azul de la marca. La palabra que cambia sigue en ámbar.
+  A Julieta la mixta le gusta, pero **Young Serif no la convence** para los
+  títulos de sección («genérica»): hay un interruptor con tres candidatas,
+  **Abril Fatface** (recomendada: es la hermana derecha de la Shrikhand del
+  «oído», la letra gorda de los carteles), **Alegreya** negra (argentina,
+  caligráfica) y **Caprasimo** (gordita, de fiambrería), contra Young Serif.
 - **El isotipo no va junto al «oído»** (decisión de Julieta, 2026-11-18):
   queda sólo como ícono de la app. Se sacó del encabezado y del pie, y del
   encabezado de la prueba de la app.
@@ -166,6 +169,16 @@ dos celulares que se hablan, en claro y en noche:
 - Brocha sólo en el título de cada pantalla y en el puesto de la comanda;
   Mansalva en dos apuntes («para hoy», «el que te recomendamos»).
 
+**Acentos (misma fecha).** Julieta mandó capturas de la app de hoy: «todo
+se ve plano, todo parece un formulario del mismo tono», y pidió que lo nuevo
+no se vea así. Cada pantalla tiene ahora su propio tono, siempre dentro de la
+paleta: cielo pleno con nubes en el Inicio, con la comanda montada sobre el
+borde; el riel sobre una banda azul hondo; Mis turnos con encabezado azul
+hondo; Candidatos sobre celeste. Suman color las fotos en «Cerca tuyo», el
+cartelito de «Disponible» en verde (como el de «abierto») y los estados como
+sello de goma (verde para confirmado y llegó). El ámbar sigue sólo en la
+acción principal.
+
 Falta mirarla con Julieta y decidir qué de esto entra a la app real.
 
 ## Isotipo (2026-11-18)
@@ -196,8 +209,9 @@ como exploración abierta):
 ## Falta que decida Julieta
 
 1. Qué le cambia al híbrido (es la base desde el 2026-11-18).
-2. La letra: falta que confirme la mixta (brocha en el inicio, el cierre y
-   la carta; Young Serif en el resto). Si queda, se actualiza `typography.md`.
+2. La letra: la mixta le gusta (brocha en el inicio, el cierre y la carta);
+   falta que elija la de los títulos de sección entre Abril Fatface,
+   Alegreya y Caprasimo. Cuando quede, se actualiza `typography.md`.
 3. El isotipo: va sólo como ícono de la app; falta que confirme «grito y
    respuesta» y si se encarga al fileteador.
 4. Antes de producción, confirmar contra el producto lo que la prueba afirma:
