@@ -776,7 +776,17 @@ class ShiftService(AccountSuspensionEffects):
         """Segunda mitad: **un** aviso al comercio que dice qué pasó y qué
         sigue y, si el turno se reofreció, el aviso urgente a quienes están
         cerca (U080). `motivo=None` es la suspensión de la cuenta de la
-        persona (ADR-0024): no fue una decisión suya y no deja marca."""
+        persona (ADR-0024): no fue una decisión suya y no deja marca.
+
+        Con la cuenta del comercio suspendida no sale ninguno (decisión 22):
+        su turno está oculto, así que el aviso urgente ofrecería algo que
+        nadie puede ver ni tomar, y a la cuenta suspendida no se le avisa."""
+        if not await self.company_account_active(updated.company_id):
+            logger.info(
+                "shift.reopen_not_announced",
+                extra={"shift_id": str(updated.id), "reason": "company_suspended"},
+            )
+            return
         await self._notify_company_reopened(
             updated,
             outcome,
@@ -1271,7 +1281,11 @@ class ShiftService(AccountSuspensionEffects):
         El scheduler decide llamar con una foto del turno leída antes: si en
         el medio se reofreció (U080), su plazo pasó a `end_at`. Con el turno
         recién leído, si todavía no corresponde (`coverage_deadline`), no se
-        hace nada: la próxima pasada decide con el estado nuevo."""
+        hace nada: la próxima pasada decide con el estado nuevo.
+
+
+        Con la cuenta del comercio suspendida el turno vence igual, pero sin
+        ningún aviso (ADR-0024, actualización 2026-11-18)."""
         shift = await self.get_shift(shift_id)
         if _naive(datetime.now(timezone.utc)) < coverage_deadline(shift):
             logger.info(
@@ -1286,12 +1300,22 @@ class ShiftService(AccountSuspensionEffects):
         # que no se presentó y no se consiguió reemplazo a tiempo.
         tras_ausencia = shift.no_show_at is not None
         reofrecido = shift.is_reoffered
-        shift.mark_not_covered()
+        # Comercio suspendido (ADR-0024, actualización 2026-11-18): el turno
+        # estaba oculto. Vence igual, pero queda marcado (fuera de las métricas
+        # de cobertura, también si la cuenta se reactiva) y no se avisa.
+        suspendida = not await self.company_account_active(shift.company_id)
+        shift.mark_not_covered(company_suspended=suspendida)
         updated = await self._shifts.update(shift)
         logger.info(
             "shift.not_covered",
-            extra={"shift_id": str(updated.id), "company_id": str(updated.company_id)},
+            extra={
+                "shift_id": str(updated.id),
+                "company_id": str(updated.company_id),
+                "company_suspended": suspendida,
+            },
         )
+        if suspendida:
+            return updated
         nombre = updated.title or updated.position.label
         if reofrecido:
             # U080: se reabrió ya empezado y se ofreció mientras le quedaba

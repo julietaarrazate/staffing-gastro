@@ -115,6 +115,7 @@ def _to_entity(model: ShiftModel) -> Shift:
         reoffered_at=model.reoffered_at,
         confirmed_at=model.confirmed_at,
         prorated_pay_amount=model.prorated_pay_amount,
+        not_covered_while_suspended=model.not_covered_while_suspended,
         created_at=model.created_at,
         updated_at=model.updated_at,
         version=model.version,
@@ -163,6 +164,7 @@ def _apply_fields(model: ShiftModel, shift: Shift) -> None:
     model.reoffered_at = shift.reoffered_at
     model.confirmed_at = shift.confirmed_at
     model.prorated_pay_amount = shift.prorated_pay_amount
+    model.not_covered_while_suspended = shift.not_covered_while_suspended
 
 
 def _from_active_company():
@@ -212,6 +214,16 @@ def _not_from_companies_of(emails: frozenset[str]):
         .where(UserModel.email.in_(emails))
     )
     return ShiftModel.company_id.not_in(excluded)
+
+
+def _counts_for_coverage():
+    """Condición «el turno entra en las métricas de cobertura»: quedan fuera,
+    del numerador y del denominador, los que vencieron con la cuenta del
+    comercio suspendida (ADR-0024, actualización 2026-11-18). Estaban ocultos:
+    nadie pudo postularse, así que no dicen nada de la promesa de cubrir en
+    10 minutos. Se mira la marca del turno y no el estado de la cuenta, para
+    que una cuenta reactivada después no los devuelva a la cuenta."""
+    return ShiftModel.not_covered_while_suspended.is_(False)
 
 
 def _utc_naive(value: datetime) -> datetime:
@@ -450,6 +462,7 @@ class SqlAlchemyShiftRepository(ShiftRepository):
                 ShiftModel.published_at.is_not(None),
                 ShiftModel.first_confirmed_at.is_not(None),
                 _not_from_companies_of(exclude_company_emails),
+                _counts_for_coverage(),
             )
             .order_by(ShiftModel.published_at.desc())
             .limit(limit)
@@ -560,7 +573,7 @@ class SqlAlchemyShiftRepository(ShiftRepository):
                     else_=0,
                 )
             ).label("completed"),
-        ).where(_not_from_companies_of(exclude_company_emails))
+        ).where(_not_from_companies_of(exclude_company_emails), _counts_for_coverage())
         row = (await self._session.execute(stmt)).one()
         return ShiftPublicationStats(
             published=row.published or 0,
@@ -782,10 +795,14 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         }
         columns = []
         for key, in_window in windows.items():
-            covered = in_window & confirmed.is_not(None)
+            # Publicados y cubiertos, sin los que vencieron con la cuenta
+            # suspendida. «Locales activos» (más abajo) sí los mira: es
+            # actividad (el comercio publicó), no cobertura.
+            counted = in_window & _counts_for_coverage()
+            covered = counted & confirmed.is_not(None)
             short_notice = covered & (notice_minutes <= SHORT_NOTICE_MINUTES)
             columns += [
-                func.sum(case((in_window, 1), else_=0)).label(f"{key}_published"),
+                func.sum(case((counted, 1), else_=0)).label(f"{key}_published"),
                 func.sum(case((covered, 1), else_=0)).label(f"{key}_covered"),
                 func.sum(case((covered & (minutes <= 10), 1), else_=0)).label(f"{key}_fast"),
                 # AVG ignora los NULL: sólo promedia los cubiertos del período.
@@ -822,6 +839,7 @@ class SqlAlchemyShiftRepository(ShiftRepository):
                     published < end,
                     confirmed.is_not(None),
                     excluded,
+                    _counts_for_coverage(),
                 )
             )
         ).all()

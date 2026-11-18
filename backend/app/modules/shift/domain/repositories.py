@@ -30,7 +30,9 @@ class ShiftPublicationStats:
     señal útil: cuánto de lo "encontrado" efectivamente se trabajó.
     Calculado con `SUM(CASE...)` en SQL (mismo patrón que `UserCounts` de
     identity), no trayendo filas a Python. Excluye los turnos de las cuentas
-    de prueba e invitadas (`exclude_company_emails`)."""
+    de prueba e invitadas (`exclude_company_emails`) y, de las tres cuentas,
+    los que vencieron con la cuenta del comercio suspendida
+    (`Shift.not_covered_while_suspended`, ADR-0024)."""
 
     published: int
     assigned: int
@@ -54,7 +56,12 @@ class ShiftPeriodStats:
     cubiertos (nunca un número sobre cero casos).
     `active_companies`: comercios distintos que publicaron en la ventana;
     `companies_with_covered`: de ésos, los que tuvieron al menos un turno
-    cubierto."""
+    cubierto.
+
+    Los turnos que vencieron con la cuenta del comercio suspendida
+    (`Shift.not_covered_while_suspended`, ADR-0024) quedan fuera de todo
+    salvo de `active_companies`, que mide actividad (el comercio publicó) y
+    no cobertura."""
 
     published: int
     covered: int
@@ -287,7 +294,8 @@ class ShiftRepository(ABC):
         cubiertos: los que aportan dato a la métrica de tiempo de cobertura),
         más recientes primero, acotado a `limit`. Sin los turnos de comercios
         cuyo email está en `exclude_company_emails` (cuentas de prueba e
-        invitadas).
+        invitadas) ni los que vencieron con la cuenta del comercio suspendida
+        (`Shift.not_covered_while_suspended`, ADR-0024).
 
         Uso interno (no expuesto por API): `AdminService.get_stats` calcula
         el promedio y el % cubierto en <10 min sobre esta muestra."""
