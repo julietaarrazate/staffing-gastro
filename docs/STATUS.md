@@ -52,7 +52,14 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
    sigue con el «oí». La app, la landing,
    la miniatura, los vectores y el manual en PDF de
    `design-system/marca/` y el brand system navegable ya están
-   ([historial](./historial/2026-11-17-marca-shrikhand-isotipo-oi.md)). Sigue
+   ([historial](./historial/2026-11-17-marca-shrikhand-isotipo-oi.md)). **Los
+   adornos del «oído» fileteado tienen cuerpo** desde el 2026-11-18 (Julieta:
+   los de línea fina «quedaron demasiado finos»): nivel «medio» en el final
+   de la landing y la bienvenida, «cargado» en la miniatura; entran el rojo y
+   el rosa sólo en las flores del filete y la letra sigue crema con relieve
+   azul hondo ([historial](./historial/2026-11-18-filete-adornos-con-cuerpo.md)).
+   Queda por decidir si un toque de ese filete va también en el ícono del
+   pinche (Julieta: «quizás»; iría en un PR aparte). Sigue
    **la dirección «con relieve»** (Julieta eligió
    seguirla: la sombra dura azul hondo del filete como profundidad de la
    interfaz; prueba en https://claude.ai/artifact/WNXBXhkNgGrFdBbqFNsQan).
