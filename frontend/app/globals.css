@@ -2109,14 +2109,27 @@ body:has([data-landing]) main {
   position: relative;
   aspect-ratio: 4 / 3;
   overflow: hidden;
-  /* El mapa base es beige; se pasa a gris y se multiplica contra este
-     celeste para que hable el mismo color que el resto (2026-11-13). */
-  background: #cfe3f0;
+  background: #cfe3ee;
   isolation: isolate;
 }
-.landing-mapa-calles > img {
-  filter: grayscale(1) contrast(0.92) brightness(1.06);
-  mix-blend-mode: multiply;
+/* El mapa base es beige. Encima va el celeste del cielo en modo «color»
+   (le pone el tono y deja el dibujo de las calles) y un velo que lo aclara:
+   es el mapa de la prueba híbrida (2026-11-18). Antes se pasaba a gris y se
+   multiplicaba contra un celeste pálido, y quedaba casi sin color. */
+.landing-mapa-calles::before,
+.landing-mapa-calles::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+.landing-mapa-calles::before {
+  background: #8cc2e7;
+  mix-blend-mode: color;
+}
+.landing-mapa-calles::after {
+  background: rgb(196 227 237 / 0.25);
 }
 .landing-mapa-credito {
   position: absolute;
@@ -2132,7 +2145,7 @@ body:has([data-landing]) main {
 /* La onda que sale de Tu bar: cada punto aparece cuando lo alcanza. */
 .landing-mapa-onda {
   position: absolute;
-  z-index: 1;
+  z-index: 2;
   width: 124%;
   aspect-ratio: 1;
   border: 1.5px solid rgb(28 84 120 / 0.45);
@@ -2190,6 +2203,7 @@ body:has([data-landing]) main {
   transform: translate(-50%, -50%) scale(0.6);
 }
 .landing-mapa-avisado {
+  z-index: 2;
   width: 9px;
   height: 9px;
   border: 2px solid #fff;
@@ -2200,48 +2214,48 @@ body:has([data-landing]) main {
     opacity 0.4s,
     transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.4);
 }
+/* Quien se postula es una foto en un círculo con borde blanco. */
 .landing-mapa-persona {
   z-index: 3;
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background: var(--color-secondary);
-  color: var(--color-secondary-text);
-  font-weight: 700;
-  font-size: 12px;
+  background: var(--color-secondary-text);
   box-shadow: 0 0 0 2.5px #fff, 0 4px 10px -2px rgb(0 0 0 / 0.35);
   transition:
     opacity 0.4s,
     transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.4),
-    background-color 0.3s,
-    color 0.3s;
+    box-shadow 0.3s;
 }
-/* Antes de postularse, los tres son un avisado más. */
+.landing-mapa-cara {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 50%;
+  transition: opacity 0.3s;
+}
+/* Antes de postularse, los tres son un avisado más: un punto, sin cara. */
 .landing-mapa-persona.landing-punto {
   opacity: 1;
-  transform: translate(-50%, -50%) scale(0.3);
-  background: var(--color-secondary-text);
-  color: transparent;
+  transform: translate(-50%, -50%) scale(0.24);
 }
-/* La elegida va en azul hondo: el ámbar queda sólo en la palabra del inicio. */
+.landing-mapa-persona.landing-punto .landing-mapa-cara {
+  opacity: 0;
+}
+/* La elegida lleva un aro azul hondo: el ámbar queda sólo en la palabra del
+   inicio. */
 .landing-mapa-persona.landing-elegida {
-  background: var(--l-hondo);
-  color: #fff;
+  box-shadow: 0 0 0 2.5px #fff, 0 0 0 5.5px var(--relieve), 0 4px 10px -2px rgb(0 0 0 / 0.35);
 }
+/* La foto de la ficha: cuadrada, con esquinas de tarjeta. */
 .landing-mapa-persona-pie {
-  display: grid;
+  position: relative;
   flex: none;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--l-hondo);
-  color: #fff;
-  font-weight: 700;
-  font-size: 12px;
-  box-shadow: 0 0 0 2.5px #fff, 0 4px 10px -2px rgb(0 0 0 / 0.35);
+  width: 46px;
+  height: 46px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--l-tinte);
 }
 .landing-mapa-halo {
   position: absolute;
