@@ -41,6 +41,7 @@ from app.modules.shift.domain.exceptions import (
     AssigneeNotFoundError,
     AssigneeUnavailableError,
     InvalidShiftTransitionError,
+    ShiftConcurrentModificationError,
     ShiftNotAssignedToWorkerError,
     ShiftNotFoundError,
 )
@@ -60,7 +61,6 @@ from app.modules.shift.domain.suspension import (
 )
 from app.modules.shift.domain.value_objects import (
     COMMITTED_STATUSES,
-    TERMINAL_STATUSES,
     OPEN_STATUSES,
     ShiftStatus,
     TAKEN_NOT_STARTED_STATUSES,
@@ -81,6 +81,8 @@ logger = logging.getLogger(__name__)
 
 # Cuántos turnos nombra el aviso de postulaciones retiradas (U123).
 _MAX_NAMED_SHIFTS = 3
+# Intentos de apagar «va en camino» si choca con otra escritura (U072).
+_STOP_EN_ROUTE_ATTEMPTS = 3
 
 
 # Reputación del comercio: tolerancia para considerar "a tiempo" un pago
@@ -689,7 +691,8 @@ class ShiftService(AccountSuspensionEffects):
 
     async def cancel_shift(self, company_id: UUID, shift_id: UUID) -> Shift:
         """El comercio cancela el turno (terminal, cualquier estado no
-        terminal).
+        terminal salvo con la salida marcada: ese turno ya se trabajó, se
+        finaliza y se paga; U081).
 
         ADR-0007 (Parte C): si el trabajador ya estaba **comprometido**
         (`COMMITTED_STATUSES` — confirmó su asistencia o está en pleno ciclo
@@ -719,7 +722,8 @@ class ShiftService(AccountSuspensionEffects):
         comprometido suma su propia cancelación tardía al comercio.
 
         Los puestos que ya terminaron, se pagaron, quedaron sin cubrir o ya
-        estaban cancelados no se tocan. Devuelve los que se cancelaron ahora.
+        estaban cancelados no se tocan; tampoco los que tienen la salida
+        marcada (U081: ya se trabajaron, se finalizan y se pagan). Devuelve los que se cancelaron ahora.
         Un evento inexistente o de otro comercio es `ShiftNotFoundError` (no
         se revela cuál de los dos); uno sin nada para cancelar,
         `InvalidShiftTransitionError`.
@@ -729,7 +733,7 @@ class ShiftService(AccountSuspensionEffects):
         puestos = await self._shifts.list_by_event(company_id, event_id)
         if not puestos:
             raise ShiftNotFoundError(str(event_id))
-        pendientes = [p for p in puestos if p.status not in TERMINAL_STATUSES]
+        pendientes = [p for p in puestos if p.is_cancellable]
         if not pendientes:
             raise InvalidShiftTransitionError(
                 "Este evento ya no tiene puestos para cancelar."
@@ -1602,15 +1606,43 @@ class ShiftService(AccountSuspensionEffects):
         para tu local"): los siguientes son periódicos mientras viaja, y un
         push por cada uno sería inusable. Después lo ve en el mapa del panel,
         que se refresca solo. Si el trabajador apaga y vuelve a prender, no se
-        repite: `en_route_at` sigue puesto hasta que llega o se lo desasigna.
+        repite: `en_route_announced_at` sigue puesto hasta que llega o se lo
+        desasigna (apagar borra la posición, no el aviso ya mandado).
         """
         shift = await self._get_assigned_to(worker_profile_id, shift_id)
-        first_report = shift.en_route_at is None
+        first_report = shift.en_route_announced_at is None
         shift.report_en_route_location(latitude, longitude)
+        if first_report:
+            shift.en_route_announced_at = shift.en_route_at
         updated = await self._shifts.update(shift)
         if first_report:
             await self._notify_company_worker_left(updated, worker_profile_id)
         return updated
+
+    async def stop_en_route(self, worker_profile_id: UUID, shift_id: UUID) -> Shift:
+        """El trabajador deja de compartir su ubicación: se borra en el
+        momento, también para el comercio (U072, `Shift.stop_en_route`).
+
+        Mismo guard que el reporte: sólo quien tiene el turno asignado; un
+        tercero recibe 404. Apagar sin estar compartiendo no es un error y no
+        escribe nada. Al comercio no se le manda un aviso: «dejó de compartir»
+        no le pide hacer nada, y lo ve en el panel."""
+        # Un reporte periódico puede estar escribiendo el turno en el mismo
+        # momento. Apagar tiene que ganar: si choca, se relee y se repite (el
+        # 409 dejaría la posición guardada con la persona creyendo que no).
+        for attempt in range(_STOP_EN_ROUTE_ATTEMPTS):
+            shift = await self._get_assigned_to(worker_profile_id, shift_id)
+            if not shift.stop_en_route():
+                return shift
+            try:
+                updated = await self._shifts.update(shift)
+            except ShiftConcurrentModificationError:
+                if attempt == _STOP_EN_ROUTE_ATTEMPTS - 1:
+                    raise
+                continue
+            logger.info("shift.en_route_stopped", extra={"shift_id": str(updated.id)})
+            return updated
+        raise AssertionError("inalcanzable")  # pragma: no cover
 
     async def _notify_company_worker_left(
         self, shift: Shift, worker_profile_id: UUID

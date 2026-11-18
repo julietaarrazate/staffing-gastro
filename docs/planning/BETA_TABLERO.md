@@ -87,7 +87,7 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 | U019 | Marcar la llegada más de 15 min antes cuenta como impuntual: «Puntualidad 0 %» | ✅ en `main` | #549 |
 | U020 | Quien todavía no tiene reseñas ni pagos aparece con «★ 0,0», «Puntualidad 0 %» o «Pago a tiempo 0 %» en rojo | ✅ en `main` | #551 |
 | U079 | «No se presentó» se ofrece y se aplica sobre un turno que todavía no empezó, y penaliza al trabajador | ✅ en `main` | #550 |
-| U081 | Se puede cancelar un turno cuyo trabajador ya terminó de trabajar (check-out hecho) | ⚪ decidido (2), sin empezar | no se permite: con la salida marcada, el comercio finaliza y paga; lleva ADR (cambia el ADR-0007) |
+| U081 | Se puede cancelar un turno cuyo trabajador ya terminó de trabajar (check-out hecho) | ✅ en `main` | #632 · con la salida marcada no se cancela: el comercio finaliza y paga ([ADR-0007](../adr/ADR-0007-no-show-y-cancelacion-tardia.md), actualización 2026-11-18) |
 | U082, U089 | Ausencia automática: al trabajador le dice «El comercio marcó que no te presentaste» y al comercio «sin que… (y 1 más de la misma causa) | ✅ en `main` | #562 |
 | U076, U077, U078 | Cancelar un turno con postulantes no le avisa a nadie (y 2 más de la misma causa) | ✅ en `main` | #553 |
 | U021, U123 | Quien retiró, rechazó, canceló o faltó sigue en la lista de postulantes con «Asignar», sin ninguna marca (y 1 más de la misma causa) | ✅ en `main` | #629 · G4, [ADR-0026](../adr/ADR-0026-postulacion-desasignada.md): estado `desasignada` con su motivo |
@@ -98,7 +98,7 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 |---|---|---|---|
 | U038 | El perfil del comercio muestra «Identidad verificada» con sólo confirmar el mail (incluso con la constancia… | ✅ en `main` | #561 |
 | U090, U108 | El sello «Comercio verificado» no aparece en el feed ni en Buscar; sólo en el detalle del turno (y 1 más de la misma causa) | ✅ en `main` | #561 |
-| U072 | El trabajador apaga «va en camino» y el comercio lo sigue viendo «en camino» hasta que marca la llegada | ⚪ decidido (3), sin empezar | se apaga al instante también para el comercio; lleva ADR y, con él, el texto de `/privacidad` (decisión 1) |
+| U072 | El trabajador apaga «va en camino» y el comercio lo sigue viendo «en camino» hasta que marca la llegada | ✅ en `main` | #633 · apagar borra la posición también para el comercio ([ADR-0014](../adr/ADR-0014-ubicacion-en-tiempo-real.md), actualización 2026-11-18); texto de `/privacidad` aprobado por Julieta, versión `2026-11-18-1` |
 | U023, U097, U095 | Se puede asignar a un trabajador suspendido: el turno queda «Esperando que confirme» para siempre (y 2 más de la misma causa) | ✅ en `main` | #572 (ADR-0024; revisión independiente y prueba en la app hechas el 2026-11-14) |
 | U112, U096 | Con la sesión vencida a mitad de publicar sólo sale «No autorizado» y la app no lleva a ingresar (y 1 más de la misma causa) | ✅ en `main` | #559 (prueba en la app hecha el 2026-11-14) |
 | U114, U115 | Si el servidor tarda en despertar al abrir la app, la persona con sesión ve la cabecera de visitante («Ingr… (y 1 más de la misma causa) | ✅ en `main` | #559 (prueba en la app hecha el 2026-11-14) |
@@ -208,6 +208,11 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 - El comercio no recibe un aviso propio cuando una persona confirmada falta:
   se entera por el panel, o por el aviso de «no cubierto» si no consigue
   reemplazo (salió de #562; sumarlo es decidir quién recibe qué, va con U080).
+- Un turno con la salida marcada que el comercio nunca cierra queda «en
+  marcha» para siempre: la persona ve «Esperando que el comercio cierre el
+  turno» y no puede calificar ni verlo en sus ganancias. No hay recordatorio
+  ni cierre automático (salió de la revisión de U081; antes pasaba igual, y
+  cancelar no era una salida buena). Es una regla nueva: decide Julieta.
 - Suspender a un trabajador: si al reabrir su turno falla la vuelta a
   pendiente de los demás postulantes, al repetir ese turno ya no entra y
   quedan rechazados (raro; salió de la revisión de #572).

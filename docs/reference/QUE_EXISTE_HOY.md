@@ -81,6 +81,9 @@ listados más abajo.
   confirmación del panel le dice al comercio, antes de confirmar, si suma una
   cancelación tardía (sólo con el trabajador ya confirmado), y la cuenta se
   ve en su `/profile`.
+- **Un turno ya trabajado no se cancela** (U081, 2026-11-18): con la salida
+  marcada el panel no ofrece «Cancelar turno» y el servidor lo rechaza; el
+  comercio lo finaliza y lo paga, y un problema va por soporte.
 - **Turno "no cubierto"** (ADR-0015): un turno ASIGNADO cuyo trabajador nunca
   confirma ni rechaza, o uno PUBLICADO/BUSCANDO_PERSONAL que nadie tomó,
   cuyo `start_at` ya pasó, se resuelve solo — **sin** impacto de reputación
@@ -112,7 +115,8 @@ listados más abajo.
   **Lo prende y lo apaga él**, nunca arranca solo. Modelo de privacidad
   deliberado, no un detalle de implementación: se guarda **sólo la última
   posición, nunca el recorrido**, la ventana es de 2h antes del turno, se
-  borra al marcar la llegada y en las cuatro transiciones que desasignan, y
+  borra **cuando él lo apaga** (también para el comercio, U072, 2026-11-18),
+  al marcar la llegada y en las cuatro transiciones que desasignan, y
   los guards viven en el DOMINIO (`Shift.report_en_route_location`), no en la
   UI. Está reflejado en `/privacidad` — si tocás esto, esa página se actualiza
   en el mismo PR.

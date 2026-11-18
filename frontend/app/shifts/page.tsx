@@ -390,7 +390,12 @@ function MyShiftsPanel() {
         // Terminó, se canceló o quedó sin cubrir mientras el panel estaba
         // abierto: la tarjeta ya muestra el estado nuevo.
         setConfirmCancelId(null);
-        toast("Este turno ya no se puede cancelar.", "info");
+        toast(
+          fresh.status === "check_out"
+            ? "La persona ya marcó la salida: este turno se finaliza y se paga, no se cancela."
+            : "Este turno ya no se puede cancelar.",
+          "info"
+        );
       }
     } catch {
       // Sin dato fresco: vale el estado conocido (ver arriba).
