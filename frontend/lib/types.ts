@@ -734,7 +734,14 @@ export interface CompanyProfile {
   late_cancellations: number;
 }
 
-export type TicketCategory = "general" | "cv_documentos" | "pagos" | "cuenta" | "otro";
+export type TicketCategory =
+  | "general"
+  | "cv_documentos"
+  | "pagos"
+  | "cuenta"
+  | "turno"
+  | "comercio"
+  | "otro";
 export type TicketStatus = "abierto" | "cerrado";
 
 export const TICKET_CATEGORY_LABELS: Record<TicketCategory, string> = {
@@ -742,6 +749,8 @@ export const TICKET_CATEGORY_LABELS: Record<TicketCategory, string> = {
   cv_documentos: "CV / Documentos",
   pagos: "Pagos",
   cuenta: "Mi cuenta",
+  turno: "Un turno",
+  comercio: "Un comercio",
   otro: "Otro",
 };
 
@@ -759,12 +768,27 @@ export interface SupportTicket {
   category: TicketCategory;
   subject: string;
   status: TicketStatus;
+  /** U110: turno y/o comercio al que se refiere el ticket (opcionales). */
+  shift_id?: string | null;
+  company_id?: string | null;
   created_at: string | null;
   updated_at: string | null;
 }
 
+/** Lo que un ticket tiene atado, para mostrarlo (`GET /support/reference` y el detalle). */
+export interface SupportReferences {
+  shift: { id: string; title: string; start_at: string; company_name: string | null } | null;
+  company: {
+    id: string;
+    name: string;
+    /** Cuenta dueña del comercio: sólo la ve el admin (su ficha). */
+    user_id: string | null;
+  } | null;
+}
+
 export interface SupportTicketDetail extends SupportTicket {
   messages: SupportMessage[];
+  references?: SupportReferences | null;
   /** Quién abrió el ticket: sólo viene para el admin (no-disclosure). */
   opened_by?: { user_id: string; full_name: string; role: string } | null;
 }
@@ -788,6 +812,11 @@ export interface AdminSupportTicket {
   message_count: number;
   last_message_at: string | null;
   created_at: string | null;
+  shift_id?: string | null;
+  shift_title?: string | null;
+  shift_start_at?: string | null;
+  company_id?: string | null;
+  company_name?: string | null;
 }
 
 // Comercios a captar para la beta (`/admin/leads`, ADR-0019).

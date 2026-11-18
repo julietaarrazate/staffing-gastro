@@ -8,6 +8,7 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import Link from "next/link";
 import { SupportTicketDetail, TicketSuggestion, TICKET_CATEGORY_LABELS } from "@/lib/types";
+import { formatShiftDate, formatShiftTime } from "@/lib/datetime";
 import { Badge, Button, CardSkeletons, ErrorBanner, MessageBubble, Modal, useToast } from "@/components/ui";
 import { ChevronLeftIcon, SparklesIcon } from "@/components/icons";
 
@@ -177,6 +178,60 @@ export default function SupportTicketPage() {
           </Link>{" "}
           ({ROLE_LABELS[ticket.opened_by.role] ?? ticket.opened_by.role})
         </p>
+      )}
+
+      {(ticket.references?.shift || ticket.references?.company) && (
+        <div
+          data-testid="ticket-reference"
+          className="mt-3 rounded-[var(--radius-card)] bg-surface px-4 py-3 text-sm ring-1 ring-line"
+        >
+          {ticket.references.shift && (
+            <p className="text-ink/70">
+              <span className="text-ink/50">Turno: </span>
+              {isAdmin ? (
+                <Link
+                  href={`/turno/${ticket.references.shift.id}`}
+                  className="font-semibold text-primary-text underline-offset-2 hover:underline"
+                >
+                  {ticket.references.shift.title}
+                </Link>
+              ) : (
+                <span className="font-semibold text-ink">{ticket.references.shift.title}</span>
+              )}{" "}
+              · {formatShiftDate(ticket.references.shift.start_at)}{" "}
+              {formatShiftTime(ticket.references.shift.start_at)}
+              {ticket.references.shift.company_name
+                ? ` · ${ticket.references.shift.company_name}`
+                : ""}
+            </p>
+          )}
+          {ticket.references.company && !ticket.references.shift && (
+            <p className="text-ink/70">
+              <span className="text-ink/50">Comercio: </span>
+              {isAdmin && ticket.references.company.user_id ? (
+                <Link
+                  href={`/admin/personas/${ticket.references.company.user_id}`}
+                  className="font-semibold text-primary-text underline-offset-2 hover:underline"
+                >
+                  {ticket.references.company.name}
+                </Link>
+              ) : (
+                <span className="font-semibold text-ink">{ticket.references.company.name}</span>
+              )}
+            </p>
+          )}
+          {isAdmin && ticket.references.shift && ticket.references.company?.user_id && (
+            <p className="mt-1 text-ink/70">
+              <span className="text-ink/50">Ficha del comercio: </span>
+              <Link
+                href={`/admin/personas/${ticket.references.company.user_id}`}
+                className="font-semibold text-primary-text underline-offset-2 hover:underline"
+              >
+                {ticket.references.company.name}
+              </Link>
+            </p>
+          )}
+        </div>
       )}
 
       <div className="mt-5 space-y-3">

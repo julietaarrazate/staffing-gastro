@@ -12,6 +12,9 @@ class CreateTicketRequest(BaseModel):
     category: TicketCategory
     subject: str = Field(min_length=1, max_length=200)
     body: str = Field(min_length=1, max_length=2000)
+    # U110: turno y/o comercio al que se refiere el ticket (opcionales).
+    shift_id: UUID | None = None
+    company_id: UUID | None = None
 
 
 class SendMessageRequest(BaseModel):
@@ -28,6 +31,25 @@ class MessageResponse(BaseModel):
     created_at: datetime | None = None
 
 
+class ShiftRefResponse(BaseModel):
+    id: UUID
+    title: str
+    start_at: datetime
+    company_name: str | None = None
+
+
+class CompanyRefResponse(BaseModel):
+    id: UUID
+    name: str
+    # Cuenta dueña del comercio: sólo se completa para el admin (su ficha).
+    user_id: UUID | None = None
+
+
+class ReferencesResponse(BaseModel):
+    shift: ShiftRefResponse | None = None
+    company: CompanyRefResponse | None = None
+
+
 class TicketResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -36,6 +58,8 @@ class TicketResponse(BaseModel):
     category: TicketCategory
     subject: str
     status: TicketStatus
+    shift_id: UUID | None = None
+    company_id: UUID | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
@@ -51,6 +75,7 @@ class TicketOpenerResponse(BaseModel):
 class TicketDetailResponse(TicketResponse):
     messages: list[MessageResponse]
     opened_by: TicketOpenerResponse | None = None
+    references: ReferencesResponse | None = None
 
 
 class TicketSuggestionResponse(BaseModel):
@@ -75,3 +100,8 @@ class AdminTicketResponse(BaseModel):
     message_count: int
     last_message_at: datetime | None = None
     created_at: datetime | None = None
+    shift_id: UUID | None = None
+    shift_title: str | None = None
+    shift_start_at: datetime | None = None
+    company_id: UUID | None = None
+    company_name: str | None = None

@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
+import Link from "next/link";
+import { reportCompanyHref } from "@/lib/support-reference";
 import { CompanyProfile } from "@/lib/types";
 import { cldThumb } from "@/lib/cloudinary";
 import { Button, ErrorBanner, Skeleton } from "@/components/ui";
@@ -43,7 +45,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 export default function PublicCompanyProfilePage() {
-  const { token } = useRequireAuth();
+  const { token, user } = useRequireAuth();
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const [profile, setProfile] = useState<CompanyProfile | null>(null);
@@ -172,6 +174,17 @@ export default function PublicCompanyProfilePage() {
             {profile.address && <Metric label="Dirección" value={profile.address} />}
           </div>
 
+          {/* U110: discreto, sin acento (el ámbar de la pantalla es otro). */}
+          {user?.role === "worker" && (
+            <p className="mt-5 text-center">
+              <Link
+                href={reportCompanyHref(profile.id)}
+                className="text-sm font-semibold text-ink/50 underline-offset-2 hover:text-ink hover:underline"
+              >
+                Reportar un problema
+              </Link>
+            </p>
+          )}
         </div>
       </div>
 

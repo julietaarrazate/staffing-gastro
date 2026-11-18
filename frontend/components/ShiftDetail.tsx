@@ -22,6 +22,7 @@ import { useLiveRefresh } from "@/lib/live-refresh";
 import { Skeleton, useToast } from "@/components/ui";
 import DrawnCheck from "@/components/ui/DrawnCheck";
 import { loginHref, registerHref } from "@/lib/safe-next";
+import { reportShiftHref } from "@/lib/support-reference";
 import { shiftHeroPhoto } from "@/lib/company-photo";
 import {
   ChevronLeftIcon,
@@ -361,8 +362,18 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
           </section>
         )}
 
-        <div className="mt-7 flex justify-center border-t border-line pt-4">
+        <div className="mt-7 flex flex-col items-center gap-3 border-t border-line pt-4">
           <ShareShiftButton shift={shift} shiftId={shift.id} />
+          {/* U110: discreto, sin acento. Sólo un trabajador con sesión puede
+              atar el turno a un ticket. */}
+          {isWorker && (
+            <Link
+              href={reportShiftHref(shift.id)}
+              className="text-sm font-semibold text-ink/50 underline-offset-2 hover:text-ink hover:underline"
+            >
+              Reportar un problema
+            </Link>
+          )}
         </div>
       </div>
     </div>
