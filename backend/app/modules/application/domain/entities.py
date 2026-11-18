@@ -50,6 +50,13 @@ class ShiftApplication:
     created_at: datetime | None = None
     # Sólo con status DESASIGNADA (y siempre con él): por qué dejó el turno.
     motivo: MotivoDesasignacion | None = None
+    # ¿La persona se postuló alguna vez a este turno? `False` sólo en la fila
+    # que se crea para quien fue asignado SIN postularse y dejó el turno
+    # (`unassigned`). Importa para la privacidad: sólo una postulación propia
+    # cuenta como que la persona eligió a ese comercio (y le deja ver su CV,
+    # `EmployerWorkerRelation`); una fila que escribió el sistema, no. Tampoco
+    # entra en las cuentas de postulaciones del panel de admin.
+    se_postulo: bool = True
 
     def __post_init__(self) -> None:
         if (self.status == ApplicationStatus.DESASIGNADA) != (self.motivo is not None):
@@ -68,6 +75,7 @@ class ShiftApplication:
             worker_profile_id=worker_profile_id,
             status=ApplicationStatus.DESASIGNADA,
             motivo=motivo,
+            se_postulo=False,
         )
 
     def accept(self) -> None:
@@ -109,12 +117,16 @@ class ShiftApplication:
 
         No deja marca: mientras la cuenta está suspendida la lista no la
         muestra, y si se reactiva vuelve a estar en carrera como cualquier
-        postulante. Ver `ShiftService._reopen_for_worker_suspension`."""
+        postulante. Si nunca se había postulado (`se_postulo` en falso) no se
+        le inventa una postulación: queda RETIRADA y puede postularse ella.
+        Ver `ShiftService._reopen_for_worker_suspension`."""
         if self.status != ApplicationStatus.ACEPTADA:
             raise InvalidApplicationTransitionError(
                 f"No se puede soltar una postulación en estado {self.status.value}"
             )
-        self.status = ApplicationStatus.PENDIENTE
+        self.status = (
+            ApplicationStatus.PENDIENTE if self.se_postulo else ApplicationStatus.RETIRADA
+        )
 
     def reject(self) -> None:
         """PENDIENTE → RECHAZADA: el comercio eligió a otro candidato (o canceló
@@ -175,6 +187,8 @@ class ShiftApplication:
             )
         self.status = ApplicationStatus.PENDIENTE
         self.created_at = datetime.now(timezone.utc)
+        # Ahora sí se postuló ella (la fila pudo haber nacido sin postulación).
+        self.se_postulo = True
 
 
 @dataclass(frozen=True)

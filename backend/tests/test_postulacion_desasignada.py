@@ -508,3 +508,68 @@ async def test_no_marca_a_quien_volvio_a_tener_el_turno(client: AsyncClient, ses
 
     mine = await _mine(client, ana, shift_id)
     assert (mine["status"], mine["motivo"]) == ("aceptada", None)
+
+
+# --- La fila que escribe el sistema no es una postulación de la persona ---------
+
+
+def test_la_fila_sin_postulacion_no_cuenta_como_postulacion_propia():
+    fila = ShiftApplication.unassigned(uuid4(), uuid4(), MotivoDesasignacion.RECHAZO)
+    assert fila.se_postulo is False
+    # El comercio la vuelve a asignar y después se le suelta por suspensión:
+    # no se le inventa una postulación pendiente.
+    fila.accept()
+    fila.release()
+    assert fila.status == ApplicationStatus.RETIRADA
+    # Si ahora se postula ella, ya es una postulación suya.
+    fila.reapply()
+    assert (fila.status, fila.se_postulo) == (ApplicationStatus.PENDIENTE, True)
+
+
+@pytest.mark.asyncio
+async def test_rechazar_una_asignacion_directa_no_le_abre_el_cv_al_comercio(client: AsyncClient):
+    """Revisión de seguridad 2026-10-21: el comercio no puede fabricarse el
+    vínculo asignando directo. La fila `desasignada` que deja el rechazo no es
+    una postulación de la persona."""
+    employer = await _employer(client, "g4_emp16@staffya.com")
+    ana, ana_id = await _worker(client, "g4_ana16@staffya.com", "Ana Privada")
+    updated = await client.put(
+        "/api/v1/workers/me/profile",
+        headers=ana,
+        json={"skills": ["mozo"], "city": "Palermo", "cv_url": "https://example.com/cv-g4.pdf"},
+    )
+    assert updated.status_code == 200, updated.text
+    shift_id = await _published(client, employer, minutes=600)
+    assert (await _assign(client, shift_id, employer, ana_id)).status_code == 200
+    assert (await client.post(f"/api/v1/shifts/{shift_id}/reject", headers=ana)).status_code == 200
+    assert _marca(await _applicants(client, shift_id, employer), ana_id) == (
+        "desasignada",
+        "rechazo",
+    )
+
+    seen = await client.get(f"/api/v1/workers/{ana_id}", headers=employer)
+
+    assert seen.status_code == 200, seen.text
+    assert seen.json()["cv_url"] is None
+
+
+@pytest.mark.asyncio
+async def test_la_fila_sin_postulacion_no_suma_en_las_metricas_de_postulaciones(
+    client: AsyncClient, session_factory
+):
+    from app.modules.application.infrastructure.repositories import (
+        SqlAlchemyShiftApplicationRepository as Repo,
+    )
+
+    employer = await _employer(client, "g4_emp17@staffya.com")
+    ana, ana_id = await _worker(client, "g4_ana17@staffya.com", "Ana Directa")
+    beto, _ = await _worker(client, "g4_beto17@staffya.com", "Beto Postulado")
+    shift_id = await _published(client, employer, minutes=600)
+    await _apply(client, shift_id, beto)
+    assert (await _assign(client, shift_id, employer, ana_id)).status_code == 200
+    assert (await client.post(f"/api/v1/shifts/{shift_id}/reject", headers=ana)).status_code == 200
+
+    async with session_factory() as session:
+        stats = await Repo(session).count_application_stats()
+
+    assert stats.total == 1

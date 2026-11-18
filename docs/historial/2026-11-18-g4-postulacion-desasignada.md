@@ -61,6 +61,13 @@ lista, marcas, reasignar desde la pantalla, detalle de la trabajadora, 409 y
 el aviso de U123; la migración se probó de ida y vuelta sobre una copia de la
 base.
 
+**Lo que encontró la suite completa:** la fila que se crea al rechazar una
+asignación directa contaba como «la persona se postuló a este comercio» y le
+abría su CV (`test_privacidad_datos_trabajador`, regla del 2026-10-21). La
+revisión independiente no lo había visto. Se corrigió con `se_postulo`
+(falso en esa fila): no abre el CV, no suma en las métricas de postulaciones
+ni en la búsqueda del asistente, y la vuelta atrás de la migración la borra.
+
 **Queda abierto:** nada de G4. La decisión 7 (cancelar desde «llegada
 marcada») todavía no está hecha: cuando se haga tiene que pasar por
 `worker_cancel`, que es quien deja la marca. Siguen U081, U080 y U072.

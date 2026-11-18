@@ -26,7 +26,12 @@ recomendada.
    exige la entidad y un CHECK de la base).
 2. **Si no había postulación, se crea ya `desasignada`.** A quien se asignó
    directo le queda la fila para que el hecho exista. Sigue habiendo una sola
-   postulación por (turno, trabajador).
+   postulación por (turno, trabajador). Esa fila lleva `se_postulo` en falso:
+   **no es una postulación de la persona**. No le abre su CV al comercio (la
+   regla del 2026-10-21 sigue en pie: una asignación directa no fabrica el
+   vínculo), no entra en las métricas de postulaciones ni en lo que el
+   asistente de IA busca entre «quienes se postularon». Si más adelante la
+   persona se postula ella, pasa a verdadero.
 3. **El comercio la sigue viendo, al final de los postulantes y con su
    marca** («Rechazó este turno», «Canceló», «No se presentó»), nunca como
    destacada, y **se le puede volver a asignar**: `desasignada → aceptada`
@@ -43,9 +48,10 @@ recomendada.
    una postulación `desasignada` en ese turno.
 7. **La suspensión no deja marca** ([ADR-0024](./ADR-0024-efectos-de-una-suspension.md)):
    si el turno se le suelta a alguien porque se suspendió su cuenta, su
-   postulación vuelve a `pendiente`. No fue una decisión suya; mientras esté
-   suspendida la lista no la muestra, y si se reactiva vuelve como una
-   postulante más.
+   postulación vuelve a `pendiente` (o a `retirada`, si nunca se había
+   postulado: no se le inventa una postulación). No fue una decisión suya;
+   mientras esté suspendida la lista no la muestra, y si se reactiva vuelve
+   como una postulante más.
 8. **U123:** al confirmar un turno, la app retira las postulaciones pendientes
    de la persona a turnos del mismo horario. Ahora le manda **un solo aviso**
    (`applications_withdrawn`) que dice cuáles fueron, por qué, y que puede
@@ -67,10 +73,8 @@ pasa a `aceptada` (punto 5).
   sirve a «cubrir rápido» sin esconder a nadie.
 - `application_to_acceptance_rate` (panel de admin) deja de contar como
   aceptadas las postulaciones de quien después dejó el turno. Las filas del
-  punto 2 suman al total de postulaciones y a las del período, aunque nadie
-  se postuló: son pocas (asignación directa que después se cae) y se acepta.
-  El contador de postulaciones en pie de «Turnos en vivo» no cuenta las
-  `desasignada`.
+  punto 2 no entran en esas cuentas. El contador de postulaciones en pie de
+  «Turnos en vivo» no cuenta las `desasignada`.
 - **Carreras.** El turno se guarda reabierto antes de escribir la marca. Si
   en ese hueco el comercio vuelve a asignar a la misma persona, no se la
   marca; si la persona se postula justo, la marca se escribe en la segunda
@@ -79,7 +83,10 @@ pasa a `aceptada` (punto 5).
   reapertura, la cancelación contada ni el aviso al comercio.
 - Hay filas de postulación que no nacieron de una postulación (punto 2). Se
   aceptó para no sumar otra tabla: lo que la pantalla necesita es una fila
-  por persona y turno con su estado.
+  por persona y turno con su estado. El costo es que **todo lector de
+  postulaciones que las use como «la persona eligió a este comercio» tiene
+  que mirar `se_postulo`**: la suite lo detectó en la regla del CV
+  (`EmployerWorkerRelation`) antes del merge.
 
 ## Descartado
 

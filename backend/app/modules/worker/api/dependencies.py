@@ -85,7 +85,13 @@ class EmployerWorkerRelation:
         applications = await self._applications.list_by_worker(
             worker_profile_id, limit=_RELATION_LOOKBACK
         )
-        applied = await self._shifts.list_by_ids([a.shift_id for a in applications])
+        # Sólo las postulaciones que hizo la persona. La fila que el sistema
+        # escribe cuando alguien asignado SIN postularse deja el turno
+        # (`se_postulo` en falso, G4) no cuenta: si no, el comercio volvía a
+        # poder fabricarse el vínculo asignando directo.
+        applied = await self._shifts.list_by_ids(
+            [a.shift_id for a in applications if a.se_postulo]
+        )
         return any(shift.company_id == company.id for shift in applied)
 
 

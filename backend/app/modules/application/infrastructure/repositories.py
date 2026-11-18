@@ -41,6 +41,7 @@ def _to_entity(model: ShiftApplicationModel) -> ShiftApplication:
         status=ApplicationStatus(model.status),
         created_at=model.created_at,
         motivo=MotivoDesasignacion(model.motivo) if model.motivo else None,
+        se_postulo=model.se_postulo,
     )
 
 
@@ -72,6 +73,7 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
             worker_profile_id=application.worker_profile_id,
             status=application.status.value,
             motivo=application.motivo.value if application.motivo else None,
+            se_postulo=application.se_postulo,
         )
         self._session.add(model)
         await self._commit_or_reset()
@@ -84,6 +86,7 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
             raise ValueError(f"Postulación {application.id} no encontrada")
         model.status = application.status.value
         model.motivo = application.motivo.value if application.motivo else None
+        model.se_postulo = application.se_postulo
         # La fecha sólo cambia cuando el trabajador vuelve a postularse
         # (`ShiftApplication.reapply`); en el resto de las transiciones es la
         # misma que se leyó y no se reescribe.
@@ -208,6 +211,8 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
             .join(ShiftModel, ShiftModel.id == ShiftApplicationModel.shift_id)
             .where(
                 ShiftModel.company_id == company_id,
+                # Gente que se postuló: no quien fue asignado sin postularse.
+                ShiftApplicationModel.se_postulo.is_(True),
                 UserModel.full_name.ilike(f"%{name_query}%"),
             )
             .order_by(ShiftApplicationModel.created_at.desc())
@@ -219,12 +224,14 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
         return ApplicantMatch(user_id=row.id, full_name=row.full_name)
 
     async def count_application_stats(self) -> ApplicationStats:
+        # Sólo postulaciones de verdad: no las filas que el sistema escribe
+        # para quien fue asignado sin postularse y dejó el turno (G4).
         stmt = select(
             func.count().label("total"),
             func.sum(
                 case((ShiftApplicationModel.status == ApplicationStatus.ACEPTADA.value, 1), else_=0)
             ).label("accepted"),
-        )
+        ).where(ShiftApplicationModel.se_postulo.is_(True))
         row = (await self._session.execute(stmt)).one()
         return ApplicationStats(total=row.total or 0, accepted=row.accepted or 0)
 
@@ -274,6 +281,10 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
         stmt = select(
             func.sum(case(((created >= current_start) & (created < end), 1), else_=0)),
             func.sum(case(((created >= previous_start) & (created < current_start), 1), else_=0)),
-        ).where(created >= previous_start, created < end)
+        ).where(
+            created >= previous_start,
+            created < end,
+            ShiftApplicationModel.se_postulo.is_(True),
+        )
         current, previous = (await self._session.execute(stmt)).one()
         return current or 0, previous or 0

@@ -3,7 +3,16 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, UniqueConstraint, func
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    String,
+    UniqueConstraint,
+    func,
+    true,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -42,6 +51,11 @@ class ShiftApplicationModel(Base):
     )
     # `MotivoDesasignacion`: por qué dejó el turno quien lo tenía asignado.
     motivo: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    # Falso sólo en la fila creada para quien fue asignado sin postularse y
+    # dejó el turno: no cuenta como postulación suya (privacidad, métricas).
+    se_postulo: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=true()
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

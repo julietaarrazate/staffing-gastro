@@ -145,7 +145,9 @@ campos, estados o transiciones. Se documenta la realidad y se marca cada caso.
 - **Quien tuvo el turno y lo dejó ([ADR-0026](../adr/ADR-0026-postulacion-desasignada.md)):**
   si la persona asignada rechaza, cancela ya confirmada o no se presenta, su
   postulación pasa a `desasignada` con el motivo (`rechazo`, `cancelacion`,
-  `ausencia`); si la asignaron sin postularse, la fila se crea así. El
+  `ausencia`); si la asignaron sin postularse, la fila se crea así, con
+  `se_postulo` en falso (no cuenta como postulación suya: no le abre el CV al
+  comercio ni entra en las métricas). El
   comercio la ve al final de los postulantes, con su marca, y puede volver a
   asignarle el turno (`desasignada → aceptada`); ella no puede postularse
   otra vez a ese turno, y `matching` no la recomienda para él. Una suspensión
