@@ -60,7 +60,6 @@ from app.modules.shift.domain.suspension import (
 )
 from app.modules.shift.domain.value_objects import (
     COMMITTED_STATUSES,
-    TERMINAL_STATUSES,
     OPEN_STATUSES,
     ShiftStatus,
     TAKEN_NOT_STARTED_STATUSES,
@@ -689,7 +688,8 @@ class ShiftService(AccountSuspensionEffects):
 
     async def cancel_shift(self, company_id: UUID, shift_id: UUID) -> Shift:
         """El comercio cancela el turno (terminal, cualquier estado no
-        terminal).
+        terminal salvo con la salida marcada: ese turno ya se trabajó, se
+        finaliza y se paga; U081).
 
         ADR-0007 (Parte C): si el trabajador ya estaba **comprometido**
         (`COMMITTED_STATUSES` — confirmó su asistencia o está en pleno ciclo
@@ -719,7 +719,8 @@ class ShiftService(AccountSuspensionEffects):
         comprometido suma su propia cancelación tardía al comercio.
 
         Los puestos que ya terminaron, se pagaron, quedaron sin cubrir o ya
-        estaban cancelados no se tocan. Devuelve los que se cancelaron ahora.
+        estaban cancelados no se tocan; tampoco los que tienen la salida
+        marcada (U081: ya se trabajaron, se finalizan y se pagan). Devuelve los que se cancelaron ahora.
         Un evento inexistente o de otro comercio es `ShiftNotFoundError` (no
         se revela cuál de los dos); uno sin nada para cancelar,
         `InvalidShiftTransitionError`.
@@ -729,7 +730,7 @@ class ShiftService(AccountSuspensionEffects):
         puestos = await self._shifts.list_by_event(company_id, event_id)
         if not puestos:
             raise ShiftNotFoundError(str(event_id))
-        pendientes = [p for p in puestos if p.status not in TERMINAL_STATUSES]
+        pendientes = [p for p in puestos if p.is_cancellable]
         if not pendientes:
             raise InvalidShiftTransitionError(
                 "Este evento ya no tiene puestos para cancelar."

@@ -80,7 +80,14 @@ describe("isCancellable", () => {
     }
   );
 
-  it.each<ShiftStatus>(["borrador", "publicado", "asignado", "confirmado", "check_out"])(
+  it.each<ShiftStatus>(["check_out"])(
+    "%s (salida marcada) ya se trabajó: se finaliza y se paga, no se cancela (U081)",
+    (status) => {
+      expect(isCancellable(status)).toBe(false);
+    }
+  );
+
+  it.each<ShiftStatus>(["borrador", "publicado", "asignado", "confirmado", "check_in", "trabajando"])(
     "%s se puede cancelar",
     (status) => {
       expect(isCancellable(status)).toBe(true);

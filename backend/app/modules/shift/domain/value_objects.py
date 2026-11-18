@@ -53,6 +53,11 @@ TERMINAL_STATUSES: frozenset[ShiftStatus] = frozenset(
     }
 )
 
+# Estados desde los que el comercio ya no puede cancelar: los terminales y,
+# desde U081 (ADR-0007, actualización 2026-11-18), el turno con la salida
+# marcada. Ese turno ya se trabajó: se finaliza y se paga.
+NOT_CANCELLABLE_STATUSES: frozenset[ShiftStatus] = TERMINAL_STATUSES | {ShiftStatus.CHECK_OUT}
+
 # Estados en los que el turno todavía puede editarse por el comercio.
 EDITABLE_STATUSES: frozenset[ShiftStatus] = frozenset(
     {ShiftStatus.BORRADOR, ShiftStatus.PUBLICADO}

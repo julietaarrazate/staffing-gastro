@@ -22,6 +22,7 @@ from app.modules.shift.domain.exceptions import (
 from app.modules.shift.domain.mensajes import no_se_puede
 from app.modules.shift.domain.value_objects import (
     EDITABLE_STATUSES,
+    NOT_CANCELLABLE_STATUSES,
     OPEN_STATUSES,
     TAKEN_NOT_STARTED_STATUSES,
     TERMINAL_STATUSES,
@@ -281,9 +282,18 @@ class Shift:
         self.status = ShiftStatus.BUSCANDO_PERSONAL
         self._clear_en_route()
 
+    @property
+    def is_cancellable(self) -> bool:
+        """¿El comercio todavía puede cancelarlo? No si es terminal ni si el
+        trabajador ya marcó la salida (U081): ese turno se trabajó entero."""
+        return self.status not in NOT_CANCELLABLE_STATUSES
+
     def cancel(self) -> None:
-        """Cancela el turno desde cualquier estado no terminal (comercio, terminal)."""
-        if self.is_terminal:
+        """Cancela el turno (comercio, terminal). Desde cualquier estado no
+        terminal salvo CHECK_OUT: con la salida marcada el turno ya se
+        trabajó, así que el comercio lo finaliza y lo paga; un problema va
+        por soporte (U081, ADR-0007, actualización 2026-11-18)."""
+        if not self.is_cancellable:
             raise InvalidShiftTransitionError(
                 no_se_puede("cancelar", self.status)
             )

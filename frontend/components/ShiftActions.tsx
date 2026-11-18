@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button, Sheet } from "@/components/ui";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import { AlertTriangleIcon, CheckCircleIcon, CopyIcon, MessageIcon } from "@/components/icons";
+import { isCancellable } from "@/lib/cancelar-turno";
 import { nextStepFor, type PrimaryAction } from "@/lib/shift-next-step";
 import type { Shift } from "@/lib/types";
 
@@ -29,7 +30,6 @@ const NO_SHOW_ELIGIBLE = ["confirmado", "en_camino"];
 // puntualidad): antes, el trabajador todavía puede llegar. El servidor aplica
 // la misma regla (`Shift.no_show`); esto sólo evita ofrecer la opción antes.
 const NO_SHOW_AFTER_START_MS = 15 * 60_000;
-const CANCELLABLE_EXCLUDED = ["finalizado", "pagado", "cancelado", "no_cubierto"];
 
 export default function ShiftActions({
   shift,
@@ -56,7 +56,9 @@ export default function ShiftActions({
   const [menuOpen, setMenuOpen] = useState(false);
   const step = nextStepFor(shift);
 
-  const canCancel = !CANCELLABLE_EXCLUDED.includes(shift.status);
+  // La misma regla que el diálogo y el servidor (`isCancellable`): con la
+  // salida marcada ya no se ofrece cancelar, se finaliza y se paga (U081).
+  const canCancel = isCancellable(shift.status);
   // La hora corre mientras la tarjeta está abierta: se relee cada medio
   // minuto para que la opción aparezca sola a los 15 minutos del inicio.
   const [now, setNow] = useState(() => Date.now());
