@@ -2061,13 +2061,6 @@ body:has([data-landing]) main {
 .landing-pie-fila a:hover {
   text-decoration-color: currentColor;
 }
-/* A 320 px el © se partía en dos renglones. */
-@media (max-width: 359px) {
-  .landing-pie-fila p {
-    font-size: 12px;
-    letter-spacing: -0.01em;
-  }
-}
 
 /* La marca en el encabezado: la misma letra del «oído» fileteado, plana y en
    azul hondo (2026-11-13; Shrikhand desde el 2026-11-17). El fileteado

@@ -27,7 +27,18 @@ export default function LandingFooter() {
           <Link href="/terminos">Términos y condiciones</Link>
           <Link href="/privacidad">Privacidad</Link>
         </nav>
-        <p>© 2026 Julieta Arrazate — Oído. Hecho en Argentina.</p>
+        {/* La marca, el rubro y la ciudad: lo que un buscador usa para ubicar
+            la página (Julieta, 2026-11-18). El nombre de la titular está en
+            Términos y Privacidad (`lib/legal.ts`), no acá. */}
+        {/* En el celular no entra en un renglón: se parte en el punto, que
+            ahí se esconde, y no en medio de la frase. */}
+        <p className="flex flex-col items-center gap-x-1.5 min-[400px]:flex-row">
+          <span>© 2026 Oído</span>
+          <span aria-hidden className="hidden min-[400px]:inline">
+            ·
+          </span>
+          <span>Personal gastronómico en Buenos Aires</span>
+        </p>
       </div>
     </footer>
   );

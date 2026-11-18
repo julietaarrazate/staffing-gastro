@@ -30,6 +30,10 @@ fotos, las secciones y casi todos sus textos. Cambia esto:
   de la pantalla de bienvenida), apoyado sobre un banco de nubes como el del
   inicio; y sobre las nubes, una sola línea con «Términos y condiciones»,
   «Privacidad» y el ©. Sin el Sol de Mayo y sin panel aparte para el pie.
+  El © dice «© 2026 Oído · Personal gastronómico en Buenos Aires» (antes
+  «© 2026 Julieta Arrazate — Oído. Hecho en Argentina.»): Julieta preguntó
+  qué convenía para los buscadores y eligió la marca con el rubro y la
+  ciudad. Su nombre como titular sigue en Términos y Privacidad.
 
 Técnico: tokens del relieve en `frontend/app/globals.css` (`--relieve`,
 `--shadow-relieve*`, `--radius-relieve`; ADR-0027), clases nuevas
@@ -63,7 +67,8 @@ El final nuevo tuvo su propia revisión, que encontró un corte recto en la
 cima de las nubes de los costados de 1920 px para arriba (el dibujo se escala
 al ancho y no entraba). Pasaba también en el inicio desde antes: en los dos
 lugares el borde de arriba del banco de nubes ahora se funde con el cielo.
-A 320 px el © se partía en dos renglones y baja a 12 px.
+El © no entra en un renglón en el celular: de 400 px para abajo va en dos,
+partido en el punto.
 
 La primera revisión independiente (otro agente, en siete anchos de 320 a 1920 px,
 con teclado, con «reducir movimiento» y con la app en oscuro) encontró tres
