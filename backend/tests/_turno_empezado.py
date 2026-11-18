@@ -10,6 +10,15 @@ from app.main import app
 from app.modules.shift.infrastructure.models import ShiftModel
 
 
+def _confirmo_antes(model: ShiftModel) -> None:
+    """El caso que simulan estos helpers es «confirmó a tiempo y pasó el
+    reloj»: la confirmación tiene que quedar antes del inicio. Si quedara
+    después, sería quien toma un turno ya empezado (U080), y a esa persona la
+    ausencia se le cuenta desde que confirmó."""
+    if model.confirmed_at is not None:
+        model.confirmed_at = model.start_at - timedelta(minutes=1)
+
+
 async def empezar_turno(session_factory, shift_id: str, minutos: int = 20) -> None:
     """Hace que el turno haya empezado hace `minutos`, conservando su duración."""
     async with session_factory() as session:
@@ -19,6 +28,7 @@ async def empezar_turno(session_factory, shift_id: str, minutos: int = 20) -> No
         nuevo = datetime.now(timezone.utc) - timedelta(minutes=minutos)
         model.start_at = nuevo
         model.end_at = nuevo + duracion
+        _confirmo_antes(model)
         await session.commit()
 
 
@@ -36,6 +46,7 @@ async def empezar_turno_de_la_app(shift_id: str, minutos: int = 20) -> None:
         nuevo = datetime.now(timezone.utc) - timedelta(minutes=minutos)
         model.start_at = nuevo
         model.end_at = nuevo + duracion
+        _confirmo_antes(model)
         await session.commit()
     finally:
         await sesiones.aclose()
@@ -57,6 +68,8 @@ async def correr_reloj_del_turno(shift_id: str, minutos: int) -> None:
         model.end_at = model.end_at - atras
         if model.check_in_at is not None:
             model.check_in_at = model.check_in_at - atras
+        if model.confirmed_at is not None:
+            model.confirmed_at = model.confirmed_at - atras
         await session.commit()
     finally:
         await sesiones.aclose()

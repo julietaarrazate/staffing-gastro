@@ -19,3 +19,22 @@ def arrived_on_time(check_in_at: datetime | None, start_at: datetime) -> bool:
     if check_in_at is None:
         return False
     return _naive(check_in_at) - _naive(start_at) <= PUNCTUALITY_TOLERANCE
+
+
+def punctuality_of(
+    check_in_at: datetime | None, start_at: datetime, confirmed_at: datetime | None
+) -> bool | None:
+    """Qué le suma este turno a la puntualidad de quien lo trabajó: `True`
+    (puntual), `False` (tarde) o `None` (no la mueve).
+
+    Quien tomó un turno ya empezado (confirmó después de `start_at`: el
+    reemplazo de un turno reofrecido, U080) no tiene una hora pactada contra
+    la cual medirlo: el turno cuenta como completado y **su puntualidad no se
+    mueve, ni a favor ni en contra**. Si no llega, la ausencia sí cuenta.
+
+    Es el único lugar que lo decide. Si más adelante se quiere medir «llegó
+    hasta X minutos después de confirmar», se cambia acá.
+    """
+    if confirmed_at is not None and _naive(confirmed_at) > _naive(start_at):
+        return None
+    return arrived_on_time(check_in_at, start_at)

@@ -238,7 +238,9 @@ class ShiftRepository(ABC):
         window_start: datetime,
         window_end: datetime,
     ) -> WorkerEarningsTotals:
-        """Suma `pay_amount` de los turnos del trabajador en `statuses`, en
+        """Suma lo que se paga por los turnos del trabajador en `statuses`
+        (el monto prorrateado de un turno reofrecido, si no `pay_amount`:
+        misma regla que `Shift.amount_due`), en
         la base y sin tope de filas: total, cantidad y lo que cae en
         `[window_start, window_end)` según `start_at`. Los límites son
         instantes (con zona): quien llama decide a qué hora local cortan."""
