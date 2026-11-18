@@ -1229,8 +1229,19 @@ body:has([data-landing]) main {
   box-shadow: 4px 4px 0 var(--relieve);
 }
 .comanda-papel {
+  /* El foco de adentro va siempre en el azul hondo de claro: sobre la banda
+     (`.app-banda`) heredaba el blanco de la banda y no se veía en el papel. */
+  --focus-ring: #1c5478;
   border-radius: inherit;
   color: var(--color-ink);
+}
+/* Una comanda que ya no tiene nada pendiente (pagada, cancelada, no
+   cubierta) pierde el relieve y queda apoyada, con un filete: se la ve
+   apagada sin bajarle la opacidad, que dejaba el sello y la letra chica por
+   debajo de contraste (2,7 a 3,2). */
+.comanda-apagada {
+  box-shadow: 0 0 0 1px var(--color-line);
+  filter: saturate(0.8);
 }
 /* El foco de un link de la comanda va por dentro del papel. Por fuera caía
    sobre el cielo o el lienzo con el azul de claro (adentro la comanda está

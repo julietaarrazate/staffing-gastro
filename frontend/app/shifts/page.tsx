@@ -687,7 +687,7 @@ function MyShiftsPanel() {
                           >
                             {meta.icon}
                             {meta.title}
-                            <span className="font-medium opacity-70">· {list.length}</span>
+                            <span className={`font-medium ${g === 0 ? "opacity-75" : ""}`}>· {list.length}</span>
                           </h2>
 
                           {list.length === 0 ? (

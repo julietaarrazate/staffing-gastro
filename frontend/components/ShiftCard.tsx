@@ -159,7 +159,7 @@ export default function ShiftCard({
       // 2026-07-29). El link de arriba ahora redondea sus propias esquinas.
       className={`no-select ${
         comanda ? "" : "rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99]"
-      } ${isDimmed ? "opacity-65 saturate-[0.85]" : ""}`}
+      } ${isDimmed ? (comanda ? "comanda-apagada" : "opacity-65 saturate-[0.85]") : ""}`}
     >
       {comanda ? (
         // La cabeza de la comanda: el puesto en brocha, de quién es y dónde.
@@ -377,7 +377,9 @@ export default function ShiftCard({
             tarjeta decía el estado dos veces seguidas. El chip nombra el
             estado; los puntos dicen cuánto falta. El texto del stepper sólo
             vuelve cuando el turno se cortó, porque ahí agrega en qué paso. */}
-        <div className="mt-4 flex items-start gap-3">
+        {/* En la comanda la fila puede partirse: a 320 px el sello y los
+            cuatro pasos no entran juntos, y los pasos bajan de renglón. */}
+        <div className={`mt-4 flex items-start gap-3 ${comanda ? "flex-wrap" : ""}`}>
           <span
             data-testid="shift-status"
             className={
@@ -393,7 +395,7 @@ export default function ShiftCard({
               shift={shift}
               perspective={perspective}
               caption="cutShort"
-              className="min-w-0 flex-1 pt-0.5"
+              className={comanda ? "min-w-[7.5rem] flex-1 pt-0.5" : "min-w-0 flex-1 pt-0.5"}
             />
           )}
         </div>

@@ -116,3 +116,20 @@ test("«Publicar turno» es el botón con relieve y lleva a publicar", async ({ 
   const sombra = await publicar.evaluate((el) => getComputedStyle(el).boxShadow);
   expect(sombra).toContain("3px 3px 0px");
 });
+
+test("a 320 px el sello y los pasos no corren la página; el foco de adentro se ve y lo terminado queda apagado sin perder contraste", async ({ page }) => {
+  // Tres cosas que encontró la revisión independiente del 2026-11-18.
+  await page.setViewportSize({ width: 320, height: 800 });
+  await panel(page, TURNOS);
+  await page.goto("/shifts");
+  await expect(page.locator('[data-shift-id="s2"]')).toBeVisible();
+  const ancho = await page.evaluate(() => ({ cabe: document.documentElement.clientWidth, ocupa: document.documentElement.scrollWidth }));
+  expect(ancho.ocupa).toBeLessThanOrEqual(ancho.cabe);
+  // Sobre la banda el foco es blanco; adentro de la comanda, azul hondo (el papel es blanco).
+  const link = page.locator('.app-banda [data-shift-id="s1"]').getByRole("link", { name: "Bar Lavalle" });
+  expect(await link.evaluate((el) => getComputedStyle(el).getPropertyValue("--focus-ring").trim())).toBe("#1c5478");
+  // La cancelada pierde el relieve, pero no la opacidad.
+  const cancelada = page.locator('[data-shift-id="s4"]');
+  await expect(cancelada).toHaveClass(/comanda-apagada/);
+  await expect(cancelada).toHaveCSS("opacity", "1");
+});

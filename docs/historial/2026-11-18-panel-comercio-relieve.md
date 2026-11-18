@@ -42,15 +42,30 @@ lleva `data-testid="shift-status"`. `app/shifts/page.tsx` arma dos grupos
 - **El papel es papel en los dos temas**, como en el Inicio: adentro la
   comanda va forzada a claro, así que los pasos, los botones y la
   calificación se ven igual de día y de noche.
-- **`ShiftCard` no se duplicó.** «Mis turnos» del trabajador y `/historia`
-  usan la misma pieza y siguen con la tarjeta de siempre hasta que les toque:
-  les alcanza con pasar `comanda`.
+- **`ShiftCard` no se duplicó.** La usan también «Mis turnos» del
+  trabajador, la ficha del comercio, Candidatos y el «En vivo» del admin, que
+  siguen con la tarjeta de siempre hasta que les toque: les alcanza con pasar
+  `comanda`.
 
 Tests que verificaban la forma anterior se actualizaron, no se aflojaron: el
 estado se busca por su marca y no por ser una píldora, su contraste se mide
 contra el papel, y los colores de los pasos son los de claro también de noche
 (`shift-lifecycle-stepper.spec.ts`, `shifts-panel-status.spec.ts`,
 `panel-tablet.spec.ts`). Spec nuevo: `panel-relieve.spec.ts`.
+
+**Revisión independiente** (otro agente; de 320 a 1280 px, en claro y
+oscuro, con teclado, y en los estados cargando, error, vacío, sin perfil y
+con eventos): aprobado con arreglos, hechos acá.
+
+- El foco del link del comercio no se veía en claro dentro de la banda
+  (heredaba el blanco de la banda sobre el papel blanco): el foco de adentro
+  de una comanda va siempre en azul hondo.
+- A 320 px el sello y los cuatro pasos no entraban en un renglón y la página
+  se corría 2 px: en la comanda los pasos bajan de renglón.
+- Las comandas sin nada pendiente (pagada, cancelada, no cubierta) se
+  atenuaban con opacidad y el sello quedaba en 2,7 a 3,2 de contraste: ahora
+  pierden el relieve y quedan apoyadas, con un filete, a contraste completo.
+- El contador de cada familia sobre el lienzo daba 3,5: va sin opacidad.
 
 **Queda abierto:** Candidatos y Mis turnos (ítem 0 de `STATUS.md`). Los
 botones de adentro de la comanda («Elegir a alguien», «Chat», «Más») son el
