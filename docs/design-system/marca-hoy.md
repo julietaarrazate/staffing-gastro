@@ -5,7 +5,8 @@
 > tipografía, piezas y logos en vector): https://claude.ai/artifact/J8s5yUUpW3Ufz2hbWKYYns
 > (privado: compartirlo desde su menú Share). Los vectores, con la letra
 > convertida a trazos (se abren en Illustrator o Figma sin la fuente), están
-> en [`marca/`](./marca/): `oido-filete` (con adornos), `oido-filete-marca`
+> en [`marca/`](./marca/): `oido-filete` (con adornos, nivel «medio»),
+> `oido-filete-cargado` (el de la miniatura), `oido-filete-marca`
 > (sola, con relieve), `oido-filete-cinta` («¡Oído!»), `oido-plano` y
 > `oido-plano-blanco`, `isotipo-pinche` (con relieve), `isotipo-pinche-chico`,
 > `isotipo-pinche-maskable` e `isotipo-pinche-silueta` (el ícono vigente; los
@@ -16,6 +17,7 @@
 
 **Celeste y blanco con un solo ámbar**, porteña y gastronómica: el cielo de
 Buenos Aires, el papel de la comanda y el filete de los carteles de bodegón.
+(El rojo y el rosa existen sólo en las flores del filete: regla 3.)
 
 ## Reglas
 
@@ -33,7 +35,7 @@ Buenos Aires, el papel de la comanda y el filete de los carteles de bodegón.
    letra fantasía del fileteado (desde el 2026-11-17; antes Sancreek, que se
    iba al Far West y se parecía a la letra de otra marca del rubro). Fileteada en
    `components/landing/Filete.tsx`:
-   - `firma` (con adornos finos dorados): pantalla de inicio;
+   - `firma` (con adornos): pantalla de inicio;
    - el final de la landing: la misma `firma`, entera, apoyada sobre un banco
      de nubes, que cierra el panel de cielo de «¿Te falta alguien hoy?»;
      sobre las nubes, sólo lo legal y el ©. Desde el 2026-11-18 (antes iba
@@ -45,8 +47,28 @@ Buenos Aires, el papel de la comanda y el filete de los carteles de bodegón.
      chocaba con el resto, que es liso. El fileteado completo se ve una sola
      vez, al cierre;
    - `cinta` («¡Oído!»): la comanda.
-   La miniatura para compartir usa la `firma` (`assets/og/filete-oido.png`,
-   desde el 2026-10-30).
+   **Los adornos tienen cuerpo** (Julieta, 2026-11-18: los de línea fina
+   dorada «quedaron demasiado finos»; eligió sobre una prueba con tres
+   cargas, https://claude.ai/artifact/TYzBvehuyCPXNM7pNhrh6R, y pidió más
+   profundidad). Son un dibujo propio en la tradición del filete porteño:
+   volutas celestes con volumen (sombra, media luz y brillo, luz de arriba a
+   la izquierda), relieve duro azul hondo y sombra proyectada, alas de hojas
+   en las esquinas, filete dorado por dentro y flores de cinco pétalos con
+   botón azul. Dos niveles, y no se mezclan:
+   - **medio** en el final de la landing y en la bienvenida: cuatro volutas,
+     una flor roja arriba y una rosa abajo;
+   - **cargado** sólo en la miniatura para compartir
+     (`assets/og/filete-oido.png`), que se ve chica y de pasada: suma el ramo
+     de tres flores, una flor a cada costado, la cinta celeste y blanca y
+     rulos dorados arriba.
+   **El rojo y el rosa viven sólo adentro del filete**, en las flores, igual
+   que el crema vive sólo adentro de la letra: no son colores de la interfaz
+   y el ámbar sigue siendo el único acento de las pantallas. **La letra no
+   cambió**: crema con relieve azul hondo (el relieve rojo se probó y se
+   descartó: compite con las flores y obliga a rehacer el ícono y la cinta).
+   El dibujo no se toca a mano: lo escribe
+   `frontend/scripts/build-filete.mjs` (el módulo que usa `Filete.tsx`, los
+   dos vectores de [`marca/`](./marca/) y el PNG de la miniatura).
    No va en ningún otro lugar ni con otra palabra.
 4. **El ícono es el pinche con «oído»** (Julieta, 2026-11-18, después de
    verlo; reemplaza al «oí» provisorio del 2026-11-17, y antes a las manos y
@@ -115,7 +137,8 @@ capa). Lo cuida `frontend/e2e/un-solo-foco.spec.ts`.
 | Azul hondo (links, letra sobre celeste) | `#1C5478` | `#9AC9E7` |
 | Ámbar (acción) / como texto | `#D97706` / `#B45309` | `#D97706` / `#E8920F` |
 | Landing (2026-11-13; variables `--l-*` en `globals.css`): cielo de arriba a abajo, celeste plano, noche, azul de la marca plana | `#6FB0DF` → `#8CC2E7` → `#B4D8EF` → `#DCEDF7`, `#E2EEF6`, `#0D131A`, `#0F3A5B` | igual (la landing es siempre clara) |
-| Filete (desde el 2026-10-23): cara crema, filete interior blanco, borde y relieve azul hondo, canto dorado; adornos finos y Sol de Mayo dorados | `#FFF9DC` → `#F2DC9A`, `#FFFFFF`, `#14456A` / `#1C5478`, `#C98A1A`; oro `#B8801F` `#E2B04A` | igual |
+| Filete, la letra (desde el 2026-10-23): cara crema, filete interior blanco, borde y relieve azul hondo, canto dorado | `#FFF9DC` → `#F2DC9A`, `#FFFFFF`, `#14456A` / `#1C5478`, `#C98A1A` | igual |
+| Filete, los adornos (desde el 2026-11-18; sólo adentro del dibujo): volutas celestes, relieve, filete dorado, flor roja, flor rosa, botón | `#D6EEFC` → `#74B8E8` → `#2B7CC0`, `#0F3A5B`, `#FBE69A` → `#EEBB4A` → `#C98A1A`, `#F2685F` → `#D8262F` → `#8F1420`, `#FDE3E8` → `#F29BB0` → `#C9486B`, `#9AC9E7` → `#1C5478` | igual |
 
 Detalle y contrastes: [`color-system.md`](./color-system.md).
 
@@ -162,4 +185,5 @@ estuvieron acá del 2026-10-18 al 2026-10-30: volvieron, "Empezar con
 
 `docs/historial/`: `2026-10-18-landing-cielo`, `2026-10-18-miniatura-filete`,
 `2026-10-18-titulos-schibsted`, `2026-10-19-app-noche-azul`,
-`2026-10-19-marca-filete-header`, `2026-10-19-splash-filete`.
+`2026-10-19-marca-filete-header`, `2026-10-19-splash-filete`,
+`2026-11-18-filete-adornos-con-cuerpo`.
