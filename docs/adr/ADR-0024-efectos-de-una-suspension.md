@@ -113,3 +113,17 @@ Seis arreglos de una auditoría de esta misma decisión; ninguno cambia lo decid
 ## Actualización 2026-11-18 (dispositivos)
 
 Al suspender una cuenta se borran todos sus dispositivos registrados para los avisos push (sus filas de `push_subscriptions`), por el puerto `AccountDeviceRemover` del admin. Va después de marcar la cuenta y es best-effort, como el corte de sockets: si falla se registra y la suspensión queda hecha (a una cuenta suspendida igual no se le manda push, y el barrido de dispositivos de cuentas con las sesiones revocadas los levanta después: suspender las revoca todas). Reactivar no restaura nada: cada dispositivo se vuelve a registrar solo en el próximo ingreso. Detalle en `docs/reference/ACCESO_MODERNO.md` → «Baja del dispositivo».
+
+## Actualización 2026-11-18 (decisión 22): los turnos ocultos vencen
+
+El punto 1 no decía qué pasa cuando al turno oculto se le pasa el horario. Decisión 22 de Julieta:
+
+1. **Vence igual.** El chequeo de cobertura ([ADR-0015](./ADR-0015-turno-no-cubierto.md)) no mira la cuenta: pasada la gracia, el turno abierto (o asignado sin confirmar que la suspensión no tocó, punto 3) queda en «no cubierto».
+2. **Sin aviso a la cuenta suspendida:** ni en la app, ni push, ni mail (`ShiftService.mark_not_covered`). Con la cuenta activa, todo como antes.
+3. **Fuera de las métricas de cobertura,** del numerador y del denominador: estaba oculto, nadie pudo postularse, no dice nada de la promesa de los 10 minutos. Quedan fuera de los publicados, cubiertos, cumplidos, tiempos y tasas del período (`count_period_stats`), de las tasas de asignación y de finalización (`count_publication_stats`) y de la muestra del tiempo hasta cubrir (`list_recently_filled`). No cambian los conteos que no miden cobertura: «Locales activos» (el comercio publicó), ausencias, postulaciones, usuarios y «comercios que vuelven a publicar».
+4. **La marca va en el turno** (`shifts.not_covered_while_suspended`, migración 0055; la pone `Shift.mark_not_covered(company_suspended=True)`), no se mira el estado de la cuenta al calcular: la cuenta puede reactivarse después y el turno no tiene que volver a contar.
+5. **Reactivar no deshace nada** (punto 10): el comercio ve esos turnos como «No cubierto» en su panel, sin aviso, y siguen fuera de las métricas.
+
+No cambia qué muestran «Hoy» y «Turnos en vivo» del admin sobre los turnos ocultos que todavía no vencieron.
+
+6. **Con U080:** si quien tenía un turno empezado de un comercio suspendido lo deja (ausencia automática, cancelación, rechazo), el turno queda reofrecido pero oculto: no sale el aviso urgente a quienes están cerca ni el aviso al comercio (`ShiftService._announce_reopen`). Cuando vence, entra por el punto 1, con la marca. Si al reabrirse ya no le quedaba horario y pasa directo a «no cubierto», no lleva la marca (caso raro: un comercio suspendido con un turno empezado que alguien deja con menos de 2 h 15 min por delante).
