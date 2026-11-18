@@ -2392,6 +2392,10 @@ body:has([data-landing]) main {
 .landing-pie-fila button:hover {
   text-decoration-color: currentColor;
 }
+/* «Compartir» es un botón con aspecto de link: con el mouse, la manito. */
+.landing-pie-fila button {
+  cursor: pointer;
+}
 
 /* La marca en el encabezado: la misma letra del «oído» fileteado, plana y en
    azul hondo (2026-11-13; Shrikhand desde el 2026-11-17). El fileteado

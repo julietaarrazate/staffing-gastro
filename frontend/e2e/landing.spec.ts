@@ -231,7 +231,7 @@ test("el pie tiene «Compartir»: abre el menú del teléfono con el link, o Wha
   await expect(compartir).toHaveText("Compartir");
   await compartir.click();
   const datos = await page.evaluate(() => (window as unknown as { __compartido?: { url: string; text: string } }).__compartido);
-  expect(datos?.url).toMatch(/oido\.com\.ar\/?$/);
+  expect(datos?.url).toBe("https://www.oido.com.ar");
   expect(datos?.text).toContain("Oído");
   expect(datos?.text).not.toContain("http");
   // Sin menú de compartir (compu): abre WhatsApp con el texto y el link.
@@ -243,10 +243,12 @@ test("el pie tiene «Compartir»: abre el menú del teléfono con el link, o Wha
       return null;
     };
   });
+  // Que de verdad no quede el menú: si no, este tramo probaría el de arriba.
+  expect(await page.evaluate(() => "share" in navigator)).toBe(false);
   await compartir.click();
   const abierto = await page.evaluate(() => (window as unknown as { __abierto?: string }).__abierto);
   expect(abierto).toMatch(/^https:\/\/wa\.me\/\?text=/);
-  expect(decodeURIComponent(abierto ?? "")).toMatch(/oido\.com\.ar\/?$/);
+  expect(decodeURIComponent(abierto ?? "")).toMatch(/ https:\/\/www\.oido\.com\.ar$/);
 });
 
 test("si la API de precios falla, la carta sigue estando (respaldo)", async ({ page }) => {
