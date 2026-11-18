@@ -90,7 +90,7 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 | U081 | Se puede cancelar un turno cuyo trabajador ya terminó de trabajar (check-out hecho) | ⚪ decidido (2), sin empezar | no se permite: con la salida marcada, el comercio finaliza y paga; lleva ADR (cambia el ADR-0007) |
 | U082, U089 | Ausencia automática: al trabajador le dice «El comercio marcó que no te presentaste» y al comercio «sin que… (y 1 más de la misma causa) | ✅ en `main` | #562 |
 | U076, U077, U078 | Cancelar un turno con postulantes no le avisa a nadie (y 2 más de la misma causa) | ✅ en `main` | #553 |
-| U021, U123 | Quien retiró, rechazó, canceló o faltó sigue en la lista de postulantes con «Asignar», sin ninguna marca (y 1 más de la misma causa) | ✅ en `main` | #PRG4 · G4, [ADR-0026](../adr/ADR-0026-postulacion-desasignada.md): estado `desasignada` con su motivo |
+| U021, U123 | Quien retiró, rechazó, canceló o faltó sigue en la lista de postulantes con «Asignar», sin ninguna marca (y 1 más de la misma causa) | ✅ en `main` | #629 · G4, [ADR-0026](../adr/ADR-0026-postulacion-desasignada.md): estado `desasignada` con su motivo |
 
 **Tanda 4**
 
@@ -259,7 +259,7 @@ Fable. Lo que sigue quedó para hacerlo o revisarlo con Fable, porque cambia
 el modelo del dominio, un ADR vigente o un texto legal:
 
 - ✅ **G4** (U021, U123): estado nuevo `desasignada` de la postulación, con
-  migración (0051). Hecho el 2026-11-18 (#PRG4,
+  migración (0051). Hecho el 2026-11-18 (#629,
   [ADR-0026](../adr/ADR-0026-postulacion-desasignada.md)).
 - **U080, U081 y U072** (decisiones 2, 3, 4 y 16): cambian el ADR-0007 y el
   ADR-0008, y U072 cambia el texto de `/privacidad` (sube la versión, junto

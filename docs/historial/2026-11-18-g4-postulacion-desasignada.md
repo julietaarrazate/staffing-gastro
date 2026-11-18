@@ -1,4 +1,4 @@
-# G4: quien tuvo el turno y lo dejó queda al final, con su marca (#PRG4)
+# G4: quien tuvo el turno y lo dejó queda al final, con su marca (#629)
 
 **Pedido:** Julieta, salida a beta, etapa 2, lo que quedó «para revisar con
 Fable»: el grupo G4 (U021, U123) según `planning/BETA_DISENO_GRAVES.md`, con
