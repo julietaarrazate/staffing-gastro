@@ -33,9 +33,14 @@ import OpportunityCard from "@/components/worker/OpportunityCard";
 import FeedHero from "@/components/worker/FeedHero";
 import NearbyRow from "@/components/worker/NearbyRow";
 import DiscoverDeck from "@/components/worker/DiscoverDeck";
-import GuidedTour, { type TourStep } from "@/components/GuidedTour";
+import dynamic from "next/dynamic";
+import type { TourStep } from "@/components/GuidedTour";
+import { useTourPendiente } from "@/lib/use-tour-pendiente";
 import { ChevronRightIcon, CloseIcon, SparklesIcon } from "@/components/icons";
 import { EmptyFeedIllustration, ErrorIllustration } from "@/components/illustrations";
+
+// Recorrido de una sola vez: se baja sólo si hay algo que mostrar.
+const GuidedTour = dynamic(() => import("@/components/GuidedTour"), { ssr: false });
 
 /** Pedido de Julieta: el onboarding del trabajador (zona + oficio) quedaba
  * corto — al aterrizar en el feed no había nada que explicara cómo se usa.
@@ -185,6 +190,7 @@ function WorkerFeedPanel() {
   const [shifts, setShifts] = useState<Shift[]>(cached?.shifts ?? []);
   const [profile, setProfile] = useState<WorkerProfile | null>(cached?.profile ?? null);
   const [available, setAvailable] = useState(cached?.profile?.is_available ?? true);
+  const tourPendiente = useTourPendiente("staffya_tour_worker_feed");
   const [loading, setLoading] = useState(cached === undefined);
   // «Llegó vacío» (el servidor no devolvió ningún turno) no es lo mismo que
   // «los vi todos» (la persona fue pasando/descartando las tarjetas): lo
@@ -746,7 +752,7 @@ function WorkerFeedPanel() {
         />
       )}
 
-      {!loading && <GuidedTour steps={WORKER_FEED_TOUR} storageKey="staffya_tour_worker_feed" />}
+      {!loading && tourPendiente && <GuidedTour steps={WORKER_FEED_TOUR} storageKey="staffya_tour_worker_feed" />}
     </div>
   );
 }

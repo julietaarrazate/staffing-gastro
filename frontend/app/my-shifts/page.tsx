@@ -21,9 +21,9 @@ import { LETRAS_APP } from "@/lib/letras";
 import ShiftCard from "@/components/ShiftCard";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import ReviewBox from "@/components/ReviewBox";
-import CompareShiftsModal from "@/components/worker/CompareShiftsModal";
 import EnRouteToggle from "@/components/worker/EnRouteToggle";
 import { ShiftCoveredIllustration } from "@/components/illustrations";
+import dynamic from "next/dynamic";
 import {
   Button,
   CardSkeletons,
@@ -43,6 +43,8 @@ import {
   MessageIcon,
   ScaleIcon,
 } from "@/components/icons";
+
+const CompareShiftsModal = dynamic(() => import("@/components/worker/CompareShiftsModal"), { ssr: false });
 
 type Tab = "asignados" | "postulaciones" | "guardados";
 
@@ -128,6 +130,9 @@ function MatchesContent() {
   const [compareMode, setCompareMode] = useState(false);
   const [selectedForCompare, setSelectedForCompare] = useState<string[]>([]);
   const [compareOpen, setCompareOpen] = useState(false);
+  // El modal se baja la primera vez que se abre y queda montado para que la
+  // salida se anime.
+  const [compareMounted, setCompareMounted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -833,7 +838,10 @@ function MatchesContent() {
             // Un solo ámbar por pantalla: «Postularme» ya lo es; este va neutro.
             variant="surface"
             leftIcon={<ScaleIcon size={16} />}
-            onClick={() => setCompareOpen(true)}
+            onClick={() => {
+              setCompareMounted(true);
+              setCompareOpen(true);
+            }}
             className="shadow-[var(--shadow-float)]"
           >
             Comparar ({selectedForCompare.length})
@@ -841,12 +849,14 @@ function MatchesContent() {
         </div>
       )}
 
-      <CompareShiftsModal
-        shifts={compareShifts}
-        origin={origin}
-        open={compareOpen}
-        onClose={() => setCompareOpen(false)}
-      />
+      {compareMounted && (
+        <CompareShiftsModal
+          shifts={compareShifts}
+          origin={origin}
+          open={compareOpen}
+          onClose={() => setCompareOpen(false)}
+        />
+      )}
 
       <Modal
         open={confirmWithdrawId !== null}
