@@ -212,10 +212,8 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
   marcha» para siempre: la persona ve «Esperando que el comercio cierre el
   turno» y no puede calificar ni verlo en sus ganancias. No hay recordatorio
   ni cierre automático (salió de la revisión de U081; antes pasaba igual, y
-  cancelar no era una salida buena). Es una regla nueva: decide Julieta.
-- Suspender a un trabajador: si al reabrir su turno falla la vuelta a
-  pendiente de los demás postulantes, al repetir ese turno ya no entra y
-  quedan rechazados (raro; salió de la revisión de #572).
+  cancelar no era una salida buena). Decidido el 2026-11-18 (decisión 24:
+  recordatorio a las 24 horas y cierre automático a las 72), sin escribir.
 - El detalle de un turno cancelado por la suspensión del comercio dice «El
   comercio canceló este turno.» (el aviso sí es neutro; #572).
 - «Descubrir rápido»: el toque y el arrastre de la tarjeta sólo se cubren con
@@ -270,9 +268,15 @@ el modelo del dominio, un ADR vigente o un texto legal:
   ADR-0008, y U072 cambia el texto de `/privacidad` (sube la versión, junto
   con la decisión 1).
 - **P1 a P5**, las mejoras de producto aprobadas.
-- **Una segunda mirada a G6** (cuentas suspendidas, ADR-0024), lo más
-  delicado de lo que se hizo con Opus. Ya tuvo una revisión independiente
-  (con Opus) y su prueba en la app antes del merge (#572).
+- ✅ **Una segunda mirada a G6** (cuentas suspendidas, ADR-0024), hecha el
+  2026-11-18: 2 graves y 7 menores verificados, nada bloqueante. Cinco
+  arreglados en #PRG6 (los postulantes que quedaban rechazados para siempre
+  si fallaba la reapertura; `/assign` dejaba averiguar si alguien está
+  suspendido; el socket de avisos y los push seguían saliendo; «Mis
+  postulaciones» mostraba el turno oculto; el asistente de IA encontraba al
+  postulante suspendido) y uno en #629 (el aviso «N postulantes» contaba a
+  los suspendidos). Tres esperan decisión: ver «Decisiones que esperan a
+  Julieta».
 - **Pasada por clase de error** (propuesta del 2026-11-14): el reporte
   externo de Breken encontró en una lectura del código 9 errores que la prueba
   de punta a punta no vio (claves que se pierden al recargar, datos viejos con
@@ -355,7 +359,31 @@ recomendaciones de quien coordina.
 
 ### Decisiones que esperan a Julieta
 
-Ninguna al 2026-11-13. El ingreso de invitado (decisión 5) se apaga al abrir
+Al 2026-11-18, de la segunda mirada a G6 y de la revisión de U081 (cada una
+con la recomendación de quien coordina):
+
+- **Un turno ya empezado de una cuenta suspendida no se puede cerrar ni pagar
+  nunca.** El comercio suspendido no puede finalizar ni marcar pagado; el
+  trabajador suspendido con la llegada marcada no puede marcar la salida, y
+  sin salida el comercio no puede cerrar. El ADR-0024 dice «se termina y se
+  paga como siempre», y hoy nadie puede. *Recomendación:* una acción de admin
+  «cerrar turno» (marca la salida y finaliza en nombre de la parte
+  suspendida), con registro.
+- **Los turnos ocultos de un comercio suspendido pasan a «no cubierto»**
+  mientras dura la suspensión, con aviso a la cuenta suspendida, y cuentan en
+  las métricas de cobertura. *Recomendación:* que venzan igual (su horario
+  pasó), sin aviso y fuera de las métricas.
+- **Se le puede seguir escribiendo por chat a una cuenta suspendida** (el
+  turno cancelado por la suspensión conserva el chat; el mensaje no lo lee
+  nadie). *Recomendación:* rechazar el mensaje nuevo como un chat ajeno y
+  dejar leer lo ya escrito. El arreglo está escrito y probado en la rama
+  local `claude/g6-chat`; no se mergeó porque es una regla nueva.
+- **Un turno con la salida marcada que el comercio nunca cierra** queda «en
+  marcha» para siempre (ver «Lo que salió de las revisiones»).
+  *Recomendación:* recordatorio al comercio a las 24 h y cierre automático a
+  las 72 h, con la puntualidad que ya quedó registrada.
+
+El ingreso de invitado (decisión 5) se apaga al abrir
 la beta, en la lista de salida (etapa 5): hasta entonces sirve para mostrar y
 probar la app.
 
