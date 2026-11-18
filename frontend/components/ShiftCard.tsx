@@ -16,6 +16,7 @@ import {
 } from "@/components/icons";
 import { formatAgo, formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
 import { formatPayAmount } from "@/lib/pay";
+import { effectiveStatus } from "@/lib/shift-next-step";
 import { cldThumb } from "@/lib/cloudinary";
 import { downloadShiftIcs } from "@/lib/calendar";
 import ShiftLifecycleStepper, { type ShiftStepperPerspective } from "@/components/ShiftLifecycleStepper";
@@ -354,6 +355,9 @@ export default function ShiftCard({
             comercio a las 20:45 con el turno confirmado: "¿viene?". */}
         {perspective === "employer" &&
           shift.en_route_at != null &&
+          // Sólo mientras viaja: si quedara un `en_route_at` viejo en un turno
+          // que ya llegó o se canceló, acá no se muestra.
+          effectiveStatus(shift) === "en_camino" &&
           (shift.en_route_latitude != null &&
           shift.en_route_longitude != null &&
           shift.latitude != null &&

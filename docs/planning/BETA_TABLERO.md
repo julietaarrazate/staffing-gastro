@@ -158,6 +158,9 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 - A 390 px el cartel «Viendo como…» del admin no muestra el nombre.
 - Avisos al celular: que el cierre de sesión borre el dispositivo en el
   servidor (cierra la sesión vencida, el token vencido y las dos pestañas).
+- ✅ Panel del comercio con un turno sin coordenadas: con la persona ya en
+  viaje seguía diciendo «Te avisamos cuando salga para allá» y no mostraba
+  nada. Ahora dice que va en camino y, sin mapa, la última señal (2026-11-18).
 - Un turno suelto todavía se puede crear sin zona por la API.
 - El aviso flotante queda debajo del velo de un diálogo abierto.
 - PR viejo #421 (links de turnos reabiertos): quedó pisado por #537; cerrarlo
