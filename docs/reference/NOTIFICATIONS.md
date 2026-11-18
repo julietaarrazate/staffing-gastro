@@ -48,7 +48,7 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
 - **Turno reofrecido (U080, [ADR-0015](../adr/ADR-0015-turno-no-cubierto.md)).**
   Cuando quien tenía un turno lo deja con el horario ya empezado:
   - **Al comercio, un solo aviso por reapertura**, que dice qué pasó y qué
-    sigue. Si se reofreció (quedan al menos 2 horas), con el tipo de siempre
+    sigue. Si se reofreció (quedan más de 2 horas y 15 minutos), con el tipo de siempre
     (`shift_reopened`; `shift_rejected` si fue un rechazo) y link a
     `/shifts/<id>/candidates`: «<qué pasó> Como ya había empezado, lo
     reofrecimos como urgente hasta las HH:MM; se paga lo que reste desde que

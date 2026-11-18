@@ -121,7 +121,7 @@ campos, estados o transiciones. Se documenta la realidad y se marca cada caso.
   - **Turno reofrecido (U080, [ADR-0015](../adr/ADR-0015-turno-no-cubierto.md),
     actualización 2026-11-18):** si quien tenía el turno lo deja (rechaza,
     cancela, falta) con el horario ya empezado, el turno se **reofrece como
-    urgente** cuando le quedan al menos 2 horas (`reoffered_at`); con menos,
+    urgente** cuando le quedan más de 2 horas y 15 minutos (`reoffered_at`); con menos,
     pasa directo a `no_cubierto` (`Shift._reopen`). Mientras está reofrecido
     aparece en el feed aunque haya empezado, hasta que le quedan menos de 2
     horas (`offered_until`); si nadie confirmó para entonces, pasa a
