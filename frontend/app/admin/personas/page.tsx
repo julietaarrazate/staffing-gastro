@@ -101,7 +101,7 @@ export default function AdminPeoplePage() {
         subtitle="Buscá a alguien por nombre, email o nombre del local y abrí su ficha."
       />
 
-      <label className="mt-5 flex items-center gap-2 rounded-full bg-surface px-4 py-2.5 ring-1 ring-line focus-within:bg-card focus-within:ring-2 focus-within:ring-primary/40">
+      <label className="foco-contenedor mt-5 flex items-center gap-2 rounded-full bg-surface px-4 py-2.5 ring-1 ring-line focus-within:bg-card">
         <SearchIcon size={16} className="shrink-0 text-ink/40" />
         <input
           type="search"
@@ -110,7 +110,8 @@ export default function AdminPeoplePage() {
           placeholder="Nombre, email o local"
           aria-label="Buscar por nombre, email o nombre del local"
           maxLength={100}
-          className="w-full bg-transparent text-sm text-ink placeholder:text-ink/40 focus:outline-none"
+          data-foco-contenedor
+          className="w-full bg-transparent text-sm text-ink placeholder:text-ink/40"
         />
       </label>
 

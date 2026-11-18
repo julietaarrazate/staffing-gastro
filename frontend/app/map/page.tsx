@@ -128,7 +128,7 @@ function ShiftRow({
               <Link
                 href={`/turno/${shift.id}`}
                 data-testid="map-row-link"
-                className="after:absolute after:inset-0 after:rounded-[var(--radius-card)] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-primary"
+                className="after:absolute after:inset-0 after:rounded-[var(--radius-card)] foco-propio focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-(--focus-ring)"
               >
                 {SKILL_LABELS[shift.position]}
               </Link>

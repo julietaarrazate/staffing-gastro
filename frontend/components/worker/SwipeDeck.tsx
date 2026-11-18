@@ -219,7 +219,7 @@ export default function SwipeDeck({
           <button
             type="button"
             onClick={() => onOpen(current)}
-            className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:left-1/2 focus-visible:top-2 focus-visible:z-20 focus-visible:-translate-x-1/2 focus-visible:rounded-full focus-visible:bg-card focus-visible:px-4 focus-visible:py-2 focus-visible:text-caption focus-visible:font-semibold focus-visible:text-ink focus-visible:ring-2 focus-visible:ring-primary"
+            className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:left-1/2 focus-visible:top-2 focus-visible:z-20 focus-visible:-translate-x-1/2 focus-visible:rounded-full focus-visible:bg-card focus-visible:px-4 focus-visible:py-2 focus-visible:text-caption focus-visible:font-semibold focus-visible:text-ink"
           >
             Ver el detalle del turno
           </button>

@@ -270,7 +270,7 @@ function NewEventForm() {
               onChange={(e) => setStartAt(e.target.value)}
               aria-invalid={horario.errorInicio ? true : undefined}
               aria-describedby={horario.errorInicio ? "error-inicio" : undefined}
-              className={`min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40 ${horario.errorInicio ? "ring-danger/60" : "ring-line"}`}
+              className={`min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 focus:bg-card ${horario.errorInicio ? "ring-danger/60" : "ring-line"}`}
             />
             {horario.errorInicio && (
               <p id="error-inicio" role="alert" className="text-sm font-semibold text-danger-text">
@@ -287,7 +287,7 @@ function NewEventForm() {
               onChange={(e) => setEndAt(e.target.value)}
               aria-invalid={horario.errorFin ? true : undefined}
               aria-describedby={horario.errorFin ? "error-fin" : undefined}
-              className={`min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40 ${horario.errorFin ? "ring-danger/60" : "ring-line"}`}
+              className={`min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 focus:bg-card ${horario.errorFin ? "ring-danger/60" : "ring-line"}`}
             />
             {horario.errorFin ? (
               <p id="error-fin" role="alert" className="text-sm font-semibold text-danger-text">
@@ -382,7 +382,7 @@ function NewEventForm() {
                   <select
                     value={role.position}
                     onChange={(e) => updateRole(role.key, { position: e.target.value as WorkerSkill })}
-                    className="min-h-[44px] flex-1 rounded-xl bg-card px-3 text-body text-ink ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    className="min-h-[44px] flex-1 rounded-xl bg-card px-3 text-body text-ink ring-1 ring-line"
                   >
                     {WORKER_SKILLS.map((skill) => (
                       <option key={skill} value={skill}>
@@ -417,7 +417,7 @@ function NewEventForm() {
                       step={1}
                       value={role.count}
                       onChange={(e) => updateRole(role.key, { count: e.target.value })}
-                      className="min-h-[44px] min-w-0 rounded-xl bg-card px-3 text-body text-ink ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      className="min-h-[44px] min-w-0 rounded-xl bg-card px-3 text-body text-ink ring-1 ring-line"
                     />
                   </label>
                   <label className="flex min-w-0 flex-1 flex-col gap-1">
@@ -426,7 +426,7 @@ function NewEventForm() {
                       placeholder="15.000"
                       value={role.payAmount}
                       onChange={(monto) => updateRole(role.key, { payAmount: monto })}
-                      className="min-h-[44px] min-w-0 rounded-xl bg-card px-3 text-body text-ink ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      className="min-h-[44px] min-w-0 rounded-xl bg-card px-3 text-body text-ink ring-1 ring-line"
                     />
                   </label>
                 </div>
