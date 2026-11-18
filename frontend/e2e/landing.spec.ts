@@ -213,6 +213,42 @@ test("un plan incompleto de la API no tira la carta, y a 320 px el nombre no pis
   for (const c of cajas) expect(c.precioArriba).toBeGreaterThanOrEqual(c.nombreAbajo);
 });
 
+test("el pie tiene «Compartir»: abre el menú del teléfono con el link, o WhatsApp si no hay", async ({ page }) => {
+  // Con menú de compartir (celular): recibe el texto y el link por separado.
+  await page.addInitScript(() => {
+    const w = window as unknown as { __compartido?: unknown };
+    Object.defineProperty(navigator, "share", {
+      configurable: true,
+      value: (datos: unknown) => {
+        w.__compartido = datos;
+        return Promise.resolve();
+      },
+    });
+  });
+  await sinSesion(page);
+  await page.goto("/");
+  const compartir = page.locator("[data-landing] footer").getByRole("button", { name: "Compartir Oído" });
+  await expect(compartir).toHaveText("Compartir");
+  await compartir.click();
+  const datos = await page.evaluate(() => (window as unknown as { __compartido?: { url: string; text: string } }).__compartido);
+  expect(datos?.url).toMatch(/oido\.com\.ar\/?$/);
+  expect(datos?.text).toContain("Oído");
+  expect(datos?.text).not.toContain("http");
+  // Sin menú de compartir (compu): abre WhatsApp con el texto y el link.
+  await page.evaluate(() => {
+    delete (navigator as unknown as { share?: unknown }).share;
+    const w = window as unknown as { __abierto?: string };
+    window.open = (url) => {
+      w.__abierto = String(url);
+      return null;
+    };
+  });
+  await compartir.click();
+  const abierto = await page.evaluate(() => (window as unknown as { __abierto?: string }).__abierto);
+  expect(abierto).toMatch(/^https:\/\/wa\.me\/\?text=/);
+  expect(decodeURIComponent(abierto ?? "")).toMatch(/oido\.com\.ar\/?$/);
+});
+
 test("si la API de precios falla, la carta sigue estando (respaldo)", async ({ page }) => {
   await sinSesion(page, { status: 500 });
   await page.goto("/#precios");

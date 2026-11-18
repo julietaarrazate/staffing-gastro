@@ -2377,7 +2377,8 @@ body:has([data-landing]) main {
   color: var(--l-hondo);
   font-size: 13px;
 }
-.landing-pie-fila a {
+.landing-pie-fila a,
+.landing-pie-fila button {
   /* Con el relleno, el link mide 33 px de alto: se toca cómodo con el dedo. */
   display: inline-block;
   padding-block: 6px;
@@ -2387,7 +2388,8 @@ body:has([data-landing]) main {
   text-decoration-color: rgb(15 58 91 / 0.35);
   text-underline-offset: 3px;
 }
-.landing-pie-fila a:hover {
+.landing-pie-fila a:hover,
+.landing-pie-fila button:hover {
   text-decoration-color: currentColor;
 }
 
