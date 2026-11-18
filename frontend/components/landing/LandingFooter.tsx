@@ -5,7 +5,7 @@ import BancoDeNubes from "./Nubes";
 /**
  * El final. Cierra el panel de cielo que empieza en «¿Te falta alguien hoy?»
  * (`.landing-cierre` arriba, `.landing-firma` abajo): la palabra «oído»
- * fileteada, **entera** y con sus adornos finos (la misma `firma` de la
+ * fileteada, **entera** y con sus adornos de cuerpo (la misma `firma` de la
  * pantalla de bienvenida), apoyada sobre un banco de nubes como el del
  * inicio; y sobre las nubes, una sola línea con lo legal y el ©.
  *

@@ -385,7 +385,8 @@ export function vector(nivel) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${a.caja}" role="img" aria-label="Oído"><title>Oído</title>${a.svg.replaceAll(`${ID}-`, "a-")}${letra}</svg>\n`;
 }
 
-async function png() {
+/** El PNG de la miniatura: el nivel cargado, rasterizado con sharp. */
+export async function png() {
   const { default: sharp } = await import("sharp");
   const svg = Buffer.from(vector("cargado"));
   const [, , ancho] = adornos("cargado").caja.split(" ").map(Number);

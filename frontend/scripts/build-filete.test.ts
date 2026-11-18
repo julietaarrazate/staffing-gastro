@@ -5,7 +5,7 @@ import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 import { ADORNOS_CAJA, ADORNOS_SVG } from "../components/landing/filete-adornos";
 import { OG_FILETE } from "../lib/og";
-import { adornos, moduloTs, vector } from "./build-filete.mjs";
+import { adornos, moduloTs, png, vector } from "./build-filete.mjs";
 
 const raiz = join(import.meta.dirname, "..");
 const marca = join(raiz, "..", "docs", "design-system", "marca");
@@ -52,5 +52,16 @@ describe("los adornos del filete", () => {
     expect(Math.round((OG_FILETE.width * alto) / ancho)).toBe(OG_FILETE.height);
     expect(vector("cargado")).toContain("clipPath"); // la cinta sólo está en el cargado
     expect(ADORNOS_SVG).not.toContain("clipPath");
+  });
+
+  it("el PNG commiteado es el dibujo de hoy (si falla: node scripts/build-filete.mjs)", async () => {
+    // Se comparan los píxeles achicados y con tolerancia, no los bytes: otra
+    // versión de sharp puede elegir otra paleta para el mismo dibujo.
+    const pixeles = (entrada: string | Buffer) => sharp(entrada).resize({ width: 300 }).ensureAlpha().raw().toBuffer();
+    const [viejo, nuevo] = await Promise.all([pixeles(join(raiz, "assets/og/filete-oido.png")), pixeles(await png())]);
+    expect(viejo.length).toBe(nuevo.length);
+    let suma = 0;
+    for (let i = 0; i < viejo.length; i++) suma += Math.abs(viejo[i] - nuevo[i]);
+    expect(suma / viejo.length).toBeLessThan(1.5);
   });
 });
