@@ -59,7 +59,13 @@ frecuentes, Ingresar) siguen en el encabezado y en la página; se pierde el
 atajo al final y los enlaces internos que se habían sumado el 2026-10-30
 pensando en los buscadores.
 
-La revisión independiente (otro agente, en siete anchos de 320 a 1920 px,
+El final nuevo tuvo su propia revisión, que encontró un corte recto en la
+cima de las nubes de los costados de 1920 px para arriba (el dibujo se escala
+al ancho y no entraba). Pasaba también en el inicio desde antes: en los dos
+lugares el borde de arriba del banco de nubes ahora se funde con el cielo.
+A 320 px el © se partía en dos renglones y baja a 12 px.
+
+La primera revisión independiente (otro agente, en siete anchos de 320 a 1920 px,
 con teclado, con «reducir movimiento» y con la app en oscuro) encontró tres
 cosas que se arreglaron acá: a 320 y 360 px el nombre del plato en brocha se
 encimaba con el precio (de 380 px para abajo el precio baja a su renglón); a
