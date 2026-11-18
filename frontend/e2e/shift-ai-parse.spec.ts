@@ -105,7 +105,7 @@ test("describir el turno con texto precarga el wizard, sin publicar nada solo", 
   await expect(page.getByRole("heading", { name: "¿Dónde es?" })).toBeVisible();
   await expect(page.getByText("Calle Falsa 123, Palermo")).toBeVisible();
   await expect(page.getByText("Mozo/a").first()).toBeVisible();
-  await expect(page.getByText("ARS 45.000", { exact: false }).first()).toBeVisible();
+  await expect(page.getByText("$45.000", { exact: false }).first()).toBeVisible();
 
   let publishedBody: Record<string, unknown> | null = null;
   await page.route("**/api/v1/shifts", (route) => {

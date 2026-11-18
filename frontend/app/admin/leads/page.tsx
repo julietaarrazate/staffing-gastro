@@ -36,6 +36,7 @@ import {
   DownloadIcon,
   MapPinIcon,
 } from "@/components/icons";
+import { plural } from "@/lib/format";
 
 type Filter = LeadStatus | "todos";
 
@@ -132,7 +133,7 @@ function ComerciosACaptar() {
       toast(
         result.found === 0
           ? `OpenStreetMap no devolvió comercios para ${result.barrio}`
-          : `${result.found} comercios: ${result.created} nuevos, ${result.updated} actualizados`,
+          : `${plural(result.found, "comercio", "comercios")}: ${plural(result.created, "nuevo", "nuevos")}, ${plural(result.updated, "actualizado", "actualizados")}`,
         result.found === 0 ? "info" : "success"
       );
       load();

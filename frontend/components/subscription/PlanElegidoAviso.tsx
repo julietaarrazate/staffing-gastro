@@ -1,7 +1,7 @@
 "use client";
 
 import { SubscriptionPlan } from "@/lib/types";
-import { formatArs } from "@/lib/format";
+import { formatArs, plural } from "@/lib/format";
 import { Button } from "@/components/ui";
 
 /** Qué falta con el plan elegido en la landing. */
@@ -33,7 +33,7 @@ export default function PlanElegidoAviso({
   onActivar: () => void;
 }) {
   const precio = typeof plan.price_ars === "string" ? Number(plan.price_ars) : plan.price_ars;
-  const tope = plan.max_turnos_mes === null ? "turnos sin tope" : `hasta ${plan.max_turnos_mes} turnos por mes`;
+  const tope = plan.max_turnos_mes === null ? "turnos sin tope" : `hasta ${plural(plan.max_turnos_mes, "turno", "turnos")} por mes`;
   const detalle =
     estado === "elegir"
       ? `${formatArs(precio)}/mes, ${tope}.`

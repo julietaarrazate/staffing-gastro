@@ -1,3 +1,5 @@
+import { formatArs } from "@/lib/format";
+
 /**
  * Lee un pedido escrito como se habla ("necesito un mozo hoy de 21 a 2, pago
  * 70.000") y saca el puesto, el día, el horario y el pago. Lo usa la comanda
@@ -72,7 +74,7 @@ export function leerPedido(texto: string): PedidoLeido {
     : numero
       ? parseInt(numero[1].replace(/\./g, ""), 10)
       : undefined;
-  if (pago) leido.pago = `$${pago.toLocaleString("es-AR")}`;
+  if (pago) leido.pago = formatArs(pago);
 
   const cuantos = t.match(
     /\b(\d|un[oa]?|dos|tres|cuatro|cinco)\s+(?:moz|meser|camarer|bartender|barm|bacher|barista|cociner|ayudante|runner|cajer|parriller)/

@@ -206,7 +206,7 @@ function ShiftCandidatesContent() {
         href="/shifts"
         className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-ink/60 transition hover:text-ink"
       >
-        <ChevronLeftIcon size={16} /> Mis turnos
+        <ChevronLeftIcon size={16} /> Volver al panel
       </Link>
       <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">Candidatos</h1>
       <p className="mt-0.5 text-sm text-ink/50">

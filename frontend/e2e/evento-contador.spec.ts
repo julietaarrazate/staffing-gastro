@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash } from "./mocks";
 
 /**
- * El contador del evento en «Mis turnos» (U083): «N/M cubiertos» no cuenta los
+ * El contador del evento en el Panel del comercio (U083): «N/M cubiertos» no cuenta los
  * cancelados, y «cubiertos» son los confirmados en adelante, no los asignados
  * que todavía no confirmaron.
  */

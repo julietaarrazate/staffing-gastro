@@ -92,6 +92,18 @@ describe("formatDuration", () => {
   });
 });
 
+describe("formatShiftTime", () => {
+  it("siempre en 24 h, nunca «p. m.»", () => {
+    expect(formatShiftTime("2026-06-22T20:00:00-03:00")).toBe("20:00");
+    expect(formatShiftTime("2026-06-22T08:05:00-03:00")).toBe("08:05");
+  });
+
+  it("la medianoche es 00:00, no 24:00", () => {
+    expect(formatShiftTime("2026-06-23T00:00:00-03:00")).toBe("00:00");
+    expect(argentinaISOToLocalInput("2026-06-23T00:30:00-03:00")).toBe("2026-06-23T00:30");
+  });
+});
+
 describe("formatShiftRange", () => {
   it("mismo día: la fecha aparece una sola vez, unida con ' a '", () => {
     const start = "2026-06-22T20:00:00-03:00";

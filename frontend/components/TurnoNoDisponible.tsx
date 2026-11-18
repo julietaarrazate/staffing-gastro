@@ -12,7 +12,7 @@ const SALIDAS: Record<string, Salidas> = {
   worker: {
     principal: { label: "Ver otros turnos", href: "/feed" },
     // Si se había postulado a este turno, ahí ve en qué quedó.
-    secundaria: { label: "Ver mis turnos", href: "/my-shifts" },
+    secundaria: { label: "Ver Matches", href: "/my-shifts" },
   },
   employer: { principal: { label: "Ir a mi panel", href: "/shifts" } },
   admin: { principal: { label: "Ir al panel", href: "/admin" } },
