@@ -32,6 +32,10 @@ class User:
     # cuentas creadas antes de 2026-11 y las internas (invitadas, seed) no
     # la tienen.
     birth_date: date | None = None
+    # De qué enlace llegó (`?ref=` o `utm_*`; «directo» si no traía nada),
+    # ver `domain/origen_alta.py`. Lo fija el alta pública y no cambia. Nulo
+    # en las cuentas anteriores a la migración 0054 y en las internas.
+    signup_origin: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
 

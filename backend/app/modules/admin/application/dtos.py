@@ -1,6 +1,6 @@
 """DTOs del módulo de administración."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
@@ -297,6 +297,20 @@ class PeriodSummary:
     companies_with_covered: int = 0
 
 
+@dataclass(frozen=True)
+class SignupsByOrigin:
+    """Altas de un origen en el período, por rol. `origin` es `None` para
+    las cuentas creadas antes de que se guardara (migración 0054)."""
+
+    origin: str | None
+    workers: int
+    companies: int
+
+    @property
+    def total(self) -> int:
+        return self.workers + self.companies
+
+
 @dataclass
 class PeriodMetrics:
     """"Métricas" con período: el actual y el anterior del mismo largo."""
@@ -304,3 +318,6 @@ class PeriodMetrics:
     days: int
     current: PeriodSummary
     previous: PeriodSummary
+    # Altas del período actual por origen y rol (fase 0 del plan de
+    # crecimiento): las que más traen primero, «sin dato» al final.
+    signups_by_origin: list[SignupsByOrigin] = field(default_factory=list)

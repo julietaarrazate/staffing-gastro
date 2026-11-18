@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from app.modules.identity.domain.entities import User
+from app.modules.identity.domain.origen_alta import OrigenAlta
 from app.modules.identity.domain.two_factor import AdminGate, admin_gate
 from app.modules.identity.domain.value_objects import UserRole
 
@@ -24,6 +25,9 @@ class RegisterCommand:
     # Fecha de nacimiento (U101). Obligatoria y de un mayor de 18 cuando el
     # alta es pública (`accepted_terms`); los scripts internos no la pasan.
     birth_date: date | None = None
+    # El enlace con el que llegó la persona (`?ref=`, `utm_*`). Sólo cuenta
+    # en el alta pública; sin él queda «directo».
+    origen: OrigenAlta | None = None
 
 
 @dataclass(frozen=True)
@@ -58,6 +62,7 @@ class GoogleLoginCommand:
     # Igual que en `RegisterCommand`: sólo cuenta si se crea una cuenta nueva.
     accepted_terms: bool = False
     birth_date: date | None = None
+    origen: OrigenAlta | None = None
 
 
 @dataclass(frozen=True)

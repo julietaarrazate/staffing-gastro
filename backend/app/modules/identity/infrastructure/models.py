@@ -11,6 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
 from app.core.types import GUID
+from app.modules.identity.domain.origen_alta import LARGO_MAXIMO_ETIQUETA
 from app.modules.identity.domain.value_objects import UserRole, UserStatus
 
 
@@ -29,6 +30,11 @@ class UserModel(Base):
     # U101: fecha de nacimiento declarada en el alta. Nula en las cuentas
     # anteriores a la migración 0048 y en las internas.
     birth_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    # Origen del alta (`domain/origen_alta.py`). Nulo en las cuentas
+    # anteriores a la migración 0054 y en las internas.
+    signup_origin: Mapped[str | None] = mapped_column(
+        String(LARGO_MAXIMO_ETIQUETA), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

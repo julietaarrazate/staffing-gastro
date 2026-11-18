@@ -221,6 +221,7 @@ async def register(payload: RegisterRequest, service: ServiceDep) -> User:
                 role=UserRole(payload.role.value),
                 accepted_terms=True,
                 birth_date=payload.birth_date,
+                origen=payload.origen.to_domain() if payload.origen else None,
             )
         )
     except (BirthDateRequiredError, BirthDateInvalidError, UnderageError) as exc:
@@ -351,6 +352,7 @@ async def google_auth(
                 role=UserRole(payload.role.value) if payload.role else None,
                 accepted_terms=payload.accepted_terms,
                 birth_date=payload.birth_date,
+                origen=payload.origen.to_domain() if payload.origen else None,
             )
         )
     except (BirthDateRequiredError, BirthDateInvalidError, UnderageError) as exc:
