@@ -50,9 +50,11 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
    (https://claude.ai/artifact/VWPZtN8eAvxk5U2kVuE3zR). Julieta no eligió
    ninguna: pidió un **híbrido de la landing publicada** (el cielo y la rueda
    de fotos) con la letra de brocha, el isotipo nuevo y los planes como
-   carta (https://claude.ai/artifact/9Bq2jU9LK7xaCj6b4T2Bxz). **Sigue:**
-   ajustarlo con lo que marque y rehacer la prueba de la app con el mismo
-   criterio. Después, afinarla y llevarla a la app pantalla por pantalla, un
+   carta (https://claude.ai/artifact/9Bq2jU9LK7xaCj6b4T2Bxz). La prueba de
+   la app se rehízo con el mismo criterio (el turno como comanda, el panel
+   como riel, los pasos tachados a mano:
+   https://claude.ai/artifact/MEN8VhUv43HM2sE9pH6kmF). **Sigue:** ajustar las
+   dos con lo que marque Julieta. Después, llevarla a la app pantalla por pantalla, un
    PR cada una, sin tocar la lógica. Qué tiene, las referencias de Julieta,
    lo que falta decidir y el orden, en
    [`design-system/direccion-relieve.md`](./design-system/direccion-relieve.md).

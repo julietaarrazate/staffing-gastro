@@ -39,7 +39,12 @@ menú. Se armó un híbrido sobre la landing publicada, levantada en local para
 copiar la rueda, las nubes y los textos tal cual:
 https://claude.ai/artifact/9Bq2jU9LK7xaCj6b4T2Bxz.
 
-**Queda abierto:** ajustar el híbrido con lo que marque Julieta, confirmar
-letra e isotipo, y rehacer la prueba de la app (ítem 0 de `STATUS.md`). La app en oscuro con el relieve no se miró
+Después pidió las correcciones propuestas para la app, y se rehízo la prueba:
+el turno como comanda, el panel del comercio como riel de comandas, los pasos
+tachados a mano, «Disponible» como el cartelito de la puerta, y sin rótulos
+en letra mono ni píldoras: https://claude.ai/artifact/MEN8VhUv43HM2sE9pH6kmF.
+
+**Queda abierto:** ajustar el híbrido y la app con lo que marque Julieta, y
+confirmar letra e isotipo (ítem 0 de `STATUS.md`). La app en oscuro con el relieve no se miró
 en esta tanda. El historial congelado y `marketing/` no se revisaron (la
 lectura está bloqueada); si nombran a la otra marca, queda ahí.

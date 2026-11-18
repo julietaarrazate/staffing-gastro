@@ -12,6 +12,8 @@
 > - Cinco isotipos (2026-11-18): https://claude.ai/artifact/TqfGBkrBX1aGFJSygrsQkS
 > - **Tercera, el híbrido (2026-11-18, la que sigue):** la landing de hoy con
 >   brocha, isotipo y carta: https://claude.ai/artifact/9Bq2jU9LK7xaCj6b4T2Bxz
+> - **La app, segunda prueba (2026-11-18):**
+>   https://claude.ai/artifact/MEN8VhUv43HM2sE9pH6kmF
 
 ## La idea
 
@@ -134,11 +136,29 @@ Lección para las próximas vueltas: se parte de la landing publicada y se
 cambia de a una pieza; las tres direcciones de la segunda prueba quedan como
 cantera de piezas, no como camino.
 
-**La app.** Julieta mandó también el video de la app «con relieve» de la
-primera prueba como ejemplo a mejorar. Todavía no se tocó. Lo que conviene
-revisar ahí, con el mismo criterio: los rótulos en letra mono, las píldoras
-en todos lados, la hoja de detalle armada con mosaicos de datos (puede ser la
-comanda) y el panel del comercio (puede ser el riel de comandas).
+## La app, segunda prueba (2026-11-18)
+
+Julieta mandó el video de la app «con relieve» de la primera prueba como
+ejemplo a mejorar. Se rehízo con las mismas pantallas y los mismos pasos
+(Inicio, detalle, Mis turnos; Panel, Candidatos, el «¡Oído!» al asignar), en
+dos celulares que se hablan, en claro y en noche:
+
+- **El turno es una comanda** de papel con relieve, en el Inicio, en el
+  detalle (sube entera, en lugar de la hoja con mosaicos de datos) y en Mis
+  turnos. Al postularse recibe la cinta «¡Oído!».
+- **El panel del comercio es el riel**: los turnos cuelgan y cada comanda
+  dice en qué anda (buscando, confirmado, salió, llegó, terminado).
+- **Lo hecho se tacha a mano**, como en el pase: confirmado, salí, llegué,
+  terminé. Lo que hace quien trabaja se ve en la comanda del comercio.
+- **«Disponible» es el cartelito de la puerta**, que se da vuelta al tocarlo.
+- **Sin rótulos en letra mono ni píldoras:** rótulos en Inter, botones
+  rectos, listas con filete fino, y la barra de abajo pegada al borde con una
+  raya azul hondo en lo activo (antes flotaba, de vidrio).
+- Brocha sólo en el título de cada pantalla y en el puesto de la comanda;
+  Mansalva en dos apuntes («para hoy», «el que te recomendamos»); el isotipo
+  nuevo junto al «oído».
+
+Falta mirarla con Julieta y decidir qué de esto entra a la app real.
 
 ## Isotipo (2026-11-18)
 
