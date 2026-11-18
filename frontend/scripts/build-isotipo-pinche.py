@@ -41,7 +41,6 @@ RADIO = 112  # esquinas del tile, como el resto de los íconos de la app
 # Ajustes medidos sobre el render (ver la verificación del historial).
 ESC_GRANDE, DESP_GRANDE = 0.94, -6  # igual que el boceto
 ESC_CHICO = 1.1
-ESC_MASKABLE = 0.80  # se recalcula con `medir`; ver MASKABLE abajo
 SILUETA = (0.97, 3.6, 15.5)  # (escala, dx, dy): dibujo plano centrado, ~12 px de margen
 MASKABLE = (0.872, -13.3, -8.5)  # (escala, dx, dy): círculo de 196 px de radio centrado
 

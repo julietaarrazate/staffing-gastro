@@ -184,7 +184,7 @@ Falta mirarla con Julieta y decidir qué de esto entra a la app real.
 ## Isotipo (2026-11-18)
 
 Cinco conceptos en vector, a 16, 32, 180 y 512 px, en claro y oscuro, en la
-pestaña y en el celular junto al «oí» de hoy: la voluta (filete), el pinche
+pestaña y en el celular junto al «oí» de entonces: la voluta (filete), el pinche
 (la comanda clavada), la campanita (el pase), grito y respuesta, y la o que
 grita.
 

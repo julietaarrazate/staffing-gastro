@@ -1,4 +1,4 @@
-# El ícono de la app pasa a ser el pinche con «oído»
+# El ícono de la app pasa a ser el pinche con «oído» (#631)
 
 **Pedido:** Julieta (2026-11-18), después de ver cinco isotipos: el ícono deja
 de ser el «oí» provisorio y pasa a ser el pinche con «oído», sólo como ícono
