@@ -67,8 +67,23 @@ con eventos): aprobado con arreglos, hechos acá.
   pierden el relieve y quedan apoyadas, con un filete, a contraste completo.
 - El contador de cada familia sobre el lienzo daba 3,5: va sin opacidad.
 
-**Queda abierto:** Candidatos y Mis turnos (ítem 0 de `STATUS.md`). Los
-botones de adentro de la comanda («Elegir a alguien», «Chat», «Más») son el
-`Button` de toda la app y siguen como estaban: con «Publicar turno» y «Elegir
-a alguien» hay dos ámbar en la pantalla, como antes de este cambio. La barra
-de abajo y las pestañas (`SegmentedControl`) también son de toda la app.
+**El botón principal, con relieve en toda la app (mismo PR).** Julieta, al
+ver el panel: «¿qué otro efecto podría quedar mejor que el ámbar en los
+botones? Siento que desentona». Se le armó una prueba con cinco opciones
+(https://claude.ai/artifact/ANeVVMF3shSQAKassH52Cm) y al mirarla lo ubicó
+ella: «tiene que ver más con que primero me mostraste un botón plano y en la
+segunda opción con relieve, y queda mejor». El ámbar se queda. Lo que
+desentonaba era «Elegir a alguien» plano, con su resplandor, al lado de
+«Publicar turno» con relieve. Ahora el principal lleva `.boton-relieve` en
+toda la app: el `Button` en su variante `primary` (que al tocarlo se corre
+3 px en lugar de achicarse) y los cinco botones ámbar hechos a mano
+(`ShiftActions`, `ShiftDetail`, `PaginaAviso`, `PerfilFaltanteCard`,
+`ImageCropModal`). Los secundarios siguen planos. Desactivado va sin borde
+ni relieve, con un filete.
+
+**Queda abierto:** Candidatos y Mis turnos (ítem 0 de `STATUS.md`). Con
+«Publicar turno» y «Elegir a alguien» sigue habiendo dos ámbar en la
+pantalla, como antes de este cambio. La barra de abajo, las pestañas
+(`SegmentedControl`) y los botones secundarios son de toda la app y siguen
+como estaban. Los tokens `--shadow-primary*` (el resplandor) ya sólo los usan
+piezas que no son botones y la landing vieja de `/historia`.

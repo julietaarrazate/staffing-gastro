@@ -1215,6 +1215,12 @@ body:has([data-landing]) main {
   transform: translate(var(--relieve-btn), var(--relieve-btn));
   box-shadow: 0 0 0 var(--relieve);
 }
+/* Desactivado: sin borde de color ni relieve, con un filete. No se aprieta. */
+.boton-relieve:disabled {
+  border-color: transparent;
+  box-shadow: 0 0 0 1px var(--color-line);
+  transform: none;
+}
 @media (prefers-reduced-motion: reduce) {
   .boton-relieve {
     transition: none;

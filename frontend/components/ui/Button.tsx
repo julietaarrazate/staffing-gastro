@@ -12,8 +12,13 @@ const VARIANTS: Record<Variant, string> = {
   // blanco sobre ámbar da 2.86 y no llega ni al mínimo de texto grande.
   // Desactivado va gris azulado (`surface` + tinta apagada), no ámbar al 50%:
   // sobre el lienzo oscuro el ámbar transparente se leía marrón (2026-10-19).
+  // Con el relieve del filete desde el 2026-11-18 (`.boton-relieve`, ADR-0027):
+  // borde azul hondo y sombra dura, en lugar del resplandor ámbar. Julieta lo
+  // vio plano al lado de «Publicar turno», que ya tenía relieve, y el plano
+  // era el que desentonaba. El desactivado (sin borde ni relieve, con un
+  // filete) lo resuelve `.boton-relieve:disabled`.
   primary:
-    "bg-primary text-night shadow-[var(--shadow-primary)] hover:brightness-[1.04] disabled:bg-surface disabled:text-ink-mute disabled:shadow-none disabled:opacity-100 disabled:ring-1 disabled:ring-line",
+    "boton-relieve bg-primary text-night hover:brightness-[1.04] disabled:bg-surface disabled:text-ink-mute disabled:opacity-100",
   // "dark" / énfasis neutro de marca (#111).
   dark: "bg-night text-white hover:brightness-150",
   secondary:
@@ -67,7 +72,9 @@ export default function Button({
       disabled={disabled || loading}
       aria-busy={loading}
       aria-label={ariaLabel}
-      whileTap={{ scale: 0.96 }}
+      // El principal se aprieta como su relieve: se corre lo que mide la
+      // sombra (que el CSS lleva a cero). Los demás se achican apenas.
+      whileTap={variant === "primary" ? { x: 3, y: 3 } : { scale: 0.96 }}
       transition={{ type: "spring", stiffness: 400, damping: 25 }}
       className={cn(
         "inline-flex items-center justify-center rounded-[var(--radius-btn)] font-semibold transition-[filter,background-color] outline-none disabled:opacity-50 disabled:pointer-events-none",

@@ -287,4 +287,4 @@ Antes de dibujar algo nuevo en una pantalla, usar éstas:
 | `AIAssistantBar recto` | `components/AIAssistantBar.tsx` | El buscador sin píldora ni sombra |
 | `ShiftCard comanda` | `components/ShiftCard.tsx` | La tarjeta de un turno (con sus pasos y acciones) como comanda: puesto en brocha y estado como sello. La usa el panel; «Mis turnos» la toma pasando el prop |
 | `.app-banda` + `.riel` | `globals.css` | La banda azul hondo donde cuelgan las comandas en curso, y la barra del riel. Sobre la banda el relieve cambia de tono solo |
-| `.boton-relieve` | `globals.css` | El botón con relieve de la pantalla (uno): borde azul hondo, sombra dura, se aprieta. El fondo lo pone quien lo usa |
+| `.boton-relieve` | `globals.css` | El relieve del botón principal: borde azul hondo, sombra dura, se aprieta. El fondo lo pone quien lo usa. Desde el 2026-11-18 lo lleva `Button` en su variante `primary` en toda la app (sigue en ámbar): un principal plano al lado de uno con relieve desentona |

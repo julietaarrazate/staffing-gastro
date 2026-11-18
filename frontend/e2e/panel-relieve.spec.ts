@@ -115,6 +115,14 @@ test("«Publicar turno» es el botón con relieve y lleva a publicar", async ({ 
   await expect(publicar).toHaveAttribute("href", "/shifts/new");
   const sombra = await publicar.evaluate((el) => getComputedStyle(el).boxShadow);
   expect(sombra).toContain("3px 3px 0px");
+  // El principal de adentro de la comanda lleva el mismo relieve: plano al
+  // lado de «Publicar turno» era el que desentonaba (Julieta, 2026-11-18).
+  const elegir = page.locator('[data-shift-id="s1"]').getByRole("link", { name: /Elegir a alguien/ });
+  await expect(elegir).toHaveClass(/boton-relieve/);
+  expect(await elegir.evaluate((el) => getComputedStyle(el).boxShadow)).toContain("3px 3px 0px");
+  // Y los secundarios siguen planos, que es lo que hace que el principal se vea.
+  const mas = page.locator('[data-shift-id="s1"]').getByRole("button", { name: "Más acciones" });
+  expect(await mas.evaluate((el) => getComputedStyle(el).boxShadow)).not.toContain("3px 3px 0px");
 });
 
 test("a 320 px el sello y los pasos no corren la página; el foco de adentro se ve y lo terminado queda apagado sin perder contraste", async ({ page }) => {
