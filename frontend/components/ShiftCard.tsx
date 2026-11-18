@@ -15,7 +15,6 @@ import {
   ShieldIcon,
 } from "@/components/icons";
 import { formatAgo, formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
-import { firstNameOf } from "@/lib/shift-next-step";
 import { formatPayAmount } from "@/lib/pay";
 import { cldThumb } from "@/lib/cloudinary";
 import { downloadShiftIcs } from "@/lib/calendar";
@@ -371,15 +370,21 @@ export default function ShiftCard({
             </div>
           ) : (
             // Sin coordenadas no se puede dibujar el mapa, pero el reporte de
-            // viaje existe: misma señal que el pie del mapa, sin hueco.
+            // viaje existe. Que va en camino ya lo dice el próximo paso
+            // (`nextStepFor`): acá va lo que el mapa agregaba, hace cuánto
+            // fue la última señal, y por qué no hay mapa.
             <div
               data-testid="en-route-note"
               className="mt-3 rounded-[var(--radius-card)] bg-card px-3 py-2 ring-1 ring-line"
             >
-              <p className="truncate text-sm font-semibold text-ink">
-                {shift.worker_name ? `${firstNameOf(shift.worker_name)} va en camino` : "Va en camino"}
+              <p className="text-sm font-semibold text-ink">
+                Última señal: {formatAgo(shift.en_route_at)}
               </p>
-              <p className="text-xs text-ink/60">{formatAgo(shift.en_route_at)}</p>
+              {(shift.latitude == null || shift.longitude == null) && (
+                <p className="text-xs text-ink/60">
+                  Sin mapa: este turno no tiene la ubicación marcada.
+                </p>
+              )}
             </div>
           ))}
 

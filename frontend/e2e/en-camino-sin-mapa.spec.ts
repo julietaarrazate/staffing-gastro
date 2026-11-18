@@ -61,8 +61,8 @@ async function abrirPanel(page: Page, shift: ReturnType<typeof turno>) {
 test("sin coordenadas y con viaje: dice que va en camino, sin mapa", async ({ page }) => {
   await abrirPanel(page, turno({ en_route_at: new Date().toISOString(), en_route_latitude: -34.6, en_route_longitude: -58.4 }));
   const card = page.locator('[data-shift-id="shift-sin-mapa"]');
-  await expect(card.getByTestId("en-route-note")).toContainText("Ana va en camino");
-  await expect(card.getByTestId("en-route-note")).toContainText("recién");
+  await expect(card.getByTestId("en-route-note")).toContainText("Última señal: recién");
+  await expect(card.getByTestId("en-route-note")).toContainText("Sin mapa");
   await expect(card.locator(".maplibregl-map")).toHaveCount(0);
   await expect(card.getByText("Ana va en camino al local.")).toBeVisible();
   await expect(card.getByText("Te avisamos cuando salga")).toHaveCount(0);
