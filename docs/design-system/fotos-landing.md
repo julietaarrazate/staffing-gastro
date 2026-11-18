@@ -10,8 +10,9 @@
 | Lugar | Archivos | Cuántas | Cómo se ven |
 |---|---|---|---|
 | Rueda del inicio (`HeroRueda.tsx`) | `mozo1-3`, `bar1-3`, `barista1-2`, `cocina1-3`, `cocinera` | 12 | Fichas verticales que giran en círculo alrededor del título. Ancho en pantalla: 104 px (celular), 140 px (tablet), 170 px (escritorio); alto ×1,3. La parte de abajo se funde con el cielo (máscara del 62 % al 92 % del alto) |
-| «Turnos cerca tuyo» (`ParaTrabajar.tsx`) | `mozo1` (la misma de la rueda) | 1 | Franja de arriba de una tarjeta: 360 × 128 px en celular, 360 × 160 px en escritorio. Arriba a la izquierda lleva el chip «A 300 m» |
+| «Turnos cerca tuyo» (`ParaTrabajar.tsx`) | `bar3` (la misma de la rueda; hasta el 2026-11-18, `mozo1`) | 1 | Franja de arriba de una tarjeta: 360 × 128 px en celular, 360 × 160 px en escritorio. Arriba a la izquierda lleva el chip «A 300 m» |
 | Mapa de «va en camino» (`MapaCamino.tsx`) | `mapa-palermo.webp` | — | No es foto: queda como está |
+| Quienes se postulan en el mapa (`MapaCamino.tsx`, desde el 2026-11-18) | `barista1` (la que va, y la de la ficha), `bar3`, `cocinera` | 3 | Caras en un círculo de 40 px y, la que va, en la ficha de 46 px. Cada una dice dónde está la cara y cuánto acercarla (`cara` y `zoom` en `POSTULANTES`): al cambiar una foto, ajustar esos dos valores mirándola |
 
 La miniatura para compartir (`assets/og/filete-oido.png`) no usa fotos.
 
@@ -37,7 +38,7 @@ cajera, moza):
 
 | Archivo | Qué mostrar |
 |---|---|
-| `mozo1.webp` | Moza o mozo en el salón con la bandeja, mirando a cámara o casi. **Es también la de «Turnos cerca tuyo»** (ver abajo): conviene que la cara quede en el centro |
+| `mozo1.webp` | Moza o mozo en el salón con la bandeja, mirando a cámara o casi |
 | `mozo2.webp` | Mozo o moza llevando platos a una mesa |
 | `mozo3.webp` | Mozo o moza tomando el pedido con la comanda en la mano |
 | `bar1.webp` | Bartender sirviendo un trago, la botella en el aire |
@@ -55,11 +56,13 @@ cuando se pueda (un bodegón, una barra de Palermo, una cafetería de barrio).
 
 ## «Turnos cerca tuyo»: la franja de la tarjeta
 
-Usa `mozo1.webp` recortada al medio (`object-cover`): de una foto 4:5 queda
-una franja de 9:4 a la altura del pecho y la cara. Por eso `mozo1` tiene que
-tener la cara **en el centro vertical** de la foto, no arriba. Si la mejor
-foto de mozo no cumple eso, se agrega un archivo aparte (`mozo-franja.webp`,
-1200 × 540 px, 9:4) y se cambia una línea en `ParaTrabajar.tsx`.
+Usa `bar3.webp` (los bartenders en la barra; desde el 2026-11-18, antes
+`mozo1`) recortada al medio (`object-cover`): de una foto 4:5 queda una
+franja de 9:4 a la altura del pecho y la cara. Por eso la foto tiene que
+tener las caras **en el centro vertical**, no arriba. Si la foto propia de
+la barra no cumple eso, se agrega un archivo aparte (`barra-franja.webp`,
+1200 × 540 px, 9:4) y se cambia una línea en `ParaTrabajar.tsx`. El puesto de
+la tarjeta es «Bartender», para que coincida con la foto.
 
 El chip «A 300 m» tapa la esquina de arriba a la izquierda: que ahí no haya
 nada importante.

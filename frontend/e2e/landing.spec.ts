@@ -309,7 +309,11 @@ test.describe("con reducir movimiento", () => {
     await page.goto("/");
     // La comanda ya impresa y el mapa en su final ("va en camino").
     await expect(page.locator("#como dd").first()).toHaveText("Mozo/a");
-    await expect(page.getByText("Lucía va en camino")).toBeAttached();
+    const ficha = page.locator(".landing-mapa-pie");
+    await expect(ficha).toContainText("Lucía, moza");
+    await expect(ficha).toContainText("Va en camino a Tu bar");
+    // Sin reloj ni minutos: en la landing se leen como una promesa.
+    await expect(page.locator(".landing-mapa")).not.toContainText(/\d min|\d{2}:\d{2}/);
     // Ningún bloque queda esperando su entrada.
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
     await expect(page.locator('[data-reveal="pending"]')).toHaveCount(0);
