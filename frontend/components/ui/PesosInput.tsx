@@ -22,12 +22,15 @@ export default function PesosInput({
   onChange,
   placeholder,
   className,
+  focoContenedor,
   "aria-label": ariaLabel,
 }: {
   value: string;
   onChange: (canonico: string) => void;
   placeholder?: string;
   className?: string;
+  /** El contenedor dibuja el foco (clase `foco-contenedor`); el campo no. */
+  focoContenedor?: boolean;
   "aria-label"?: string;
 }) {
   // null: se muestra `value` formateado. Un string: lo que la persona está
@@ -51,6 +54,7 @@ export default function PesosInput({
       placeholder={placeholder}
       aria-label={ariaLabel}
       aria-invalid={invalido || undefined}
+      data-foco-contenedor={focoContenedor || undefined}
       className={cn(className, invalido && "text-danger-text!")}
     />
   );

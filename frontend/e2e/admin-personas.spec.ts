@@ -233,3 +233,15 @@ for (const theme of ["light", "dark"] as const) {
     await page.screenshot({ path: `test-results/admin-ficha-${theme}.png`, fullPage: true });
   });
 }
+
+// Un solo indicador de foco (#627): el buscador dibuja el contorno en su
+// contenedor (`.foco-contenedor`) y el input no suma otro encima.
+test("el buscador de personas enfocado tiene un solo contorno, en el contenedor", async ({ page }) => {
+  await setup(page);
+  await page.goto("/admin/personas");
+  const campo = page.getByLabel("Buscar por nombre, email o nombre del local");
+  await campo.click();
+  const contenedor = campo.locator("xpath=ancestor::label[1]");
+  await expect.poll(() => contenedor.evaluate((n) => getComputedStyle(n).outlineWidth)).toBe("2px");
+  expect(await campo.evaluate((n) => getComputedStyle(n).outlineStyle)).toBe("none");
+});
