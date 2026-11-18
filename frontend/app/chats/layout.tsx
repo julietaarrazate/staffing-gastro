@@ -142,6 +142,8 @@ export default function ChatsLayout({ children }: { children: React.ReactNode })
                   <img
                     src={c.other_party_photo}
                     alt={c.other_party_name}
+                    width={48}
+                    height={48}
                     loading="lazy"
                     decoding="async"
                     className="h-12 w-12 shrink-0 rounded-full object-cover ring-1 ring-line"
