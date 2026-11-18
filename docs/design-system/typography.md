@@ -28,7 +28,11 @@ Young Serif ni DM Mono**. Sus tres letras se cargan sólo ahí
 
 La brocha no va con barras ni signos raros («Mozo/a» se leía «MOZOIA»): si un
 texto los tiene, va en Inter. En la app todavía no rige; ahí sigue la tabla de
-arriba hasta que cada pantalla migre.
+arriba hasta que cada pantalla migre. Las que ya migraron (el Inicio del
+trabajador, 2026-11-18) usan la brocha en el título de la pantalla y en el
+puesto de la comanda (`.letra-cartel`) y Mansalva en un apunte
+(`.letra-mano`), cargadas desde `frontend/lib/letras.ts`; `textoCartel()`
+saca la barra de «Mozo/a» a Inter.
 
 ## Cambio de títulos a Young Serif (2026-11-16)
 
