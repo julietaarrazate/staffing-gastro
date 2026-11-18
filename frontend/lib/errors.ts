@@ -1,4 +1,4 @@
-import { ApiError, NetworkError } from "./api";
+import { ApiError, NetworkError, NO_CONNECTION_MESSAGE } from "./api";
 
 /**
  * Traduce cualquier error atrapado en un `catch` a un mensaje apto para
@@ -8,7 +8,6 @@ import { ApiError, NetworkError } from "./api";
  * de red crudo en inglés que nunca debe llegar a la UI, así que lo pisamos
  * con un mensaje genérico.
  */
-const SIN_CONEXION = "No hay conexión con el servidor. Revisá tu internet e intentá de nuevo.";
 
 export function getErrorMessage(err: unknown, fallback?: string): string {
   if (err instanceof ApiError) return err.message;
@@ -18,7 +17,7 @@ export function getErrorMessage(err: unknown, fallback?: string): string {
     err instanceof NetworkError
       ? err.message
       : err instanceof TypeError && /fetch|network|load failed/i.test(err.message)
-        ? SIN_CONEXION
+        ? NO_CONNECTION_MESSAGE
         : null;
   if (sinRed) {
     if (!fallback) return sinRed;
@@ -27,7 +26,7 @@ export function getErrorMessage(err: unknown, fallback?: string): string {
     const accion = fallback.replace(/[\s.:]+$/, "");
     return `${accion}: ${sinRed.charAt(0).toLowerCase()}${sinRed.slice(1)}`;
   }
-  return fallback ?? SIN_CONEXION;
+  return fallback ?? NO_CONNECTION_MESSAGE;
 }
 
 /** Azúcar para el caso más común de manejo por status: recurso no encontrado. */

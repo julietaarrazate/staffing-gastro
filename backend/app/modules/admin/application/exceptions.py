@@ -16,3 +16,7 @@ class CannotModifySelfError(AdminError):
 class CannotImpersonateAdminError(AdminError):
     """No se puede "ver como" otra cuenta administradora (evita escalada y
     confusión de sesiones entre admins)."""
+
+
+class TargetCompanyNotFoundError(AdminError):
+    """El usuario destino no existe o no es un comercio con perfil."""

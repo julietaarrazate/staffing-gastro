@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 import CandidateCard from "@/components/CandidateCard";
 import ShiftCard from "@/components/ShiftCard";
 import { Avatar, ConfirmOverlay, Rating } from "@/components/ui";
-import { formatKm } from "@/lib/format";
+import { formatDistance } from "@/lib/format";
 import { CANDIDATES, MAP_LOCAL, MAP_WORKERS, type RelojKey } from "./fixtures";
 import RelojDelTurno from "./RelojDelTurno";
 import { PhoneFrame, PricePin, PushNotice, StreetGrid, ToastLine, WorkerPin } from "./replicas";
@@ -567,7 +567,7 @@ function CandidateRow({ candidateIndex }: { candidateIndex: number }) {
         <p className="truncate text-body-strong font-bold text-ink">{c.full_name}</p>
         <div className="mt-0.5 flex items-center gap-2 text-xs font-semibold text-ink/60">
           {nuevo ? <span>Nuevo en Oído</span> : <Rating value={c.rating} />}
-          {c.distance_km != null && <span>· {formatKm(c.distance_km)}</span>}
+          {c.distance_km != null && <span>· {formatDistance(c.distance_km)}</span>}
           {!nuevo && <span>· {c.events_completed} turnos</span>}
         </div>
       </div>

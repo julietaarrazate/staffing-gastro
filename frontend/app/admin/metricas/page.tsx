@@ -17,6 +17,7 @@ import type { PeriodMetrics, PeriodSummary, PlatformStats, SubscriptionStats } f
 import { Badge, Card, ErrorBanner, SegmentedControl } from "@/components/ui";
 import { WalletIcon } from "@/components/icons";
 import { periodDelta } from "@/components/admin/live";
+import { formatArs, plural } from "@/lib/format";
 import {
   AdminHeading,
   DeltaStatCard,
@@ -155,7 +156,7 @@ function PeriodSection({ token }: { token: string | null }) {
               value={pct(cur.fulfilled_pct)}
               previous={pct(prev.fulfilled_pct)}
               delta={periodDelta(cur.fulfilled_pct, prev.fulfilled_pct)}
-              caption={`${cur.fulfilled} de ${cur.shifts_covered} cubiertos con llegada al local`}
+              caption={`${cur.fulfilled} de ${plural(cur.shifts_covered, "cubierto", "cubiertos")} con llegada al local`}
             />
             <DeltaStatCard
               label="Postulaciones"
@@ -333,17 +334,13 @@ export default function AdminMetricsPage() {
                 {!subscriptionStats.billing_enabled && <Badge tone="neutral">Cobro no activado</Badge>}
               </div>
               <p className="mt-1 text-2xl font-extrabold text-ink">
-                ARS{" "}
-                {Number(
-                  subscriptionStats.billing_enabled ? subscriptionStats.mrr_ars : 0
-                ).toLocaleString("es-AR")}
+                {formatArs(subscriptionStats.billing_enabled ? subscriptionStats.mrr_ars : 0)}
               </p>
               {/* Con el cobro apagado, `mrr_ars` es lo que se cobraría: nunca
                   se muestra como ingreso real (auditoría 2026-08-15, F1). */}
               {!subscriptionStats.billing_enabled && (
                 <p className="mt-1 text-xs text-ink/40">
-                  Potencial si se cobrara: ARS{" "}
-                  {Number(subscriptionStats.mrr_ars).toLocaleString("es-AR")}
+                  Potencial si se cobrara: {formatArs(subscriptionStats.mrr_ars)}
                 </p>
               )}
               {/* El ingreso es una foto de hoy: no se guarda su historia, así
@@ -352,6 +349,39 @@ export default function AdminMetricsPage() {
             </Card>
             <StatCard label="Comercios" value={subscriptionStats.total_companies} />
             <StatCard label="Cerca del límite" value={subscriptionStats.companies_at_plan_limit} />
+          </div>
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div data-testid="eligieron-plan">
+            <Card className="p-5">
+              <p className="text-2xl font-extrabold text-ink">
+                {Object.values(subscriptionStats.companies_with_chosen_plan ?? {}).reduce(
+                  (a, b) => a + b,
+                  0
+                )}
+              </p>
+              <p className="text-xs font-medium text-ink/50">Eligieron un plan al darse de alta</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {Object.entries(subscriptionStats.companies_with_chosen_plan ?? {}).map(
+                  ([planCode, count]) => (
+                    <Badge key={planCode} tone="neutral">
+                      {PLAN_LABELS[planCode] ?? planCode}: {count}
+                    </Badge>
+                  )
+                )}
+              </div>
+            </Card>
+            </div>
+            <div data-testid="se-comprometieron">
+            <Card className="p-5">
+              <p className="text-2xl font-extrabold text-ink">
+                {subscriptionStats.committed_companies ?? 0}
+              </p>
+              <p className="text-xs font-medium text-ink/50">Se comprometieron a pagar</p>
+              <p className="mt-2 text-sm font-semibold text-ink">
+                {formatArs(subscriptionStats.committed_mrr_ars ?? 0)}/mes
+              </p>
+            </Card>
+            </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
             {Object.entries(subscriptionStats.companies_by_plan).map(([planCode, count]) => (

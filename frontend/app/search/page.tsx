@@ -5,7 +5,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { formatAgo } from "@/lib/datetime";
-import { formatKm } from "@/lib/format";
+import { formatDistance } from "@/lib/format";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useCompanyPlace } from "@/lib/company-place";
@@ -335,7 +335,7 @@ function SearchPageContent() {
                     <RatingOrNew rating={worker.rating} size={13} numberClassName="text-xs text-ink/50" />
                     {worker.distance_km != null && (
                       <span className="text-xs text-ink/40">
-                        · {formatKm(worker.distance_km)}
+                        · {formatDistance(worker.distance_km)}
                       </span>
                     )}
                   </div>

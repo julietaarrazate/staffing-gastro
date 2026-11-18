@@ -93,17 +93,21 @@ test("turno cancelado: Candidatos no ofrece «Asignar» y avisa el estado", asyn
   await expect(page.getByTestId("candidatos-turno-cerrado")).toContainText("cancelado");
   await expect(page.getByText("Lucía Postulada")).toBeVisible();
   await expect(page.getByRole("button", { name: "Asignar" })).toHaveCount(0);
+  // La «Garantía Oído» no aplica: ya no se busca a nadie (en las dos pestañas).
+  await expect(page.getByText("Garantía Oído")).toHaveCount(0);
   await page.getByRole("button", { name: /Recomendados/ }).click();
   await expect(page.getByText("Mateo Sugerido")).toBeVisible();
   await expect(page.getByRole("button", { name: "Asignar" })).toHaveCount(0);
+  await expect(page.getByText("Garantía Oído")).toHaveCount(0);
 });
 
-test("turno publicado: «Asignar» sigue, sin aviso, y hay «Mis turnos» para volver", async ({ page }) => {
+test("turno publicado: «Asignar» sigue, sin aviso, y hay «Volver al panel»", async ({ page }) => {
   await setupCandidatos(page, "publicado");
   await page.goto("/shifts/shift-1/candidates");
   await expect(page.getByRole("button", { name: "Asignar" })).toBeVisible();
   await expect(page.getByTestId("candidatos-turno-cerrado")).toHaveCount(0);
-  await expect(page.getByRole("link", { name: /Mis turnos/ })).toHaveAttribute("href", "/shifts");
+  await expect(page.getByText("Garantía Oído")).toBeVisible();
+  await expect(page.getByRole("link", { name: /Volver al panel/ })).toHaveAttribute("href", "/shifts");
 });
 
 test("el perfil del trabajador tiene «Volver» y retrocede", async ({ page }) => {
@@ -188,6 +192,9 @@ test("turno asignado: el aviso dice que ya tiene a alguien", async ({ page }) =>
   await page.goto("/shifts/shift-1/candidates");
   await expect(page.getByTestId("candidatos-turno-cerrado")).toContainText("ya tiene a alguien asignado");
   await expect(page.getByRole("button", { name: "Asignar" })).toHaveCount(0);
+  // Con alguien asignado el turno sigue vivo: la garantía («si no se presenta,
+  // reabrís el turno») todavía aplica.
+  await expect(page.getByText("Garantía Oído")).toBeVisible();
 });
 
 test("falla el GET del turno: sin «Asignar» y con error y reintento", async ({ page }) => {

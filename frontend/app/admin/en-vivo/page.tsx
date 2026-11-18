@@ -10,7 +10,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
-import { AR_TIMEZONE, formatAgo, formatShiftWhen } from "@/lib/datetime";
+import { formatAgo, formatShiftTime, formatShiftWhen } from "@/lib/datetime";
 import { SKILL_LABELS } from "@/lib/types";
 import type { LiveShift, LiveShiftsBoard } from "@/lib/types";
 import {
@@ -25,6 +25,7 @@ import {
 import { CheckCircleIcon, ClockIcon, FlameIcon, UsersIcon } from "@/components/icons";
 import { AdminHeading } from "@/components/admin/AdminStats";
 import { LIVE_REFRESH_MS, PROMISE_MINUTES, formatMinutesOpen } from "@/components/admin/live";
+import { plural } from "@/lib/format";
 
 type Filter = "todos" | "urgentes" | "escalados" | "ausencias";
 
@@ -60,15 +61,6 @@ function filterFromUrl(): Filter {
   return value === "urgentes" || value === "escalados" || value === "ausencias" ? value : "todos";
 }
 
-function formatClock(iso: string): string {
-  return new Date(iso).toLocaleTimeString("es-AR", {
-    timeZone: AR_TIMEZONE,
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  });
-}
-
 function LiveShiftCard({ shift, showAbsence }: { shift: LiveShift; showAbsence: boolean }) {
   const assigned = shift.status === "asignado";
   const late = !assigned && shift.minutes_open > PROMISE_MINUTES;
@@ -92,7 +84,7 @@ function LiveShiftCard({ shift, showAbsence }: { shift: LiveShift; showAbsence: 
           {showAbsence ? (
             <>
               <p className="text-2xl font-extrabold tabular-nums text-danger-text">
-                {formatClock(shift.no_show_at as string)}
+                {formatShiftTime(shift.no_show_at as string)}
               </p>
               <p className="text-xs font-medium text-ink/50">ausencia</p>
             </>
@@ -121,7 +113,7 @@ function LiveShiftCard({ shift, showAbsence }: { shift: LiveShift; showAbsence: 
         )}
         <Badge tone="neutral">{assigned ? "Asignado, falta que confirme" : "Buscando"}</Badge>
         <Badge tone="neutral" icon={<UsersIcon size={12} />}>
-          {shift.applications === 1 ? "1 postulación" : `${shift.applications} postulaciones`}
+          {plural(shift.applications, "postulación", "postulaciones")}
         </Badge>
       </div>
     </Card>
@@ -231,7 +223,7 @@ export default function AdminLiveShiftsPage() {
         </div>
         <div className="flex items-center justify-between gap-3 sm:justify-end">
           <p className="text-xs text-ink/50" aria-live="polite">
-            {board ? `Actualizado ${formatClock(board.generated_at)} · cada 30 s` : "Cargando…"}
+            {board ? `Actualizado ${formatShiftTime(board.generated_at)} · cada 30 s` : "Cargando…"}
           </p>
           <Button variant="surface" size="sm" onClick={() => void load()} disabled={refreshing}>
             Actualizar
@@ -250,7 +242,7 @@ export default function AdminLiveShiftsPage() {
           role="status"
           className="mt-4 rounded-xl bg-warning-tint px-4 py-3 text-sm font-medium text-warning-text ring-1 ring-warning/20"
         >
-          Mostrando {board.shown_live} de {board.total} turnos en vivo: faltan los más viejos.
+          Mostrando {board.shown_live} de {plural(board.total, "turno", "turnos")} en vivo: faltan los más viejos.
           Los totales de arriba cuentan todos.
         </p>
       )}

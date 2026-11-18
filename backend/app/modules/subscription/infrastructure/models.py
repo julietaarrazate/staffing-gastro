@@ -34,6 +34,15 @@ class SubscriptionModel(Base):
         Boolean, nullable=False, default=True, server_default=true()
     )
     expiry_notice: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    chosen_plan_code: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    chosen_plan_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    payment_commitment_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    payment_commitment_plan_code: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    payment_commitment_price_ars: Mapped[Decimal | None] = mapped_column(
+        Numeric(12, 2), nullable=True
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

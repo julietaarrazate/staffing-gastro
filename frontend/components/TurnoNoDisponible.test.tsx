@@ -37,8 +37,8 @@ describe("TurnoNoDisponible", () => {
     auth.value = { user: { role: "worker" }, loading: false };
     render(<TurnoNoDisponible />);
     expect(link("Ver otros turnos")).toHaveAttribute("href", "/feed");
-    // Si era un turno al que se había postulado, el resultado está en Mis turnos.
-    expect(link("Ver mis turnos")).toHaveAttribute("href", "/my-shifts");
+    // Si era un turno al que se había postulado, el resultado está en Matches.
+    expect(link("Ver Matches")).toHaveAttribute("href", "/my-shifts");
   });
 
   it("sin sesión invita a crear el perfil (o a entrar, si ya tiene cuenta)", () => {

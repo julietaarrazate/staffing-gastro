@@ -73,6 +73,7 @@ async def test_422_sólo_devuelve_las_cotas_numéricas_del_esquema(client: Async
                 "full_name": "Ana",
                 "role": "worker",
                 "accepted_terms": True,
+            "birth_date": "1995-05-20",
             },
         )
     assert r.status_code == 422

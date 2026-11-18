@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Subscription } from "@/lib/types";
-import { formatArs } from "@/lib/format";
+import { formatArs, plural } from "@/lib/format";
 import { Badge, Button, Card } from "@/components/ui";
 import { AlertTriangleIcon } from "@/components/icons";
 import { formatShiftDate } from "@/lib/datetime";
@@ -104,7 +104,7 @@ export default function SubscriptionStatusCard({
               ? usoSinTopeText(turnos_usados_mes)
               : unlimited
                 ? "Turnos ilimitados este mes"
-                : `${turnos_usados_mes} de ${max_turnos_mes} turnos usados`}
+                : `${turnos_usados_mes} de ${plural(max_turnos_mes, "turno usado", "turnos usados")}`}
           </span>
         </div>
         {!conTope && <p className="mt-1 text-sm text-ink/60">{BETA_SIN_TOPE_TEXT}</p>}

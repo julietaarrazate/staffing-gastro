@@ -14,6 +14,8 @@ import {
   resolveToken,
   setTwoFactorGateHandler,
   setUnauthorizedHandler,
+  NO_CONNECTION_MESSAGE,
+  TIMEOUT_MESSAGE,
 } from "@/lib/api";
 import { emitLiveRefresh } from "@/lib/live-refresh";
 import { claimPushForAccount, releasePushFromAccount } from "@/lib/push";
@@ -58,17 +60,20 @@ interface AuthState {
   token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<LoginOutcome>;
+  /** `birthDate`: `AAAA-MM-DD`, obligatoria y de un mayor de 18 (U101). */
   register: (
     email: string,
     password: string,
     full_name: string,
-    role: "worker" | "employer"
+    role: "worker" | "employer",
+    birthDate: string
   ) => Promise<RegisterOutcome>;
-  /** `role` sólo hace falta si el email es nuevo (ver `GoogleLoginResult`);
-   * se ignora si el email ya tiene cuenta. */
+  /** `role` y `birthDate` sólo hacen falta si el email es nuevo (ver
+   * `GoogleLoginResult`); se ignoran si el email ya tiene cuenta. */
   loginWithGoogle: (
     idToken: string,
-    role?: "worker" | "employer"
+    role?: "worker" | "employer",
+    birthDate?: string
   ) => Promise<GoogleLoginResult>;
   /** Acceso de invitado para la beta ("Explorar sin cuenta"): entra sin
    * registrarse validando un PIN (ver `POST /auth/guest`). */
@@ -359,13 +364,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // sale otra (dos a la vez se pisan la cookie). Se contesta como «sin
     // conexión», nunca como sesión terminada.
     if (refreshInFlight.current && refreshInFlight.current.epoch !== sessionEpoch.current) {
-      return Promise.reject(new NetworkError("No se pudo conectar con el servidor."));
+      return Promise.reject(new NetworkError(NO_CONNECTION_MESSAGE));
     }
     if (!refreshInFlight.current) {
       // Hay un ingreso en curso: no se sabe todavía de quién va a ser la
       // sesión. Se contesta como «sin conexión» (no cierra nada).
       if (signingIn.current > 0) {
-        return Promise.reject(new NetworkError("No se pudo conectar con el servidor."));
+        return Promise.reject(new NetworkError(NO_CONNECTION_MESSAGE));
       }
       // La respuesta es de la sesión que había al pedirla. Si mientras tanto
       // cambió de manos (ingreso, salida, cierre desde otra pestaña, «ver
@@ -374,7 +379,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // le contesta «sin conexión», no «tu sesión venció»: de la sesión de
       // ahora no dice nada.
       const epoch = sessionEpoch.current;
-      const staleSession = () => new NetworkError("No se pudo conectar con el servidor.");
+      const staleSession = () => new NetworkError(NO_CONNECTION_MESSAGE);
       const attempt: Promise<string | null> = api
         .post<{ access_token: string }>("/auth/refresh", undefined, null, REFRESH_HARD_TIMEOUT_MS)
         .then(
@@ -408,7 +413,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (timeoutMs == null) return inFlight;
     return new Promise<string | null>((resolve, reject) => {
       const timer = setTimeout(
-        () => reject(new NetworkError("El servidor tardó demasiado en responder.")),
+        () => reject(new NetworkError(TIMEOUT_MESSAGE)),
         timeoutMs
       );
       inFlight.then(resolve, reject).finally(() => clearTimeout(timer));
@@ -877,7 +882,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     email: string,
     password: string,
     full_name: string,
-    role: "worker" | "employer"
+    role: "worker" | "employer",
+    birthDate: string
   ): Promise<RegisterOutcome> {
     // La pantalla de registro sólo llega acá con el checkbox de términos
     // marcado, y el backend guarda la constancia (versión, medio y fecha).
@@ -887,6 +893,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       full_name,
       role,
       accepted_terms: true,
+      birth_date: birthDate,
     });
     // Desde acá la cuenta ya existe: si el ingreso automático falla (el 429 de
     // `/auth/login` por IP es lo más común: misma red que ya probó ingresos),
@@ -901,7 +908,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function loginWithGoogle(
     idToken: string,
-    role?: "worker" | "employer"
+    role?: "worker" | "employer",
+    birthDate?: string
   ): Promise<GoogleLoginResult> {
     const data = await signIn(() =>
       api.post<
@@ -914,6 +922,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // El rol sólo viaja cuando se crea la cuenta, y `GoogleAuthButton` no
         // deja elegirlo sin marcar términos y privacidad.
         accepted_terms: role !== undefined,
+        // Con el rol va la fecha de nacimiento (U101): el backend no crea la
+        // cuenta sin ella ni a un menor de 18.
+        birth_date: role !== undefined ? birthDate : undefined,
       })
     );
 

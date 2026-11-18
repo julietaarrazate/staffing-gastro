@@ -15,6 +15,7 @@ import { guardarPlanElegido, planValido } from "@/lib/plan-elegido";
 import { LIMITES } from "@/lib/limites";
 import { guardarAvisoMail } from "@/lib/aviso-mail";
 import { motivoBloqueoRegistro } from "@/lib/registro";
+import { EDAD_MINIMA, motivoFechaNacimiento, nacimientoMasReciente } from "@/lib/edad";
 
 type Role = "worker" | "employer";
 
@@ -41,6 +42,8 @@ function RegisterForm() {
     if (pendingTwoFactor) router.replace(loginHref({ next }));
   }, [pendingTwoFactor, router, next]);
   const [fullName, setFullName] = useState("");
+  // U101: `AAAA-MM-DD`. Oído es sólo para mayores de 18; no se muestra a nadie.
+  const [birthDate, setBirthDate] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<Role>(() => roleFromQuery(searchParams.get("rol")) ?? "worker");
@@ -58,10 +61,13 @@ function RegisterForm() {
   const [turnstileReset, setTurnstileReset] = useState(0);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
+  const errorNacimiento = birthDate ? (motivoFechaNacimiento(birthDate) ?? undefined) : undefined;
+
   // Qué falta para poder crear la cuenta: se dice debajo del botón en vez de
   // dejarlo gris sin explicación (U041).
   const motivoBloqueo = motivoBloqueoRegistro({
     nombre: fullName,
+    nacimiento: birthDate,
     email,
     clave: password,
     terminos: acceptedTerms,
@@ -74,7 +80,7 @@ function RegisterForm() {
     setError(null);
     setSubmitting(true);
     try {
-      const { signedIn } = await register(email, password, fullName.trim(), role);
+      const { signedIn } = await register(email, password, fullName.trim(), role, birthDate);
       if (role === "employer" && planElegido) guardarPlanElegido(planElegido);
       if (!signedIn) {
         // La cuenta se creó pero el ingreso automático fue frenado: sin cartel
@@ -128,6 +134,25 @@ function RegisterForm() {
               required
               maxLength={LIMITES.nombre}
             />
+            <div>
+              <TextField
+                type="date"
+                label="Fecha de nacimiento"
+                name="bday"
+                autoComplete="bday"
+                value={birthDate}
+                onChange={setBirthDate}
+                max={nacimientoMasReciente()}
+                required
+                // Sólo con la fecha completa: mientras se escribe no hay error.
+                error={errorNacimiento}
+              />
+              {!errorNacimiento && (
+                <p className="mt-1.5 text-xs text-ink/50">
+                  Oído es para mayores de {EDAD_MINIMA} años. No se la mostramos a nadie.
+                </p>
+              )}
+            </div>
             <TextField
               type="email"
               name="email"
@@ -202,6 +227,7 @@ function RegisterForm() {
           <GoogleAuthButton
             rolElegido={role}
             terminosAceptados={acceptedTerms}
+            nacimientoElegido={birthDate}
             onDone={async (isNewAccount, nuevoRol, sesion) => {
               if (isNewAccount && nuevoRol === "employer" && planElegido) guardarPlanElegido(planElegido);
               router.replace(isNewAccount ? bienvenidaHref(next) : await destinoTrasIngreso(sesion, next));

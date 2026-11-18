@@ -157,7 +157,7 @@ test("el pago con coma se redondea al peso, no se multiplica por 100", async ({ 
   await pago.blur();
   await expect(pago).toHaveValue("15.001");
   await page.getByRole("button", { name: "Continuar" }).click();
-  await expect(page.getByText(/ARS 15\.001/).first()).toBeVisible();
+  await expect(page.getByText(/\$15\.001/).first()).toBeVisible();
   await page.locator("select").nth(1).selectOption("Palermo");
 
   const publishRequest = page.waitForRequest(

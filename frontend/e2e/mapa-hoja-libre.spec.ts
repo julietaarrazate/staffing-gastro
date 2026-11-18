@@ -82,7 +82,7 @@ test("en el celular el pin del turno activo queda arriba de la hoja de tarjetas"
   await page.goto("/map");
 
   // El pin del turno (no el punto azul de la persona, que también es un marker).
-  const pin = page.getByRole("button", { name: /^Turno de mozo/ });
+  const pin = page.getByRole("button", { name: /^Turno de Mozo/ });
   await expect(pin).toBeVisible({ timeout: 20_000 });
   const canvas = page.locator(".maplibregl-canvas").first();
   const handle = page.getByRole("button", { name: /Arrastrá o tocá para cambiar el tamaño/ });
@@ -127,7 +127,7 @@ test("al pasar de celular a escritorio y volver, el padding de la hoja sigue a l
   );
   await page.goto("/map");
 
-  const pin = page.getByRole("button", { name: /^Turno de mozo/ }).first();
+  const pin = page.getByRole("button", { name: /^Turno de Mozo/ }).first();
   const canvas = page.locator(".maplibregl-canvas").first();
   await expect(pin).toBeVisible({ timeout: 20_000 });
 

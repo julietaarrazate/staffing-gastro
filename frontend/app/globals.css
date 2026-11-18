@@ -164,8 +164,10 @@
   /* Tinte pálido de éxito (green-50). */
   --color-success-tint: #f0fdf4;
   --color-danger: #ef4444;
-  /* Rojo como TEXTO sobre claro: el de superficie da 3.76, insuficiente. */
-  --color-danger-text: #d73d3d;
+  /* Rojo como TEXTO sobre claro: #ef4444 da 3.76 y #d73d3d daba 3.86 sobre la
+     superficie celeste; #c22f2f da 5.61 sobre la tarjeta, 5.40 sobre el lienzo,
+     4.77 sobre la superficie y 4.64 sobre el tinte celeste (2026-11-17). */
+  --color-danger-text: #c22f2f;
   /* Tinte pálido para chips/banners de error — mismo patrón que manteca/
      cielo: NO cambia entre modos, se lee bien tanto sobre tarjeta clara
      como oscura. Reemplaza el `bg-red-50` suelto de SubscriptionStatusCard. */
@@ -613,7 +615,7 @@
   --color-secondary-text: #1b3a31;
   --color-accent-text: #6d47d9;
   --color-success-text: #15803d;
-  --color-danger-text: #d73d3d;
+  --color-danger-text: #c22f2f;
   --color-warning-text: #92660a;
   --color-info-text: #1d4ed8;
   --color-trust: #1e4a47;

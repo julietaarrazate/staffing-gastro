@@ -46,6 +46,7 @@ def _to_entity(model: UserModel) -> User:
         role=UserRole(model.role),
         status=UserStatus(model.status),
         is_verified=model.is_verified,
+        birth_date=model.birth_date,
         created_at=model.created_at,
         updated_at=model.updated_at,
     )
@@ -66,6 +67,7 @@ class SqlAlchemyUserRepository(UserRepository):
             role=user.role.value,
             status=user.status.value,
             is_verified=user.is_verified,
+            birth_date=user.birth_date,
         )
         self._session.add(model)
         await self._session.commit()
