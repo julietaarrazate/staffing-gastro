@@ -34,10 +34,11 @@ Buenos Aires, el papel de la comanda y el filete de los carteles de bodegón.
    iba al Far West y se parecía a la letra de otra marca del rubro). Fileteada en
    `components/landing/Filete.tsx`:
    - `firma` (con adornos finos dorados): pantalla de inicio;
-   - el final de la landing: la palabra grande, cortada por el borde, que
-     cierra el panel de cielo de «¿Te falta alguien hoy?»; debajo, el pie en
-     azul hondo. Sin el Sol de Mayo desde el 2026-11-18. A ese tamaño va sin
-     la sombra beige y con menos relieve (`Letras` con `sombra={false}`);
+   - el final de la landing: la misma `firma`, entera, apoyada sobre un banco
+     de nubes, que cierra el panel de cielo de «¿Te falta alguien hoy?»;
+     sobre las nubes, sólo lo legal y el ©. Desde el 2026-11-18 (antes iba
+     gigante y cortada por el borde, con el Sol de Mayo detrás: Julieta, «queda
+     raro ese oído cortado»);
    - en el **encabezado de la landing y de la app** va la misma letra, **plana
      y en azul hondo** (`.landing-marca` desde el 2026-11-13; `components/Logo.tsx`
      desde el 2026-11-17, celeste en oscuro): con el relieve y el dorado

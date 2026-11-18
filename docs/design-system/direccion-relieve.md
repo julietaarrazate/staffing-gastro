@@ -251,6 +251,9 @@ como exploración abierta):
 5. ~~**El héroe elegido, los títulos y la letra**, con el pie de color.~~
    **Hecho el 2026-11-18** sobre el híbrido (el héroe es el de la landing
    publicada, en brocha; el instructivo era de la segunda prueba y no entró).
+   **El pie de color no quedó:** Julieta lo vio en el código y lo sacó, junto
+   con la palabra cortada por el borde. El final es el «oído» entero sobre
+   un banco de nubes, con sólo lo legal debajo.
    Detalle y lo que se apartó de la prueba, en el
    [historial](../historial/2026-11-18-landing-hibrida.md).
 6. **La app**, pantalla por pantalla, en el orden de abajo.

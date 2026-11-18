@@ -1,4 +1,4 @@
-# La landing híbrida llega al código: letra mixta, relieve, la carta y el pie azul hondo (beta, etapa 4)
+# La landing híbrida llega al código: letra mixta, relieve, la carta y un final nuevo (beta, etapa 4, #634)
 
 **Pedido:** Julieta, 2026-11-18: seguir con la etapa 4, landing y app. Lo
 que sigue en `docs/design-system/direccion-relieve.md` era llevar al código
@@ -25,14 +25,19 @@ fotos, las secciones y casi todos sus textos. Cambia esto:
   ahora hay un solo «Empezar con <plan>», que sigue al plato elegido.
 - **El mapa, sin reloj ni minutos:** se fueron el relojito (20:46 → 20:54) y
   el «~3 min» del pie. Queda la distancia.
-- **El cierre, sin el Sol de Mayo**, y **el pie en azul hondo** con la letra
-  en blanco.
+- **Un final nuevo.** El panel de cielo de «¿Te falta alguien hoy?» termina
+  con el «oído» fileteado **entero**, con sus adornos finos (la misma firma
+  de la pantalla de bienvenida), apoyado sobre un banco de nubes como el del
+  inicio; y sobre las nubes, una sola línea con «Términos y condiciones»,
+  «Privacidad» y el ©. Sin el Sol de Mayo y sin panel aparte para el pie.
 
 Técnico: tokens del relieve en `frontend/app/globals.css` (`--relieve`,
 `--shadow-relieve*`, `--radius-relieve`; ADR-0027), clases nuevas
 `.landing-cartel`, `.landing-plano`, `.landing-carta*`, `.landing-plato*`,
-`.landing-pizarra`, `.landing-tiza*`; se borró el CSS del reloj, del sol, de
-las tarjetas de precios y de `.landing-flota`. Tests: `e2e/landing.spec.ts` y
+`.landing-pizarra`, `.landing-tiza*`, `.landing-firma-*`; el banco de nubes
+pasó a `components/landing/Nubes.tsx` para usarlo al inicio y al final; se
+borró el CSS del reloj, del sol, de las tarjetas de precios y de
+`.landing-flota`. Tests: `e2e/landing.spec.ts` y
 `e2e/plan-elegido.spec.ts` prueban la carta (un plato elegido, un botón).
 
 **Por qué así:** se partió de la landing publicada y se cambió de a una
@@ -40,10 +45,19 @@ pieza, que es la lección de la segunda prueba. Tres cosas se apartan de la
 prueba, las tres mirándola renderizada: el marco de la pizarra va en blanco
 (en celeste pálido se perdía contra el panel); el puesto de la oferta
 («Mozo/a») va en Inter, porque en brocha la barra se leía como una letra y
-la brocha quedó decidida sólo para el inicio, el cierre y la carta; y el pie
-no repite la palabra «oído», que ya está gigante justo arriba. La landing
+la brocha quedó decidida sólo para el inicio, el cierre y la carta. La landing
 sigue siendo siempre clara (la noche de la prueba era un interruptor de la
 prueba, no un pedido).
+
+**El final, segunda vuelta (mismo día).** La primera versión de este PR
+llevaba el final de la prueba: la palabra gigante cortada por el borde y,
+debajo, un panel azul hondo con seis links. Julieta al verla: «queda raro ese
+oído cortado y abajo una tarjeta llena de cosas, donde quizás con términos y
+condiciones y privacidad es suficiente». Se rehízo como está descripto
+arriba. Los links que salieron del pie (Precios, Para trabajar, Preguntas
+frecuentes, Ingresar) siguen en el encabezado y en la página; se pierde el
+atajo al final y los enlaces internos que se habían sumado el 2026-10-30
+pensando en los buscadores.
 
 La revisión independiente (otro agente, en siete anchos de 320 a 1920 px,
 con teclado, con «reducir movimiento» y con la app en oscuro) encontró tres

@@ -27,7 +27,8 @@ import { LETRAS_LANDING } from "./letras";
  * la misma landing con letra mixta (brocha en el inicio, el cierre y la
  * carta; Abril Fatface en los títulos de sección; `letras.ts`), los botones
  * con el relieve del filete, los planes como carta de bodegón, el mapa sin
- * reloj y el pie azul hondo, sin el Sol de Mayo.
+ * reloj y un final de cielo con el «oído» entero sobre las nubes y sólo lo
+ * legal debajo, sin el Sol de Mayo.
  *
  * El contenido sale entero en el HTML del servidor; las animaciones (rueda,
  * palabra, comanda, mapa) arrancan en el navegador y se apagan con "reducir

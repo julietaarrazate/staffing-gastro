@@ -1995,54 +1995,67 @@ body:has([data-landing]) main {
   color: #e8920f;
 }
 
-/* El final: el pie sobre blanco y, abajo, un domo de cielo que sube desde el
-   borde con "oído" grande y fileteado (2026-10-30). El domo es un degradado
-   radial centrado abajo: celeste hondo en el centro del borde, que se aclara
-   hacia arriba y hacia los costados hasta el blanco del pie, así no hay
-   franja ni corte entre el pie y el cielo. */
+/* El final (2026-11-18, segunda vuelta): la mitad de abajo del panel de
+   cielo que empieza en `.landing-cierre`. La palabra «oído» entera, con sus
+   adornos, apoyada sobre un banco de nubes como el del inicio; y sobre las
+   nubes, lo legal y el © en una línea. Sin panel aparte para el pie. */
 .landing-firma {
+  position: relative;
+  isolation: isolate;
   overflow: hidden;
-  margin: 0 var(--l-margen);
+  margin: 0 var(--l-margen) max(var(--l-margen), env(safe-area-inset-bottom, 0px));
   border-radius: 0 0 var(--l-panel) var(--l-panel);
-  padding: 24px max(16px, env(safe-area-inset-left, 0px)) 0;
-  /* Termina en celeste, no en blanco: debajo va el pie azul hondo. */
-  background: linear-gradient(180deg, var(--l-cielo-2) 0%, var(--l-cielo-3) 55%, var(--l-cielo-4) 100%);
+  padding: clamp(20px, 4vw, 48px) max(16px, env(safe-area-inset-right, 0px)) 22px max(16px, env(safe-area-inset-left, 0px));
+  background: linear-gradient(180deg, var(--l-cielo-2) 0%, var(--l-cielo-3) 50%, var(--l-cielo-4) 100%);
+  text-align: center;
 }
-.landing-firma svg {
+.landing-firma-nubes {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  width: 100%;
+  height: 62%;
+  /* El dibujo se escala para cubrir el ancho y lo que sobra asoma por
+     arriba: sin esto, en pantallas anchas las nubes de los costados se
+     cortaban en una línea recta. El panel recorta el resto. */
+  overflow: visible;
+  pointer-events: none;
+}
+.landing-firma-palabra {
+  position: relative;
+  z-index: 1;
   display: block;
-  width: min(1180px, 100%);
+  width: min(520px, 84%);
   height: auto;
   margin: 0 auto;
 }
-/* Pie de color (2026-11-18): un panel azul hondo, el del relieve, con la
-   letra en blanco (8,1) y el © en celeste pálido (6,6). El foco va en blanco:
-   el anillo de siempre es este mismo azul y no se vería. */
+/* Lo legal va sobre las nubes, en el azul de los títulos (de 8 a 12 de
+   contraste sobre el blanco de la nube y el celeste pálido del cielo). */
 .landing-pie-fila {
-  --focus-ring: #ffffff;
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  margin: var(--l-margen) var(--l-margen) max(var(--l-margen), env(safe-area-inset-bottom, 0px));
-  border-radius: var(--l-panel);
-  padding: 26px max(16px, env(safe-area-inset-right, 0px)) 28px max(16px, env(safe-area-inset-left, 0px));
-  background: var(--relieve);
-  color: #dcedf7;
-  text-align: center;
+  gap: 0;
+  margin-top: clamp(22px, 4vw, 44px);
+  color: var(--l-hondo);
+  font-size: 13px;
 }
 .landing-pie-fila a {
-  color: #ffffff;
-}
-.landing-pie-fila a:hover {
+  /* Con el relleno, el link mide 33 px de alto: se toca cómodo con el dedo. */
+  display: inline-block;
+  padding-block: 6px;
+  font-size: 14px;
+  font-weight: 600;
   text-decoration: underline;
+  text-decoration-color: rgb(15 58 91 / 0.35);
   text-underline-offset: 3px;
 }
-@media (min-width: 1024px) {
-  .landing-pie-fila {
-    flex-direction: row;
-    justify-content: space-between;
-    padding-inline: 48px;
-  }
+.landing-pie-fila a:hover {
+  text-decoration-color: currentColor;
 }
 
 /* La marca en el encabezado: la misma letra del «oído» fileteado, plana y en
