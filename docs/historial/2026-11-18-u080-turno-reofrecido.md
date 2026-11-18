@@ -25,9 +25,10 @@ persona y sin chance de reemplazo, con horas de turno por delante.
   recibía ninguno): qué pasó y qué hizo la app con el turno. El diálogo de «No
   se presentó» dice de antemano si el turno se va a reofrecer o queda sin
   cubrir, y el panel marca el turno «Reofrecido como urgente hasta las HH:MM».
-- A quien toma un turno ya empezado, el recordatorio de llegada y la ausencia
-  (manual y automática) se le cuentan **desde que confirmó**, no desde el
-  inicio; y ese turno no le mueve la puntualidad.
+- A quien toma un turno **reofrecido** ya empezado, el recordatorio de
+  llegada y la ausencia (manual y automática) se le cuentan **desde que
+  confirmó**, no desde el inicio; y ese turno no le mueve la puntualidad. Un
+  turno común confirmado después del inicio sigue como antes de U080.
 - Técnico: migración `0053` (`shifts.reoffered_at`, `confirmed_at`,
   `prorated_pay_amount`). Dominio en `backend/app/modules/shift/domain/entities.py`
   (`Shift._reopen` devuelve `Reapertura`; `expected_from`, `amount_due`,
@@ -58,10 +59,42 @@ persona y sin chance de reemplazo, con horas de turno por delante.
 - Puntualidad del reemplazo: se eligió «no mueve» porque es reversible
   mientras se decide si corresponde medir «X minutos desde que confirmó».
   Está aislado en `punctuality_of`.
-- Los tests que armaban un turno con el inicio ya pasado y lo confirmaban
-  después ahora describen a un reemplazo: se les agregó `confirmo_a_tiempo`
-  (`backend/tests/_turno_empezado.py`) para que sigan probando «confirmó a
-  tiempo y no llegó».
+
+**Corregido tras la revisión independiente (mismo día):**
+
+- **Un turno común cambiaba de reglas si la persona confirmaba tarde.**
+  `Shift.taken_after_start`, `punctuality_of` y `esperadoDesde` (frontend)
+  miraban sólo «confirmó después de `start_at`»: un turno común asignado
+  antes del inicio (o en la gracia de «no cubierto») y confirmado tarde
+  dejaba de medir la puntualidad y corría el recordatorio y la ausencia
+  desde la confirmación. Ahora eso vale **sólo en un turno reofrecido**. Se
+  quitó el helper de tests `confirmo_a_tiempo` (y el ajuste equivalente en
+  `empezar_turno`): tapaba este error, y los tests de asistencia, scheduler y
+  «no cubierto» vuelven a ser los de antes de U080. Test nuevo del turno
+  común confirmado tarde.
+- **Suspensión:** `_reopen_for_worker_suspension` descartaba lo que
+  devolvía `release_worker()`. Hoy sólo llegan turnos no empezados (ADR-0024,
+  punto 3), pero ahora usa el resultado y el mismo aviso que el resto
+  (`_announce_reopen`), sin restaurar rechazados si el turno quedó cerrado.
+  ADR-0015 dice que suspender al reemplazo de un turno reofrecido no lo
+  reofrece: sigue hasta la ausencia automática, contada desde que confirmó.
+- **Plata en el admin:** la ficha mostraba lo publicado. Ahora muestra lo que
+  se cobra (`amount_due`), «$34.932 de $40.000» si difiere
+  (`formatAmountDue` en `frontend/lib/pay.ts`). `Shift.amount_due` es la
+  referencia; el `COALESCE` de `sum_worker_earnings` y `payView` dicen que
+  son su espejo. No hay otros lugares que muestren o sumen lo cobrado con
+  `pay_amount` (avisos de pago sin monto, sin exportes; la referencia de
+  pago y el asistente usan lo publicado a propósito).
+- **Carrera en la cobertura:** `mark_not_covered` relee el turno y, si
+  todavía no corresponde (`coverage_deadline`, que pasa a `end_at` si se
+  reofreció en el medio), no hace nada.
+- **Diálogo de «No se presentó»:** a menos de 15 minutos del umbral de 1
+  hora dice las dos posibilidades, porque lo decide el reloj del servidor al
+  marcarlo.
+- **Quien dejó el turno y lo seguía viendo:** no hizo falta cambiar nada.
+  Inicio, Buscar y Mapa ya esconden los turnos con la postulación
+  `desasignada` (`appliedShiftIds` en `frontend/lib/applications.ts` la
+  cuenta como «ya postulado», desde G4).
 
 **Queda abierto:**
 
@@ -76,3 +109,8 @@ persona y sin chance de reemplazo, con horas de turno por delante.
   el final.
 - La página `/turno/[id]` (se arma en el servidor) no se capturó en esta
   sesión; usa `ShiftDetail`, cubierto por los tests de `payView`.
+- Siguen para Julieta: la puntualidad del primer turno de un reemplazo
+  (queda en 1.0) y que un reofrecido se pueda tomar hasta el último minuto.
+- `appliedShiftIds` mira las 50 postulaciones más recientes de
+  `/applications/mine`: a quien tenga más, una `desasignada` vieja se le
+  podría escapar (caso raro, no se tocó).

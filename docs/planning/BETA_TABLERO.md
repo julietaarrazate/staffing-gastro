@@ -71,7 +71,7 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 | U063, U085 | Inicio, Buscar y Mapa traen los 50 turnos más recientes de todo el país, sin filtrar por distancia: con más… (y 1 más de la misma causa) | ✅ en `main` | #547 |
 | U058 | Evento: se publican turnos sin zona («Ubicación a confirmar») y los trabajadores cercanos no reciben aviso | ✅ en `main` | #546 (prueba en la app hecha el 2026-11-13) |
 | U013, U014, U016 | El panel del comercio y la lista de candidatos no se actualizan solos (postulante nuevo, confirmación, rech… (y 2 más de la misma causa) | ✅ en `main` | #560 (prueba en la app hecha el 2026-11-14) |
-| U080 | Al reabrirse un turno por ausencia nadie recibe un aviso nuevo y, si ya empezó, tampoco vuelve al feed | ⚪ decidido (4), sin empezar | se reofrece como urgente hasta que termine su horario; lleva ADR. Falta saber si se paga el turno entero o lo que resta |
+| U080 | Al reabrirse un turno por ausencia nadie recibe un aviso nuevo y, si ya empezó, tampoco vuelve al feed | ✅ escrito y revisado, rama `claude/u080-reofrecer` | se reofrece como urgente hasta que termina si le queda ≥ 1 h y se paga lo que resta desde la llegada (decisiones 4, 16, 18 y 19; ADR-0015 y ADR-0008, migración 0053) |
 
 **Tanda 2**
 
@@ -211,9 +211,11 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 - A 320 px (prueba en la app de #566): en candidatos la pestaña activa
   «Recomendados (10)» sobresale ~9 px de su carril, y en «Turnos en vivo» el
   selector corta «Escalad…» (se puede deslizar). La página no se ensancha.
-- El comercio no recibe un aviso propio cuando una persona confirmada falta:
+- ✅ El comercio no recibe un aviso propio cuando una persona confirmada falta:
   se entera por el panel, o por el aviso de «no cubierto» si no consigue
   reemplazo (salió de #562; sumarlo es decidir quién recibe qué, va con U080).
+  Resuelto con U080: el aviso de reapertura le dice qué pasó y qué hizo la
+  app con el turno.
 - Un turno con la salida marcada que el comercio nunca cierra queda «en
   marcha» para siempre: la persona ve «Esperando que el comercio cierre el
   turno» y no puede calificar ni verlo en sus ganancias. No hay recordatorio
@@ -274,8 +276,9 @@ el modelo del dominio, un ADR vigente o un texto legal:
   - ✅ **U081** en `main` (#632, ADR-0007 actualizado).
   - ✅ **U072** en `main` (#633; migración 0052, ADR-0014 actualizado,
     versión legal `2026-11-18-1`; Julieta aprobó el texto, decisión 20).
-  - ⚪ **U080** diseñado y con sus datos decididos (18 y 19), **sin
-    escribir**: es lo primero de la sesión que sigue. El diseño: marca
+  - ✅ **U080** escrito y revisado (rama `claude/u080-reofrecer`, ADR-0015
+    y ADR-0008 actualizados, migración 0053; tras la revisión, un turno
+    común confirmado tarde vuelve a medirse desde el inicio). El diseño: marca
     `reoffered_at` en el turno; el Inicio, la página pública y postularse lo
     aceptan hasta que termina su horario; «no cubierto» pasa al final del
     horario; aviso urgente a quienes están cerca y aviso al comercio cuando
