@@ -47,9 +47,12 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
    interfaz; prueba en https://claude.ai/artifact/WNXBXhkNgGrFdBbqFNsQan).
    La **segunda prueba de la landing** (2026-11-18) tiene tres direcciones
    para comparar, «El pase», «El bodegón» y «Un servicio en vivo»
-   (https://claude.ai/artifact/VWPZtN8eAvxk5U2kVuE3zR): **falta que Julieta
-   elija una**, la letra de los títulos (cartel pintado o Young Serif) y el
-   isotipo. Después, afinarla y llevarla a la app pantalla por pantalla, un
+   (https://claude.ai/artifact/VWPZtN8eAvxk5U2kVuE3zR). Julieta no eligió
+   ninguna: pidió un **híbrido de la landing publicada** (el cielo y la rueda
+   de fotos) con la letra de brocha, el isotipo nuevo y los planes como
+   carta (https://claude.ai/artifact/9Bq2jU9LK7xaCj6b4T2Bxz). **Sigue:**
+   ajustarlo con lo que marque y rehacer la prueba de la app con el mismo
+   criterio. Después, afinarla y llevarla a la app pantalla por pantalla, un
    PR cada una, sin tocar la lógica. Qué tiene, las referencias de Julieta,
    lo que falta decidir y el orden, en
    [`design-system/direccion-relieve.md`](./design-system/direccion-relieve.md).

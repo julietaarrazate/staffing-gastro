@@ -10,6 +10,8 @@
 > - Segunda, la landing en tres direcciones (2026-11-18, claro y noche):
 >   https://claude.ai/artifact/VWPZtN8eAvxk5U2kVuE3zR
 > - Cinco isotipos (2026-11-18): https://claude.ai/artifact/TqfGBkrBX1aGFJSygrsQkS
+> - **Tercera, el híbrido (2026-11-18, la que sigue):** la landing de hoy con
+>   brocha, isotipo y carta: https://claude.ai/artifact/9Bq2jU9LK7xaCj6b4T2Bxz
 
 ## La idea
 
@@ -82,8 +84,9 @@ Lo que comparten, cada pieza con su objeto de cocina:
 - **Letra de cartel pintado** en los títulos, con un interruptor contra
   Young Serif: Carter One (la letra «casual» de los letristas) y Knewave
   (pincel). Las notas a mano van en Mansalva, de una tipógrafa argentina, y
-  siempre en azul hondo. Se probaron y se descartaron Barrio, Bahiana,
-  Londrina y Sedgwick (infantiles o de grafiti).
+  siempre en azul hondo. Se probaron y se descartaron Barrio, Bahiana y
+  Londrina (infantiles). Sedgwick Ave Display, descartada primero por venir
+  del grafiti, se sumó después como «Brocha» porque a Julieta le gustó.
 - **La comanda que se imprime** sale hacia arriba de la impresora de la
   cocina, renglón por renglón, y recibe la cinta «¡Oído!». Es papel de
   cocina: sin número, sin raya punteada, datos en Inter.
@@ -101,6 +104,41 @@ Lo que comparten, cada pieza con su objeto de cocina:
 
 Mirada con Playwright en 1280 y 390 px, en claro y en noche, sin desborde ni
 errores de consola.
+
+## Tercera prueba: el híbrido (2026-11-18)
+
+Julieta vio las tres direcciones y no eligió ninguna: «queda todo casi de un
+mismo tono, se pierde el cielo de la landing y el efecto de las personas
+girando, y tiene subtítulos contando lo que ya hace; todo eso da a hecho con
+IA». Le gustaron **la letra de brocha** (Sedgwick Ave Display), **Mansalva**
+para lo anotado a mano y **los planes como menú**. Pidió un híbrido de la
+landing publicada con el isotipo nuevo y esas mejoras, y seguir modificando
+hasta la final.
+
+El híbrido parte de la landing de hoy, sección por sección y con sus textos
+(`HeroRueda`, `Comanda`, `MapaCamino`, `Precios`, `ParaTrabajar`, `Preguntas`,
+`Cierre`), y cambia sólo esto:
+
+- **Títulos en brocha**, en mayúsculas y azul de la marca; la palabra que
+  cambia sigue en ámbar. Interruptor contra Cartel y Young Serif (la de hoy).
+- **El isotipo «grito y respuesta»** junto al «oído» del encabezado y del pie.
+- **Los precios como carta**, con «sugerencia de la casa» en Mansalva y la
+  comanda de la caja que se imprime al elegir un plan.
+- **La comanda** sale de la misma impresora oscura de hoy, como papel de
+  cocina, y recibe la cinta «¡Oído!».
+- **Botones de hoy con el relieve** azul hondo en lugar de la sombra difusa.
+- **Pie de color** azul hondo; el cierre va **sin el Sol de Mayo**.
+- Ninguna bajada: una idea por sección, como manda `marca-hoy.md`, regla 1.
+
+Lección para las próximas vueltas: se parte de la landing publicada y se
+cambia de a una pieza; las tres direcciones de la segunda prueba quedan como
+cantera de piezas, no como camino.
+
+**La app.** Julieta mandó también el video de la app «con relieve» de la
+primera prueba como ejemplo a mejorar. Todavía no se tocó. Lo que conviene
+revisar ahí, con el mismo criterio: los rótulos en letra mono, las píldoras
+en todos lados, la hoja de detalle armada con mosaicos de datos (puede ser la
+comanda) y el panel del comercio (puede ser el riel de comandas).
 
 ## Isotipo (2026-11-18)
 
@@ -129,11 +167,11 @@ como exploración abierta):
 
 ## Falta que decida Julieta
 
-1. La dirección de la landing (o una mezcla: el héroe de una con piezas de
-   otra).
-2. La letra de los títulos: cartel pintado o Young Serif. Si cambia, se
-   actualiza `typography.md`.
-3. El isotipo, y si se encarga al fileteador.
+1. Qué le cambia al híbrido (es la base desde el 2026-11-18).
+2. La letra de los títulos: le gusta la brocha; falta confirmarla viéndola
+   en el híbrido. Si cambia, se actualiza `typography.md`.
+3. El isotipo: pidió usar «el nuevo» en el híbrido; falta que confirme
+   «grito y respuesta» y si se encarga al fileteador.
 4. Antes de producción, confirmar contra el producto lo que la prueba afirma:
    «Gratis para quien trabaja», «gente verificada» y «Hecho en Buenos Aires».
 

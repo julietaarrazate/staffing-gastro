@@ -32,7 +32,14 @@ gesto que le da nombre y no depende de fotos de banco. No se comparó contra
 el ícono de la otra marca: Julieta pidió no nombrarla y ya no se parecen. No
 hay contadores ni pagos inventados; los precios son los de `planes.ts`.
 
-**Queda abierto:** que Julieta elija dirección, letra de los títulos e
-isotipo (ítem 0 de `STATUS.md`). La app en oscuro con el relieve no se miró
+**Después de verlas (mismo día):** Julieta no eligió ninguna de las tres
+(un solo tono, sin el cielo ni la rueda de fotos, con bajadas que explican lo
+que ya se ve). Le gustaron la letra de brocha, Mansalva y los planes como
+menú. Se armó un híbrido sobre la landing publicada, levantada en local para
+copiar la rueda, las nubes y los textos tal cual:
+https://claude.ai/artifact/9Bq2jU9LK7xaCj6b4T2Bxz.
+
+**Queda abierto:** ajustar el híbrido con lo que marque Julieta, confirmar
+letra e isotipo, y rehacer la prueba de la app (ítem 0 de `STATUS.md`). La app en oscuro con el relieve no se miró
 en esta tanda. El historial congelado y `marketing/` no se revisaron (la
 lectura está bloqueada); si nombran a la otra marca, queda ahí.
