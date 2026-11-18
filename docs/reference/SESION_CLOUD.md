@@ -49,7 +49,10 @@ sólo los archivos del área, y la completa una vez antes del push. No uses
   del área y la revisión independiente estaban en verde, y la suite completa
   cortó en `test_privacidad_datos_trabajador`: una fila nueva de postulación
   le abría el CV al comercio. No pushees con sólo los tests del área si
-  tocaste un modelo que leen otros módulos.
+  tocaste un modelo que leen otros módulos. Pasó otra vez ese día con
+  U072: un arreglo posterior a la revisión rompió un test de concurrencia de
+  otro archivo y lo encontró CI (una vuelta de 20 minutos). La completa se
+  corre también después del último cambio, no sólo antes de la revisión.
 
 ## 3. Frontend: install, build y Playwright
 
