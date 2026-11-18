@@ -284,7 +284,7 @@ el modelo del dominio, un ADR vigente o un texto legal:
   sesión nueva, en el orden del tablero.
 - ✅ **Una segunda mirada a G6** (cuentas suspendidas, ADR-0024), hecha el
   2026-11-18: 2 graves y 7 menores verificados, nada bloqueante. Seis
-  arreglados en #PRG6 (los postulantes que quedaban rechazados para siempre
+  arreglados en #636 (los postulantes que quedaban rechazados para siempre
   si fallaba la reapertura; `/assign` dejaba averiguar si alguien está
   suspendido; el socket de avisos y los push seguían saliendo; «Mis
   postulaciones» mostraba el turno oculto; el asistente de IA encontraba al
@@ -402,7 +402,7 @@ implemente.
   de las métricas de cobertura. Actualiza el ADR-0024 y el ADR-0015.
 - **23.** No se le puede escribir por chat a una cuenta suspendida: el
   mensaje nuevo se rechaza como un chat ajeno; lo ya escrito se puede leer
-  (#PRG6).
+  (#636).
 - **24.** Un turno con la salida marcada que el comercio no cierra:
   **recordatorio al comercio a las 24 horas y cierre automático a las 72**,
   con la puntualidad que ya quedó registrada. Cambia el ADR-0008.

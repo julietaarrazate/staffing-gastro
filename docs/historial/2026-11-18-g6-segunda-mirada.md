@@ -1,4 +1,4 @@
-# Segunda mirada a las cuentas suspendidas: seis arreglos (#PRG6)
+# Segunda mirada a las cuentas suspendidas: seis arreglos (#636)
 
 **Pedido:** auditoría de «qué pasa al suspender una cuenta» (ADR-0024): seis hallazgos verificados, todos chicos.
 
