@@ -100,11 +100,9 @@ for (const width of [768, 1440]) {
       for (const section of Array.from(document.querySelectorAll("[data-family]"))) {
         for (const chip of Array.from(section.querySelectorAll("span"))) {
           if (!/\+ (propinas|comida)/.test(chip.textContent ?? "")) continue;
-          // La tarjeta es el primer ancestro con overflow oculto o borde redondeado.
-          let card: HTMLElement | null = chip.parentElement;
-          while (card && getComputedStyle(card).overflow !== "hidden" && !card.className.includes("ring-")) {
-            card = card.parentElement;
-          }
+          // La tarjeta del turno (una comanda desde el 2026-11-18; antes se
+          // buscaba el primer ancestro con borde `ring-`, que ya no tiene).
+          const card = chip.closest('[data-testid="shift-card"]');
           if (!card) continue;
           const c = card.getBoundingClientRect();
           const r = chip.getBoundingClientRect();

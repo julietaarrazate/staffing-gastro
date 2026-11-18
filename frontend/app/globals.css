@@ -499,6 +499,9 @@
   --app-cielo-nube: 0.08;
   --app-cielo-tinta: #eef3f6;
   --color-cartel: #eef3f6;
+  --app-banda: #0f3a5b;
+  --app-banda-tinta: #eef3f6;
+  --app-banda-relieve: #2e6e99;
 
   /* MODO OSCURO REAL (board v5.0). A diferencia del híbrido anterior (lienzo
      claro que no invertía, sólo las tarjetas), acá el LIENZO también se
@@ -742,6 +745,10 @@
   --app-cielo-nube: 0.85;
   --app-cielo-tinta: #0f3a5b;
   --color-cartel: #0f3a5b;
+  /* La banda azul hondo (`.app-banda`): el fondo del riel del comercio. */
+  --app-banda: #1c5478;
+  --app-banda-tinta: #ffffff;
+  --app-banda-relieve: #0f3a5b;
   /* PROTOTIPO esmerilado (2026-10-09). */
   --color-chrome: rgba(255, 255, 255, 0.92);
   /* El cielo de la landing arriba de cada pantalla (2026-10-19); antes era
@@ -1154,6 +1161,81 @@ body:has([data-landing]) main {
   height: 90px;
 }
 
+/* La banda azul hondo: donde cuelgan las comandas en curso del comercio.
+   A todo el ancho en el celular; con esquinas en pantallas anchas. El foco
+   de lo que va directo sobre la banda es claro (el de siempre es este azul). */
+.app-banda {
+  --focus-ring: #ffffff;
+  /* Sobre la banda, el relieve de la comanda va un tono más hondo (más
+     claro de noche): el azul de siempre es el de la banda y no se vería. */
+  --relieve: var(--app-banda-relieve);
+  background: var(--app-banda);
+  color: var(--app-banda-tinta);
+}
+@media (min-width: 768px) {
+  .app-banda {
+    border-radius: var(--radius-card);
+  }
+}
+/* El riel de la cocina: la barra de donde cuelgan las comandas, con sus
+   remaches. Va arriba de la banda, sobresaliendo un poco a los costados. */
+.riel {
+  position: relative;
+  z-index: 1;
+  height: 18px;
+  margin: 0 -6px;
+  border: 1.5px solid #0f3a5b;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #ffffff, #dcedf7);
+  box-shadow: 0 4px 0 #0f3a5b;
+}
+.riel i {
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin-top: -4px;
+  border: 1.5px solid #1c5478;
+  border-radius: 50%;
+  background: #9ac9e7;
+}
+
+/* El botón con relieve de una pantalla de la app (uno por pantalla): recto,
+   con borde azul hondo y la sombra dura del filete; al tocarlo se corre lo
+   que mide la sombra. El color de fondo y de letra los pone quien lo usa. */
+.boton-relieve {
+  /* El borde va como sombra hacia adentro y no como `border`: un borde de
+     verdad agranda el botón y lo dejaba 2 px más alto que el secundario de
+     al lado (lo midió la revisión del 2026-11-18). */
+  --relieve-borde: inset 0 0 0 1.5px var(--relieve);
+  border-radius: var(--radius-relieve);
+  box-shadow: var(--relieve-borde), var(--shadow-relieve);
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease,
+    filter 0.15s ease,
+    background-color 0.15s ease;
+}
+.boton-relieve:active {
+  transform: translate(var(--relieve-btn), var(--relieve-btn));
+  box-shadow: var(--relieve-borde), 0 0 0 var(--relieve);
+}
+/* El anillo de foco, separado del botón: pegado se confundía con el borde y
+   con el relieve, que en claro son del mismo azul. */
+.boton-relieve:focus-visible {
+  outline-offset: 4px;
+}
+/* Desactivado: sin borde de color ni relieve, con un filete. No se aprieta. */
+.boton-relieve:disabled {
+  box-shadow: 0 0 0 1px var(--color-line);
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .boton-relieve {
+    transition: none;
+  }
+}
+
 /* La comanda: papel de cocina con el relieve del filete. */
 .comanda {
   position: relative;
@@ -1162,8 +1244,19 @@ body:has([data-landing]) main {
   box-shadow: 4px 4px 0 var(--relieve);
 }
 .comanda-papel {
+  /* El foco de adentro va siempre en el azul hondo de claro: sobre la banda
+     (`.app-banda`) heredaba el blanco de la banda y no se veía en el papel. */
+  --focus-ring: #1c5478;
   border-radius: inherit;
   color: var(--color-ink);
+}
+/* Una comanda que ya no tiene nada pendiente (pagada, cancelada, no
+   cubierta) pierde el relieve y queda apoyada, con un filete: se la ve
+   apagada sin bajarle la opacidad, que dejaba el sello y la letra chica por
+   debajo de contraste (2,7 a 3,2). */
+.comanda-apagada {
+  box-shadow: 0 0 0 1px var(--color-line);
+  filter: saturate(0.8);
 }
 /* El foco de un link de la comanda va por dentro del papel. Por fuera caía
    sobre el cielo o el lienzo con el azul de claro (adentro la comanda está

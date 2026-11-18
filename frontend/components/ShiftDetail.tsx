@@ -423,7 +423,7 @@ function Chip({ icon, children }: { icon: React.ReactNode; children: React.React
 }
 
 const PRIMARY_BUTTON =
-  "flex min-h-[56px] w-full items-center justify-center gap-2 rounded-[var(--radius-btn)] bg-primary px-6 text-base font-bold text-night shadow-[var(--shadow-primary)] transition active:scale-[0.98] disabled:opacity-70";
+  "flex min-h-[56px] w-full items-center justify-center gap-2 boton-relieve bg-primary px-6 text-base font-bold text-night disabled:opacity-70";
 
 function PrimaryAction({
   loading,

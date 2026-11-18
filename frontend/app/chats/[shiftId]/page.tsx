@@ -271,7 +271,7 @@ export default function ConversationPage() {
           <button
             type="submit"
             disabled={sending || !draft.trim()}
-            className="flex min-h-[44px] items-center justify-center rounded-[var(--radius-btn)] bg-primary px-5 text-sm font-semibold text-night hover:bg-primary-strong disabled:opacity-50"
+            className="boton-relieve flex min-h-[44px] items-center justify-center bg-primary px-5 text-sm font-semibold text-night hover:bg-primary-strong disabled:bg-surface disabled:text-ink-mute"
           >
             Enviar
           </button>

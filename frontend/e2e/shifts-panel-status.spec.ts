@@ -98,13 +98,15 @@ test("en /shifts los estados se diferencian por color de marca y los cancelados 
   const canceladoChip = page.getByText("Cancelado", { exact: true }).first();
   await expect(canceladoChip).toHaveClass(/text-danger/);
   const canceladoCard = page.locator(".no-select", { has: canceladoChip }).first();
-  await expect(canceladoCard).toHaveClass(/opacity-65/);
+  // Apagada: en la comanda (2026-11-18) pierde el relieve en vez de bajar la
+  // opacidad, que dejaba el sello por debajo de contraste.
+  await expect(canceladoCard).toHaveClass(/comanda-apagada/);
 
   // "Confirmado" usa el verde de marca (text-secondary), sin atenuar (no es terminal el estilo, sigue activo/vivo).
   const confirmadoChip = page.getByText("Confirmado", { exact: true }).first();
   await expect(confirmadoChip).toHaveClass(/text-success-text/);
   const confirmadoCard = page.locator(".no-select", { has: confirmadoChip }).first();
-  await expect(confirmadoCard).not.toHaveClass(/opacity-65/);
+  await expect(confirmadoCard).not.toHaveClass(/comanda-apagada/);
 
   // "Publicado" usa el naranja de marca (text-primary) — antes era azul.
   const publicadoChip = page.getByText("Publicado", { exact: true }).first();
@@ -116,7 +118,9 @@ test("en /shifts los estados se diferencian por color de marca y los cancelados 
   const cards = await page.locator("div.no-select").all();
   const statusesInOrder: string[] = [];
   for (const card of cards) {
-    const text = await card.locator("span.rounded-full").first().textContent();
+    // El estado es un sello sobre la comanda desde el 2026-11-18 (antes una
+    // píldora `rounded-full`): se busca por su marca, no por su forma.
+    const text = await card.getByTestId("shift-status").textContent();
     if (text) statusesInOrder.push(text.trim());
   }
   expect(statusesInOrder.at(-1)).toBe("Cancelado");

@@ -227,7 +227,7 @@ export default function ImageCropModal({
             type="button"
             onClick={confirm}
             disabled={saving || natural.width === 0}
-            className="flex-1 rounded-[var(--radius-btn)] bg-primary py-2.5 text-sm font-semibold text-night disabled:opacity-60"
+            className="boton-relieve flex-1 bg-primary py-2.5 text-sm font-semibold text-night disabled:bg-surface disabled:text-ink-mute"
           >
             {saving ? "Guardando..." : "Usar esta foto"}
           </button>

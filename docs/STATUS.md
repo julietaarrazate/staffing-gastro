@@ -74,9 +74,12 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
    [historial](./historial/2026-11-18-landing-hibrida.md)). **La app va
    pantalla por pantalla**, un PR cada una, sin tocar la lógica (Julieta,
    2026-11-18). Hecho: el Inicio del trabajador
-   ([historial](./historial/2026-11-18-inicio-trabajador-relieve.md)).
-   **Sigue:** Panel del comercio, Candidatos, Mis turnos, y la barra de abajo
-   (es de toda la app, en su propio PR). Las piezas compartidas ya están
+   ([historial](./historial/2026-11-18-inicio-trabajador-relieve.md)) y el
+   Panel del comercio
+   ([historial](./historial/2026-11-18-panel-comercio-relieve.md)).
+   **Sigue:** Candidatos, Mis turnos (le alcanza con pasar `comanda` a
+   `ShiftCard`), y lo que es de toda la app, cada cosa en su PR: la barra de
+   abajo, los botones (`Button`) y las pestañas. Las piezas compartidas ya están
    (`components/ui/Comanda.tsx`, `lib/letras.ts`, `.app-cielo`). Qué tiene, las referencias de Julieta,
    lo que falta decidir y el orden, en
    [`design-system/direccion-relieve.md`](./design-system/direccion-relieve.md).
