@@ -18,7 +18,8 @@ se borra también al cerrar sesión en ese dispositivo.
 - Apagar y volver a prender no le manda otro «salió para tu local» al
   comercio.
 - `/privacidad`: tres frases (ubicación, plazo de «va en camino» y
-  notificaciones). Versión `2026-11-18-1` en backend y frontend.
+  notificaciones). Versión `2026-11-18-1` en backend y frontend. Julieta aprobó el
+  texto el 2026-11-18 (decisión 20 del tablero).
 - Técnico: `Shift.stop_en_route` y `en_route_announced_at`
   (`backend/app/modules/shift/domain/entities.py`), `ShiftService.stop_en_route`,
   `DELETE /shifts/{id}/en-route`, migración `0052`;
