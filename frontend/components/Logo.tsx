@@ -1,12 +1,13 @@
 /**
  * Marca Oído (desde el 2026-11-17, ver docs/design-system/marca-hoy.md):
  *
- * - `LogoGlyph`: la silueta de «oí» (Shrikhand, letra convertida a trazos en
- *   `public/logo-figure.svg`), sin fondo, teñida del color pedido con una
- *   máscara CSS. La usan EmptyState, OidoLoader y los avisos de página. Hasta
- *   el 2026-11-17 era la mano ahuecada sobre la oreja.
- * - `LogoMark`: el ícono «oí» en su tile azul hondo, en la versión plana para
- *   tamaños chicos (`public/logo-mark-chico.svg`). La fileteada con relieve
+ * - `LogoGlyph`: la silueta del pinche con la comanda y la «o» calada (letra
+ *   convertida a trazos en `public/logo-figure.svg`), sin fondo, teñida del
+ *   color pedido con una máscara CSS. La usan EmptyState, OidoLoader y los
+ *   avisos de página. De menos de 24 px va la «o» sola (`public/logo-o.svg`).
+ *   Hasta el 2026-11-17 era la mano ahuecada sobre la oreja.
+ * - `LogoMark`: el ícono del pinche con «oído» en su tile azul hondo, en la
+ *   versión plana (con la «o» sola) para tamaños chicos (`public/logo-mark-chico.svg`). La fileteada con relieve
  *   (`public/logo-mark.svg`) es la de los íconos grandes de la app
  *   (`scripts/build-icons.mjs`).
  * - `Logo` (default): la palabra «oído» plana en Shrikhand, en azul hondo
@@ -14,6 +15,8 @@
  *   el ícono.
  */
 export function LogoGlyph({ size = 28, color = "#fff" }: { size?: number; color?: string }) {
+  // Por debajo de 24 px la silueta entera del pinche no se lee: va la «o» sola.
+  const mascara = `url(${size < 24 ? "/logo-o.svg" : "/logo-figure.svg"})`;
   return (
     <span
       role="img"
@@ -23,8 +26,8 @@ export function LogoGlyph({ size = 28, color = "#fff" }: { size?: number; color?
         width: size,
         height: size,
         backgroundColor: color,
-        WebkitMaskImage: "url(/logo-figure.svg)",
-        maskImage: "url(/logo-figure.svg)",
+        WebkitMaskImage: mascara,
+        maskImage: mascara,
         WebkitMaskSize: "contain",
         maskSize: "contain",
         WebkitMaskRepeat: "no-repeat",
