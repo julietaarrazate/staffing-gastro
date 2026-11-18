@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from httpx import AsyncClient
 
-from tests._turno_empezado import correr_reloj_del_turno
+from tests._turno_empezado import confirmo_a_tiempo, correr_reloj_del_turno
 from tests.conftest import auth_headers
 
 pytestmark = pytest.mark.asyncio
@@ -70,6 +70,9 @@ async def _confirmed_shift(
         json={"worker_profile_id": worker_profile_id},
     )
     await client.post(f"/api/v1/shifts/{shift_id}/confirm", headers=worker_headers)
+    # Si el turno se armó con el inicio ya pasado, el caso es «confirmó a
+    # tiempo»: no el reemplazo de un turno ya empezado (U080).
+    await confirmo_a_tiempo(shift_id)
     return shift_id, employer_headers, worker_headers
 
 

@@ -73,3 +73,21 @@ async def correr_reloj_del_turno(shift_id: str, minutos: int) -> None:
         await session.commit()
     finally:
         await sesiones.aclose()
+
+
+async def confirmo_a_tiempo(shift_id: str) -> None:
+    """Para los tests que arman un turno con el inicio ya pasado y lo
+    confirman después: deja la confirmación antes del inicio, que es el caso
+    que quieren probar («confirmó a tiempo y no llegó»). Sin esto la persona
+    sería el reemplazo de un turno ya empezado (U080) y su recordatorio y su
+    ausencia se contarían desde que confirmó. Escribe por la sesión del
+    `client`, como `empezar_turno_de_la_app`."""
+    sesiones = app.dependency_overrides[get_session]()
+    session = await sesiones.__anext__()
+    try:
+        model = await session.get(ShiftModel, UUID(shift_id))
+        assert model is not None
+        _confirmo_antes(model)
+        await session.commit()
+    finally:
+        await sesiones.aclose()

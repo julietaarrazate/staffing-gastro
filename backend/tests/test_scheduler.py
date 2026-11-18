@@ -21,6 +21,7 @@ from app.modules.shift.application.services import (
     NO_SHOW_GRACE_PERIOD,
 )
 from app.modules.shift.infrastructure.models import ShiftModel
+from tests._turno_empezado import confirmo_a_tiempo
 from tests.conftest import auth_headers
 from tests.test_attendance import _shift_payload
 
@@ -59,6 +60,9 @@ async def _confirmed_shift_starting_ago(
         json={"worker_profile_id": worker_profile_id},
     )
     await client.post(f"/api/v1/shifts/{shift_id}/confirm", headers=worker_headers)
+    # Si el turno se armó con el inicio ya pasado, el caso es «confirmó a
+    # tiempo»: no el reemplazo de un turno ya empezado (U080).
+    await confirmo_a_tiempo(shift_id)
     return shift_id, employer_headers, worker_headers
 
 

@@ -252,6 +252,13 @@ class SqlAlchemyReferenceLookup(ReferenceLookup):
         now = datetime.now(timezone.utc)
         # SQLite (tests) devuelve fechas sin zona: se comparan como UTC.
         start_utc = start_at if start_at.tzinfo else start_at.replace(tzinfo=timezone.utc)
+        end_at = shift.end_at
+        end_utc = end_at if end_at.tzinfo else end_at.replace(tzinfo=timezone.utc)
+        # Misma regla que `Shift.is_open_for_applications`: todavía no empezó,
+        # o es un turno reofrecido (U080) al que le queda horario.
+        still_offered = start_utc > now or (
+            shift.reoffered_at is not None and end_utc > now
+        )
         return ShiftFacts(
             id=shift.id,
             title=shift_title_text(shift.title, shift.position) or "Turno",
@@ -262,7 +269,7 @@ class SqlAlchemyReferenceLookup(ReferenceLookup):
             worker_profile_id=shift.worker_profile_id,
             publicly_open=(
                 shift.status in {s.value for s in OPEN_STATUSES}
-                and start_utc > now
+                and still_offered
                 and owner_status == UserStatus.ACTIVE.value
             ),
         )

@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 
 from app.core.dt import naive as _naive
 from app.core.geo import bounding_box, haversine_km
-from app.core.tz import ARG_TZ, format_turno_art
+from app.core.tz import ARG_TZ, format_turno_art, to_art
 from app.modules.application.domain.repositories import ShiftApplicationRepository
 from app.modules.application.domain.entities import ASSIGNABLE_FROM, ShiftApplication
 from app.modules.application.domain.value_objects import (
@@ -29,7 +29,7 @@ from app.modules.notification.domain.value_objects import NotificationType
 from app.modules.shift.application.dtos import EventData, EventResult, ShiftData
 from app.modules.shift.application.scheduler_signal import notify_scheduler
 from app.modules.shift.application.zones import locals_of_unplaced, measuring_zone
-from app.modules.shift.domain.entities import Shift
+from app.modules.shift.domain.entities import Reapertura, Shift
 from app.modules.shift.domain.pay_benchmark import (
     BENCHMARK_WINDOW_DAYS,
     PayBand,
@@ -46,7 +46,7 @@ from app.modules.shift.domain.exceptions import (
     ShiftNotFoundError,
 )
 from app.modules.shift.domain.nearby import FeedOrigin, closest_first, is_nearby, urgent_first
-from app.modules.shift.domain.punctuality import arrived_on_time
+from app.modules.shift.domain.punctuality import punctuality_of
 from app.modules.shift.domain.schedule import (
     mismo_instante,
     validar_horario_nuevo,
@@ -138,6 +138,30 @@ NOT_COVERED_GRACE_NORMAL = NO_SHOW_GRACE_PERIOD
 # zona del perfil, así que puede llegar un aviso de un turno que el Inicio no
 # lista (se abre igual: el aviso lleva al turno). Ver `get_feed_origin`.
 FEED_RADIUS_KM = ESCALATION_RADIUS_KM
+
+
+def coverage_deadline(shift: Shift) -> datetime:
+    """Hasta cuándo se espera que un turno sin nadie confirmado se cubra
+    antes de resolverlo como «no cubierto» (ADR-0015), sin zona («naive», como
+    compara el scheduler).
+
+    Lo normal es `start_at` más una gracia que depende de `urgent`. El turno
+    reofrecido (U080) ya empezó y se ofrece mientras le quede horario: su
+    plazo es `end_at`."""
+    if shift.is_reoffered:
+        return _naive(shift.end_at)
+    grace = NOT_COVERED_GRACE_URGENT if shift.urgent else NOT_COVERED_GRACE_NORMAL
+    return _naive(shift.start_at) + grace
+
+
+def _pesos(amount) -> str:
+    """Monto para una frase: «$15.000» (peso entero, punto de miles)."""
+    return f"${amount:,.0f}".replace(",", ".")
+
+
+def _hora(moment: datetime) -> str:
+    """Hora argentina para una frase: «23:00»."""
+    return f"{to_art(moment):%H:%M}"
 
 
 class ShiftService(AccountSuspensionEffects):
@@ -353,12 +377,19 @@ class ShiftService(AccountSuspensionEffects):
     ESCALATION_NOTIFICATION_LIMIT = 20
 
     async def _rank_nearby(
-        self, shift: Shift, *, max_radius_km: float, limit: int | None
+        self,
+        shift: Shift,
+        *,
+        max_radius_km: float,
+        limit: int | None,
+        exclude_profile_ids: frozenset[UUID] = frozenset(),
     ) -> list[MatchResult]:
         """A quiénes se les avisa de un turno: los mejor rankeados dentro del
         radio (hasta `limit`) más los favoritos del comercio. Sin quien ya
-        está comprometido en un puesto del mismo evento que se pisa de horario.
-        Lanza lo que lance la base: el que llama decide si lo traga."""
+        está comprometido en un puesto del mismo evento que se pisa de horario,
+        y sin `exclude_profile_ids` (quien tuvo ese turno y lo dejó, al
+        reofrecerlo): se sacan antes del tope, así el lugar lo ocupa el que
+        sigue. Lanza lo que lance la base: el que llama decide si lo traga."""
         if self._candidates is None:
             return []
         # Se resuelve acá y no como default del parámetro para que el tope se
@@ -400,6 +431,8 @@ class ShiftService(AccountSuspensionEffects):
             if self._favorites is not None
             else set()
         )
+        if exclude_profile_ids:
+            ranked_all = [m for m in ranked_all if m.profile_id not in exclude_profile_ids]
         if shift.event_id is not None:
             # Evento (U086): quien ya está comprometido en otro puesto del mismo
             # evento no puede tomar éste (el horario es el mismo): sin aviso.
@@ -519,6 +552,8 @@ class ShiftService(AccountSuspensionEffects):
         limit: int | None = None,
         notification_type: NotificationType = NotificationType.NEW_SHIFT_NEARBY,
         escalation: bool = False,
+        reoffer: bool = False,
+        exclude_profile_ids: frozenset[UUID] = frozenset(),
     ) -> None:
         """Avisa del turno a los trabajadores mejor rankeados cerca (mismo
         ranking que ve el comercio en "candidatos": cercanía, reputación,
@@ -544,12 +579,19 @@ class ShiftService(AccountSuspensionEffects):
         `NEW_SHIFT_NEARBY` (primera tanda); `URGENT_SHIFT_NEARBY` queda para
         la escalada, que es lo que la distingue.
 
+        `reoffer=True` (U080, lo llama `_notify_reoffer`): el turno ya empezó
+        y se volvió a ofrecer. El texto lo dice y muestra el valor por hora,
+        porque el total depende de cuándo llegue quien lo tome.
+
         Best-effort a propósito: un fallo acá nunca debe impedir que un turno
         quede publicado (mismo contrato que el push en `NotificationRepository`).
         """
         try:
             ranked = await self._rank_nearby(
-                shift, max_radius_km=max_radius_km, limit=limit
+                shift,
+                max_radius_km=max_radius_km,
+                limit=limit,
+                exclude_profile_ids=exclude_profile_ids,
             )
             if not ranked:
                 return
@@ -557,7 +599,19 @@ class ShiftService(AccountSuspensionEffects):
             company = await self._companies.get_by_id(shift.company_id)
             lugar = company.name if company is not None else "Un comercio cerca tuyo"
             puesto = shift.title or shift.position.label
-            if escalation:
+            if reoffer:
+                title = f"¡Urgente! {puesto} para ahora, cerca tuyo"
+                por_hora = shift.hourly_pay_amount
+                paga = (
+                    f"Paga {_pesos(por_hora)} por hora, desde que llegás. "
+                    if por_hora is not None
+                    else "Se paga desde que llegás. "
+                )
+                message = (
+                    f"{lugar} necesita cubrir {puesto} ya: el turno empezó y va "
+                    f"hasta las {_hora(shift.end_at)}. {paga}Postulate ahora."
+                )
+            elif escalation:
                 title = f"¡Urgente! Turno de {puesto} cerca tuyo"
                 message = (
                     f"{lugar} todavía necesita cubrir {puesto} y no encuentra a nadie. "
@@ -628,6 +682,182 @@ class ShiftService(AccountSuspensionEffects):
             escalation=True,
         )
         return updated
+
+    async def _notify_reoffer(self, shift: Shift) -> None:
+        """El aviso urgente de un turno reofrecido (U080): a quienes están
+        cerca con el círculo de la escalada y a los favoritos, una vez por
+        reapertura (lo llama el caso de uso que reabrió, que sólo puede pasar
+        una vez por ciclo: la transición no se repite).
+
+        Sin quien ya tuvo ESE turno y lo dejó (postulación `desasignada`,
+        ADR-0026): no puede postularse otra vez, así que el aviso lo llevaría
+        a un botón que no anda. Best-effort, como todo aviso de turno; también
+        despierta al scheduler: el plazo de «no cubierto» pasó a `end_at`."""
+        excluded: frozenset[UUID] = frozenset()
+        try:
+            excluded = frozenset(
+                a.worker_profile_id
+                for a in await self._applications.list_by_shift(shift.id)
+                if a.status == ApplicationStatus.DESASIGNADA
+            )
+        except Exception:
+            logger.exception(
+                "Turno reofrecido: no se pudo leer quién lo dejó (shift_id=%s)", shift.id
+            )
+        await self._notify_nearby_workers(
+            shift,
+            max_radius_km=ESCALATION_RADIUS_KM,
+            limit=self.ESCALATION_NOTIFICATION_LIMIT,
+            notification_type=NotificationType.URGENT_SHIFT_NEARBY,
+            reoffer=True,
+            exclude_profile_ids=excluded,
+        )
+        notify_scheduler()
+
+    async def _worker_name(self, worker_profile_id: UUID | None) -> str | None:
+        """Nombre de la persona para un aviso al comercio dueño del turno
+        (que ya lo ve en su panel). `None` si no se puede resolver."""
+        if worker_profile_id is None:
+            return None
+        worker = await self._workers.get_by_id(worker_profile_id)
+        if worker is None:
+            return None
+        user = await self._users.get_by_id(worker.user_id)
+        return user.full_name if user is not None and user.full_name else None
+
+    async def _record_reopen(
+        self,
+        updated: Shift,
+        outcome: Reapertura,
+        *,
+        left_worker_profile_id: UUID | None,
+        motivo: MotivoDesasignacion,
+    ) -> None:
+        """Primera mitad de la cola de toda reapertura decidida por alguien
+        del turno (rechazo, cancelación, ausencia), con el turno ya guardado:
+        devuelve a la carrera a los postulantes que habían quedado rechazados
+        (salvo que el turno haya quedado sin cubrir: ya no hay carrera) y deja
+        la marca de quien lo dejó (ADR-0026). Los avisos van después, en
+        `_announce_reopen`: entre las dos el caso de uso registra lo que le
+        toca a la reputación, para que un aviso que falle no se lo saltee."""
+        if outcome is not Reapertura.SIN_CUBRIR:
+            await self._restore_rejected_applicants(updated.id)
+        if left_worker_profile_id is not None:
+            await self._mark_unassigned(updated.id, left_worker_profile_id, motivo)
+        if outcome is Reapertura.REOFRECIDO:
+            logger.info(
+                "shift.reoffered",
+                extra={"shift_id": str(updated.id), "company_id": str(updated.company_id)},
+            )
+        elif outcome is Reapertura.SIN_CUBRIR:
+            logger.info(
+                "shift.not_covered",
+                extra={
+                    "shift_id": str(updated.id),
+                    "company_id": str(updated.company_id),
+                    "reason": "sin_horario_para_reofrecer",
+                },
+            )
+
+    async def _announce_reopen(
+        self,
+        updated: Shift,
+        outcome: Reapertura,
+        *,
+        left_worker_profile_id: UUID | None,
+        motivo: MotivoDesasignacion,
+        automatic: bool = False,
+    ) -> None:
+        """Segunda mitad: **un** aviso al comercio que dice qué pasó y qué
+        sigue y, si el turno se reofreció, el aviso urgente a quienes están
+        cerca (U080)."""
+        await self._notify_company_reopened(
+            updated,
+            outcome,
+            left_worker_profile_id=left_worker_profile_id,
+            motivo=motivo,
+            automatic=automatic,
+        )
+        if outcome is Reapertura.REOFRECIDO:
+            await self._notify_reoffer(updated)
+
+    async def _notify_company_reopened(
+        self,
+        shift: Shift,
+        outcome: Reapertura,
+        *,
+        left_worker_profile_id: UUID | None,
+        motivo: MotivoDesasignacion,
+        automatic: bool,
+    ) -> None:
+        """El aviso al comercio cuando quien tenía su turno lo dejó. Uno
+        solo por reapertura, con qué pasó y qué sigue.
+
+        Antes de U080 la ausencia no le avisaba nada al comercio: se enteraba
+        por el panel o por el «no cubierto» de más tarde. Una ausencia siempre
+        cae con el turno empezado, así que siempre llega acá como reoferta o
+        como cierre."""
+        turno = shift.title or shift.position.label
+        candidatos = f"/shifts/{shift.id}/candidates"
+
+        if motivo is MotivoDesasignacion.AUSENCIA:
+            quien = await self._worker_name(left_worker_profile_id) or "la persona confirmada"
+            if automatic:
+                paso = f"No registramos la llegada de {quien} a \"{turno}\"."
+                titulo = "No registramos la llegada a tu turno"
+            else:
+                paso = f"Marcaste que {quien} no se presentó a \"{turno}\"."
+                titulo = "Reofrecimos tu turno como urgente"
+            motivo_cierre = f"{quien} no se presentó"
+            tipo = NotificationType.SHIFT_REOPENED
+        elif motivo is MotivoDesasignacion.CANCELACION:
+            paso = (
+                f"El trabajador canceló su asignación al turno \"{turno}\" "
+                "luego de confirmarla."
+            )
+            titulo = "El trabajador canceló su asignación"
+            motivo_cierre = "la persona confirmada canceló"
+            tipo = NotificationType.SHIFT_REOPENED
+        else:
+            paso = f"El trabajador asignado rechazó el turno \"{turno}\"."
+            titulo = "Rechazaron un turno"
+            motivo_cierre = "la persona asignada lo rechazó"
+            tipo = NotificationType.SHIFT_REJECTED
+
+        if outcome is Reapertura.SIN_CUBRIR:
+            await self._notify_company(
+                shift.company_id,
+                NotificationType.SHIFT_NOT_COVERED,
+                "Un turno quedó sin cubrir",
+                (
+                    f"\"{turno}\" quedó sin cubrir: {motivo_cierre} y queda menos "
+                    "de una hora de horario, así que no lo reofrecimos. Podés "
+                    "publicarlo de nuevo."
+                ),
+            )
+        elif outcome is Reapertura.REOFRECIDO:
+            await self._notify_company(
+                shift.company_id,
+                tipo,
+                titulo,
+                (
+                    f"{paso} Como ya había empezado, lo reofrecimos como urgente "
+                    f"hasta las {_hora(shift.end_at)}; se paga lo que reste desde "
+                    "que llegue el reemplazo."
+                ),
+                # Lo que el comercio necesita es elegir a otro: el aviso abre
+                # los candidatos de ESE turno.
+                link=candidatos,
+            )
+        else:
+            # Todavía no había empezado: el aviso de siempre.
+            await self._notify_company(
+                shift.company_id,
+                tipo,
+                titulo,
+                f"{paso} Volvió a buscar personal.",
+                link=candidatos,
+            )
 
     async def _publication_subscription(self, company_id: UUID, now: datetime) -> Subscription:
         """La suscripción del comercio con la ventana de uso al día. No guarda
@@ -873,7 +1103,7 @@ class ShiftService(AccountSuspensionEffects):
         es parte del contrato público, sólo etiqueta el evento."""
         shift = await self._get_owned(company_id, shift_id)
         absent_worker_profile_id = shift.worker_profile_id
-        shift.no_show()
+        outcome = shift.no_show()
         updated = await self._shifts.update(shift)
         logger.info(
             "worker.no_show",
@@ -885,11 +1115,15 @@ class ShiftService(AccountSuspensionEffects):
                 "trigger": _trigger,
             },
         )
-        await self._restore_rejected_applicants(shift_id)
+        # Una ausencia siempre cae con el turno empezado: se reofrece como
+        # urgente o, si queda menos de una hora, pasa a «no cubierto» (U080).
+        await self._record_reopen(
+            updated,
+            outcome,
+            left_worker_profile_id=absent_worker_profile_id,
+            motivo=MotivoDesasignacion.AUSENCIA,
+        )
         if absent_worker_profile_id is not None:
-            await self._mark_unassigned(
-                shift_id, absent_worker_profile_id, MotivoDesasignacion.AUSENCIA
-            )
             await self._workers.record_no_show(absent_worker_profile_id)
             nombre = updated.title or updated.position.label
             if _trigger == "automatic":
@@ -916,6 +1150,16 @@ class ShiftService(AccountSuspensionEffects):
                 message,
                 link="/profile",
             )
+        # Al comercio, un aviso que le cuenta qué pasó y qué hizo la app con
+        # el turno (antes de U080 la ausencia no le avisaba nada); y a quienes
+        # están cerca, el turno reofrecido.
+        await self._announce_reopen(
+            updated,
+            outcome,
+            left_worker_profile_id=absent_worker_profile_id,
+            motivo=MotivoDesasignacion.AUSENCIA,
+            automatic=_trigger == "automatic",
+        )
         return updated
 
     async def list_shifts_awaiting_checkin(self) -> list[Shift]:
@@ -1011,26 +1255,38 @@ class ShiftService(AccountSuspensionEffects):
         # persona y no llegó a confirmar o canceló, igual hubo alguien confirmado
         # que no se presentó y no se consiguió reemplazo a tiempo.
         tras_ausencia = shift.no_show_at is not None
+        reofrecido = shift.is_reoffered
         shift.mark_not_covered()
         updated = await self._shifts.update(shift)
         logger.info(
             "shift.not_covered",
             extra={"shift_id": str(updated.id), "company_id": str(updated.company_id)},
         )
+        nombre = updated.title or updated.position.label
+        if reofrecido:
+            # U080: se reabrió ya empezado y se ofreció hasta el final. Decir
+            # «nadie confirmó» sería falso: alguien lo tuvo y lo dejó.
+            message = (
+                f"\"{nombre}\" quedó sin cubrir: lo reofrecimos como urgente y no "
+                "se consiguió reemplazo antes de que terminara su horario. Podés "
+                "publicarlo de nuevo."
+            )
+        elif tras_ausencia:
+            message = (
+                f"\"{nombre}\" quedó sin cubrir: una "
+                "persona confirmada no se presentó y no se consiguió reemplazo a "
+                "tiempo. Podés publicarlo de nuevo."
+            )
+        else:
+            message = (
+                f"Se agotó el tiempo para cubrir \"{nombre}\" "
+                "sin que nadie confirmara. Podés publicarlo de nuevo."
+            )
         await self._notify_company(
             updated.company_id,
             NotificationType.SHIFT_NOT_COVERED,
             "Un turno quedó sin cubrir",
-            (
-                f"\"{updated.title or updated.position.label}\" quedó sin cubrir: una "
-                "persona confirmada no se presentó y no se consiguió reemplazo a "
-                "tiempo. Podés publicarlo de nuevo."
-                if tras_ausencia
-                else (
-                    f"Se agotó el tiempo para cubrir \"{updated.title or updated.position.label}\" "
-                    "sin que nadie confirmara. Podés publicarlo de nuevo."
-                )
-            ),
+            message,
         )
         return updated
 
@@ -1401,18 +1657,19 @@ class ShiftService(AccountSuspensionEffects):
     ) -> Shift:
         """El trabajador asignado rechaza el turno; vuelve a buscar personal."""
         shift = await self._get_assigned_to(worker_profile_id, shift_id)
-        shift.reject()
+        outcome = shift.reject()
         updated = await self._shifts.update(shift)
-        await self._restore_rejected_applicants(shift_id)
-        await self._mark_unassigned(shift_id, worker_profile_id, MotivoDesasignacion.RECHAZO)
-        await self._notify_company(
-            updated.company_id,
-            NotificationType.SHIFT_REJECTED,
-            "Rechazaron un turno",
-            f"El trabajador asignado rechazó el turno \"{updated.title or updated.position.label}\". Volvió a buscar personal.",
-            # El turno quedó sin cubrir: lo que el comercio necesita es elegir
-            # a otro, así que el aviso abre los candidatos de ESE turno.
-            link=f"/shifts/{updated.id}/candidates",
+        await self._record_reopen(
+            updated,
+            outcome,
+            left_worker_profile_id=worker_profile_id,
+            motivo=MotivoDesasignacion.RECHAZO,
+        )
+        await self._announce_reopen(
+            updated,
+            outcome,
+            left_worker_profile_id=worker_profile_id,
+            motivo=MotivoDesasignacion.RECHAZO,
         )
         return updated
 
@@ -1429,23 +1686,20 @@ class ShiftService(AccountSuspensionEffects):
         comercio.
         """
         shift = await self._get_assigned_to(worker_profile_id, shift_id)
-        shift.worker_cancel()
+        outcome = shift.worker_cancel()
         updated = await self._shifts.update(shift)
-        await self._restore_rejected_applicants(shift_id)
-        await self._mark_unassigned(
-            shift_id, worker_profile_id, MotivoDesasignacion.CANCELACION
+        await self._record_reopen(
+            updated,
+            outcome,
+            left_worker_profile_id=worker_profile_id,
+            motivo=MotivoDesasignacion.CANCELACION,
         )
         await self._workers.record_cancellation(worker_profile_id)
-        await self._notify_company(
-            updated.company_id,
-            NotificationType.SHIFT_REOPENED,
-            "El trabajador canceló su asignación",
-            (
-                f"El trabajador canceló su asignación al turno "
-                f"\"{updated.title or updated.position.label}\" luego de "
-                "confirmarla. Volvió a buscar personal."
-            ),
-            link=f"/shifts/{updated.id}/candidates",
+        await self._announce_reopen(
+            updated,
+            outcome,
+            left_worker_profile_id=worker_profile_id,
+            motivo=MotivoDesasignacion.CANCELACION,
         )
         return updated
 
@@ -1788,12 +2042,13 @@ class ShiftService(AccountSuspensionEffects):
         return updated
 
     @staticmethod
-    def _was_punctual(shift: Shift) -> bool:
+    def _was_punctual(shift: Shift) -> bool | None:
         """Puntual = llegó hasta 15 min después de `start_at` (antes, siempre).
+        `None` = este turno no mueve la puntualidad (lo tomó ya empezado, U080).
 
         La regla vive en `shift/domain/punctuality.py`.
         """
-        return arrived_on_time(shift.check_in_at, shift.start_at)
+        return punctuality_of(shift.check_in_at, shift.start_at, shift.confirmed_at)
 
     @staticmethod
     def _was_paid_on_time(shift: Shift) -> bool:
