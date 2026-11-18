@@ -33,7 +33,7 @@ export function argentinaISOToLocalInput(iso: string): string {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-    hour12: false,
+    hourCycle: "h23",
   }).formatToParts(new Date(iso));
   const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
   return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
@@ -52,11 +52,17 @@ export function formatDayMonth(iso: string): string {
   });
 }
 
+/**
+ * La hora de un turno, SIEMPRE en 24 h ("20:00", nunca "08:00 p. m."): es la
+ * única función de hora de la app. Con `hourCycle: "h23"` explícito no depende
+ * de lo que prefiera el locale del navegador.
+ */
 export function formatShiftTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("es-AR", {
     timeZone: AR_TIMEZONE,
     hour: "2-digit",
     minute: "2-digit",
+    hourCycle: "h23",
   });
 }
 
@@ -153,15 +159,6 @@ function arDateKey(date: Date): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: AR_TIMEZONE }).format(date);
 }
 
-function formatTime24(iso: string): string {
-  return new Date(iso).toLocaleTimeString("es-AR", {
-    timeZone: AR_TIMEZONE,
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  });
-}
-
 /**
  * Versión compacta para tarjetas chicas (home del trabajador): "Hoy · 20:00 –
  * 23:00", "Mañana · 21:00 – 02:00", "sáb 27/9 · 20:00 – 23:00". Horas en 24 h
@@ -186,7 +183,7 @@ export function formatShiftWhen(startIso: string, endIso: string, now: Date = ne
     });
     day = `${weekday} ${dayMonth}`;
   }
-  return `${day} · ${formatTime24(startIso)} – ${formatTime24(endIso)}`;
+  return `${day} · ${formatShiftTime(startIso)} – ${formatShiftTime(endIso)}`;
 }
 
 /**
@@ -195,7 +192,7 @@ export function formatShiftWhen(startIso: string, endIso: string, now: Date = ne
  */
 export function formatShiftStartPhrase(startIso: string, now: Date = new Date()): string {
   const key = arDateKey(new Date(startIso));
-  const hora = formatTime24(startIso);
+  const hora = formatShiftTime(startIso);
   if (key === arDateKey(now)) return `hoy a las ${hora}`;
   if (key === arDateKey(new Date(now.getTime() + 86_400_000))) return `mañana a las ${hora}`;
   const weekday = new Date(startIso).toLocaleDateString("es-AR", {

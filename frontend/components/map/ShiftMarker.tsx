@@ -4,7 +4,7 @@ import { memo } from "react";
 import { Marker } from "@vis.gl/react-maplibre";
 import { SKILL_ACCENT } from "@/lib/skill-style";
 import { formatArs } from "@/lib/format";
-import type { WorkerSkill } from "@/lib/types";
+import { SKILL_LABELS, type WorkerSkill } from "@/lib/types";
 
 interface ShiftMarkerProps {
   id: string;
@@ -95,7 +95,7 @@ function ShiftMarker({
         )}
         <button
           type="button"
-          aria-label={`Turno de ${position}, ${formatArs(payAmount)}${
+          aria-label={`Turno de ${SKILL_LABELS[position]}, ${formatArs(payAmount)}${
             isMatch ? ", paga por encima de lo habitual" : ""
           }`}
           aria-pressed={active}

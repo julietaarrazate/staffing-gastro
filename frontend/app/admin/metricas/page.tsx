@@ -13,11 +13,11 @@ import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { AR_TIMEZONE } from "@/lib/datetime";
-import { formatArs } from "@/lib/format";
 import type { PeriodMetrics, PeriodSummary, PlatformStats, SubscriptionStats } from "@/lib/types";
 import { Badge, Card, ErrorBanner, SegmentedControl } from "@/components/ui";
 import { WalletIcon } from "@/components/icons";
 import { periodDelta } from "@/components/admin/live";
+import { formatArs, plural } from "@/lib/format";
 import {
   AdminHeading,
   DeltaStatCard,
@@ -156,7 +156,7 @@ function PeriodSection({ token }: { token: string | null }) {
               value={pct(cur.fulfilled_pct)}
               previous={pct(prev.fulfilled_pct)}
               delta={periodDelta(cur.fulfilled_pct, prev.fulfilled_pct)}
-              caption={`${cur.fulfilled} de ${cur.shifts_covered} cubiertos con llegada al local`}
+              caption={`${cur.fulfilled} de ${plural(cur.shifts_covered, "cubierto", "cubiertos")} con llegada al local`}
             />
             <DeltaStatCard
               label="Postulaciones"
@@ -334,17 +334,13 @@ export default function AdminMetricsPage() {
                 {!subscriptionStats.billing_enabled && <Badge tone="neutral">Cobro no activado</Badge>}
               </div>
               <p className="mt-1 text-2xl font-extrabold text-ink">
-                ARS{" "}
-                {Number(
-                  subscriptionStats.billing_enabled ? subscriptionStats.mrr_ars : 0
-                ).toLocaleString("es-AR")}
+                {formatArs(subscriptionStats.billing_enabled ? subscriptionStats.mrr_ars : 0)}
               </p>
               {/* Con el cobro apagado, `mrr_ars` es lo que se cobraría: nunca
                   se muestra como ingreso real (auditoría 2026-08-15, F1). */}
               {!subscriptionStats.billing_enabled && (
                 <p className="mt-1 text-xs text-ink/40">
-                  Potencial si se cobrara: ARS{" "}
-                  {Number(subscriptionStats.mrr_ars).toLocaleString("es-AR")}
+                  Potencial si se cobrara: {formatArs(subscriptionStats.mrr_ars)}
                 </p>
               )}
               {/* El ingreso es una foto de hoy: no se guarda su historia, así

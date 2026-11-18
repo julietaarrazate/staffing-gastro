@@ -15,7 +15,7 @@ import { SKILL_LABELS, Shift, ShiftApplication, ShiftPublic } from "@/lib/types"
 import { SKILL_ACCENT, SKILL_HERO_TONE, heroInk } from "@/lib/skill-style";
 import { cldThumb } from "@/lib/cloudinary";
 import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
-import { formatPayAmount, payPerHour } from "@/lib/pay";
+import { formatMoney, formatPayAmount, payPerHour } from "@/lib/pay";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import SaveShiftButton from "@/components/worker/SaveShiftButton";
 import { useLiveRefresh } from "@/lib/live-refresh";
@@ -301,7 +301,7 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
               {formatPayAmount(shift)}
             </p>
             <p className="text-sm text-on-brand/80">
-              {[shift.tips ? "+ propinas" : null, perHour ? `≈ ${formatPayAmount({ pay_amount: String(Math.round(perHour)), currency: shift.currency })} por hora` : null]
+              {[shift.tips ? "+ propinas" : null, perHour ? `≈ ${formatMoney(perHour, shift.currency)} por hora` : null]
                 .filter(Boolean)
                 .join(" · ")}
             </p>

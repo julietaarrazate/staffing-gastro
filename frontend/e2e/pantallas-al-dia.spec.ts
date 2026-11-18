@@ -5,7 +5,7 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash }
  * Pantallas al día (G1, U013/U014): un aviso que llega por el WebSocket de la
  * campanita hace que la pantalla abierta se ponga al día sola, sin recargar.
  *  - El trabajador confirma y el panel del comercio pasa a «Confirmado».
- *  - El comercio cancela y «Mis turnos» del trabajador deja de ofrecer «Llegué».
+ *  - El comercio cancela y «Matches» del trabajador deja de ofrecer «Llegué».
  */
 
 function shift(status: string) {
@@ -106,7 +106,7 @@ test("el trabajador confirma y el panel del comercio pasa solo a «Confirmado»"
   await expect(lista.getByText("Asignado", { exact: true })).toHaveCount(0);
 });
 
-test("el comercio cancela y «Mis turnos» deja de ofrecer «Llegué»", async ({ page }) => {
+test("el comercio cancela y «Matches» deja de ofrecer «Llegué»", async ({ page }) => {
   const sockets = await setup(page, "worker");
   let status = "confirmado";
   await page.route("**/api/v1/shifts/mine", (route) =>

@@ -1,5 +1,6 @@
 import type { Shift } from "@/lib/types";
 import { shiftDurationMinutes } from "@/lib/datetime";
+import { formatArs } from "@/lib/format";
 
 type PayFields = Pick<Shift, "pay_amount" | "currency" | "start_at" | "end_at">;
 
@@ -11,10 +12,19 @@ export function payPerHour(shift: PayFields): number | null {
   return (Number(shift.pay_amount) / minutes) * 60;
 }
 
-/** Monto compacto para tarjetas chicas: "$42.000" en pesos, "USD 50" en otra moneda. */
+/** Monto en pesos enteros (mismo criterio que `formatArs`): "$42.000" en pesos,
+ * "USD 50" en otra moneda; un monto inválido es "—", nunca "$NaN". */
+export function formatMoney(amount: number | string, currency: string): string {
+  const n = Number(amount);
+  if (amount === "" || !Number.isFinite(n)) return "—";
+  return currency === "ARS"
+    ? formatArs(n)
+    : `${currency} ${n.toLocaleString("es-AR", { maximumFractionDigits: 0 })}`;
+}
+
+/** Monto compacto para tarjetas chicas. */
 export function formatPayAmount(shift: Pick<Shift, "pay_amount" | "currency">): string {
-  const amount = Number(shift.pay_amount).toLocaleString("es-AR");
-  return shift.currency === "ARS" ? `$${amount}` : `${shift.currency} ${amount}`;
+  return formatMoney(shift.pay_amount, shift.currency);
 }
 
 /** Monto + extras: "$42.000 + propinas". */

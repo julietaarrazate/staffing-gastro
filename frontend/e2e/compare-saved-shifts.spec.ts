@@ -151,12 +151,12 @@ test("con 2+ turnos guardados, comparar muestra pago, pago por hora y distancia"
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByText("Comparar turnos guardados")).toBeVisible();
   // Mozo/a, 6 hs, $45.000 -> $7.500/hora.
-  await expect(dialog.getByText("ARS 45.000")).toBeVisible();
-  await expect(dialog.getByText("ARS 7.500")).toBeVisible();
-  // Barista, 6 hs, $30.000 -> $5.000/hora, a ~4.1 km de Palermo.
-  await expect(dialog.getByText("ARS 30.000")).toBeVisible();
-  await expect(dialog.getByText("ARS 5.000")).toBeVisible();
-  await expect(dialog.getByText("4.1 km")).toBeVisible();
+  await expect(dialog.getByText("$45.000")).toBeVisible();
+  await expect(dialog.getByText("$7.500")).toBeVisible();
+  // Barista, 6 hs, $30.000 -> $5.000/hora, a ~4,1 km de Palermo.
+  await expect(dialog.getByText("$30.000")).toBeVisible();
+  await expect(dialog.getByText("$5.000")).toBeVisible();
+  await expect(dialog.getByText("4,1 km")).toBeVisible();
 });
 
 test("un cuarto turno no se puede agregar: el tope de comparación es 3", async ({ page }) => {
