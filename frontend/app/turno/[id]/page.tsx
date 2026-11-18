@@ -1,40 +1,29 @@
 import type { Metadata } from "next";
-import { cache } from "react";
 import { notFound } from "next/navigation";
-import { api, ApiError } from "@/lib/api";
-import { SKILL_LABELS, ShiftPublic } from "@/lib/types";
+import { SKILL_LABELS } from "@/lib/types";
 import { buildShiftSummary } from "@/lib/shift-share";
 import ShiftDetail from "@/components/ShiftDetail";
 import { SITE_URL } from "@/lib/site";
 import { cldOgImage } from "@/lib/cloudinary";
 import { OG_IMAGE_URL } from "@/lib/og";
+import { getTurnoPublico } from "@/lib/turno-publico";
 
 /**
  * Página pública de un turno (sin autenticación) — pensada para compartirse
  * por WhatsApp/redes. Consume `GET /shifts/{id}/public`, que sólo devuelve
- * turnos en estado PUBLICADO con campos seguros (ni contacto del comercio,
- * ni postulantes, ver `backend/app/modules/shift/api/routes.py`).
+ * turnos abiertos a postulaciones (PUBLICADO o BUSCANDO_PERSONAL, con la hora
+ * por delante) y con campos seguros (ni contacto del comercio, ni
+ * postulantes, ver `backend/app/modules/shift/api/routes.py`).
  *
  * El servidor arma sólo esa vista pública (metadatos para la vista previa de
  * WhatsApp incluidos); si quien la abre tiene sesión, `ShiftDetail` completa
  * el resto del lado del cliente — ver ahí el porqué.
+ *
+ * Cuando no hay turno para mostrar hay dos pantallas, según `lib/turno-publico.ts`:
+ * «Este turno ya no está disponible» (`not-found.tsx` de esta carpeta) y
+ * «No encontramos esa página» (`app/not-found.tsx`). Quién corta cada una
+ * está explicado en `layout.tsx`.
  */
-
-// Un id que no es UUID no puede ser un turno: el backend responde 422 y la
-// página daba 500 en vez de "no encontrado" (auditoría 2026-10-14).
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-// `cache`: `generateMetadata` y la página piden el mismo turno; así sale un
-// solo pedido al backend por visita.
-const getPublicShift = cache(async (id: string): Promise<ShiftPublic | null> => {
-  if (!UUID_RE.test(id)) return null;
-  try {
-    return await api.get<ShiftPublic>(`/shifts/${id}/public`);
-  } catch (err) {
-    if (err instanceof ApiError && (err.status === 404 || err.status === 422)) return null;
-    throw err;
-  }
-});
 
 // La dirección canónica, fija: antes salía de los headers `x-forwarded-host`
 // y `host` del pedido, que manda el cliente, y quedaba en `og:url`.
@@ -48,11 +37,17 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const shift = await getPublicShift(id);
+  const turno = await getTurnoPublico(id);
 
-  if (!shift) {
-    return { title: "Turno no encontrado" };
+  // Sin turno abierto, el título dice lo mismo que la pantalla y nada del
+  // turno. Next les suma `noindex` por ser respuestas 404.
+  if (turno.estado === "no_encontrado") {
+    return { title: "Página no encontrada" };
   }
+  if (turno.estado === "no_disponible") {
+    return { title: "Este turno ya no está disponible" };
+  }
+  const { shift } = turno;
 
   const title = `Buscamos ${SKILL_LABELS[shift.position]}${
     shift.company_name ? ` en ${shift.company_name}` : ""
@@ -101,11 +96,13 @@ export default async function PublicShiftPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const shift = await getPublicShift(id);
+  const turno = await getTurnoPublico(id);
 
-  if (!shift) {
+  // Acá sólo llega «ya no disponible»: lo que no existe ya lo cortó el layout.
+  // Este `notFound()` muestra el `not-found.tsx` de esta carpeta.
+  if (turno.estado !== "abierto") {
     notFound();
   }
 
-  return <ShiftDetail publicShift={shift} />;
+  return <ShiftDetail publicShift={turno.shift} />;
 }

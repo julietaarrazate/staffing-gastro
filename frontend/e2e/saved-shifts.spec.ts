@@ -244,6 +244,6 @@ test("tab Guardados: 'Quitar de guardados' saca el turno sin postularse", async 
 
   await page.getByRole("button", { name: "Quitar de guardados" }).click();
 
-  expect(deleteCalled).toBe(true);
+  await expect.poll(() => deleteCalled).toBe(true);
   await expect(page.getByText("No tenés turnos guardados")).toBeVisible();
 });

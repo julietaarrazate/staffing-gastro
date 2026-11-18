@@ -4,7 +4,9 @@
 // minutos, métricas de producto (docs/audits/OBSERVABILITY_AND_PRODUCT_ANALYTICS.md
 // §6) y suscripciones (ADR-0005). Arriba, lo de los últimos 7 o 30 días
 // contra el período anterior (paso 4 del panel ordenado, 2026-10-20); abajo,
-// los acumulados de siempre.
+// los acumulados de siempre. «Cubierto» = la persona confirmó; «cumplido» =
+// cubierto y con llegada al local; las cuentas de prueba e invitadas no cuentan
+// (medición de la beta, docs/planning/BETA_TABLERO.md).
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
@@ -15,6 +17,7 @@ import type { PeriodMetrics, PeriodSummary, PlatformStats, SubscriptionStats } f
 import { Badge, Card, ErrorBanner, SegmentedControl } from "@/components/ui";
 import { WalletIcon } from "@/components/icons";
 import { periodDelta } from "@/components/admin/live";
+import { formatArs, plural } from "@/lib/format";
 import {
   AdminHeading,
   DeltaStatCard,
@@ -95,35 +98,65 @@ function PeriodSection({ token }: { token: string | null }) {
       )}
       <div className="mt-2 grid grid-cols-2 gap-3 lg:grid-cols-3">
         {!cur || !prev ? (
-          !error && Array.from({ length: 5 }, (_, i) => <StatCardSkeleton key={i} />)
+          !error && Array.from({ length: 7 }, (_, i) => <StatCardSkeleton key={i} />)
         ) : (
           <>
+            <DeltaStatCard
+              label="Locales activos"
+              value={String(cur.active_companies)}
+              previous={String(prev.active_companies)}
+              delta={periodDelta(cur.active_companies, prev.active_companies)}
+              caption={`${cur.companies_with_covered} con un turno cubierto`}
+            />
             <DeltaStatCard
               label="Turnos publicados"
               value={String(cur.shifts_published)}
               previous={String(prev.shifts_published)}
               delta={periodDelta(cur.shifts_published, prev.shifts_published)}
             />
+            {/* «Cubierto» = la persona confirmó, no que el comercio eligió. */}
             <DeltaStatCard
               label="Turnos cubiertos"
               value={String(cur.shifts_covered)}
               previous={String(prev.shifts_covered)}
               delta={periodDelta(cur.shifts_covered, prev.shifts_covered)}
-              caption={cur.covered_pct === null ? undefined : `${pct(cur.covered_pct)} de los publicados`}
+              caption={
+                cur.covered_pct === null
+                  ? "la persona confirmó"
+                  : `la persona confirmó · ${pct(cur.covered_pct)} de los publicados`
+              }
             />
             <DeltaStatCard
-              label="Tiempo hasta cubrir"
-              value={minutes(cur.avg_minutes_to_cover)}
-              previous={minutes(prev.avg_minutes_to_cover)}
-              delta={periodDelta(cur.avg_minutes_to_cover, prev.avg_minutes_to_cover, {
+              label="Mediana hasta confirmar"
+              value={minutes(cur.median_minutes_to_cover)}
+              previous={minutes(prev.median_minutes_to_cover)}
+              delta={periodDelta(cur.median_minutes_to_cover, prev.median_minutes_to_cover, {
                 lowerIsBetter: true,
               })}
+              caption={
+                cur.avg_minutes_to_cover === null
+                  ? undefined
+                  : `promedio ${minutes(cur.avg_minutes_to_cover)}`
+              }
             />
             <DeltaStatCard
-              label="Cubiertos en menos de 10 min"
-              value={pct(cur.covered_under_10_min_pct)}
-              previous={pct(prev.covered_under_10_min_pct)}
-              delta={periodDelta(cur.covered_under_10_min_pct, prev.covered_under_10_min_pct)}
+              label="Con menos de 24 h de aviso, en menos de 10 min"
+              value={pct(cur.short_notice_under_10_min_pct)}
+              previous={pct(prev.short_notice_under_10_min_pct)}
+              delta={periodDelta(
+                cur.short_notice_under_10_min_pct,
+                prev.short_notice_under_10_min_pct
+              )}
+              caption={`sobre ${cur.short_notice_covered} cubierto${
+                cur.short_notice_covered === 1 ? "" : "s"
+              } con aviso corto`}
+            />
+            <DeltaStatCard
+              label="Cumplidos"
+              value={pct(cur.fulfilled_pct)}
+              previous={pct(prev.fulfilled_pct)}
+              delta={periodDelta(cur.fulfilled_pct, prev.fulfilled_pct)}
+              caption={`${cur.fulfilled} de ${plural(cur.shifts_covered, "cubierto", "cubiertos")} con llegada al local`}
             />
             <DeltaStatCard
               label="Postulaciones"
@@ -207,7 +240,7 @@ export default function AdminMetricsPage() {
             <SectionLabel>La promesa de los 10 minutos, desde el principio</SectionLabel>
             <div className="mt-2 grid grid-cols-2 gap-3">
               <StatCard
-                label="Tiempo promedio de cobertura"
+                label="Tiempo promedio hasta confirmar"
                 value={
                   stats.avg_time_to_fill_minutes === null
                     ? "—"
@@ -224,9 +257,11 @@ export default function AdminMetricsPage() {
               />
             </div>
             <p className="mt-1.5 px-1 text-xs text-ink/40">
-              Sobre {stats.coverage_sample_size} turno
+              Desde que se publica hasta que la persona confirma. Sobre{" "}
+              {stats.coverage_sample_size} turno
               {stats.coverage_sample_size === 1 ? "" : "s"} cubierto
-              {stats.coverage_sample_size === 1 ? "" : "s"} hasta ahora.
+              {stats.coverage_sample_size === 1 ? "" : "s"} hasta ahora, sin cuentas de prueba ni
+              invitadas.
             </p>
           </div>
 
@@ -234,7 +269,7 @@ export default function AdminMetricsPage() {
             <SectionLabel>Métricas de producto</SectionLabel>
             <div className="mt-2 grid grid-cols-2 gap-3 lg:grid-cols-3">
               <RateCard
-                label="Turnos asignados"
+                label="Turnos asignados (los eligió el comercio)"
                 pct={stats.shift_assignment_rate_pct}
                 caption={sampleCaption(
                   stats.shift_assignment_rate_sample_size,
@@ -275,12 +310,12 @@ export default function AdminMetricsPage() {
                 )}
               />
               <RateCard
-                label="Comercios que repiten"
-                pct={stats.employer_repeat_rate_pct}
+                label="Comercios que vuelven a publicar (30 días)"
+                pct={stats.employer_return_30d_rate_pct}
                 caption={sampleCaption(
-                  stats.employer_repeat_sample_size,
-                  "comercio activo",
-                  "comercios activos"
+                  stats.employer_return_30d_sample_size,
+                  "comercio con su primer turno cubierto hace más de 30 días",
+                  "comercios con su primer turno cubierto hace más de 30 días"
                 )}
               />
             </div>
@@ -299,17 +334,13 @@ export default function AdminMetricsPage() {
                 {!subscriptionStats.billing_enabled && <Badge tone="neutral">Cobro no activado</Badge>}
               </div>
               <p className="mt-1 text-2xl font-extrabold text-ink">
-                ARS{" "}
-                {Number(
-                  subscriptionStats.billing_enabled ? subscriptionStats.mrr_ars : 0
-                ).toLocaleString("es-AR")}
+                {formatArs(subscriptionStats.billing_enabled ? subscriptionStats.mrr_ars : 0)}
               </p>
               {/* Con el cobro apagado, `mrr_ars` es lo que se cobraría: nunca
                   se muestra como ingreso real (auditoría 2026-08-15, F1). */}
               {!subscriptionStats.billing_enabled && (
                 <p className="mt-1 text-xs text-ink/40">
-                  Potencial si se cobrara: ARS{" "}
-                  {Number(subscriptionStats.mrr_ars).toLocaleString("es-AR")}
+                  Potencial si se cobrara: {formatArs(subscriptionStats.mrr_ars)}
                 </p>
               )}
               {/* El ingreso es una foto de hoy: no se guarda su historia, así
@@ -318,6 +349,39 @@ export default function AdminMetricsPage() {
             </Card>
             <StatCard label="Comercios" value={subscriptionStats.total_companies} />
             <StatCard label="Cerca del límite" value={subscriptionStats.companies_at_plan_limit} />
+          </div>
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div data-testid="eligieron-plan">
+            <Card className="p-5">
+              <p className="text-2xl font-extrabold text-ink">
+                {Object.values(subscriptionStats.companies_with_chosen_plan ?? {}).reduce(
+                  (a, b) => a + b,
+                  0
+                )}
+              </p>
+              <p className="text-xs font-medium text-ink/50">Eligieron un plan al darse de alta</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {Object.entries(subscriptionStats.companies_with_chosen_plan ?? {}).map(
+                  ([planCode, count]) => (
+                    <Badge key={planCode} tone="neutral">
+                      {PLAN_LABELS[planCode] ?? planCode}: {count}
+                    </Badge>
+                  )
+                )}
+              </div>
+            </Card>
+            </div>
+            <div data-testid="se-comprometieron">
+            <Card className="p-5">
+              <p className="text-2xl font-extrabold text-ink">
+                {subscriptionStats.committed_companies ?? 0}
+              </p>
+              <p className="text-xs font-medium text-ink/50">Se comprometieron a pagar</p>
+              <p className="mt-2 text-sm font-semibold text-ink">
+                {formatArs(subscriptionStats.committed_mrr_ars ?? 0)}/mes
+              </p>
+            </Card>
+            </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
             {Object.entries(subscriptionStats.companies_by_plan).map(([planCode, count]) => (

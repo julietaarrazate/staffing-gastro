@@ -13,6 +13,11 @@ class AssigneeNotFoundError(ShiftError):
     """El perfil de trabajador a asignar no existe."""
 
 
+class AssigneeUnavailableError(ShiftError):
+    """La persona a asignar tiene la cuenta suspendida (ADR-0024): no podría
+    entrar a confirmar, y el turno quedaría esperando para siempre."""
+
+
 class InvalidShiftTransitionError(ShiftError):
     """La transición de estado solicitada no es válida desde el estado actual."""
 

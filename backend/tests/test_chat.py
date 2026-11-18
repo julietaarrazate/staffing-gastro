@@ -234,6 +234,7 @@ def _setup_assigned_shift_sync(client: TestClient, emp_email: str, worker_email:
             "full_name": "Bar WS",
             "role": "employer",
             "accepted_terms": True,
+        "birth_date": "1995-05-20",
         },
     )
     assert employer.status_code == 201
@@ -257,6 +258,7 @@ def _setup_assigned_shift_sync(client: TestClient, emp_email: str, worker_email:
             "full_name": "Worker WS",
             "role": "worker",
             "accepted_terms": True,
+        "birth_date": "1995-05-20",
         },
     )
     assert worker_register.status_code == 201
@@ -426,3 +428,34 @@ async def test_send_message_rate_limited(client: AsyncClient):
     # El límite es 30/min: los primeros 30 se crean (201) y luego 429.
     assert 429 in statuses
     assert statuses.index(429) >= 30
+
+
+@pytest.mark.asyncio
+async def test_send_message_twice_same_key_creates_one_message(client: AsyncClient):
+    """U012: reintentar el envío (mismo `Idempotency-Key`) no duplica el mensaje
+    ni el aviso a la otra parte."""
+    shift_id, employer_headers, worker_headers = await _assigned_shift(
+        client, "chat_emp_idem@staffya.com", "chat_w_idem@staffya.com"
+    )
+    headers = {**employer_headers, "Idempotency-Key": "enviar-mensaje-reintento"}
+    first = await client.post(
+        f"/api/v1/chats/{shift_id}/messages", headers=headers, json={"body": "Hola"}
+    )
+    second = await client.post(
+        f"/api/v1/chats/{shift_id}/messages", headers=headers, json={"body": "Hola"}
+    )
+    assert first.status_code == 201
+    assert second.status_code == 201
+    assert second.json() == first.json()
+
+    messages = await client.get(f"/api/v1/chats/{shift_id}/messages", headers=worker_headers)
+    assert len(messages.json()) == 1
+    avisos = await client.get("/api/v1/notifications", headers=worker_headers)
+    assert len([n for n in avisos.json() if n["type"] == "chat_message"]) == 1
+
+    # Sin la key sigue funcionando (modo grace): un mensaje nuevo, aparte.
+    third = await client.post(
+        f"/api/v1/chats/{shift_id}/messages", headers=employer_headers, json={"body": "Hola"}
+    )
+    assert third.status_code == 201
+    assert third.json()["id"] != first.json()["id"]

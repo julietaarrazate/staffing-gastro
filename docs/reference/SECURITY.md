@@ -17,7 +17,8 @@
     un `jti` ya revocado se trata como robo: revoca **todas** las sesiones
     del usuario.
   - Algoritmo **HS256**; claims: `sub`, `type` (`access`/`refresh`), `iat`,
-    `exp`, y `jti` sólo en el refresh.
+    `exp`, `jti` sólo en el refresh, y `mfa: true` (en los dos) cuando la
+    sesión pasó por la verificación en dos pasos (ADR-0023, abajo).
 - **Contraseñas:** hash **bcrypt** (librería `bcrypt` directa, 12 rondas; `passlib` se sacó el 2026-10-21 por estar sin mantenimiento). Nunca se guarda ni se loguea la
   contraseña en claro. En los casos de uso, bcrypt corre en un hilo
   (`hash_password_async` / `verify_password_async`, 2026-10-23) para no
@@ -35,6 +36,35 @@
   primer admin sin endpoint de auto-registro.
 - **No-disclosure:** recurso ajeno o inexistente → **404**. Nunca se distingue
   "no existe" de "no es tuyo". Regla transversal de la capa `api/`.
+  - Única excepción, a propósito: la página pública de un turno
+    (`GET /shifts/{id}/public`) responde **410** cuando el turno **ya fue
+    público** y dejó de estar abierto. Sólo confirma algo que ya era público
+    (que ese turno existió) y no devuelve ningún dato suyo; un borrador o un
+    id inexistente siguen siendo 404. Detalle en [API.md](./API.md).
+
+## Verificación en dos pasos (admin, ADR-0023)
+
+- **Obligatoria para el rol admin**; trabajadores y comercios no cambian.
+  TOTP (RFC 6238, implementación propia en `identity/domain/two_factor.py`),
+  6 dígitos, ventana ±1 paso, **anti-replay** con el último paso usado.
+- **Secreto cifrado** con Fernet y `TWO_FACTOR_ENCRYPTION_KEY` (varias
+  claves separadas por coma para rotar). **Códigos de recuperación:** 10, de
+  un solo uso, sólo su sha256 en la base, se muestran una vez.
+- **Login:** admin con la verificación activa → `/auth/login` y
+  `/auth/google` devuelven un desafío (5 min, un uso, se quema a los 5
+  errores; sólo su hash en `two_factor_challenges`) y la sesión sale de
+  `POST /auth/2fa/verify`. Límite por IP (10/min) y por cuenta en la base
+  (10 errores en 15 min → 429).
+- **Candado:** `get_current_user` responde 403 con `detail.code`
+  (`two_factor_setup_required` / `two_factor_required`) a toda sesión admin
+  sin `mfa`, en cualquier endpoint (también el WebSocket). Sólo `/auth/me` y
+  el alta usan `get_current_user_allow_pending_2fa`. Activarla cierra las
+  demás sesiones de la cuenta.
+- **Cambiar de celular / códigos nuevos:** sesión verificada + un código
+  actual. **Plan B:** `scripts/disable_two_factor.py` (dry-run por defecto).
+  Pasos de la operadora en
+  [PENDIENTE_OPERATIVO.md](./PENDIENTE_OPERATIVO.md), "Verificación en dos
+  pasos del admin".
 
 ## WebSockets
 
@@ -72,6 +102,11 @@ asignado del turno; en notificaciones, el propio usuario. Ver
   (`app/core/rate_limit.py`); superar el límite responde **429**. Configurable
   con `RATE_LIMIT_ENABLED`. Es por proceso: escalar a varios workers requeriría
   un store compartido (Redis) y un **ADR**.
+- **Tope al postularse a un mismo turno** (`POST /applications/shifts/{id}`):
+  5 intentos por hora por cuenta y por turno (la invitada compartida, por
+  cuenta + IP), con el mismo `RateLimiter`. Cada postulación, también la que
+  reactiva una retirada, le avisa al comercio; el tope acota esos avisos y no
+  afecta a quien se postula a turnos distintos.
 - **Content-Security-Policy** (R1.3, `frontend/next.config.ts`, sólo en
   producción): restringe scripts/estilos/conexiones al propio origen + backend
   + tiles vectoriales de CARTO (ADR-0001) + Cloudinary; sin `frame-ancestors`
@@ -116,6 +151,20 @@ asignado del turno; en notificaciones, el propio usuario. Ver
   TypeScript, React, Next.js y secretos. Falla el PR con hallazgos de
   severidad ERROR. Complementa a pip-audit y npm audit, que sólo miran las
   librerías. No es CodeQL porque en un repo privado eso es pago.
+
+## Excepciones del control de dependencias
+
+El job «Frontend dependency audit» del workflow Security corre
+`.github/scripts/npm-audit.mjs`. El script falla igual que
+`npm audit --audit-level=high`, salvo los avisos listados en su
+`EXCEPCIONES`. Cada excepción tiene motivo y fecha de vencimiento; pasada la
+fecha, el control vuelve a fallar aunque el aviso siga, para obligar a
+revisarla. Si un aviso exceptuado desaparece, el log avisa que la excepción
+sobra. Se agrega una excepción sólo con el «sí» de Julieta.
+
+| Aviso | Paquete | Por qué se exceptúa | Vence |
+|---|---|---|---|
+| [GHSA-fc5q-39xc-vjpf](https://github.com/advisories/GHSA-fc5q-39xc-vjpf) | picomatch (ReDoS) | No hay versión corregida: la última publicada, 4.0.7, está en el rango afectado, y todo lo que lo trae (vite, vitest, tinyglobby, el lint de Next, los plugins de rollup de Sentry) pide `^4`. Sólo corre al compilar y al probar, nunca en la app que usa la gente, y el ataque necesita patrones de archivos escritos por un tercero. Decisión de Julieta, 2026-11-17. | 2026-12-17 |
 
 ## Brechas abiertas (a cerrar — Fase de Seguridad)
 

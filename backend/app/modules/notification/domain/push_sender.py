@@ -11,6 +11,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 
 from app.modules.notification.domain.entities import PushSubscription
+from app.modules.notification.domain.push_policy import DEFAULT_PUSH_POLICY, PushPolicy
 
 
 class PushSendResult(str, Enum):
@@ -29,9 +30,16 @@ class PushSender(ABC):
 
     @abstractmethod
     async def send(
-        self, subscription: PushSubscription, *, title: str, body: str, url: str = "/"
+        self,
+        subscription: PushSubscription,
+        *,
+        title: str,
+        body: str,
+        url: str = "/",
+        policy: PushPolicy = DEFAULT_PUSH_POLICY,
     ) -> PushSendResult:
-        """Envía una notificación push a una suscripción puntual.
+        """Envía una notificación push a una suscripción puntual, con la
+        vigencia y la urgencia de `policy` (ver `push_policy.py`).
 
         Nunca lanza: cualquier error del proveedor se atrapa y se traduce a
         `PushSendResult.FAILED` (o `GONE` si es un 404/410)."""

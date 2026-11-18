@@ -26,11 +26,72 @@ esa entrada está en ese archivo: buscala por la fecha o el número de PR.
 
 Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
 
-0. 🟡 **El «oído» con letra de cartel (2026-10-23) en el resto de la marca:**
-   la miniatura para compartir (`lib/og-brand.tsx` + `assets/og/filete-oido.png`),
-   la ficha de marca, el brand system y el paquete siguen con el filete
-   anterior. Julieta todavía duda de la letra (Sancreek) y del acento
-   (ámbar o bordó): probar antes de rehacer esas piezas.
+- 🔴 **Salida a beta (etapa 3 cerrada el 2026-11-17).** De lo que quedó
+  «para revisar con Fable», el 2026-11-18 entraron G4, U081, U072 y la
+  segunda mirada a G6. Sigue, en una sesión nueva y en este orden: U080
+  (diseñado y con sus datos decididos), las tres reglas nuevas decididas ese
+  día (21, 22 y 24 del tablero), la pasada por clase de error con los tests
+  de contrato, y P1 a P5. En paralelo, las
+  etapas 4 (marca) y 5 (lista de salida, con M7). Antes de encender el
+  cobro: la regla de cambio de plan que decidió Julieta, con U140, U142 y
+  U143. Antes del 17/12: revisar la excepción de picomatch (#612).
+  Qué está hecho,
+  qué está en curso, qué falta y qué espera una decisión de Julieta, fila por
+  fila, en [`planning/BETA_TABLERO.md`](./planning/BETA_TABLERO.md). Es lo
+  primero que se lee y lo que se edita en cada PR de la beta.
+
+0. 🟡 **Marca: Shrikhand e ícono «el pinche con oído» (beta, etapa 4).** Julieta eligió el
+   2026-11-17 la letra Shrikhand y seguir con el ámbar. El 2026-11-18 eligió,
+   después de ver cinco conceptos (https://claude.ai/artifact/TqfGBkrBX1aGFJSygrsQkS),
+   el ícono **«el pinche con oído»** (la comanda clavada en el pinche, con
+   «oído» en el papel; «o» sola de 48 px para abajo), sólo como ícono de la
+   app: **ya está en el código** (íconos grandes, maskable, favicon, silueta y
+   los vectores `isotipo-pinche*` de `design-system/marca/`;
+   [historial](./historial/2026-11-18-icono-pinche-oido.md)). Falta, opcional,
+   decidir si se encarga a un fileteador y regenerar el manual en PDF, que
+   sigue con el «oí». La app, la landing,
+   la miniatura, los vectores y el manual en PDF de
+   `design-system/marca/` y el brand system navegable ya están
+   ([historial](./historial/2026-11-17-marca-shrikhand-isotipo-oi.md)). **Los
+   adornos del «oído» fileteado tienen cuerpo** desde el 2026-11-18 (Julieta:
+   los de línea fina «quedaron demasiado finos»): nivel «medio» en el final
+   de la landing y la bienvenida, «cargado» en la miniatura; entran el rojo y
+   el rosa sólo en las flores del filete y la letra sigue crema con relieve
+   azul hondo ([historial](./historial/2026-11-18-filete-adornos-con-cuerpo.md)).
+   Queda por decidir si un toque de ese filete va también en el ícono del
+   pinche (Julieta: «quizás»; iría en un PR aparte). Sigue
+   **la dirección «con relieve»** (Julieta eligió
+   seguirla: la sombra dura azul hondo del filete como profundidad de la
+   interfaz; prueba en https://claude.ai/artifact/WNXBXhkNgGrFdBbqFNsQan).
+   La **segunda prueba de la landing** (2026-11-18) tiene tres direcciones
+   para comparar, «El pase», «El bodegón» y «Un servicio en vivo»
+   (https://claude.ai/artifact/VWPZtN8eAvxk5U2kVuE3zR). Julieta no eligió
+   ninguna: pidió un **híbrido de la landing publicada** (el cielo y la rueda
+   de fotos) con la letra de brocha, el isotipo nuevo y los planes como
+   carta (https://claude.ai/artifact/9Bq2jU9LK7xaCj6b4T2Bxz). La prueba de
+   la app se rehízo con el mismo criterio (el turno como comanda, el panel
+   como riel, los pasos tachados a mano:
+   https://claude.ai/artifact/MEN8VhUv43HM2sE9pH6kmF). Julieta eligió la
+   **letra mixta** (brocha en el inicio, el cierre y la carta; Abril Fatface
+   en los títulos de sección). **El híbrido ya está en el código de la
+   landing** (letra mixta, botones con relieve, los planes como carta con
+   pizarra, mapa sin reloj, final de cielo con el «oído» entero y sólo lo
+   legal debajo, sin el Sol de Mayo; tokens del
+   relieve y ADR-0027;
+   [historial](./historial/2026-11-18-landing-hibrida.md)). **La app va
+   pantalla por pantalla**, un PR cada una, sin tocar la lógica (Julieta,
+   2026-11-18). Hecho: el Inicio del trabajador
+   ([historial](./historial/2026-11-18-inicio-trabajador-relieve.md)) y el
+   Panel del comercio
+   ([historial](./historial/2026-11-18-panel-comercio-relieve.md)),
+   Candidatos ([historial](./historial/2026-11-18-candidatos-relieve.md)) y
+   Mis turnos ([historial](./historial/2026-11-18-mis-turnos-relieve.md)).
+   **Sigue** lo que es de toda la app, cada cosa en su PR: la barra de abajo,
+   las pestañas, los botones secundarios, los pasos tachados a mano, los
+   colores de los sellos y el detalle del turno. Las piezas compartidas ya están
+   (`components/ui/Comanda.tsx`, `lib/letras.ts`, `.app-cielo`). Qué tiene, las referencias de Julieta,
+   lo que falta decidir y el orden, en
+   [`design-system/direccion-relieve.md`](./design-system/direccion-relieve.md).
 Revisado contra el código y los PRs el 2026-10-03.
 
 1. 🟡 **Paleta celeste (v6) en toda la app** (pedido de Julieta,
@@ -39,8 +100,8 @@ Revisado contra el código y los PRs el 2026-10-03.
    volvió al ámbar de siempre `#d97706`, el del logo). Primero en la
    landing; ahora rige en `:root` de `globals.css`, con su versión oscura.
    Desde #412 lleva vidrio esmerilado (cromo translúcido, velo ámbar,
-   `bg-glow`) y menos celeste lleno. Falta rehacer el PDF y el paquete del
-   diseñador, que siguen en violeta. Detalle en
+   `bg-glow`) y menos celeste lleno. El PDF y el paquete del diseñador se
+   rehicieron el 2026-11-17 (ítem 0). Detalle en
    [`historial/2026-10-09-paleta-celeste-app.md`](./historial/2026-10-09-paleta-celeste-app.md)
    y [`design-system/color-system.md`](./design-system/color-system.md),
    "Propuesta v6".
@@ -52,32 +113,25 @@ Revisado contra el código y los PRs el 2026-10-03.
    con `sticky` y por qué la landing no se oscurece, en
    [`historial/2026-10-06-landing-historia-de-un-turno.md`](./historial/2026-10-06-landing-historia-de-un-turno.md)
    y [`design-system/motion.md`](./design-system/motion.md).
-3. ⏸️ **Identidad de marca, en pausa.** Julieta rechazó las tres
-   direcciones propuestas (2026-10-06) y pidió primero la landing. Riesgo
-   que sigue en pie: Oído usa serif + mono + crema y un componente "ticket",
-   como Bachero; la metáfora propia es el "¡oído!" de la cocina. Desde el
-   2026-10-18 la landing la usa: celeste y blanco con el ámbar, y una comanda
-   con filete porteño que se canta "¡Oído!". Contexto:
-   [`historial/ARCHIVO…`](./historial/ARCHIVO-2026-07-a-2026-10-03.md), sección
-   "Ideas de la competencia (2026-10-02)", y
-   [`design-system/brand-foundation.md`](./design-system/brand-foundation.md).
-4. 🟡 **Landing "cielo": fotos propias y prueba real** (2026-10-18). La
+3. 🟡 **Landing "cielo": fotos propias y prueba real** (2026-10-18). La
    rueda del inicio y la oferta usan fotos de banco (dominio público/CC0,
    de otros países); hay que reemplazarlas por fotos de locales porteños
-   (`frontend/public/landing/`). Cuando haya locales usando Oído, sumar una
-   cita corta con nombre. Detalle en
+   (`frontend/public/landing/`): qué foto va en cada lugar, con tamaño,
+   encuadre y permisos, en
+   [`design-system/fotos-landing.md`](./design-system/fotos-landing.md).
+   Cuando haya locales usando Oído, sumar una cita corta con nombre. Detalle en
    [`historial/2026-10-18-landing-cielo.md`](./historial/2026-10-18-landing-cielo.md).
-5. 🟡 **"Datos del comercio" muestra la dirección tres veces**: en el
+4. 🟡 **"Datos del comercio" muestra la dirección tres veces**: en el
    buscador, en el campo Dirección y en "Ubicación" (`/profile/edit`, rol
    comercio). Quedó anotado al cerrar la simplificación del Perfil (#396).
-6. 🟢 **Subir Node de 22 a 24**, sin apuro (Node 22 tiene soporte hasta
+5. 🟢 **Subir Node de 22 a 24**, sin apuro (Node 22 tiene soporte hasta
    abril de 2027). **Vercel ya corre 24.x** (visto en la config del
    proyecto el 2026-10-10), así que hoy CI prueba con una versión distinta
    de la que corre en producción. Faltan `node-version` en
    `.github/workflows/ci.yml` y `@types/node` en `frontend/package.json`.
    Dependabot tiene ignoradas las subas mayores de `@types/node` (#375) para
    que los tipos no se adelanten a la versión que corre.
-7. 🟠 **Cobro real de la suscripción** — **código listo, apagado**
+6. 🟠 **Cobro real de la suscripción** — **código listo, apagado**
    (ADR-0022, 2026-10-23): un pago por mes con Checkout Pro de Mercado Pago,
    sin débito automático ni tarjeta de crédito; webhook firmado que acredita
    30 días, estado "pendiente", bloqueo al publicar sin mes pago, avisos de
@@ -89,13 +143,15 @@ Revisado contra el código y los PRs el 2026-10-03.
    [`reference/PENDIENTE_OPERATIVO.md`](./reference/PENDIENTE_OPERATIVO.md),
    "Cobro mensual con Mercado Pago"). Decidir qué hacer con los comercios de
    la beta que hoy publican sin pagar cuando se exija (quedan bloqueados
-   hasta su primer pago).
-8. ⏸️ **Post-beta, a propósito:** pago al trabajador y facturación dentro de
+   hasta su primer pago). Para los **fundadores** ya está decidido
+   (2026-11-18): sin cargo hasta el 28/2 y después precio congelado 12
+   meses, así que antes de exigir el pago tienen que quedar eximidos.
+7. ⏸️ **Post-beta, a propósito:** pago al trabajador y facturación dentro de
    la app (lo que tienen todos los competidores grandes), passkeys (diseñado
    en [`reference/ACCESO_MODERNO.md`](./reference/ACCESO_MODERNO.md), Feature
    3), WhatsApp Business API y R4 (Redis, multi-ciudad, OSRM) recién con
    tráfico real.
-9. 🟠 **Auditoría del 2026-10-10: lo que queda.** Cerrados lo de privacidad
+8. 🟠 **Auditoría del 2026-10-10: lo que queda.** Cerrados lo de privacidad
    (#416), las carreras sobre el turno más la idempotencia (#417) y el token
    de sesión del frontend ("Va en camino", formularios que se recargaban,
    401 sin reintento, #419), Google sobre cuenta sin verificar y
@@ -105,7 +161,7 @@ Revisado contra el código y los PRs el 2026-10-03.
    así que es global; falta confirmar qué header de IP es confiable en
    Render antes de tocarlo, ver el historial de autenticación); después, los
    de dominio y los menores.
-10. 🟠 **Mudar el frontend de Vercel a Cloudflare Workers** antes de la
+9. 🟠 **Mudar el frontend de Vercel a Cloudflare Workers** antes de la
    beta comercial (Vercel Hobby no permite uso comercial; ADR-0017,
    propuesto). Etapa 1, prueba de compatibilidad: hecha (#428). Etapa 2,
    auditoría de seguridad del frontend publicado: hecha; lo chico se arregló
@@ -129,13 +185,14 @@ Revisado contra el código y los PRs el 2026-10-03.
    [`historial/2026-10-13-cloudflare-prueba-compatibilidad.md`](./historial/2026-10-13-cloudflare-prueba-compatibilidad.md)
    y [`reference/DEPLOY.md`](./reference/DEPLOY.md).
 
-11. 🟠 **Cubrir el turno en minutos: propuesta para pulir** (pedido de
+10. 🟠 **Cubrir el turno en minutos: propuesta para pulir** (pedido de
     Julieta, 2026-10-14). Lo primero es sacar el backend de Render free
-    (se duerme a los 15 min y con él el scheduler de la escalada); después,
+    (se duerme a los 15 min y con él el scheduler de la escalada): **decidido
+    el 2026-11-18, Render Starter antes del piloto**; después,
     "el primero que toma" para urgentes, cascada por tandas y verificación
     de identidad gratis. Nada decidido:
     [`planning/PROPUESTA_COBERTURA_URGENTE.md`](./planning/PROPUESTA_COBERTURA_URGENTE.md).
-12. 🔴 **Revisión de seguridad del 2026-10-20** (pedido de Julieta: "todas
+11. 🔴 **Revisión de seguridad del 2026-10-20** (pedido de Julieta: "todas
    por prioridad"). Un PR por tema; al cerrar uno, borrarlo de esta lista.
    Origen en
    [`historial/2026-10-20-revision-seguridad-clave-gemini.md`](./historial/2026-10-20-revision-seguridad-clave-gemini.md).
@@ -171,6 +228,29 @@ pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
 
 ## Pendiente de Julieta (operativo, no es código)
 
+- **Estrategia de crecimiento, fase 2 (plan de 90 días):** está en el mismo
+  documento privado, una pestaña por entregable
+  (https://claude.ai/artifact/CbFduaLLSNXNkgTq1EYFrk). **Decidido el
+  18/11** (pestaña Plan de 90 días, «Lo que decidiste para arrancar»): los
+  **comercios fundadores** (5 a 8) no pagan hasta el **28/2** y después
+  tienen el plan que elijan a **precio congelado por 12 meses**; **Villa
+  Crespo** entra en la lista de barrios a evaluar, segundo en el orden; la
+  **consulta legal** (laboral y de datos personales) la hace gratis una
+  abogada amiga; y el backend pasa a **Render Starter** (USD 7 por mes)
+  antes del piloto, con todo lo demás en $0. Falta de Julieta: hacer la
+  consulta con el cuestionario de la pestaña Lanzamiento de beta (antes del
+  4/12) y contratar Render Starter antes del piloto. Del lado del código, la
+  fase 0 pide un cambio chico (guardar el origen de cada alta, aprobado el
+  18/11) y la serie semanal M7 del tablero
+  ([`historial/2026-11-18-plan-90-dias-growth.md`](./historial/2026-11-18-plan-90-dias-growth.md),
+  [`historial/2026-11-18-decisiones-fase-0.md`](./historial/2026-11-18-decisiones-fase-0.md)).
+- **Verificación en dos pasos del admin (ADR-0023):** **antes del merge**,
+  generar `TWO_FACTOR_ENCRYPTION_KEY` y cargarla en Render (sin ella el
+  panel de admin queda cerrado); **apenas se deploya**, entrar y activarla en
+  Administración → Seguridad, y guardar los 10 códigos de recuperación fuera
+  del celular. Pasos en
+  [`reference/PENDIENTE_OPERATIVO.md`](./reference/PENDIENTE_OPERATIVO.md),
+  "Verificación en dos pasos del admin".
 - **Sol de Mayo en la marca:** antes de registrar la marca con el sol del
   final de la landing, confirmar con la asesoría legal el uso de símbolos
   nacionales ([`historial/2026-10-23-landing-filete-cartel.md`](./historial/2026-10-23-landing-filete-cartel.md)).

@@ -13,4 +13,8 @@ class CandidateRepository(ABC):
     async def list_available(
         self, skill: WorkerSkill | None = None
     ) -> list[CandidateProfile]:
-        """Lista trabajadores disponibles, opcionalmente filtrados por habilidad."""
+        """Lista trabajadores disponibles, opcionalmente filtrados por habilidad.
+
+        Sólo cuentas con rol trabajador y activas: un perfil de trabajador
+        colgado de un admin o de una cuenta suspendida no es candidato ni
+        recibe avisos de turnos cerca."""

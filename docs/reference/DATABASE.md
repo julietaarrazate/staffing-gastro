@@ -61,6 +61,9 @@ crea el esquema a mano en producción. En Render, el arranque corre
 - `shifts` N—1 `company_profiles` (dueño) y 0/1 `worker_profiles` (asignado).
 - `shift_applications` N—1 `shifts` y N—1 `worker_profiles`.
 - `chat_messages`, `reviews`, `notifications` cuelgan del turno/usuario.
+  `chat_messages` apunta a `users` dos veces: `sender_user_id` (quién lo
+  escribió) y `worker_user_id` (la persona del hilo, migración `0045`; nulo en
+  mensajes viejos sin hilo deducible). Ver [CHAT.md](./CHAT.md).
 - `refresh_sessions` N—1 `users` (una fila por refresh token emitido).
 
 ## Inconsistencias / pendientes
@@ -89,7 +92,9 @@ crea el esquema a mano en producción. En Render, el arranque corre
 >   consultas calientes: `notifications (user_id, created_at DESC)`,
 >   `shifts (status, start_at)`, `shifts (company_id, created_at DESC)`,
 >   `shifts (position, lower(city), created_at)` y
->   `chat_messages (shift_id, created_at)`; se fueron los duplicados
+>   `chat_messages (shift_id, created_at)` (desde la 0045 se suma
+>   `chat_messages (worker_user_id, shift_id, created_at)`, la forma de las
+>   lecturas por hilo); se fueron los duplicados
 >   (`ix_notifications_user_id` y los `UNIQUE` repetidos de
 >   `company_profiles.user_id` / `worker_profiles.user_id`).
 > - **Retención:** el scheduler borra una vez por día las sesiones de refresh

@@ -1,12 +1,10 @@
 import { test, expect } from "@playwright/test";
-import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./mocks";
+import { blockExternalHosts, injectSession, mockEmptyNotifications, enDias } from "./mocks";
 
-/**
- * Wizard de publicación de turno (R1.5b): sesión employer, se completa el
- * wizard mínimo (puesto, cantidad fija, horario, pago, ubicación) y se
- * verifica que el POST /shifts sale con quantity=1 en el body.
- */
-test("un employer publica un turno con el wizard mínimo", async ({ page }) => {
+type Pagina = import("@playwright/test").Page;
+
+/** Sesión employer y todas las rutas que usa el wizard y lo que sigue. */
+async function prepararPublicacion(page: Pagina) {
   await injectSession(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
@@ -57,19 +55,29 @@ test("un employer publica un turno con el wizard mínimo", async ({ page }) => {
   await page.route("**/api/v1/shifts/shift-new-1/candidates", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
   );
+}
 
-  await page.goto("/shifts/new");
+/** Completa el wizard mínimo hasta dejar «Publicar turno» habilitado. */
+async function completarWizard(page: Pagina, opciones: { desdePanel?: boolean } = {}) {
+  if (opciones.desdePanel) {
+    // Navegación del cliente (como la persona): después «Atrás» desmonta la pantalla.
+    await page.goto("/shifts");
+    await page.locator('[data-tour="shifts-publish"]').click();
+    await expect(page).toHaveURL("/shifts/new");
+  } else {
+    await page.goto("/shifts/new");
+  }
 
   // Paso 1: puesto (elegirlo avanza solo; ya no hay paso de cantidad).
   await page.getByRole("button", { name: "Mozo/a" }).click();
 
   // Paso 2: horario.
-  await page.locator('input[type="datetime-local"]').first().fill("2026-07-15T20:00");
-  await page.locator('input[type="datetime-local"]').nth(1).fill("2026-07-15T23:00");
+  await page.locator('input[type="datetime-local"]').first().fill(enDias(30, "20:00"));
+  await page.locator('input[type="datetime-local"]').nth(1).fill(enDias(30, "23:00"));
   await page.getByRole("button", { name: "Continuar" }).click();
 
   // Paso 3: pago.
-  await page.getByPlaceholder("48000").fill("15000");
+  await page.getByPlaceholder("48.000").fill("15000");
   await page.getByRole("button", { name: "Continuar" }).click();
 
   // Paso 4: ubicación (obligatoria: sin perfil de local, se elige la zona). Los
@@ -81,6 +89,16 @@ test("un employer publica un turno con el wizard mínimo", async ({ page }) => {
   await expect(page.getByText("Elegí la zona para poder avisar a gente cerca.")).toBeVisible();
   await page.locator("select").nth(1).selectOption("Palermo");
   await expect(page.getByRole("button", { name: "Publicar turno" })).toBeEnabled();
+}
+
+/**
+ * Wizard de publicación de turno (R1.5b): sesión employer, se completa el
+ * wizard mínimo (puesto, cantidad fija, horario, pago, ubicación) y se
+ * verifica que el POST /shifts sale con quantity=1 en el body.
+ */
+test("un employer publica un turno con el wizard mínimo", async ({ page }) => {
+  await prepararPublicacion(page);
+  await completarWizard(page);
 
   const publishRequest = page.waitForRequest(
     (req) =>
@@ -103,4 +121,173 @@ test("un employer publica un turno con el wizard mínimo", async ({ page }) => {
   // "Ver mi turno" navega a los candidatos del turno recién publicado.
   await page.getByRole("button", { name: "Ver mi turno" }).click();
   await expect(page).toHaveURL("/shifts/shift-new-1/candidates");
+});
+
+/**
+ * Pago con coma (grave de la prueba en la app, 2026-11-14): el campo era
+ * `type="number"`, el navegador descartaba la coma y «15000,50» se publicaba
+ * como $1.500.050. Ahora el monto es en pesos enteros: la coma es decimal, se
+ * redondea al peso y al salir del campo se ve formateado.
+ */
+test("el pago con coma se redondea al peso, no se multiplica por 100", async ({ page }) => {
+  await prepararPublicacion(page);
+  await page.goto("/shifts/new");
+  await page.getByRole("button", { name: "Mozo/a" }).click();
+  await page.locator('input[type="datetime-local"]').first().fill(enDias(30, "20:00"));
+  await page.locator('input[type="datetime-local"]').nth(1).fill(enDias(30, "23:00"));
+  await page.getByRole("button", { name: "Continuar" }).click();
+
+  const pago = page.getByPlaceholder("48.000");
+  await expect(pago).toHaveAttribute("type", "text");
+  await expect(pago).toHaveAttribute("inputmode", "numeric");
+  await pago.pressSequentially("15000,50");
+  await expect(pago).toHaveValue("15000,50");
+  await pago.blur();
+  await expect(pago).toHaveValue("15.001");
+  await expect(page.getByText(/≈ \$5\.000 por hora/)).toBeVisible();
+
+  // Un punto que no separa miles no se adivina: no deja seguir.
+  await pago.fill("15.00");
+  await pago.blur();
+  await expect(pago).toHaveValue("15.00");
+  await expect(pago).toHaveAttribute("aria-invalid", "true");
+  await expect(page.getByRole("button", { name: "Continuar" })).toBeDisabled();
+
+  await pago.fill("15.000,50");
+  await pago.blur();
+  await expect(pago).toHaveValue("15.001");
+  await page.getByRole("button", { name: "Continuar" }).click();
+  await expect(page.getByText(/\$15\.001/).first()).toBeVisible();
+  await page.locator("select").nth(1).selectOption("Palermo");
+
+  const publishRequest = page.waitForRequest(
+    (req) =>
+      req.url().includes("/api/v1/shifts") &&
+      !req.url().includes("/publish") &&
+      req.method() === "POST"
+  );
+  await page.getByRole("button", { name: "Publicar turno" }).click();
+  expect((await publishRequest).postDataJSON().pay_amount).toBe("15001");
+});
+
+/** Chromium sin ventana trae `Notification.permission` en "denied": se fuerza "default". */
+async function permitirPedidoDeNotificaciones(page: Pagina) {
+  await page.addInitScript(() => {
+    Object.defineProperty(Notification, "permission", { get: () => "default", configurable: true });
+  });
+}
+
+const PEDIDO = "Activá las notificaciones";
+const CLAVE_PEDIDO = "staffya_push_prompt_shown";
+
+async function clavePedido(page: Pagina) {
+  return page.evaluate((k) => localStorage.getItem(k), CLAVE_PEDIDO);
+}
+
+/**
+ * Escape sobre «¡Turno publicado!» cierra sólo esa capa: el pedido de activar
+ * notificaciones aparece recién al cerrar la confirmación (no junto con ella) y
+ * no queda registrado como rechazado.
+ */
+test("Escape sobre «Turno publicado» no descarta el pedido de notificaciones", async ({ page }) => {
+  await permitirPedidoDeNotificaciones(page);
+  await prepararPublicacion(page);
+  await completarWizard(page);
+
+  await page.getByRole("button", { name: "Publicar turno" }).click();
+  await expect(page.getByText("¡Turno publicado!")).toBeVisible();
+  // Con la confirmación abierta el pedido NO está: dos capas a la vez pisan el foco.
+  await expect(page.getByText(PEDIDO)).toHaveCount(0);
+
+  await page.keyboard.press("Escape");
+  await expect(page).toHaveURL("/shifts");
+  await expect(page.getByText(PEDIDO)).toBeVisible();
+  expect(await clavePedido(page)).toBeNull();
+});
+
+test("Enter sobre «Turno publicado» no descarta el pedido de notificaciones", async ({ page }) => {
+  await permitirPedidoDeNotificaciones(page);
+  await prepararPublicacion(page);
+  await completarWizard(page);
+
+  await page.getByRole("button", { name: "Publicar turno" }).click();
+  await expect(page.getByText("¡Turno publicado!")).toBeVisible();
+  await expect(page.getByText(PEDIDO)).toHaveCount(0);
+
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL("/shifts/shift-new-1/candidates");
+  await expect(page.getByText(PEDIDO)).toBeVisible();
+  expect(await clavePedido(page)).toBeNull();
+});
+
+test("salir de «Turno publicado» con Atrás también ofrece las notificaciones", async ({ page }) => {
+  await permitirPedidoDeNotificaciones(page);
+  await prepararPublicacion(page);
+  await completarWizard(page, { desdePanel: true });
+
+  await page.getByRole("button", { name: "Publicar turno" }).click();
+  await expect(page.getByText("¡Turno publicado!")).toBeVisible();
+
+  await page.goBack();
+  await expect(page).toHaveURL("/shifts");
+  await expect(page.getByText(PEDIDO)).toBeVisible();
+  expect(await clavePedido(page)).toBeNull();
+});
+
+/**
+ * Recorrido del panel sin ver en este navegador (enlace directo a publicar): al
+ * cerrar la confirmación el recorrido queda encima del pedido y tiene que tomar
+ * el foco; Enter/Espacio actúan sobre el recorrido y no descartan el pedido tapado.
+ */
+test("con el recorrido encima, Enter no descarta el pedido de notificaciones", async ({ page }) => {
+  await permitirPedidoDeNotificaciones(page);
+  await prepararPublicacion(page);
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem("e2e_tour_reset")) return;
+    localStorage.removeItem("staffya_tour_employer_panel");
+    sessionStorage.setItem("e2e_tour_reset", "1");
+  });
+  await completarWizard(page);
+
+  await page.getByRole("button", { name: "Publicar turno" }).click();
+  await expect(page.getByText("¡Turno publicado!")).toBeVisible();
+  await page.getByRole("button", { name: "Cerrar" }).click();
+
+  await expect(page).toHaveURL("/shifts");
+  await expect(page.getByRole("dialog", { name: "Publicá tu primer turno" })).toBeVisible();
+  await expect(page.getByText(PEDIDO)).toBeVisible();
+
+  await page.keyboard.press("Enter");
+  expect(await clavePedido(page)).toBeNull();
+  await expect(page.getByText(PEDIDO)).toBeVisible();
+});
+
+/**
+ * Lo mismo desde el paso 2 del recorrido: la tarjeta se recrea en cada paso y la
+ * trampa de foco tiene que seguir atada al recorrido, no a la tarjeta anterior.
+ */
+test("desde el paso 2 del recorrido, Tab y Enter no descartan el pedido de notificaciones", async ({ page }) => {
+  await permitirPedidoDeNotificaciones(page);
+  await prepararPublicacion(page);
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem("e2e_tour_reset")) return;
+    localStorage.removeItem("staffya_tour_employer_panel");
+    sessionStorage.setItem("e2e_tour_reset", "1");
+  });
+  await completarWizard(page);
+
+  await page.getByRole("button", { name: "Publicar turno" }).click();
+  await expect(page.getByText("¡Turno publicado!")).toBeVisible();
+  await page.getByRole("button", { name: "Cerrar" }).click();
+
+  await expect(page).toHaveURL("/shifts");
+  await expect(page.getByRole("dialog", { name: "Publicá tu primer turno" })).toBeVisible();
+  await page.getByRole("button", { name: "Siguiente" }).click();
+  await expect(page.getByRole("dialog", { name: "Publicá tu primer turno" })).toHaveCount(0);
+  await expect(page.getByText(PEDIDO)).toBeVisible();
+
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Enter");
+  expect(await clavePedido(page)).toBeNull();
+  await expect(page.getByText(PEDIDO)).toBeVisible();
 });

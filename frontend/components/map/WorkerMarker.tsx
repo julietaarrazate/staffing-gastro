@@ -3,6 +3,7 @@
 import { memo, useState } from "react";
 import { Marker } from "@vis.gl/react-maplibre";
 import { StarIcon } from "@/components/icons";
+import { formatRating, hasRating } from "@/lib/reputation";
 
 interface WorkerMarkerProps {
   id: string;
@@ -98,10 +99,12 @@ function WorkerMarker({
           ) : (
             <span className="text-sm font-bold text-night">{initial}</span>
           )}
-          <span className="absolute -bottom-1 -right-1 flex items-center gap-0.5 rounded-full border border-white bg-night px-1 py-[1px] text-[9px] font-bold leading-tight text-white shadow-sm">
-            <StarIcon size={8} filled className="text-rating" />
-            {rating.toFixed(1)}
-          </span>
+          {hasRating(rating) && (
+            <span className="absolute -bottom-1 -right-1 flex items-center gap-0.5 rounded-full border border-white bg-night px-1 py-[1px] text-[9px] font-bold leading-tight text-white shadow-sm">
+              <StarIcon size={8} filled className="text-rating" />
+              {formatRating(rating)}
+            </span>
+          )}
         </button>
       </div>
     </Marker>

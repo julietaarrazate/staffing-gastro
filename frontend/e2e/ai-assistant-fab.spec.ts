@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./mocks";
+import { blockExternalHosts, injectSession, mockEmptyNotifications, isoEnDias } from "./mocks";
 
 /**
  * Asistente general del panel del comercio (pedido de Julieta: separado del
@@ -105,8 +105,8 @@ test("crear_turno: con datos completos, salta directo a revisar y publicar", asy
         assistantResponse({
           intent: "crear_turno",
           position: "mozo",
-          start_at: "2026-08-15T20:00:00-03:00",
-          end_at: "2026-08-16T02:00:00-03:00",
+          start_at: isoEnDias(30, "20:00"),
+          end_at: isoEnDias(31, "02:00"),
           pay_amount: "45000",
           urgent: false,
           meal: false,
@@ -147,8 +147,8 @@ test("crear_turno: con datos parciales, frena justo en lo primero que falta", as
         assistantResponse({
           intent: "crear_turno",
           position: "mozo",
-          start_at: "2026-08-15T20:00:00-03:00",
-          end_at: "2026-08-16T02:00:00-03:00",
+          start_at: isoEnDias(30, "20:00"),
+          end_at: isoEnDias(31, "02:00"),
           pay_amount: null,
           urgent: false,
           meal: false,
@@ -185,8 +185,8 @@ test("crear_evento: llega al wizard de evento con los roles ya precargados", asy
             { position: "bartender", quantity: 1 },
             { position: "mozo", quantity: 2 },
           ],
-          start_at: "2026-08-15T20:00:00-03:00",
-          end_at: "2026-08-16T02:00:00-03:00",
+          start_at: isoEnDias(30, "20:00"),
+          end_at: isoEnDias(31, "02:00"),
           pay_amount: "45000",
         })
       ),

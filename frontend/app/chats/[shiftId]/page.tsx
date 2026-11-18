@@ -4,14 +4,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { getErrorMessage } from "@/lib/errors";
+import { getErrorMessage, isNotFound } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useWebSocket } from "@/lib/useWebSocket";
-import { ChatMessage } from "@/lib/types";
+import { ChatMessage, SKILL_LABELS, Shift } from "@/lib/types";
 import { CheckCheckIcon, CheckIcon, ChevronLeftIcon } from "@/components/icons";
 import { formatShiftTime } from "@/lib/datetime";
 import { Avatar, ErrorBanner, MessageBubble, Skeleton } from "@/components/ui";
-import { useConversation } from "../ConversationsContext";
+import { useConversation, useConversationsControl } from "../ConversationsContext";
+import { LIMITES } from "@/lib/limites";
+import { useIdempotencyKeys } from "@/lib/idempotency";
 
 /** Eventos que llegan por el socket de la conversación: un mensaje nuevo, o
  *  el aviso de que la otra parte ya leyó lo que le mandamos (confirmación de
@@ -37,15 +39,27 @@ export default function ConversationPage() {
   const { token, user } = useRequireAuth();
   const params = useParams<{ shiftId: string }>();
   const shiftId = params.shiftId;
-  const conversation = useConversation(shiftId);
+  const listed = useConversation(shiftId);
+  const { reload: reloadConversations, ready: conversationsReady } = useConversationsControl();
+  // U016: una conversación nueva (todavía sin mensajes) no figura en la lista
+  // del layout, y el encabezado quedaba vacío. Si la lista ya cargó y no la
+  // trae, se pide el turno para mostrar con quién es y de qué turno.
+  const [fromShift, setFromShift] = useState<{ name: string; title: string; photo: string | null } | null>(
+    null
+  );
+  const conversation = listed
+    ? { name: listed.other_party_name, title: listed.shift_title, photo: listed.other_party_photo }
+    : fromShift;
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const { keyFor, clear } = useIdempotencyKeys();
   // La primera apertura del socket coincide con la carga inicial (load() ya
   // trajo todo); a partir de la segunda, cada apertura es una reconexión y
   // puede haber un gap de mensajes perdidos mientras estuvo caído.
@@ -57,7 +71,9 @@ export default function ConversationPage() {
       const data = await api.get<ChatMessage[]>(`/chats/${shiftId}/messages`, token);
       setMessages(data);
       setError(null);
+      setNotFound(false);
     } catch (err) {
+      setNotFound(isNotFound(err));
       setError(getErrorMessage(err, "Error al cargar la conversación"));
     } finally {
       setLoading(false);
@@ -67,6 +83,35 @@ export default function ConversationPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const role = user?.role;
+  useEffect(() => {
+    if (!token || !conversationsReady || listed) return;
+    let cancelled = false;
+    api
+      .get<Shift>(`/shifts/${shiftId}`, token)
+      .then((shift) => {
+        if (cancelled) return;
+        // El comercio chatea con quien tomó el turno; el trabajador, con el
+        // comercio. El detalle de un turno no trae el nombre del trabajador
+        // (sólo el panel `/shifts/me`), así que al comercio se le dice
+        // «Trabajador asignado» hasta que la lista traiga el nombre.
+        setFromShift({
+          name:
+            role === "employer"
+              ? shift.worker_name ?? "Trabajador asignado"
+              : shift.company_name ?? "Comercio",
+          title: shift.title ?? SKILL_LABELS[shift.position],
+          photo: role === "employer" ? null : shift.company_logo_url,
+        });
+      })
+      .catch(() => {
+        // Sin el turno, el encabezado queda como estaba: no es un error.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token, shiftId, conversationsReady, listed, role]);
 
   const { status: wsStatus } = useWebSocket<ChatWsEvent>(
     token ? `/chats/${shiftId}/ws` : null,
@@ -103,9 +148,17 @@ export default function ConversationPage() {
     if (!body || !token || sending) return;
     setSending(true);
     setSendError(null);
+    // Sin mensajes todavía, el hilo no figura en la lista del layout: con el
+    // primero pasa a figurar y hay que volver a pedirla (U016).
+    const firstMessage = !listed || messages.length === 0;
+    // U012: un reintento del MISMO texto reusa la key (el backend no duplica
+    // el mensaje); si el texto cambió es otro pedido y lleva key nueva.
+    const attempt = `${shiftId}:${body}`;
     try {
-      await api.post(`/chats/${shiftId}/messages`, { body }, token);
+      await api.post(`/chats/${shiftId}/messages`, { body }, token, undefined, keyFor(attempt));
+      clear(attempt);
       setDraft("");
+      if (firstMessage) reloadConversations();
       await load();
     } catch (err) {
       // No borramos el draft: el usuario no debería tener que reescribir el
@@ -115,6 +168,11 @@ export default function ConversationPage() {
       setSending(false);
     }
   }
+
+  // U099: si la conversación no existe para mí (turno ajeno, inexistente o sin
+  // persona asignada: el backend responde 404 sin distinguir), no hay a quién
+  // escribirle. Un error de red transitorio NO oculta el formulario.
+  const unavailable = !loading && notFound && messages.length === 0;
 
   function send(e: React.FormEvent) {
     e.preventDefault();
@@ -137,10 +195,10 @@ export default function ConversationPage() {
         </Link>
         {conversation && (
           <>
-            <Avatar src={conversation.other_party_photo} name={conversation.other_party_name} size="sm" />
+            <Avatar src={conversation.photo} name={conversation.name} size="sm" />
             <div className="min-w-0">
-              <p className="truncate text-body font-semibold text-ink">{conversation.other_party_name}</p>
-              <p className="truncate text-caption text-ink/50">{conversation.shift_title}</p>
+              <p className="truncate text-body font-semibold text-ink">{conversation.name}</p>
+              <p className="truncate text-caption text-ink/50">{conversation.title}</p>
             </div>
           </>
         )}
@@ -201,21 +259,24 @@ export default function ConversationPage() {
         </p>
       )}
 
-      <form onSubmit={send} className="mt-3 flex gap-2">
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="Escribí un mensaje..."
-          className="flex-1 rounded-full border border-line bg-surface px-4 py-2 text-sm text-ink focus:border-primary focus:outline-none"
-        />
-        <button
-          type="submit"
-          disabled={sending || !draft.trim()}
-          className="flex min-h-[44px] items-center justify-center rounded-[var(--radius-btn)] bg-primary px-5 text-sm font-semibold text-night hover:bg-primary-strong disabled:opacity-50"
-        >
-          Enviar
-        </button>
-      </form>
+      {!unavailable && (
+        <form onSubmit={send} className="mt-3 flex gap-2">
+          <input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Escribí un mensaje..."
+            maxLength={LIMITES.mensajeChat}
+            className="flex-1 rounded-full border border-line bg-surface px-4 py-2 text-sm text-ink"
+          />
+          <button
+            type="submit"
+            disabled={sending || !draft.trim()}
+            className="boton-relieve flex min-h-[44px] items-center justify-center bg-primary px-5 text-sm font-semibold text-night hover:bg-primary-strong disabled:bg-surface disabled:text-ink-mute"
+          >
+            Enviar
+          </button>
+        </form>
+      )}
     </div>
   );
 }

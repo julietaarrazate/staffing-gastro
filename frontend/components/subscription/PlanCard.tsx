@@ -17,6 +17,7 @@ export default function PlanCard({
   onSelect,
   busy,
   payLabel,
+  sinAcento = false,
 }: {
   plan: SubscriptionPlan;
   isCurrent: boolean;
@@ -26,15 +27,21 @@ export default function PlanCard({
   /** Cobro prendido (ADR-0022): el plan actual se puede pagar (o renovar)
    * desde su tarjeta con esta etiqueta. Sin esto queda "Plan actual". */
   payLabel?: string;
+  /** Con el aviso del plan elegido en la landing arriba (`PlanElegidoAviso`),
+   * ése es el único ámbar: "Mejorá tu plan" pasa a botón sin acento. */
+  sinAcento?: boolean;
 }) {
   const priceArs = typeof plan.price_ars === "string" ? Number(plan.price_ars) : plan.price_ars;
   const isUpgrade = priceArs > currentPriceArs;
+  const acento = isUpgrade && !sinAcento;
 
   return (
-    <Card className={`flex flex-col p-5 ${isCurrent ? "ring-2 ring-primary" : ""}`}>
+    <Card className="flex flex-col p-5">
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-lg font-extrabold text-ink">{plan.name}</h3>
-        {isCurrent && <Badge tone="primary">Tu plan actual</Badge>}
+        {/* Un solo indicador del plan actual (la etiqueta) y en neutro: el ámbar
+            de la pantalla es el botón de acción y el azul, el plan elegido. */}
+        {isCurrent && <Badge tone="neutral">Tu plan actual</Badge>}
       </div>
 
       <p className="mt-2 flex items-baseline gap-1">
@@ -71,8 +78,8 @@ export default function PlanCard({
         ) : (
           <Button
             fullWidth
-            variant={isUpgrade ? "primary" : "surface"}
-            leftIcon={isUpgrade ? <SparklesIcon size={16} /> : undefined}
+            variant={acento ? "primary" : "surface"}
+            leftIcon={acento ? <SparklesIcon size={16} /> : undefined}
             loading={busy}
             disabled={busy}
             onClick={onSelect}

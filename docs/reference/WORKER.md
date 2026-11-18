@@ -29,9 +29,12 @@ creado**.
 ## Qué puede hacer
 
 1. **Ver oportunidades** cerca suyo (feed tipo Tinder y mapa) — sólo turnos
-   abiertos (ver [SHIFT.md](./SHIFT.md)).
+   abiertos (ver [SHIFT.md](./SHIFT.md)) y a 40 km o menos de la zona de su
+   perfil; para mirar otras zonas está Buscar, que muestra todo
+   (ver [LOCATION.md](./LOCATION.md)).
 2. **Postularse** a un turno (swipe derecha) → crea una postulación
-   (ver [MATCHING.md](./MATCHING.md)). Se postula **una sola vez por turno**.
+   (ver [MATCHING.md](./MATCHING.md)). Tiene **una sola postulación por turno**;
+   puede **retirarla** y, si el turno sigue abierto, **volver a postularse**.
 3. **Descartar** un turno (swipe izquierda) — acción local, sin efecto de negocio.
 4. **Marcar disponibilidad** (disponible/no).
 5. Una vez **asignado** por un comercio: **confirmar** o **rechazar** el turno.
@@ -44,7 +47,12 @@ creado**.
 
 - **Elegibilidad:** un trabajador es candidato para un turno sólo si está
   **disponible** y **tiene la habilidad** que el turno pide.
-- **Postulación única:** no puede postularse dos veces al mismo turno.
+- **Postulación única:** hay una sola postulación por turno. Con la postulación
+  activa (pendiente o aceptada) no puede postularse otra vez; si la retiró,
+  postularse de nuevo reactiva esa misma. En la app, "ya me postulé" es tener
+  una postulación activa (`appliedShiftIds`, `frontend/lib/applications.ts`): un
+  turno abierto con la postulación retirada vuelve a aparecer en Inicio, Buscar
+  y el Mapa, y su detalle vuelve a ofrecer "Postularme".
 - **Sólo a turnos abiertos:** no puede postularse a un turno que no está en el
   feed (borrador, ya asignado, cerrado, etc.).
 - **Confirmación:** sólo el trabajador **asignado** puede confirmar/rechazar; si

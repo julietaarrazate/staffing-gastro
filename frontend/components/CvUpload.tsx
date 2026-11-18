@@ -6,14 +6,9 @@ import { getErrorMessage } from "@/lib/errors";
 import { TextField } from "@/components/ui";
 import { FileTextIcon, TrashIcon, UploadIcon } from "@/components/icons";
 import { safeHttpsUrl } from "@/lib/safe-url";
+import { checkUploadFile } from "@/lib/upload-validation";
 
 const ACCEPT = ".pdf,.doc,.docx,image/*";
-// Resguardo de cuota (no de seguridad — un cliente hostil puede saltearlo):
-// el plan free de Cloudinary es de a millares de CVs (~25GB), pero un
-// archivo gigante subido sin querer sí lo pega. Cloudinary mismo ya limita
-// ~10MB por imagen en el plan free; usamos el mismo tope para todo tipo de
-// CV por simplicidad.
-const MAX_CV_SIZE_MB = 10;
 
 /**
  * CV del trabajador: antes sólo había un campo de texto para pegar un link
@@ -48,8 +43,10 @@ export default function CvUpload({
   async function upload(file: File) {
     if (!token) return;
     setError(null);
-    if (file.size > MAX_CV_SIZE_MB * 1024 * 1024) {
-      setError(`El archivo pesa más de ${MAX_CV_SIZE_MB}MB. Subí uno más liviano.`);
+    // Tipo y peso con mensaje propio (U052); el límite sale de un solo lugar.
+    const problem = checkUploadFile(file, "cv");
+    if (problem) {
+      setError(problem);
       return;
     }
     setUploading(true);
@@ -107,6 +104,14 @@ export default function CvUpload({
           </a>
           <button
             type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+            className="shrink-0 text-xs font-semibold text-primary-text hover:underline disabled:opacity-60"
+          >
+            {uploading ? "Subiendo..." : "Reemplazar"}
+          </button>
+          <button
+            type="button"
             aria-label="Quitar CV"
             onClick={() => onChange("", null)}
             className="shrink-0 text-ink/40 hover:text-danger-text"
@@ -137,7 +142,7 @@ export default function CvUpload({
           <span className="text-sm font-medium text-ink/70">
             {uploading ? "Subiendo..." : "Arrastrá tu CV acá, o tocá para elegir un archivo"}
           </span>
-          <span className="text-xs text-ink/40">PDF, Word o foto</span>
+          <span className="text-xs text-ink/40">PDF, Word o foto, hasta 10MB</span>
         </button>
       )}
       <input ref={inputRef} type="file" accept={ACCEPT} onChange={handleFileInput} className="hidden" />

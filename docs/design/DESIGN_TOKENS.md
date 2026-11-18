@@ -88,7 +88,7 @@ duraciones de animación hardcodeadas en cuatro valores distintos.
 |---|---|---|
 | `--color-primary-text` | `#b23c08` | **5.93** ✅ |
 | `--color-success-text` | `#16823e` | **4.89** ✅ |
-| `--color-danger-text` | `#d73d3d` | **4.54** ✅ |
+| `--color-danger-text` | `#c22f2f` | **5.61** ✅ |
 | `--color-trust-text` | `#1e4a47` | Muy oscuro — cumple AA de sobra, no necesita variante separada de la superficie (a diferencia de primary/success/danger) |
 
 > **Regla crítica:** sobre fondo **ink** se usa el token de *superficie*

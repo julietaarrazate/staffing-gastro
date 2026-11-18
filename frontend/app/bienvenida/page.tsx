@@ -30,6 +30,10 @@
  * (única exigencia real del backend); la ubicación se puede "Cargar después"
  * desde el paso 2 y completar el perfil solo se guarda con lo que haya.
  *
+ * Si eligió un plan en los precios de la landing ("Empezar con Básico",
+ * 2026-10-30, `lib/plan-elegido.ts`), termina en "Mi plan"
+ * (`/subscription?plan=<code>`) con ese plan resaltado. Si no:
+ *
  * Termina en `/shifts` (el panel, con "+ Publicar"/"+ Evento" ya visibles),
  * no en `/shifts/new` directo — probado en vivo por Julieta con una cuenta
  * invitada: el botón "Publicar mi primer turno" empujaba a publicar sin
@@ -49,11 +53,16 @@
  */
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { Suspense, useEffect, useState } from "react";
+import { usePasoUrl } from "@/lib/use-paso-url";
+import { PREFIJO_BORRADOR, borrarSesion, guardarSesion, leerSesion } from "@/lib/almacen-sesion";
+import { useRouter, useSearchParams } from "next/navigation";
+import { api, ApiError } from "@/lib/api";
+import { GUEST_EMPLOYER_EMAIL, GUEST_WORKER_EMAIL, saveProfilePart } from "@/lib/worker-profile";
 import { useAuth } from "@/lib/auth-context";
 import { getErrorMessage } from "@/lib/errors";
+import { destinoTrasBienvenida } from "@/lib/plan-elegido";
+import { loginHref, safeNext } from "@/lib/safe-next";
 import {
   SKILL_LABELS,
   WORKER_SKILLS,
@@ -68,6 +77,8 @@ import Logo from "@/components/Logo";
 import { Button, TextField } from "@/components/ui";
 import { CheckIcon, MapPinIcon } from "@/components/icons";
 import { WelcomeIllustration } from "@/components/illustrations";
+import { LIMITES } from "@/lib/limites";
+import { AVISO_MAIL, tomarAvisoMail } from "@/lib/aviso-mail";
 
 // maplibre pesa ~286 KB comprimidos: se carga recién cuando se muestra el
 // mapa, no con la página (medido 2026-10-22, ver historial).
@@ -82,17 +93,31 @@ const MapAddressPicker = dynamic(() => import("@/components/map/MapAddressPicker
 });
 
 export default function BienvenidaPage() {
-  const { token, user, loading: authLoading } = useAuth();
+  // `useSearchParams` pide un `Suspense` para que la página se arme igual.
+  return (
+    <Suspense>
+      <Bienvenida />
+    </Suspense>
+  );
+}
+
+function Bienvenida() {
+  const { token, user, loading: authLoading, reconnecting } = useAuth();
   const router = useRouter();
+  // `?next=`: a dónde volver al terminar (el turno compartido desde el que
+  // se registró). Viene de la dirección: sólo se usa si es una ruta interna.
+  // Va por la dirección y no por el almacenamiento: no hay nada que limpiar.
+  const next = safeNext(useSearchParams().get("next"));
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!token) router.replace("/login");
-  }, [authLoading, token, router]);
+    // Con el servidor dormido hay sesión por confirmar: no se manda al ingreso.
+    if (authLoading || reconnecting) return;
+    if (!token) router.replace(loginHref({ next }));
+  }, [authLoading, reconnecting, token, router, next]);
 
   if (authLoading || !token || !user) return null;
-  if (user.role === "employer") return <EmployerOnboarding />;
-  return <WorkerOnboarding />;
+  if (user.role === "employer") return <EmployerOnboarding next={next} />;
+  return <WorkerOnboarding next={next} />;
 }
 
 /** Envoltorio común: mismo fondo, logo y layout que ambos onboardings comparten.
@@ -104,10 +129,25 @@ export default function BienvenidaPage() {
  * (ver más abajo), que sigue siendo el "momento de marca" del primer paso
  * pero como acento, no como pantalla completa. */
 function Shell({ children }: { children: React.ReactNode }) {
+  // Tras el alta con email: aviso (una sola vez) de que llegó el mail de
+  // confirmación (U042).
+  const [avisoMail, setAvisoMail] = useState(false);
+  useEffect(() => {
+    if (tomarAvisoMail()) setAvisoMail(true);
+  }, []);
   return (
     <div className="-mb-20 flex min-h-[100dvh] flex-col bg-paper px-5 pb-8 pt-[calc(env(safe-area-inset-top)+2rem)] text-ink md:mb-0">
       <div className="mx-auto flex w-full max-w-sm flex-1 flex-col">
         <Logo size={34} withWordmark={false} />
+        {avisoMail && (
+          <p
+            role="status"
+            data-testid="aviso-mail"
+            className="mt-4 rounded-xl bg-surface px-4 py-3 text-sm text-ink/70 ring-1 ring-line"
+          >
+            {AVISO_MAIL}
+          </p>
+        )}
         {children}
       </div>
     </div>
@@ -129,25 +169,65 @@ function StepDots({ active, total }: { active: number; total: number }) {
   );
 }
 
-type WorkerStep = "zona" | "oficio" | "detalles";
+const PASOS_TRABAJADOR = ["zona", "oficio", "detalles"] as const;
+const CLAVE_TRABAJADOR = `${PREFIJO_BORRADOR}bienvenida-trabajador`;
+const CLAVE_COMERCIO = `${PREFIJO_BORRADOR}bienvenida-comercio`;
 
-function WorkerOnboarding() {
-  const { token } = useAuth();
+interface BorradorTrabajador {
+  location: LocationSelection | null;
+  skills: WorkerSkill[];
+  photoUrl: string | null;
+  years: string;
+}
+
+interface BorradorComercio {
+  name: string;
+  logoUrl: string | null;
+  address: string;
+  city: string;
+  latitude: number | null;
+  longitude: number | null;
+}
+
+/** Lo que cargó esta cuenta antes de recargar (`null` si es de otra o no hay). */
+function leerBorradorBienvenida<T>(clave: string, userId: string | undefined): T | null {
+  const b = leerSesion<T & { owner?: string | null }>(clave);
+  return b && b.owner === (userId ?? null) ? b : null;
+}
+
+function WorkerOnboarding({ next }: { next: string | null }) {
+  const { token, user } = useAuth();
   const router = useRouter();
 
-  const [step, setStep] = useState<WorkerStep>("zona");
-  const [location, setLocation] = useState<LocationSelection | null>(null);
-  const [skills, setSkills] = useState<WorkerSkill[]>([]);
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  // Lo cargado sobrevive a una recarga (sessionStorage, por cuenta); el paso va
+  // en la dirección. Se borra al terminar y al cerrar sesión.
+  const [guardado] = useState(() => leerBorradorBienvenida<BorradorTrabajador>(CLAVE_TRABAJADOR, user?.id));
+  const [location, setLocation] = useState<LocationSelection | null>(guardado?.location ?? null);
+  const [skills, setSkills] = useState<WorkerSkill[]>(guardado?.skills ?? []);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(guardado?.photoUrl ?? null);
   // Texto crudo, no número: arrancar en 0 dejaba un "0" pegado en el campo
   // que el teclado numérico de Android no siempre reemplazaba solo al
   // escribir encima (quedaba "05" en vez de "5") — reporte real de Julieta,
   // "sacalo que la gente ponga los años". Vacío de entrada, con "0" sólo
   // como placeholder; se convierte a número recién al mandar el form.
-  const [yearsExperienceInput, setYearsExperienceInput] = useState("");
+  const [yearsExperienceInput, setYearsExperienceInput] = useState(guardado?.years ?? "");
   const [saving, setSaving] = useState(false);
   const [skippingAll, setSkippingAll] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const { paso: step, irA, volverA } = usePasoUrl(PASOS_TRABAJADOR, [
+    location !== null,
+    skills.length > 0,
+  ]);
+  useEffect(() => {
+    guardarSesion(CLAVE_TRABAJADOR, {
+      owner: user?.id ?? null,
+      location,
+      skills,
+      photoUrl,
+      years: yearsExperienceInput,
+    } satisfies BorradorTrabajador & { owner: string | null });
+  }, [user?.id, location, skills, photoUrl, yearsExperienceInput]);
 
   function toggleSkill(skill: WorkerSkill) {
     setSkills((prev) =>
@@ -166,7 +246,10 @@ function WorkerOnboarding() {
     if (!token) return false;
     setError(null);
     // El perfil todavía no existe (el usuario se acaba de registrar), pero si
-    // entró dos veces al onboarding puede existir: POST y, si ya está, PUT.
+    // entró dos veces al onboarding puede existir (POST da 409). En ese caso
+    // NO se reemplaza el perfil con este payload corto: se guarda sólo lo que
+    // el asistente capturó, encima del perfil que ya está (`saveProfilePart`),
+    // y «Dejar para después» no escribe nada.
     const payload = {
       photo_url: withDetails ? photoUrl : null,
       city: withDetails ? (location?.city ?? null) : null,
@@ -179,8 +262,26 @@ function WorkerOnboarding() {
     try {
       try {
         await api.post<WorkerProfile>("/workers/me/profile", payload, token);
-      } catch {
-        await api.put<WorkerProfile>("/workers/me/profile", payload, token);
+      } catch (err) {
+        if (!(err instanceof ApiError) || err.status !== 409) throw err;
+        if (user?.email === GUEST_WORKER_EMAIL) {
+          // La cuenta invitada es una sola compartida por rol: cada ingreso con
+          // PIN arranca de cero a propósito, así que acá sí se reemplaza el
+          // perfil entero (el probador anterior no le deja sus datos al siguiente).
+          await api.put<WorkerProfile>("/workers/me/profile", payload, token);
+        } else if (withDetails) {
+          await saveProfilePart(token, {
+            ...(photoUrl ? { photo_url: photoUrl } : {}),
+            city: location?.city ?? null,
+            latitude: location?.latitude ?? null,
+            longitude: location?.longitude ?? null,
+            skills,
+            // Opcional: vacío no pisa los años que ya tenía el perfil.
+            ...(yearsExperienceInput.trim()
+              ? { years_experience: Number(yearsExperienceInput) || 0 }
+              : {}),
+          });
+        }
       }
       return true;
     } catch (err) {
@@ -195,7 +296,10 @@ function WorkerOnboarding() {
     // comercio lo ve con menos contexto al postularse.
     if (!location || skills.length === 0) return;
     setSaving(true);
-    if (await save(true)) router.replace("/feed");
+    if (await save(true)) {
+      borrarSesion(CLAVE_TRABAJADOR);
+      router.replace(next ?? "/feed");
+    }
     else setSaving(false);
   }
 
@@ -205,7 +309,10 @@ function WorkerOnboarding() {
   // cercanía hasta que complete el perfil, pero no se lo deja trabado acá.
   async function skipAll() {
     setSkippingAll(true);
-    if (await save(false)) router.replace("/feed");
+    if (await save(false)) {
+      borrarSesion(CLAVE_TRABAJADOR);
+      router.replace(next ?? "/feed");
+    }
     else setSkippingAll(false);
   }
 
@@ -246,7 +353,7 @@ function WorkerOnboarding() {
           )}
 
           <div className="mt-auto flex flex-col gap-2 pt-8">
-            <Button fullWidth disabled={!location} onClick={() => setStep("oficio")}>
+            <Button fullWidth disabled={!location} onClick={() => irA("oficio")}>
               Continuar
             </Button>
             <button
@@ -291,12 +398,12 @@ function WorkerOnboarding() {
           </div>
 
           <div className="mt-auto flex flex-col gap-2 pt-8">
-            <Button fullWidth disabled={skills.length === 0} onClick={() => setStep("detalles")}>
+            <Button fullWidth disabled={skills.length === 0} onClick={() => irA("detalles")}>
               Continuar
             </Button>
             <button
               type="button"
-              onClick={() => setStep("zona")}
+              onClick={() => volverA("zona")}
               className="min-h-[48px] w-full rounded-[var(--radius-btn)] font-semibold text-ink/50 transition active:scale-[0.98]"
             >
               Volver
@@ -327,8 +434,9 @@ function WorkerOnboarding() {
               type="number"
               inputMode="numeric"
               placeholder="0"
-              min={0}
-              max={80}
+              min={LIMITES.aniosExperienciaMin}
+              max={LIMITES.aniosExperienciaMax}
+              step={1}
               value={yearsExperienceInput}
               onChange={(v) => setYearsExperienceInput(v.replace(/[^0-9]/g, "").slice(0, 2))}
             />
@@ -342,7 +450,7 @@ function WorkerOnboarding() {
             </Button>
             <button
               type="button"
-              onClick={() => setStep("oficio")}
+              onClick={() => volverA("oficio")}
               className="min-h-[48px] w-full rounded-[var(--radius-btn)] font-semibold text-ink/50 transition active:scale-[0.98]"
             >
               Volver
@@ -354,19 +462,31 @@ function WorkerOnboarding() {
   );
 }
 
-type EmployerStep = "nombre" | "ubicacion";
+const PASOS_COMERCIO = ["nombre", "ubicacion"] as const;
 
-function EmployerOnboarding() {
-  const { token } = useAuth();
+function EmployerOnboarding({ next }: { next: string | null }) {
+  const { token, user } = useAuth();
   const router = useRouter();
 
-  const [step, setStep] = useState<EmployerStep>("nombre");
-  const [name, setName] = useState("");
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [address, setAddress] = useState("");
-  const [city, setCity] = useState("");
-  const [latitude, setLatitude] = useState<number | null>(null);
-  const [longitude, setLongitude] = useState<number | null>(null);
+  const [guardado] = useState(() => leerBorradorBienvenida<BorradorComercio>(CLAVE_COMERCIO, user?.id));
+  const [name, setName] = useState(guardado?.name ?? "");
+  const [logoUrl, setLogoUrl] = useState<string | null>(guardado?.logoUrl ?? null);
+  const [address, setAddress] = useState(guardado?.address ?? "");
+  const [city, setCity] = useState(guardado?.city ?? "");
+  const [latitude, setLatitude] = useState<number | null>(guardado?.latitude ?? null);
+  const [longitude, setLongitude] = useState<number | null>(guardado?.longitude ?? null);
+  const { paso: step, irA, volverA } = usePasoUrl(PASOS_COMERCIO, [name.trim() !== ""]);
+  useEffect(() => {
+    guardarSesion(CLAVE_COMERCIO, {
+      owner: user?.id ?? null,
+      name,
+      logoUrl,
+      address,
+      city,
+      latitude,
+      longitude,
+    } satisfies BorradorComercio & { owner: string | null });
+  }, [user?.id, name, logoUrl, address, city, latitude, longitude]);
   const [useManualPicker, setUseManualPicker] = useState(false);
   const [saving, setSaving] = useState(false);
   const [skipping, setSkipping] = useState(false);
@@ -381,7 +501,11 @@ function EmployerOnboarding() {
   // `skipAll()`: necesita mandar un nombre placeholder sin esperar a que el
   // estado de `name` se actualice. Devuelve `false` si falló, para que cada
   // botón decida cómo reaccionar sin duplicar el guardado.
-  async function save(withLocation: boolean, nameOverride?: string): Promise<boolean> {
+  async function save(
+    withLocation: boolean,
+    nameOverride?: string,
+    soloSiNoExiste = false
+  ): Promise<boolean> {
     const finalName = (nameOverride ?? name).trim();
     if (!token || !finalName) return false;
     setError(null);
@@ -395,11 +519,42 @@ function EmployerOnboarding() {
     };
     try {
       // El perfil todavía no existe (el usuario se acaba de registrar), pero
-      // si entró dos veces al onboarding puede existir: POST y, si ya está, PUT.
+      // si entró dos veces al onboarding puede existir (POST da 409). En ese
+      // caso NO se lo reemplaza con este payload corto: «Omitir por ahora»
+      // (`soloSiNoExiste`) no escribe nada, y lo demás se guarda encima del
+      // perfil que ya está (nombre, logo y, si se cargó, la ubicación).
       try {
         await api.post<CompanyProfile>("/companies/me/profile", payload, token);
-      } catch {
-        await api.put<CompanyProfile>("/companies/me/profile", payload, token);
+      } catch (err) {
+        if (!(err instanceof ApiError) || err.status !== 409) throw err;
+        if (user?.email === GUEST_EMPLOYER_EMAIL) {
+          // Cuenta invitada compartida: cada ingreso con PIN arranca de cero.
+          // Rubro, descripción, capacidad y horarios en null explícito: la
+          // edición es parcial, y acá sí se quiere vaciarlos.
+          await api.put<CompanyProfile>(
+            "/companies/me/profile",
+            { ...payload, category: null, description: null, capacity: null, opening_hours: null },
+            token
+          );
+        } else if (!soloSiNoExiste) {
+          const actual = await api.get<CompanyProfile>("/companies/me/profile", token);
+          await api.put<CompanyProfile>(
+            "/companies/me/profile",
+            {
+              name: payload.name,
+              logo_url: logoUrl ?? actual.logo_url,
+              category: actual.category,
+              description: actual.description,
+              capacity: actual.capacity,
+              opening_hours: actual.opening_hours,
+              address: withLocation ? payload.address : actual.address,
+              city: withLocation ? payload.city : actual.city,
+              latitude: withLocation ? payload.latitude : actual.latitude,
+              longitude: withLocation ? payload.longitude : actual.longitude,
+            },
+            token
+          );
+        }
       }
       return true;
     } catch (err) {
@@ -416,13 +571,19 @@ function EmployerOnboarding() {
   async function finish() {
     if (latitude === null || longitude === null) return;
     setSaving(true);
-    if (await save(true)) router.replace("/shifts");
+    if (await save(true)) {
+      borrarSesion(CLAVE_COMERCIO);
+      router.replace(destinoTrasBienvenida(next ?? "/shifts", token));
+    }
     else setSaving(false);
   }
 
   async function skipLocation() {
     setSkipping(true);
-    if (await save(false)) router.replace("/shifts");
+    if (await save(false)) {
+      borrarSesion(CLAVE_COMERCIO);
+      router.replace(destinoTrasBienvenida(next ?? "/shifts", token));
+    }
     else setSkipping(false);
   }
 
@@ -434,7 +595,10 @@ function EmployerOnboarding() {
   // nombre real, ver docstring del archivo).
   async function skipAll() {
     setSkippingAll(true);
-    if (await save(false, name.trim() || "Mi comercio")) router.replace("/shifts");
+    if (await save(false, name.trim() || "Mi comercio", true)) {
+      borrarSesion(CLAVE_COMERCIO);
+      router.replace(destinoTrasBienvenida(next ?? "/shifts", token));
+    }
     else setSkippingAll(false);
   }
 
@@ -478,7 +642,7 @@ function EmployerOnboarding() {
           {error && <p className="mt-4 text-sm text-danger">{error}</p>}
 
           <div className="mt-auto flex flex-col gap-2 pt-8">
-            <Button fullWidth disabled={!name.trim()} onClick={() => setStep("ubicacion")}>
+            <Button fullWidth disabled={!name.trim()} onClick={() => irA("ubicacion")}>
               Continuar
             </Button>
             <button
@@ -505,6 +669,7 @@ function EmployerOnboarding() {
             {useManualPicker ? (
               <div className="flex flex-col gap-2">
                 <LocationPicker
+                  initialCity={city}
                   onSelect={(loc: LocationSelection) => {
                     setCity(loc.city);
                     setLatitude(loc.latitude);
@@ -563,7 +728,7 @@ function EmployerOnboarding() {
             </button>
             <button
               type="button"
-              onClick={() => setStep("nombre")}
+              onClick={() => volverA("nombre")}
               className="min-h-[48px] w-full rounded-[var(--radius-btn)] font-semibold text-ink/35 transition active:scale-[0.98]"
             >
               Volver

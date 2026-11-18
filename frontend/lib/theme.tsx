@@ -25,7 +25,9 @@
  *
  * El anti-flash (que la primera pintura no salga en claro y salte a oscuro) lo
  * resuelve `THEME_INIT_SCRIPT`, un script síncrono que el layout inyecta al
- * inicio del <body>, antes de que React hidrate.
+ * inicio del <body>, antes de que React hidrate. Cuando ese script no llega a
+ * correr (la página se dibuja entera en el navegador, ver `ThemeProvider`),
+ * el atributo lo pone el propio proveedor al montar.
  */
 
 import { THEME_COLOR_DARK, THEME_COLOR_LIGHT } from "./theme-color";
@@ -34,6 +36,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -122,6 +125,20 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const stored = readStored();
     setThemeState(stored);
     setResolvedTheme(resolveTheme(stored));
+  }, []);
+
+  // Red de seguridad para cuando el script anti-flash no corrió. Pasa en las
+  // pantallas que salen de un `notFound()` (el turno que ya no está
+  // disponible, el link de un turno que no existe): Next manda un HTML vacío
+  // y dibuja el layout en el navegador, y React no ejecuta los <script> que
+  // inserta. Sin esto <html> quedaba sin `data-theme` y esas pantallas salían
+  // en claro aunque la persona hubiera elegido oscuro. Va en un layout effect
+  // para que esté puesto antes del primer pintado, y sólo actúa si falta el
+  // atributo: en una carga normal no cambia nada.
+  useLayoutEffect(() => {
+    if (!document.documentElement.hasAttribute("data-theme")) {
+      applyTheme(resolveTheme(readStored()));
+    }
   }, []);
 
   const setTheme = useCallback((choice: ThemeChoice) => {

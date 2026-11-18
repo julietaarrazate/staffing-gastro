@@ -3,16 +3,25 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
+import { appliedShiftIds } from "@/lib/applications";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
+import { useTapGuard } from "@/lib/use-tap-guard";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
 import { Shift, ShiftApplication, WorkerProfile } from "@/lib/types";
 import { getCached, setCached } from "@/lib/screen-cache";
+import { saveProfilePart } from "@/lib/worker-profile";
+import { esPerfilInexistente } from "@/lib/perfil-faltante";
+import { bienvenidaHref } from "@/lib/safe-next";
+import PerfilFaltanteCard from "@/components/PerfilFaltanteCard";
 import { isTodayInArgentina } from "@/lib/datetime";
+import { LETRAS_APP } from "@/lib/letras";
 import {
   distanceOf,
   getStoredLocation,
+  NEARBY_RADIUS_KM,
+  nearbyOnly,
   originFor,
   sortByDistance,
   type CurrentLocation,
@@ -57,6 +66,8 @@ interface CachedFeed {
   profile: WorkerProfile | null;
 }
 const FEED_CACHE_KEY = "worker-feed";
+/** Marca interna: el perfil se pidió y el servidor dijo 404 (no existe). */
+const SIN_PERFIL = Symbol("sin-perfil");
 
 /** Búsqueda armada por el asistente de IA del trabajador (`/assistant`,
  * `lib/use-worker-ai-assistant.ts`: "búscame un turno en Palermo a menos de
@@ -91,10 +102,19 @@ function useAssistantSearch(): AssistantSearch | null {
   }, [searchParams]);
 }
 
-function feedPathFor(positions: string[]): string {
-  if (positions.length === 0) return "/shifts/feed";
+/** El Inicio pide el feed a secas: el servidor ya lo acota a lo que queda
+ * cerca de la zona del perfil. Una búsqueda del asistente pide todo el
+ * mercado (`scope=all`) medido desde el centro de la zona que la persona
+ * escribió, para que "turnos en Córdoba" no dependa de dónde está su perfil.
+ * Ese punto es un lugar que se pidió por nombre, no la posición del
+ * dispositivo: "Estoy acá" no viaja al servidor. */
+function feedPathFor(search: AssistantSearch | null): string {
+  if (!search) return "/shifts/feed";
   const params = new URLSearchParams();
-  positions.forEach((p) => params.append("positions", p));
+  params.set("scope", "all");
+  params.set("latitude", String(search.origin[0]));
+  params.set("longitude", String(search.origin[1]));
+  search.positions.forEach((p) => params.append("positions", p));
   return `/shifts/feed?${params.toString()}`;
 }
 
@@ -122,9 +142,33 @@ function useIsDesktop(): boolean {
 export default function WorkerHomePage() {
   return (
     <Suspense fallback={null}>
-      <WorkerFeedPanel />
+      <FeedGuard />
     </Suspense>
   );
+}
+
+// Hasta conocer el rol no se monta nada. La guarda de rol va por fuera del panel: con otro rol el panel ni se monta,
+// así que no pinta el feed cacheado, no pide nada ni la ubicación del navegador
+// mientras la guarda redirige a la home de su rol.
+function FeedGuard() {
+  const { allowed, user } = useRequireAuth({ roles: ["worker"] });
+  // Con rol equivocado ya conocido, nada (redirige). Mientras el rol no se
+  // conoce (el backend dormido puede tardar segundos en `/auth/me`), el mismo
+  // esqueleto de siempre, sin pedir datos ni ubicación.
+  if (!allowed) return null;
+  if (!user) {
+    return (
+      <div data-testid="guarda-cargando" aria-busy className="mx-auto max-w-md space-y-5 px-4 pb-8 pt-4 md:max-w-5xl">
+        <Skeleton className="h-[232px] w-full rounded-[var(--radius-card)]" />
+        <div className="flex gap-3">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-[170px] w-[156px] shrink-0 rounded-[var(--radius-chip)]" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return <WorkerFeedPanel />;
 }
 
 function WorkerFeedPanel() {
@@ -142,9 +186,22 @@ function WorkerFeedPanel() {
   const [profile, setProfile] = useState<WorkerProfile | null>(cached?.profile ?? null);
   const [available, setAvailable] = useState(cached?.profile?.is_available ?? true);
   const [loading, setLoading] = useState(cached === undefined);
+  // «Llegó vacío» (el servidor no devolvió ningún turno) no es lo mismo que
+  // «los vi todos» (la persona fue pasando/descartando las tarjetas): lo
+  // primero no se puede decir como si ya hubiera visto algo. El caché guarda
+  // lo que devolvió el servidor, así que vacío ahí también es «llegó vacío».
+  const [arrivedEmpty, setArrivedEmpty] = useState(cached !== undefined && cached.shifts.length === 0);
   const [error, setError] = useState<string | null>(null);
+  // La cuenta no tiene perfil de trabajador (se cortó la bienvenida): cartel
+  // para completarlo en vez de dejar el Inicio como si nada.
+  const [sinPerfil, setSinPerfil] = useState(false);
   // Grilla de escritorio (md+, sin swipe): turno con una decisión en vuelo.
   const [decidingId, setDecidingId] = useState<string | null>(null);
+  // Turnos a los que se postuló desde la grilla: la tarjeta queda en su lugar,
+  // marcada «Postulado», hasta la próxima carga (si desapareciera, las demás
+  // correrían bajo el dedo y el segundo toque caería en otra «Postularme»).
+  const [appliedInGrid, setAppliedInGrid] = useState<ReadonlySet<string>>(() => new Set());
+  const tapGuard = useTapGuard();
   // "Estoy acá ahora": si el trabajador compartió dónde está, el feed se
   // ordena desde ese punto y no desde la zona fija de su perfil. Dura lo que
   // dura la pestaña y NO pisa el perfil (ver lib/current-location.ts).
@@ -162,9 +219,30 @@ function WorkerFeedPanel() {
   const [deckShifts, setDeckShifts] = useState<Shift[] | null>(null);
   const decidedInDeck = useRef<Set<string>>(new Set());
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
+  // Cuenta los guardados del perfil hechos desde esta pantalla. Una carga que
+  // leyó el perfil ANTES de un guardado y termina DESPUÉS (el feed es el
+  // pedido más lento) trae una copia vieja: si el contador cambió, `load` la
+  // descarta y la pantalla se queda con lo que devolvió el servidor al guardar.
+  const profileSaves = useRef(0);
+  // Hay un guardado del perfil en vuelo: `load` no aplica su perfil (sería el
+  // viejo) para que el interruptor no parpadee de vuelta.
+  const savingProfile = useRef(false);
+  // Último perfil que devolvió el servidor al guardar desde acá. Sirve cuando
+  // se guardó antes de que existiera el caché de pantalla (primera carga): si
+  // `load` descarta su copia vieja, esto es lo que se cachea, no `null`.
+  const lastSavedProfile = useRef<WorkerProfile | null>(null);
+
+  // Último pedido gana: una carga vieja que termina tarde no pisa a la nueva.
+  const latestLoad = useRef(0);
+  // Cuenta las postulaciones hechas desde la grilla. Una carga que empezó
+  // antes de postularse trae al turno todavía sin postular: no tiene que
+  // borrar la marca «Postulado» ni volver a ofrecerlo.
+  const gridApplies = useRef(0);
 
   const load = useCallback(async () => {
     if (!token) return;
+    const mine = ++latestLoad.current;
+    const appliesAtStart = gridApplies.current;
     // Una búsqueda del asistente siempre recarga (no hay caché previo que
     // sirva para una consulta puntual) y siempre bloquea con esqueleto —
     // fuera de eso, sólo bloqueamos en la primera carga real; si ya hay algo
@@ -173,27 +251,53 @@ function WorkerFeedPanel() {
       setLoading(true);
     }
     setError(null);
+    const savesAtStart = profileSaves.current;
     try {
       const [feed, prof, applied] = await Promise.all([
-        api.get<Shift[]>(feedPathFor(assistantSearch?.positions ?? []), token),
-        api.get<WorkerProfile>("/workers/me/profile", token).catch(() => null),
+        api.get<Shift[]>(feedPathFor(assistantSearch), token),
+        api
+          .get<WorkerProfile>("/workers/me/profile", token)
+          .catch((err) => (esPerfilInexistente(err) ? SIN_PERFIL : null)),
         api.get<ShiftApplication[]>("/applications/mine", token).catch(() => []),
       ]);
-      const appliedIds = new Set(applied.map((a) => a.shift_id));
+      if (mine !== latestLoad.current) return;
+      const appliedIds = appliedShiftIds(applied);
       const visible = feed.filter((s) => !appliedIds.has(s.id));
       setShifts(visible);
-      if (prof) {
+      // La próxima carga ya trae a los postulados filtrados: la marca de la
+      // grilla termina su trabajo (y si se retiró una postulación, el turno
+      // vuelve a ofrecerse sin la marca vieja).
+      if (gridApplies.current === appliesAtStart) setAppliedInGrid(new Set());
+      setArrivedEmpty(feed.length === 0);
+      // Si la persona guardó su perfil mientras esto cargaba, `prof` es viejo.
+      const profFresh = profileSaves.current === savesAtStart && !savingProfile.current;
+      if (prof === SIN_PERFIL) {
+        if (profFresh) {
+          setSinPerfil(true);
+          setProfile(null);
+        }
+      } else if (prof && profFresh) {
+        setSinPerfil(false);
         setProfile(prof);
         setAvailable(prof.is_available);
       }
       // No cachear resultados de una búsqueda del asistente: son la
       // respuesta a ESA consulta puntual, no "el feed" que se restaura al
       // volver a la pestaña sin más contexto.
-      if (!assistantSearch) setCached<CachedFeed>(FEED_CACHE_KEY, { shifts: visible, profile: prof });
+      if (!assistantSearch && gridApplies.current === appliesAtStart) {
+        const cachedProfile = profFresh
+          ? prof === SIN_PERFIL
+            ? null
+            : prof
+          : (lastSavedProfile.current ?? getCached<CachedFeed>(FEED_CACHE_KEY)?.profile ?? null);
+        setCached<CachedFeed>(FEED_CACHE_KEY, { shifts: visible, profile: cachedProfile });
+      }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo cargar el feed");
+      if (mine === latestLoad.current) {
+        setError(err instanceof ApiError ? err.message : "No se pudo cargar el feed");
+      }
     } finally {
-      setLoading(false);
+      if (mine === latestLoad.current) setLoading(false);
     }
   }, [token, assistantSearch]);
 
@@ -202,32 +306,48 @@ function WorkerFeedPanel() {
   }, [load]);
 
   async function toggleAvailable() {
-    if (!token || !profile) return;
+    if (!token || savingProfile.current) return;
     const next = !available;
     setAvailable(next); // optimista
+    savingProfile.current = true;
     try {
-      await api.put<WorkerProfile>(
-        "/workers/me/profile",
-        {
-          photo_url: profile.photo_url,
-          birth_date: profile.birth_date,
-          city: profile.city,
-          bio: profile.bio,
-          latitude: profile.latitude,
-          longitude: profile.longitude,
-          skills: profile.skills,
-          years_experience: profile.years_experience,
-          languages: profile.languages,
-          certifications: profile.certifications,
-          cv_url: profile.cv_url,
-          is_available: next,
-        },
-        token
-      );
+      // El endpoint reemplaza el perfil: `saveProfilePart` lo lee del servidor
+      // justo antes de escribir y cambia sólo la disponibilidad. La copia de
+      // esta pantalla puede estar vieja (se pinta desde caché y se actualiza
+      // por detrás) y mandarla pisaba lo recién guardado en el perfil.
+      const saved = await saveProfilePart(token, { is_available: next });
+      profileSaves.current += 1;
+      lastSavedProfile.current = saved;
+      setProfile(saved);
+      setAvailable(saved.is_available);
+      const cachedFeed = getCached<CachedFeed>(FEED_CACHE_KEY);
+      if (cachedFeed) setCached<CachedFeed>(FEED_CACHE_KEY, { ...cachedFeed, profile: saved });
       toast(next ? "Estás disponible" : "Te marcaste como no disponible");
-    } catch {
+    } catch (err) {
       setAvailable(!next); // revertir
+      if (err instanceof ApiError && err.status === 404) {
+        // Cerró la app en la bienvenida antes de guardar: no hay perfil que
+        // actualizar y reintentar no lo arregla.
+        toast("Completá tu perfil para marcarte disponible", "error");
+        return;
+      }
       toast("No se pudo actualizar tu disponibilidad", "error");
+      // Si una carga terminó con el guardado en vuelo, descartó su perfil y
+      // nadie lo volvió a aplicar. Se relee sólo el perfil: recargar todo el
+      // Inicio fallaría igual sin conexión y taparía la lista con el error.
+      void api
+        .get<WorkerProfile>("/workers/me/profile", token)
+        .then((p) => {
+          if (savingProfile.current) return;
+          setProfile(p);
+          setAvailable(p.is_available);
+          lastSavedProfile.current = p;
+          const cachedFeed = getCached<CachedFeed>(FEED_CACHE_KEY);
+          if (cachedFeed) setCached<CachedFeed>(FEED_CACHE_KEY, { ...cachedFeed, profile: p });
+        })
+        .catch(() => {});
+    } finally {
+      savingProfile.current = false;
     }
   }
 
@@ -290,10 +410,20 @@ function WorkerFeedPanel() {
    *  la grilla apenas se resuelve. */
   async function handleGridDecide(shift: Shift, decision: "like" | "pass") {
     if (decidingId !== null) return;
-    setDecidingId(shift.id);
-    const ok = await onDecide(shift, decision);
-    if (ok) setShifts((prev) => prev.filter((s) => s.id !== shift.id));
-    setDecidingId(null);
+    await tapGuard.run(async () => {
+      setDecidingId(shift.id);
+      try {
+        const ok = await onDecide(shift, decision);
+        if (!ok) return;
+        if (decision === "like") {
+          gridApplies.current += 1;
+          setAppliedInGrid((prev) => new Set(prev).add(shift.id));
+        }
+        else setShifts((prev) => prev.filter((s) => s.id !== shift.id));
+      } finally {
+        setDecidingId(null);
+      }
+    });
   }
 
   async function onDeckApply(shift: Shift): Promise<boolean> {
@@ -320,20 +450,27 @@ function WorkerFeedPanel() {
   // "a menos de 2 km" tiene que sacar lo que no entra) y sólo hoy si lo pidió.
   // Memorizado (como `distanceFromOrigin`): así tocar "Disponible" no vuelve
   // a ordenar ni a dibujar las tarjetas, que no cambiaron.
+  // Depende de la zona del perfil (dos números), no del objeto entero: guardar
+  // la disponibilidad cambia `profile` y no tiene que redibujar las tarjetas.
+  const profileLat = profile?.latitude ?? null;
+  const profileLng = profile?.longitude ?? null;
   const origin = useMemo(
-    () => (assistantSearch ? assistantSearch.origin : originFor(here, profile)),
-    [assistantSearch, here, profile],
+    () =>
+      assistantSearch
+        ? assistantSearch.origin
+        : originFor(here, { latitude: profileLat, longitude: profileLng }),
+    [assistantSearch, here, profileLat, profileLng],
   );
   const distanceFromOrigin = useCallback((s: Shift) => distanceOf(s, origin), [origin]);
   const visibleShifts = useMemo(() => {
     let sortedShifts = sortByDistance(shifts, origin);
-    if (assistantSearch?.radiusKm != null) {
-      const radiusKm = assistantSearch.radiusKm;
-      sortedShifts = sortedShifts.filter((s) => {
-        const d = distanceOf(s, origin);
-        return d != null && d <= radiusKm;
-      });
-    }
+    // «Cerca» es cerca: acá no se muestra nada más lejos que el radio, medido
+    // desde el mismo origen que las distancias de las tarjetas. Si se pidió
+    // un radio puntual ("a menos de 2 km"), manda ése, y lo que no se puede
+    // ubicar queda afuera.
+    sortedShifts = nearbyOnly(sortedShifts, origin, assistantSearch?.radiusKm ?? NEARBY_RADIUS_KM, {
+      keepUnlocated: !assistantSearch,
+    });
     if (assistantSearch?.todayOnly) {
       sortedShifts = sortedShifts.filter((s) => isTodayInArgentina(s.start_at));
     }
@@ -342,72 +479,144 @@ function WorkerFeedPanel() {
   const heroShift = visibleShifts[0];
   const restShifts = useMemo(() => visibleShifts.slice(1), [visibleShifts]);
   const isDesktop = useIsDesktop();
+  // Con "Estoy acá" lo que se muestra es lo cercano a ese punto. Si ahí no hay
+  // nada, se dice eso y se manda a Buscar, que es donde se ve todo: el Inicio
+  // sólo trae lo de la zona del perfil, así que no puede afirmar que no hay
+  // turnos en ningún lado.
+  const emptyNearHere = !assistantSearch && here !== null;
+  // Sin zona en el perfil el servidor manda todo: ahí «cerca de tu zona» sería falso.
+  const emptyNoneInZone = !assistantSearch && !emptyNearHere && arrivedEmpty && profileLat !== null && profileLng !== null;
+  const goBuscar = () => router.push("/buscar");
   const emptyTitle = assistantSearch
     ? "No encontramos turnos con esa búsqueda"
-    : "No hay más turnos cerca";
+    : emptyNearHere
+      ? "No hay turnos cerca de donde estás ahora"
+      : emptyNoneInZone
+        ? "Todavía no hay turnos cerca de tu zona"
+        : "No hay más turnos cerca";
   const emptySubtitle = assistantSearch
     ? "Probá un radio más amplio o menos puestos a la vez."
-    : "Ya viste todas las oportunidades del momento. Aparecen en tiempo real: volvé en un rato.";
+    : emptyNearHere
+      ? "Tocá «Volver a mi zona», arriba, o mirá todos los turnos en Buscar."
+      : emptyNoneInZone
+        ? "Aparecen en tiempo real y te avisamos cuando salga uno. Mientras, podés mirar los de otras zonas en Buscar."
+        : "Ya viste todas las oportunidades del momento. Aparecen en tiempo real: volvé en un rato.";
+  // Una sola acción primaria (ámbar) por vacío; la otra va como secundaria.
+  const verTodosEnBuscar = { label: "Ver todos en Buscar", onClick: goBuscar };
+  const actualizar = { label: "Actualizar", onClick: load };
   const emptyStateAction = assistantSearch
     ? { label: "Ver todos los turnos", onClick: () => router.push("/feed") }
-    : { label: "Actualizar", onClick: load };
+    : emptyNearHere || emptyNoneInZone
+      ? verTodosEnBuscar
+      : actualizar;
+  const emptySecondaryAction = assistantSearch || emptyNearHere ? undefined : emptyNoneInZone ? actualizar : verTodosEnBuscar;
 
-  const emptyState = (
+  // El cartel de «te falta completar…» es el único acento ámbar de la
+  // pantalla: con él a la vista, el vacío no suma otro botón primario (el
+  // principal pasa a secundario). Sin perfil, el vacío ni se muestra: «no hay
+  // más turnos» sería falso, la persona todavía no vio nada.
+  const incompleto =
+    !!profile && (profile.latitude == null || profile.longitude == null || !profile.skills?.length);
+  const hayCartel = sinPerfil || incompleto;
+  // Sólo de la vista: qué se monta sobre el borde del cielo (la comanda del
+  // recomendado o el cartel de perfil; ver el contenedor de abajo).
+  const seMonta = !loading && (hayCartel || (!error && !!heroShift));
+  // Sólo de la vista: el cartelito gira recién después del primer toque.
+  const [cartelitoTocado, setCartelitoTocado] = useState(false);
+  const emptyState = sinPerfil ? null : (
     <EmptyState
       icon={<EmptyFeedIllustration color="var(--color-primary)" />}
       title={emptyTitle}
       subtitle={emptySubtitle}
-      primaryAction={emptyStateAction}
+      primaryAction={hayCartel ? undefined : emptyStateAction}
+      secondaryAction={hayCartel ? emptyStateAction : emptySecondaryAction}
     />
   );
 
   return (
-    // Home del trabajador con la composición del board de Julieta (pantalla
-    // 1): saludo en serif con la zona, buscador, la tarjeta
-    // "Recomendado" y la fila "Cerca tuyo". Ya no es un mazo de alto fijo: la
-    // pantalla scrollea como el board. El mazo para deslizar sigue existiendo
-    // como "Descubrir rápido" (decisión de Julieta, 2026-09-22).
-    <div className="mx-auto max-w-md px-4 pb-8 pt-4 md:max-w-5xl">
-      <header className="mb-3 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="font-display text-h1 font-semibold text-ink">
+    // Home del trabajador. Desde el 2026-11-18 lleva la dirección «con
+    // relieve» (docs/design-system/direccion-relieve.md): arriba, el cielo
+    // con el saludo en brocha, la zona, el cartelito de «Disponible» y el
+    // buscador; montado sobre el borde del cielo, lo primero que hay para
+    // ver (el turno recomendado como comanda, o el cartel de perfil, o el
+    // vacío); después «Descubrir rápido» y «Cerca tuyo». La pantalla
+    // scrollea; el mazo para deslizar sigue como "Descubrir rápido"
+    // (decisión de Julieta, 2026-09-22). La lógica no cambió.
+    <div className={`${LETRAS_APP} mx-auto max-w-md px-4 pb-8 md:max-w-5xl md:pt-4`}>
+      <div
+        className={`app-cielo -mx-4 px-4 pt-4 md:mx-0 md:rounded-[var(--radius-card)] md:px-6 md:pb-6 ${seMonta ? "pb-[88px]" : "pb-6"}`}
+      >
+        {/* El saludo ocupa lo que deja el cartelito y se parte entre
+            palabras; si una sola palabra no entra al lado (un nombre largo
+            a 320 px), el cartelito baja a su renglón en vez de partir el
+            nombre por la mitad. */}
+        <header className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
+          <h1 className="letra-cartel letra-cartel-pantalla min-w-min flex-1 break-words pb-1">
             {firstName ? `Hola, ${firstName}` : "Hola"}
           </h1>
-          {/* Desde dónde se mide el feed, en el renglón del saludo: antes era
-              una barra propia entre el buscador y los chips. Mientras hay una
-              búsqueda del asistente, manda la zona pedida (cartel de abajo). */}
+          {/* «Disponible» es el cartelito de la puerta: verde como el de
+              «abierto», y se da vuelta al tocarlo (`cartelito-gira` recién
+              después del primer toque, para que no gire solo al abrir). */}
+          <button
+            type="button"
+            onClick={() => {
+              setCartelitoTocado(true);
+              toggleAvailable();
+            }}
+            className={`cartelito ml-auto ${available ? "" : "cartelito-no"} ${cartelitoTocado ? "cartelito-gira" : ""}`}
+            aria-label="Cambiar disponibilidad"
+            aria-pressed={available}
+          >
+            <svg aria-hidden viewBox="0 0 60 14" className="cartelito-hilo">
+              <path d="M5 13.5 30 2.5l25 11" />
+              <circle cx="30" cy="2.5" r="1.9" />
+            </svg>
+            <span key={String(available)}>{available ? "Disponible" : "No disp."}</span>
+          </button>
+        </header>
+        {/* Desde dónde se mide el feed, debajo del saludo y a todo el ancho
+            (al lado del cartelito se partía en dos renglones). Mientras hay
+            una búsqueda del asistente, manda la zona pedida (cartel de abajo). */}
+        <div className="mb-4 mt-1">
           {assistantSearch ? (
-            <p className="mt-0.5 text-sm text-ink/55">Encontrá tu próximo turno.</p>
+            <p className="mt-1 text-sm">Encontrá tu próximo turno.</p>
           ) : (
             <LocationBar current={here} profileCity={profile?.city ?? null} onChange={setHere} />
           )}
         </div>
-        <button
-          type="button"
-          onClick={toggleAvailable}
-          className="mt-1 flex shrink-0 flex-col items-center gap-1"
-          aria-label="Cambiar disponibilidad"
-        >
-          <span
-            className={`relative h-7 w-12 rounded-full transition-colors ${
-              available ? "bg-success" : "bg-line"
-            }`}
-          >
-            <span
-              className={`absolute top-0.5 h-6 w-6 rounded-full bg-card shadow transition-all ${
-                available ? "left-[22px]" : "left-0.5"
-              }`}
-            />
-          </span>
-          <span className={`text-label font-semibold ${available ? "text-success-text" : "text-ink/40"}`}>
-            {available ? "Disponible" : "No disp."}
-          </span>
-        </button>
-      </header>
 
-      <div className="mb-4">
-        <AIAssistantBar />
+        <AIAssistantBar recto />
       </div>
+
+      {/* La comanda (o el cartel de perfil) se monta sobre el borde del
+          cielo. Cargando, con error o vacío no: el esqueleto y el dibujo del
+          vacío quedaban cortados por el borde. En escritorio tampoco: ahí el
+          cielo es un panel y la grilla va debajo, con su aire. */}
+      <div className={`relative z-[1] md:mt-5 ${seMonta ? "-mt-[68px]" : "mt-5"}`}>
+
+      {/* Alta a medias (G12, U034, U035): sin perfil, o con el perfil pero sin
+          zona u oficio, el Inicio no puede personalizar nada. El cartel queda
+          fijo hasta que se completa (no se cierra). */}
+      {!loading && sinPerfil && (
+        <div className="mb-4">
+          <PerfilFaltanteCard
+            title="Te falta completar tu perfil"
+            body="Completá tu zona y tus oficios para recibir turnos."
+            actionLabel="Completar mi perfil"
+            href={bienvenidaHref("/feed")}
+          />
+        </div>
+      )}
+      {!loading && !sinPerfil && incompleto && (
+        <div className="mb-4">
+          <PerfilFaltanteCard
+            title="Completá tu zona y tus oficios para recibir turnos"
+            body="Sin eso te mostramos todo y no te avisamos de los turnos que te sirven."
+            actionLabel="Completar mi perfil"
+            href="/profile"
+          />
+        </div>
+      )}
 
       {assistantSearch && (
         // Reemplaza a LocationBar mientras hay una búsqueda del asistente
@@ -431,10 +640,10 @@ function WorkerFeedPanel() {
       {loading ? (
         <>
           <div className="space-y-5 md:hidden" aria-hidden>
-            <Skeleton className="h-[232px] w-full rounded-[var(--radius-card)]" />
-            <div className="flex gap-3">
+            <Skeleton className="h-[212px] w-full rounded-[2px]" />
+            <div className="space-y-3">
               {[0, 1, 2].map((i) => (
-                <Skeleton key={i} className="h-[170px] w-[156px] shrink-0 rounded-[var(--radius-chip)]" />
+                <Skeleton key={i} className="h-[58px] w-full rounded-[var(--radius-chip)]" />
               ))}
             </div>
           </div>
@@ -457,11 +666,13 @@ function WorkerFeedPanel() {
               {heroShift ? (
                 <div className="space-y-6">
                   <div data-tour="feed-deck" className="space-y-3">
+                    <h2 className="text-h3 font-semibold text-[color:var(--app-cielo-tinta)]">Para vos</h2>
                     <FeedHero shift={heroShift} />
                     <button
                       type="button"
                       onClick={() => openDiscover(visibleShifts)}
-                      className="flex w-full items-center gap-3 rounded-[var(--radius-card)] bg-card px-4 py-3 text-left shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99]"
+                      // Plano, con filete: el relieve de la pantalla es la comanda.
+                      className="!mt-5 flex w-full items-center gap-3 rounded-[var(--radius-btn)] bg-card px-4 py-3 text-left ring-1 ring-line transition active:scale-[0.99]"
                     >
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-chip)] bg-primary-tint text-primary-text">
                         <SparklesIcon size={20} />
@@ -498,7 +709,10 @@ function WorkerFeedPanel() {
                       <OpportunityCard
                         shift={shift}
                         distanceKm={distanceOf(shift, origin)}
+                        href={`/turno/${shift.id}`}
                         applying={decidingId === shift.id}
+                        locked={tapGuard.locked}
+                        applied={appliedInGrid.has(shift.id)}
                         onApply={() => handleGridDecide(shift, "like")}
                         onPass={() => handleGridDecide(shift, "pass")}
                         shareable
@@ -511,6 +725,8 @@ function WorkerFeedPanel() {
           )}
         </>
       )}
+
+      </div>
 
       {deckShifts && (
         <DiscoverDeck

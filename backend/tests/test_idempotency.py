@@ -121,6 +121,8 @@ async def test_create_event_twice_same_key_creates_one_set_of_shifts(client: Asy
         "start_at": "2026-09-10T20:00:00",
         "end_at": "2026-09-11T02:00:00",
         "city": "Palermo",
+        "latitude": -34.5875,
+        "longitude": -58.43,
         "roles": [
             {"position": "mozo", "count": 2, "pay_amount": "50000.00"},
             {"position": "bartender", "count": 1, "pay_amount": "60000.00"},

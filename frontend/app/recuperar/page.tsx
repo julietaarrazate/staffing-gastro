@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { api } from "@/lib/api";
+import { api, isRateLimited, RATE_LIMITED_MESSAGE } from "@/lib/api";
 import { Button, TextField } from "@/components/ui";
 
 // Mensaje anti-enumeración: siempre el mismo, exista o no el email (no
@@ -14,18 +14,27 @@ export default function RecuperarPage() {
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
+  const [limited, setLimited] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
+    setLimited(false);
+    let sentOk = true;
     try {
       await api.post("/auth/forgot-password", { email });
-    } catch {
-      // Aunque falle la red, no distinguimos el caso: mostramos el mismo
-      // mensaje genérico para no revelar nada sobre el estado de la cuenta.
+    } catch (err) {
+      // El límite de intentos es por conexión y no dice nada del mail: se
+      // avisa y el formulario queda para reintentar. Cualquier otro error,
+      // aunque falle la red, muestra el mismo mensaje genérico para no
+      // revelar nada sobre el estado de la cuenta.
+      if (isRateLimited(err)) {
+        sentOk = false;
+        setLimited(true);
+      }
     } finally {
       setSubmitting(false);
-      setSent(true);
+      if (sentOk) setSent(true);
     }
   }
 
@@ -56,6 +65,11 @@ export default function RecuperarPage() {
                 value={email}
                 onChange={setEmail}
               />
+              {limited && (
+                <p role="alert" className="text-sm text-danger-text">
+                  {RATE_LIMITED_MESSAGE}
+                </p>
+              )}
               <Button type="submit" fullWidth loading={submitting}>
                 Enviar enlace
               </Button>

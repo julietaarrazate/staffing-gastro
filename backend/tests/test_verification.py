@@ -13,7 +13,6 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.main import app
-from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
 from app.modules.notification.api.dependencies import get_email_sender
 from app.modules.notification.infrastructure.fake_email_sender import FakeEmailSender
 from app.modules.verification.domain.entities import Claim, Evidence
@@ -33,7 +32,7 @@ from app.modules.verification.domain.value_objects import (
     EvidenceType,
     VerificationMethod,
 )
-from tests.conftest import auth_headers, login
+from tests.conftest import auth_headers, make_admin
 
 
 def _now() -> datetime:
@@ -168,14 +167,7 @@ async def _make_admin(
     session_factory: async_sessionmaker[AsyncSession],
     email: str,
 ) -> dict:
-    await auth_headers(client, "employer", email)
-    async with session_factory() as session:
-        repo = SqlAlchemyUserRepository(session)
-        user = await repo.get_by_email(email)
-        user.promote_to_admin()
-        await repo.update(user)
-    tokens = await login(client, email)
-    return {"Authorization": f"Bearer {tokens['access_token']}"}
+    return await make_admin(client, session_factory, email)
 
 
 @pytest.mark.asyncio

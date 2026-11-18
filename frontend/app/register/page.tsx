@@ -1,14 +1,21 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
+import { destinoTrasIngreso } from "@/lib/perfil-faltante";
 import { ApiError } from "@/lib/api";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
 import { Button, SegmentedControl, TextField } from "@/components/ui";
 import TurnstileWidget from "@/components/TurnstileWidget";
 import { TURNSTILE_SITE_KEY } from "@/lib/turnstile";
+import { loginHref, bienvenidaHref, safeNext } from "@/lib/safe-next";
+import { guardarPlanElegido, planValido } from "@/lib/plan-elegido";
+import { LIMITES } from "@/lib/limites";
+import { guardarAvisoMail } from "@/lib/aviso-mail";
+import { motivoBloqueoRegistro } from "@/lib/registro";
+import { EDAD_MINIMA, motivoFechaNacimiento, nacimientoMasReciente } from "@/lib/edad";
 
 type Role = "worker" | "employer";
 
@@ -22,30 +29,73 @@ function roleFromQuery(value: string | null): Role | null {
 }
 
 function RegisterForm() {
-  const { register } = useAuth();
+  const { register, pendingTwoFactor } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
+  // A dónde volver al terminar el alta (un turno compartido, por ejemplo).
+  // Viene de la dirección: se valida acá y de nuevo en cada `href`/`replace`
+  // que arma `lib/safe-next.ts`.
+  const next = safeNext(searchParams.get("next"));
+  // "Continuar con Google" con una cuenta admin que tiene la verificación en
+  // dos pasos: el código se pide en /login (ADR-0023).
+  useEffect(() => {
+    if (pendingTwoFactor) router.replace(loginHref({ next }));
+  }, [pendingTwoFactor, router, next]);
   const [fullName, setFullName] = useState("");
+  // U101: `AAAA-MM-DD`. Oído es sólo para mayores de 18; no se muestra a nadie.
+  const [birthDate, setBirthDate] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<Role>(() => roleFromQuery(searchParams.get("rol")) ?? "worker");
+  // `?plan=<code>`: el botón "Empezar con <plan>" de los precios de la
+  // landing. Si la cuenta nueva es de comercio, se guarda para que al
+  // terminar `/bienvenida` vaya a "Mi plan" con ese plan resaltado. Un código
+  // desconocido se ignora y el alta sigue como siempre. Quien ya tiene sesión
+  // (de trabajador o de comercio) y abre este link ve el formulario como
+  // cualquiera: la landing no se le muestra (`LandingGate`), así que el caso
+  // no sale de los precios.
+  const planElegido = planValido(searchParams.get("plan"));
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileReset, setTurnstileReset] = useState(0);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
+  const errorNacimiento = birthDate ? (motivoFechaNacimiento(birthDate) ?? undefined) : undefined;
+
+  // Qué falta para poder crear la cuenta: se dice debajo del botón en vez de
+  // dejarlo gris sin explicación (U041).
+  const motivoBloqueo = motivoBloqueoRegistro({
+    nombre: fullName,
+    nacimiento: birthDate,
+    email,
+    clave: password,
+    terminos: acceptedTerms,
+    falta_verificacion: Boolean(TURNSTILE_SITE_KEY) && !turnstileToken,
+  });
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (motivoBloqueo) return;
     setError(null);
     setSubmitting(true);
     try {
-      await register(email, password, fullName, role);
+      const { signedIn } = await register(email, password, fullName.trim(), role, birthDate);
+      if (role === "employer" && planElegido) guardarPlanElegido(planElegido);
+      if (!signedIn) {
+        // La cuenta se creó pero el ingreso automático fue frenado: sin cartel
+        // de error, al ingreso con el aviso. El plan ya quedó guardado y el
+        // `next` viaja; al ingresar, `/login` sigue por `/bienvenida`.
+        router.replace(loginHref({ aviso: "cuenta-creada", next }));
+        return;
+      }
+      // Ingresó: /bienvenida avisa (una vez) que salió el mail de confirmación.
+      guardarAvisoMail();
       // `replace` para no volver a /register al ir "atrás". Los dos roles pasan
       // por el onboarding de `/bienvenida` (zona+oficio para el trabajador,
       // nombre+ubicación para el comercio) — ese componente decide qué mostrar
       // según `user.role`.
-      router.replace("/bienvenida");
+      router.replace(bienvenidaHref(next));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se pudo crear la cuenta");
       // Cada token de Turnstile sirve una vez: tras un error, uno nuevo.
@@ -82,7 +132,27 @@ function RegisterForm() {
               onChange={setFullName}
               placeholder="Nombre completo"
               required
+              maxLength={LIMITES.nombre}
             />
+            <div>
+              <TextField
+                type="date"
+                label="Fecha de nacimiento"
+                name="bday"
+                autoComplete="bday"
+                value={birthDate}
+                onChange={setBirthDate}
+                max={nacimientoMasReciente()}
+                required
+                // Sólo con la fecha completa: mientras se escribe no hay error.
+                error={errorNacimiento}
+              />
+              {!errorNacimiento && (
+                <p className="mt-1.5 text-xs text-ink/50">
+                  Oído es para mayores de {EDAD_MINIMA} años. No se la mostramos a nadie.
+                </p>
+              )}
+            </div>
             <TextField
               type="email"
               name="email"
@@ -102,14 +172,15 @@ function RegisterForm() {
               onChange={setPassword}
               placeholder="Contraseña (mín. 8 caracteres)"
               required
-              minLength={8}
+              minLength={LIMITES.contrasenaMin}
+              maxLength={LIMITES.contrasenaMax}
             />
             <label className="flex items-start gap-2.5 text-sm text-ink/70">
               <input
                 type="checkbox"
                 checked={acceptedTerms}
                 onChange={(e) => setAcceptedTerms(e.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 rounded border-line accent-primary focus:ring-primary"
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-line accent-primary"
               />
               <span>
                 Acepto los{" "}
@@ -138,25 +209,35 @@ function RegisterForm() {
               </p>
             )}
             <TurnstileWidget resetKey={turnstileReset} onTokenChange={setTurnstileToken} />
-            <Button
-              type="submit"
-              fullWidth
-              loading={submitting}
-              disabled={!acceptedTerms || (Boolean(TURNSTILE_SITE_KEY) && !turnstileToken)}
-            >
+            {motivoBloqueo && (
+              <p className="text-center text-sm text-ink/60" data-testid="motivo-crear-cuenta">
+                {motivoBloqueo}
+              </p>
+            )}
+            <Button type="submit" fullWidth loading={submitting} disabled={Boolean(motivoBloqueo)}>
               Crear cuenta
             </Button>
           </form>
 
           {/* Cuenta nueva por Google → onboarding. `/bienvenida` reenvía solo
-              al comercio a su panel, así que no hace falta saber el rol acá
-              (lo elige el usuario dentro del propio botón de Google). */}
-          <GoogleAuthButton onDone={(isNewAccount) => router.replace(isNewAccount ? "/bienvenida" : "/")} />
+              al comercio a su panel (o a "Mi plan" si eligió uno en la
+              landing). El rol y la aceptación de términos son los del formulario
+              (una sola casilla, sin volver a preguntar); el rol vuelve acá para
+              guardar el plan. */}
+          <GoogleAuthButton
+            rolElegido={role}
+            terminosAceptados={acceptedTerms}
+            nacimientoElegido={birthDate}
+            onDone={async (isNewAccount, nuevoRol, sesion) => {
+              if (isNewAccount && nuevoRol === "employer" && planElegido) guardarPlanElegido(planElegido);
+              router.replace(isNewAccount ? bienvenidaHref(next) : await destinoTrasIngreso(sesion, next));
+            }}
+          />
         </div>
 
         <p className="mt-5 text-center text-sm text-ink/70">
           ¿Ya tenés cuenta?{" "}
-          <Link href="/login" className="font-semibold text-primary-text">
+          <Link href={loginHref({ next })} className="font-semibold text-primary-text">
             Ingresá
           </Link>
         </p>

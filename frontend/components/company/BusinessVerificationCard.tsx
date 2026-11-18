@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import { uploadBusinessDocument, type PrivateFileRef } from "@/lib/cloudinary";
 import { getErrorMessage } from "@/lib/errors";
+import { checkUploadFile } from "@/lib/upload-validation";
 import { businessClaim, type IdentitySummary } from "@/lib/identity";
 import Button from "@/components/ui/Button";
 import Spinner from "@/components/ui/Spinner";
@@ -12,11 +13,6 @@ import { CheckCircleIcon, FileTextIcon, ShieldIcon, UploadIcon } from "@/compone
 import IconChip from "@/components/ui/IconChip";
 
 const ACCEPT = ".pdf,image/*";
-// Mismo resguardo de cuota que el CV (`CvUpload`): no es seguridad — un
-// cliente hostil lo saltea — sino evitar que una subida sin querer se coma
-// el plan free de Cloudinary. Una constancia de AFIP pesa unos pocos cientos
-// de KB.
-const MAX_SIZE_MB = 10;
 
 /**
  * Verificación del comercio (ADR-0013): el análogo de
@@ -36,7 +32,12 @@ const MAX_SIZE_MB = 10;
  * `admin_manual`), no se valida el CUIT contra AFIP. Mismo criterio que el
  * mail de verificación de identidad del trabajador.
  */
-export default function BusinessVerificationCard() {
+export default function BusinessVerificationCard({
+  onVerifiedChange,
+}: {
+  /** Avisa si la constancia está aprobada (para el sello del encabezado del perfil). */
+  onVerifiedChange?: (verified: boolean) => void;
+} = {}) {
   const { token } = useAuth();
   const [summary, setSummary] = useState<IdentitySummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -66,13 +67,19 @@ export default function BusinessVerificationCard() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (!summary) return;
+    onVerifiedChange?.(businessClaim(summary)?.status === "verificada");
+  }, [summary, onVerifiedChange]);
+
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file || !token) return;
     setError(null);
-    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-      setError(`El archivo pesa más de ${MAX_SIZE_MB}MB. Subí uno más liviano.`);
+    const problem = checkUploadFile(file, "business");
+    if (problem) {
+      setError(problem);
       return;
     }
     setUploading(true);
@@ -160,7 +167,7 @@ export default function BusinessVerificationCard() {
               Estamos revisando tu constancia. Te avisamos apenas esté lista.
             </p>
           ) : status === "rechazada" ? (
-            <p className="mt-1 text-sm text-danger">
+            <p className="mt-1 text-sm font-medium text-danger-text">
               {claim?.rejection_reason
                 ? `Rechazada: ${claim.rejection_reason}. Podés reenviar.`
                 : "No pudimos verificarla. Revisá que se lea bien y reenviá."}
@@ -222,7 +229,7 @@ export default function BusinessVerificationCard() {
             revisa una persona de nuestro equipo y la eliminamos una vez
             revisada (Ley 25.326).
           </p>
-          {error && <p className="mt-2 text-sm text-danger">{error}</p>}
+          {error && <p role="alert" className="mt-2 text-sm text-danger-text">{error}</p>}
           <Button
             onClick={handleSubmit}
             disabled={!fileRef || uploading || submitting}

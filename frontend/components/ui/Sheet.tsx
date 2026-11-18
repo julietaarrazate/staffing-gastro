@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { CloseIcon } from "@/components/icons";
+import { useEscapeLayer } from "@/lib/use-escape-layer";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 
 /**
@@ -55,22 +56,19 @@ export default function Sheet({
   const dragState = useRef<{ startY: number; startClientY: number } | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   useFocusTrap(dialogRef, open);
+  // Prioridad = z-index de la capa (z-50): Escape cierra sólo la de más arriba.
+  useEscapeLayer(open, onClose, 50);
 
   useEffect(() => {
     if (!open) return;
     y.set(0);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKeyDown);
     return () => {
       document.body.style.overflow = prev;
-      document.removeEventListener("keydown", onKeyDown);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, onClose]);
+  }, [open]);
 
   function handlePointerDown(e: React.PointerEvent) {
     (e.target as Element).setPointerCapture(e.pointerId);
