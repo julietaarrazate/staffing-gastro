@@ -1,12 +1,14 @@
 """Fixtures de pytest: base de datos SQLite en memoria y cliente HTTP async."""
 
 from collections.abc import AsyncGenerator
+from contextlib import contextmanager
 from datetime import datetime, timezone
 
 import pytest
 import pytest_asyncio
 from cryptography.fernet import Fernet
 from httpx import ASGITransport, AsyncClient, Response
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -78,6 +80,26 @@ async def session_factory() -> AsyncGenerator[async_sessionmaker[AsyncSession], 
     # de cerrar la base y el event loop del test, que pueden usar.
     await drain_pending_pushes(timeout=5)
     await engine.dispose()
+
+
+@contextmanager
+def count_queries(session_factory: async_sessionmaker):
+    """Cuenta los `SELECT`/`INSERT`/... efectivamente enviados al motor
+    (`before_cursor_execute`) mientras el bloque `with` está activo. Sirve para
+    medir round-trips por endpoint (P3, docs/audits/PERFORMANCE_REPORT.md) sin
+    depender de logs manuales; lo usan `test_shift.py` y
+    `test_rendimiento_consultas.py`."""
+    counter = {"n": 0}
+    engine = session_factory.kw["bind"]
+
+    def _on_execute(conn, cursor, statement, parameters, context, executemany):
+        counter["n"] += 1
+
+    event.listen(engine.sync_engine, "before_cursor_execute", _on_execute)
+    try:
+        yield counter
+    finally:
+        event.remove(engine.sync_engine, "before_cursor_execute", _on_execute)
 
 
 class FakeEvidenceFileStorage(EvidenceFileStorage):
