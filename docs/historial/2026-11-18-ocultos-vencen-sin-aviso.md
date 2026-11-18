@@ -18,3 +18,13 @@
 **Por qué así:** la marca va en el turno y no se mira el estado de la cuenta al calcular, porque la cuenta puede reactivarse después y el turno no tiene que volver a contar. Se consulta la cuenta en `mark_not_covered` y no se filtra en `list_awaiting_coverage_check`, porque el turno tiene que vencer igual. Hasta ahora sólo se cortaba el push (#636) y el aviso en la app se guardaba igual; ahora tampoco se guarda. «Locales activos» sigue contando al comercio suspendido porque mide que publicó, no que se cubrió.
 
 **Queda abierto:** qué muestran «Hoy» y «Turnos en vivo» del admin sobre los turnos ocultos que todavía no vencieron (hoy los cuentan como cualquier turno sin cubrir). «Comercios que vuelven a publicar» sigue mirando los turnos marcados: es retención, no cobertura.
+
+Bordes conocidos (revisión independiente, todos de baja probabilidad): la
+marca toma el estado de la cuenta cuando el turno vence, no si estuvo oculto
+mientras se podía cubrir (un turno visible que no se cubrió y cuyo comercio
+se suspende ya empezado también sale de las métricas, y lo mismo uno que
+llegó a confirmarse antes); una suspensión o reactivación en el mismo
+instante en que vence el turno puede dar el resultado opuesto; la admin no ve
+la marca en la ficha del comercio. Se probó en la app con Postgres real:
+dos pasadas del chequeo de cobertura a la vez, suspender y reactivar, y la
+contraprueba con un comercio activo.

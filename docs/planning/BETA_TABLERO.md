@@ -288,8 +288,16 @@ el modelo del dominio, un ADR vigente o un texto legal:
     el pago se prorratea desde la llegada (valor por hora en el aviso, monto
     fijo al llegar, y las ganancias del trabajador usan ese monto). Cambia
     el ADR-0008 y el ADR-0015. La próxima migración libre es la 0053.
-- **Decisiones 21, 22 y 24** (2026-11-18): tres reglas nuevas ya decididas y
-  sin escribir. Un PR cada una, con su ADR.
+- **Decisiones 21, 22 y 24** (2026-11-18): tres reglas nuevas, un PR cada
+  una, con su ADR.
+  - ⚪ **21** (cerrar turno desde el admin): sin escribir.
+  - ✅ **22** (los turnos ocultos vencen sin aviso y fuera de las métricas de
+    cobertura): hecho el 2026-11-18 (ADR-0024 y ADR-0015 actualizados).
+    Para que lo sepa Julieta: la marca toma el estado de la cuenta **cuando
+    el turno vence**; un turno que estuvo a la vista sin cubrirse y cuyo
+    comercio se suspende ya empezado también sale de las métricas (caso raro).
+  - ⚪ **24** (recordatorio a las 24 h y cierre automático a las 72): sin
+    escribir.
 - **P1 a P5**, las mejoras de producto aprobadas. Sin empezar: van en una
   sesión nueva, en el orden del tablero.
 - ✅ **Una segunda mirada a G6** (cuentas suspendidas, ADR-0024), hecha el
