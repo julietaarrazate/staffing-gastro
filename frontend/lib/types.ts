@@ -374,6 +374,7 @@ export type NotificationType =
   | "shift_checked_out"
   | "shift_paid"
   | "shift_finished"
+  | "shift_auto_finished"
   | "shift_reopened"
   | "chat_message"
   | "review_received"

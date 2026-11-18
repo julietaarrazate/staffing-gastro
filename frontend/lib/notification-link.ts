@@ -21,6 +21,9 @@ const BY_TYPE: Record<NotificationType, string> = {
   shift_confirmed: "/shifts",
   shift_rejected: "/shifts",
   shift_checked_out: "/shifts",
+  // Oído cerró solo un turno que el comercio no cerró (decisión 24): queda
+  // marcarlo como pagado en el panel.
+  shift_auto_finished: "/shifts",
   shift_reopened: "/shifts",
   worker_en_route: "/shifts",
   // Sólo al comercio (ADR-0015): si había un trabajador asignado sin
