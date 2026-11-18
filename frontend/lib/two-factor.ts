@@ -31,7 +31,12 @@ export type TwoFactorChallenge = {
   expires_in: number;
 };
 
-export type SessionTokens = { access_token: string; user?: User };
+export type SessionTokens = {
+  access_token: string;
+  user?: User;
+  /** El login de un admin sin la verificación activada: ver `User`. */
+  two_factor_setup_required?: boolean;
+};
 
 export type TwoFactorVerified = SessionTokens & {
   used_recovery_code: boolean;

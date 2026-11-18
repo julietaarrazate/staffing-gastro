@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatPayAmount, formatPayShort, payPerHour, sortByBestPay } from "./pay";
+import { formatAmountDue, formatPayAmount, formatPayShort, payPerHour, sortByBestPay } from "./pay";
 
 const base = {
   currency: "ARS",
@@ -14,6 +14,14 @@ describe("payPerHour", () => {
 
   it("null si la duración no es válida", () => {
     expect(payPerHour({ ...base, pay_amount: "30000", end_at: base.start_at })).toBeNull();
+  });
+});
+
+describe("formatPayAmount con montos raros", () => {
+  it("redondea a pesos enteros y un monto inválido no es «$NaN»", () => {
+    expect(formatPayAmount({ pay_amount: "42000.60", currency: "ARS" })).toBe("$42.001");
+    expect(formatPayAmount({ pay_amount: "abc", currency: "ARS" })).toBe("—");
+    expect(formatPayAmount({ pay_amount: "", currency: "USD" })).toBe("—");
   });
 });
 
@@ -43,5 +51,19 @@ describe("sortByBestPay", () => {
     const roto = { ...base, id: "roto", pay_amount: "99999", end_at: base.start_at };
     const ok = { ...base, id: "ok", pay_amount: "30000" };
     expect(sortByBestPay([roto, ok]).map((s) => s.id)).toEqual(["ok", "roto"]);
+  });
+});
+
+describe("formatAmountDue (ficha del admin, U080)", () => {
+  it("un turno común muestra lo publicado", () => {
+    expect(formatAmountDue({ pay_amount: "40000.00", amount_due: "40000.00" })).toBe("$40.000");
+  });
+
+  it("un reofrecido con la llegada marcada muestra lo que se cobra y de cuánto", () => {
+    expect(formatAmountDue({ pay_amount: "40000.00", amount_due: "34932.00" })).toBe("$34.932 de $40.000");
+  });
+
+  it("sin el campo (respuesta vieja), lo publicado", () => {
+    expect(formatAmountDue({ pay_amount: "40000.00" })).toBe("$40.000");
   });
 });

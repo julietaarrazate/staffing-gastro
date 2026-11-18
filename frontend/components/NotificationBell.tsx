@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { notificationHref } from "@/lib/notification-link";
 import { getErrorMessage } from "@/lib/errors";
@@ -26,8 +26,13 @@ function NotificationRowSkeleton() {
 }
 
 export default function NotificationBell() {
-  const { token } = useAuth();
+  const { token: sessionToken, twoFactorSetupPending } = useAuth();
+  // Con el alta de 2FA del admin pendiente (ADR-0023) el backend rechaza los
+  // pedidos de la campanita: sin token no carga ni abre el socket y no se
+  // dibuja (U133).
+  const token = twoFactorSetupPending ? null : sessionToken;
   const router = useRouter();
+  const pathname = usePathname();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -98,6 +103,42 @@ export default function NotificationBell() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // U017: con la conversación abierta, los avisos de mensaje de ESA
+  // conversación (los que ya estaban y los que llegan en vivo) se leen en el
+  // acto: se marcan leídos y no suman a la campanita. Sólo con la pestaña a la
+  // vista (un chat abierto en segundo plano no leyó nada).
+  const markedForChat = useRef(new Set<string>());
+  // Cambia al volver a ver la pestaña: ahí se marcan los avisos que llegaron
+  // mientras estaba oculta.
+  const [visibleTick, setVisibleTick] = useState(0);
+  useEffect(() => {
+    function onVisible() {
+      if (document.visibilityState === "visible") setVisibleTick((t) => t + 1);
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
+  useEffect(() => {
+    if (!token || !pathname.startsWith("/chats/")) return;
+    if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+    const pending = notifications.filter(
+      (n) =>
+        !n.read &&
+        n.type === "chat_message" &&
+        n.link?.split(/[?#]/)[0] === pathname &&
+        !markedForChat.current.has(n.id)
+    );
+    if (pending.length === 0) return;
+    const ids = new Set(pending.map((n) => n.id));
+    pending.forEach((n) => markedForChat.current.add(n.id));
+    setNotifications((prev) => prev.map((n) => (ids.has(n.id) ? { ...n, read: true } : n)));
+    // En silencio, como `markAsRead`: si falla, el aviso sigue sin leer en el
+    // servidor y se muestra así en la próxima carga.
+    pending.forEach((n) => {
+      api.post(`/notifications/${n.id}/read`, undefined, token).catch(() => {});
+    });
+  }, [token, pathname, notifications, visibleTick]);
 
   if (!token) return null;
 
@@ -208,8 +249,8 @@ export default function NotificationBell() {
               <button
                 key={n.id}
                 onClick={() => openNotification(n)}
-                className={`block w-full border-b border-line px-4 py-3 text-left text-sm hover:bg-surface ${
-                  n.read ? "bg-card" : "bg-primary-tint"
+                className={`block w-full border-b px-4 py-3 text-left text-sm hover:bg-surface ${
+                  n.read ? "border-line bg-card" : "border-secondary bg-primary-tint"
                 }`}
               >
                 <p className="font-medium text-ink/80">{n.title}</p>

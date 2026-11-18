@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
-import { appliedShiftIds } from "@/lib/applications";
+import { appliedShiftIds, unassignedShiftIds } from "@/lib/applications";
 import { useAuth } from "@/lib/auth-context";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
@@ -14,14 +14,15 @@ import { getErrorMessage } from "@/lib/errors";
 import { SKILL_LABELS, Shift, ShiftApplication, ShiftPublic } from "@/lib/types";
 import { SKILL_ACCENT, SKILL_HERO_TONE, heroInk } from "@/lib/skill-style";
 import { cldThumb } from "@/lib/cloudinary";
-import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
-import { formatPayAmount, payPerHour } from "@/lib/pay";
+import { formatDuration, formatShiftWhenLive, shiftDurationMinutes } from "@/lib/datetime";
+import { formatMoney, payPerHour, payView } from "@/lib/pay";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import SaveShiftButton from "@/components/worker/SaveShiftButton";
 import { useLiveRefresh } from "@/lib/live-refresh";
 import { Skeleton, useToast } from "@/components/ui";
 import DrawnCheck from "@/components/ui/DrawnCheck";
 import { loginHref, registerHref } from "@/lib/safe-next";
+import { reportShiftHref } from "@/lib/support-reference";
 import { shiftHeroPhoto } from "@/lib/company-photo";
 import {
   ChevronLeftIcon,
@@ -49,7 +50,12 @@ const MiniMap = dynamic(() => import("@/components/MiniMap"), {
  *  sin sesión) y, si hay sesión, el turno completo encima. */
 type Detail = ShiftPublic & Partial<Shift>;
 
-type ApplyState = "unknown" | "can_apply" | "applying" | "applied";
+// `released`: tuvo este turno asignado y lo dejó (G4). No se postula otra vez:
+// sigue en la lista del comercio, que decide si lo vuelve a elegir.
+type ApplyState = "unknown" | "can_apply" | "applying" | "applied" | "released";
+// Comienzo del 409 de `POST /applications/shifts/{id}` para quien tuvo el
+// turno y lo dejó (`backend/app/modules/application/api/routes.py`).
+const ALREADY_UNASSIGNED_PREFIX = "Ya tuviste este turno asignado";
 
 /**
  * Detalle de un turno (`/turno/[id]`), con la composición del board: cabecera
@@ -126,10 +132,12 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
             .then((mine_) => {
               if (mine !== latestLoad.current) return;
               const applied = appliedShiftIds(mine_).has(publicShift.id);
+              const released = unassignedShiftIds(mine_).has(publicShift.id);
               setApply((prev) => {
                 // Se postuló (o está postulándose) después de que salió este
                 // pedido: la lista que trae puede no incluirla todavía.
                 if (epoch !== applyEpoch.current || prev === "applying") return prev;
+                if (released) return "released";
                 return applied ? "applied" : "can_apply";
               });
             })
@@ -173,6 +181,7 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
   const photo = heroPhoto && !photoBroken ? heroPhoto : null;
   const minutes = shiftDurationMinutes(shift.start_at, shift.end_at);
   const perHour = payPerHour(shift);
+  const pay = payView(shift);
   const isOwner = Boolean(full && myCompanyId && full.company_id === myCompanyId);
   const hasCoords = shift.latitude != null && shift.longitude != null;
   const where = shift.address ? [shift.address, shift.city].filter(Boolean).join(", ") : shift.city;
@@ -193,7 +202,9 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         clear(shift.id);
-        setApply("applied");
+        // Con la pestaña vieja, el 409 puede ser «Ya tuviste este turno
+        // asignado» (G4), no «Ya te postulaste»: lo distingue el servidor.
+        setApply(err.message.startsWith(ALREADY_UNASSIGNED_PREFIX) ? "released" : "applied");
         return;
       }
       setApply("can_apply");
@@ -276,8 +287,10 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
         {/* Datos con íconos: cuándo, cuánto dura, dónde. */}
         <dl className="mt-5 space-y-3">
           <InfoRow icon={<ClockIcon size={18} />} tone="cielo" label="Cuándo">
-            {formatShiftWhen(shift.start_at, shift.end_at)}
-            {minutes != null && <span className="text-ink/50"> · {formatDuration(minutes)}</span>}
+            {formatShiftWhenLive(shift)}
+            {minutes != null && pay.kind !== "por_hora" && (
+              <span className="text-ink/50"> · {formatDuration(minutes)}</span>
+            )}
           </InfoRow>
           <InfoRow icon={<MapPinIcon size={18} />} tone="trust" label="Dónde">
             {where ?? "Zona a confirmar"}
@@ -297,10 +310,21 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-on-brand/75">Pago</p>
             <p className="text-price font-extrabold tracking-tight text-on-brand">
-              {formatPayAmount(shift)}
+              {pay.amount}
+              {pay.suffix && (
+                <span className="ml-1.5 text-body font-bold tracking-normal text-on-brand/85">
+                  {pay.suffix}
+                </span>
+              )}
             </p>
+            {/* Turno reofrecido (U080): el número ya es por hora (o el monto
+                que quedó fijo al llegar), y la línea lo explica. */}
             <p className="text-sm text-on-brand/80">
-              {[shift.tips ? "+ propinas" : null, perHour ? `≈ ${formatPayAmount({ pay_amount: String(Math.round(perHour)), currency: shift.currency })} por hora` : null]
+              {[
+                shift.tips ? "+ propinas" : null,
+                pay.note ??
+                  (perHour ? `≈ ${formatMoney(perHour, shift.currency)} por hora` : null),
+              ]
                 .filter(Boolean)
                 .join(" · ")}
             </p>
@@ -361,8 +385,18 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
           </section>
         )}
 
-        <div className="mt-7 flex justify-center border-t border-line pt-4">
+        <div className="mt-7 flex flex-col items-center gap-3 border-t border-line pt-4">
           <ShareShiftButton shift={shift} shiftId={shift.id} />
+          {/* U110: discreto, sin acento. Sólo un trabajador con sesión puede
+              atar el turno a un ticket. */}
+          {isWorker && (
+            <Link
+              href={reportShiftHref(shift.id)}
+              className="text-sm font-semibold text-ink/50 underline-offset-2 hover:text-ink hover:underline"
+            >
+              Reportar un problema
+            </Link>
+          )}
         </div>
       </div>
     </div>
@@ -403,7 +437,7 @@ function Chip({ icon, children }: { icon: React.ReactNode; children: React.React
 }
 
 const PRIMARY_BUTTON =
-  "flex min-h-[56px] w-full items-center justify-center gap-2 rounded-[var(--radius-btn)] bg-primary px-6 text-base font-bold text-night shadow-[var(--shadow-primary)] transition active:scale-[0.98] disabled:opacity-70";
+  "flex min-h-[56px] w-full items-center justify-center gap-2 boton-relieve bg-primary px-6 text-base font-bold text-night disabled:opacity-70";
 
 function PrimaryAction({
   loading,
@@ -463,7 +497,18 @@ function PrimaryAction({
         };
     return (
       <AnimatePresence mode="wait" initial={false}>
-        {apply === "applied" ? (
+        {apply === "released" ? (
+          <motion.div
+            key="released"
+            {...swap}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            data-testid="turno-ya-asignado-antes"
+            className="rounded-[var(--radius-card)] bg-surface px-4 py-3.5 ring-1 ring-line"
+          >
+            <p className="text-body font-semibold text-ink">Ya tuviste este turno asignado</p>
+            <p className="text-sm text-ink/60">Si el comercio te vuelve a elegir, te avisamos.</p>
+          </motion.div>
+        ) : apply === "applied" ? (
           <motion.div
             key="applied"
             {...swap}

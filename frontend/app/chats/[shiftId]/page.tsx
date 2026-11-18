@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { getErrorMessage } from "@/lib/errors";
+import { getErrorMessage, isNotFound } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useWebSocket } from "@/lib/useWebSocket";
 import { ChatMessage, SKILL_LABELS, Shift } from "@/lib/types";
@@ -13,6 +13,7 @@ import { formatShiftTime } from "@/lib/datetime";
 import { Avatar, ErrorBanner, MessageBubble, Skeleton } from "@/components/ui";
 import { useConversation, useConversationsControl } from "../ConversationsContext";
 import { LIMITES } from "@/lib/limites";
+import { useIdempotencyKeys } from "@/lib/idempotency";
 
 /** Eventos que llegan por el socket de la conversación: un mensaje nuevo, o
  *  el aviso de que la otra parte ya leyó lo que le mandamos (confirmación de
@@ -53,10 +54,12 @@ export default function ConversationPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const { keyFor, clear } = useIdempotencyKeys();
   // La primera apertura del socket coincide con la carga inicial (load() ya
   // trajo todo); a partir de la segunda, cada apertura es una reconexión y
   // puede haber un gap de mensajes perdidos mientras estuvo caído.
@@ -68,7 +71,9 @@ export default function ConversationPage() {
       const data = await api.get<ChatMessage[]>(`/chats/${shiftId}/messages`, token);
       setMessages(data);
       setError(null);
+      setNotFound(false);
     } catch (err) {
+      setNotFound(isNotFound(err));
       setError(getErrorMessage(err, "Error al cargar la conversación"));
     } finally {
       setLoading(false);
@@ -146,8 +151,12 @@ export default function ConversationPage() {
     // Sin mensajes todavía, el hilo no figura en la lista del layout: con el
     // primero pasa a figurar y hay que volver a pedirla (U016).
     const firstMessage = !listed || messages.length === 0;
+    // U012: un reintento del MISMO texto reusa la key (el backend no duplica
+    // el mensaje); si el texto cambió es otro pedido y lleva key nueva.
+    const attempt = `${shiftId}:${body}`;
     try {
-      await api.post(`/chats/${shiftId}/messages`, { body }, token);
+      await api.post(`/chats/${shiftId}/messages`, { body }, token, undefined, keyFor(attempt));
+      clear(attempt);
       setDraft("");
       if (firstMessage) reloadConversations();
       await load();
@@ -159,6 +168,11 @@ export default function ConversationPage() {
       setSending(false);
     }
   }
+
+  // U099: si la conversación no existe para mí (turno ajeno, inexistente o sin
+  // persona asignada: el backend responde 404 sin distinguir), no hay a quién
+  // escribirle. Un error de red transitorio NO oculta el formulario.
+  const unavailable = !loading && notFound && messages.length === 0;
 
   function send(e: React.FormEvent) {
     e.preventDefault();
@@ -245,22 +259,24 @@ export default function ConversationPage() {
         </p>
       )}
 
-      <form onSubmit={send} className="mt-3 flex gap-2">
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="Escribí un mensaje..."
-          maxLength={LIMITES.mensajeChat}
-          className="flex-1 rounded-full border border-line bg-surface px-4 py-2 text-sm text-ink focus:border-primary focus:outline-none"
-        />
-        <button
-          type="submit"
-          disabled={sending || !draft.trim()}
-          className="flex min-h-[44px] items-center justify-center rounded-[var(--radius-btn)] bg-primary px-5 text-sm font-semibold text-night hover:bg-primary-strong disabled:opacity-50"
-        >
-          Enviar
-        </button>
-      </form>
+      {!unavailable && (
+        <form onSubmit={send} className="mt-3 flex gap-2">
+          <input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Escribí un mensaje..."
+            maxLength={LIMITES.mensajeChat}
+            className="flex-1 rounded-full border border-line bg-surface px-4 py-2 text-sm text-ink"
+          />
+          <button
+            type="submit"
+            disabled={sending || !draft.trim()}
+            className="boton-relieve flex min-h-[44px] items-center justify-center bg-primary px-5 text-sm font-semibold text-night hover:bg-primary-strong disabled:bg-surface disabled:text-ink-mute"
+          >
+            Enviar
+          </button>
+        </form>
+      )}
     </div>
   );
 }

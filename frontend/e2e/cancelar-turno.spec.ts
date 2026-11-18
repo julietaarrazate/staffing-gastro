@@ -204,8 +204,42 @@ test("si la relectura falla, vale el estado conocido y se puede cancelar igual",
   await expect.poll(() => cancelCalls).toEqual(["/api/v1/shifts/shift-1/cancel"]);
 });
 
+test("con la salida marcada no se ofrece «Cancelar turno»: se finaliza y se paga (U081)", async ({
+  page,
+}) => {
+  await mockPanel(page, shift({ status: "check_out" }));
+  await page.goto("/shifts");
+  await page.getByRole("button", { name: "Más acciones" }).click();
+
+  const menu = page.getByRole("dialog", { name: "Más acciones" });
+  await expect(menu).toBeVisible();
+  await expect(menu.getByRole("button", { name: "Cancelar turno" })).toHaveCount(0);
+});
+
+test("si la persona marcó la salida con el panel abierto, cancelar avisa que se finaliza y se paga (U081)", async ({
+  page,
+}) => {
+  const cancelCalls = await mockPanel(page, shift({ status: "check_in" }), {
+    server: shift({ status: "check_out" }),
+  });
+  await page.goto("/shifts");
+  await page.getByRole("button", { name: "Más acciones" }).click();
+  await page
+    .getByRole("dialog", { name: "Más acciones" })
+    .getByRole("button", { name: "Cancelar turno" })
+    .click();
+
+  await expect(
+    page.getByText(
+      "La persona ya marcó la salida: este turno se finaliza y se paga, no se cancela."
+    )
+  ).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "¿Cancelar este turno?" })).toBeHidden();
+  expect(cancelCalls).toEqual([]);
+});
+
 test("si el turno ya terminó, el diálogo se cierra y la tarjeta queda al día", async ({ page }) => {
-  const cancelCalls = await mockPanel(page, shift({ status: "check_out" }), {
+  const cancelCalls = await mockPanel(page, shift({ status: "check_in" }), {
     server: shift({ status: "finalizado" }),
   });
   await page.goto("/shifts");
@@ -386,7 +420,7 @@ test("el aviso al postulante se lee en la campanita y abre el Inicio", async ({ 
   await expect(page).toHaveURL(/\/feed$/);
 });
 
-test("el aviso al asignado sin confirmar abre «Mis turnos»", async ({ page }) => {
+test("el aviso al asignado sin confirmar abre «Matches»", async ({ page }) => {
   await mockWorkerWithNotice(
     page,
     notice(

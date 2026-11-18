@@ -11,22 +11,25 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
 import { getCurrentPosition } from "@/lib/geolocation";
-import { nearbyOnly, sortByDistance } from "@/lib/current-location";
+import { getStoredLocation, nearbyOnly, originFor, sortByDistance } from "@/lib/current-location";
 import { haversineKm } from "@/lib/map/geo";
 import { estimateTravelTimes } from "@/lib/map/travel-time";
-import { SKILL_LABELS, Shift, ShiftApplication } from "@/lib/types";
+import { SKILL_LABELS, Shift, ShiftApplication, WorkerProfile } from "@/lib/types";
 import { SKILL_ACCENT, SKILL_RAIL_BORDER, heroTile } from "@/lib/skill-style";
 import { Button, EmptyState, Sheet, Skeleton, useToast } from "@/components/ui";
 import { BikeIcon, CalendarIcon, CarIcon, FlameIcon, FootprintsIcon, MapPinIcon, UsersIcon, WalletIcon } from "@/components/icons";
-import { formatShiftRange } from "@/lib/datetime";
+import { formatShiftRange, formatShiftTime } from "@/lib/datetime";
 import MapSheet from "@/components/worker/MapSheet";
 import ConfirmOverlay from "@/components/ui/ConfirmOverlay";
+import { formatPayAmount, formatPayCompact, payView } from "@/lib/pay";
+import { formatDistance, plural } from "@/lib/format";
 
 const ShiftMap = dynamic(() => import("@/components/worker/ShiftMap"), {
   ssr: false,
   loading: () => <div className="absolute inset-0 animate-pulse bg-surface" />,
 });
 
+// Último recurso: sin GPS, sin ubicación guardada y sin zona en el perfil.
 const DEFAULT_CENTER: [number, number] = [-34.6037, -58.3816]; // Obelisco
 
 /** Enter/Espacio activan igual que un click — necesario para que las
@@ -71,8 +74,8 @@ const CARD_EXIT = { opacity: 0, scale: 0.92, transition: { duration: 0.2 } };
 /**
  * Fila de turno del panel lateral (desktop, md+): misma información que la
  * tarjeta del carrusel mobile, en formato de lista vertical de ancho
- * completo. Tocar la fila abre el detalle (revisar antes de decidir, mismo
- * criterio que en mobile); el botón de acá es el atajo de postulación
+ * completo. Tocar la fila lleva al detalle del turno (`/turno/[id]`; en mobile,
+ * la hoja del mapa), para revisar antes de decidir; el botón de acá es el atajo de postulación
  * directa. Hover resalta la fila y sincroniza el mapa (mismo pin que al
  * tocar un marcador).
  */
@@ -84,7 +87,6 @@ function ShiftRow({
   justApplied,
   disabled,
   onSelect,
-  onOpenDetail,
   onApply,
 }: {
   shift: Shift;
@@ -94,7 +96,6 @@ function ShiftRow({
   justApplied: boolean;
   disabled: boolean;
   onSelect: () => void;
-  onOpenDetail: () => void;
   onApply: () => void;
 }) {
   const { Icon } = SKILL_ACCENT[shift.position];
@@ -104,17 +105,13 @@ function ShiftRow({
 
   return (
     <div
-      role="button"
-      tabIndex={0}
       onMouseEnter={onSelect}
-      onClick={onOpenDetail}
-      onKeyDown={(e) => handleCardActivate(e, onOpenDetail)}
       // Riel de color por rubro a la izquierda: estas tarjetas eran todas
       // blancas y en una lista de varias se leían iguales (Julieta,
       // 2026-08-17: "en mapa, donde se ven los turnos en blanco, también que
       // las tarjetas tengan colores"). El estado activo sigue marcándose con
       // el borde/fondo naranja, que es señal de SELECCIÓN, no de rubro.
-      className={`relative w-full cursor-pointer rounded-[var(--radius-card)] border border-l-[6px] p-3.5 pl-3 text-left transition ${rail} ${
+      className={`relative w-full rounded-[var(--radius-card)] border border-l-[6px] p-3.5 pl-3 text-left transition ${rail} ${
         active ? "border-primary/40 bg-primary-tint/60" : "border-line bg-card hover:bg-surface"
       }`}
     >
@@ -124,8 +121,17 @@ function ShiftRow({
             <Icon size={20} />
           </span>
           <div className="min-w-0">
+            {/* Link real al detalle (`/turno/[id]`), estirado sobre toda la
+                fila: se llega con Tab y Enter. El botón «Postularme» queda por
+                encima (`z-10`) y no navega. */}
             <h3 className="truncate text-sm font-extrabold leading-tight text-ink">
-              {SKILL_LABELS[shift.position]}
+              <Link
+                href={`/turno/${shift.id}`}
+                data-testid="map-row-link"
+                className="after:absolute after:inset-0 after:rounded-[var(--radius-card)] foco-propio focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-(--focus-ring)"
+              >
+                {SKILL_LABELS[shift.position]}
+              </Link>
             </h3>
             <p className="truncate text-xs font-medium text-ink/50">{shift.company_name ?? "Comercio"}</p>
           </div>
@@ -138,18 +144,14 @@ function ShiftRow({
       </div>
       <div className="mt-2.5 flex items-end justify-between gap-2">
         <p className="text-base font-extrabold text-primary-text">
-          {shift.currency} {Number(shift.pay_amount).toLocaleString("es-AR")}
+          {formatPayCompact(shift)}
         </p>
         <p className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-ink/50">
           <MapPinIcon size={12} />
-          {distance != null ? `${distance.toFixed(1)} km` : (shift.city ?? "")}
+          {distance != null ? formatDistance(distance) : (shift.city ?? "")}
         </p>
       </div>
-      {/* Sólo corta la propagación del click hacia la tarjeta — el botón de
-          adentro ya es interactivo/accesible por su cuenta, este div no
-          necesita semántica ni soporte de teclado propios. */}
-      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
-      <div onClick={(e) => e.stopPropagation()} className="mt-3">
+      <div className="relative z-10 mt-3">
         <Button fullWidth size="sm" loading={applying} disabled={disabled} onClick={onApply}>
           Postularme
         </Button>
@@ -170,7 +172,14 @@ export default function MapPage() {
   // Buenos Aires (Obelisco) sin avisar, indistinguible de "estás ahí" para
   // quien no reconoce la zona (auditoría UX 2026-08-16, reporte de Julieta:
   // el mapa mostraba Recoleta/Retiro sin ser su ubicación real).
-  const [locationUnavailable, setLocationUnavailable] = useState(false);
+  const [gpsFailed, setGpsFailed] = useState(false);
+  // Sin GPS se mide desde la misma fuente que Inicio y Buscar (`originFor`):
+  // la ubicación guardada o, si no hay, la zona del perfil. El Obelisco queda
+  // sólo si no hay ninguna (U107).
+  const [fallbackOrigin, setFallbackOrigin] = useState<[number, number] | null>(null);
+  const [profileChecked, setProfileChecked] = useState(false);
+  const locationUnavailable = gpsFailed && profileChecked && !fallbackOrigin;
+  const usingZone = gpsFailed && fallbackOrigin !== null;
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -190,6 +199,8 @@ export default function MapPage() {
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
   const carouselRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  // Alto que la hoja de tarjetas tapa del mapa (mobile): la cámara lo deja libre.
+  const [sheetHeight, setSheetHeight] = useState(0);
 
   // El mapa abre en la persona y ordena las tarjetas por cercanía a ella,
   // igual que /feed y /buscar (auditoría de interfaz 2026-10-11, B02).
@@ -216,26 +227,48 @@ export default function MapPage() {
     setUserInteracted(true);
   }, []);
 
+  const applyOrigin = useCallback((origin: [number, number]) => {
+    originRef.current = origin;
+    setCenter(origin);
+    setHasOrigin(true);
+    // Lo que queda lejos de acá se va siempre. El orden, en cambio, sólo
+    // se toca si todavía no estaba eligiendo tarjetas: no le reordenamos
+    // la lista abajo.
+    const reorder = !userInteractedRef.current;
+    setShifts((prev) => {
+      const near = nearbyOnly(prev, origin);
+      return reorder ? sortByDistance(near, origin) : near;
+    });
+    setFarFromHere(nearbyOnly(fetchedRef.current, origin).length < fetchedRef.current.length);
+    if (reorder) setActiveIndex(0);
+  }, []);
+
   useEffect(() => {
     getCurrentPosition()
-      .then((p) => {
-        const origin: [number, number] = [p.latitude, p.longitude];
-        originRef.current = origin;
-        setCenter(origin);
-        setHasOrigin(true);
-        // Lo que queda lejos de acá se va siempre. El orden, en cambio, sólo
-        // se toca si todavía no estaba eligiendo tarjetas: no le reordenamos
-        // la lista abajo.
-        const reorder = !userInteractedRef.current;
-        setShifts((prev) => {
-          const near = nearbyOnly(prev, origin);
-          return reorder ? sortByDistance(near, origin) : near;
-        });
-        setFarFromHere(nearbyOnly(fetchedRef.current, origin).length < fetchedRef.current.length);
-        if (reorder) setActiveIndex(0);
-      })
-      .catch(() => setLocationUnavailable(true)); // fallback al Obelisco, avisado
-  }, []);
+      .then((p) => applyOrigin([p.latitude, p.longitude]))
+      .catch(() => setGpsFailed(true));
+  }, [applyOrigin]);
+
+  // Perfil: sólo para saber desde dónde medir si el GPS no llega.
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    api
+      .get<WorkerProfile>("/workers/me/profile", token)
+      .catch(() => null)
+      .then((profile) => {
+        if (cancelled) return;
+        setFallbackOrigin(originFor(getStoredLocation(), profile));
+        setProfileChecked(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  useEffect(() => {
+    if (gpsFailed && fallbackOrigin && !originRef.current) applyOrigin(fallbackOrigin);
+  }, [gpsFailed, fallbackOrigin, applyOrigin]);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -380,7 +413,9 @@ export default function MapPage() {
               ? "Buscando turnos..."
               : locationUnavailable
                 ? "Turnos en el centro de Buenos Aires"
-                : `${shifts.length} turnos cerca tuyo`}
+                : usingZone
+                  ? `${plural(shifts.length, "turno", "turnos")} cerca de tu zona`
+                  : `${plural(shifts.length, "turno", "turnos")} cerca tuyo`}
           </h1>
           {!loading && locationUnavailable && (
             <p className="mt-1 text-sm text-ink/50">
@@ -419,7 +454,6 @@ export default function MapPage() {
                       justApplied={justAppliedId === shift.id}
                       disabled={applyingId !== null || justAppliedId !== null}
                       onSelect={() => selectById(shift.id)}
-                      onOpenDetail={() => setPreviewShift(shift)}
                       onApply={() => apply(shift)}
                     />
                   </motion.div>
@@ -438,6 +472,7 @@ export default function MapPage() {
         activeId={activeId}
         onSelect={selectById}
         followActive={followActive}
+        bottomPadding={sheetHeight}
       />
 
       {/* Encabezado flotante (sólo mobile: en desktop el conteo ya está en el
@@ -453,7 +488,9 @@ export default function MapPage() {
             ? "Buscando turnos cerca..."
             : locationUnavailable
               ? "Turnos en el centro de Buenos Aires"
-              : `${shifts.length} turnos cerca tuyo`}
+              : usingZone
+                ? `${plural(shifts.length, "turno", "turnos")} cerca de tu zona`
+                : `${plural(shifts.length, "turno", "turnos")} cerca tuyo`}
         </div>
         {!loading && locationUnavailable && (
           <div className="pointer-events-auto rounded-full bg-white/95 px-3.5 py-1.5 text-xs font-medium text-night/50 shadow-[var(--shadow-soft)] ring-1 ring-line backdrop-blur">
@@ -479,7 +516,7 @@ export default function MapPage() {
           </div>
         </div>
       ) : (
-        <MapSheet containerRef={containerRef}>
+        <MapSheet containerRef={containerRef} onVisibleHeightChange={setSheetHeight}>
           <div
             ref={carouselRef}
             onScroll={onCarouselScroll}
@@ -546,11 +583,11 @@ export default function MapPage() {
                 </div>
                 <div className="mt-3 flex items-end justify-between">
                   <p className="text-xl font-extrabold text-primary-text">
-                    {shift.currency} {Number(shift.pay_amount).toLocaleString("es-AR")}
+                    {formatPayAmount(shift)}
                   </p>
                   <p className="inline-flex items-center gap-1 text-xs font-medium text-ink/50">
                     <MapPinIcon size={13} />
-                    {distance != null ? `${distance.toFixed(1)} km` : (shift.city ?? "")}
+                    {distance != null ? formatDistance(distance) : (shift.city ?? "")}
                   </p>
                 </div>
                 {distance != null && (
@@ -604,8 +641,8 @@ export default function MapPage() {
       </div>
       </div>
 
-      {/* Detalle del turno: se abre al tocar la tarjeta (mobile) o la fila
-          del panel lateral (desktop), para revisar antes de decidir.
+      {/* Detalle del turno: se abre al tocar la tarjeta (mobile), para
+          revisar antes de decidir (en desktop la fila lleva a `/turno/[id]`).
           Postularse sigue siendo un botón explícito acá adentro. */}
       {previewShift && (
         <Sheet
@@ -640,7 +677,7 @@ export default function MapPage() {
                     </Link>
                     <p className="flex items-center gap-1 text-xs font-medium text-ink/45">
                       <MapPinIcon size={13} />
-                      {distance != null ? `A ${distance.toFixed(1)} km` : (shift.city ?? "Zona a confirmar")}
+                      {distance != null ? `A ${formatDistance(distance)}` : (shift.city ?? "Zona a confirmar")}
                     </p>
                   </div>
                   {shift.urgent && (
@@ -665,18 +702,21 @@ export default function MapPage() {
                     <WalletIcon size={18} />
                   </span>
                   <p className="font-display text-price font-extrabold tracking-tight text-white">
-                    <span className="text-lg text-primary">{shift.currency}</span>{" "}
-                    {Number(shift.pay_amount).toLocaleString("es-AR")}
+                    {payView(shift).amount}
                   </p>
                   <p className="mt-1 text-label font-bold font-mono uppercase tracking-wide text-manteca">
-                    Pago ofrecido{shift.tips ? " + propinas" : ""}{shift.meal ? " + comida" : ""}
+                    {/* Turno reofrecido (U080): el número es por hora. */}
+                    {payView(shift).kind === "por_hora" ? "Por hora, desde que llegás" : "Pago ofrecido"}
+                    {shift.tips ? " + propinas" : ""}{shift.meal ? " + comida" : ""}
                   </p>
                 </div>
 
                 <div className="mt-4 space-y-2.5 text-body text-ink/80">
                   <p className="inline-flex items-center gap-2">
                     <CalendarIcon size={18} className="text-ink/35" />
-                    {formatShiftRange(shift.start_at, shift.end_at)}
+                    {payView(shift).kind === "por_hora"
+                      ? `Ya empezó · hasta las ${formatShiftTime(shift.end_at)}`
+                      : formatShiftRange(shift.start_at, shift.end_at)}
                   </p>
                   <p className="inline-flex items-center gap-2">
                     <UsersIcon size={18} className="text-ink/35" />

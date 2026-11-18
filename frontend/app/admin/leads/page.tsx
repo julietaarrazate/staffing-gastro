@@ -9,6 +9,7 @@ import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { AdminHeading } from "@/components/admin/AdminStats";
+import EncuestaPanel from "@/components/admin/EncuestaPanel";
 import type { Lead, LeadImportResult, LeadStatus, LeadSummary } from "@/lib/types";
 import {
   LEAD_KIND_LABELS,
@@ -27,6 +28,7 @@ import {
   CardSkeletons,
   EmptyState,
   ErrorBanner,
+  SegmentedControl,
   useToast,
 } from "@/components/ui";
 import {
@@ -34,13 +36,44 @@ import {
   DownloadIcon,
   MapPinIcon,
 } from "@/components/icons";
+import { plural } from "@/lib/format";
 
 type Filter = LeadStatus | "todos";
 
 const SELECT_CLASS =
-  "rounded-full bg-surface px-3 py-2 text-sm font-medium text-ink/75 ring-1 ring-line transition focus:bg-card focus:ring-2 focus:ring-primary/40";
+  "rounded-full bg-surface px-3 py-2 text-sm font-medium text-ink/75 ring-1 ring-line transition focus:bg-card";
+
+type Seccion = "comercios" | "encuesta";
 
 export default function AdminLeadsPage() {
+  // «Crecimiento» tiene dos secciones: la lista de comercios a captar y los
+  // resultados de la encuesta para locales (ADR-0024).
+  const [seccion, setSeccion] = useState<Seccion>("comercios");
+  return (
+    <div>
+      <AdminHeading
+        title={seccion === "comercios" ? "Comercios a captar" : "Encuesta para locales"}
+        subtitle={
+          seccion === "comercios"
+            ? "Bares, restaurantes y cafés del barrio, para salir a sumarlos a la beta."
+            : "Cómo usan personal eventual los locales y quiénes quieren la beta."
+        }
+      />
+      <SegmentedControl
+        className="mt-4 max-w-sm"
+        value={seccion}
+        onChange={setSeccion}
+        options={[
+          { value: "comercios", label: "Comercios" },
+          { value: "encuesta", label: "Encuesta" },
+        ]}
+      />
+      {seccion === "comercios" ? <ComerciosACaptar /> : <EncuestaPanel />}
+    </div>
+  );
+}
+
+function ComerciosACaptar() {
   // El control de acceso lo hace `app/admin/layout.tsx`.
   const { user, token } = useAuth();
   const toast = useToast();
@@ -100,7 +133,7 @@ export default function AdminLeadsPage() {
       toast(
         result.found === 0
           ? `OpenStreetMap no devolvió comercios para ${result.barrio}`
-          : `${result.found} comercios: ${result.created} nuevos, ${result.updated} actualizados`,
+          : `${plural(result.found, "comercio", "comercios")}: ${plural(result.created, "nuevo", "nuevos")}, ${plural(result.updated, "actualizado", "actualizados")}`,
         result.found === 0 ? "info" : "success"
       );
       load();
@@ -143,11 +176,6 @@ export default function AdminLeadsPage() {
 
   return (
     <div>
-      <AdminHeading
-        title="Comercios a captar"
-        subtitle="Bares, restaurantes y cafés del barrio, para salir a sumarlos a la beta."
-      />
-
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <select
           aria-label="Barrio"
@@ -349,7 +377,7 @@ function LeadCard({
         onBlur={() => {
           if (notes !== lead.notes) onPatch(lead, { notes });
         }}
-        className="mt-2 w-full resize-y rounded-[var(--radius-input)] bg-surface px-3 py-2 text-sm text-ink ring-1 ring-line placeholder:text-ink/40 focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40"
+        className="mt-2 w-full resize-y rounded-[var(--radius-input)] bg-surface px-3 py-2 text-sm text-ink ring-1 ring-line placeholder:text-ink/40 focus:bg-card"
       />
     </li>
   );

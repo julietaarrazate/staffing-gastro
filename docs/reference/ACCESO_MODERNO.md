@@ -33,7 +33,9 @@ y:
    es la primera prueba de que el email es de quien entra: la cuenta se marca
    verificada, la contraseña anterior deja de servir y se cierran todas las
    sesiones (desde 2026-10-10; antes, quien hubiera creado la cuenta con un
-   email ajeno la seguía compartiendo con la dueña). Si era la misma persona,
+   email ajeno la seguía compartiendo con la dueña; desde 2026-11-17 además se
+   manda un mail de aviso a la dirección de la cuenta, best-effort, que explica
+   qué pasó y cómo volver a tener contraseña). Si era la misma persona,
    recupera la contraseña con "Olvidé mi contraseña".
 3. Si el email es nuevo y no se mandó `role` → responde
    `{"requires_role": true, "email", "full_name"}` (200): el frontend muestra
@@ -132,8 +134,9 @@ Postgres real — ver más abajo) con las suscripciones Web Push por
 dispositivo/navegador de cada usuario. `POST /push/subscribe` (un
 `endpoint`, una fila: queda a nombre de quien lo suscribe desde ese
 navegador, ver "De quién es el push de un dispositivo") /
-`DELETE /push/subscribe` gestionan el ciclo de vida;
-`GET /push/public-key` expone la clave pública VAPID (o `null` si no está
+`DELETE /push/subscribe` gestionan el ciclo de vida, y
+`POST /push/release` da de baja el dispositivo sin sesión (ver "Baja del
+dispositivo"); `GET /push/public-key` expone la clave pública VAPID (o `null` si no está
 configurada, sin autenticar — el frontend la necesita antes de decidir si
 mostrar el toggle).
 
@@ -197,7 +200,8 @@ veía el interruptor "Activadas" sin recibir nada.
   persona para quedárselo y cortarle los avisos, lo mismo que la revisión de
   seguridad del 2026-10-20 cerró para la baja. Sigue habiendo una sola fila
   por `endpoint` (índice único de la migración `0013`: no hizo falta otra).
-  `DELETE` sigue borrando sólo si la fila es de quien lo pide, así que una
+  Las dos bajas (`DELETE /push/subscribe` con sesión y `POST /push/release`
+  sin sesión) borran sólo si la fila es de la cuenta que sale, así que una
   baja que llega tarde no le saca el dispositivo a **otra** cuenta que entró
   después. A la misma cuenta sí se lo sacaría; por eso el registro espera a
   la baja (ver "Al abrir la sesión").
@@ -218,14 +222,16 @@ veía el interruptor "Activadas" sin recibir nada.
   salió mientras otra ya está adentro. Si en esa espera la sesión se vuelve
   a cerrar, ese registro ya no se manda: llegaría después de su propia baja.
 - **Al cerrar sesión:** `releasePushFromAccount` da de baja el dispositivo en
-  el servidor (`DELETE /push/subscribe` con el `endpoint`) usando el access
-  token vigente antes de soltarlo. No se espera: si falla, el cierre sigue y
-  la reasignación del backend lo cubre cuando entre otra cuenta. También
-  saca de la bandeja del sistema los avisos que el dispositivo ya había
-  mostrado (`registration.getNotifications()` y `close()`), para que quien
-  lo use después no siga leyendo su título y su texto. **No se cancela la
+  el servidor para la cuenta que sale. Desde el 2026-11-18 no usa el token
+  de la sesión: manda `POST /push/release` con la clave de la suscripción, y
+  si no llega queda pendiente y se reintenta (ver "Baja del dispositivo").
+  No se espera: el cierre sigue igual. También saca de la bandeja del
+  sistema los avisos que el dispositivo ya había mostrado
+  (`registration.getNotifications()` y `close()`), para que quien lo use
+  después no siga leyendo su título y su texto. **No se cancela la
   suscripción del navegador ni se toca el permiso** (eso lo hace sólo el
-  interruptor de Ajustes, `unsubscribeFromPush`).
+  interruptor de Ajustes, `unsubscribeFromPush`, que sigue yendo por
+  `DELETE /push/subscribe` con la sesión).
 - **"Ver como" de admin:** mientras se impersona no se registra ni se da de
   baja nada. El dispositivo es de la admin: no tiene que recibir los avisos
   de la persona que está viendo ni perder los suyos. "Cerrar sesión"
@@ -238,15 +244,19 @@ veía el interruptor "Activadas" sin recibir nada.
   apagarlas le cancelaba a la admin las suyas.
 - **Verificación en dos pasos de la admin (ADR-0023):** el registro y la
   baja son pedidos que la app hace por su cuenta, sin que una pantalla los
-  pida, y `POST`/`DELETE /push/subscribe` responden el 403 del candado como
-  cualquier otro endpoint. Van por `backgroundApi` (`lib/api.ts`), que le
-  devuelve el error a quien llamó pero no avisa al manejador del candado: el
-  registro no lleva al alta ni cierra una sesión vieja antes de que una
-  pantalla pida algo, y la baja (que contesta con la sesión ya cerrada) no
-  devuelve al alta, o al login, a quien acaba de salir. Con el alta
-  pendiente (`twoFactorSetupPending`) el registro ni se manda. El
-  dispositivo queda registrado cuando la sesión verificada se abre
-  (`adoptSession` o `completeTwoFactor`: token nuevo, el efecto corre solo).
+  pida. `POST /push/subscribe` responde el 403 del candado como cualquier
+  otro endpoint; la baja ya no lleva sesión (`POST /push/release` es
+  pública), así que el candado no la alcanza. Los dos van por
+  `backgroundApi` (`lib/api.ts`), que le devuelve el error a quien llamó
+  pero no avisa al manejador del candado: el registro no lleva al alta ni
+  cierra una sesión vieja antes de que una pantalla pida algo, y la baja
+  (que contesta con la sesión ya cerrada) no devuelve al alta, o al login, a
+  quien acaba de salir. Con el alta pendiente (`twoFactorSetupPending`) el
+  registro ni se manda. El dispositivo queda registrado cuando la sesión
+  verificada se abre (`adoptSession` o `completeTwoFactor`: token nuevo, el
+  efecto corre solo). La sesión de antes de activar la verificación, que el
+  candado cierra cuando una pantalla pide algo (`two_factor_required`),
+  también da de baja el dispositivo.
 - **Acceso invitado:** la sesión de invitado registra el dispositivo como
   cualquier otra. Las cuentas invitadas son una por rol y las comparten
   todos los que entran con el PIN, así que quien explora como invitada en un
@@ -258,79 +268,194 @@ veía el interruptor "Activadas" sin recibir nada.
   que es peor. El frontend, además, no distingue una sesión de invitado de
   otra.
 
-Lo que la regla **no** cubre (queda abierto):
+### Baja del dispositivo (2026-11-18)
 
-1. **Una sesión que termina sin "Cerrar sesión".** No hay token con el que
-   dar de baja, así que el dispositivo sigue recibiendo los avisos de esa
-   cuenta hasta que alguien entre ahí. Pasa cuando la sesión vence sola (30
-   días sin abrir la app) y cuando el servidor la revoca
-   (`revoke_all_for_user` sólo revoca las sesiones de refresh, no toca
-   `push_subscriptions`): contraseña restablecida, cuenta sin verificar
-   reclamada con Google, alta de la verificación en dos pasos, refresh token
-   reutilizado y suspensión desde el panel. El segundo grupo es el más
-   serio, porque la persona hizo algo a propósito para cortar el acceso.
-   Cerrarlo es trabajo de servidor, en un PR aparte: al revocar todas las
-   sesiones de una cuenta, borrar también sus suscripciones push por un
-   puerto inyectado (identity → notification). Con el registro automático
-   los dispositivos legítimos se vuelven a registrar solos al ingresar.
+`/privacidad` dice que el identificador del dispositivo «se borra al
+desactivarlas y al cerrar sesión en ese dispositivo». Hasta acá la baja era
+un solo intento con el token de la sesión: sin red, o con el token ya
+vencido, la fila quedaba en `push_subscriptions` y el dispositivo seguía
+recibiendo los avisos de esa cuenta. Tampoco había baja cuando la sesión
+terminaba sola. Ahora hay una baja que no depende del token, con reintento,
+y dos borrados de servidor; el interruptor de Ajustes no cambió.
 
-   **Los dispositivos donde alguien cerró sesión antes de este cambio**
-   están en la misma situación: siguen registrados a nombre de esa cuenta y
-   reciben sus avisos hasta que alguien entre ahí. No hay limpieza. Ese PR
-   de servidor puede incluir una, por única vez, al desplegar. La más simple
-   es vaciar `push_subscriptions`: el servidor no sabe en cuáles hay una
-   sesión abierta, y el registro automático repone cada dispositivo la
-   próxima vez que la app se carga con sesión. El costo es que hasta
-   entonces ese dispositivo no recibe avisos, tampoco el de quien nunca
-   cerró sesión.
-2. **Una baja o un registro que no llega.** La baja: el access token venció
-   justo al cerrar sesión (app suspendida más de 15 minutos y cierre antes
-   de que se renueve: da 401 y no se reintenta), no había red, o era una
-   admin a la que el candado de dos pasos le rechazó el pedido. El cierre
-   sigue igual y el dispositivo queda a nombre de la cuenta que salió hasta
-   que entre otra en ese navegador. El registro: si falla por un corte justo
-   al abrir la sesión, no se reintenta en esa sesión. Sólo se nota cuando
-   hacía falta crear o reasignar la fila (después de un cierre de sesión o
-   de un cambio de cuenta): Ajustes dice "Activadas" y no llega nada hasta
-   que la app se vuelve a cargar; traerla al frente no alcanza. Y dos
-   carreras que quedan sin ordenar, las dos poco probables: una baja que
-   tarda más de 10 segundos y llega después del registro de la misma cuenta
-   (termina igual que el registro que falla), y un cierre de sesión con el
-   registro de esa misma sesión todavía en camino (si el registro llega
-   después de la baja, el dispositivo queda a nombre de la cuenta que
-   salió).
-3. **El texto de `/privacidad` no cuenta esta regla.** Dice: "Notificaciones:
-   si las activás, guardamos el identificador que tu navegador nos da para
-   mandarte avisos. Se borra al desactivarlas." Con la regla, a quien entra
-   en un navegador donde otra persona ya las había activado (y a quien entra
-   como invitada) se le guarda ese identificador y se le mandan avisos ahí
-   sin que las haya activado ella; y ahora también se borra al cerrar
-   sesión. El código hace lo pedido; lo desalineado es el texto. No se tocó
-   acá porque cambiar un texto legal es decisión de Julieta. Si se ajusta,
-   va con `LEGAL_TERMS_VERSION` en
-   `backend/app/modules/identity/domain/value_objects.py` y en
-   `frontend/lib/legal.ts`, en el mismo PR. Una redacción posible:
-   "Notificaciones: si están activadas en el navegador que usás, guardamos
-   el identificador que ese navegador nos da para mandarte avisos mientras
-   tengas la sesión abierta ahí. Se borra al desactivarlas o al cerrar
-   sesión."
+Lo que se borra es lo que el texto promete: al desactivar y al cerrar
+sesión (o cuando el servidor cierra las sesiones). **No se borra por
+inactividad**: ver el primer límite, más abajo.
+
+- **Baja sin sesión, con prueba del dispositivo.** `POST /push/release`, sin
+  autenticar, cuerpo `{endpoint, auth, user_id}`. Borra la fila sólo si
+  coinciden las tres cosas (`PushService.release`,
+  `PushSubscription.is_released_by`): el `endpoint`, la clave `auth` de esa
+  suscripción (comparada en tiempo constante) y que la fila siga siendo de
+  `user_id`. La prueba es `auth`, el secreto que sólo conocen ese navegador
+  y el servidor; `user_id` no prueba nada: está para que una baja vieja no
+  borre el registro de otra cuenta que ya entró en ese dispositivo, así que
+  el orden en que llegan una baja y un registro de cuentas distintas no
+  importa. Responde 204 siempre, coincida o no. Valida el `endpoint` igual
+  que el alta (servicio push conocido) y tiene límite por IP (30 por
+  minuto).
+- **El navegador la deja pendiente y la reintenta.**
+  `releasePushFromAccount(accountId)` (`lib/push.ts`) lee el `endpoint` y
+  `keys.auth` de la suscripción del navegador y manda la baja por
+  `backgroundApi` sin token. Antes de mandarla anota el id de la cuenta en
+  `localStorage` (`staffya_push_release_pending`: una lista corta de ids,
+  nunca el endpoint ni la clave) y lo borra cuando el servidor contesta 204.
+  Se anota antes, y no recién al fallar, para cubrir a quien cierra sesión y
+  cierra la app con el pedido en camino. Si falla por red, no contesta en 20
+  segundos, 429 o 5xx, queda anotada; un rechazo definitivo (4xx) o un
+  navegador que ya no tiene suscripción la descartan.
+  `retryPendingPushReleases` la vuelve a mandar al montar `AuthProvider`, en
+  el evento `online` y al volver la pestaña al frente. No manda la de la
+  cuenta que tiene la sesión abierta en ese navegador ni repite la que esa
+  pestaña ya tiene en camino. Cada intento queda como `lastRelease`: el
+  registro sigue saliendo después de la baja en camino.
+- **Al abrir sesión** `claimPushForAccount(token, accountId)` descarta la
+  pendiente de esa misma cuenta antes de registrar (volvió a entrar: el
+  registro la deja bien) y reintenta las de otras.
+- **La sesión que termina sola.** La pestaña que detecta el fin
+  (`endSession`: renovación rechazada por vencida, revocada o suspendida, al
+  abrir la app o con la sesión en curso; y el cierre que fuerza el candado
+  de dos pasos) da de baja el dispositivo para la cuenta que tenía la
+  sesión, por el mismo camino. La pestaña que sólo refleja un cierre hecho
+  en otra **no** manda nada: la otra ya lo hizo, la pendiente es de todas
+  (`localStorage`), y una segunda baja en vuelo podría llegar después de un
+  reingreso y borrar el registro nuevo.
+- **Suspensión (ADR-0024).** `AdminService.suspend_user` borra todos los
+  dispositivos de la cuenta por el puerto `AccountDeviceRemover`
+  (`admin/application/ports.py`, adaptador en `admin/api/dependencies.py`),
+  después de marcarla suspendida. Si el borrado falla se registra y la
+  suspensión queda hecha. Reactivar no restaura nada: el dispositivo se
+  registra solo en el próximo ingreso.
+- **Barrido de las cuentas con las sesiones revocadas.** La pasada de
+  retención del scheduler (una vez por día) corre un paso que entra desde
+  `app/main.py` (`retention_steps`):
+  `notification/infrastructure/device_sweep_job.py` borra los dispositivos
+  de las cuentas que se quedaron sin sesión **por una revocación**.
+  notification se lo pregunta a identity por el puerto `SessionRevocations`
+  (`notification/application/ports.py`; el adaptador usa
+  `RefreshSessionRepository.user_ids_ended_by_revocation`). Una cuenta entra
+  si y sólo si se dan las tres cosas:
+  1. no tiene ninguna sesión viva (una fila de `refresh_sessions` sin vencer
+     y sin revocar);
+  2. tiene al menos una fila;
+  3. su fila más reciente (`created_at`) está revocada.
+
+  Entran: quien cerró sesión en todos lados, la contraseña restablecida, el
+  refresh reutilizado y la suspendida (todas revocan), **mientras la cuenta
+  no vuelva a entrar en ningún lado**. No entran: la rotación normal (la anterior revocada, la nueva
+  viva), la cuenta inactiva (la última fila venció sin revocar, aunque haya
+  revocadas más viejas de las renovaciones) y la que ya no tiene filas.
+  Todos los ingresos crean su fila (contraseña, Google, invitado, código de
+  dos pasos y cada renovación pasan por `IdentityService._issue_tokens`).
+  Una revocada hace menos de lo que dura un access token (15 minutos)
+  todavía cuenta como viva: renovar revoca la sesión usada y recién después
+  guarda la nueva, y sin ese margen un barrido que cayera justo ahí le
+  borraría el dispositivo a alguien con la sesión abierta. "Ver como" de la
+  admin da un access token sin sesión de refresh, pero el frontend no
+  registra nada mientras se impersona, así que no hay dispositivo en juego.
+  El barrido corre **antes** de que la misma pasada borre las sesiones
+  vencidas hace más de 7 días (`delete_expired_before` las borra revocadas o
+  no): una revocada que ya cumplió el plazo alcanza a verse.
+
+Con esto quedan cubiertos los casos que antes estaban abiertos: contraseña
+restablecida y refresh token reutilizado (barrido, si la cuenta no volvió a
+entrar antes; si volvió, ver el límite 2); suspensión (borrado directo); cierre de sesión sin red o con el
+token vencido (pendiente y reintento, y el barrido si el navegador nunca
+vuelve); sesión que vence o se revoca y la app se abre ahí (la baja del
+navegador). Los dispositivos donde alguien cerró sesión antes de estos
+cambios se limpian con el primer barrido, si lo último que hizo la cuenta
+fue cerrar sesión y no volvió a entrar en ningún lado.
+
+Lo que queda abierto:
+
+1. **Sesión vencida por inactividad con la app cerrada: el dispositivo
+   sigue registrado hasta que se abre la app ahí** (límite conocido y a
+   propósito, decisión del 2026-11-18). El barrido no borra los dispositivos
+   de una cuenta cuya sesión sólo venció por no abrir la app en 30 días.
+   Tres motivos: `/privacidad` promete el borrado al desactivar y al cerrar
+   sesión, no por inactividad; a quien no entra hace un mes, el aviso de un
+   turno urgente cerca es justo lo que lo trae de vuelta; y borrar en masa
+   en el primer barrido después del deploy era tocar datos de producción más
+   allá de lo prometido. Cuando la persona abre la app, la pestaña detecta
+   la sesión vencida y da de baja el dispositivo (la baja del navegador).
+2. **El barrido es por cuenta, no por dispositivo** (límite aceptado). Si la
+   cuenta sigue con una sesión viva en otro dispositivo, el dispositivo
+   donde cerró sesión y la baja nunca llegó se da de baja recién cuando se
+   abre la app ahí. Y al revés: si lo último que hizo la cuenta fue cerrar
+   sesión, se borran todos sus dispositivos, también uno donde otra sesión
+   más vieja había vencido sola. Lo mismo para las cuentas invitadas, que
+   comparten todos los que entran con el PIN.
+
+   El caso que más importa de este límite: **quien restablece la contraseña
+   y vuelve a entrar enseguida** (lo normal), y el alta de dos pasos o la
+   cuenta reclamada con Google, que revocan todo y abren una sesión nueva en
+   el mismo pedido. La cuenta queda con una sesión viva, así que el barrido
+   no borra nada, y el dispositivo donde estaba la sesión vieja (quizás el
+   que motivó el cambio de contraseña) sigue registrado hasta que alguien
+   abre la app ahí. Cerrarlo del todo es borrar los dispositivos de la
+   cuenta en el momento de `revoke_all_for_user` (puerto identity →
+   notification); el dispositivo legítimo se vuelve a registrar solo en su
+   próximo ingreso. No se hizo acá: es una regla nueva.
+3. **Entre la revocación y el barrido** puede pasar hasta un día (más si el
+   servidor no tuvo ninguna pasada). En ese rato el dispositivo sigue
+   recibiendo avisos si nadie abre la app ahí.
+4. **Una revocación que el barrido no llega a ver.** La retención borra cada
+   sesión 7 días después de vencer, revocada o no. Una sesión revocada
+   mientras estaba viva dura entre 7 y 37 días más: sobran pasadas. Los dos
+   bordes: una fila ya vencida que se revoca en los 15 minutos anteriores a
+   la pasada que la borra (el margen la da por viva y después ya no está), y
+   la cuenta inactiva hace más de 37 días que restablece la contraseña (no
+   le queda ninguna fila que revocar, así que el barrido no tiene con qué
+   decidir). En los dos el dispositivo queda como el de una cuenta inactiva
+   (límite 1).
+5. **Carreras que quedan sin ordenar, poco probables.** Una baja que tarda
+   más de 10 segundos y llega después del registro de la **misma** cuenta
+   (Ajustes dice "Activadas" y no llega nada hasta volver a cargar la app).
+   Dos pestañas: la que reintenta una pendiente mientras en otra vuelve a
+   entrar la misma cuenta (la pestaña que no ingresó se recarga con la
+   sesión nueva y vuelve a registrar). Un cierre de sesión con el registro
+   de esa misma sesión todavía en camino. Y el barrido que lee «revocada»
+   un instante antes de un ingreso: borra la fila y el dispositivo se vuelve
+   a registrar la próxima vez que la app se carga.
+6. **El registro que no llega** por un corte justo al abrir la sesión no se
+   reintenta en esa sesión; se repite al volver a cargar la app.
+7. **El texto de `/privacidad`.** Hoy dice: "Notificaciones: si las activás,
+   guardamos el identificador que tu navegador nos da para mandarte avisos.
+   Se borra al desactivarlas y al cerrar sesión en ese dispositivo." La
+   segunda oración es cierta (y ahora se borra en más casos de los que
+   promete). Lo que sigue sin contar es la primera parte de la regla: a
+   quien entra en un navegador donde otra persona ya las había activado (y a
+   quien entra como invitada) se le guarda ese identificador sin que las
+   haya activado ella. No se tocó: cambiar un texto legal es decisión de
+   Julieta, y va con `LEGAL_TERMS_VERSION` (backend y `frontend/lib/legal.ts`)
+   en el mismo PR.
 
 Tests: `backend/tests/test_push.py` (el mismo `endpoint` suscripto por dos
 cuentas desde el mismo navegador queda en una fila a nombre de la última y
 un aviso para la primera ya no sale a ese dispositivo; conocer un `endpoint`
 ajeno sin sus claves no alcanza para quedárselo; la misma cuenta dos veces
-sigue siendo una fila), `frontend/lib/push.test.ts` (qué manda cada helper,
-que no avisan al candado, que la baja cierra los avisos a la vista y que el
-registro sale después de la baja que sigue en camino, con tope),
-`frontend/lib/auth-context.test.tsx` (cuándo se llaman: ingreso, sesión
-recuperada, cierre aunque la baja falle, impersonación, alta y código de
-dos pasos pendientes), `frontend/lib/auth-context.two-factor-gate.test.tsx`
-(con `lib/push` real: ni el registro ni la baja disparan el candado),
+sigue siendo una fila), `backend/tests/test_baja_del_dispositivo.py` (la
+baja sin sesión: qué borra, qué no y que responde igual, el orden contra el
+registro de otra cuenta, el límite por IP; la suspensión; el barrido: a qué
+cuentas les borra y a cuáles no, caso por caso, con los recorridos reales de
+cerrar sesión, restablecer la contraseña y reutilizar un refresh, y que
+ningún ingreso deja una sesión sin fila),
+`frontend/lib/push.test.ts` (qué manda cada helper, la pendiente y sus
+reintentos, que no avisan al candado, que la baja cierra los avisos a la
+vista y que el registro sale después de la baja que sigue en camino, con
+tope), `frontend/lib/auth-context.test.tsx` (cuándo se llaman: ingreso,
+sesión recuperada, cierre aunque la baja falle, sesión que termina sola en
+esta pestaña y la que sólo se refleja, reintentos al abrir, con conexión y
+al volver la pestaña, impersonación, alta y código de dos pasos
+pendientes), `frontend/lib/auth-context.two-factor-gate.test.tsx` (con
+`lib/push` real: ni el registro ni la baja disparan el candado, y la sesión
+que el candado cierra da de baja el dispositivo),
 `frontend/components/PushToggle.test.tsx`,
 `frontend/lib/push-prompt-context.test.tsx` (los dos en "Ver como") y
-`frontend/e2e/push-cuenta-actual.spec.ts` (los cuatro recorridos en el
-navegador: dos cuentas, salir y volver a entrar con la baja en camino, "Ver
-como" y admin con el alta pendiente).
+`frontend/e2e/push-cuenta-actual.spec.ts` (los recorridos en el navegador:
+dos cuentas, cerrar sesión sin conexión y volver a abrir, la misma cuenta
+que vuelve con su baja pendiente, la sesión que vence sola, salir y volver a
+entrar con la baja en camino, "Ver como" y admin con el alta pendiente).
 
 ### Derivación de las decisiones
 

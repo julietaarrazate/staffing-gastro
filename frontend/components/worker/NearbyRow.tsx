@@ -5,14 +5,11 @@ import { memo, useState } from "react";
 import { SKILL_LABELS, Shift } from "@/lib/types";
 import { SKILL_ACCENT } from "@/lib/skill-style";
 import { cldThumb } from "@/lib/cloudinary";
-import { formatShiftWhen } from "@/lib/datetime";
-import { formatPayAmount } from "@/lib/pay";
+import { formatShiftWhenLive } from "@/lib/datetime";
+import { formatPayCompact } from "@/lib/pay";
+import { formatDistance } from "@/lib/format";
 import { ChevronRightIcon, FlameIcon, ShieldIcon } from "@/components/icons";
 import { shiftHeroPhoto } from "@/lib/company-photo";
-
-function formatDistance(km: number): string {
-  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
-}
 
 function NearbyItem({ shift, distanceKm }: { shift: Shift; distanceKm: number | null }) {
   const [broken, setBroken] = useState(false);
@@ -24,66 +21,77 @@ function NearbyItem({ shift, distanceKm }: { shift: Shift; distanceKm: number | 
     .join(" · ");
 
   return (
-    <Link
-      href={`/turno/${shift.id}`}
-      data-testid="feed-nearby-card"
-      className="w-[156px] shrink-0 snap-start transition active:scale-[0.98]"
-    >
-      {/* Sin foto: tile con el TINTE pálido del rubro y su ícono — el color
-          como acento, no como banda saturada. */}
-      <div
-        className={`relative h-[104px] overflow-hidden rounded-[var(--radius-chip)] ring-1 ring-line ${hasPhoto ? "bg-surface" : `rubro-tile ${bg}`}`}
+    <li className="border-b border-line">
+      <Link
+        href={`/turno/${shift.id}`}
+        data-testid="feed-nearby-card"
+        className="grid grid-cols-[46px_minmax(0,1fr)_auto] items-center gap-x-3 px-0.5 py-3 transition active:bg-surface"
       >
-        {hasPhoto ? (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element -- la optimización la hace Cloudinary (cldThumb), igual que OpportunityCard */}
+        {/* Sin foto: el TINTE pálido del rubro y su ícono, el color como
+            acento y no como banda saturada. */}
+        <span
+          className={`flex h-[46px] w-[46px] items-center justify-center overflow-hidden rounded-[var(--radius-btn)] ${hasPhoto ? "bg-surface" : `rubro-tile ${bg}`}`}
+        >
+          {hasPhoto ? (
+            // eslint-disable-next-line @next/next/no-img-element -- la optimización la hace Cloudinary (cldThumb), igual que OpportunityCard
             <img
-              src={cldThumb(heroPhoto, 360)}
+              src={cldThumb(heroPhoto, 160)}
               alt=""
               onError={() => setBroken(true)}
               loading="lazy"
               decoding="async"
               className="h-full w-full object-cover"
             />
-          </>
-        ) : (
-          <span className={`rubro-tile-icon flex h-full w-full items-center justify-center ${fg}`}>
-            <Icon size={30} />
-          </span>
-        )}
-        {shift.urgent && (
-          <span className="absolute left-1.5 top-1.5 inline-flex items-center gap-0.5 rounded-full bg-card px-1.5 py-0.5 text-label font-bold text-danger-text shadow-sm">
-            <FlameIcon size={10} /> Urgente
-          </span>
-        )}
-      </div>
-      <p className="mt-2 truncate text-sm font-semibold text-ink">{SKILL_LABELS[shift.position]}</p>
-      {(where || shift.company_verified) && (
-        <p className="flex items-center gap-1 text-xs text-ink/55">
-          {/* Forma compacta (156 px no alcanzan para el texto): sello de
-              `company_verified` con nombre accesible completo. */}
-          {shift.company_verified && (
-            <span
-              role="img"
-              aria-label="Comercio verificado"
-              title="Comercio verificado"
-              className="inline-flex shrink-0 text-cielo-text"
-            >
-              <ShieldIcon size={13} />
+          ) : (
+            <span className={`rubro-tile-icon ${fg}`}>
+              <Icon size={22} />
             </span>
           )}
-          <span className="truncate">{where}</span>
-        </p>
-      )}
-      <p className="mt-0.5 truncate text-xs text-ink/55">{formatShiftWhen(shift.start_at, shift.end_at)}</p>
-      <p className="mt-0.5 text-sm font-bold text-ink">{formatPayAmount(shift)}</p>
-    </Link>
+        </span>
+        <span className="min-w-0">
+          {/* El puesto no se corta: es lo primero que se lee (a 320 px, con
+              «Urgente» al lado, quedaba «Ayudante …»). */}
+          <span className="block text-body font-semibold text-ink">{SKILL_LABELS[shift.position]}</span>
+          {(where || shift.company_verified) && (
+            <span className="flex items-center gap-1 text-caption text-ink-soft">
+              {/* Forma compacta: sello de `company_verified` con nombre
+                  accesible completo. */}
+              {shift.company_verified && (
+                <span
+                  role="img"
+                  aria-label="Comercio verificado"
+                  title="Comercio verificado"
+                  className="inline-flex shrink-0 text-cielo-text"
+                >
+                  <ShieldIcon size={13} />
+                </span>
+              )}
+              <span className="truncate">{where}</span>
+            </span>
+          )}
+          {/* Si «Urgente» y el horario no entran juntos (320 px), el horario
+              baja de renglón: tampoco se corta. */}
+          <span className="flex flex-wrap items-center gap-x-1.5 text-caption text-ink-soft">
+            {shift.urgent && (
+              <span className="inline-flex shrink-0 items-center gap-0.5 font-bold text-danger-text">
+                <FlameIcon size={11} /> Urgente
+              </span>
+            )}
+            <span>{formatShiftWhenLive(shift)}</span>
+          </span>
+        </span>
+        <span className="text-body font-bold tabular-nums text-ink">{formatPayCompact(shift)}</span>
+      </Link>
+    </li>
   );
 }
 
-/** Fila "Cerca tuyo" del home (board de Julieta, pantalla 1): miniaturas en
- *  scroll horizontal, ordenadas como el resto del feed. "Ver todos" lleva a la
- *  lista completa de /buscar. */
+/** "Cerca tuyo" del home: una lista con filete fino, ordenada como el resto
+ *  del feed. Cada renglón trae la foto del local (o el ícono del rubro), el
+ *  puesto, dónde y cuándo, y la paga a la derecha. "Ver todos" lleva a la
+ *  lista completa de /buscar. Hasta el 2026-11-18 eran miniaturas de 156 px
+ *  en scroll horizontal; con la dirección «con relieve» las listas van
+ *  planas y el relieve queda para la comanda de arriba. */
 function NearbyRow({
   shifts,
   distanceOf,
@@ -105,14 +113,11 @@ function NearbyRow({
           Ver todos <ChevronRightIcon size={15} />
         </Link>
       </div>
-      {/* `scroll-px-4`: el snap alinea contra el borde del scroller e ignora
-          el padding; sin scroll-padding la primera miniatura quedaba pegada
-          al borde de la pantalla, fuera del margen de 16px. */}
-      <div className="no-scrollbar -mx-4 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 pb-1">
+      <ul className="border-t border-line">
         {shifts.map((shift) => (
           <NearbyItem key={shift.id} shift={shift} distanceKm={distanceOf(shift)} />
         ))}
-      </div>
+      </ul>
     </section>
   );
 }

@@ -51,6 +51,27 @@ async def test_register_short_password(client: AsyncClient):
     assert response.status_code == 422
 
 
+async def test_register_rejects_blank_name(client: AsyncClient):
+    response = await register_user(client, full_name="   ")
+    assert response.status_code == 422
+    assert "Escribí tu nombre" in response.text
+
+
+async def test_register_trims_name(client: AsyncClient):
+    response = await register_user(client, full_name="  Juan Pérez  ")
+    assert response.status_code == 201
+    assert response.json()["full_name"] == "Juan Pérez"
+
+
+@pytest.mark.parametrize("clave", ["aaaaaaaa", "11111111", "        "])
+async def test_register_rejects_single_repeated_char_password(
+    client: AsyncClient, clave: str
+):
+    response = await register_user(client, password=clave)
+    assert response.status_code == 422
+    assert "un solo carácter repetido" in response.text
+
+
 async def test_login_success_and_me(client: AsyncClient):
     await register_user(client)
     login_response = await client.post(

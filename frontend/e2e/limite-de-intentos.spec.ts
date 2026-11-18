@@ -4,12 +4,12 @@ import { blockExternalHosts, mockEmptyNotifications, skipSplash } from "./mocks"
 /**
  * G10 (U138, U139): el límite de intentos no se dice con mensajes falsos.
  * La forma del 429 es la real de `core/rate_limit.py`: status 429 y
- * `{"detail": "Demasiados intentos. Esperá un momento y volvé a probar."}`.
+ * `{"detail": "Demasiados intentos. Esperá 1 minuto y volvé a probar."}`.
  */
 const RATE_LIMIT_429 = {
   status: 429,
   contentType: "application/json",
-  body: JSON.stringify({ detail: "Demasiados intentos. Esperá un momento y volvé a probar." }),
+  body: JSON.stringify({ detail: "Demasiados intentos. Esperá 1 minuto y volvé a probar." }),
 };
 
 test("alta bien hecha con el ingreso automático frenado: va a /login con el aviso, sin error", async ({ page }) => {
@@ -29,6 +29,7 @@ test("alta bien hecha con el ingreso automático frenado: va a /login con el avi
 
   await page.goto("/register?next=%2Fturno%2Fabc");
   await page.getByPlaceholder("Nombre completo").fill("Nueva Persona");
+  await page.getByLabel("Fecha de nacimiento").fill("1995-05-20");
   await page.getByPlaceholder("Email").fill("nueva@staffya.com");
   await page.getByPlaceholder("Contraseña (mín. 8 caracteres)").fill("unaClaveLarga1");
   await page.getByRole("checkbox").check();
@@ -92,6 +93,7 @@ test("si el alta misma falla con 429, sigue mostrando el error y no manda al ing
 
   await page.goto("/register");
   await page.getByPlaceholder("Nombre completo").fill("Nueva Persona");
+  await page.getByLabel("Fecha de nacimiento").fill("1995-05-20");
   await page.getByPlaceholder("Email").fill("nueva@staffya.com");
   await page.getByPlaceholder("Contraseña (mín. 8 caracteres)").fill("unaClaveLarga1");
   await page.getByRole("checkbox").check();
@@ -101,7 +103,7 @@ test("si el alta misma falla con 429, sigue mostrando el error y no manda al ing
   await expect(page).toHaveURL(/\/register$/);
 });
 
-test("/recuperar con 429 dice «Demasiados intentos, esperá un minuto» y deja reintentar", async ({ page }) => {
+test("/recuperar con 429 dice «Demasiados intentos. Esperá un momento y volvé a probar.» y deja reintentar", async ({ page }) => {
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
   await skipSplash(page);
@@ -111,7 +113,7 @@ test("/recuperar con 429 dice «Demasiados intentos, esperá un minuto» y deja 
   await page.getByPlaceholder("Email").fill("alguien@staffya.com");
   await page.getByRole("button", { name: "Enviar enlace" }).click();
 
-  await expect(page.locator("p[role='alert']")).toHaveText("Demasiados intentos, esperá un minuto.");
+  await expect(page.locator("p[role='alert']")).toHaveText("Demasiados intentos. Esperá un momento y volvé a probar.");
   await expect(page.getByText(/Si el mail existe/)).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Enviar enlace" })).toBeVisible();
 });
@@ -140,11 +142,11 @@ test("/verificar-email: 429 al confirmar y al reenviar dice «Demasiados intento
   await page.route("**/api/v1/auth/resend-verification", (route) => route.fulfill(RATE_LIMIT_429));
 
   await page.goto("/verificar-email?token=abc");
-  await expect(page.locator("p[role='alert']")).toHaveText("Demasiados intentos, esperá un minuto.");
+  await expect(page.locator("p[role='alert']")).toHaveText("Demasiados intentos. Esperá un momento y volvé a probar.");
 
   await page.getByPlaceholder("Email").fill("alguien@staffya.com");
   await page.getByRole("button", { name: "Reenviar enlace" }).click();
-  await expect(page.locator("p[role='alert']")).toHaveText("Demasiados intentos, esperá un minuto.");
+  await expect(page.locator("p[role='alert']")).toHaveText("Demasiados intentos. Esperá un momento y volvé a probar.");
   await expect(page.getByText(/Si el email existe/)).toHaveCount(0);
 });
 

@@ -45,6 +45,13 @@ function FieldHeading({
 }
 
 /** "Español, Inglés" → ["Español", "Inglés"] (limpia vacíos y espacios). */
+/** Vacío o no numérico = 0 (el backend no acepta null); se respeta el tope. */
+export function parseYears(text: string): number {
+  const n = parseInt(text, 10);
+  if (Number.isNaN(n)) return LIMITES.aniosExperienciaMin;
+  return Math.min(LIMITES.aniosExperienciaMax, Math.max(LIMITES.aniosExperienciaMin, n));
+}
+
 function parseList(text: string): string[] {
   return text
     .split(",")
@@ -57,7 +64,9 @@ export default function WorkerProfileForm() {
   const [exists, setExists] = useState(false);
   const [city, setCity] = useState("");
   const [skills, setSkills] = useState<WorkerSkill[]>([]);
-  const [yearsExperience, setYearsExperience] = useState(0);
+  // Texto, no número: así el campo se puede vaciar y no queda «07» (U052). El
+  // backend exige un entero 0-80 (default 0), por eso vacío se guarda como 0.
+  const [yearsExperience, setYearsExperience] = useState("0");
   const [bio, setBio] = useState("");
   // Idiomas y certificaciones se editan como texto separado por comas y se
   // guardan como lista (el modelo/API ya los soporta; el form no los exponía).
@@ -84,7 +93,7 @@ export default function WorkerProfileForm() {
         setExists(true);
         setCity(p.city ?? "");
         setSkills(p.skills);
-        setYearsExperience(p.years_experience);
+        setYearsExperience(String(p.years_experience));
         setBio(p.bio ?? "");
         setLanguagesText((p.languages ?? []).join(", "));
         setCertificationsText((p.certifications ?? []).join(", "));
@@ -125,7 +134,7 @@ export default function WorkerProfileForm() {
       city: city || null,
       bio: bio.trim() || null,
       skills,
-      years_experience: yearsExperience,
+      years_experience: parseYears(yearsExperience),
       languages: parseList(languagesText),
       certifications: parseList(certificationsText),
       cv_url: normalizeUserLink(cvUrl),
@@ -153,6 +162,8 @@ export default function WorkerProfileForm() {
         await api.post<WorkerProfile>("/workers/me/profile", payload, token);
       }
       setExists(true);
+      // Lo guardado es lo que se muestra: un campo vaciado queda en «0».
+      setYearsExperience(String(parseYears(yearsExperience)));
       setSaved(true);
     } catch (err) {
       setError(getErrorMessage(err, "No se pudo guardar el perfil"));
@@ -193,6 +204,7 @@ export default function WorkerProfileForm() {
         </p>
         <div className="mt-2">
           <LocationPicker
+            initialCity={city}
             onSelect={(loc: LocationSelection) => {
               setCity(loc.city);
               setLatitude(loc.latitude);
@@ -218,7 +230,7 @@ export default function WorkerProfileForm() {
           max={LIMITES.aniosExperienciaMax}
           step={1}
           value={yearsExperience}
-          onChange={(v) => setYearsExperience(Number(v) || 0)}
+          onChange={(v) => setYearsExperience(v.replace(/\D/g, "").replace(/^0+(?=\d)/, ""))}
         />
       </div>
 
@@ -270,7 +282,7 @@ export default function WorkerProfileForm() {
           rows={3}
           maxLength={LIMITES.bio}
           placeholder="Ej: Mozo con 5 años en cafeterías de especialidad, experiencia en barra y salón."
-          className="mt-2 w-full rounded-[var(--radius-input)] bg-surface px-3.5 py-2.5 text-sm text-ink outline-none ring-1 ring-line focus:ring-2 focus:ring-primary/40"
+          className="mt-2 w-full rounded-[var(--radius-input)] bg-surface px-3.5 py-2.5 text-sm text-ink outline-none ring-1 ring-line"
         />
       </div>
 

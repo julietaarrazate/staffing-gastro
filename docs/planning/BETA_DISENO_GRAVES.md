@@ -24,8 +24,8 @@ vez. Como mucho cuatro PRs abiertos.
 |---|---|---|
 | A (✅ en `main`, 2026-11-14) | G1, G7, G5, G3 | Lo que más pesa en los 10 minutos y en la confianza; no se pisan entre sí |
 | B (✅ en `main`, 2026-11-14) | G2, G16, G8, G9, G13, G24 | G2 después de G1 (`app/my-shifts/page.tsx`); G16 después de G7 (`next` en el ingreso) |
-| C (reglas del producto, ya decididas) | G4, G6, G11, G14, G25 | G4 después de G1 y G5 (pantalla de candidatos) |
-| D | G12, G15, G10, G17, G18–G23, G26, G27 | G15 después de G2 y G14 (`app/shifts/new/page.tsx`) |
+| C (reglas del producto, ya decididas; ✅ 2026-11-14, G4 el 2026-11-18) | G4, G6, G11, G14, G25 | G4 después de G1 y G5 (pantalla de candidatos) |
+| D (✅ G10, G12, G17, G18, G26, G27, 2026-11-14; G15, G20–G23, 2026-11-16) | G12, G15, G10, G17, G18–G23, G26, G27 | G15 después de G2 y G14 (`app/shifts/new/page.tsx`) |
 
 Archivos con más de un grupo: `app/my-shifts/page.tsx` (G1, G2, G8, G9) ·
 `app/shifts/new/page.tsx` (G2, G14, G15) · `lib/auth-context.tsx` (G7, G10,
@@ -44,67 +44,11 @@ G16 #565, G24 #566, G2 #567, G9 #569, G8 #571).
 
 ## Ola C
 
-### G4 · La lista de postulantes dice quién sigue (U021, U123) — C
-
-- Quien retiró su postulación no aparece
-  (`application/infrastructure/repositories.py`, `list_by_shift_enriched`).
-- Hoy, cuando alguien rechaza, cancela o falta, su postulación queda
-  «aceptada»: nada lo registra. Estado nuevo `desasignada` con su motivo
-  (`rechazo`, `cancelacion`, `ausencia`) en `application/domain/`; lo marcan
-  `reject_assignment`, `worker_cancel` y `mark_no_show` por el puerto que ya
-  usan. Migración Alembic (columna `motivo`), registrar en
-  `tests/conftest.py`.
-- En la pantalla, esas personas van al final, con su marca («Rechazó este
-  turno», «Canceló», «No se presentó»), y se pueden volver a asignar.
-- Antes de escribir: confirmar qué hace `ApplicationService.apply` con una
-  postulación `aceptada` de un turno reabierto, y dejarlo coherente con
-  `lib/applications.ts`.
-- U123: al confirmar un turno, la app retira las otras postulaciones del
-  mismo horario; se suma un solo aviso al trabajador que dice cuáles y por
-  qué, y que puede volver a postularse si el turno confirmado se cae.
-- Actualizar `docs/foundation/DOMAIN.md` y `NOTIFICATIONS.md`.
-
-
-### G25 · El evento cuenta y avisa bien (U083, U086) — C
-
-- `app/shifts/page.tsx`: el total no cuenta cancelados; «cubiertos» son los
-  confirmados en adelante.
-- `shift/application/services.py`: un solo aviso por evento y por persona
-  («Evento X: 5 puestos cerca tuyo»), y no se le avisa a quien ya está
-  confirmado en un puesto de ese evento que se pisa de horario.
+Los cinco grupos de la ola C están en `main`: G6, G11, G14 y G25 desde el
+2026-11-14, y G4 desde el 2026-11-18 (ADR-0026).
 
 ## Ola D
 
-### G15 · El asistente de publicar no pierde lo cargado (U057, U135, BK-7DCC4AB945) — S
-
-- La respuesta de la IA completa sólo los campos que la persona no tocó, y no
-  salta de paso si ya avanzó.
-- El paso va en la dirección (`?paso=`): «Atrás» vuelve al paso anterior. El
-  borrador y su clave para no repetir el pedido se guardan en
-  `sessionStorage` (se borran al publicar y al cerrar sesión). Lo mismo para
-  los pasos de `/bienvenida`.
-
-
-### G18 · En compu también se llega al detalle y a Buscar (U064, U104) — S
-
-`components/worker/OpportunityCard.tsx` abre `/turno/[id]` en la grilla de
-escritorio, en `/buscar` y en `/map`; «Buscar» entra al menú de
-`components/Navbar.tsx` del trabajador.
-
-### G20–G23 · Descubrir y mapas (U069, U105, U071, U073) — S, un PR cada uno
-
-- G20 `components/worker/SwipeDeck.tsx`: el toque abre el detalle sólo si no
-  hubo arrastre.
-- G21 `app/map/page.tsx`, `components/worker/MapSheet.tsx`: la cámara deja
-  libre el alto de la hoja.
-- G22 `components/map/MapView.tsx`, `components/employer/EnRouteMap.tsx`: el
-  encuadre sigue a los dos puntos en cada actualización.
-- G23 `app/search/page.tsx`: parte del local (`lib/company-place.ts`) y lo
-  dice («Desde tu local»).
-
-### G26 · La portada del admin cuenta lo de hoy (U125, U126, U127) — S
-
-`shift/infrastructure/repositories.py`: «urgentes sin cubrir» filtra por el
-día argentino. «Ausencias de hoy» lleva a su lista
-(`/admin/en-vivo?filtro=ausencias`). El buscador de Personas encuentra por
-nombre del local.
+Los grupos de la ola D están en `main`: G10, G12, G17, G18, G26 y G27 desde
+el 2026-11-14; G15 (#584), G20 (#583), G21 (#582), G22 (#581) y G23 (#585)
+desde el 2026-11-16.

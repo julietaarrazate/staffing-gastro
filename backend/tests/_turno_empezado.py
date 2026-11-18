@@ -57,6 +57,8 @@ async def correr_reloj_del_turno(shift_id: str, minutos: int) -> None:
         model.end_at = model.end_at - atras
         if model.check_in_at is not None:
             model.check_in_at = model.check_in_at - atras
+        if model.confirmed_at is not None:
+            model.confirmed_at = model.confirmed_at - atras
         await session.commit()
     finally:
         await sesiones.aclose()

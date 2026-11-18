@@ -34,6 +34,7 @@ from app.modules.shift.api.dependencies import (
 from app.modules.shift.api.schemas import (
     AssignWorkerRequest,
     EventInput,
+    EventCancelResponse,
     EventResponse,
     FeedScope,
     GeoCheckRequest,
@@ -477,7 +478,8 @@ async def get_shift_public(
     """Sin auth. Tres respuestas:
 
     - **200** mientras el turno está abierto a postulaciones: PUBLICADO o
-      BUSCANDO_PERSONAL (`OPEN_STATUSES`) y con la hora de inicio por delante.
+      BUSCANDO_PERSONAL (`OPEN_STATUSES`) y con la hora de inicio por delante
+      (o, si es un turno reofrecido, U080, mientras le quede horario).
       Es lo mismo que ofrece el Inicio. Hasta el 2026-11-12 sólo respondía en
       PUBLICADO, y un turno reabierto (la persona asignada lo rechazó, se bajó
       o no se presentó) aparecía en el Inicio pero su página no abría.
@@ -519,6 +521,8 @@ async def get_shift_public(
         city=shift.city,
         pay_amount=shift.pay_amount,
         currency=shift.currency,
+        reoffered_at=shift.reoffered_at,
+        hourly_pay_amount=shift.hourly_pay_amount,
         company_name=company.name if company else None,
         tips=shift.tips,
         meal=shift.meal,
@@ -568,6 +572,30 @@ async def publish_shift(
             status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=str(exc)
         ) from exc
     response = ShiftResponse.model_validate(shift)
+    await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
+    return response
+
+
+@router.post(
+    "/events/{event_id}/cancel",
+    response_model=EventCancelResponse,
+    summary="Cancelar todos los puestos que quedan de un evento",
+)
+async def cancel_event(
+    event_id: UUID, company_id: CompanyIdDep, service: ServiceDep, recorder: RecorderDep
+):
+    """U084: las mismas reglas, avisos y cancelación tardía que cancelar cada
+    puesto (`ShiftService.cancel_event`). Evento ajeno o inexistente: 404."""
+    try:
+        cancelled = await service.cancel_event(company_id, event_id)
+    except ShiftNotFoundError as exc:
+        raise _not_found() from exc
+    except InvalidShiftTransitionError as exc:
+        raise _bad_request(str(exc)) from exc
+    response = EventCancelResponse(
+        event_id=event_id,
+        cancelled=[ShiftResponse.model_validate(s) for s in cancelled],
+    )
     await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
     return response
 
@@ -721,6 +749,25 @@ async def report_en_route(
         raise _not_found() from exc
     except InvalidShiftTransitionError as exc:
         raise _bad_request(str(exc)) from exc
+    return ShiftResponse.model_validate(shift)
+
+
+@router.delete(
+    "/{shift_id}/en-route",
+    response_model=ShiftResponse,
+    summary="Dejar de compartir la ubicación de camino al turno (trabajador)",
+)
+async def stop_en_route(
+    shift_id: UUID,
+    worker_profile_id: WorkerProfileIdDep,
+    service: ServiceDep,
+):
+    """El trabajador apaga «va en camino»: su última posición se borra en el
+    momento y el comercio deja de verla (U072). Apagar dos veces da lo mismo."""
+    try:
+        shift = await service.stop_en_route(worker_profile_id, shift_id)
+    except (ShiftNotFoundError, ShiftNotAssignedToWorkerError) as exc:
+        raise _not_found() from exc
     return ShiftResponse.model_validate(shift)
 
 

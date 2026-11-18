@@ -26,6 +26,7 @@ from uuid import UUID, uuid4
 from app.core.dt import naive as _naive
 from app.core.tz import to_art
 from app.modules.subscription.domain.exceptions import (
+    InvalidPaymentCommitmentError,
     NothingToCancelError,
     PlanLimitExceededError,
     SubscriptionNotActiveError,
@@ -72,10 +73,45 @@ class Subscription:
     # pago queda `cancelada` en vez de `vencida`.
     renews: bool = True
     expiry_notice: ExpiryNotice | None = None
+    # Medición de la beta (M6). El plan que el comercio eligió en los precios
+    # de la landing, guardado al darse de alta: la primera vez gana.
+    chosen_plan_code: str | None = None
+    chosen_plan_at: datetime | None = None
+    # Compromiso de pago («precio fundador»): lo registra la admin a mano. El
+    # precio es el mensual acordado, en pesos enteros.
+    payment_commitment_at: datetime | None = None
+    payment_commitment_plan_code: str | None = None
+    payment_commitment_price_ars: Decimal | None = None
 
     id: UUID = field(default_factory=uuid4)
     created_at: datetime | None = None
     updated_at: datetime | None = None
+
+    # --- Medición de la beta (M6) ------------------------------------------
+
+    def register_chosen_plan(self, plan_code: str, now: datetime) -> bool:
+        """Guarda el plan elegido al darse de alta, sólo la primera vez: el
+        del alta gana y no se pisa. Devuelve si registró algo."""
+        if self.chosen_plan_code is not None:
+            return False
+        self.chosen_plan_code = plan_code
+        self.chosen_plan_at = now
+        return True
+
+    def register_payment_commitment(self, plan_code: str, price_ars: int, now: datetime) -> None:
+        """Registra (o corrige) el compromiso de pago: plan y precio mensual
+        en pesos enteros, mayor a cero."""
+        if isinstance(price_ars, bool) or not isinstance(price_ars, int) or price_ars <= 0:
+            raise InvalidPaymentCommitmentError()
+        self.payment_commitment_at = now
+        self.payment_commitment_plan_code = plan_code
+        self.payment_commitment_price_ars = Decimal(price_ars)
+
+    def clear_payment_commitment(self) -> None:
+        """Borra el compromiso (la admin se equivocó)."""
+        self.payment_commitment_at = None
+        self.payment_commitment_plan_code = None
+        self.payment_commitment_price_ars = None
 
     # --- Ventana de uso (ADR-0005) ---------------------------------------
 

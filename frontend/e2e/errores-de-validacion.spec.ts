@@ -38,6 +38,8 @@ test("registro con un mail sin dominio dice que tiene que ser un mail válido", 
   await expect(page.getByPlaceholder("Contraseña (mín. 8 caracteres)")).toHaveAttribute("maxlength", "128");
 
   await page.getByPlaceholder("Nombre completo").fill("Lucía Gómez");
+
+  await page.getByLabel("Fecha de nacimiento").fill("1995-05-20");
   await page.getByPlaceholder("Email").fill("lucia@bar");
   await page.getByPlaceholder("Contraseña (mín. 8 caracteres)").fill("clave-larga-123");
   await page.getByRole("checkbox").check();
@@ -136,7 +138,8 @@ test("«Llegué» que el servidor rechaza avisa con un aviso flotante, no con un
   await context.grantPermissions(["geolocation"]);
   await context.setGeolocation({ latitude: -34.58, longitude: -58.43 });
   await setupChat(page);
-  await page.route("**/api/v1/shifts/mine", (route) => route.fulfill(json(200, [shift])));
+  await page.route("**/api/v1/shifts/mine", (route) => route.fulfill(json(200, [{ ...shift, start_at: new Date(Date.now() + 10 * 60 * 1000).toISOString() }]))
+  );
   await page.route("**/api/v1/shifts/s1/check-in", (route) =>
     route.fulfill(json(409, { detail: "Todavía falta para marcar tu llegada" }))
   );

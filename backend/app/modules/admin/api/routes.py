@@ -13,10 +13,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.core.log_privacy import mask_email
 from app.modules.admin.api.dependencies import get_admin_service
 from app.modules.admin.api.schemas import (
+    AdminSubscriptionSummaryResponse,
     AdminUserDetailResponse,
     AdminUserResponse,
     ImpersonateResponse,
     LiveShiftsResponse,
+    PaymentCommitmentRequest,
     PeriodMetricsResponse,
     PlatformStatsResponse,
     SuspensionPreviewResponse,
@@ -27,6 +29,7 @@ from app.modules.admin.api.schemas import (
 from app.modules.admin.application.exceptions import (
     CannotImpersonateAdminError,
     CannotModifySelfError,
+    TargetCompanyNotFoundError,
     TargetUserNotFoundError,
 )
 from app.modules.admin.application.periods import METRICS_PERIODS
@@ -34,6 +37,7 @@ from app.modules.admin.application.services import AdminService
 from app.modules.identity.api.dependencies import require_roles
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.value_objects import UserRole, UserStatus
+from app.modules.subscription.domain.exceptions import UnknownPlanError
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 logger = logging.getLogger(__name__)
@@ -68,8 +72,11 @@ async def live_shifts(
     service: ServiceDep,
     urgent: bool = False,
     escalated: bool = False,
+    no_shows: bool = False,
 ):
-    return await service.list_live_shifts(urgent_only=urgent, escalated_only=escalated)
+    return await service.list_live_shifts(
+        urgent_only=urgent, escalated_only=escalated, no_shows_only=no_shows
+    )
 
 
 @router.get(
@@ -140,6 +147,40 @@ async def get_user_detail(user_id: UUID, _: AdminDep, service: ServiceDep):
     except TargetUserNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado"
+        ) from exc
+
+
+@router.put(
+    "/users/{user_id}/payment-commitment",
+    response_model=AdminSubscriptionSummaryResponse,
+    summary="Registrar el compromiso de pago («precio fundador») de un comercio",
+)
+async def set_payment_commitment(
+    user_id: UUID, payload: PaymentCommitmentRequest, _: AdminDep, service: ServiceDep
+):
+    try:
+        return await service.set_payment_commitment(user_id, payload.plan_code, payload.price_ars)
+    except TargetCompanyNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Comercio no encontrado"
+        ) from exc
+    except UnknownPlanError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
+
+
+@router.delete(
+    "/users/{user_id}/payment-commitment",
+    response_model=AdminSubscriptionSummaryResponse,
+    summary="Borrar el compromiso de pago de un comercio",
+)
+async def clear_payment_commitment(user_id: UUID, _: AdminDep, service: ServiceDep):
+    try:
+        return await service.clear_payment_commitment(user_id)
+    except TargetCompanyNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Comercio no encontrado"
         ) from exc
 
 

@@ -112,6 +112,21 @@ class ShiftResponse(BaseModel):
     published_at: datetime | None = None
     first_assigned_at: datetime | None = None
     created_at: datetime | None = None
+    # Turno reofrecido (U080): se reabrió con el horario ya empezado y se
+    # ofrece como urgente hasta `offered_until`. Mientras nadie marcó la llegada, lo
+    # que se muestra es el valor por hora (`hourly_pay_amount`, calculado en
+    # el dominio; `None` en cualquier otro turno), porque el total depende de
+    # cuándo llegue quien lo tome. Son datos del turno: los ve cualquiera.
+    reoffered_at: datetime | None = None
+    hourly_pay_amount: Decimal | None = None
+    # Lo que se paga por un turno reofrecido, fijado cuando el reemplazo marca
+    # la llegada. Es de las partes (el comercio dueño y la persona asignada):
+    # `without_worker_data` lo borra, porque de él se deduce a qué hora llegó.
+    prorated_pay_amount: Decimal | None = None
+    # Cuándo confirmó quien tiene el turno ahora. De las partes: el panel lo
+    # usa para saber desde cuándo se puede marcar «No se presentó» a quien
+    # tomó un turno ya empezado.
+    confirmed_at: datetime | None = None
     company_name: str | None = None
     company_logo_url: str | None = None
     company_cover_url: str | None = None
@@ -155,6 +170,8 @@ WORKER_DATA_FIELDS = (
     "check_out_at",
     "no_show_at",
     "last_no_show_worker_profile_id",
+    "prorated_pay_amount",
+    "confirmed_at",
 )
 
 
@@ -216,6 +233,15 @@ class EventInput(BaseModel):
         return self
 
 
+class EventCancelResponse(BaseModel):
+    """Resultado de cancelar un evento entero (U084): los puestos que se
+    cancelaron ahora. Los que ya habían terminado o estaban cancelados no
+    vienen."""
+
+    event_id: UUID
+    cancelled: list[ShiftResponse]
+
+
 class EventResponse(BaseModel):
     """Resultado de publicar un evento: `requested` vs. la cantidad real de
     `shifts` — si son distintos, el plan del comercio se quedó sin cupo a
@@ -240,6 +266,10 @@ class ShiftPublicResponse(BaseModel):
     city: str | None
     pay_amount: Decimal
     currency: str
+    # Turno reofrecido (U080): ya empezó y se ofrece hasta `offered_until`; se
+    # muestra el valor por hora. Ver `ShiftResponse`.
+    reoffered_at: datetime | None = None
+    hourly_pay_amount: Decimal | None = None
     company_name: str | None = None
     # Las condiciones del turno, que es con lo que alguien decide si le
     # conviene registrarse (Julieta, 2026-09-22). Son del turno, no de una

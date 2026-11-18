@@ -17,8 +17,14 @@ const COMMITTED_STATUSES: readonly ShiftStatus[] = [
 /** Estados en los que todavía puede haber gente postulada esperando respuesta. */
 const OPEN_STATUSES: readonly ShiftStatus[] = ["publicado", "buscando_personal"];
 
-/** Estados terminales: ya no hay nada que cancelar (`TERMINAL_STATUSES` del backend). */
-const TERMINAL_STATUSES: readonly ShiftStatus[] = [
+/**
+ * Estados desde los que el comercio ya no puede cancelar
+ * (`NOT_CANCELLABLE_STATUSES` del backend): los terminales y el turno con la
+ * salida marcada. Ese turno ya se trabajó: se finaliza y se paga, y un
+ * problema va por soporte (U081, ADR-0007).
+ */
+const NOT_CANCELLABLE_STATUSES: readonly ShiftStatus[] = [
+  "check_out",
   "finalizado",
   "pagado",
   "cancelado",
@@ -29,7 +35,7 @@ type CancellableShift = Pick<Shift, "status" | "worker_profile_id">;
 
 /** ¿El backend todavía acepta cancelar un turno en este estado? */
 export function isCancellable(status: ShiftStatus): boolean {
-  return !TERMINAL_STATUSES.includes(status);
+  return !NOT_CANCELLABLE_STATUSES.includes(status);
 }
 
 /**
@@ -101,5 +107,36 @@ export function cancelConfirmCopy(shift: CancellableShift | undefined): CancelCo
   return {
     body: "El turno deja de estar disponible para postularse. No vas a poder deshacerlo.",
     lateCancellation: null,
+  };
+}
+
+/**
+ * Texto de «¿Cancelar el evento entero?» (U084). Mismas reglas que cancelar
+ * cada puesto (`ShiftService.cancel_event` lo hace puesto por puesto): se
+ * cancelan los que todavía se pueden cancelar, a cada asignado o postulado se
+ * le avisa, y cada puesto con alguien ya confirmado suma su cancelación tardía.
+ */
+export function cancelEventConfirmCopy(puestos: readonly CancellableShift[]): CancelConfirmCopy & {
+  /** Cuántos puestos se cancelan; 0 = no queda nada para cancelar. */
+  count: number;
+} {
+  const pendientes = puestos.filter((p) => isCancellable(p.status));
+  const count = pendientes.length;
+  const tardias = pendientes.filter(isLateCancellation).length;
+  const conAlguien = pendientes.some(
+    (p) => Boolean(p.worker_profile_id) || OPEN_STATUSES.includes(p.status)
+  );
+  const cuales =
+    count === 1 ? "Se cancela el puesto que queda" : `Se cancelan los ${count} puestos que quedan`;
+  const aviso = conAlguien ? " A quien esté asignado o se haya postulado se le avisa." : "";
+  return {
+    count,
+    body: `${cuales} del evento.${aviso} No vas a poder deshacerlo.`,
+    lateCancellation:
+      tardias === 0
+        ? null
+        : tardias === 1
+          ? "Una persona ya confirmó: te suma una cancelación tardía. La ves en tu perfil."
+          : `${tardias} personas ya confirmaron: te suma ${tardias} cancelaciones tardías. Las ves en tu perfil.`,
   };
 }

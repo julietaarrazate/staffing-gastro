@@ -16,6 +16,7 @@ import { esPerfilInexistente } from "@/lib/perfil-faltante";
 import { bienvenidaHref } from "@/lib/safe-next";
 import PerfilFaltanteCard from "@/components/PerfilFaltanteCard";
 import { isTodayInArgentina } from "@/lib/datetime";
+import { LETRAS_APP } from "@/lib/letras";
 import {
   distanceOf,
   getStoredLocation,
@@ -141,9 +142,33 @@ function useIsDesktop(): boolean {
 export default function WorkerHomePage() {
   return (
     <Suspense fallback={null}>
-      <WorkerFeedPanel />
+      <FeedGuard />
     </Suspense>
   );
+}
+
+// Hasta conocer el rol no se monta nada. La guarda de rol va por fuera del panel: con otro rol el panel ni se monta,
+// así que no pinta el feed cacheado, no pide nada ni la ubicación del navegador
+// mientras la guarda redirige a la home de su rol.
+function FeedGuard() {
+  const { allowed, user } = useRequireAuth({ roles: ["worker"] });
+  // Con rol equivocado ya conocido, nada (redirige). Mientras el rol no se
+  // conoce (el backend dormido puede tardar segundos en `/auth/me`), el mismo
+  // esqueleto de siempre, sin pedir datos ni ubicación.
+  if (!allowed) return null;
+  if (!user) {
+    return (
+      <div data-testid="guarda-cargando" aria-busy className="mx-auto max-w-md space-y-5 px-4 pb-8 pt-4 md:max-w-5xl">
+        <Skeleton className="h-[232px] w-full rounded-[var(--radius-card)]" />
+        <div className="flex gap-3">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-[170px] w-[156px] shrink-0 rounded-[var(--radius-chip)]" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return <WorkerFeedPanel />;
 }
 
 function WorkerFeedPanel() {
@@ -493,6 +518,11 @@ function WorkerFeedPanel() {
   const incompleto =
     !!profile && (profile.latitude == null || profile.longitude == null || !profile.skills?.length);
   const hayCartel = sinPerfil || incompleto;
+  // Sólo de la vista: qué se monta sobre el borde del cielo (la comanda del
+  // recomendado o el cartel de perfil; ver el contenedor de abajo).
+  const seMonta = !loading && (hayCartel || (!error && !!heroShift));
+  // Sólo de la vista: el cartelito gira recién después del primer toque.
+  const [cartelitoTocado, setCartelitoTocado] = useState(false);
   const emptyState = sinPerfil ? null : (
     <EmptyState
       icon={<EmptyFeedIllustration color="var(--color-primary)" />}
@@ -504,58 +534,71 @@ function WorkerFeedPanel() {
   );
 
   return (
-    // Home del trabajador con la composición del board de Julieta (pantalla
-    // 1): saludo en serif con la zona, buscador, la tarjeta
-    // "Recomendado" y la fila "Cerca tuyo". Ya no es un mazo de alto fijo: la
-    // pantalla scrollea como el board. El mazo para deslizar sigue existiendo
-    // como "Descubrir rápido" (decisión de Julieta, 2026-09-22).
-    <div className="mx-auto max-w-md px-4 pb-8 pt-4 md:max-w-5xl">
-      <header className="mb-3 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="font-display text-h1 font-semibold text-ink">
+    // Home del trabajador. Desde el 2026-11-18 lleva la dirección «con
+    // relieve» (docs/design-system/direccion-relieve.md): arriba, el cielo
+    // con el saludo en brocha, la zona, el cartelito de «Disponible» y el
+    // buscador; montado sobre el borde del cielo, lo primero que hay para
+    // ver (el turno recomendado como comanda, o el cartel de perfil, o el
+    // vacío); después «Descubrir rápido» y «Cerca tuyo». La pantalla
+    // scrollea; el mazo para deslizar sigue como "Descubrir rápido"
+    // (decisión de Julieta, 2026-09-22). La lógica no cambió.
+    <div className={`${LETRAS_APP} mx-auto max-w-md px-4 pb-8 md:max-w-5xl md:pt-4`}>
+      <div
+        className={`app-cielo -mx-4 px-4 pt-4 md:mx-0 md:rounded-[var(--radius-card)] md:px-6 md:pb-6 ${seMonta ? "pb-[88px]" : "pb-6"}`}
+      >
+        {/* El saludo ocupa lo que deja el cartelito y se parte entre
+            palabras; si una sola palabra no entra al lado (un nombre largo
+            a 320 px), el cartelito baja a su renglón en vez de partir el
+            nombre por la mitad. */}
+        <header className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
+          <h1 className="letra-cartel letra-cartel-pantalla min-w-min flex-1 break-words pb-1">
             {firstName ? `Hola, ${firstName}` : "Hola"}
           </h1>
-          {/* Desde dónde se mide el feed, en el renglón del saludo: antes era
-              una barra propia entre el buscador y los chips. Mientras hay una
-              búsqueda del asistente, manda la zona pedida (cartel de abajo). */}
+          {/* «Disponible» es el cartelito de la puerta: verde como el de
+              «abierto», y se da vuelta al tocarlo (`cartelito-gira` recién
+              después del primer toque, para que no gire solo al abrir). */}
+          <button
+            type="button"
+            onClick={() => {
+              setCartelitoTocado(true);
+              toggleAvailable();
+            }}
+            className={`cartelito ml-auto ${available ? "" : "cartelito-no"} ${cartelitoTocado ? "cartelito-gira" : ""}`}
+            aria-label="Cambiar disponibilidad"
+            aria-pressed={available}
+          >
+            <svg aria-hidden viewBox="0 0 60 14" className="cartelito-hilo">
+              <path d="M5 13.5 30 2.5l25 11" />
+              <circle cx="30" cy="2.5" r="1.9" />
+            </svg>
+            <span key={String(available)}>{available ? "Disponible" : "No disp."}</span>
+          </button>
+        </header>
+        {/* Desde dónde se mide el feed, debajo del saludo y a todo el ancho
+            (al lado del cartelito se partía en dos renglones). Mientras hay
+            una búsqueda del asistente, manda la zona pedida (cartel de abajo). */}
+        <div className="mb-4 mt-1">
           {assistantSearch ? (
-            <p className="mt-0.5 text-sm text-ink/55">Encontrá tu próximo turno.</p>
+            <p className="mt-1 text-sm">Encontrá tu próximo turno.</p>
           ) : (
             <LocationBar current={here} profileCity={profile?.city ?? null} onChange={setHere} />
           )}
         </div>
-        <button
-          type="button"
-          onClick={toggleAvailable}
-          className="mt-1 flex shrink-0 flex-col items-center gap-1"
-          aria-label="Cambiar disponibilidad"
-        >
-          <span
-            className={`relative h-7 w-12 rounded-full transition-colors ${
-              available ? "bg-success" : "bg-line"
-            }`}
-          >
-            <span
-              className={`absolute top-0.5 h-6 w-6 rounded-full bg-card shadow transition-all ${
-                available ? "left-[22px]" : "left-0.5"
-              }`}
-            />
-          </span>
-          <span className={`text-label font-semibold ${available ? "text-success-text" : "text-ink/40"}`}>
-            {available ? "Disponible" : "No disp."}
-          </span>
-        </button>
-      </header>
 
-      <div className="mb-4">
-        <AIAssistantBar />
+        <AIAssistantBar recto />
       </div>
+
+      {/* La comanda (o el cartel de perfil) se monta sobre el borde del
+          cielo. Cargando, con error o vacío no: el esqueleto y el dibujo del
+          vacío quedaban cortados por el borde. En escritorio tampoco: ahí el
+          cielo es un panel y la grilla va debajo, con su aire. */}
+      <div className={`relative z-[1] md:mt-5 ${seMonta ? "-mt-[68px]" : "mt-5"}`}>
 
       {/* Alta a medias (G12, U034, U035): sin perfil, o con el perfil pero sin
           zona u oficio, el Inicio no puede personalizar nada. El cartel queda
           fijo hasta que se completa (no se cierra). */}
       {!loading && sinPerfil && (
-        <div className="-mt-1 mb-4">
+        <div className="mb-4">
           <PerfilFaltanteCard
             title="Te falta completar tu perfil"
             body="Completá tu zona y tus oficios para recibir turnos."
@@ -565,7 +608,7 @@ function WorkerFeedPanel() {
         </div>
       )}
       {!loading && !sinPerfil && incompleto && (
-        <div className="-mt-1 mb-4">
+        <div className="mb-4">
           <PerfilFaltanteCard
             title="Completá tu zona y tus oficios para recibir turnos"
             body="Sin eso te mostramos todo y no te avisamos de los turnos que te sirven."
@@ -597,10 +640,10 @@ function WorkerFeedPanel() {
       {loading ? (
         <>
           <div className="space-y-5 md:hidden" aria-hidden>
-            <Skeleton className="h-[232px] w-full rounded-[var(--radius-card)]" />
-            <div className="flex gap-3">
+            <Skeleton className="h-[212px] w-full rounded-[2px]" />
+            <div className="space-y-3">
               {[0, 1, 2].map((i) => (
-                <Skeleton key={i} className="h-[170px] w-[156px] shrink-0 rounded-[var(--radius-chip)]" />
+                <Skeleton key={i} className="h-[58px] w-full rounded-[var(--radius-chip)]" />
               ))}
             </div>
           </div>
@@ -623,11 +666,13 @@ function WorkerFeedPanel() {
               {heroShift ? (
                 <div className="space-y-6">
                   <div data-tour="feed-deck" className="space-y-3">
+                    <h2 className="text-h3 font-semibold text-[color:var(--app-cielo-tinta)]">Para vos</h2>
                     <FeedHero shift={heroShift} />
                     <button
                       type="button"
                       onClick={() => openDiscover(visibleShifts)}
-                      className="flex w-full items-center gap-3 rounded-[var(--radius-card)] bg-card px-4 py-3 text-left shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99]"
+                      // Plano, con filete: el relieve de la pantalla es la comanda.
+                      className="!mt-5 flex w-full items-center gap-3 rounded-[var(--radius-btn)] bg-card px-4 py-3 text-left ring-1 ring-line transition active:scale-[0.99]"
                     >
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-chip)] bg-primary-tint text-primary-text">
                         <SparklesIcon size={20} />
@@ -664,6 +709,7 @@ function WorkerFeedPanel() {
                       <OpportunityCard
                         shift={shift}
                         distanceKm={distanceOf(shift, origin)}
+                        href={`/turno/${shift.id}`}
                         applying={decidingId === shift.id}
                         locked={tapGuard.locked}
                         applied={appliedInGrid.has(shift.id)}
@@ -679,6 +725,8 @@ function WorkerFeedPanel() {
           )}
         </>
       )}
+
+      </div>
 
       {deckShifts && (
         <DiscoverDeck

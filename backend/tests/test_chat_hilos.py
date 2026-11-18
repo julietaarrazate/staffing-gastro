@@ -10,6 +10,7 @@ leídos, marcar como leído, avisos y el WebSocket.
 """
 
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from fastapi.testclient import TestClient
@@ -23,11 +24,18 @@ from tests._turno_empezado import empezar_turno_de_la_app
 from tests.conftest import auth_headers
 from tests.test_chat import _setup_in_memory_db
 
+# El turno todavía no empezó: una fecha fija ya pasada lo dejaba «empezado y
+# terminado», y desde U080 un rechazo o una baja con el horario terminado
+# cierra el turno como «no cubierto» en vez de reabrirlo. Quince minutos
+# adelante alcanza para todo lo que se prueba acá (el camino «ausencia» lo
+# empieza a mano con `empezar_turno_de_la_app`, y se reofrece).
+_INICIO = (datetime.now(timezone.utc) + timedelta(minutes=15)).replace(tzinfo=None)
+
 SHIFT = {
     "position": "mozo",
     "quantity": 1,
-    "start_at": "2026-06-28T20:00:00",
-    "end_at": "2026-06-29T03:00:00",
+    "start_at": _INICIO.isoformat(),
+    "end_at": (_INICIO + timedelta(hours=7)).isoformat(),
     "pay_amount": "70000.00",
     "city": "Palermo",
 }
@@ -315,6 +323,7 @@ def _registrar(client: TestClient, email: str, nombre: str, role: str) -> tuple[
             "full_name": nombre,
             "role": role,
             "accepted_terms": True,
+        "birth_date": "1995-05-20",
         },
     )
     assert registered.status_code == 201

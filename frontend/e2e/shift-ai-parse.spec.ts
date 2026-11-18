@@ -105,7 +105,7 @@ test("describir el turno con texto precarga el wizard, sin publicar nada solo", 
   await expect(page.getByRole("heading", { name: "¿Dónde es?" })).toBeVisible();
   await expect(page.getByText("Calle Falsa 123, Palermo")).toBeVisible();
   await expect(page.getByText("Mozo/a").first()).toBeVisible();
-  await expect(page.getByText("ARS 45.000", { exact: false }).first()).toBeVisible();
+  await expect(page.getByText("$45.000", { exact: false }).first()).toBeVisible();
 
   let publishedBody: Record<string, unknown> | null = null;
   await page.route("**/api/v1/shifts", (route) => {
@@ -190,4 +190,53 @@ test("el botón de dictado por voz aparece junto al textarea de descripción", a
   await page
     .getByPlaceholder("Ej: necesito un mozo el sábado a la noche, se paga 45000")
     .fill("mozo el sábado");
+});
+
+// U061: el wizard salta de paso al completar con IA, y «Me falta saber…» se
+// quedaba en el paso 0, fuera de vista. Ahora se muestra en el paso donde cae.
+test("«Me falta saber…» se ve en el paso al que salta el asistente", async ({ page }) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await page.route("**/api/v1/auth/me", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: "user-2",
+        email: "demo.palermo@staffya.com",
+        full_name: "Comercio Demo",
+        role: "employer",
+        status: "activo",
+        is_active: true,
+        is_verified: true,
+      }),
+    })
+  );
+  await page.route("**/api/v1/shifts/parse-text", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        position: "mozo",
+        start_at: null,
+        end_at: null,
+        pay_amount: null,
+        urgent: false,
+        meal: false,
+        tips: false,
+        dress_code: null,
+        missing: ["el horario", "cuánto se paga"],
+      }),
+    })
+  );
+  await page.goto("/shifts/new");
+  await page.getByPlaceholder("Ej: necesito un mozo el sábado a la noche, se paga 45000").fill("necesito un mozo");
+  await page.getByRole("button", { name: "Completar" }).click();
+  await expect(page.getByRole("heading", { name: "¿Cuándo?" })).toBeVisible();
+  await expect(page.getByText("Me falta saber el horario, cuánto se paga.")).toBeVisible();
+  // Al completar a mano el horario, el aviso de este paso se apaga.
+  await page.locator('input[type="datetime-local"]').first().fill(enDias(30, "20:00"));
+  await page.locator('input[type="datetime-local"]').nth(1).fill(enDias(31, "02:00"));
+  await expect(page.getByText("Me falta saber el horario, cuánto se paga.")).toHaveCount(0);
 });

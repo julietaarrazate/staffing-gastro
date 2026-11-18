@@ -1,23 +1,9 @@
 """Puerto del repositorio de perfiles de comercio."""
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from uuid import UUID
 
 from app.modules.company.domain.entities import CompanyProfile
-
-
-@dataclass
-class CompanyEngagementStats:
-    """Conteos agregados de `company_profiles` para `employer_repeat_rate`
-    (panel de admin). Agregado en SQL sobre `events_published` (ya existente,
-    ver docs/reference/REPUTATION.md) — sin tabla nueva.
-
-    `employer_repeat_rate` = `companies_with_2plus_shifts / companies_with_1plus_shifts`.
-    """
-
-    companies_with_1plus_shifts: int
-    companies_with_2plus_shifts: int
 
 
 class CompanyProfileRepository(ABC):
@@ -69,6 +55,13 @@ class CompanyProfileRepository(ABC):
         puede hacer la única comprobación que importa."""
 
     @abstractmethod
+    async def user_ids_by_name_search(self, search: str, *, limit: int = 200) -> list[UUID]:
+        """Ids de usuario de los comercios cuyo nombre contiene `search` (sin
+        distinguir mayúsculas; `%` y `_` van literales). Lo usa el buscador de
+        "Personas" del admin: el dueño de un local suele figurar con su nombre
+        propio y no con el del local."""
+
+    @abstractmethod
     async def update_rating(self, profile_id: UUID, rating: float) -> None:
         """Actualiza el promedio de reputación calculado a partir de las reseñas."""
 
@@ -93,13 +86,9 @@ class CompanyProfileRepository(ABC):
         `PAYMENT_TOLERANCE`."""
 
     @abstractmethod
-    async def count_engagement_stats(self) -> CompanyEngagementStats:
-        """Cuenta agregados de compromiso de comercios (`employer_repeat_rate`,
-        panel de admin) — agregado en SQL, no una lista de filas."""
-
-    @abstractmethod
-    async def count_total(self) -> int:
+    async def count_total(self, *, exclude_user_emails: frozenset[str] = frozenset()) -> int:
         """Total de comercios registrados (panel de admin, distribución de
         planes de suscripción): incluye a los que todavía no tienen fila en
         `subscriptions` (implícitamente en el plan por defecto, ver
-        `SubscriptionRepository.get_or_create`)."""
+        `SubscriptionRepository.get_or_create`). Sin los comercios de esos emails
+        (cuentas de prueba e invitadas)."""

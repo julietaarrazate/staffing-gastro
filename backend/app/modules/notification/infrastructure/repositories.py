@@ -11,6 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.core.config import settings as app_settings
 from app.core.database import sessions_like
 from app.core.ws_manager import ws_manager
+from app.modules.identity.domain.value_objects import UserStatus
+from app.modules.identity.infrastructure.models import UserModel
 from app.modules.notification.domain.entities import Notification, PushSubscription
 from app.modules.notification.domain.push_policy import push_policy_for
 from app.modules.notification.domain.push_sender import PushSender, PushSendResult
@@ -255,6 +257,24 @@ class SqlAlchemyPushSubscriptionRepository(PushSubscriptionRepository):
             await self._session.delete(model)
             await self._session.commit()
 
+    async def get_by_endpoint(self, endpoint: str) -> PushSubscription | None:
+        stmt = select(PushSubscriptionModel).where(PushSubscriptionModel.endpoint == endpoint)
+        model = (await self._session.execute(stmt)).scalar_one_or_none()
+        return _push_to_entity(model) if model is not None else None
+
+    async def remove_all_for_users(self, user_ids: list[UUID]) -> int:
+        if not user_ids:
+            return 0
+        result = await self._session.execute(
+            delete(PushSubscriptionModel).where(PushSubscriptionModel.user_id.in_(user_ids))
+        )
+        await self._session.commit()
+        return result.rowcount or 0
+
+    async def list_user_ids(self) -> list[UUID]:
+        stmt = select(PushSubscriptionModel.user_id).distinct()
+        return list((await self._session.execute(stmt)).scalars().all())
+
     async def list_by_user(self, user_id: UUID) -> list[PushSubscription]:
         stmt = select(PushSubscriptionModel).where(PushSubscriptionModel.user_id == user_id)
         result = await self._session.execute(stmt)
@@ -299,6 +319,19 @@ async def _schedule_pushes(session: AsyncSession, notifications: list[Notificati
     el request ya no espera los POST al servicio de push, que pueden tardar
     hasta 10 s cada uno. Un solo aviso (`add`) o muchos (`add_many`), igual."""
     by_user = {n.user_id: n for n in notifications}
+    # Una cuenta que no está activa (suspendida, ADR-0024) no recibe push. El
+    # aviso dentro de la app se guardó igual.
+    active = (
+        await session.execute(
+            select(UserModel.id).where(
+                UserModel.id.in_(list(by_user)),
+                UserModel.status == UserStatus.ACTIVE.value,
+            )
+        )
+    ).scalars().all()
+    by_user = {user_id: n for user_id, n in by_user.items() if user_id in set(active)}
+    if not by_user:
+        return
     subscriptions = await SqlAlchemyPushSubscriptionRepository(session).list_by_users(list(by_user))
     if not subscriptions:
         return

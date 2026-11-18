@@ -78,12 +78,19 @@ class WorkerProfileRepository(ABC):
         """Actualiza el promedio de reputación calculado a partir de las reseñas."""
 
     @abstractmethod
-    async def record_completed_shift(self, profile_id: UUID, *, punctual: bool) -> None:
+    async def record_completed_shift(
+        self, profile_id: UUID, *, punctual: bool | None
+    ) -> None:
         """Registra un turno finalizado con éxito para el trabajador.
 
         Incrementa `events_completed` en 1 y recalcula `punctuality_rate` como
         promedio móvil simple sobre los eventos completados (incluye el que se
         está registrando ahora). También recalcula `badges`/`level` (ADR-0004).
+
+        `punctual=None`: el turno no tiene hora pactada contra la cual medir
+        la llegada (lo tomó ya empezado, U080). Suma como completado y la
+        puntualidad queda como estaba; si es el primer turno de la persona,
+        arranca en 1 (sin llegadas tarde registradas), no en 0.
         """
 
     @abstractmethod

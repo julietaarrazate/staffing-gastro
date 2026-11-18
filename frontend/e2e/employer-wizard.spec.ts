@@ -77,7 +77,7 @@ async function completarWizard(page: Pagina, opciones: { desdePanel?: boolean } 
   await page.getByRole("button", { name: "Continuar" }).click();
 
   // Paso 3: pago.
-  await page.getByPlaceholder("48000").fill("15000");
+  await page.getByPlaceholder("48.000").fill("15000");
   await page.getByRole("button", { name: "Continuar" }).click();
 
   // Paso 4: ubicación (obligatoria: sin perfil de local, se elige la zona). Los
@@ -121,6 +121,53 @@ test("un employer publica un turno con el wizard mínimo", async ({ page }) => {
   // "Ver mi turno" navega a los candidatos del turno recién publicado.
   await page.getByRole("button", { name: "Ver mi turno" }).click();
   await expect(page).toHaveURL("/shifts/shift-new-1/candidates");
+});
+
+/**
+ * Pago con coma (grave de la prueba en la app, 2026-11-14): el campo era
+ * `type="number"`, el navegador descartaba la coma y «15000,50» se publicaba
+ * como $1.500.050. Ahora el monto es en pesos enteros: la coma es decimal, se
+ * redondea al peso y al salir del campo se ve formateado.
+ */
+test("el pago con coma se redondea al peso, no se multiplica por 100", async ({ page }) => {
+  await prepararPublicacion(page);
+  await page.goto("/shifts/new");
+  await page.getByRole("button", { name: "Mozo/a" }).click();
+  await page.locator('input[type="datetime-local"]').first().fill(enDias(30, "20:00"));
+  await page.locator('input[type="datetime-local"]').nth(1).fill(enDias(30, "23:00"));
+  await page.getByRole("button", { name: "Continuar" }).click();
+
+  const pago = page.getByPlaceholder("48.000");
+  await expect(pago).toHaveAttribute("type", "text");
+  await expect(pago).toHaveAttribute("inputmode", "numeric");
+  await pago.pressSequentially("15000,50");
+  await expect(pago).toHaveValue("15000,50");
+  await pago.blur();
+  await expect(pago).toHaveValue("15.001");
+  await expect(page.getByText(/≈ \$5\.000 por hora/)).toBeVisible();
+
+  // Un punto que no separa miles no se adivina: no deja seguir.
+  await pago.fill("15.00");
+  await pago.blur();
+  await expect(pago).toHaveValue("15.00");
+  await expect(pago).toHaveAttribute("aria-invalid", "true");
+  await expect(page.getByRole("button", { name: "Continuar" })).toBeDisabled();
+
+  await pago.fill("15.000,50");
+  await pago.blur();
+  await expect(pago).toHaveValue("15.001");
+  await page.getByRole("button", { name: "Continuar" }).click();
+  await expect(page.getByText(/\$15\.001/).first()).toBeVisible();
+  await page.locator("select").nth(1).selectOption("Palermo");
+
+  const publishRequest = page.waitForRequest(
+    (req) =>
+      req.url().includes("/api/v1/shifts") &&
+      !req.url().includes("/publish") &&
+      req.method() === "POST"
+  );
+  await page.getByRole("button", { name: "Publicar turno" }).click();
+  expect((await publishRequest).postDataJSON().pay_amount).toBe("15001");
 });
 
 /** Chromium sin ventana trae `Notification.permission` en "denied": se fuerza "default". */

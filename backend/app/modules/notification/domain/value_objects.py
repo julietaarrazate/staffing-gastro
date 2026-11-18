@@ -12,6 +12,9 @@ class NotificationType(str, Enum):
     SHIFT_REJECTED = "shift_rejected"
     SHIFT_CHECKED_OUT = "shift_checked_out"
     SHIFT_PAID = "shift_paid"
+    # U018: el comercio cerró el turno; al trabajador se le avisa que ya puede
+    # calificar al comercio.
+    SHIFT_FINISHED = "shift_finished"
     SHIFT_REOPENED = "shift_reopened"
     CHAT_MESSAGE = "chat_message"
     REVIEW_RECEIVED = "review_received"
@@ -25,6 +28,9 @@ class NotificationType(str, Enum):
     # pendiente. No es cancelación tardía: no le cuesta nada al comercio.
     SHIFT_CANCELLED = "shift_cancelled"
     APPLIED_SHIFT_CANCELLED = "applied_shift_cancelled"
+    # U123: al confirmar un turno, la app retira las postulaciones pendientes
+    # del trabajador a turnos del mismo horario. Un solo aviso, con cuáles.
+    APPLICATIONS_WITHDRAWN = "applications_withdrawn"
     # ADR-0015: el sistema resolvió solo un turno cuyo período de gracia se
     # agotó sin llegar a CONFIRMADO. Distinto de SHIFT_NO_SHOW/CANCELLED_LATE
     # a propósito: ninguno de esos dos es la causa, no hay culpa que avisar.
@@ -72,6 +78,7 @@ _DEEP_LINKS: dict[NotificationType, str] = {
     # Trabajador
     NotificationType.SHIFT_ASSIGNED: "/my-shifts",
     NotificationType.SHIFT_PAID: "/my-shifts",
+    NotificationType.SHIFT_FINISHED: "/my-shifts",
     NotificationType.SHIFT_NO_SHOW: "/profile",
     NotificationType.SHIFT_CANCELLED_LATE: "/my-shifts",
     # El turno cancelado sigue en «Asignados», con su sello de cancelado.
@@ -85,6 +92,9 @@ _DEEP_LINKS: dict[NotificationType, str] = {
     # La postulación a un turno cancelado ya no figura en ninguna lista suya:
     # lo útil es el Inicio, con los otros turnos a los que puede postularse.
     NotificationType.APPLIED_SHIFT_CANCELLED: "/feed",
+    # Se retiraron postulaciones por confirmar otro turno: «Mis turnos», donde
+    # está el turno confirmado y lo que sigue postulado.
+    NotificationType.APPLICATIONS_WITHDRAWN: "/my-shifts",
     # Comercio
     NotificationType.NEW_APPLICANT: "/shifts",
     NotificationType.SHIFT_CONFIRMED: "/shifts",

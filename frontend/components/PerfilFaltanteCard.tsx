@@ -28,7 +28,7 @@ export default function PerfilFaltanteCard({
       {body && <p className="mt-1 text-sm leading-relaxed text-ink/60">{body}</p>}
       <Link
         href={href}
-        className="mt-3 flex min-h-[44px] items-center justify-center rounded-[var(--radius-btn)] bg-primary px-4 text-sm font-bold text-night shadow-[var(--shadow-primary-sm)] transition active:scale-95"
+        className="mt-3 flex min-h-[44px] items-center justify-center boton-relieve bg-primary px-4 text-sm font-bold text-night"
       >
         {actionLabel}
       </Link>

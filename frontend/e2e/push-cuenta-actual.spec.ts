@@ -8,6 +8,11 @@ import { blockExternalHosts, GUIDED_TOUR_KEYS, mockEmptyNotifications, skipSplas
  * cerrar sesión el dispositivo seguía recibiendo sus avisos, y la cuenta
  * siguiente veía el interruptor "Activadas" sin recibir nada.
  *
+ * La baja (`POST /push/release`) no lleva el token de la sesión: se prueba
+ * con la clave de la suscripción, así que sirve con el token vencido, y si
+ * no llega queda pendiente y se reintenta (`/privacidad`: el identificador
+ * se borra al cerrar sesión en ese dispositivo).
+ *
  * El navegador de la prueba ya había activado las notificaciones: tiene el
  * service worker registrado, el permiso concedido y una suscripción. Headless
  * no tiene servicio push, así que la suscripción y el permiso se simulan; el
@@ -45,9 +50,27 @@ const CANDADO_ALTA = {
 };
 
 interface PushCall {
-  method: string;
+  /** "POST /push/subscribe" (el registro) o "POST /push/release" (la baja). */
+  request: string;
   authorization: string | undefined;
   body: unknown;
+}
+
+/** La baja del dispositivo para una cuenta, como la manda este navegador. */
+function bajaDe(email: Email): PushCall {
+  return {
+    request: "POST /push/release",
+    authorization: undefined,
+    body: { endpoint: ENDPOINT, auth: SUBSCRIPTION.keys.auth, user_id: CUENTAS[email].id },
+  };
+}
+
+function altaDe(email: Email): PushCall {
+  return {
+    request: "POST /push/subscribe",
+    authorization: `Bearer ${CUENTAS[email].token}`,
+    body: SUBSCRIPTION,
+  };
 }
 
 function json(body: unknown, status = 200) {
@@ -69,10 +92,22 @@ function usuario(email: Email) {
 /** `candado`: el backend de una admin que todavía no activó la verificación
  * en dos pasos, que le contesta ese 403 a todo lo que pida con su sesión
  * menos el ingreso y el alta. `bajaRetenida`: la baja no contesta hasta que
- * esa promesa se resuelva (una red trabada). */
+ * esa promesa se resuelva (una red trabada). `red.caida`: mientras sea
+ * `true`, la baja no llega al servidor. `sesion.muerta`: el servidor ya no
+ * reconoce ninguna sesión (venció o la revocaron). */
 async function mockBackend(
   page: Page,
-  { candado = false, bajaRetenida }: { candado?: boolean; bajaRetenida?: Promise<void> } = {}
+  {
+    candado = false,
+    bajaRetenida,
+    red = { caida: false },
+    sesion = { muerta: false },
+  }: {
+    candado?: boolean;
+    bajaRetenida?: Promise<void>;
+    red?: { caida: boolean };
+    sesion?: { muerta: boolean };
+  } = {}
 ): Promise<PushCall[]> {
   const pushCalls: PushCall[] = [];
 
@@ -108,26 +143,37 @@ async function mockBackend(
     const email = (Object.keys(CUENTAS) as Email[]).find(
       (e) => authorization === `Bearer ${CUENTAS[e].token}`
     );
-    return email
+    return email && !sesion.muerta
       ? route.fulfill(json(usuario(email)))
       : route.fulfill(json({ detail: "No autorizado" }, 401));
   });
+  await page.route("**/api/v1/auth/refresh", (route) =>
+    route.fulfill(json({ detail: "No autorizado" }, 401))
+  );
   await page.route("**/api/v1/auth/logout", (route) => route.fulfill({ status: 204 }));
 
   await page.route("**/api/v1/push/subscribe", async (route) => {
     const request = route.request();
     pushCalls.push({
-      method: request.method(),
+      request: `${request.method()} /push/subscribe`,
       authorization: (await request.headerValue("authorization")) ?? undefined,
       body: request.postDataJSON(),
     });
-    if (candado) {
-      // La baja contesta con la demora de un backend de verdad: cuando el
-      // cierre de sesión ya llevó a la landing.
-      if (request.method() === "DELETE") await new Promise((resolve) => setTimeout(resolve, 400));
-      return route.fulfill(json(CANDADO_ALTA, 403));
-    }
-    if (request.method() !== "DELETE") return route.fulfill(json({ ok: true }, 201));
+    if (candado) return route.fulfill(json(CANDADO_ALTA, 403));
+    return route.fulfill(json({ ok: true }, 201));
+  });
+  // La baja es pública: no lleva sesión, así que el candado no la alcanza.
+  await page.route("**/api/v1/push/release", async (route) => {
+    const request = route.request();
+    pushCalls.push({
+      request: `${request.method()} /push/release`,
+      authorization: (await request.headerValue("authorization")) ?? undefined,
+      body: request.postDataJSON(),
+    });
+    if (red.caida) return route.abort("internetdisconnected");
+    // Contesta con la demora de un backend de verdad: cuando el cierre de
+    // sesión ya llevó a la landing.
+    if (candado) await new Promise((resolve) => setTimeout(resolve, 400));
     await bajaRetenida;
     return route.fulfill({ status: 204 });
   });
@@ -155,6 +201,11 @@ async function navegadorConPushActivado(page: Page) {
     },
     { subscription: SUBSCRIPTION, tourKeys: GUIDED_TOUR_KEYS }
   );
+}
+
+/** Lo que quedó anotado en `localStorage` como baja pendiente (`null` = nada). */
+function bajasPendientes(page: Page) {
+  return page.evaluate(() => window.localStorage.getItem("staffya_push_release_pending"));
 }
 
 async function registrarServiceWorker(page: Page) {
@@ -185,11 +236,7 @@ test("el push pasa a la cuenta que entra y se da de baja al cerrar sesión", asy
 
   // Entra la primera cuenta: el dispositivo queda a su nombre, sin tocar nada.
   await ingresar(page, "primera@example.com");
-  const altaDeLaPrimera = {
-    method: "POST",
-    authorization: "Bearer token-de-la-primera",
-    body: SUBSCRIPTION,
-  };
+  const altaDeLaPrimera = altaDe("primera@example.com");
   await expect.poll(() => pushCalls).toEqual([altaDeLaPrimera]);
 
   // Abrir la app con la sesión guardada lo vuelve a registrar (idempotente).
@@ -197,29 +244,114 @@ test("el push pasa a la cuenta que entra y se da de baja al cerrar sesión", asy
   await expect(page.getByRole("button", { name: /Notificaciones push.*Activadas/ })).toBeVisible();
   await expect.poll(() => pushCalls).toEqual([altaDeLaPrimera, altaDeLaPrimera]);
 
-  // Cierra sesión: el dispositivo se da de baja en el servidor con su token,
-  // y la suscripción del navegador queda.
+  // Cierra sesión: el dispositivo se da de baja en el servidor, sin el token
+  // (con la clave de la suscripción y la cuenta que sale), y la suscripción
+  // del navegador queda.
   await page.getByRole("button", { name: "Cerrar sesión" }).click();
   await expect(page).toHaveURL(/\/$/);
-  await expect
-    .poll(() => pushCalls.at(-1))
-    .toEqual({
-      method: "DELETE",
-      authorization: "Bearer token-de-la-primera",
-      body: { endpoint: ENDPOINT },
-    });
+  await expect.poll(() => pushCalls.at(-1)).toEqual(bajaDe("primera@example.com"));
   expect(pushCalls).toHaveLength(3);
+  // Llegó: no queda nada pendiente.
+  await expect.poll(() => bajasPendientes(page)).toBeNull();
 
   // Entra otra cuenta en el mismo navegador: el dispositivo pasa a ser suyo.
   await ingresar(page, "segunda@example.com");
-  await expect
-    .poll(() => pushCalls.at(-1))
-    .toEqual({
-      method: "POST",
-      authorization: "Bearer token-de-la-segunda",
-      body: SUBSCRIPTION,
-    });
+  await expect.poll(() => pushCalls.at(-1)).toEqual(altaDe("segunda@example.com"));
   expect(pushCalls).toHaveLength(4);
+});
+
+test("cerrar sesión sin conexión: la baja queda pendiente y sale sola al volver a abrir la app", async ({
+  page,
+}) => {
+  await blockExternalHosts(page);
+  await skipSplash(page);
+  const red = { caida: false };
+  const pushCalls = await mockBackend(page, { red });
+  await navegadorConPushActivado(page);
+  await registrarServiceWorker(page);
+  await ingresar(page, "primera@example.com");
+  await expect.poll(() => pushCalls).toEqual([altaDe("primera@example.com")]);
+
+  // Sale sin red: la baja no llega y el cierre sigue igual.
+  red.caida = true;
+  await page.getByRole("link", { name: "Perfil", exact: true }).click();
+  await page.getByRole("link", { name: "Ajustes" }).click();
+  await page.getByRole("button", { name: "Cerrar sesión" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect
+    .poll(() => pushCalls)
+    .toEqual([altaDe("primera@example.com"), bajaDe("primera@example.com")]);
+  // Queda anotada sólo la cuenta: ni el endpoint ni la clave se guardan.
+  await expect.poll(() => bajasPendientes(page)).toBe(JSON.stringify(["user-primera"]));
+
+  // Vuelve la red y se abre la app de nuevo (sin sesión): la baja sale sola.
+  red.caida = false;
+  await page.goto("/");
+  await expect
+    .poll(() => pushCalls)
+    .toEqual([
+      altaDe("primera@example.com"),
+      bajaDe("primera@example.com"),
+      bajaDe("primera@example.com"),
+    ]);
+  await expect.poll(() => bajasPendientes(page)).toBeNull();
+});
+
+test("la misma cuenta vuelve a entrar con su baja pendiente: se descarta y el dispositivo queda suyo", async ({
+  page,
+}) => {
+  await blockExternalHosts(page);
+  await skipSplash(page);
+  const red = { caida: true };
+  const pushCalls = await mockBackend(page, { red });
+  await navegadorConPushActivado(page);
+  await registrarServiceWorker(page);
+  await ingresar(page, "primera@example.com");
+  await page.getByRole("link", { name: "Perfil", exact: true }).click();
+  await page.getByRole("link", { name: "Ajustes" }).click();
+  await page.getByRole("button", { name: "Cerrar sesión" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect.poll(() => bajasPendientes(page)).toBe(JSON.stringify(["user-primera"]));
+  const antes = pushCalls.length;
+
+  // Vuelve la red y entra la misma cuenta, sin recargar: si la baja pendiente
+  // saliera ahora, le borraría el registro que acaba de hacer.
+  red.caida = false;
+  await page.getByRole("link", { name: "Ingresar" }).first().click();
+  await page.getByPlaceholder("Email").fill("primera@example.com");
+  await page.getByPlaceholder("Contraseña").fill("una-clave-cualquiera");
+  await page.getByRole("button", { name: "Ingresar" }).click();
+  await expect(page).toHaveURL(/\/feed$/);
+
+  await expect.poll(() => pushCalls.slice(antes)).toEqual([altaDe("primera@example.com")]);
+  await expect.poll(() => bajasPendientes(page)).toBeNull();
+  // Ni al volver la conexión ni al volver la pestaña sale una baja.
+  await page.evaluate(() => window.dispatchEvent(new Event("online")));
+  await page.waitForTimeout(300);
+  expect(pushCalls.slice(antes)).toEqual([altaDe("primera@example.com")]);
+});
+
+test("la sesión que vence sola también da de baja el dispositivo", async ({ page }) => {
+  await blockExternalHosts(page);
+  await skipSplash(page);
+  const sesion = { muerta: false };
+  const pushCalls = await mockBackend(page, { sesion });
+  await navegadorConPushActivado(page);
+  await registrarServiceWorker(page);
+  await ingresar(page, "primera@example.com");
+  await expect.poll(() => pushCalls).toEqual([altaDe("primera@example.com")]);
+
+  // Pasaron los días (o el servidor revocó la sesión): al abrir la app el
+  // servidor ya no la reconoce. No hay token que sirva para la baja, y no
+  // hace falta.
+  sesion.muerta = true;
+  await page.goto("/feed");
+  await expect(page).toHaveURL(/\/login\?motivo=vencida/);
+
+  await expect.poll(() => pushCalls.at(-1)).toEqual(bajaDe("primera@example.com"));
+  await expect.poll(() => bajasPendientes(page)).toBeNull();
+  // Sólo bajas de esa cuenta (si la recarga cortó la primera, se reintentó).
+  expect(pushCalls.slice(1).every((call) => call.request === "POST /push/release")).toBe(true);
 });
 
 test("quien sale y vuelve a entrar con la baja todavía en camino no se queda sin avisos", async ({
@@ -232,10 +364,10 @@ test("quien sale y vuelve a entrar con la baja todavía en camino no se queda si
   const pushCalls = await mockBackend(page, { bajaRetenida });
   await navegadorConPushActivado(page);
   await registrarServiceWorker(page);
-  const pedidos = () => pushCalls.map((call) => `${call.method} ${call.authorization}`);
+  const pedidos = () => pushCalls.map((call) => call.request);
 
   await ingresar(page, "primera@example.com");
-  await expect.poll(pedidos).toEqual(["POST Bearer token-de-la-primera"]);
+  await expect.poll(pedidos).toEqual(["POST /push/subscribe"]);
 
   // Sale: la baja queda en camino, sin contestar. De acá en más no se recarga
   // la página, como en la app instalada.
@@ -244,9 +376,7 @@ test("quien sale y vuelve a entrar con la baja todavía en camino no se queda si
   await page.evaluate(() => ((window as unknown as { sinRecargar: boolean }).sinRecargar = true));
   await page.getByRole("button", { name: "Cerrar sesión" }).click();
   await expect(page).toHaveURL(/\/$/);
-  await expect
-    .poll(pedidos)
-    .toEqual(["POST Bearer token-de-la-primera", "DELETE Bearer token-de-la-primera"]);
+  await expect.poll(pedidos).toEqual(["POST /push/subscribe", "POST /push/release"]);
 
   // Vuelve a entrar la misma cuenta. El registro no puede llegar antes que la
   // baja: el servidor borraría la fila recién creada y Ajustes diría
@@ -266,11 +396,8 @@ test("quien sale y vuelve a entrar con la baja todavía en camino no se queda si
   soltarLaBaja();
   await expect
     .poll(pedidos)
-    .toEqual([
-      "POST Bearer token-de-la-primera",
-      "DELETE Bearer token-de-la-primera",
-      "POST Bearer token-de-la-primera",
-    ]);
+    .toEqual(["POST /push/subscribe", "POST /push/release", "POST /push/subscribe"]);
+  expect(pushCalls.at(-1)).toEqual(altaDe("primera@example.com"));
 });
 
 test("en «Ver como» el dispositivo sigue siendo de la admin y Ajustes no deja cambiarlo", async ({
@@ -290,11 +417,7 @@ test("en «Ver como» el dispositivo sigue siendo de la admin y Ajustes no deja 
 
   // La admin entra: el dispositivo queda a su nombre.
   await ingresar(page, "admin@example.com", /\/admin/);
-  const altaDeLaAdmin = {
-    method: "POST",
-    authorization: "Bearer token-de-la-admin",
-    body: SUBSCRIPTION,
-  };
+  const altaDeLaAdmin = altaDe("admin@example.com");
   await expect.poll(() => pushCalls).toEqual([altaDeLaAdmin]);
 
   // «Ver como» y, ya como esa persona, hasta Ajustes (sin recargar: la
@@ -352,28 +475,25 @@ test.describe("admin con el alta de la verificación en dos pasos pendiente", ()
     // salió una vez, el backend lo rechazó y no se repite.
     await ingresar(page, "admin@example.com", /\/admin\/seguridad$/);
     await expect(page.getByRole("button", { name: "Activar la verificación" })).toBeVisible();
-    await expect
-      .poll(() => pushCalls)
-      .toEqual([{ method: "POST", authorization: "Bearer token-de-la-admin", body: SUBSCRIPTION }]);
+    await expect.poll(() => pushCalls).toEqual([altaDe("admin@example.com")]);
 
-    // Sale sin activar nada: la respuesta de la baja (otro 403 del candado)
-    // llega con la sesión ya cerrada y no la devuelve al alta.
+    // Sale sin activar nada: la baja no lleva la sesión (el candado no la
+    // alcanza), contesta con la sesión ya cerrada y no la devuelve al alta.
     const pantallas: string[] = [];
     page.on("framenavigated", (frame) => {
       if (frame === page.mainFrame()) pantallas.push(new URL(frame.url()).pathname);
     });
-    const baja = page.waitForResponse(
-      (response) =>
-        response.url().endsWith("/api/v1/push/subscribe") && response.request().method() === "DELETE"
+    const baja = page.waitForResponse((response) =>
+      response.url().endsWith("/api/v1/push/release")
     );
     await page.getByRole("button", { name: /^Salir/ }).click();
     await expect(page).toHaveURL(/\/$/);
     await expect(page.getByRole("link", { name: "Ingresar" }).first()).toBeVisible();
-    expect((await baja).status()).toBe(403);
+    expect((await baja).status()).toBe(204);
     await page.waitForTimeout(500);
     await expect(page).toHaveURL(/\/$/);
     expect(pantallas).not.toContain("/admin/seguridad");
     expect(cierres).toEqual(["POST"]);
-    expect(pushCalls).toHaveLength(2);
+    expect(pushCalls).toEqual([altaDe("admin@example.com"), bajaDe("admin@example.com")]);
   });
 });

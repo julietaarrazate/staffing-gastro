@@ -4,7 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.modules.identity.domain.value_objects import UserRole, UserStatus
 
@@ -73,6 +73,10 @@ class AdminShiftRowResponse(BaseModel):
     start_at: datetime
     status: str
     pay_amount: Decimal
+    # Lo que se cobra (`Shift.amount_due`): en un turno reofrecido con la
+    # llegada marcada, lo que restaba desde la llegada (U080).
+    amount_due: Decimal
+    absent: bool = False
 
 
 class AdminTicketRowResponse(BaseModel):
@@ -82,6 +86,36 @@ class AdminTicketRowResponse(BaseModel):
     subject: str
     status: str
     created_at: datetime | None = None
+
+
+class AdminCommitmentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    at: datetime
+    plan_code: str
+    plan_name: str
+    price_ars: Decimal
+
+
+class AdminSubscriptionSummaryResponse(BaseModel):
+    """Bloque «Plan» de la ficha de un comercio."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    plan_code: str
+    plan_name: str
+    chosen_plan_code: str | None = None
+    chosen_plan_name: str | None = None
+    chosen_plan_at: datetime | None = None
+    commitment: AdminCommitmentResponse | None = None
+
+
+class PaymentCommitmentRequest(BaseModel):
+    """`PUT /admin/users/{id}/payment-commitment`: precio mensual acordado,
+    en pesos enteros."""
+
+    plan_code: str = Field(min_length=1, max_length=40)
+    price_ars: int = Field(gt=0, le=100_000_000)
 
 
 class AdminUserDetailResponse(BaseModel):
@@ -94,6 +128,7 @@ class AdminUserDetailResponse(BaseModel):
     company: AdminCompanySummaryResponse | None = None
     recent_shifts: list[AdminShiftRowResponse] = []
     tickets: list[AdminTicketRowResponse] = []
+    subscription: AdminSubscriptionSummaryResponse | None = None
 
 
 class ImpersonateResponse(BaseModel):
@@ -146,8 +181,8 @@ class PlatformStatsResponse(BaseModel):
     worker_completion_repeat_sample_size: int
     worker_completion_repeat_rate_pct: float | None
 
-    employer_repeat_sample_size: int
-    employer_repeat_rate_pct: float | None
+    employer_return_30d_sample_size: int
+    employer_return_30d_rate_pct: float | None
 
 
 class SubscriptionStatsResponse(BaseModel):
@@ -159,6 +194,9 @@ class SubscriptionStatsResponse(BaseModel):
     total_companies: int
     companies_by_plan: dict[str, int]
     companies_at_plan_limit: int
+    companies_with_chosen_plan: dict[str, int] = {}
+    committed_companies: int = 0
+    committed_mrr_ars: Decimal = Decimal("0")
     billing_enabled: bool
 
 
@@ -179,6 +217,7 @@ class LiveShiftResponse(BaseModel):
     published_at: datetime
     minutes_open: int
     applications: int
+    no_show_at: datetime | None = None
 
 
 class LiveShiftsResponse(BaseModel):
@@ -190,6 +229,9 @@ class LiveShiftsResponse(BaseModel):
     total: int
     urgent: int
     escalated: int
+    no_shows: int = 0
+    shown_live: int = 0
+    limit: int = 0
     shifts: list[LiveShiftResponse]
 
 
@@ -213,6 +255,13 @@ class PeriodSummaryResponse(BaseModel):
     covered_under_10_min_pct: float | None = None
     avg_minutes_to_cover: float | None = None
     applications: int
+    median_minutes_to_cover: float | None = None
+    short_notice_covered: int = 0
+    short_notice_under_10_min_pct: float | None = None
+    fulfilled: int = 0
+    fulfilled_pct: float | None = None
+    active_companies: int = 0
+    companies_with_covered: int = 0
 
 
 class PeriodMetricsResponse(BaseModel):

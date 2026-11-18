@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
+import Link from "next/link";
+import { reportCompanyHref } from "@/lib/support-reference";
 import { CompanyProfile } from "@/lib/types";
 import { cldThumb } from "@/lib/cloudinary";
 import { Button, ErrorBanner, Skeleton } from "@/components/ui";
@@ -13,6 +15,7 @@ import RateMeter from "@/components/RateMeter";
 import { hasPaymentRate, hasRating } from "@/lib/reputation";
 import MiniMap from "@/components/MiniMap";
 import { MapPinIcon, RouteIcon } from "@/components/icons";
+import { plural } from "@/lib/format";
 
 function ProfilePageSkeleton() {
   return (
@@ -42,7 +45,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 export default function PublicCompanyProfilePage() {
-  const { token } = useRequireAuth();
+  const { token, user } = useRequireAuth();
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const [profile, setProfile] = useState<CompanyProfile | null>(null);
@@ -84,6 +87,7 @@ export default function PublicCompanyProfilePage() {
   if (!profile) return null;
 
   const hasCoords = profile.latitude != null && profile.longitude != null;
+  const hasImage = Boolean(profile.cover_photo_url || profile.logo_url);
 
   return (
     <div className="app-container px-4 py-8">
@@ -98,9 +102,11 @@ export default function PublicCompanyProfilePage() {
       <div
         className={`overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line ${hasCoords ? "lg:col-span-2" : ""}`}
       >
-        <div className="relative h-56 w-full bg-gradient-to-br from-primary to-primary-strong">
+        <div
+          className={`relative w-full bg-gradient-to-br from-primary to-primary-strong ${hasImage ? "h-56" : "flex min-h-56 flex-col justify-end"}`}
+        >
           {/* Foto del local primero; el logo estirado queda de respaldo. */}
-          {profile.cover_photo_url || profile.logo_url ? (
+          {hasImage ? (
             <img
               src={cldThumb(profile.cover_photo_url || profile.logo_url, 800)}
               alt={profile.name}
@@ -109,11 +115,17 @@ export default function PublicCompanyProfilePage() {
               className="h-full w-full object-cover"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-6xl font-bold text-night/85">
+            // Sin foto: la inicial y el nombre juntos abajo, en el flujo (no encima),
+            // así un nombre de varios renglones no la tapa y la tarjeta crece.
+            <div className="flex w-full items-center justify-center pt-5 text-5xl font-bold text-night/85">
               {profile.name.charAt(0).toUpperCase()}
             </div>
           )}
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-5 pb-4 pt-10">
+          {/* Letra blanca sobre el velo negro (no sobre la marca): `on-brand` es tinta en
+              claro y sobre el ámbar sin velo no alcanza en oscuro; mismo criterio que ShiftCard. */}
+          <div
+            className={`inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-5 pb-4 pt-10 ${hasImage ? "absolute" : ""}`}
+          >
             <h1 className="font-display text-h1 font-semibold text-white drop-shadow-sm">{profile.name}</h1>
             {profile.city && (
               <p className="mt-0.5 inline-flex items-center gap-1 text-sm text-white/90">
@@ -129,7 +141,7 @@ export default function PublicCompanyProfilePage() {
             {profile.events_published > 0 && (
               <span className="text-sm text-ink/40">
                 {hasRating(profile.rating) ? "· " : ""}
-                {profile.events_published} turnos publicados
+                {plural(profile.events_published, "turno publicado", "turnos publicados")}
               </span>
             )}
           </div>
@@ -156,12 +168,23 @@ export default function PublicCompanyProfilePage() {
 
           <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
             {profile.capacity != null && (
-              <Metric label="Capacidad" value={`${profile.capacity} personas`} />
+              <Metric label="Capacidad" value={plural(profile.capacity, "persona", "personas")} />
             )}
             {profile.opening_hours && <Metric label="Horario" value={profile.opening_hours} />}
             {profile.address && <Metric label="Dirección" value={profile.address} />}
           </div>
 
+          {/* U110: discreto, sin acento (el ámbar de la pantalla es otro). */}
+          {user?.role === "worker" && (
+            <p className="mt-5 text-center">
+              <Link
+                href={reportCompanyHref(profile.id)}
+                className="text-sm font-semibold text-ink/50 underline-offset-2 hover:text-ink hover:underline"
+              >
+                Reportar un problema
+              </Link>
+            </p>
+          )}
         </div>
       </div>
 

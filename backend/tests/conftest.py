@@ -49,6 +49,7 @@ from app.modules.application.infrastructure import models as application_models 
 from app.modules.assistant.infrastructure import models as assistant_models  # noqa: F401
 from app.modules.chat.infrastructure import models as chat_models  # noqa: F401
 from app.modules.company.infrastructure import models as company_models  # noqa: F401
+from app.modules.encuesta.infrastructure import models as encuesta_models  # noqa: F401
 from app.modules.favorite.infrastructure import models as favorite_models  # noqa: F401
 from app.modules.identity.infrastructure import models as identity_models  # noqa: F401
 from app.modules.lead.infrastructure import models as lead_models  # noqa: F401
@@ -125,6 +126,8 @@ async def client(
 # (`from tests.conftest import ...`) para evitar duplicar estos patrones.
 
 DEFAULT_PASSWORD = "supersecreta123"
+# El alta pública pide la fecha de nacimiento de un mayor de 18 (U101).
+ADULT_BIRTH_DATE = "1995-05-20"
 
 
 async def register_user(
@@ -143,6 +146,7 @@ async def register_user(
         "full_name": full_name,
         "role": role,
         "accepted_terms": True,
+        "birth_date": ADULT_BIRTH_DATE,
     }
     payload.update(overrides)
     return await client.post("/api/v1/auth/register", json=payload)

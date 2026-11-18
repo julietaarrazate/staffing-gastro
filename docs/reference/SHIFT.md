@@ -33,9 +33,11 @@ EN_CAMINO → CHECK_IN → TRABAJANDO → CHECK_OUT → FINALIZADO → PAGADO
                          │              └── (cancelación del trabajador,      │
                          │                   ADR-0004) ──────┐                │
                          └──── (rechazo del trabajador) ─────┴────────────────┘
-CANCELADO: alcanzable desde cualquier estado no terminal (comercio). Si el
-trabajador ya estaba CONFIRMADO o más adelante, es cancelación tardía
-(ADR-0007): notifica al trabajador y le cuesta reputación al comercio.
+CANCELADO: alcanzable desde cualquier estado no terminal (comercio), salvo
+CHECK_OUT: con la salida marcada el turno ya se trabajó, se finaliza y se
+paga (U081, ADR-0007 act. 2026-11-18). Si el trabajador ya estaba CONFIRMADO
+o más adelante, es cancelación tardía (ADR-0007): notifica al trabajador y
+le cuesta reputación al comercio.
 ```
 
 - **BORRADOR:** creado por el comercio; editable; no visible.
@@ -91,7 +93,12 @@ transiciones). **Editables:** `borrador`, `publicado`. **Abiertos (feed):**
 ## Reglas de negocio
 
 - **Horario válido:** `start_at < end_at`.
-- **Visibilidad:** un turno aparece en el feed **sólo** en estados abiertos.
+- **Visibilidad:** un turno aparece en el feed **sólo** en estados abiertos
+  y con la hora de inicio por delante. Excepción: el **turno reofrecido**
+  (U080, se reabrió ya empezado) se ofrece mientras le queden 2 horas de
+  horario (`offered_until`), y se
+  paga lo que resta desde la llegada ([ADR-0015](../adr/ADR-0015-turno-no-cubierto.md),
+  actualización 2026-11-18).
 - **Propiedad:** las acciones del lado comercio (publicar, editar, cancelar,
   asignar, finalizar, pagar) sólo las hace el **comercio dueño**; ajeno = 404.
 - **Acciones del trabajador** (confirmar, rechazar, cancelar, salir,

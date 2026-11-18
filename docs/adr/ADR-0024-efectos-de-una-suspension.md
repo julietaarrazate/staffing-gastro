@@ -50,6 +50,9 @@ cuenta que no puede actuar es el peor caso: nadie lo cubre y nadie se entera.
    a «Buscando personal» y los demás postulantes vuelven a estar disponibles.
    Por simetría con el punto 2, **no se le suma una cancelación** a la
    reputación del trabajador: la medida es la suspensión, no la cancelación.
+   Tampoco queda marcado en la lista de postulantes: su postulación vuelve a
+   `pendiente`, no a `desasignada`
+   ([ADR-0026](./ADR-0026-postulacion-desasignada.md), punto 7).
 6. **No se lo puede asignar**: `assign_worker` lo rechaza antes de tocar a los
    demás postulantes, y la lista de postulantes no lo muestra (el mismo
    criterio que ya usaba «Recomendados»).
@@ -69,6 +72,10 @@ cuenta que no puede actuar es el peor caso: nadie lo cubre y nadie se entera.
    seguía activa y alguien pudo asignar un turno. Son idempotentes.
 10. **Reactivar** devuelve la cuenta a como estaba: lo oculto vuelve a verse si
    sigue vigente; lo cancelado o reabierto no se deshace.
+
+11. **No se le puede escribir por chat a una cuenta suspendida.** Un mensaje
+    nuevo se rechaza como un chat ajeno (404, sin decir «suspendida»); leer lo
+    ya escrito sigue permitido.
 
 ## Consecuencias
 
@@ -91,3 +98,18 @@ cuenta que no puede actuar es el peor caso: nadie lo cubre y nadie se entera.
   quizás vuelve.
 - **Mostrar el motivo de la suspensión al ingresar:** lo escribe la admin
   para su propio registro y puede incluir datos de terceros.
+
+## Actualización 2026-11-18 (segunda mirada)
+
+Seis arreglos de una auditoría de esta misma decisión; ninguno cambia lo decidido arriba.
+
+1. **Reabrir a medias:** si falla la cola de reabrir un turno (restaurar rechazados, soltar la postulación), se registra y no impide el aviso al comercio; `apply_account_suspension` repasa las postulaciones aceptadas de un turno ya abierto y sin esa persona y repite la cola, así que repetir la suspensión ya no deja rechazados para siempre.
+2. **`assign_worker`:** primero valida que el turno admita la asignación (`Shift.admits_assignment`) y recién después mira la cuenta: ya no sirve para saber si alguien está suspendido.
+3. **Chat:** no se le puede escribir a una cuenta suspendida (11 más arriba); se responde como un chat ajeno.
+4. **Avisos:** al suspender se cortan los WebSockets de avisos de esa cuenta (puerto `LiveConnectionCloser` del admin) y no se le manda push; el aviso in-app se sigue guardando.
+5. **«Mis postulaciones»:** las del turno de un comercio suspendido vienen con `shift: null` (salvo el turno asignado a la misma persona); el estado de la postulación no cambia.
+6. **Asistente de IA:** `find_applicant_by_name` excluye cuentas suspendidas, como la lista de postulantes.
+
+## Actualización 2026-11-18 (dispositivos)
+
+Al suspender una cuenta se borran todos sus dispositivos registrados para los avisos push (sus filas de `push_subscriptions`), por el puerto `AccountDeviceRemover` del admin. Va después de marcar la cuenta y es best-effort, como el corte de sockets: si falla se registra y la suspensión queda hecha (a una cuenta suspendida igual no se le manda push, y el barrido de dispositivos de cuentas con las sesiones revocadas los levanta después: suspender las revoca todas). Reactivar no restaura nada: cada dispositivo se vuelve a registrar solo en el próximo ingreso. Detalle en `docs/reference/ACCESO_MODERNO.md` → «Baja del dispositivo».

@@ -15,8 +15,10 @@ from app.core.dt import naive as _naive
 from app.core.security import create_access_token, hash_password_async
 from app.core.tz import now_art, to_art
 from app.modules.admin.application.dtos import (
+    AdminCommitmentSummary,
     AdminCompanySummary,
     AdminShiftRow,
+    AdminSubscriptionSummary,
     AdminTicketRow,
     AdminUserDetail,
     AdminUserRow,
@@ -33,6 +35,7 @@ from app.modules.admin.application.dtos import (
 from app.modules.admin.application.exceptions import (
     CannotImpersonateAdminError,
     CannotModifySelfError,
+    TargetCompanyNotFoundError,
     TargetUserNotFoundError,
 )
 from app.modules.admin.application.periods import day_bounds, period_bounds
@@ -42,7 +45,9 @@ from app.modules.identity.application.services import GUEST_ACCOUNT_EMAILS
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.repositories import RefreshSessionRepository, UserRepository
 from app.modules.identity.domain.value_objects import UserRole, UserStatus
+from app.modules.shift.domain.value_objects import ShiftStatus
 from app.modules.shift.domain.repositories import ShiftPeriodStats, ShiftRepository
+from app.modules.admin.application.ports import AccountDeviceRemover, LiveConnectionCloser
 from app.modules.shift.domain.suspension import AccountSuspensionEffects, SuspensionImpact
 from app.modules.subscription.domain.billing_gateway import BillingGateway
 from app.modules.subscription.domain.plans import DEFAULT_PLAN_CODE, get_plan, list_plans
@@ -71,6 +76,10 @@ TEST_ACCOUNTS: dict[UserRole, tuple[str, str]] = {
 TEST_ACCOUNT_EMAILS: frozenset[str] = frozenset(
     email for email, _ in TEST_ACCOUNTS.values()
 )
+
+# «Comercios que vuelven a publicar»: días desde la primera confirmación en
+# los que otro turno publicado cuenta como «volvió».
+EMPLOYER_RETURN_WINDOW_DAYS = 30
 
 
 async def _local_password() -> str:
@@ -105,8 +114,12 @@ class AdminService:
         # del módulo de turnos. Sin él (tests que no lo necesitan), suspender
         # sólo cambia el estado de la cuenta, como antes.
         suspension_effects: AccountSuspensionEffects | None = None,
+        connection_closer: LiveConnectionCloser | None = None,
+        device_remover: AccountDeviceRemover | None = None,
     ) -> None:
         self._suspension_effects = suspension_effects
+        self._connection_closer = connection_closer
+        self._device_remover = device_remover
         self._users = users
         self._shifts = shifts
         self._workers = workers
@@ -133,13 +146,17 @@ class AdminService:
         """Lista usuarios paginados (más recientes primero), con los filtros
         del buscador de "Personas" y la foto de perfil (trabajador) o logo
         (comercio) resuelta en 2 consultas batch en vez de una por fila."""
+        term = search.strip() if search else None
+        # También por nombre del local: el dueño suele figurar con su nombre.
+        by_company = await self._companies.user_ids_by_name_search(term) if term else []
         users = await self._users.list_all(
             limit=limit,
             offset=offset,
-            search=search.strip() if search else None,
+            search=term,
             role=role,
             status=status,
             verified=verified,
+            also_user_ids=by_company,
         )
         return await self._rows(users)
 
@@ -172,6 +189,7 @@ class AdminService:
         worker_summary = None
         company_summary = None
         shifts = []
+        worker_profile_id = None
         if user.role == UserRole.WORKER:
             profile = await self._workers.get_by_user_id(user.id)
             if profile is not None:
@@ -187,7 +205,11 @@ class AdminService:
                     no_shows=profile.no_shows,
                     level=profile.level.value,
                 )
-                shifts = await self._shifts.list_by_worker(profile.id, limit=limit)
+                worker_profile_id = profile.id
+                # Incluye los turnos donde faltó: `no_show()` lo desasigna, así
+                # que buscar sólo por asignado dejaba "No se presentó 1" junto
+                # a "Todavía no tiene turnos".
+                shifts = await self._shifts.list_history_by_worker(profile.id, limit=limit)
         elif user.role == UserRole.EMPLOYER:
             company = await self._companies.get_by_user_id(user.id)
             if company is not None:
@@ -204,6 +226,10 @@ class AdminService:
                 )
                 shifts = await self._shifts.list_by_company(company.id, limit=limit)
 
+        subscription_summary = None
+        if user.role == UserRole.EMPLOYER and company is not None:
+            subscription_summary = await self._subscription_summary(company.id)
+
         tickets = await self._tickets.list_by_user(user.id, limit=limit)
         return AdminUserDetail(
             user=row,
@@ -217,6 +243,18 @@ class AdminService:
                     start_at=s.start_at,
                     status=s.status.value,
                     pay_amount=s.pay_amount,
+                    amount_due=s.amount_due,
+                    # `mark_not_covered()` también guarda quién estaba asignado
+                    # sin confirmar (no faltó): en NO_CUBIERTO el campo es
+                    # ambiguo, así que ahí no se acusa y la ficha muestra el
+                    # estado ("No cubierto"). Sólo `no_show()` deja el turno
+                    # en otro estado con ese campo cargado.
+                    absent=(
+                        worker_profile_id is not None
+                        and s.worker_profile_id != worker_profile_id
+                        and s.last_no_show_worker_profile_id == worker_profile_id
+                        and s.status != ShiftStatus.NO_CUBIERTO
+                    ),
                 )
                 for s in shifts
             ],
@@ -229,30 +267,100 @@ class AdminService:
                 )
                 for t in tickets
             ],
+            subscription=subscription_summary,
         )
+
+    async def _subscription_summary(self, company_id: UUID) -> AdminSubscriptionSummary:
+        """Plan vigente, plan elegido al darse de alta y compromiso de pago
+        de un comercio. Sin fila en `subscriptions` está en el plan por
+        defecto. Sólo lee: no crea la fila."""
+        sub = await self._subscriptions.get_by_company_id(company_id)
+        if sub is None:
+            return AdminSubscriptionSummary(
+                plan_code=DEFAULT_PLAN_CODE, plan_name=get_plan(DEFAULT_PLAN_CODE).name
+            )
+        commitment = None
+        if (
+            sub.payment_commitment_at is not None
+            and sub.payment_commitment_plan_code is not None
+            and sub.payment_commitment_price_ars is not None
+        ):
+            commitment = AdminCommitmentSummary(
+                at=sub.payment_commitment_at,
+                plan_code=sub.payment_commitment_plan_code,
+                plan_name=get_plan(sub.payment_commitment_plan_code).name,
+                price_ars=sub.payment_commitment_price_ars,
+            )
+        return AdminSubscriptionSummary(
+            plan_code=sub.plan_code,
+            plan_name=get_plan(sub.plan_code).name,
+            chosen_plan_code=sub.chosen_plan_code,
+            chosen_plan_name=get_plan(sub.chosen_plan_code).name if sub.chosen_plan_code else None,
+            chosen_plan_at=sub.chosen_plan_at,
+            commitment=commitment,
+        )
+
+    async def _company_subscription(self, user_id: UUID):
+        """Suscripción del comercio de `user_id` (la crea si falta). Un
+        usuario inexistente, que no es comercio o sin perfil es 404."""
+        user = await self._users.get_by_id(user_id)
+        if user is None or user.role != UserRole.EMPLOYER:
+            raise TargetCompanyNotFoundError()
+        company = await self._companies.get_by_user_id(user.id)
+        if company is None:
+            raise TargetCompanyNotFoundError()
+        return await self._subscriptions.get_or_create(company.id)
+
+    async def set_payment_commitment(
+        self, user_id: UUID, plan_code: str, price_ars: int
+    ) -> AdminSubscriptionSummary:
+        """La admin registra (o corrige) el compromiso de pago de un comercio.
+        `UnknownPlanError` si el plan no existe; precio inválido,
+        `InvalidPaymentCommitmentError`."""
+        get_plan(plan_code)
+        sub = await self._company_subscription(user_id)
+        # La entidad valida el precio; se escribe sólo el compromiso (un
+        # `update()` entero pisaría cambios concurrentes de otro pedido).
+        sub.register_payment_commitment(plan_code, price_ars, datetime.now(timezone.utc))
+        await self._subscriptions.set_payment_commitment(
+            sub.company_id, plan_code, sub.payment_commitment_price_ars, sub.payment_commitment_at
+        )
+        return await self._subscription_summary(sub.company_id)
+
+    async def clear_payment_commitment(self, user_id: UUID) -> AdminSubscriptionSummary:
+        sub = await self._company_subscription(user_id)
+        await self._subscriptions.clear_payment_commitment(sub.company_id)
+        return await self._subscription_summary(sub.company_id)
 
     async def get_stats(self) -> PlatformStats:
         """Calcula métricas agregadas de la plataforma, incluida la promesa
         central del negocio ("cubrir un puesto en <10 minutos", ver
-        `Shift.published_at`/`first_assigned_at`).
+        `Shift.published_at`/`first_confirmed_at`: «cubierto» es que la
+        persona confirmó).
 
         Los conteos de usuarios se calculan en SQL (`UserRepository.count_stats`,
         PRODUCTION_HARDENING.md P5) — antes traía toda la tabla `users` y
         contaba en Python en cada carga del panel de admin."""
-        counts = await self._users.count_stats(
-            exclude_emails=GUEST_ACCOUNT_EMAILS | TEST_ACCOUNT_EMAILS
+        # Cuentas de prueba e invitadas: fuera de usuarios, turnos y comercios.
+        excluded = GUEST_ACCOUNT_EMAILS | TEST_ACCOUNT_EMAILS
+        counts = await self._users.count_stats(exclude_emails=excluded)
+        filled_shifts = await self._shifts.list_recently_filled(
+            exclude_company_emails=excluded
         )
-        filled_shifts = await self._shifts.list_recently_filled()
         minutes = [
-            (_naive(s.first_assigned_at) - _naive(s.published_at)).total_seconds() / 60
+            (_naive(s.first_confirmed_at) - _naive(s.published_at)).total_seconds() / 60
             for s in filled_shifts
-            if s.published_at is not None and s.first_assigned_at is not None
+            if s.published_at is not None and s.first_confirmed_at is not None
         ]
 
-        publication_stats = await self._shifts.count_publication_stats()
+        publication_stats = await self._shifts.count_publication_stats(
+            exclude_company_emails=excluded
+        )
         application_stats = await self._applications.count_application_stats()
         worker_stats = await self._workers.count_engagement_stats()
-        company_stats = await self._companies.count_engagement_stats()
+        return_stats = await self._shifts.count_return_stats(
+            exclude_company_emails=excluded, window_days=EMPLOYER_RETURN_WINDOW_DAYS
+        )
 
         no_show_sample_size = (
             worker_stats.completed_total
@@ -291,11 +399,8 @@ class AdminService:
             worker_completion_repeat_rate_pct=_rate_pct(
                 worker_stats.workers_with_2plus_events, worker_stats.workers_with_1plus_events
             ),
-            employer_repeat_sample_size=company_stats.companies_with_1plus_shifts,
-            employer_repeat_rate_pct=_rate_pct(
-                company_stats.companies_with_2plus_shifts,
-                company_stats.companies_with_1plus_shifts,
-            ),
+            employer_return_30d_sample_size=return_stats.sample_size,
+            employer_return_30d_rate_pct=_rate_pct(return_stats.returned, return_stats.sample_size),
         )
 
     # Tope de "Turnos en vivo": más que esto no se mira en una pantalla, y
@@ -307,19 +412,29 @@ class AdminService:
         *,
         urgent_only: bool = False,
         escalated_only: bool = False,
+        no_shows_only: bool = False,
         now: datetime | None = None,
     ) -> LiveShiftsBoard:
         """"Turnos en vivo": publicados y sin nadie confirmado, con los
         minutos que llevan sin cubrir, el comercio y cuántas postulaciones
-        tienen. Tres consultas fijas (turnos, comercios, postulaciones),
-        sin importar cuántos turnos haya."""
+        tienen. Cinco consultas fijas (turnos en vivo, totales, ausencias de hoy,
+        comercios, postulaciones), sin importar cuántos turnos haya.
+
+        Con `no_shows_only` la lista son las ausencias del día argentino de
+        hoy (las mismas que cuenta la portada), estén o no cubiertas de
+        nuevo; los totales son siempre los de la lista en vivo."""
         now = now or now_art()
-        shifts = await self._shifts.list_live(limit=self.LIVE_SHIFTS_LIMIT)
+        live = await self._shifts.list_live(limit=self.LIVE_SHIFTS_LIMIT)
+        day_start, day_end = day_bounds(now)
+        absent = await self._shifts.list_no_shows(
+            day_start=day_start, day_end=day_end, limit=self.LIVE_SHIFTS_LIMIT
+        )
+        shifts = list({s.id: s for s in [*live, *absent]}.values())
         companies = await self._companies.list_by_ids(list({s.company_id for s in shifts}))
         applications = await self._applications.count_active_by_shift_ids([s.id for s in shifts])
 
-        rows = [
-            LiveShiftRow(
+        def _row(s) -> LiveShiftRow:
+            return LiveShiftRow(
                 id=s.id,
                 title=s.title,
                 position=s.position.value,
@@ -336,21 +451,31 @@ class AdminService:
                     int((now - to_art(s.published_at)).total_seconds() // 60), 0
                 ),
                 applications=applications.get(s.id, 0),
+                no_show_at=s.no_show_at,
             )
-            for s in shifts
-            if s.published_at is not None
-        ]
-        filtered = [
-            r
-            for r in rows
-            if (not urgent_only or r.urgent) and (not escalated_only or r.escalated)
-        ]
+
+        rows = [_row(s) for s in live if s.published_at is not None]
+        absent_rows = [_row(s) for s in absent if s.published_at is not None]
+        if no_shows_only:
+            shown = absent_rows
+        else:
+            shown = [
+                r
+                for r in rows
+                if (not urgent_only or r.urgent) and (not escalated_only or r.escalated)
+            ]
+        # Totales sobre TODO (consulta de conteo aparte), no sobre las filas
+        # cortadas por el tope.
+        counts = await self._shifts.count_live(day_start=day_start, day_end=day_end)
         return LiveShiftsBoard(
             generated_at=now,
-            total=len(rows),
-            urgent=sum(1 for r in rows if r.urgent),
-            escalated=sum(1 for r in rows if r.escalated),
-            shifts=filtered,
+            total=counts.total,
+            urgent=counts.urgent,
+            escalated=counts.escalated,
+            no_shows=counts.no_shows,
+            shown_live=len(rows),
+            limit=self.LIVE_SHIFTS_LIMIT,
+            shifts=shown,
         )
 
     async def get_today_counts(self, *, now: datetime | None = None) -> TodayCounts:
@@ -375,7 +500,9 @@ class AdminService:
             "current_start": bounds.current_start,
             "end": bounds.end,
         }
-        current, previous = await self._shifts.count_period_stats(**window)
+        current, previous = await self._shifts.count_period_stats(
+            **window, exclude_company_emails=GUEST_ACCOUNT_EMAILS | TEST_ACCOUNT_EMAILS
+        )
         apps_current, apps_previous = await self._applications.count_created_by_period(**window)
 
         def _summary(
@@ -390,6 +517,15 @@ class AdminService:
                 covered_under_10_min_pct=_rate_pct(s.covered_under_10_min, s.covered),
                 avg_minutes_to_cover=s.avg_minutes_to_cover,
                 applications=apps,
+                median_minutes_to_cover=s.median_minutes_to_cover,
+                short_notice_covered=s.short_notice_covered,
+                short_notice_under_10_min_pct=_rate_pct(
+                    s.short_notice_under_10_min, s.short_notice_covered
+                ),
+                fulfilled=s.fulfilled,
+                fulfilled_pct=_rate_pct(s.fulfilled, s.covered),
+                active_companies=s.active_companies,
+                companies_with_covered=s.companies_with_covered,
             )
 
         return PeriodMetrics(
@@ -429,8 +565,13 @@ class AdminService:
         ver `SubscriptionRepository`) está implícitamente en el plan por defecto — se
         suma ahí usando el total real de comercios como denominador, en vez
         de sólo contar filas existentes (subestimaría ese plan)."""
-        plan_status_counts = await self._subscriptions.count_by_plan_and_status()
-        total_companies = await self._companies.count_total()
+        # Un solo universo: toda la sección excluye las cuentas de prueba e
+        # invitadas, igual que las métricas de turnos (M1).
+        excluded = GUEST_ACCOUNT_EMAILS | TEST_ACCOUNT_EMAILS
+        plan_status_counts = await self._subscriptions.count_by_plan_and_status(
+            exclude_company_emails=excluded
+        )
+        total_companies = await self._companies.count_total(exclude_user_emails=excluded)
 
         companies_by_plan: dict[str, int] = {}
         subscribed_total = 0
@@ -441,13 +582,39 @@ class AdminService:
             if status == SubscriptionStatus.ACTIVA.value:
                 mrr += get_plan(plan_code).price_ars * count
 
+        # Medición de la beta (M6): sin cuentas de prueba ni invitadas.
+        rows = await self._subscriptions.list_for_metrics(exclude_company_emails=excluded)
+        now = datetime.now(timezone.utc)
+        chosen_by_plan: dict[str, int] = {}
+        committed = 0
+        committed_mrr = Decimal("0")
+        paid_mrr = Decimal("0")
+        for sub in rows:
+            if sub.chosen_plan_code is not None:
+                chosen_by_plan[sub.chosen_plan_code] = (
+                    chosen_by_plan.get(sub.chosen_plan_code, 0) + 1
+                )
+            if sub.payment_commitment_price_ars is not None:
+                committed += 1
+                committed_mrr += sub.payment_commitment_price_ars
+            if (
+                sub.status == SubscriptionStatus.ACTIVA
+                and sub.paid_until is not None
+                and _naive(sub.paid_until) > _naive(now)
+            ):
+                paid_mrr += get_plan(sub.plan_code).price_ars
+        if self._billing.enabled:
+            # Con el cobro prendido sólo cuenta quien tiene un mes pago
+            # vigente: una suscripción `activa` sin pago no es ingreso.
+            mrr = paid_mrr
+
         companies_by_plan[DEFAULT_PLAN_CODE] = companies_by_plan.get(
             DEFAULT_PLAN_CODE, 0
         ) + max(total_companies - subscribed_total, 0)
 
         limits = {plan.code: plan.max_turnos_mes for plan in list_plans() if plan.max_turnos_mes is not None}
         companies_at_plan_limit = await self._subscriptions.count_at_plan_limit(
-            limits, now=datetime.now(timezone.utc)
+            limits, now=datetime.now(timezone.utc), exclude_company_emails=excluded
         )
 
         return SubscriptionStats(
@@ -455,6 +622,9 @@ class AdminService:
             total_companies=total_companies,
             companies_by_plan=companies_by_plan,
             companies_at_plan_limit=companies_at_plan_limit,
+            companies_with_chosen_plan=chosen_by_plan,
+            committed_companies=committed,
+            committed_mrr_ars=committed_mrr,
             billing_enabled=self._billing.enabled,
         )
 
@@ -487,6 +657,17 @@ class AdminService:
         user.suspend()
         updated = await self._users.update(user)
         await self._sessions.revoke_all_for_user(user_id)
+        if self._connection_closer is not None:
+            # El socket de avisos abierto no depende de la sesión de refresh:
+            # sin cortarlo seguiría recibiendo avisos. Best-effort.
+            try:
+                await self._connection_closer.close_for_user(user_id)
+            except Exception:
+                logger.exception(
+                    "Cortar conexiones en vivo al suspender: fallo inesperado "
+                    "(user_id=%s)",
+                    user_id,
+                )
         if self._suspension_effects is not None:
             # Segunda pasada, ya con la cuenta suspendida: levanta lo que se
             # haya tomado en el intervalo (un comercio que asignó, o alguien
@@ -499,6 +680,22 @@ class AdminService:
             except Exception:
                 logger.exception(
                     "Segunda pasada de efectos de suspensión: fallo inesperado "
+                    "(user_id=%s)",
+                    user_id,
+                )
+        if self._device_remover is not None:
+            # Sus dispositivos dejan de estar registrados para los avisos: sin
+            # sesión no reciben nada, y una cuenta suspendida no tiene sesión.
+            # Va después de marcarla (ya no puede volver a registrar ninguno) y
+            # después de la segunda pasada: comparten la sesión de la base, y
+            # si este borrado fallara dejaría la sesión sin poder seguir.
+            # Best-effort, como el corte de sockets: si falla, la suspensión
+            # queda hecha (a una cuenta suspendida igual no se le manda push).
+            try:
+                await self._device_remover.remove_for_user(user_id)
+            except Exception:
+                logger.exception(
+                    "Borrar los dispositivos al suspender: fallo inesperado "
                     "(user_id=%s)",
                     user_id,
                 )

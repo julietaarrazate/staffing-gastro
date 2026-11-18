@@ -21,7 +21,10 @@ from app.modules.application.domain.repositories import (
     ApplicationStats,
     ShiftApplicationRepository,
 )
-from app.modules.application.domain.value_objects import ApplicationStatus
+from app.modules.application.domain.value_objects import (
+    ApplicationStatus,
+    MotivoDesasignacion,
+)
 from app.modules.application.infrastructure.models import ShiftApplicationModel
 from app.modules.identity.domain.value_objects import UserStatus
 from app.modules.identity.infrastructure.models import UserModel
@@ -37,6 +40,8 @@ def _to_entity(model: ShiftApplicationModel) -> ShiftApplication:
         worker_profile_id=model.worker_profile_id,
         status=ApplicationStatus(model.status),
         created_at=model.created_at,
+        motivo=MotivoDesasignacion(model.motivo) if model.motivo else None,
+        se_postulo=model.se_postulo,
     )
 
 
@@ -44,15 +49,34 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
+    async def _commit_or_reset(self) -> None:
+        """Guarda; si la base lo rechaza, deja la sesión usable y propaga el
+        error (mismo criterio que el repositorio de avisos).
+
+        Una escritura rechazada (p. ej. la fila única por turno y trabajador,
+        si dos pedidos llegan a la vez) deja la sesión con la transacción
+        rota, y esa sesión es la del pedido: todo lo que venga después falla
+        con `PendingRollbackError`. Quien atrapa el error para seguir
+        (`ShiftService._mark_unassigned`) terminaba igual en 500. El
+        `rollback` no deshace nada anterior: cada repositorio confirma su
+        propia escritura."""
+        try:
+            await self._session.commit()
+        except Exception:
+            await self._session.rollback()
+            raise
+
     async def add(self, application: ShiftApplication) -> ShiftApplication:
         model = ShiftApplicationModel(
             id=application.id,
             shift_id=application.shift_id,
             worker_profile_id=application.worker_profile_id,
             status=application.status.value,
+            motivo=application.motivo.value if application.motivo else None,
+            se_postulo=application.se_postulo,
         )
         self._session.add(model)
-        await self._session.commit()
+        await self._commit_or_reset()
         await self._session.refresh(model)
         return _to_entity(model)
 
@@ -61,12 +85,14 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
         if model is None:
             raise ValueError(f"Postulación {application.id} no encontrada")
         model.status = application.status.value
+        model.motivo = application.motivo.value if application.motivo else None
+        model.se_postulo = application.se_postulo
         # La fecha sólo cambia cuando el trabajador vuelve a postularse
         # (`ShiftApplication.reapply`); en el resto de las transiciones es la
         # misma que se leyó y no se reescribe.
         if application.created_at is not None:
             model.created_at = application.created_at
-        await self._session.commit()
+        await self._commit_or_reset()
         await self._session.refresh(model)
         return _to_entity(model)
 
@@ -129,10 +155,20 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
             )
             .outerjoin(UserModel, UserModel.id == WorkerProfileModel.user_id)
             .where(ShiftApplicationModel.shift_id == shift_id)
+            # Quien retiró su postulación no aparece (G4): ya no quiere el
+            # turno, y si vuelve a postularse la misma fila se reactiva.
+            .where(ShiftApplicationModel.status != ApplicationStatus.RETIRADA.value)
             # Cuenta suspendida: no se muestra (ADR-0024, mismo criterio que
             # «Recomendados»). Sin usuario resuelto sigue el fallback de arriba.
             .where(or_(UserModel.id.is_(None), UserModel.status == UserStatus.ACTIVE.value))
-            .order_by(ShiftApplicationModel.created_at.desc())
+            # Quien tuvo el turno y lo dejó va al final, con su marca.
+            .order_by(
+                case(
+                    (ShiftApplicationModel.status == ApplicationStatus.DESASIGNADA.value, 1),
+                    else_=0,
+                ),
+                ShiftApplicationModel.created_at.desc(),
+            )
         )
         result = await self._session.execute(stmt)
         return [
@@ -145,6 +181,9 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
                 is_available=worker.is_available,
                 status=ApplicationStatus(application.status),
                 created_at=application.created_at,
+                motivo=(
+                    MotivoDesasignacion(application.motivo) if application.motivo else None
+                ),
                 events_completed=worker.events_completed,
                 punctuality_rate=worker.punctuality_rate,
                 years_experience=worker.years_experience,
@@ -172,7 +211,12 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
             .join(ShiftModel, ShiftModel.id == ShiftApplicationModel.shift_id)
             .where(
                 ShiftModel.company_id == company_id,
+                # Gente que se postuló: no quien fue asignado sin postularse.
+                ShiftApplicationModel.se_postulo.is_(True),
                 UserModel.full_name.ilike(f"%{name_query}%"),
+                # Igual que la lista de postulantes: una cuenta suspendida no
+                # se encuentra (ADR-0024).
+                UserModel.status == UserStatus.ACTIVE.value,
             )
             .order_by(ShiftApplicationModel.created_at.desc())
             .limit(1)
@@ -183,12 +227,14 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
         return ApplicantMatch(user_id=row.id, full_name=row.full_name)
 
     async def count_application_stats(self) -> ApplicationStats:
+        # Sólo postulaciones de verdad: no las filas que el sistema escribe
+        # para quien fue asignado sin postularse y dejó el turno (G4).
         stmt = select(
             func.count().label("total"),
             func.sum(
                 case((ShiftApplicationModel.status == ApplicationStatus.ACEPTADA.value, 1), else_=0)
             ).label("accepted"),
-        )
+        ).where(ShiftApplicationModel.se_postulo.is_(True))
         row = (await self._session.execute(stmt)).one()
         return ApplicationStats(total=row.total or 0, accepted=row.accepted or 0)
 
@@ -199,7 +245,10 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
             select(ShiftApplicationModel.shift_id, func.count())
             .where(
                 ShiftApplicationModel.shift_id.in_(shift_ids),
-                ShiftApplicationModel.status != ApplicationStatus.RETIRADA.value,
+                # Ni las retiradas ni quien tuvo el turno y lo dejó (G4).
+                ShiftApplicationModel.status.notin_(
+                    [ApplicationStatus.RETIRADA.value, ApplicationStatus.DESASIGNADA.value]
+                ),
             )
             .group_by(ShiftApplicationModel.shift_id)
         )
@@ -235,6 +284,10 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
         stmt = select(
             func.sum(case(((created >= current_start) & (created < end), 1), else_=0)),
             func.sum(case(((created >= previous_start) & (created < current_start), 1), else_=0)),
-        ).where(created >= previous_start, created < end)
+        ).where(
+            created >= previous_start,
+            created < end,
+            ShiftApplicationModel.se_postulo.is_(True),
+        )
         current, previous = (await self._session.execute(stmt)).one()
         return current or 0, previous or 0

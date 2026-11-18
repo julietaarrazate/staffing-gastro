@@ -18,9 +18,11 @@ import type { User } from "@/lib/types";
 
 const claim = vi.fn();
 const release = vi.fn();
+const retryReleases = vi.fn();
 vi.mock("@/lib/push", () => ({
   claimPushForAccount: (...args: unknown[]) => claim(...args),
   releasePushFromAccount: (...args: unknown[]) => release(...args),
+  retryPendingPushReleases: (...args: unknown[]) => retryReleases(...args),
 }));
 
 const restartAtHome = vi.fn();
@@ -92,6 +94,7 @@ async function loginAs(auth: App, user: User, accessToken: string) {
 beforeEach(() => {
   claim.mockReset().mockResolvedValue(true);
   release.mockReset().mockResolvedValue(true);
+  retryReleases.mockReset().mockResolvedValue(true);
   routerReplace.mockReset();
   emitLiveRefresh.mockReset();
   restartAtHome.mockReset();
@@ -122,7 +125,7 @@ describe("AuthProvider: el push es de la cuenta que tiene la sesión abierta", (
     await loginAs(auth, TRABAJADORA, "token-trabajadora");
 
     expect(claim).toHaveBeenCalledTimes(1);
-    expect(claim).toHaveBeenCalledWith("token-trabajadora");
+    expect(claim).toHaveBeenCalledWith("token-trabajadora", TRABAJADORA.id);
     expect(release).not.toHaveBeenCalled();
   });
 
@@ -135,7 +138,7 @@ describe("AuthProvider: el push es de la cuenta que tiene la sesión abierta", (
 
     expect(auth().user?.id).toBe(TRABAJADORA.id);
     expect(claim).toHaveBeenCalledTimes(1);
-    expect(claim).toHaveBeenCalledWith("token-guardado");
+    expect(claim).toHaveBeenCalledWith("token-guardado", TRABAJADORA.id);
   });
 
   it("si la sesión guardada ya no sirve, no registra nada", async () => {
@@ -150,11 +153,11 @@ describe("AuthProvider: el push es de la cuenta que tiene la sesión abierta", (
     expect(claim).not.toHaveBeenCalled();
   });
 
-  it("al cerrar sesión da de baja el dispositivo con el token vigente", async () => {
+  it("al cerrar sesión da de baja el dispositivo para la cuenta que sale, sin el token", async () => {
     const auth = await mountApp();
     await loginAs(auth, TRABAJADORA, "token-trabajadora");
-    // La sesión siguió abierta y el access token se renovó: el del contexto
-    // es el de cuando entró (ya vencido); el que sirve es el renovado.
+    // La sesión siguió abierta y el access token se renovó (o venció): la
+    // baja no depende de ninguno de los dos.
     renewSessionToken("token-renovado");
 
     await act(async () => {
@@ -162,7 +165,7 @@ describe("AuthProvider: el push es de la cuenta que tiene la sesión abierta", (
     });
 
     expect(release).toHaveBeenCalledTimes(1);
-    expect(release).toHaveBeenCalledWith("token-renovado");
+    expect(release).toHaveBeenCalledWith(TRABAJADORA.id);
     expect(auth().token).toBeNull();
     expect(auth().user).toBeNull();
     expect(routerReplace).toHaveBeenCalledWith("/");
@@ -181,7 +184,7 @@ describe("AuthProvider: el push es de la cuenta que tiene la sesión abierta", (
       await auth().logout();
     });
 
-    expect(release).toHaveBeenCalledWith("token-trabajadora");
+    expect(release).toHaveBeenCalledWith(TRABAJADORA.id);
     expect(auth().token).toBeNull();
     expect(auth().user).toBeNull();
     expect(localStorage.getItem("staffya_token")).toBeNull();
@@ -201,14 +204,14 @@ describe("AuthProvider: el push es de la cuenta que tiene la sesión abierta", (
     await loginAs(auth, { ...TRABAJADORA, id: "u-otra", email: "otra@example.com" }, "token-otra");
 
     expect(claim).toHaveBeenCalledTimes(1);
-    expect(claim).toHaveBeenCalledWith("token-otra");
+    expect(claim).toHaveBeenCalledWith("token-otra", "u-otra");
   });
 
   it("impersonando no registra ni da de baja; «cerrar sesión» sólo vuelve a la admin", async () => {
     const auth = await mountApp();
     await loginAs(auth, ADMIN, "token-admin");
     expect(claim).toHaveBeenCalledTimes(1);
-    expect(claim).toHaveBeenCalledWith("token-admin");
+    expect(claim).toHaveBeenCalledWith("token-admin", ADMIN.id);
     claim.mockClear();
     fetchMock.mockClear();
 
@@ -242,7 +245,7 @@ describe("AuthProvider: el push es de la cuenta que tiene la sesión abierta", (
       await auth().logout();
     });
     expect(release).toHaveBeenCalledTimes(1);
-    expect(release).toHaveBeenCalledWith("token-admin");
+    expect(release).toHaveBeenCalledWith(ADMIN.id);
   });
 
   // El registro no puede adelantarse a la verificación en dos pasos de la
@@ -280,7 +283,69 @@ describe("AuthProvider: el push es de la cuenta que tiene la sesión abierta", (
 
     expect(auth().twoFactorSetupPending).toBe(false);
     expect(claim).toHaveBeenCalledTimes(1);
-    expect(claim).toHaveBeenCalledWith("token-verificado");
+    expect(claim).toHaveBeenCalledWith("token-verificado", ADMIN.id);
+  });
+
+  // La campanita se dibuja y pide cuando hay usuario y NO hay alta pendiente
+  // (`Navbar`): si el usuario llega antes que el aviso, hace un pedido que el
+  // backend rechaza (U133). Por eso la marca llega en el mismo paso que el
+  // usuario, sin esperar al primer 403.
+  it("admin sin dos pasos: al recuperar la sesión, el alta pendiente llega con el usuario", async () => {
+    localStorage.setItem("staffya_token", "token-sin-verificar");
+    localStorage.setItem("staffya_has_session", "1");
+    backend["GET /auth/me"] = [200, { ...ADMIN, two_factor_setup_required: true }];
+
+    const vistos: Array<{ user: boolean; pendiente: boolean }> = [];
+    const { result } = renderHook(
+      () => {
+        const a = useAuth();
+        vistos.push({ user: a.user !== null, pendiente: a.twoFactorSetupPending });
+        return a;
+      },
+      { wrapper: AuthProvider }
+    );
+    await waitFor(() => expect(result.current.user?.id).toBe(ADMIN.id));
+
+    expect(result.current.twoFactorSetupPending).toBe(true);
+    // Nunca hubo un render con usuario y sin la marca.
+    expect(vistos.filter((v) => v.user && !v.pendiente)).toEqual([]);
+    expect(requestsSent()).toEqual(["GET /auth/me"]);
+  });
+
+  it("admin sin dos pasos: el login también lo avisa", async () => {
+    const auth = await mountApp();
+    backend["POST /auth/login"] = [
+      200,
+      { access_token: "token-sin-verificar", user: ADMIN, two_factor_setup_required: true },
+    ];
+    await act(async () => {
+      await auth().login(ADMIN.email, "una-clave");
+    });
+    expect(auth().twoFactorSetupPending).toBe(true);
+  });
+
+  it("entrar con otra cuenta sin cerrar sesión no hereda el alta pendiente de la admin", async () => {
+    const auth = await mountApp();
+    backend["POST /auth/login"] = [
+      200,
+      { access_token: "token-sin-verificar", user: ADMIN, two_factor_setup_required: true },
+    ];
+    await act(async () => {
+      await auth().login(ADMIN.email, "una-clave");
+    });
+    expect(auth().twoFactorSetupPending).toBe(true);
+
+    await loginAs(auth, TRABAJADORA, "token-trabajadora");
+    expect(auth().twoFactorSetupPending).toBe(false);
+  });
+
+  it("una cuenta que no tiene el alta pendiente no la marca", async () => {
+    localStorage.setItem("staffya_token", "token-guardado");
+    localStorage.setItem("staffya_has_session", "1");
+    backend["GET /auth/me"] = [200, { ...ADMIN, two_factor_setup_required: false }];
+    const auth = await mountApp();
+    expect(auth().user?.id).toBe(ADMIN.id);
+    expect(auth().twoFactorSetupPending).toBe(false);
   });
 
   it("admin a la que le falta el código: registra recién cuando lo completa", async () => {
@@ -310,11 +375,231 @@ describe("AuthProvider: el push es de la cuenta que tiene la sesión abierta", (
     });
 
     expect(claim).toHaveBeenCalledTimes(1);
-    expect(claim).toHaveBeenCalledWith("token-verificado");
+    expect(claim).toHaveBeenCalledWith("token-verificado", ADMIN.id);
   });
 });
 
 // G7: la app siempre sabe si hay sesión (U112, U096, U114, U115).
+// `/privacidad`: el identificador del dispositivo se borra al cerrar sesión
+// en ese dispositivo. También cuando la sesión termina sola, y aunque la baja
+// no llegue en el momento (queda pendiente y se reintenta).
+describe("AuthProvider: la baja del dispositivo cuando la sesión termina sola", () => {
+  const SIN_SESION = [401, { detail: "No autorizado" }] as Reply;
+  const SUSPENDIDA = [
+    403,
+    { detail: { code: "account_suspended", message: "Cuenta suspendida" } },
+  ] as Reply;
+
+  afterEach(() => {
+    Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true });
+  });
+
+  it.each([
+    ["vencida o revocada", SIN_SESION, "vencida"],
+    ["suspendida", SUSPENDIDA, "suspendida"],
+  ])(
+    "la pestaña que detecta la sesión %s da de baja el dispositivo de esa cuenta",
+    async (_caso, rechazo, motivo) => {
+      const auth = await mountApp();
+      await loginAs(auth, TRABAJADORA, "token-trabajadora");
+      backend["GET /shifts/mine"] = SIN_SESION;
+      backend["POST /auth/refresh"] = rechazo;
+
+      await act(async () => {
+        await api.get("/shifts/mine", auth().token).catch(() => {});
+      });
+
+      expect(auth().sessionEnded).toBe(motivo);
+      expect(release).toHaveBeenCalledTimes(1);
+      expect(release).toHaveBeenCalledWith(TRABAJADORA.id);
+    }
+  );
+
+  it("si la baja falla o no contesta, el fin de la sesión sigue igual", async () => {
+    const auth = await mountApp();
+    await loginAs(auth, TRABAJADORA, "token-trabajadora");
+    release.mockRejectedValue(new Error("sin red"));
+    backend["GET /shifts/mine"] = SIN_SESION;
+    backend["POST /auth/refresh"] = SIN_SESION;
+
+    await act(async () => {
+      await api.get("/shifts/mine", auth().token).catch(() => {});
+    });
+
+    expect(release).toHaveBeenCalledWith(TRABAJADORA.id);
+    expect(auth().token).toBeNull();
+    expect(auth().sessionEnded).toBe("vencida");
+  });
+
+  it("la sesión guardada que ya no sirve al abrir la app: baja para la cuenta que la tenía", async () => {
+    localStorage.setItem("staffya_token", "token-vencido");
+    localStorage.setItem("staffya_has_session", "1");
+    localStorage.setItem("staffya_session_user", TRABAJADORA.id);
+    backend["GET /auth/me"] = SIN_SESION;
+    backend["POST /auth/refresh"] = SIN_SESION;
+
+    const auth = await mountApp();
+
+    expect(auth().sessionEnded).toBe("vencida");
+    expect(release).toHaveBeenCalledTimes(1);
+    expect(release).toHaveBeenCalledWith(TRABAJADORA.id);
+    expect(claim).not.toHaveBeenCalled();
+  });
+
+  it("viendo como otra persona, el fin que avisa otra pestaña tampoco manda ninguna baja", async () => {
+    const auth = await mountApp();
+    await loginAs(auth, ADMIN, "token-admin");
+    backend[`POST /admin/users/${TRABAJADORA.id}/impersonate`] = [
+      200,
+      { access_token: "token-impersonado", user: TRABAJADORA },
+    ];
+    await act(async () => {
+      await auth().impersonate(TRABAJADORA.id);
+    });
+    expect(release).not.toHaveBeenCalled();
+
+    act(() => {
+      localStorage.setItem("staffya_session_end", "vencida");
+      localStorage.removeItem("staffya_has_session");
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: "staffya_has_session",
+          oldValue: "1",
+          newValue: null,
+          storageArea: localStorage,
+        })
+      );
+    });
+
+    // Reflejado: no manda nada, ni por la admin ni por la persona vista.
+    expect(auth().sessionEnded).toBe("vencida");
+    expect(release).not.toHaveBeenCalled();
+  });
+
+  // La otra pestaña ya mandó la baja (y si no llegó, la dejó pendiente en
+  // `localStorage`, que es de todas). Una segunda en vuelo desde acá podría
+  // llegar después de un reingreso y borrar el registro nuevo.
+  it.each([
+    ["cerró sesión", null],
+    ["detectó la sesión vencida", "vencida"],
+    ["detectó la cuenta suspendida", "suspendida"],
+  ])("si otra pestaña %s, ésta sólo lo refleja: no manda otra baja", async (_caso, motivo) => {
+    const auth = await mountApp();
+    await loginAs(auth, TRABAJADORA, "token-trabajadora");
+
+    act(() => {
+      if (motivo) localStorage.setItem("staffya_session_end", motivo);
+      localStorage.removeItem("staffya_token");
+      localStorage.removeItem("staffya_has_session");
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: "staffya_has_session",
+          oldValue: "1",
+          newValue: null,
+          storageArea: localStorage,
+        })
+      );
+    });
+
+    expect(auth().token).toBeNull();
+    expect(release).not.toHaveBeenCalled();
+  });
+
+  it("si la marca desapareció y esta pestaña se entera al renovar, tampoco manda otra baja", async () => {
+    const auth = await mountApp();
+    await loginAs(auth, TRABAJADORA, "token-trabajadora");
+    // La cerraron desde otro lado y el aviso no llegó (pestaña dormida).
+    localStorage.removeItem("staffya_has_session");
+    backend["GET /shifts/mine"] = SIN_SESION;
+
+    await act(async () => {
+      await api.get("/shifts/mine", auth().token).catch(() => {});
+    });
+
+    expect(auth().token).toBeNull();
+    expect(release).not.toHaveBeenCalled();
+  });
+
+  describe("reintento de las bajas pendientes", () => {
+    function setVisibility(state: "visible" | "hidden") {
+      Object.defineProperty(document, "visibilityState", { value: state, configurable: true });
+      document.dispatchEvent(new Event("visibilitychange"));
+    }
+
+    it("al abrir la app sin sesión, reintenta lo pendiente", async () => {
+      await mountApp();
+
+      expect(retryReleases).toHaveBeenCalledTimes(1);
+      expect(retryReleases).toHaveBeenCalledWith(null);
+    });
+
+    it("al abrir la app con una sesión guardada, avisa de quién es para no darla de baja", async () => {
+      localStorage.setItem("staffya_token", "token-guardado");
+      localStorage.setItem("staffya_has_session", "1");
+      localStorage.setItem("staffya_session_user", TRABAJADORA.id);
+      backend["GET /auth/me"] = [200, TRABAJADORA];
+
+      await mountApp();
+
+      expect(retryReleases).toHaveBeenCalledTimes(1);
+      expect(retryReleases).toHaveBeenCalledWith(TRABAJADORA.id);
+    });
+
+    it("cuando vuelve la conexión, reintenta", async () => {
+      const auth = await mountApp();
+      await loginAs(auth, TRABAJADORA, "token-trabajadora");
+      retryReleases.mockClear();
+
+      act(() => {
+        window.dispatchEvent(new Event("online"));
+      });
+
+      expect(retryReleases).toHaveBeenCalledTimes(1);
+      // La de la cuenta que está adentro no se manda.
+      expect(retryReleases).toHaveBeenCalledWith(TRABAJADORA.id);
+    });
+
+    it("cuando la pestaña vuelve al frente, reintenta; al ocultarse, no", async () => {
+      await mountApp();
+      retryReleases.mockClear();
+
+      act(() => setVisibility("hidden"));
+      expect(retryReleases).not.toHaveBeenCalled();
+
+      act(() => setVisibility("visible"));
+      expect(retryReleases).toHaveBeenCalledTimes(1);
+      expect(retryReleases).toHaveBeenCalledWith(null);
+    });
+
+    it("después de cerrar sesión ya no excluye a la cuenta que salió", async () => {
+      const auth = await mountApp();
+      await loginAs(auth, TRABAJADORA, "token-trabajadora");
+      await act(async () => {
+        await auth().logout();
+      });
+      retryReleases.mockClear();
+
+      act(() => {
+        window.dispatchEvent(new Event("online"));
+      });
+
+      expect(retryReleases).toHaveBeenCalledWith(null);
+    });
+
+    it("al desmontar deja de escuchar", async () => {
+      const { result, unmount } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      unmount();
+      retryReleases.mockClear();
+
+      window.dispatchEvent(new Event("online"));
+      setVisibility("visible");
+
+      expect(retryReleases).not.toHaveBeenCalled();
+    });
+  });
+});
+
 describe("AuthProvider: la app siempre sabe si hay sesión", () => {
   const SIN_SESION = [401, { detail: "No autorizado" }] as Reply;
 
@@ -506,7 +791,7 @@ describe("AuthProvider: la app siempre sabe si hay sesión", () => {
 
       expect(auth().user?.id).toBe(TRABAJADORA.id);
       expect(auth().reconnecting).toBe(false);
-      expect(claim).toHaveBeenCalledWith("token-guardado");
+      expect(claim).toHaveBeenCalledWith("token-guardado", TRABAJADORA.id);
       // Las pantallas que habían fallado se vuelven a pedir solas, una vez.
       expect(emitLiveRefresh).toHaveBeenCalledTimes(1);
       const sent = meRequests();

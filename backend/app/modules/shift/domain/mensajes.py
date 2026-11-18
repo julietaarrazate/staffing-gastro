@@ -77,7 +77,10 @@ _TEXTOS: dict[str, dict[S, str]] = {
     "cancelar": {
         S.CANCELADO: _CANCELASTE,
         S.NO_CUBIERTO: "Este turno venció sin cubrirse: no hace falta cancelarlo.",
-        S.CHECK_OUT: "Este turno ya se trabajó, no se puede cancelar.",
+        S.CHECK_OUT: (
+            "Este turno ya se trabajó, no se puede cancelar. Finalizalo y "
+            "pagalo; si hubo un problema, escribinos desde Soporte."
+        ),
         S.FINALIZADO: "Este turno ya se trabajó, no se puede cancelar.",
         S.PAGADO: "Este turno ya se trabajó y se pagó, no se puede cancelar.",
     },

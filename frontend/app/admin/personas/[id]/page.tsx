@@ -14,7 +14,7 @@ import { getErrorMessage, isNotFound } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { STATUS_LABELS as SHIFT_STATUS_LABELS, SKILL_LABELS } from "@/lib/types";
 import type { AdminUserDetail, ShiftStatus, SuspensionPreview, WorkerSkill } from "@/lib/types";
-import { formatArs } from "@/lib/format";
+import { formatAmountDue } from "@/lib/pay";
 import { formatShiftDate } from "@/lib/datetime";
 import { formatPunctuality, formatRateOrNone, formatRatingOrNone, hasPaymentRate, levelLabel } from "@/lib/reputation";
 import {
@@ -29,6 +29,7 @@ import {
 } from "@/components/ui";
 import { CheckCircleIcon, ChevronLeftIcon, EyeIcon, UsersIcon } from "@/components/icons";
 import { SectionLabel } from "@/components/admin/AdminStats";
+import PlanCompromiso from "@/components/admin/PlanCompromiso";
 import {
   ROLE_LABELS,
   STATUS_LABELS,
@@ -171,10 +172,10 @@ export default function AdminPersonPage() {
         <Avatar src={u.photo_url} name={u.full_name} size="lg" />
         <div className="min-w-0">
           <h1 className="flex items-center gap-2 font-display text-h1 font-semibold tracking-tight text-ink">
-            <span className="truncate">{u.full_name}</span>
+            <span className="min-w-0 break-words">{u.full_name}</span>
             {u.is_verified && <CheckCircleIcon size={20} className="shrink-0 text-success-text" />}
           </h1>
-          <p className="truncate text-sm text-ink/50">{u.email}</p>
+          <p className="break-all text-sm text-ink/50">{u.email}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             <Badge tone="neutral">{ROLE_LABELS[u.role] ?? u.role}</Badge>
             <Badge tone={u.status === "active" ? "secondary" : "danger"}>
@@ -346,6 +347,15 @@ export default function AdminPersonPage() {
         </div>
       )}
 
+      {detail.company && detail.subscription && token && (
+        <PlanCompromiso
+          userId={detail.user.id}
+          token={token}
+          summary={detail.subscription}
+          onChange={(subscription) => setDetail({ ...detail, subscription })}
+        />
+      )}
+
       {(detail.worker || detail.company) && (
         <div className="mt-8">
           <SectionLabel>Turnos recientes</SectionLabel>
@@ -358,12 +368,16 @@ export default function AdminPersonPage() {
                   <div className="min-w-0">
                     <p className="truncate font-medium text-ink">{s.title || skillLabel(s.position)}</p>
                     <p className="text-xs text-ink/50">
-                      {formatShiftDate(s.start_at)} · {formatArs(s.pay_amount)}
+                      {formatShiftDate(s.start_at)} · {formatAmountDue(s)}
                     </p>
                   </div>
-                  <Badge tone="neutral">
-                    {SHIFT_STATUS_LABELS[s.status as ShiftStatus] ?? s.status}
-                  </Badge>
+                  {s.absent ? (
+                    <Badge tone="danger">No se presentó</Badge>
+                  ) : (
+                    <Badge tone="neutral">
+                      {SHIFT_STATUS_LABELS[s.status as ShiftStatus] ?? s.status}
+                    </Badge>
+                  )}
                 </li>
               ))}
             </ul>

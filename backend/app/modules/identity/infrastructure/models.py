@@ -4,9 +4,9 @@ Tabla `users`, que materializa la entidad `Usuario` del spec.
 """
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import BigInteger, Boolean, Date, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -26,6 +26,9 @@ class UserModel(Base):
         String(20), nullable=False, default=UserStatus.ACTIVE.value
     )
     is_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # U101: fecha de nacimiento declarada en el alta. Nula en las cuentas
+    # anteriores a la migración 0048 y en las internas.
+    birth_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

@@ -1,17 +1,18 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Suspense, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { formatAgo } from "@/lib/datetime";
-import { formatKm } from "@/lib/format";
+import { formatDistance } from "@/lib/format";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
+import { useCompanyPlace } from "@/lib/company-place";
 import Link from "next/link";
 import { SKILL_LABELS, WORKER_SKILLS, WorkerMapResult, WorkerSkill } from "@/lib/types";
 import { EmptyState, ErrorBanner, Skeleton } from "@/components/ui";
-import { SearchIcon, UsersIcon } from "@/components/icons";
+import { MapPinIcon, SearchIcon, UsersIcon } from "@/components/icons";
 import { SKILL_ACCENT, SKILL_RAIL_BORDER, heroTile } from "@/lib/skill-style";
 import RatingOrNew from "@/components/RatingOrNew";
 import BottomSheet from "@/components/BottomSheet";
@@ -41,19 +42,76 @@ function isWorkerSkill(value: string | null): value is WorkerSkill {
   return value !== null && (WORKER_SKILLS as string[]).includes(value);
 }
 
+const FILTERS_KEY = "oido.buscar.filtros";
+
+function readSavedFilters(): { skill?: string; radiusKm?: number } {
+  try {
+    const raw = window.sessionStorage.getItem(FILTERS_KEY);
+    if (!raw) return {};
+    const data = JSON.parse(raw);
+    const radiusKm = Number(data?.radiusKm);
+    return {
+      skill: typeof data?.skill === "string" ? data.skill : undefined,
+      radiusKm: Number.isFinite(radiusKm) && radiusKm >= 1 && radiusKm <= 100 ? radiusKm : undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
 export default function SearchPage() {
   // useSearchParams exige un boundary de Suspense en build estático.
   return (
     <Suspense fallback={null}>
-      <SearchPageContent />
+      <SearchGuard />
     </Suspense>
   );
 }
 
+// Comercio y admin: son los que el backend deja buscar (`EmployerOrAdminDep`).
+// Hasta conocer el rol no se monta nada (así no sale ningún pedido de más).
+// La guarda va por fuera: con otro rol la pantalla ni se monta (no pide la
+// ubicación del navegador ni busca) mientras redirige a la home de su rol.
+function SearchGuard() {
+  const { allowed, user } = useRequireAuth({ roles: ["employer", "admin"] });
+  if (!allowed) return null;
+  if (!user) {
+    return (
+      <div data-testid="guarda-cargando" aria-busy className="mx-auto max-w-md space-y-3 px-4 pb-8 pt-4 md:max-w-5xl">
+        <WorkerRowSkeleton />
+        <WorkerRowSkeleton />
+        <WorkerRowSkeleton />
+      </div>
+    );
+  }
+  return <SearchPageContent />;
+}
+
 function SearchPageContent() {
-  const { token } = useRequireAuth();
+  const { user, token } = useRequireAuth();
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const [center, setCenter] = useState<[number, number]>(DEFAULT_CENTER);
+  const [geoCenter, setGeoCenter] = useState<[number, number]>(DEFAULT_CENTER);
+  // Comercio: la búsqueda parte de su local (U073), no del Obelisco ni de
+  // donde esté el celular. Sin local cargado no se busca desde ningún lado en
+  // silencio: la pantalla lo dice y lleva a completarlo.
+  const isEmployer = user?.role === "employer";
+  const { place: companyPlace, loaded: placeLoaded, error: placeError, retry: retryPlace } = useCompanyPlace(isEmployer ? token : null);
+  const origin: "esperando" | "local" | "sin-local" | "error" | "cerca" = !user
+    ? "esperando"
+    : !isEmployer
+      ? "cerca"
+      : !placeLoaded
+        ? "esperando"
+        : placeError
+          ? "error"
+          : companyPlace
+          ? "local"
+          : "sin-local";
+  const originLat = origin === "local" && companyPlace ? companyPlace.latitude : geoCenter[0];
+  const originLng = origin === "local" && companyPlace ? companyPlace.longitude : geoCenter[1];
+  // Memoizado: el efecto de búsqueda depende de la identidad del centro.
+  const center = useMemo<[number, number]>(() => [originLat, originLng], [originLat, originLng]);
   // Precargable por URL (?skill=mozo): el asistente de IA (buscar_candidatos)
   // te trae directo con el filtro ya puesto.
   const [skill, setSkill] = useState<WorkerSkill | "">(() => {
@@ -61,6 +119,29 @@ function SearchPageContent() {
     return isWorkerSkill(fromUrl) ? fromUrl : "";
   });
   const [radiusKm, setRadiusKm] = useState(15);
+  const [filtersRestored, setFiltersRestored] = useState(false);
+  useEffect(() => {
+    if (!filtersRestored) return;
+    try {
+      window.sessionStorage.setItem(FILTERS_KEY, JSON.stringify({ skill, radiusKm }));
+    } catch {
+      // Sin almacenamiento: los filtros simplemente no se recuerdan.
+    }
+  }, [skill, radiusKm, filtersRestored]);
+
+  // Los filtros sobreviven a entrar a un perfil y volver: viven en
+  // sessionStorage (la URL ?skill= del asistente manda si viene).
+  useEffect(() => {
+    // Después de montar (no en el estado inicial) para no desfasar la
+    // hidratación. Con ?skill= en la URL, el rol de la URL manda.
+    const saved = readSavedFilters();
+    if (saved.radiusKm) setRadiusKm(saved.radiusKm);
+    if (!isWorkerSkill(searchParams.get("skill")) && isWorkerSkill(saved.skill ?? null)) {
+      setSkill(saved.skill as WorkerSkill);
+    }
+    setFiltersRestored(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [workers, setWorkers] = useState<WorkerMapResult[]>([]);
   const [error, setError] = useState<string | null>(null);
   // Arranca en `true`: la búsqueda inicial se dispara en un efecto apenas hay
@@ -77,17 +158,26 @@ function SearchPageContent() {
   const searchSeq = useRef(0);
 
   useEffect(() => {
-    if (!navigator.geolocation) return;
+    // El trabajador (y el admin) siguen midiendo desde donde están; el comercio
+    // mide desde su local y no le pide la ubicación al navegador.
+    if (!token || origin !== "cerca" || !navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
-      (pos) => setCenter([pos.coords.latitude, pos.coords.longitude]),
+      (pos) => setGeoCenter([pos.coords.latitude, pos.coords.longitude]),
       () => {
         // Sin permiso o sin soporte: nos quedamos con el centro por defecto.
       }
     );
-  }, []);
+  }, [origin, token]);
 
   async function search() {
-    if (!token) return;
+    if (!token || !filtersRestored) return;
+    if (origin === "esperando" || origin === "sin-local" || origin === "error") {
+      if (origin === "sin-local" || origin === "error") {
+        setWorkers([]);
+        setLoading(false);
+      }
+      return;
+    }
     const seq = ++searchSeq.current;
     setLoading(true);
     setError(null);
@@ -115,14 +205,14 @@ function SearchPageContent() {
   useEffect(() => {
     search();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, center]);
+  }, [token, center, origin, filtersRestored]);
 
   const filterControls = (
-    <div className="flex items-center gap-2 rounded-full bg-white/95 px-2 py-2 shadow-lg ring-1 ring-line backdrop-blur md:bg-card md:shadow-none md:ring-line">
+    <div className="flex items-center gap-2 rounded-full bg-card/95 px-2 py-2 shadow-lg ring-1 ring-line backdrop-blur md:bg-card md:shadow-none md:ring-line">
       <select
         value={skill}
         onChange={(e) => setSkill(e.target.value as WorkerSkill | "")}
-        className="flex-1 rounded-full bg-surface px-3 py-2 text-sm font-medium text-ink/75 ring-1 ring-line transition focus:bg-card focus:ring-2 focus:ring-primary/40"
+        className="flex-1 rounded-full bg-surface px-3 py-2 text-sm font-medium text-ink/75 ring-1 ring-line transition focus:bg-card"
       >
         <option value="">Todos los roles</option>
         {WORKER_SKILLS.map((s) => (
@@ -138,8 +228,12 @@ function SearchPageContent() {
         value={radiusKm}
         onChange={(e) => setRadiusKm(Number(e.target.value))}
         title="Radio en km"
-        className="w-14 rounded-full bg-surface px-2 py-2 text-center text-sm font-medium text-ink/75 ring-1 ring-line transition focus:bg-card focus:ring-2 focus:ring-primary/40"
+        aria-label="Radio en kilómetros"
+        className="w-12 rounded-full bg-surface px-1 py-2 text-center text-sm font-medium text-ink/75 ring-1 ring-line transition focus:bg-card"
       />
+      <span className="-ml-1 text-sm font-medium text-ink/60" aria-hidden>
+        km
+      </span>
       <button
         onClick={search}
         disabled={loading}
@@ -151,15 +245,55 @@ function SearchPageContent() {
     </div>
   );
 
-  const countLabel = loading
+  const sinLocal = origin === "sin-local";
+  const placeFailed = origin === "error";
+  const countLabel = placeFailed
+    ? "No pudimos ubicar tu local"
+    : sinLocal
+    ? "Falta la ubicación de tu local"
+    : loading
     ? "Buscando..."
     : `${workers.length} trabajador${workers.length === 1 ? "" : "es"} disponible${
         workers.length === 1 ? "" : "s"
       } en el radio seleccionado`;
 
+  // Desde dónde se mide, dicho en pantalla (el comercio no debería adivinarlo).
+  const originNote =
+    origin === "local" && companyPlace ? (
+      <p
+        data-testid="search-origin"
+        className="flex items-center gap-1.5 text-xs font-medium text-ink/60"
+      >
+        <MapPinIcon size={13} className="shrink-0 text-primary-text" />
+        <span className="min-w-0 truncate">
+          Desde tu local · {companyPlace.label}
+        </span>
+      </p>
+    ) : sinLocal ? (
+      // En mobile el sheet arranca replegado y el botón del estado vacío queda
+      // abajo: el acceso a completar el local también va en el encabezado.
+      <Link href="/profile/edit" className="inline-flex min-h-[44px] items-center text-sm font-semibold text-primary-text underline">
+        Completar ubicación del local
+      </Link>
+    ) : null;
+
+  // Falló el pedido del local: no es «sin local». Se dice y se puede reintentar.
+  const placeBanner = placeFailed ? (
+    <div className="-mt-4">
+      <ErrorBanner message="No pudimos cargar la ubicación de tu local." onRetry={retryPlace} />
+    </div>
+  ) : null;
+
   const workerList = (
     <>
-      {!loading && workers.length === 0 ? (
+      {placeFailed ? null : sinLocal ? (
+        <EmptyState
+          icon={<MapPinIcon size={28} />}
+          title="Tu local no tiene ubicación"
+          subtitle="Para buscar gente cerca necesitamos saber dónde queda. Completá la dirección de tu local y medimos desde ahí."
+          primaryAction={{ label: "Completar ubicación", onClick: () => router.push("/profile/edit") }}
+        />
+      ) : !loading && workers.length === 0 ? (
         <EmptyState
           icon={<UsersIcon size={28} />}
           title="Nadie por acá todavía"
@@ -220,7 +354,7 @@ function SearchPageContent() {
                     <RatingOrNew rating={worker.rating} size={13} numberClassName="text-xs text-ink/50" />
                     {worker.distance_km != null && (
                       <span className="text-xs text-ink/40">
-                        · {formatKm(worker.distance_km)}
+                        · {formatDistance(worker.distance_km)}
                       </span>
                     )}
                   </div>
@@ -269,6 +403,7 @@ function SearchPageContent() {
       <aside className="hidden w-full max-w-[400px] shrink-0 flex-col overflow-hidden border-r border-line bg-card md:flex">
         <div className="border-b border-line px-4 py-3">
           {filterControls}
+          {placeBanner}
           {error && (
             <div className="mt-2">
               <ErrorBanner message={error} onRetry={search} />
@@ -276,16 +411,18 @@ function SearchPageContent() {
           )}
         </div>
         <p className="px-5 pt-4 text-sm font-semibold text-ink/75">{countLabel}</p>
+        {originNote && <div className="px-5 pt-1">{originNote}</div>}
         <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3">{workerList}</div>
       </aside>
 
       {/* Mapa + overlays mobile */}
       <div className="relative h-full flex-1 overflow-hidden">
-        <WorkerSearchMap center={center} workers={workers} className="absolute inset-0 h-full w-full" />
+        <WorkerSearchMap center={center} workers={workers} showOrigin={origin === "local" || origin === "cerca"} className="absolute inset-0 h-full w-full" />
 
         {/* Filtros flotantes: sólo mobile (en desktop ya están en el panel). */}
         <div className="absolute inset-x-0 top-0 z-10 p-3 md:hidden">
           {filterControls}
+          {placeBanner}
           {error && (
             <div className="mt-2">
               <ErrorBanner message={error} onRetry={search} />
@@ -295,7 +432,12 @@ function SearchPageContent() {
 
         {/* BottomSheet: sólo mobile — en desktop la lista vive en el panel. */}
         <div className="md:hidden">
-          <BottomSheet header={<p className="px-4 pb-2 text-sm font-semibold text-ink/75">{countLabel}</p>}>
+          <BottomSheet header={
+              <div className="px-4 pb-2">
+                <p className="text-sm font-semibold text-ink/75">{countLabel}</p>
+                {originNote && <div className="mt-0.5">{originNote}</div>}
+              </div>
+            }>
             {workerList}
           </BottomSheet>
         </div>

@@ -7,6 +7,8 @@ import type { Notification, NotificationType } from "@/lib/types";
 const BY_TYPE: Record<NotificationType, string> = {
   shift_assigned: "/my-shifts",
   shift_paid: "/my-shifts",
+  // Cerró el turno: a calificar al comercio, en Mis turnos.
+  shift_finished: "/my-shifts",
   // La ausencia se ve en el perfil (ausencias y cancelaciones), no en Turnos.
   shift_no_show: "/profile",
   shift_cancelled_late: "/my-shifts",
@@ -33,6 +35,9 @@ const BY_TYPE: Record<NotificationType, string> = {
   // Se canceló un turno al que estaba postulado: esa postulación ya no figura
   // en ninguna lista suya, lo útil es el Inicio con los otros turnos.
   applied_shift_cancelled: "/feed",
+  // Al confirmar un turno se retiraron postulaciones del mismo horario
+  // (U123): «Mis turnos», con el confirmado y lo que sigue postulado.
+  applications_withdrawn: "/my-shifts",
   chat_message: "/chats",
   review_received: "/profile",
   support_reply: "/support",

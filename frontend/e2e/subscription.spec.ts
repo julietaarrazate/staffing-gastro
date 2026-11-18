@@ -152,7 +152,7 @@ test("publicar turno al límite del plan: muestra el mensaje con CTA, no un erro
   await page.locator('input[type="datetime-local"]').first().fill(enDias(30, "20:00"));
   await page.locator('input[type="datetime-local"]').nth(1).fill(enDias(30, "23:00"));
   await page.getByRole("button", { name: "Continuar" }).click();
-  await page.getByPlaceholder("48000").fill("15000");
+  await page.getByPlaceholder("48.000").fill("15000");
   await page.getByRole("button", { name: "Continuar" }).click();
   await page.locator("select").nth(1).selectOption("Palermo");
 
@@ -162,7 +162,7 @@ test("publicar turno al límite del plan: muestra el mensaje con CTA, no un erro
   await expect(page.getByText("Llegaste al límite de 15 turnos de tu plan Básico este mes.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Mejorá tu plan" })).toBeVisible();
   // Sigue en /shifts/new: no navega hasta que el usuario elija qué hacer.
-  await expect(page).toHaveURL("/shifts/new");
+  await expect(page).toHaveURL(/\/shifts\/new(\?paso=\d)?$/);
 
   await page.screenshot({ path: "/tmp/sub-fe-limit-reached.png", fullPage: true });
 });
@@ -365,7 +365,7 @@ test("publicar sin plan pago: modal propio con CTA a pagar", async ({ page }) =>
   await page.locator('input[type="datetime-local"]').first().fill(enDias(30, "20:00"));
   await page.locator('input[type="datetime-local"]').nth(1).fill(enDias(30, "23:00"));
   await page.getByRole("button", { name: "Continuar" }).click();
-  await page.getByPlaceholder("48000").fill("15000");
+  await page.getByPlaceholder("48.000").fill("15000");
   await page.getByRole("button", { name: "Continuar" }).click();
   await page.locator("select").nth(1).selectOption("Palermo");
   await page.getByRole("button", { name: "Publicar turno" }).click();

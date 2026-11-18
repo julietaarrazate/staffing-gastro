@@ -1,10 +1,12 @@
 "use client";
 
+import { puedeMarcarAusencia } from "@/lib/turno-reofrecido";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button, Sheet } from "@/components/ui";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import { AlertTriangleIcon, CheckCircleIcon, CopyIcon, MessageIcon } from "@/components/icons";
+import { isCancellable } from "@/lib/cancelar-turno";
 import { nextStepFor, type PrimaryAction } from "@/lib/shift-next-step";
 import type { Shift } from "@/lib/types";
 
@@ -26,10 +28,10 @@ import type { Shift } from "@/lib/types";
 // todavía no se presentó (antes del check-in) — ADR-0007.
 const NO_SHOW_ELIGIBLE = ["confirmado", "en_camino"];
 // ...y recién desde 15 minutos después del inicio (la tolerancia de la
-// puntualidad): antes, el trabajador todavía puede llegar. El servidor aplica
-// la misma regla (`Shift.no_show`); esto sólo evita ofrecer la opción antes.
-const NO_SHOW_AFTER_START_MS = 15 * 60_000;
-const CANCELLABLE_EXCLUDED = ["finalizado", "pagado", "cancelado", "no_cubierto"];
+// puntualidad): antes, el trabajador todavía puede llegar. A quien tomó el
+// turno ya empezado (U080) se le cuenta desde que confirmó. El servidor
+// aplica la misma regla (`Shift.no_show`); `puedeMarcarAusencia` sólo evita
+// ofrecer la opción antes.
 
 export default function ShiftActions({
   shift,
@@ -56,7 +58,9 @@ export default function ShiftActions({
   const [menuOpen, setMenuOpen] = useState(false);
   const step = nextStepFor(shift);
 
-  const canCancel = !CANCELLABLE_EXCLUDED.includes(shift.status);
+  // La misma regla que el diálogo y el servidor (`isCancellable`): con la
+  // salida marcada ya no se ofrece cancelar, se finaliza y se paga (U081).
+  const canCancel = isCancellable(shift.status);
   // La hora corre mientras la tarjeta está abierta: se relee cada medio
   // minuto para que la opción aparezca sola a los 15 minutos del inicio.
   const [now, setNow] = useState(() => Date.now());
@@ -64,9 +68,7 @@ export default function ShiftActions({
     const id = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(id);
   }, []);
-  const canNoShow =
-    NO_SHOW_ELIGIBLE.includes(shift.status) &&
-    now >= new Date(shift.start_at).getTime() + NO_SHOW_AFTER_START_MS;
+  const canNoShow = NO_SHOW_ELIGIBLE.includes(shift.status) && puedeMarcarAusencia(shift, now);
   const hasWorker = Boolean(shift.worker_profile_id) && shift.status !== "cancelado";
 
   return (
@@ -84,7 +86,7 @@ export default function ShiftActions({
         {step.action === "candidates" ? (
           <Link
             href={`/shifts/${shift.id}/candidates`}
-            className="flex-1 rounded-[var(--radius-btn)] bg-primary px-4 py-2 text-center text-sm font-semibold text-night transition active:scale-95"
+            className="boton-relieve flex-1 bg-primary px-4 py-2 text-center text-sm font-semibold text-night"
           >
             {step.actionLabel}
           </Link>

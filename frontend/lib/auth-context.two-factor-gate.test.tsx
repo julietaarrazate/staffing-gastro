@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
-import { bindSessionToken, hasBoundSession } from "@/lib/api";
+import { api, bindSessionToken, hasBoundSession } from "@/lib/api";
 import type { User } from "@/lib/types";
 
 // Registrar y dar de baja el push son pedidos que la app hace por su cuenta
@@ -139,12 +139,49 @@ describe("el push no dispara el candado de dos pasos de la admin", () => {
     expect(hasBoundSession()).toBe(true);
   });
 
+  // Una sesión admin de antes de activar la verificación se cierra cuando una
+  // pantalla pide algo: es un cierre de sesión en este dispositivo, así que
+  // también lo da de baja (la recarga al ingreso puede cortar el pedido: la
+  // baja ya quedó anotada como pendiente).
+  it("la sesión que el candado cierra (two_factor_required) da de baja el dispositivo", async () => {
+    localStorage.setItem("staffya_token", "token-viejo");
+    localStorage.setItem("staffya_has_session", "1");
+    backend["GET /auth/me"] = [200, ADMIN];
+    backend["POST /push/subscribe"] = candado("two_factor_required");
+    backend["GET /admin/stats"] = candado("two_factor_required");
+    backend["POST /push/release"] = [204];
+    // (jsdom no navega: al recargar hacia el ingreso deja un «Not implemented: navigation».)
+    const auth = await mountApp();
+    await settled("POST /push/subscribe");
+    fetchMock.mockClear();
+
+    await act(async () => {
+      await api.get("/admin/stats", auth().token).catch(() => {});
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(requestsSent().sort()).toEqual([
+      "GET /admin/stats",
+      "POST /auth/logout",
+      "POST /push/release",
+    ]);
+    const baja = fetchMock.mock.calls.find(([url]) => url.endsWith("/push/release"))!;
+    expect(JSON.parse(baja[1].body as string)).toEqual({
+      endpoint: ENDPOINT,
+      auth: "a",
+      user_id: ADMIN.id,
+    });
+    expect(localStorage.getItem("staffya_has_session")).toBeNull();
+  });
+
+  // La baja ya no lleva la sesión (`POST /push/release` es pública), así que
+  // el candado no la alcanza. Si igual contestara así, no puede mover a nadie.
   it.each(["two_factor_setup_required", "two_factor_required"])(
     "cerrar sesión con la baja frenada por el candado (%s) termina en la landing",
     async (code) => {
       backend["POST /auth/login"] = [200, { access_token: "token-admin", user: ADMIN }];
       backend["POST /push/subscribe"] = [201, { ok: true }];
-      backend["DELETE /push/subscribe"] = candado(code);
+      backend["POST /push/release"] = candado(code);
       const auth = await mountApp();
       await act(async () => {
         await auth().login(ADMIN.email, "una-clave");
@@ -155,11 +192,18 @@ describe("el push no dispara el candado de dos pasos de la admin", () => {
       await act(async () => {
         await auth().logout();
       });
-      await settled("DELETE /push/subscribe");
+      await settled("POST /push/release");
 
       // La respuesta de la baja llega con la sesión ya cerrada: no manda al
       // alta ni al login, y no repite el cierre.
-      expect(requestsSent().sort()).toEqual(["DELETE /push/subscribe", "POST /auth/logout"]);
+      expect(requestsSent().sort()).toEqual(["POST /auth/logout", "POST /push/release"]);
+      const baja = fetchMock.mock.calls.find(([url]) => url.endsWith("/push/release"))!;
+      expect((baja[1].headers as Record<string, string>).Authorization).toBeUndefined();
+      expect(JSON.parse(baja[1].body as string)).toEqual({
+        endpoint: ENDPOINT,
+        auth: "a",
+        user_id: ADMIN.id,
+      });
       expect(routerReplace.mock.calls).toEqual([["/"]]);
       expect(auth().twoFactorSetupPending).toBe(false);
       expect(auth().user).toBeNull();

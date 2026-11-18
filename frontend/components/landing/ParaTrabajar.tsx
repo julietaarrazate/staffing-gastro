@@ -8,7 +8,12 @@ import { BARRIO, DISTANCIA_M, LOCAL } from "./fixtures";
  * trabajador y un solo botón (Julieta: "mucho botón ámbar junto y cosas
  * encimadas"). Lo que antes iba en lista (pago directo, sin cobro al
  * trabajador) está en las preguntas frecuentes. La foto es de prueba (ver
- * HeroRueda.tsx).
+ * HeroRueda.tsx): la barra con los bartenders, la de la prueba híbrida (en la
+ * primera vuelta quedó la bandeja de antes y Julieta la reclamó). Desde el
+ * 2026-11-18 la oferta va apoyada y apenas torcida,
+ * con el relieve del filete. El puesto es «Bartender», como en la foto y
+ * en la prueba (antes «Mozo/a»), y va en Inter: la brocha es sólo para el
+ * inicio, el cierre y la carta.
  */
 export default function ParaTrabajar() {
   return (
@@ -20,18 +25,18 @@ export default function ParaTrabajar() {
           Turnos cerca tuyo, cuando quieras
         </h2>
         <div className="landing-sec-cosa w-full max-w-[360px] text-left">
-          <div aria-hidden className="landing-tarjeta landing-flota overflow-hidden bg-card">
+          <div aria-hidden className="landing-tarjeta overflow-hidden bg-card">
             <div className="relative h-32 sm:h-40">
-              <Image src="/landing/mozo1.webp" alt="" fill sizes="360px" className="landing-foto object-cover" />
-              <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 font-mono text-label font-medium tracking-[0.04em] text-ink">A {DISTANCIA_M} m</span>
+              <Image src="/landing/bar3.webp" alt="" fill sizes="360px" className="landing-foto object-cover" />
+              <span className="absolute left-3 top-3 rounded-[var(--radius-chip)] bg-white px-2 py-1 text-label font-semibold uppercase tracking-[0.06em] text-ink">A {DISTANCIA_M} m</span>
             </div>
             <div className="p-5">
               <p className="text-sm text-ink-mute">
                 {LOCAL} · {BARRIO}
               </p>
-              <p className="font-display text-xl font-bold tracking-[-0.02em] text-ink">Mozo/a</p>
+              <p className="mt-0.5 text-xl font-bold tracking-[-0.02em] text-ink">Bartender</p>
               <p className="mt-1.5 flex items-baseline gap-1.5">
-                <b className="font-display text-2xl tracking-[-0.03em] text-ink">$70.000</b>
+                <b className="text-2xl font-bold tracking-[-0.02em] tabular-nums text-ink">$70.000</b>
                 <span className="text-sm text-ink-soft">$14.000 por hora</span>
               </p>
               <p className="mt-1 text-sm text-ink-soft">Hoy · 21:00 – 02:00</p>

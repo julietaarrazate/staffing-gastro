@@ -10,7 +10,14 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { useTapGuard } from "@/lib/use-tap-guard";
 import { useLiveRefresh } from "@/lib/live-refresh";
-import { cancelConfirmCopy, isCancellable, withFreshState } from "@/lib/cancelar-turno";
+import { coberturaPorEvento } from "@/lib/evento-cobertura";
+import { LETRAS_APP } from "@/lib/letras";
+import {
+  cancelConfirmCopy,
+  cancelEventConfirmCopy,
+  isCancellable,
+  withFreshState,
+} from "@/lib/cancelar-turno";
 import { Shift, ShiftStatus } from "@/lib/types";
 import ShiftCard from "@/components/ShiftCard";
 import ShiftActions from "@/components/ShiftActions";
@@ -20,6 +27,8 @@ import Link from "next/link";
 import ReviewBox from "@/components/ReviewBox";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import ShiftPublishedNextSteps from "@/components/ShiftPublishedNextSteps";
+import { payView } from "@/lib/pay";
+import { noShowConfirmCopy } from "@/lib/turno-reofrecido";
 import GuidedTour, { type TourStep } from "@/components/GuidedTour";
 import { EmptyPanelIllustration } from "@/components/illustrations";
 import {
@@ -192,7 +201,7 @@ function mayBeOnTheWay(shift: Shift, now: number): boolean {
 }
 
 function MyShiftsPanel() {
-  const { token, user } = useRequireAuth();
+  const { token, user } = useRequireAuth({ roles: ["employer"] });
   const router = useRouter();
   const firstName = user?.full_name?.split(" ")[0];
   const toast = useToast();
@@ -225,6 +234,10 @@ function MyShiftsPanel() {
   const [cancelChecking, setCancelChecking] = useState(false);
   const cancelCheckRef = useRef(0);
   const [confirmMarkPaidId, setConfirmMarkPaidId] = useState<string | null>(null);
+  // U084: cancelar un evento entero. Mientras se relee el panel al abrir el
+  // diálogo (`askCancelEvent`), el texto queda en espera.
+  const [confirmEventId, setConfirmEventId] = useState<string | null>(null);
+  const [eventChecking, setEventChecking] = useState(false);
   // Pantalla "esto es lo que sigue" (Fix 2, docs/planning/PULIDO_ROADMAP.md): guarda
   // el id del turno que se acaba de publicar DESDE ESTE PANEL (borrador →
   // publicado). Reemplaza el cartel de una sola vez ("ya estás buscando
@@ -310,6 +323,7 @@ function MyShiftsPanel() {
       confirmNoShowId !== null ||
       confirmCancelId !== null ||
       confirmMarkPaidId !== null ||
+      confirmEventId !== null ||
       planLimitMessage !== null ||
       justPublishedId !== null,
   });
@@ -379,7 +393,12 @@ function MyShiftsPanel() {
         // Terminó, se canceló o quedó sin cubrir mientras el panel estaba
         // abierto: la tarjeta ya muestra el estado nuevo.
         setConfirmCancelId(null);
-        toast("Este turno ya no se puede cancelar.", "info");
+        toast(
+          fresh.status === "check_out"
+            ? "La persona ya marcó la salida: este turno se finaliza y se paga, no se cancela."
+            : "Este turno ya no se puede cancelar.",
+          "info"
+        );
       }
     } catch {
       // Sin dato fresco: vale el estado conocido (ver arriba).
@@ -397,6 +416,43 @@ function MyShiftsPanel() {
   async function confirmCancel(id: string) {
     closeCancel();
     await run(id, "cancel");
+  }
+
+  // Cancelar un evento entero (U084): mismas reglas que cada puesto, y el
+  // texto dice cuántos puestos se cancelan y cuántas tardías suma. Igual que
+  // `askCancel`, al abrir se relee el panel para que ese texto sea el de ahora.
+  async function askCancelEvent(eventId: string) {
+    // Abrir pasa por la guarda (como «Marcar como pagado»): el segundo toque
+    // de un doble toque no confirma. La relectura va afuera, para que la
+    // guarda no siga trabada mientras llega.
+    const opened = await tapGuard.run(() => setConfirmEventId(eventId));
+    if (!opened) return;
+    setEventChecking(true);
+    try {
+      await load({ silent: true });
+    } finally {
+      setEventChecking(false);
+    }
+  }
+
+  async function confirmCancelEvent(eventId: string) {
+    if (!token) return;
+    const key = `${eventId}:cancel-event`;
+    await tapGuard.run(async () => {
+      setConfirmEventId(null);
+      setBusy(key);
+      try {
+        await api.post(`/shifts/events/${eventId}/cancel`, undefined, token, undefined, keyFor(key));
+        clearIdempotencyKey(key);
+        toast("Cancelaste el evento.", "success");
+      } catch (err) {
+        toast(getErrorMessage(err, "No se pudo cancelar el evento"), "error");
+      } finally {
+        // También al fallar: algún puesto pudo haber cambiado.
+        await load({ silent: true });
+        setBusy(null);
+      }
+    });
   }
 
   // «Marcar como pagado» no se puede deshacer y le avisa al trabajador que
@@ -430,46 +486,51 @@ function MyShiftsPanel() {
 
   // Progreso de cobertura por evento (publicación masiva, /shifts/new-event):
   // cruza TODAS las familias — un evento de 6 roles puede tener 4 ya
-  // asignados/en marcha y 2 todavía buscando, repartidos en pestañas
-  // distintas. `covered` = ya tiene trabajador asignado (worker_profile_id),
-  // sin importar en qué paso del ciclo vaya después de eso.
-  const eventGroups = useMemo(() => {
-    const byId = new Map<string, { name: string; total: number; covered: number }>();
-    for (const shift of shifts) {
-      if (!shift.event_id) continue;
-      const entry = byId.get(shift.event_id) ?? {
-        name: shift.event_name ?? "Evento",
-        total: 0,
-        covered: 0,
-      };
-      entry.total += 1;
-      if (shift.worker_profile_id) entry.covered += 1;
-      byId.set(shift.event_id, entry);
-    }
-    return Array.from(byId.entries()).map(([eventId, data]) => ({ eventId, ...data }));
-  }, [shifts]);
+  // confirmados y 2 todavía buscando, repartidos en pestañas distintas. No
+  // cuenta los cancelados; «cubiertos» son los confirmados en adelante
+  // (`lib/evento-cobertura.ts`).
+  const eventGroups = useMemo(() => coberturaPorEvento(shifts), [shifts]);
 
   const cancelCopy = cancelConfirmCopy(
     confirmCancelId ? shifts.find((s) => s.id === confirmCancelId) : undefined
   );
-  const payingWorkerName = confirmMarkPaidId
-    ? shifts.find((s) => s.id === confirmMarkPaidId)?.worker_name
-    : null;
+  const eventCopy = cancelEventConfirmCopy(
+    confirmEventId ? shifts.filter((s) => s.event_id === confirmEventId) : []
+  );
+  const payingShift = confirmMarkPaidId
+    ? shifts.find((s) => s.id === confirmMarkPaidId)
+    : undefined;
+  const payingWorkerName = payingShift?.worker_name ?? null;
+  const noShowShift = confirmNoShowId
+    ? shifts.find((s) => s.id === confirmNoShowId)
+    : undefined;
 
   // En "Todos" se listan sólo las familias con contenido (no tiene sentido
   // mostrar 4 estados vacíos apilados). En una pestaña puntual se muestra
   // igual, vacía, con su propio mensaje de marca.
   const visibleFamilies: Family[] =
     tab === "todos" ? FAMILY_ORDER.filter((family) => families[family].length > 0) : [tab];
+  // Sólo de la vista: qué familias cuelgan del riel (en curso y con turnos)
+  // y cuáles van debajo, sobre el lienzo.
+  const cuelga = (family: Family) =>
+    (family === "buscando" || family === "en_marcha") && families[family].length > 0;
+  const enElRiel = visibleFamilies.filter(cuelga);
+  const fueraDelRiel = visibleFamilies.filter((family) => !cuelga(family));
 
   return (
-    <div className="app-container px-4 pb-10 pt-6">
+    // Desde el 2026-11-18 el panel lleva la dirección «con relieve»
+    // (docs/design-system/direccion-relieve.md): el saludo en brocha,
+    // «Publicar turno» como el botón con relieve, y los turnos como comandas
+    // de papel. Los que están en curso (buscando y en marcha) cuelgan del
+    // riel, sobre una banda azul hondo; los que ya salieron van debajo, sobre
+    // el lienzo. La lógica no cambió.
+    <div className={`${LETRAS_APP} app-container px-4 pb-10 pt-6`}>
       <div>
-        {/* Saludo en serif, igual que el home del trabajador (DS v5.0). */}
-        <h1 className="font-display text-h1 font-semibold text-ink">
+        {/* Saludo en brocha, igual que el Inicio del trabajador. */}
+        <h1 className="letra-cartel letra-cartel-pantalla break-words">
           {firstName ? `Hola, ${firstName}` : "Hola"}
         </h1>
-        <p className="mt-0.5 text-sm text-ink/55">Gestioná los turnos de tu comercio.</p>
+        <p className="mt-1 text-sm text-ink-soft">Gestioná los turnos de tu comercio.</p>
       </div>
 
       {/* Arriba, sólo lo que se hace desde acá (2026-09-28, diagnóstico de
@@ -494,20 +555,22 @@ function MyShiftsPanel() {
         <Link
           href="/shifts/new"
           data-tour="shifts-publish"
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-btn)] bg-primary px-4 py-3 text-sm font-bold text-night shadow-[var(--shadow-primary-sm)] transition active:scale-95"
+          // El botón con relieve de la pantalla: ámbar, con la sombra dura
+          // del filete, que se aprieta al tocarlo.
+          className="boton-relieve flex flex-1 items-center justify-center gap-1.5 bg-primary px-4 py-3 text-sm font-bold text-night"
         >
           <PlusIcon size={18} /> Publicar turno
         </Link>
         <Link
           href="/shifts/new-event"
-          className="flex items-center justify-center gap-1.5 rounded-[var(--radius-btn)] bg-card px-4 py-3 text-sm font-semibold text-ink/75 ring-1 ring-line transition active:scale-95"
+          className="flex items-center justify-center gap-1.5 rounded-[var(--radius-relieve)] bg-card px-4 py-3 text-sm font-semibold text-ink/75 ring-1 ring-line transition active:scale-95"
         >
           <CalendarPlusIcon size={17} /> Evento
         </Link>
       </div>
 
-      <div className="mt-3">
-        <AIAssistantBar />
+      <div className="mt-3.5">
+        <AIAssistantBar recto />
       </div>
 
         </>
@@ -536,9 +599,9 @@ function MyShiftsPanel() {
           {eventGroups.map((event) => (
             <div
               key={event.eventId}
-              className="flex items-center justify-between gap-3 rounded-2xl bg-card px-4 py-3 ring-1 ring-line"
+              className="flex items-center justify-between gap-3 rounded-[var(--radius-btn)] bg-card px-4 py-3 ring-1 ring-line"
             >
-              <p className="truncate text-sm font-semibold text-ink">{event.name}</p>
+              <p className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{event.name}</p>
               <span
                 className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${
                   event.covered === event.total
@@ -548,6 +611,17 @@ function MyShiftsPanel() {
               >
                 {event.covered}/{event.total} cubiertos
               </span>
+              {shifts.some((s) => s.event_id === event.eventId && isCancellable(s.status)) && (
+                <button
+                  type="button"
+                  onClick={() => void askCancelEvent(event.eventId)}
+                  disabled={busy !== null || tapGuard.locked}
+                  aria-label={`Cancelar el evento ${event.name}`}
+                  className="-my-2 -mr-2 min-h-[44px] shrink-0 rounded-full px-2 text-sm font-semibold text-danger-text hover:underline disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -581,53 +655,78 @@ function MyShiftsPanel() {
               tarjeta de 360px y media pantalla vacía, grupo tras grupo
               (auditoría visual 2026-09-24, A3). Ahora dos familias de un
               turno cada una comparten fila, cada una con su encabezado. */}
-          <div
-            className="mt-6 grid items-start gap-x-4 gap-y-6 md:grid-cols-2 xl:grid-cols-3"
-            data-testid="shifts-panel-list"
-          >
-            {visibleFamilies.map((family) => {
-              const list = families[family];
-              const meta = FAMILY_META[family];
-              // Con una sola familia a la vista (una pestaña puntual) ocupa el
-              // ancho entero, como antes: no hay otra con quién compartir fila.
-              const full = tab !== "todos" || list.length >= 3;
-              const span = full ? "md:col-span-2 xl:col-span-3" : list.length === 2 ? "md:col-span-2" : "";
-              const cols = full ? "md:grid-cols-2 xl:grid-cols-3" : list.length === 2 ? "md:grid-cols-2" : "";
-              return (
-                <section key={family} className={`min-w-0 ${span}`} data-family={family}>
-                  <h2 className="mb-2 flex items-center gap-1.5 text-xs font-bold font-mono uppercase tracking-wide text-ink/40">
-                    {meta.icon}
-                    {meta.title}
-                    <span className="font-semibold text-ink/25">· {list.length}</span>
-                  </h2>
-
-                  {list.length === 0 ? (
-                    <EmptyState icon={meta.icon} title={meta.emptyTitle} subtitle={meta.emptySubtitle} />
-                  ) : (
-                    <div className={`grid gap-4 ${cols}`}>
-                      {list.map((shift) => (
-                        <ShiftCard key={shift.id} shift={shift}>
-                          <ShiftActions
-                            shift={shift}
-                            busy={busy}
-                            locked={tapGuard.locked}
-                            onRun={run}
-                            onMarkPaid={() => askMarkPaid(shift.id)}
-                            onNoShow={() => setConfirmNoShowId(shift.id)}
-                            onCancel={() => void askCancel(shift.id)}
-                          />
-                          {(shift.status === "finalizado" || shift.status === "pagado") && (
-                            <div className="mt-3">
-                              <ReviewBox shiftId={shift.id} />
-                            </div>
-                          )}
-                        </ShiftCard>
+          {/* Dos grupos (2026-11-18). «En el riel»: las familias en curso
+              que tienen turnos, sobre la banda azul hondo y colgando del
+              riel. Debajo, sobre el lienzo, las demás (terminados,
+              cancelados, borradores) y las que están vacías, cuyo cartel
+              de vacío no se leería sobre el azul. Cada grupo es una grilla
+              como la de antes. */}
+          <div data-testid="shifts-panel-list">
+            {[enElRiel, fueraDelRiel].map((grupo, g) =>
+              grupo.length === 0 ? null : (
+                <div
+                  key={g === 0 ? "riel" : "resto"}
+                  className={g === 0 ? "app-banda -mx-4 mt-6 px-4 pb-7 pt-0" : "mt-6"}
+                >
+                  {g === 0 && (
+                    <div aria-hidden className="riel">
+                      {[8, 30, 52, 74, 94].map((x) => (
+                        <i key={x} style={{ left: `${x}%` }} />
                       ))}
                     </div>
                   )}
-                </section>
-              );
-            })}
+                  <div className={`grid items-start gap-x-4 gap-y-6 md:grid-cols-2 xl:grid-cols-3 ${g === 0 ? "pt-5" : ""}`}>
+                    {grupo.map((family) => {
+                      const list = families[family];
+                      const meta = FAMILY_META[family];
+                      // Con una sola familia a la vista (una pestaña puntual) ocupa el
+                      // ancho entero, como antes: no hay otra con quién compartir fila.
+                      const full = tab !== "todos" || list.length >= 3;
+                      const span = full ? "md:col-span-2 xl:col-span-3" : list.length === 2 ? "md:col-span-2" : "";
+                      const cols = full ? "md:grid-cols-2 xl:grid-cols-3" : list.length === 2 ? "md:grid-cols-2" : "";
+                      return (
+                        <section key={family} className={`min-w-0 ${span}`} data-family={family}>
+                          <h2
+                            className={`mb-2.5 flex items-center gap-1.5 text-sm font-semibold ${
+                              g === 0 ? "text-[color:var(--app-banda-tinta)]" : "text-ink-soft"
+                            }`}
+                          >
+                            {meta.icon}
+                            {meta.title}
+                            <span className={`font-medium ${g === 0 ? "opacity-75" : ""}`}>· {list.length}</span>
+                          </h2>
+
+                          {list.length === 0 ? (
+                            <EmptyState icon={meta.icon} title={meta.emptyTitle} subtitle={meta.emptySubtitle} />
+                          ) : (
+                            <div className={`grid gap-4 ${cols}`}>
+                              {list.map((shift) => (
+                                <ShiftCard key={shift.id} shift={shift} comanda>
+                                  <ShiftActions
+                                    shift={shift}
+                                    busy={busy}
+                                    locked={tapGuard.locked}
+                                    onRun={run}
+                                    onMarkPaid={() => askMarkPaid(shift.id)}
+                                    onNoShow={() => setConfirmNoShowId(shift.id)}
+                                    onCancel={() => void askCancel(shift.id)}
+                                  />
+                                  {(shift.status === "finalizado" || shift.status === "pagado") && (
+                                    <div className="mt-3">
+                                      <ReviewBox shiftId={shift.id} />
+                                    </div>
+                                  )}
+                                </ShiftCard>
+                              ))}
+                            </div>
+                          )}
+                        </section>
+                      );
+                    })}
+                  </div>
+                </div>
+              )
+            )}
           </div>
         </>
       )}
@@ -653,9 +752,11 @@ function MyShiftsPanel() {
         onClose={() => setConfirmNoShowId(null)}
         title="¿Marcar que no se presentó?"
       >
+        {/* Qué pasa con el turno depende de cuánto horario le queda (U080). */}
         <p className="text-sm text-ink/60">
-          El turno se libera para volver a buscar personal y le va a impactar
-          la reputación al trabajador. Esta acción queda registrada.
+          {noShowShift
+            ? noShowConfirmCopy(noShowShift)
+            : "El turno se libera para volver a buscar personal y le va a impactar la reputación al trabajador. Esta acción queda registrada."}
         </p>
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="surface" size="sm" onClick={() => setConfirmNoShowId(null)}>
@@ -710,6 +811,44 @@ function MyShiftsPanel() {
       </Modal>
 
       <Modal
+        open={confirmEventId !== null}
+        onClose={() => {
+          if (!tapGuard.locked) setConfirmEventId(null);
+        }}
+        title="¿Cancelar el evento entero?"
+      >
+        {eventChecking ? (
+          <div role="status" aria-busy="true" data-testid="cancel-event-checking">
+            <span className="sr-only">Revisando el estado del evento…</span>
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="mt-2 h-4 w-2/3" />
+          </div>
+        ) : eventCopy.count === 0 ? (
+          <p className="text-sm text-ink/60">Este evento ya no tiene puestos para cancelar.</p>
+        ) : (
+          <>
+            <p className="text-sm text-ink/60">{eventCopy.body}</p>
+            {eventCopy.lateCancellation && (
+              <p className="mt-2 text-sm font-semibold text-ink">{eventCopy.lateCancellation}</p>
+            )}
+          </>
+        )}
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="surface" size="sm" onClick={() => setConfirmEventId(null)}>
+            Volver
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            disabled={eventChecking || tapGuard.locked || eventCopy.count === 0}
+            onClick={() => confirmEventId && confirmCancelEvent(confirmEventId)}
+          >
+            Sí, cancelar evento
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal
         open={confirmMarkPaidId !== null}
         onClose={() => {
           if (!tapGuard.locked) setConfirmMarkPaidId(null);
@@ -720,6 +859,14 @@ function MyShiftsPanel() {
           Se le avisa {payingWorkerName ? `a ${payingWorkerName}` : "al trabajador"} que ya cobró
           este turno y no vas a poder deshacerlo.
         </p>
+        {/* Turno reofrecido (U080): lo que corresponde pagar es lo que
+            restaba desde la llegada, no el monto publicado. */}
+        {payingShift && payView(payingShift).kind === "prorrateado" && (
+          <p className="mt-2 text-sm font-semibold text-ink">
+            Corresponde pagar {payView(payingShift).amount}: lo que restaba del turno desde su
+            llegada.
+          </p>
+        )}
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="surface" size="sm" onClick={() => setConfirmMarkPaidId(null)}>
             Volver

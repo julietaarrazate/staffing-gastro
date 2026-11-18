@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { homeDelRol } from "@/lib/home-del-rol";
 import LandingCorta from "@/components/landing/LandingCorta";
 
 // La puerta de "/": la landing para visitantes, la home del rol para quien ya
@@ -11,11 +12,6 @@ import LandingCorta from "@/components/landing/LandingCorta";
 
 // Home de cada rol: a dónde mandamos a un usuario ya logueado. La landing es
 // marketing (para visitantes sin sesión); quien ya entró va directo a su app.
-const HOME_BY_ROLE: Record<string, string> = {
-  worker: "/feed",
-  employer: "/shifts",
-  admin: "/admin",
-};
 
 export default function LandingGate() {
   const { user, loading, reconnecting } = useAuth();
@@ -25,7 +21,7 @@ export default function LandingGate() {
   // home del rol. La landing queda sólo para visitantes sin cuenta.
   useEffect(() => {
     if (!loading && user) {
-      router.replace(HOME_BY_ROLE[user.role] ?? "/feed");
+      router.replace(homeDelRol(user.role));
     }
   }, [loading, user, router]);
 

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { Applicant } from "@/lib/types";
-import { rankApplicants, standoutApplicant } from "./applicants";
+import {
+  activeApplicantCount,
+  rankApplicants,
+  standoutApplicant,
+  unassignedLabel,
+} from "./applicants";
 
 function applicant(overrides: Partial<Applicant>): Applicant {
   return {
@@ -62,5 +67,47 @@ describe("standoutApplicant", () => {
   it("destaca al primero cuando tiene historial", () => {
     const top = applicant({ full_name: "Top", events_completed: 5, rating: 4.8 });
     expect(standoutApplicant(rankApplicants([applicant({}), top]))?.full_name).toBe("Top");
+  });
+});
+
+describe("quien tuvo el turno y lo dejó (G4)", () => {
+  const crack = applicant({
+    application_id: "crack",
+    full_name: "Crack que rechazó",
+    status: "desasignada",
+    motivo: "rechazo",
+    rating: 5,
+    events_completed: 40,
+    punctuality_rate: 1,
+  });
+  const nuevo = applicant({ application_id: "nuevo", full_name: "Nuevo" });
+
+  it("va al final aunque tenga la mejor reputación", () => {
+    expect(rankApplicants([crack, nuevo]).map((a) => a.full_name)).toEqual([
+      "Nuevo",
+      "Crack que rechazó",
+    ]);
+  });
+
+  it("nunca es el destacado, ni siquiera si es el único", () => {
+    expect(standoutApplicant(rankApplicants([crack, nuevo]))).toBeNull();
+    expect(standoutApplicant(rankApplicants([crack]))).toBeNull();
+  });
+
+  it("no suma en la cuenta de postulantes", () => {
+    expect(activeApplicantCount([crack, nuevo])).toBe(1);
+    expect(activeApplicantCount([crack])).toBe(0);
+  });
+
+  it("lleva la marca de su motivo", () => {
+    expect(unassignedLabel(crack)).toBe("Rechazó este turno");
+    expect(unassignedLabel({ status: "desasignada", motivo: "cancelacion" })).toBe("Canceló");
+    expect(unassignedLabel({ status: "desasignada", motivo: "ausencia" })).toBe("No se presentó");
+    expect(unassignedLabel({ status: "desasignada", motivo: null })).toBe("Ya tuvo este turno");
+  });
+
+  it("un postulante en carrera no lleva marca", () => {
+    expect(unassignedLabel(nuevo)).toBeNull();
+    expect(unassignedLabel({ status: "aceptada", motivo: null })).toBeNull();
   });
 });

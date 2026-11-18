@@ -14,7 +14,7 @@ bidireccional: comercio y trabajador se califican mutuamente.
 - **Cuándo:** sólo sobre turnos **cerrados** (`finalizado` o `pagado`).
 - **Quién:** el comercio y el trabajador **asignado** al turno.
 - **Qué:** una calificación de **1 a 5** y un comentario opcional.
-- **Unicidad:** una sola reseña por usuario por turno.
+- **Unicidad:** una sola reseña por usuario por turno. **Es definitiva (U111):** no se edita ni se borra (no hay endpoint para eso); un segundo intento da 409 «Ya calificaste este turno…», y la pantalla lo avisa antes de enviar.
 - **Efecto:** cada reseña **recalcula el rating promedio** del calificado y le
   genera una notificación (`review_received`).
 
@@ -29,7 +29,14 @@ bidireccional: comercio y trabajador se califican mutuamente.
   minutos después** del horario pactado (`start_at`); llegar antes (la app deja
   marcar hasta 30 min antes) siempre cuenta como puntual. La regla es la
   función pura `arrived_on_time` en
-  `backend/app/modules/shift/domain/punctuality.py`. `finish()` sólo es alcanzable
+  `backend/app/modules/shift/domain/punctuality.py`. **Quien tomó un turno ya
+  empezado** (el reemplazo de un turno reofrecido, U080: `Shift.taken_after_start`)
+  no tiene una hora pactada contra la cual medirlo: el
+  turno le suma en `events_completed` y **su puntualidad no se mueve, ni a
+  favor ni en contra** (`punctuality_of`, mismo archivo; si es su primer
+  turno arranca en 1, sin llegadas tarde registradas). Si no llega, la
+  ausencia sí cuenta. En un turno común que se confirmó después del inicio
+  la puntualidad se mide contra `start_at`, como siempre. `finish()` sólo es alcanzable
   habiendo pasado por check-in y check-out (ver
   `Shift._transition` en `shift/domain/entities.py`), así que siempre hay un
   check-in real para evaluar.

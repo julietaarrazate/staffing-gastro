@@ -78,7 +78,7 @@ function AuthLinksConVuelta() {
 }
 
 export default function Navbar() {
-  const { user, logout, loading, reconnecting } = useAuth();
+  const { user, logout, loading, reconnecting, twoFactorSetupPending } = useAuth();
   const pathname = usePathname();
 
   // El onboarding es una pantalla de fondo ink con su propio logo: el header
@@ -92,6 +92,8 @@ export default function Navbar() {
   // /historia (la landing anterior, guardada para grabar reels) trae su
   // propio encabezado, con o sin sesión.
   if (pathname === "/historia") return null;
+  // La encuesta para locales es una pantalla propia, con su cielo y sin barras.
+  if (pathname === "/encuesta") return null;
 
   return (
     // `safe-top`: con `viewport-fit=cover` (layout raíz) la página usa el alto
@@ -107,15 +109,16 @@ export default function Navbar() {
           {!loading && user?.role === "worker" && (
             <>
               <NavLink href="/feed">Turnos</NavLink>
+              <NavLink href="/buscar">Buscar</NavLink>
               <NavLink href="/map">Mapa</NavLink>
-              <NavLink href="/my-shifts">Mis turnos</NavLink>
+              <NavLink href="/my-shifts">Matches</NavLink>
               <NavLink href="/chats">Mensajes</NavLink>
               <NavLink href="/profile">Mi perfil</NavLink>
             </>
           )}
           {!loading && user?.role === "employer" && (
             <>
-              <NavLink href="/shifts">Mis turnos</NavLink>
+              <NavLink href="/shifts">Panel</NavLink>
               <NavLink href="/search">Buscar</NavLink>
               <NavLink href="/favorites">Favoritos</NavLink>
               <NavLink href="/chats">Mensajes</NavLink>
@@ -123,7 +126,7 @@ export default function Navbar() {
               <NavLink href="/profile">Mi comercio</NavLink>
             </>
           )}
-          {!loading && user?.role === "admin" && (
+          {!loading && user?.role === "admin" && !twoFactorSetupPending && (
             <>
               {/* `replace` como todos: era el ÚNICO link de sección sin él,
                   aunque la barra inferior sí navega a `/admin` con replace.
@@ -135,7 +138,7 @@ export default function Navbar() {
               <NavLink href="/search">Buscar</NavLink>
             </>
           )}
-          {!loading && user && <NotificationBell />}
+          {!loading && user && !twoFactorSetupPending && <NotificationBell />}
           {/* Sólo "Salir", sin el nombre: con el nombre completo del comercio
               ("Salir (Parrilla y Vermutería Don Julián)") el header no entraba
               en una tablet y los links pasaban a dos líneas hasta los ~1000px.

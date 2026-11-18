@@ -1,11 +1,13 @@
 """Casos de uso del módulo application (postulación del trabajador a un turno)."""
 
 import logging
+from datetime import datetime, timezone
 from uuid import UUID
 
 from app.modules.application.domain.entities import EnrichedApplicant, ShiftApplication
 from app.modules.application.domain.exceptions import (
     AlreadyAppliedError,
+    AlreadyUnassignedError,
     ApplicationNotFoundError,
     ShiftNotApplicableError,
 )
@@ -58,9 +60,20 @@ class ApplicationService:
         turno), postularse de nuevo la reactiva: vuelve a PENDIENTE con fecha
         nueva y el comercio recibe el aviso como con una postulación nueva. Es
         lo que promete la app al cancelar ("si sigue abierto, podés volver a
-        postularte"). Cualquier otro estado es `AlreadyAppliedError`."""
+        postularte"). Cualquier otro estado es `AlreadyAppliedError`; si tuvo
+        el turno asignado y lo dejó (DESASIGNADA), `AlreadyUnassignedError`:
+        ya está en la lista del comercio, al final, y es el comercio quien
+        decide si lo vuelve a elegir."""
         shift = await self._shifts.get_by_id(shift_id)
         if shift is None or shift.status not in OPEN_STATUSES:
+            raise ShiftNotApplicableError(str(shift_id))
+        if shift.is_reoffered and not shift.is_open_for_applications(
+            datetime.now(timezone.utc)
+        ):
+            # Turno reofrecido (U080): se ofrece mientras le queden al menos 2
+            # horas de horario (`Shift.offered_until`). Desde ahí, y hasta la
+            # pasada que lo cierra como «no cubierto», ya no acepta
+            # postulaciones.
             raise ShiftNotApplicableError(str(shift_id))
         company = await self._companies.get_by_id(shift.company_id)
         if not await self._account_active(company.user_id if company else None):
@@ -78,6 +91,8 @@ class ApplicationService:
         elif existing.status == ApplicationStatus.RETIRADA:
             existing.reapply()
             application = await self._applications.update(existing)
+        elif existing.status == ApplicationStatus.DESASIGNADA:
+            raise AlreadyUnassignedError(str(shift_id))
         else:
             raise AlreadyAppliedError(str(shift_id))
         logger.info(
@@ -108,7 +123,10 @@ class ApplicationService:
         se postuló + cuántos postulantes hay en total + a qué turno, no un
         genérico 'un trabajador se postuló'."""
         position_label = shift.title or shift.position.label
-        total = len(await self._applications.list_by_shift(shift.id))
+        # Los que están en carrera, igual que el contador del panel: sin las
+        # retiradas ni quien tuvo el turno y lo dejó (G4).
+        pending = await self._applications.count_pending_by_shift_ids([shift.id])
+        total = max(pending.get(shift.id, 0), 1)
         worker_name = await self._worker_full_name(worker_profile_id)
         title = f"{total} postulante{'s' if total != 1 else ''} para {position_label}"
         message = (
@@ -162,7 +180,18 @@ class ApplicationService:
             worker_profile_id, limit=limit, offset=offset
         )
         shift_ids = list({a.shift_id for a in applications})
-        shifts_by_id = {s.id: s for s in await self._shifts.list_by_ids(shift_ids)}
+        shifts = await self._shifts.list_by_ids(shift_ids)
+        # Los turnos de un comercio suspendido dejan de verse (ADR-0024): la
+        # postulación se devuelve sin turno, como si ya no existiera, salvo el
+        # que tiene asignado esta misma persona (puede estar trabajándolo).
+        inactive = await self._shifts.companies_with_inactive_account(
+            list({s.company_id for s in shifts})
+        )
+        shifts_by_id = {
+            s.id: s
+            for s in shifts
+            if s.company_id not in inactive or s.worker_profile_id == worker_profile_id
+        }
         return [(a, shifts_by_id.get(a.shift_id)) for a in applications]
 
     async def withdraw(

@@ -11,15 +11,21 @@ import {
   isTransientFailure,
   NetworkError,
   renewSessionToken,
-  resolveToken,
   setTwoFactorGateHandler,
   setUnauthorizedHandler,
+  NO_CONNECTION_MESSAGE,
+  TIMEOUT_MESSAGE,
 } from "@/lib/api";
 import { emitLiveRefresh } from "@/lib/live-refresh";
-import { claimPushForAccount, releasePushFromAccount } from "@/lib/push";
+import {
+  claimPushForAccount,
+  releasePushFromAccount,
+  retryPendingPushReleases,
+} from "@/lib/push";
 import { restartAtHome } from "@/lib/restart-at-home";
 import { isSessionEndReason, loginHref, type SessionEndReason } from "@/lib/safe-next";
 import { clearAllCached } from "@/lib/screen-cache";
+import { borrarBorradores } from "@/lib/almacen-sesion";
 import {
   isTwoFactorChallenge,
   TWO_FACTOR_CODES,
@@ -57,17 +63,20 @@ interface AuthState {
   token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<LoginOutcome>;
+  /** `birthDate`: `AAAA-MM-DD`, obligatoria y de un mayor de 18 (U101). */
   register: (
     email: string,
     password: string,
     full_name: string,
-    role: "worker" | "employer"
+    role: "worker" | "employer",
+    birthDate: string
   ) => Promise<RegisterOutcome>;
-  /** `role` sólo hace falta si el email es nuevo (ver `GoogleLoginResult`);
-   * se ignora si el email ya tiene cuenta. */
+  /** `role` y `birthDate` sólo hacen falta si el email es nuevo (ver
+   * `GoogleLoginResult`); se ignoran si el email ya tiene cuenta. */
   loginWithGoogle: (
     idToken: string,
-    role?: "worker" | "employer"
+    role?: "worker" | "employer",
+    birthDate?: string
   ) => Promise<GoogleLoginResult>;
   /** Acceso de invitado para la beta ("Explorar sin cuenta"): entra sin
    * registrarse validando un PIN (ver `POST /auth/guest`). */
@@ -93,9 +102,10 @@ interface AuthState {
   /** "Ver como": una admin entra a la cuenta de `userId` sin conocer su
    * contraseña (`POST /admin/users/{id}/impersonate`). La sesión de admin
    * queda en memoria (no en localStorage) para volver con `stopImpersonating`;
-   * si se recarga la página mientras se impersona, se vuelve a la cuenta admin
-   * automáticamente — es la conducta más segura por diseño (nunca persiste el
-   * token impersonado). */
+   * si se recarga la página mientras se impersona, se recupera la sesión de la
+   * admin y se vuelve a pedir "ver como" a esa misma persona (sólo se guarda
+   * su id en sessionStorage, nunca el token impersonado). Si no se puede, se
+   * vuelve a la cuenta admin sin error. */
   impersonate: (userId: string) => Promise<void>;
   stopImpersonating: () => void;
   /** Cambia el nombre del usuario autenticado (único dato de identidad
@@ -165,6 +175,61 @@ const SESSION_USER_KEY = "staffya_session_user";
 // Para qué cuenta ya se recargó esta pestaña (ver `sessionMovedOn`).
 const RELOADED_FOR_KEY = "staffya_reloaded_for";
 
+// A quién se está "viendo como" en esta pestaña (el id de la persona, que no
+// es un secreto; el token impersonado NUNCA se guarda). Vive en
+// sessionStorage: sólo sobrevive a recargar la misma pestaña. Al recargar, la
+// sesión que se recupera es la de la admin (cookie de renovación) y, si esta
+// marca está, se vuelve a pedir "ver como" con ese token de admin (U131).
+const IMPERSONATING_KEY = "staffya_impersonating";
+const UUID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** La marca guarda quién es la admin (`adminId`) y a quién ve (`userId`): si
+ * en esta pestaña cambia la admin, la marca de la anterior no se usa. */
+function rememberImpersonation(adminId: string, userId: string) {
+  try {
+    sessionStorage.setItem(IMPERSONATING_KEY, JSON.stringify({ adminId, userId }));
+  } catch {
+    /* sin sessionStorage: al recargar se vuelve a la cuenta admin */
+  }
+}
+
+/** La marca pendiente, o `null` si no hay o no tiene forma válida (los ids se
+ * interpolan en una ruta: sólo pasan si parecen un UUID). */
+function pendingImpersonation(): { adminId: string; userId: string } | null {
+  try {
+    const raw = sessionStorage.getItem(IMPERSONATING_KEY);
+    if (!raw) return null;
+    const mark = JSON.parse(raw) as { adminId?: unknown; userId?: unknown };
+    if (
+      typeof mark.adminId === "string" &&
+      typeof mark.userId === "string" &&
+      UUID_SHAPE.test(mark.adminId) &&
+      UUID_SHAPE.test(mark.userId)
+    ) {
+      return { adminId: mark.adminId, userId: mark.userId };
+    }
+  } catch {
+    /* marca ilegible: se descarta */
+  }
+  return null;
+}
+
+function hasImpersonationMark(): boolean {
+  try {
+    return sessionStorage.getItem(IMPERSONATING_KEY) !== null;
+  } catch {
+    return false;
+  }
+}
+
+function forgetImpersonation() {
+  try {
+    sessionStorage.removeItem(IMPERSONATING_KEY);
+  } catch {
+    /* nada que olvidar */
+  }
+}
+
 function persistAccessToken(access: string) {
   localStorage.setItem("staffya_token", access);
   localStorage.setItem(HAS_SESSION_KEY, "1");
@@ -176,10 +241,19 @@ function endReasonFrom(err: unknown): SessionEndReason {
   return isAccountSuspended(err) ? "suspendida" : "vencida";
 }
 
+/** La cuenta dueña de la sesión de este navegador según lo guardado, o
+ * `null` si no hay sesión. */
+function storedSessionOwner(): string | null {
+  return localStorage.getItem(HAS_SESSION_KEY) ? localStorage.getItem(SESSION_USER_KEY) : null;
+}
+
 function clearSession() {
   localStorage.removeItem("staffya_token");
   localStorage.removeItem(HAS_SESSION_KEY);
   localStorage.removeItem(SESSION_USER_KEY);
+  forgetImpersonation();
+  // Borradores de la pestaña (publicar, bienvenida): no pasan a la próxima cuenta.
+  borrarBorradores();
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -198,7 +272,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // como otra persona). Ver `SESSION_USER_KEY`.
   const sessionUserId = useRef<string | null>(null);
 
+  // La cuenta que se acaba de recuperar al abrir la app (ver `resumeImpersonation`).
+  const restoredAccount = useRef<User | null>(null);
+  const [resuming, setResuming] = useState(false);
+
   function rememberSessionUser(account: User) {
+    restoredAccount.current = account;
     sessionUserId.current = account.id;
     localStorage.setItem(SESSION_USER_KEY, account.id);
   }
@@ -232,6 +311,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Varias pantallas reciben el mismo 403 a la vez: se actúa una sola vez.
   const leavingForReauth = useRef(false);
 
+  /** La cuenta dueña de la sesión que hay en esta pestaña (la admin, si está
+   * viendo como otra persona). Hay que leerla ANTES de borrar la sesión. */
+  function sessionOwner(): string | null {
+    return sessionUserId.current ?? storedSessionOwner();
+  }
+
+  /** Da de baja este dispositivo para la cuenta cuya sesión terminó acá. No
+   * se espera y nunca rompe el cierre: si no llega, queda pendiente y se
+   * reintenta (ver `releasePushFromAccount`). */
+  function releaseDevice(accountId: string) {
+    releasePushFromAccount(accountId).catch(() => {});
+  }
+
   /** Cambia de SESIÓN (login, logout, impersonar): el `token` del contexto
    * sólo cambia acá. Renovar el access token no pasa por acá (ver
    * `tryRefresh` y `lib/api.ts`), así que no recarga las pantallas. */
@@ -249,15 +341,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * `token` ni `user`. Antes sólo se borraba lo guardado y las pantallas
    * seguían como si hubiera sesión, mostrando «No autorizado» (U112, U096).
    * `announce: false` cuando el aviso llegó de otra pestaña, que ya lo dejó
-   * escrito. */
+   * escrito.
+   *
+   * Sin sesión, este dispositivo no recibe los avisos de la cuenta: la
+   * pestaña que DETECTA el fin (`announce`) lo da de baja, igual que un
+   * cierre de sesión. La que sólo lo refleja no: la otra ya mandó la baja (y
+   * si no llegó, quedó pendiente en `localStorage`, que es de todas), y una
+   * segunda en vuelo podría llegar después de un reingreso y borrar el
+   * registro nuevo. */
   function endSession(reason: SessionEndReason, { announce = true } = {}) {
+    const owner = announce ? sessionOwner() : null;
     sessionEpoch.current += 1;
     sessionUserId.current = null;
     if (announce) localStorage.setItem(SESSION_END_KEY, reason);
     clearSession();
+    if (owner) releaseDevice(owner);
     clearAllCached();
     impersonatingRef.current = false;
     setImpersonating(null);
+    setResuming(false);
     setTwoFactorSetupPending(false);
     setReconnecting(false);
     setJustLoggedOut(false);
@@ -293,13 +395,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // sale otra (dos a la vez se pisan la cookie). Se contesta como «sin
     // conexión», nunca como sesión terminada.
     if (refreshInFlight.current && refreshInFlight.current.epoch !== sessionEpoch.current) {
-      return Promise.reject(new NetworkError("No se pudo conectar con el servidor."));
+      return Promise.reject(new NetworkError(NO_CONNECTION_MESSAGE));
     }
     if (!refreshInFlight.current) {
       // Hay un ingreso en curso: no se sabe todavía de quién va a ser la
       // sesión. Se contesta como «sin conexión» (no cierra nada).
       if (signingIn.current > 0) {
-        return Promise.reject(new NetworkError("No se pudo conectar con el servidor."));
+        return Promise.reject(new NetworkError(NO_CONNECTION_MESSAGE));
       }
       // La respuesta es de la sesión que había al pedirla. Si mientras tanto
       // cambió de manos (ingreso, salida, cierre desde otra pestaña, «ver
@@ -308,7 +410,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // le contesta «sin conexión», no «tu sesión venció»: de la sesión de
       // ahora no dice nada.
       const epoch = sessionEpoch.current;
-      const staleSession = () => new NetworkError("No se pudo conectar con el servidor.");
+      const staleSession = () => new NetworkError(NO_CONNECTION_MESSAGE);
       const attempt: Promise<string | null> = api
         .post<{ access_token: string }>("/auth/refresh", undefined, null, REFRESH_HARD_TIMEOUT_MS)
         .then(
@@ -342,7 +444,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (timeoutMs == null) return inFlight;
     return new Promise<string | null>((resolve, reject) => {
       const timer = setTimeout(
-        () => reject(new NetworkError("El servidor tardó demasiado en responder.")),
+        () => reject(new NetworkError(TIMEOUT_MESSAGE)),
         timeoutMs
       );
       inFlight.then(resolve, reject).finally(() => clearTimeout(timer));
@@ -377,8 +479,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // guardado que ya venció. Impersonando no se renueva: el refresh traería un
   // token de la admin real, no del usuario que se está viendo.
   useEffect(() => {
-    setUnauthorizedHandler(() =>
-      impersonatingRef.current
+    setUnauthorizedHandler(() => {
+      // Vencida la sesión «ver como», recargar no la estira: se borra la marca.
+      if (impersonatingRef.current) forgetImpersonation();
+      return impersonatingRef.current
         ? Promise.reject(
             new ApiError(
               401,
@@ -386,8 +490,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               "impersonation_expired"
             )
           )
-        : tryRefresh()
-    );
+        : tryRefresh();
+    });
     return () => setUnauthorizedHandler(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `tryRefresh` sólo usa setters estables y localStorage
   }, []);
@@ -405,7 +509,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       if (leavingForReauth.current) return;
       leavingForReauth.current = true;
+      // La sesión se cierra acá: el dispositivo se da de baja como en
+      // cualquier cierre. La recarga puede cortar el pedido; queda pendiente
+      // y sale al abrir el ingreso.
+      const owner = sessionOwner();
       clearSession();
+      if (owner) releaseDevice(owner);
       clearAllCached();
       bindSessionToken(null);
       api.post("/auth/logout").catch(() => {});
@@ -449,6 +558,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (sessionMovedOn(me)) return "none";
           setUser(me);
           rememberSessionUser(me);
+          if (me.two_factor_setup_required) setTwoFactorSetupPending(true);
           return "ok";
         } catch (err) {
           if (isTransientFailure(err)) throw err;
@@ -473,6 +583,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (sessionMovedOn(me)) return "none";
         setUser(me);
         rememberSessionUser(me);
+        if (me.two_factor_setup_required) setTwoFactorSetupPending(true);
         return "ok";
       } catch (err) {
         if (isTransientFailure(err)) throw err;
@@ -494,12 +605,73 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  /** Entra a la cuenta de `userId` con la sesión de la admin dada (`adminToken`
+   * y `adminUser`). Lo usan `impersonate` y la recuperación al recargar. */
+  async function enterImpersonation(adminToken: string, adminUser: User, userId: string) {
+    const data = await api.post<{ access_token: string; user: User }>(
+      `/admin/users/${userId}/impersonate`,
+      undefined,
+      adminToken
+    );
+    // Una renovación de la admin que quedó en vuelo no se aplica sobre la
+    // sesión de la persona que pasa a ver (saldría con el token de la admin).
+    sessionEpoch.current += 1;
+    setImpersonating({ adminToken, adminUser });
+    impersonatingRef.current = true;
+    rememberImpersonation(adminUser.id, userId);
+    // Las pantallas pintan primero lo cacheado: sin esto, se veía un instante
+    // el feed o el perfil de la admin como si fueran del usuario impersonado.
+    clearAllCached();
+    setToken(data.access_token);
+    setUser(data.user);
+  }
+
+  /** Tras recuperar la sesión, si la pestaña estaba "viendo como" alguien
+   * (marca en sessionStorage), vuelve a entrar a esa cuenta con el token de
+   * la admin recuperada. Si no se puede (la persona ya no existe, el
+   * servidor falla, la sesión recuperada no es de una admin) se vuelve
+   * limpio a la sesión de la admin, sin error y sin quedar en una pantalla
+   * de otro rol. */
+  async function resumeImpersonation(result: "ok" | "none" | "transient") {
+    try {
+      if (!hasImpersonationMark()) return;
+      const mark = pendingImpersonation();
+      const admin = restoredAccount.current;
+      const adminToken = localStorage.getItem("staffya_token");
+      if (
+        !mark ||
+        result !== "ok" ||
+        !admin ||
+        admin.role !== "admin" ||
+        admin.id !== mark.adminId ||
+        !adminToken
+      ) {
+        forgetImpersonation();
+        return;
+      }
+      try {
+        await enterImpersonation(adminToken, admin, mark.userId);
+      } catch {
+        forgetImpersonation();
+        router.replace("/admin");
+      }
+    } finally {
+      setResuming(false);
+    }
+  }
+
   useEffect(() => {
-    restoreOnce().then((result) => {
+    // Con una marca de «ver como» pendiente, la cuenta de la admin que se
+    // recupera no se muestra: hasta resolver, `token` y `user` salen vacíos y
+    // la app sigue cargando (si no, las pantallas del otro rol pedían con el
+    // token de la admin y daban 403).
+    if (hasImpersonationMark()) setResuming(true);
+    restoreOnce().then(async (result) => {
       // Servidor dormido al abrir (U114): la app deja de esperar, pero queda
       // dicho que hay una sesión por confirmar. Antes caía a la cabecera de
       // visitante («Ingresar», «Crear cuenta») con la sesión intacta.
       if (result === "transient") setReconnecting(true);
+      else await resumeImpersonation(result);
       setLoading(false);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- una vez, al abrir la app
@@ -522,13 +694,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (cancelled || running) return;
       if (document.visibilityState !== "visible") return;
       running = true;
+      if (hasImpersonationMark()) setResuming(true);
       const result = await restoreOnce();
       running = false;
-      if (cancelled) return;
+      if (cancelled) {
+        setResuming(false);
+        return;
+      }
       if (result === "transient") {
         attempt += 1;
         schedule();
       } else {
+        await resumeImpersonation(result);
+        if (cancelled) return;
         setReconnecting(false);
         // Las pantallas que cargaron con el servidor dormido quedaron con su
         // error («Error al cargar tus turnos»): ahora que contesta, se les
@@ -605,7 +783,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sessionUserId.current = null;
       clearAllCached();
       impersonatingRef.current = false;
+      forgetImpersonation();
       setImpersonating(null);
+      setResuming(false);
       setTwoFactorSetupPending(false);
       setReconnecting(false);
       setJustLoggedOut(true);
@@ -646,22 +826,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // `backgroundApi`), así que al alta, o al login, la lleva el primer pedido
   // de una pantalla y no este.
   const pushClaimedFor = useRef<string | null>(null);
-  const hasUser = user !== null;
+  const accountId = user?.id ?? null;
   useEffect(() => {
     if (!token) {
       pushClaimedFor.current = null;
       return;
     }
-    if (!hasUser || impersonating || impersonatingRef.current) return;
+    if (!accountId || impersonating || impersonatingRef.current) return;
     if (twoFactorSetupPending) return;
     if (pushClaimedFor.current === token) return;
     pushClaimedFor.current = token;
-    void claimPushForAccount(token);
-  }, [token, hasUser, impersonating, twoFactorSetupPending]);
+    void claimPushForAccount(token, accountId);
+  }, [token, accountId, impersonating, twoFactorSetupPending]);
+
+  // Una baja que no llegó al servidor (sin red, token vencido antes de este
+  // cambio, app cerrada con el pedido en camino) queda pendiente y se
+  // reintenta sola: al abrir la app, al volver la conexión y al volver la
+  // pestaña al frente. La de la cuenta que tiene la sesión abierta acá no se
+  // manda: ese dispositivo es suyo (la descarta su registro).
+  useEffect(() => {
+    function retry() {
+      void retryPendingPushReleases(sessionUserId.current ?? storedSessionOwner());
+    }
+    function onVisible() {
+      if (document.visibilityState === "visible") retry();
+    }
+    retry();
+    window.addEventListener("online", retry);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("online", retry);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
 
   /** Abre la sesión con los tokens de una respuesta de login. */
   async function startSession(tokens: SessionTokens): Promise<SesionAbierta> {
     sessionEpoch.current += 1;
+    // Un ingreso nuevo en esta pestaña deja sin efecto un «ver como» por retomar.
+    forgetImpersonation();
+    setResuming(false);
     setReconnecting(false);
     persistAccessToken(tokens.access_token);
     setToken(tokens.access_token);
@@ -672,6 +876,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const account = tokens.user ?? (await api.get<User>("/auth/me", tokens.access_token));
     setUser(account);
     rememberSessionUser(account);
+    // Se sabe acá, antes de que monten las pantallas (la campanita no pide
+    // nada). Se ASIGNA lo que dice el servidor: entrar con otra cuenta sin
+    // cerrar sesión no debe heredar la marca de la admin anterior. Un 403
+    // tardío (`setupRequired`, sesiones viejas) la sigue prendiendo.
+    setTwoFactorSetupPending(
+      Boolean(tokens.two_factor_setup_required || account.two_factor_setup_required)
+    );
     return { token: tokens.access_token, user: account };
   }
 
@@ -728,7 +939,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     email: string,
     password: string,
     full_name: string,
-    role: "worker" | "employer"
+    role: "worker" | "employer",
+    birthDate: string
   ): Promise<RegisterOutcome> {
     // La pantalla de registro sólo llega acá con el checkbox de términos
     // marcado, y el backend guarda la constancia (versión, medio y fecha).
@@ -738,6 +950,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       full_name,
       role,
       accepted_terms: true,
+      birth_date: birthDate,
     });
     // Desde acá la cuenta ya existe: si el ingreso automático falla (el 429 de
     // `/auth/login` por IP es lo más común: misma red que ya probó ingresos),
@@ -752,7 +965,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function loginWithGoogle(
     idToken: string,
-    role?: "worker" | "employer"
+    role?: "worker" | "employer",
+    birthDate?: string
   ): Promise<GoogleLoginResult> {
     const data = await signIn(() =>
       api.post<
@@ -765,6 +979,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // El rol sólo viaja cuando se crea la cuenta, y `GoogleAuthButton` no
         // deja elegirlo sin marcar términos y privacidad.
         accepted_terms: role !== undefined,
+        // Con el rol va la fecha de nacimiento (U101): el backend no crea la
+        // cuenta sin ella ni a un menor de 18.
+        birth_date: role !== undefined ? birthDate : undefined,
       })
     );
 
@@ -792,27 +1009,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function impersonate(userId: string) {
     if (!token || !user || impersonating) return;
-    const data = await api.post<{ access_token: string; user: User }>(
-      `/admin/users/${userId}/impersonate`,
-      undefined,
-      token
-    );
-    // Una renovación de la admin que quedó en vuelo no se aplica sobre la
-    // sesión de la persona que pasa a ver (saldría con el token de la admin).
-    sessionEpoch.current += 1;
-    setImpersonating({ adminToken: token, adminUser: user });
-    impersonatingRef.current = true;
-    // Las pantallas pintan primero lo cacheado: sin esto, se veía un instante
-    // el feed o el perfil de la admin como si fueran del usuario impersonado.
-    clearAllCached();
-    setToken(data.access_token);
-    setUser(data.user);
+    await enterImpersonation(token, user, userId);
   }
 
   function stopImpersonating() {
     if (!impersonating) return;
     sessionEpoch.current += 1;
     impersonatingRef.current = false;
+    forgetImpersonation();
     clearAllCached();
     // El token de la admin pudo haber vencido durante la impersonación (el
     // auto-refresh estaba apagado): la primera request da 401 y se renueva.
@@ -839,15 +1043,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     // Sin sesión, este dispositivo no recibe los avisos de la cuenta: se da
-    // de baja en el servidor antes de soltar el token. Va con el vigente (el
-    // `token` del contexto es el de cuando se abrió la sesión y pudo haber
-    // vencido) y no se espera: si falla, el cierre sigue y el backend le pasa
-    // el dispositivo a la próxima cuenta que entre acá. La suscripción del
-    // navegador y el permiso no se tocan (ver `claimPushForAccount`). La
-    // respuesta llega con la sesión ya cerrada: por eso tampoco avisa al
-    // candado de dos pasos (ver `backgroundApi`).
-    const leavingToken = resolveToken(token);
-    if (leavingToken) releasePushFromAccount(leavingToken).catch(() => {});
+    // de baja en el servidor. No lleva el token (pudo haber vencido): la
+    // prueba es la clave de la suscripción. No se espera: si no llega, el
+    // cierre sigue, la baja queda pendiente y se reintenta sola. La
+    // suscripción del navegador y el permiso no se tocan (ver
+    // `claimPushForAccount`).
+    const leaving = sessionOwner() ?? user?.id ?? null;
+    if (leaving) releaseDevice(leaving);
     // TECH_DEBT.md S1: el refresh token viaja como cookie httpOnly — el
     // navegador la manda sola (`credentials: "include"`, lib/api.ts), no hay
     // que leerla ni reenviarla a mano. El backend la revoca server-side y la
@@ -881,12 +1083,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // Sólo se retiene la cuenta de la admin mientras la marca siga vigente: si
+  // algo la borró (cierre de sesión, otra pestaña, ingreso) y `resuming`
+  // quedó arriba, no se deja la pantalla cargando para siempre.
+  const holdBack = resuming && hasImpersonationMark();
+
   return (
     <AuthContext.Provider
       value={{
-        user,
-        token,
-        loading,
+        // Con «ver como» por retomar no se asoma la cuenta de la admin.
+        user: holdBack ? null : user,
+        token: holdBack ? null : token,
+        loading: loading || (holdBack && !reconnecting),
         login,
         register,
         loginWithGoogle,

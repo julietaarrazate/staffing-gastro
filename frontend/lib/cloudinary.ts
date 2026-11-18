@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+import { cloudinaryErrorMessage, type UploadKind } from "@/lib/upload-validation";
 
 /**
  * Devuelve una variante optimizada de una imagen de Cloudinary: formato y
@@ -103,7 +104,7 @@ export async function uploadIdentityImage(file: File, token: string): Promise<Pr
  * un error claro (503) en vez de fallar en silencio.
  */
 export async function uploadCv(file: File, token: string): Promise<string> {
-  return (await uploadSigned(file, token, "/uploads/sign-cv")).secure_url;
+  return (await uploadSigned(file, token, "/uploads/sign-cv", "cv")).secure_url;
 }
 
 /**
@@ -118,7 +119,7 @@ export async function uploadBusinessDocument(
   file: File,
   token: string
 ): Promise<PrivateFileRef> {
-  return toPrivateRef(await uploadSigned(file, token, "/uploads/sign-business-document"));
+  return toPrivateRef(await uploadSigned(file, token, "/uploads/sign-business-document", "business"));
 }
 
 /** Lo que contesta Cloudinary a una subida (los campos que usamos). */
@@ -147,7 +148,8 @@ function toPrivateRef(result: UploadResult): PrivateFileRef {
 async function uploadSigned(
   file: File,
   token: string,
-  signEndpoint: string
+  signEndpoint: string,
+  kind: UploadKind = "image"
 ): Promise<UploadResult> {
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   if (!cloudName) {
@@ -184,7 +186,15 @@ async function uploadSigned(
     body: formData,
   });
   if (!res.ok) {
-    throw new Error("No se pudo subir el archivo. Probá de nuevo.");
+    // Cloudinary explica la causa en `error.message` (formato o peso): se
+    // traduce en vez de mostrar siempre el mismo mensaje genérico (U091).
+    let raw: string | undefined;
+    try {
+      raw = ((await res.json()) as { error?: { message?: string } }).error?.message;
+    } catch {
+      /* cuerpo sin JSON: queda el genérico */
+    }
+    throw new Error(cloudinaryErrorMessage(raw, kind));
   }
   return (await res.json()) as UploadResult;
 }

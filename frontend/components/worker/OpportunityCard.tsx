@@ -4,27 +4,22 @@ import Link from "next/link";
 import { useState } from "react";
 import { SKILL_LABELS, Shift } from "@/lib/types";
 import { SKILL_ACCENT, SKILL_HERO_TONE, heroInk } from "@/lib/skill-style";
-import { formatPayAmount, payPerHour } from "@/lib/pay";
+import { formatMoney, payPerHour, payView } from "@/lib/pay";
 import { Avatar, Badge } from "@/components/ui";
 import { CheckIcon, ClockIcon, CloseIcon, FlameIcon, MapPinIcon, RouteIcon, ShareIcon, ShieldIcon } from "@/components/icons";
 import { shareShift } from "@/lib/shift-share";
-import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
+import { formatDuration, formatShiftWhenLive, shiftDurationMinutes } from "@/lib/datetime";
 import { cldThumb } from "@/lib/cloudinary";
 import { Button } from "@/components/ui";
 import SaveShiftButton from "@/components/worker/SaveShiftButton";
 import { shiftHeroPhoto } from "@/lib/company-photo";
-import { formatKm } from "@/lib/format";
+import { formatDistance } from "@/lib/format";
 
 /**
  * Tarjeta grande de oportunidad (DS v2, foto-first): foto real
  * del local como hero, cuerpo blanco con los datos y un chip de ícono con
  * acento sobrio por rubro. Si no hay foto, hero limpio con el tinte del rubro.
  */
-/** Distancia legible: bajo 1 km en metros redondeados, arriba con un decimal. */
-function formatDistance(km: number): string {
-  return km < 1 ? `a ${Math.round(km * 1000)} m` : `a ${formatKm(km)}`;
-}
-
 export default function OpportunityCard({
   shift,
   distanceKm,
@@ -35,6 +30,7 @@ export default function OpportunityCard({
   applied = false,
   shareable = false,
   preview = false,
+  href,
 }: {
   shift: Shift;
   /** Distancia desde donde está parado el trabajador (ver current-location). */
@@ -62,6 +58,14 @@ export default function OpportunityCard({
    *  comercio sin link, así los buscadores no leen títulos ni links de un
    *  turno de ejemplo. */
   preview?: boolean;
+  /** Si viene, la tarjeta entera lleva al detalle (`/turno/[id]`) con un link
+   *  real, estirado sobre toda la tarjeta (`absolute inset-0`), así se llega
+   *  con Tab y Enter y lo leen los lectores de pantalla. Lo
+   *  interno (comercio, guardar, cómo llegar, compartir, postularme) queda
+   *  por encima (`z-10`) y no navega. Lo pasan las grillas de escritorio
+   *  (`/feed`, `/buscar`); el mazo mobile (`SwipeDeck`) abre el detalle por su
+   *  cuenta, con el gesto, y la landing no lleva link. */
+  href?: string;
 }) {
   const { Icon } = SKILL_ACCENT[shift.position];
   const Title = preview ? "p" : "h2";
@@ -72,10 +76,23 @@ export default function OpportunityCard({
   const ink = heroInk(shift.position, hasPhoto);
   const minutes = shiftDurationMinutes(shift.start_at, shift.end_at);
   const perHour = payPerHour(shift);
+  const pay = payView(shift);
   const hasDirections = shift.latitude != null && shift.longitude != null;
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-float)] ring-1 ring-line">
+    <div
+      className={`relative flex h-full flex-col overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-float)] ring-1 ring-line ${
+        href && !preview ? "transition hover:ring-primary/40" : ""
+      }`}
+    >
+      {href && !preview && (
+        <Link
+          href={href}
+          data-testid="opportunity-card-link"
+          aria-label={`Ver el turno de ${SKILL_LABELS[shift.position]}${shift.company_name ? ` en ${shift.company_name}` : ""}`}
+          className="absolute inset-0 z-[1] rounded-[var(--radius-card)] foco-propio focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-(--focus-ring)"
+        />
+      )}
       {/* Hero: antes competía 50/50 por el alto con el cuerpo (ambos flex-1) —
           en pantallas más bajas o con dress code largo, el cuerpo perdía esa
           pulseada y su cola (el botón de compartir) quedaba recortada en
@@ -159,7 +176,7 @@ export default function OpportunityCard({
               <Link
                 href={`/companies/${shift.company_id}`}
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex min-w-0 items-center gap-2 rounded-full bg-card py-1 pl-1 pr-3 shadow-sm"
+                className="relative z-10 inline-flex min-w-0 items-center gap-2 rounded-full bg-card py-1 pl-1 pr-3 shadow-sm"
               >
                 <Avatar src={shift.company_logo_url} name={shift.company_name ?? "Local"} size="sm" />
                 <span className="truncate text-sm font-bold text-ink">{shift.company_name ?? "Local"}</span>
@@ -178,7 +195,9 @@ export default function OpportunityCard({
                 <FlameIcon size={13} /> Urgente
               </span>
             )}
-            <SaveShiftButton shiftId={shift.id} />
+            <span className="relative z-10">
+              <SaveShiftButton shiftId={shift.id} />
+            </span>
           </div>
         </div>
 
@@ -198,7 +217,7 @@ export default function OpportunityCard({
             {/* Al 85% y no al 70%: sobre el degradé violeta que probó la landing
                 el 70% daba 3,98:1 (medido con píxeles a 390 y 1440px); al
                 85%, 5,1. */}
-            {distanceKm != null && <span className={ink.softer}>· {formatDistance(distanceKm)}</span>}
+            {distanceKm != null && <span className={ink.softer}>· a {formatDistance(distanceKm)}</span>}
           </p>
         </div>
       </div>
@@ -247,11 +266,22 @@ export default function OpportunityCard({
             la fase N; el tamaño (`text-price`) es lo que lo hace dominar. */}
         <div>
           <p className="text-label font-bold uppercase tracking-wide text-ink/40">Pago</p>
-          <p className="text-price font-extrabold tracking-tight text-ink">{formatPayAmount(shift)}</p>
-          {perHour && (
-            <p className="text-xs font-medium text-ink/50">
-              ≈ {formatPayAmount({ pay_amount: String(Math.round(perHour)), currency: shift.currency })} por hora
-            </p>
+          <p className="text-price font-extrabold tracking-tight text-ink">
+            {pay.amount}
+            {pay.suffix && (
+              <span className="ml-1.5 text-body font-bold tracking-normal text-ink/70">{pay.suffix}</span>
+            )}
+          </p>
+          {/* Turno reofrecido (U080): el número ya es por hora; la línea dice
+              por qué. En los demás, el pago por hora de siempre. */}
+          {pay.note ? (
+            <p className="text-xs font-medium text-ink/60">{pay.note}</p>
+          ) : (
+            perHour && (
+              <p className="text-xs font-medium text-ink/50">
+                ≈ {formatMoney(perHour, shift.currency)} por hora
+              </p>
+            )
           )}
         </div>
 
@@ -259,8 +289,10 @@ export default function OpportunityCard({
           <p className="flex items-center gap-2">
             <ClockIcon size={18} className="shrink-0 text-ink/35" />
             <span>
-              {formatShiftWhen(shift.start_at, shift.end_at)}
-              {minutes != null && <span className="text-ink/45"> · {formatDuration(minutes)}</span>}
+              {formatShiftWhenLive(shift)}
+              {minutes != null && pay.kind !== "por_hora" && (
+                <span className="text-ink/45"> · {formatDuration(minutes)}</span>
+              )}
             </span>
           </p>
         </div>
@@ -278,7 +310,7 @@ export default function OpportunityCard({
           </div>
         )}
 
-        <div className="mt-auto space-y-3 pt-2">
+        <div className="relative z-10 mt-auto space-y-3 pt-2">
           {/* "Cómo llegar" ACÁ, antes de decidir: quien ve la oferta necesita
               saber si le conviene ir ANTES de postularse, no recién cuando ya
               lo asignaron (antes sólo estaba en /my-shifts, con el turno ya

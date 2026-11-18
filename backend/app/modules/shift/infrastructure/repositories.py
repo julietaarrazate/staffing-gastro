@@ -2,29 +2,33 @@
 
 import math
 from collections.abc import Sequence
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
+from statistics import median
 from uuid import UUID
 
-from sqlalchemy import case, extract, func, or_, select
+from sqlalchemy import case, extract, func, or_, select, true, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.exc import StaleDataError
 
 from app.modules.company.infrastructure.models import CompanyProfileModel
 from app.modules.identity.domain.value_objects import UserStatus
 from app.modules.identity.infrastructure.models import UserModel
-from app.modules.shift.domain.entities import Shift
+from app.modules.shift.domain.entities import REOFFER_MIN_REMAINING, Shift
 from app.modules.shift.domain.exceptions import ShiftConcurrentModificationError
 from app.modules.shift.domain.pay_benchmark import hourly_rate
 from app.modules.shift.domain.repositories import (
     ShiftPeriodStats,
     ShiftPublicationStats,
     ShiftRepository,
+    ShiftLiveCounts,
+    ShiftReturnStats,
     ShiftTodayCounts,
     WorkerEarningsTotals,
 )
 from app.modules.shift.domain.value_objects import (
     OPEN_STATUSES,
+    TERMINAL_STATUSES,
     UNCOVERED_ELIGIBLE_STATUSES,
     ShiftStatus,
 )
@@ -90,6 +94,7 @@ def _to_entity(model: ShiftModel) -> Shift:
         en_route_latitude=model.en_route_latitude,
         en_route_longitude=model.en_route_longitude,
         en_route_at=model.en_route_at,
+        en_route_announced_at=model.en_route_announced_at,
         check_in_latitude=model.check_in_latitude,
         check_in_longitude=model.check_in_longitude,
         check_in_at=model.check_in_at,
@@ -105,7 +110,11 @@ def _to_entity(model: ShiftModel) -> Shift:
         event_name=model.event_name,
         published_at=model.published_at,
         first_assigned_at=model.first_assigned_at,
+        first_confirmed_at=model.first_confirmed_at,
         escalated_at=model.escalated_at,
+        reoffered_at=model.reoffered_at,
+        confirmed_at=model.confirmed_at,
+        prorated_pay_amount=model.prorated_pay_amount,
         created_at=model.created_at,
         updated_at=model.updated_at,
         version=model.version,
@@ -113,6 +122,7 @@ def _to_entity(model: ShiftModel) -> Shift:
 
 
 def _apply_fields(model: ShiftModel, shift: Shift) -> None:
+    same_worker = model.worker_profile_id == shift.worker_profile_id
     for name in _EDITABLE_FIELDS:
         value = getattr(shift, name)
         if name == "position":
@@ -123,6 +133,7 @@ def _apply_fields(model: ShiftModel, shift: Shift) -> None:
     model.en_route_latitude = shift.en_route_latitude
     model.en_route_longitude = shift.en_route_longitude
     model.en_route_at = shift.en_route_at
+    model.en_route_announced_at = shift.en_route_announced_at
     model.check_in_latitude = shift.check_in_latitude
     model.check_in_longitude = shift.check_in_longitude
     model.check_in_at = shift.check_in_at
@@ -133,10 +144,25 @@ def _apply_fields(model: ShiftModel, shift: Shift) -> None:
     model.no_show_at = shift.no_show_at
     model.last_no_show_worker_profile_id = shift.last_no_show_worker_profile_id
     model.checkin_reminder_sent_at = shift.checkin_reminder_sent_at
-    model.departure_reminder_sent_at = shift.departure_reminder_sent_at
+    # La marca del recordatorio de salida la escribe el scheduler sin subir la
+    # versión (`mark_departure_reminder_sent`, U103), así que una entidad leída
+    # antes llega con None: no la pisamos mientras siga asignada la misma
+    # persona. Si cambió o se desasignó, el reseteo del dominio sí va. Tras
+    # un check-in o una cancelación (misma persona) la marca queda: el turno
+    # ya no es CONFIRMADO y el scheduler no lo vuelve a mirar.
+    if not (
+        shift.departure_reminder_sent_at is None
+        and model.departure_reminder_sent_at is not None
+        and same_worker
+    ):
+        model.departure_reminder_sent_at = shift.departure_reminder_sent_at
     model.published_at = shift.published_at
     model.first_assigned_at = shift.first_assigned_at
+    model.first_confirmed_at = shift.first_confirmed_at
     model.escalated_at = shift.escalated_at
+    model.reoffered_at = shift.reoffered_at
+    model.confirmed_at = shift.confirmed_at
+    model.prorated_pay_amount = shift.prorated_pay_amount
 
 
 def _from_active_company():
@@ -153,6 +179,51 @@ def _from_active_company():
         .where(UserModel.status != UserStatus.ACTIVE.value)
     )
     return ShiftModel.company_id.not_in(inactive)
+
+
+def _worker_shifts_order():
+    """Orden de «Asignados» (U066): arriba lo que la persona tiene que hacer
+    (los estados no terminales, por hora de inicio ascendente: el próximo
+    primero) y abajo lo terminado (pagado, cancelado, no cubierto…, el más
+    reciente primero). Va en la consulta, no en Python, para que el límite de
+    la página no corte lo próximo. `CASE` anda igual en Postgres y SQLite."""
+    terminal = [s.value for s in TERMINAL_STATUSES]
+    is_terminal = ShiftModel.status.in_(terminal)
+    return (
+        case((is_terminal, 1), else_=0),
+        # Activos: inicio ascendente. En los terminados queda NULL (empatan)
+        # y desempata la tercera clave.
+        case((is_terminal, None), else_=ShiftModel.start_at).asc(),
+        ShiftModel.start_at.desc(),
+        ShiftModel.id,
+    )
+
+
+def _not_from_companies_of(emails: frozenset[str]):
+    """Condición «el comercio del turno NO es una de estas cuentas» (cuentas
+    de prueba e invitadas que se excluyen de las métricas de la beta). Mismo
+    patrón de subconsulta que `_from_active_company`. El repo no conoce las
+    constantes de identity/admin: la lista se la pasa quien llama."""
+    if not emails:
+        return true()
+    excluded = (
+        select(CompanyProfileModel.id)
+        .join(UserModel, UserModel.id == CompanyProfileModel.user_id)
+        .where(UserModel.email.in_(emails))
+    )
+    return ShiftModel.company_id.not_in(excluded)
+
+
+def _utc_naive(value: datetime) -> datetime:
+    """SQLite (tests) devuelve fechas sin zona y Postgres con zona: se
+    comparan siempre en UTC sin zona."""
+    if value.tzinfo is not None:
+        value = value.astimezone(timezone.utc).replace(tzinfo=None)
+    return value
+
+
+# Aviso corto: el turno empieza dentro de las 24 h de haberse publicado.
+SHORT_NOTICE_MINUTES = 24 * 60
 
 
 class SqlAlchemyShiftRepository(ShiftRepository):
@@ -193,6 +264,35 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         # uso parte de la versión nueva, no de la que ya se consumió.
         shift.version = model.version
         return _to_entity(model)
+
+    async def mark_departure_reminder_sent(
+        self, shift_id: UUID, worker_profile_id: UUID, sent_at: datetime
+    ) -> bool:
+        # UPDATE masivo (Core): no pasa por `version_id_col`, así que no sube
+        # la versión (ADR-0016: no genera conflictos falsos). Como la versión
+        # ya no corta la carrera con el scheduler, el WHERE la corta: sólo se
+        # marca si el turno sigue asignado/confirmado a la misma persona, sin marca
+        # previa y sin «Va en camino». Dos pasadas a la vez: una sola gana.
+        result = await self._session.execute(
+            update(ShiftModel)
+            .where(
+                ShiftModel.id == shift_id,
+                ShiftModel.worker_profile_id == worker_profile_id,
+                ShiftModel.status.in_(
+                    [ShiftStatus.ASIGNADO.value, ShiftStatus.CONFIRMADO.value]
+                ),
+                ShiftModel.departure_reminder_sent_at.is_(None),
+                # «Ya salió» = está compartiendo ahora, o ya se le avisó al
+                # comercio aunque después haya apagado (U072: la posición se
+                # borra al apagar; el aviso, no).
+                ShiftModel.en_route_at.is_(None),
+                ShiftModel.en_route_announced_at.is_(None),
+            )
+            .values(departure_reminder_sent_at=sent_at)
+            .execution_options(synchronize_session=False)
+        )
+        await self._session.commit()
+        return result.rowcount == 1
 
     async def get_by_id(self, shift_id: UUID) -> Shift | None:
         # `populate_existing`: siempre lo que hay en la base, no la copia del
@@ -245,9 +345,26 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         stmt = (
             select(ShiftModel)
             .where(ShiftModel.worker_profile_id == worker_profile_id)
-            .order_by(ShiftModel.created_at.desc())
+            .order_by(*_worker_shifts_order())
             .limit(limit)
             .offset(offset)
+        )
+        result = await self._session.execute(stmt)
+        return [_to_entity(m) for m in result.scalars().all()]
+
+    async def list_history_by_worker(
+        self, worker_profile_id: UUID, *, limit: int = 50
+    ) -> list[Shift]:
+        stmt = (
+            select(ShiftModel)
+            .where(
+                or_(
+                    ShiftModel.worker_profile_id == worker_profile_id,
+                    ShiftModel.last_no_show_worker_profile_id == worker_profile_id,
+                )
+            )
+            .order_by(ShiftModel.created_at.desc())
+            .limit(limit)
         )
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
@@ -265,10 +382,14 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         window_start = window_start.astimezone(timezone.utc)
         window_end = window_end.astimezone(timezone.utc)
         in_window = (ShiftModel.start_at >= window_start) & (ShiftModel.start_at < window_end)
+        # Lo que se paga por el turno: el monto prorrateado si es un turno
+        # reofrecido (U080), si no el publicado. Es el espejo en SQL de
+        # `Shift.amount_due` (la referencia): si cambia esa regla, cambia acá.
+        due = func.coalesce(ShiftModel.prorated_pay_amount, ShiftModel.pay_amount)
         stmt = select(
-            func.sum(ShiftModel.pay_amount),
+            func.sum(due),
             func.count(ShiftModel.id),
-            func.sum(case((in_window, ShiftModel.pay_amount))),
+            func.sum(case((in_window, due))),
         ).where(
             ShiftModel.worker_profile_id == worker_profile_id,
             ShiftModel.status.in_([s.value for s in statuses]),
@@ -292,6 +413,15 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
 
+    async def list_by_event(self, company_id: UUID, event_id: UUID) -> list[Shift]:
+        stmt = (
+            select(ShiftModel)
+            .where(ShiftModel.company_id == company_id, ShiftModel.event_id == event_id)
+            .order_by(ShiftModel.start_at, ShiftModel.created_at)
+        )
+        result = await self._session.execute(stmt)
+        return [_to_entity(m) for m in result.scalars().all()]
+
     async def list_by_company_and_statuses(
         self, company_id: UUID, statuses: frozenset[ShiftStatus]
     ) -> list[Shift]:
@@ -311,12 +441,15 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
 
-    async def list_recently_filled(self, *, limit: int = 500) -> list[Shift]:
+    async def list_recently_filled(
+        self, *, exclude_company_emails: frozenset[str] = frozenset(), limit: int = 500
+    ) -> list[Shift]:
         stmt = (
             select(ShiftModel)
             .where(
                 ShiftModel.published_at.is_not(None),
-                ShiftModel.first_assigned_at.is_not(None),
+                ShiftModel.first_confirmed_at.is_not(None),
+                _not_from_companies_of(exclude_company_emails),
             )
             .order_by(ShiftModel.published_at.desc())
             .limit(limit)
@@ -391,7 +524,9 @@ class SqlAlchemyShiftRepository(ShiftRepository):
             samples.setdefault((position, city), []).append(rate)
         return samples
 
-    async def count_publication_stats(self) -> ShiftPublicationStats:
+    async def count_publication_stats(
+        self, *, exclude_company_emails: frozenset[str] = frozenset()
+    ) -> ShiftPublicationStats:
         # Una sola query con SUM/CASE (mismo patrón que
         # `UserRepository.count_stats`), no traer filas y contar en Python.
         # `completed` usa dos estados YA existentes del dominio
@@ -425,7 +560,7 @@ class SqlAlchemyShiftRepository(ShiftRepository):
                     else_=0,
                 )
             ).label("completed"),
-        )
+        ).where(_not_from_companies_of(exclude_company_emails))
         row = (await self._session.execute(stmt)).one()
         return ShiftPublicationStats(
             published=row.published or 0,
@@ -462,7 +597,18 @@ class SqlAlchemyShiftRepository(ShiftRepository):
             # sea correcta. Dejar que cada motor calcule su propio "ahora"
             # evita el mismatch naive/aware entre SQLite (tests) y Postgres
             # (producción) que la comparación en Python evita de otra forma.
-            ShiftModel.start_at > func.now(),
+            #
+            # La excepción es el turno reofrecido (U080): se reabrió con el
+            # horario ya empezado y se ofrece mientras le queden al menos
+            # `REOFFER_MIN_REMAINING` de horario. Es la misma regla que
+            # `Shift.is_open_for_applications` (`offered_until`). El límite va
+            # como parámetro en UTC (la suma de un intervalo a `now()` es
+            # distinta en cada motor), igual que los de `sum_worker_earnings`.
+            or_(
+                ShiftModel.start_at > func.now(),
+                ShiftModel.reoffered_at.is_not(None)
+                & (ShiftModel.end_at > datetime.now(timezone.utc) + REOFFER_MIN_REMAINING),
+            ),
         )
         if city is not None:
             stmt = stmt.where(func.lower(ShiftModel.city) == city.lower())
@@ -551,18 +697,60 @@ class SqlAlchemyShiftRepository(ShiftRepository):
                 ShiftModel.urgent.desc(),
                 # `IS NULL` da falso para los escalados: van antes.
                 ShiftModel.escalated_at.is_(None),
-                ShiftModel.published_at.asc(),
+                # Más reciente primero: con tope, lo que se corta es lo viejo
+                # y no los turnos recién publicados.
+                ShiftModel.published_at.desc(),
             )
             .limit(limit)
         )
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
 
+    async def count_live(self, *, day_start: datetime, day_end: datetime) -> ShiftLiveCounts:
+        live = ShiftModel.status.in_(
+            [s.value for s in UNCOVERED_ELIGIBLE_STATUSES]
+        ) & ShiftModel.published_at.is_not(None)
+        no_show_today = (ShiftModel.no_show_at >= day_start) & (ShiftModel.no_show_at < day_end)
+        stmt = select(
+            func.sum(case((live, 1), else_=0)).label("total"),
+            func.sum(case((live & ShiftModel.urgent.is_(True), 1), else_=0)).label("urgent"),
+            func.sum(case((live & ShiftModel.escalated_at.is_not(None), 1), else_=0)).label(
+                "escalated"
+            ),
+            func.sum(case((no_show_today & ShiftModel.published_at.is_not(None), 1), else_=0)).label(
+                "no_shows"
+            ),
+        )
+        row = (await self._session.execute(stmt)).one()
+        return ShiftLiveCounts(
+            total=row.total or 0,
+            urgent=row.urgent or 0,
+            escalated=row.escalated or 0,
+            no_shows=row.no_shows or 0,
+        )
+
+    async def list_no_shows(
+        self, *, day_start: datetime, day_end: datetime, limit: int = 200
+    ) -> list[Shift]:
+        stmt = (
+            select(ShiftModel)
+            .where(ShiftModel.no_show_at >= day_start, ShiftModel.no_show_at < day_end)
+            .order_by(ShiftModel.no_show_at.desc())
+            .limit(limit)
+        )
+        result = await self._session.execute(stmt)
+        return [_to_entity(m) for m in result.scalars().all()]
+
     async def count_today(self, *, day_start: datetime, day_end: datetime) -> ShiftTodayCounts:
+        # "De hoy" = el turno EMPIEZA en el día argentino [day_start, day_end):
+        # un urgente de ayer o de mañana no es de la portada de hoy. Un turno
+        # que cruza la medianoche cuenta en el día en que empieza.
         urgent_open = (
             ShiftModel.status.in_([s.value for s in OPEN_STATUSES])
             & ShiftModel.urgent.is_(True)
             & ShiftModel.published_at.is_not(None)
+            & (ShiftModel.start_at >= day_start)
+            & (ShiftModel.start_at < day_end)
         )
         no_show_today = (ShiftModel.no_show_at >= day_start) & (ShiftModel.no_show_at < day_end)
         stmt = select(
@@ -576,35 +764,129 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         )
 
     async def count_period_stats(
-        self, *, previous_start: datetime, current_start: datetime, end: datetime
+        self,
+        *,
+        previous_start: datetime,
+        current_start: datetime,
+        end: datetime,
+        exclude_company_emails: frozenset[str] = frozenset(),
     ) -> tuple[ShiftPeriodStats, ShiftPeriodStats]:
         published = ShiftModel.published_at
-        assigned = ShiftModel.first_assigned_at
-        minutes = _minutes_between(self._session.get_bind().dialect.name, published, assigned)
+        confirmed = ShiftModel.first_confirmed_at
+        dialect = self._session.get_bind().dialect.name
+        minutes = _minutes_between(dialect, published, confirmed)
+        notice_minutes = _minutes_between(dialect, published, ShiftModel.start_at)
         windows = {
             "cur": (published >= current_start) & (published < end),
             "prev": (published >= previous_start) & (published < current_start),
         }
         columns = []
         for key, in_window in windows.items():
-            covered = in_window & assigned.is_not(None)
+            covered = in_window & confirmed.is_not(None)
+            short_notice = covered & (notice_minutes <= SHORT_NOTICE_MINUTES)
             columns += [
                 func.sum(case((in_window, 1), else_=0)).label(f"{key}_published"),
                 func.sum(case((covered, 1), else_=0)).label(f"{key}_covered"),
                 func.sum(case((covered & (minutes <= 10), 1), else_=0)).label(f"{key}_fast"),
                 # AVG ignora los NULL: sólo promedia los cubiertos del período.
                 func.avg(case((covered, minutes), else_=None)).label(f"{key}_avg"),
+                func.sum(case((short_notice, 1), else_=0)).label(f"{key}_short"),
+                func.sum(case((short_notice & (minutes <= 10), 1), else_=0)).label(
+                    f"{key}_short_fast"
+                ),
+                func.sum(
+                    case((covered & ShiftModel.check_in_at.is_not(None), 1), else_=0)
+                ).label(f"{key}_fulfilled"),
+                # COUNT(DISTINCT ...) ignora los NULL: cuenta comercios, no turnos.
+                func.count(func.distinct(case((in_window, ShiftModel.company_id), else_=None))).label(
+                    f"{key}_companies"
+                ),
+                func.count(func.distinct(case((covered, ShiftModel.company_id), else_=None))).label(
+                    f"{key}_companies_covered"
+                ),
             ]
-        stmt = select(*columns).where(published >= previous_start, published < end)
+        excluded = _not_from_companies_of(exclude_company_emails)
+        stmt = select(*columns).where(published >= previous_start, published < end, excluded)
         row = (await self._session.execute(stmt)).one()
+
+        # La mediana no se puede sacar con SUM/CASE (en Postgres sería
+        # `percentile_cont`, que SQLite no tiene): se traen sólo los minutos de
+        # los cubiertos de las dos ventanas y se calcula en Python. Con el
+        # volumen de la beta (cientos de turnos por período) alcanza; si
+        # creciera a decenas de miles, pasar a `percentile_cont` en Postgres.
+        in_current = case((windows["cur"], 1), else_=0)
+        median_rows = (
+            await self._session.execute(
+                select(in_current, minutes).where(
+                    published >= previous_start,
+                    published < end,
+                    confirmed.is_not(None),
+                    excluded,
+                )
+            )
+        ).all()
+        sample = {"cur": [], "prev": []}
+        for is_current, mins in median_rows:
+            sample["cur" if is_current else "prev"].append(float(mins))
 
         def _stats(key: str) -> ShiftPeriodStats:
             avg = getattr(row, f"{key}_avg")
+            mins = sample[key]
             return ShiftPeriodStats(
                 published=getattr(row, f"{key}_published") or 0,
                 covered=getattr(row, f"{key}_covered") or 0,
                 covered_under_10_min=getattr(row, f"{key}_fast") or 0,
                 avg_minutes_to_cover=float(avg) if avg is not None else None,
+                median_minutes_to_cover=median(mins) if mins else None,
+                short_notice_covered=getattr(row, f"{key}_short") or 0,
+                short_notice_under_10_min=getattr(row, f"{key}_short_fast") or 0,
+                fulfilled=getattr(row, f"{key}_fulfilled") or 0,
+                active_companies=getattr(row, f"{key}_companies") or 0,
+                companies_with_covered=getattr(row, f"{key}_companies_covered") or 0,
             )
 
         return _stats("cur"), _stats("prev")
+
+    async def count_return_stats(
+        self,
+        *,
+        exclude_company_emails: frozenset[str] = frozenset(),
+        window_days: int = 30,
+        now: datetime | None = None,
+    ) -> ShiftReturnStats:
+        # Una fila por turno publicado (comercio, publicado, primera
+        # confirmación) y el cálculo en Python: «publicó otro después de que
+        # le funcionó» es una comparación entre filas del mismo comercio que
+        # en SQL pide una autounión por ventana. Para el volumen de la beta
+        # (miles de turnos) alcanza; si creciera, pasar a una consulta con
+        # `MIN(first_confirmed_at)` por comercio y un EXISTS.
+        stmt = select(
+            ShiftModel.company_id, ShiftModel.published_at, ShiftModel.first_confirmed_at
+        ).where(
+            ShiftModel.published_at.is_not(None),
+            _not_from_companies_of(exclude_company_emails),
+        )
+        rows = (await self._session.execute(stmt)).all()
+
+        first_covered: dict[UUID, datetime] = {}
+        publications: dict[UUID, list[datetime]] = {}
+        for company_id, published_at, confirmed_at in rows:
+            publications.setdefault(company_id, []).append(_utc_naive(published_at))
+            if confirmed_at is not None:
+                confirmed = _utc_naive(confirmed_at)
+                if company_id not in first_covered or confirmed < first_covered[company_id]:
+                    first_covered[company_id] = confirmed
+
+        horizon = timedelta(days=window_days)
+        # Sólo la cohorte madura: un comercio cuya primera confirmación fue
+        # hace menos de `window_days` todavía no tuvo la ventana entera para
+        # volver, y contarlo como «no volvió» bajaría el % por lo nuevo de la
+        # muestra, no por falta de vuelta.
+        cutoff = _utc_naive(now or datetime.now(timezone.utc)) - horizon
+        mature = {cid: t0 for cid, t0 in first_covered.items() if t0 <= cutoff}
+        returned = sum(
+            1
+            for company_id, t0 in mature.items()
+            if any(t0 < p <= t0 + horizon for p in publications[company_id])
+        )
+        return ShiftReturnStats(sample_size=len(mature), returned=returned)

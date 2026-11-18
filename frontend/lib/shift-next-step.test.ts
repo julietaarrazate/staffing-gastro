@@ -138,3 +138,29 @@ describe("nextStepFor con nombre y cantidad", () => {
   });
 });
 
+
+describe("nextStepFor con viaje compartido (en_route_at)", () => {
+  const shift = (extra: Partial<Shift>): Shift => ({ ...extra }) as Shift;
+
+  it("confirmado con en_route_at dice que va en camino, con y sin coordenadas", () => {
+    for (const coords of [{}, { en_route_latitude: -34.6, en_route_longitude: -58.4 }]) {
+      const base = { status: "confirmado" as const, en_route_at: "2026-11-18T20:00:00Z", ...coords };
+      expect(nextStepFor(shift({ ...base, worker_name: "Ana Pérez" })).hint).toBe(
+        "Ana va en camino al local."
+      );
+      expect(nextStepFor(shift({ ...base, worker_name: null })).hint).toBe("Va en camino al local.");
+    }
+  });
+
+  it("al apagarse el viaje (en_route_at null) vuelve a Confirmó", () => {
+    expect(
+      nextStepFor(shift({ status: "confirmado", en_route_at: null, worker_name: "Ana" })).hint
+    ).toBe("Ana confirmó. Te avisamos cuando salga para allá.");
+  });
+
+  it("no cambia otros estados", () => {
+    expect(nextStepFor(shift({ status: "asignado", en_route_at: "2026-11-18T20:00:00Z" })).hint).toBe(
+      "Esperando que confirme su asistencia."
+    );
+  });
+});

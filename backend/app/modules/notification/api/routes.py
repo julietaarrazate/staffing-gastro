@@ -26,6 +26,7 @@ from app.modules.notification.api.schemas import (
     MarkAllReadResponse,
     NotificationResponse,
     PushPublicKeyResponse,
+    PushReleaseRequest,
     PushSubscribeRequest,
     PushUnsubscribeRequest,
 )
@@ -42,6 +43,12 @@ push_router = APIRouter(prefix="/push", tags=["push"])
 _ws_frame_rate_limit = RateLimiter(
     max_attempts=120, window_seconds=60, name="notification_ws_frame"
 )
+
+# La baja sin sesión (`POST /push/release`) es pública: límite por IP, como
+# las demás rutas sin autenticar. La clave `auth` no se adivina (16 bytes al
+# azar); el tope es para que nadie la use de martillo contra la base. Holgado
+# a propósito: varias personas de un mismo local salen por la misma IP.
+_release_rate_limit = RateLimiter(max_attempts=30, window_seconds=60, name="push_release")
 
 ServiceDep = Annotated[NotificationService, Depends(get_notification_service)]
 PushServiceDep = Annotated[PushService, Depends(get_push_service)]
@@ -158,3 +165,20 @@ async def push_unsubscribe(
     payload: PushUnsubscribeRequest, current_user: CurrentUserDep, service: PushServiceDep
 ) -> None:
     await service.unsubscribe(current_user.id, payload.endpoint)
+
+
+@push_router.post(
+    "/release",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Dar de baja este dispositivo sin sesión (con la clave de la suscripción)",
+    dependencies=[Depends(_release_rate_limit)],
+)
+async def push_release(payload: PushReleaseRequest, service: PushServiceDep) -> None:
+    """Sin autenticar a propósito: la manda el navegador cuando la sesión ya
+    no está (cierre de sesión con el token vencido o sin red en ese momento,
+    sesión vencida, suspendida o revocada). La prueba es la clave `auth` de
+    la suscripción, no un token. Responde 204 siempre, coincida o no: no
+    revela si el endpoint existe, de quién es ni si la clave era la buena."""
+    await service.release(
+        endpoint=payload.endpoint, auth_key=payload.auth, user_id=payload.user_id
+    )
