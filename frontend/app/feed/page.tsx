@@ -542,7 +542,7 @@ function WorkerFeedPanel() {
     <div className={`${LETRAS_APP} mx-auto max-w-md px-4 pb-8 md:max-w-5xl md:pt-4`}>
       <div className="app-cielo -mx-4 px-4 pb-[88px] pt-4 md:mx-0 md:rounded-[var(--radius-card)] md:px-6 md:pb-6">
         <header className="flex items-end justify-between gap-3">
-          <h1 className="letra-cartel min-w-0 pb-1 text-[2rem] [overflow-wrap:anywhere]">
+          <h1 className="letra-cartel letra-cartel-pantalla min-w-0 pb-1 [overflow-wrap:anywhere]">
             {firstName ? `Hola, ${firstName}` : "Hola"}
           </h1>
           {/* «Disponible» es el cartelito de la puerta: verde como el de

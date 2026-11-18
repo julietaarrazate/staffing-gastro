@@ -276,7 +276,7 @@ Antes de dibujar algo nuevo en una pantalla, usar éstas:
 | Pieza | Dónde | Para qué |
 |---|---|---|
 | `LETRAS_APP` | `frontend/lib/letras.ts` | La brocha y Mansalva. Va en el contenedor de cada pantalla migrada (no en el layout raíz) |
-| `.letra-cartel` + `textoCartel()` | `globals.css`, `components/ui/Comanda.tsx` | Título de la pantalla y puesto de la comanda, en brocha. `textoCartel` saca la barra de «Mozo/a» a la letra de texto |
+| `.letra-cartel` (con `-pantalla` o `-puesto` para el tamaño) + `textoCartel()` | `globals.css`, `components/ui/Comanda.tsx` | Título de la pantalla y puesto de la comanda, en brocha. `textoCartel` saca la barra de «Mozo/a» a la letra de texto |
 | `.app-cielo` | `globals.css` | El cielo de arriba de la pantalla (celeste de día, azul noche de noche). Lo de encima hereda `--app-cielo-tinta` |
 | `Comanda`, `ComandaFila` | `components/ui/Comanda.tsx` | El turno como papel de cocina, con relieve. Adentro va forzada a claro: el papel es papel en los dos temas |
 | `Apunte`, `.letra-mano` | ídem | Un apunte a mano con óvalo. Uno por pantalla |

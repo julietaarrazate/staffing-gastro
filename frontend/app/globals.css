@@ -1061,6 +1061,16 @@ body:has([data-landing]) main {
   letter-spacing: 0;
   color: var(--color-cartel);
 }
+/* Sus dos tamaños. La brocha es angosta y pide un punto más que la escala
+   de texto (`text-h1` son 28 px): 32 para el título de la pantalla y 30
+   para el puesto de la comanda. Van acá, con nombre, y no como
+   `text-[2rem]` suelto en cada pantalla (lo exige `lib/type-scale.test.ts`). */
+.letra-cartel-pantalla {
+  font-size: 2rem;
+}
+.letra-cartel-puesto {
+  font-size: 1.875rem;
+}
 /* La barra de «Mozo/a», en la letra de texto (ver `textoCartel`). */
 .letra-cartel .barra {
   margin-inline: 0.06em;
