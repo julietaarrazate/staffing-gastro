@@ -150,53 +150,6 @@ async def test_assign_perfil_inexistente_sigue_dando_su_error_y_suspendida_en_tu
     assert missing.status_code != 409
 
 
-# --- 3. Chat: no se le escribe a una cuenta suspendida --------------------------
-
-
-async def test_no_se_le_escribe_por_chat_a_una_cuenta_suspendida_y_se_puede_leer(
-    client: AsyncClient, session_factory
-):
-    admin = await make_admin(client, session_factory, "sm3_admin@staffya.com")
-    employer = await _employer(client, "sm3_emp@staffya.com")
-    ana, ana_id = await _worker(client, "sm3_ana@staffya.com", "Ana Gomez")
-    shift_id = await _assigned(client, employer, ana_id, minutes=120)
-    first = await client.post(
-        f"/api/v1/chats/{shift_id}/messages", headers=employer, json={"body": "Hola Ana"}
-    )
-    assert first.status_code == 201, first.text
-    # Ana se suspende (el turno se reabre y deja de ser parte): usamos el caso
-    # del comercio suspendido, donde el turno cancelado conserva a la persona.
-    assert (await _suspend(client, admin, "sm3_emp@staffya.com")).status_code == 200
-
-    sent = await client.post(
-        f"/api/v1/chats/{shift_id}/messages", headers=ana, json={"body": "¿Sigue en pie?"}
-    )
-    assert sent.status_code == 404, sent.text
-    # Mismo error que un chat inexistente: no dice «suspendida».
-    ajeno = await client.post(
-        f"/api/v1/chats/00000000-0000-4000-8000-0000000000bb/messages",
-        headers=ana,
-        json={"body": "x"},
-    )
-    assert sent.json() == ajeno.json()
-    # Leer lo que ya había sigue permitido.
-    read = await client.get(f"/api/v1/chats/{shift_id}/messages", headers=ana)
-    assert read.status_code == 200, read.text
-    assert [m["body"] for m in read.json()] == ["Hola Ana"]
-
-
-async def test_chat_entre_cuentas_activas_sigue_andando(
-    client: AsyncClient, session_factory
-):
-    employer = await _employer(client, "sm3b_emp@staffya.com")
-    ana, ana_id = await _worker(client, "sm3b_ana@staffya.com", "Ana Gomez")
-    shift_id = await _assigned(client, employer, ana_id, minutes=120)
-    sent = await client.post(
-        f"/api/v1/chats/{shift_id}/messages", headers=ana, json={"body": "Hola"}
-    )
-    assert sent.status_code == 201, sent.text
-
-
 # --- 4. Sockets y push -----------------------------------------------------------
 
 

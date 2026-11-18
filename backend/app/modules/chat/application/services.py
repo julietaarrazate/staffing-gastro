@@ -92,15 +92,6 @@ class ChatService:
             raise EmptyMessageError()
 
         thread, company_user_id = await self._authorize(user_id, shift_id)
-        # Cuenta suspendida de la otra parte (ADR-0024): no se le escribe. Se
-        # responde igual que un chat ajeno, sin decir «suspendida»
-        # (no-disclosure). Leer lo ya escrito sigue permitido.
-        other_user_id = (
-            thread.worker_user_id if user_id == company_user_id else company_user_id
-        )
-        other = await self._users.get_by_id(other_user_id)
-        if other is None or not other.is_active:
-            raise ConversationNotFoundError(str(shift_id))
         message = await self._messages.add(
             ChatMessage(
                 shift_id=shift_id,
