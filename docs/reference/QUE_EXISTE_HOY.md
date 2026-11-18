@@ -103,8 +103,9 @@ listados más abajo.
   postulantes — entra de verdad al ranking de matching (verificado
   end-to-end en el launch-gate, #88).
 - **Asistente de IA para el trabajador** (`/assistant`, pantalla propia, no un
-  sheet): busca turnos en lenguaje natural y responde por su estado de
-  verificación. Igual que "Describí el turno" del comercio, depende de
+  sheet): busca turnos en lenguaje natural. No responde por el estado de
+  verificación: eso está en el perfil (U106, decisión de Julieta del
+  2026-11-17). Igual que "Describí el turno" del comercio, depende de
   `GEMINI_API_KEY` y degrada con un mensaje claro si no está.
 - **"Va en camino"** (#320 backend + #321 frontend): el trabajador avisa que
   está viajando a un turno confirmado y el comercio lo ve llegar en un mapa.

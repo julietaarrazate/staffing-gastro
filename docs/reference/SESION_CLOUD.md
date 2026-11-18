@@ -205,6 +205,13 @@ E1_AGENT=smoke node tools/e2e-local/smoke.mjs   # prueba de humo (borra lo que c
 - Para probar varios PRs juntos antes de mergearlos: un worktree aparte con
   las ramas mergeadas en local (sin pushear) y el arnés corriendo sobre ese
   árbol.
+- **Si `setup.sh` dice «✗ alembic falló», no compiló el frontend** y
+  `start_all.sh` igual levanta el build anterior sin avisar: la prueba mira
+  código viejo. Pasa al cambiar el árbol de prueba a uno que no tiene una
+  migración que la base local ya aplicó (visto el 2026-11-18: la base en 0050
+  y el árbol sin U110). Mirá la línea de alembic antes de probar; con varias
+  ramas con migraciones, mergeá en el árbol de prueba todas las que la base
+  ya vio.
 - Para la corrida con el límite de intentos y el tope del plan:
   `RATE_LIMIT_ENABLED=true SUBSCRIPTIONS_ENFORCED=true tools/e2e-local/restart_backend.sh`.
   Con el límite prendido todas las cuentas salen de `127.0.0.1`: conviene que

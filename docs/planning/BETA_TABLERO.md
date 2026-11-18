@@ -20,9 +20,9 @@ descuidado.
 |---|---|---|
 | 1 | Probar de punta a punta, sin arreglar | ✅ cerrada: 142 hallazgos (3 bloqueantes, 79 graves, 60 menores). Entorno de prueba (`tools/e2e-local/`) y estado escrito en #527 |
 | 2 | Arreglar: bloqueantes, después graves | en curso (ver abajo) |
-| 3 | Que nada se vea descuidado (los 60 menores y lo que salió de las revisiones) | 🟡 triaje hecho (2026-11-16): ver abajo |
+| 3 | Que nada se vea descuidado (los 60 menores y lo que salió de las revisiones) | ✅ cerrada el 2026-11-17: grupos A a N, las diez decisiones de Julieta, M6 y los pendientes de las tres tandas (ver abajo) |
 | 4 | Identidad, marca e isotipo | 🔵 Julieta eligió Shrikhand y ámbar (2026-11-17); letra, ícono «oí», miniatura, vectores, manual en PDF y brand system en el PR de la marca; campanita en #622. Siguen el isotipo propio (el «oí» es provisorio) y la dirección «con relieve» en la app, pantalla por pantalla (ver STATUS, ítem 0) |
-| 5 | Lista de salida a beta | ⚪ (incluye la medición de los KRs: ver «Antes de abrir: medir la beta») |
+| 5 | Lista de salida a beta | ⚪ (incluye la medición de los KRs: ver «Antes de abrir: medir la beta»; y pasar a TypeScript 7, el compilador en Go: PR aparte que sube `typescript` de 6 a 7 y corre tsc, lint, build y e2e; si ESLint con tipos se traba hasta la 7.1, ESLint sigue con TypeScript 6 mientras tanto. Decidido por Julieta el 2026-11-17) |
 | 6 | SEO y GEO | ⚪ |
 
 ## Etapa 2
@@ -414,7 +414,7 @@ U121, U087), 2 parciales (U130, U133), 10 esperan una decisión de Julieta y
 2 quedan fuera (U141 va con el tope del plan, apagado en la beta; U102 se
 cierra al apagar el ingreso de invitado, decisión 5).
 
-**Arreglos, un PR por grupo** (tandas 1, 2 y 3 en `main` el 2026-11-17, con
+**Arreglos, un PR por grupo** (tandas 1 a 4 en `main` el 2026-11-17, con
 revisión independiente de cada PR; el resto ⚪ sin empezar):
 
 | Grupo | Hallazgos | Tanda | Estado |
@@ -422,7 +422,7 @@ revisión independiente de cada PR; el resto ⚪ sin empezar):
 | A · Perfil del comercio | U119, U136 | 1 | ✅ #596 |
 | B · Dirección, zona y mapa | U037, U040, U048, U049, U107 | 1 | ✅ #594 |
 | C · Alta y verificación de mail | U041, U042, U043, U122 | 1 | ✅ #597 |
-| F · Chat y soporte | U012, U017, U092, U099, U130 (U110 aparte: lleva migración) | 1 | ✅ #595 (U110 ⚪) |
+| F · Chat y soporte | U012, U017, U092, U099, U130 (U110 aparte: lleva migración) | 1 | ✅ #595 (U110 ✅ #623) |
 | G · Candidatos, perfil y Buscar | U022, U027, U074 | 1 | ✅ #598 |
 | I · Subidas de archivos y perfil del trabajador | U051, U052, U091 | 1 | ✅ #599 |
 | K · Detalles sueltos de pantalla | U044, U046, U047, U061 | 1 | ✅ #600 |
@@ -431,51 +431,32 @@ revisión independiente de cada PR; el resto ⚪ sin empezar):
 | M · Admin: en vivo, ficha y «Ver como» | U129, U131, U132, U134 | 2 | ✅ #605 |
 | H · Matches del trabajador | U066, U068, U088 | 3 | ✅ #609 |
 | N · Guardas de rol y 2FA de admin | U098, U133 | 3 | ✅ #608, #611 |
-| E · Textos y formatos unificados | U050, U067 | 4 (al final: toca muchas pantallas) | ⚪ |
+| E · Textos y formatos unificados | U050, U067 | 4 (al final: toca muchas pantallas) | ✅ #620 |
 
-**Lo que dejó abierto la tanda 1** (⚪):
+**Pendientes de las tandas 1, 2 y 3: cerrados el 2026-11-17.**
 
-- U110 (soporte: reportar un turno o un comercio), PR aparte con migración.
-- El token `danger-text` en claro da ~3,9:1 sobre la tarjeta celeste
-  (por debajo de 4,5:1 para texto chico); en oscuro está bien. Ajustar el
-  token, no cada pantalla (salió de la revisión de #599).
+- U110 (soporte: reportar un turno o un comercio) ✅ #623.
+- `danger-text` en claro (#c22f2f, ≥ 4,5:1 sobre las superficies claras),
+  «Garantía Oído» oculta con el turno cerrado y recorte de títulos y mensajes
+  de aviso en un solo lugar ✅ #621.
+- Textos de «sin conexión» y de límite unificados ✅ #620 (con el grupo E).
+- Indicador de etapas en azul (un solo ámbar), deshabilitado legible, guardas
+  de rol en `/feed` y `/search` y el e2e intermitente de «Descubrir rápido»
+  ✅ #624.
+- Un solo indicador de foco por campo (reporte de Julieta del 2026-11-18:
+  bordes «verde y ámbar» encimados al tocar un campo) ✅ #627.
+
+Quedan, a propósito, sin código:
+
 - Zonas ya guardadas como «Mi ubicación actual» quedan sin selector
   precargado hasta que la persona elige una; no se migran (#594).
-- La «Garantía Oído» sigue visible en Candidatos de un turno cerrado (#598).
-- Inputs a 16 px en celular (#600, para que iOS no haga zoom al enfocar):
-  mirar en un iPhone real que ningún formulario quede apretado.
-
-**Lo que dejó abierto la tanda 2** (⚪):
-
-- Avisos con nombres o títulos largos: U118 se arregló sólo en el aviso de
-  nuevo postulante. «Nuevo mensaje de …» (chat) y «… salió para tu local»
-  pueden pasar los 255 caracteres del título y dar error después de guardar.
-  Recortar en un solo lugar (entidad o repositorio de avisos), no en cada
-  servicio; los tests corren sobre SQLite, que no hace cumplir el largo.
-- Textos de «sin conexión»: `frontend/lib/auth-context.tsx` todavía dice «No
-  se pudo conectar con el servidor.» (compuesto queda «No se pudo X: no se
-  pudo conectar…»), y `/recuperar` y `/verificar-email` tienen su propio
-  «esperá un minuto». Unificar con el texto de #606 (va bien con el grupo E).
+- Inputs a 16 px en celular (#600): mirar en un iPhone real que ningún
+  formulario quede apretado (prueba de persona, etapa 5).
 - Ficha de persona (admin): si dos personas faltan al mismo turno, sólo queda
-  la última (`last_no_show_worker_profile_id` guarda una); y un turno que
-  vence sin cubrir se muestra «No cubierto», aunque antes alguien haya faltado.
-  Un registro propio de ausencias lo resolvería; hoy no hace falta.
-- «Turnos en vivo» ordena urgentes, escalados y lo más reciente primero; con
-  más de 200, lo que queda afuera es lo más viejo (y el aviso lo dice).
-
-**Lo que dejó abierto la tanda 3** (⚪; lo que salió de las revisiones se
-resolvió en #609 y #611 antes del merge):
-
-- Matches: el paso actual del indicador de etapas sigue en ámbar junto al
-  botón ámbar de la tarjeta (componente compartido, no se tocó). Los
-  recordatorios ya enviados antes de #609 abren Matches sin resaltar el turno.
-- «Llegué» deshabilitado (antes de los 30 min) se ve muy tenue en claro: el
-  estado deshabilitado del botón `surface` tiene poco contraste en toda la
-  app.
-- `/feed` y `/search` siguen sin guarda de rol (no dan el síntoma de U098).
-- `e2e/descubrir-rapido.spec.ts:8` falló una vez con la máquina cargada (tras
-  `ArrowRight` seguía en «2 de 3»); solo pasa 5/5. Si aparece en CI, mirar la
-  espera del foco o de la animación antes del `keyboard.press`.
+  la última; un registro propio de ausencias lo resolvería, hoy no hace falta.
+- «Turnos en vivo» con más de 200: lo que queda afuera es lo más viejo (y el
+  aviso lo dice).
+- Recordatorios enviados antes de #609 abren Matches sin resaltar el turno.
 
 Los grupos de una misma tanda no comparten archivos; entre tandas sí (ver el
 triaje). Los menores nuevos de la prueba en la app (sección de la etapa 2)
@@ -486,14 +467,36 @@ con opciones en el triaje; implementar sin repreguntar):
 
 | Hallazgo | Decisión |
 |---|---|
-| U018 · aviso al trabajador al finalizar el turno | Sí, aviso nuevo en la campanita y por push: «Cerró tu turno · Calificalo» |
-| U039 · Google sobre una cuenta con mail sin confirmar | Sigue reclamándola, más un mail de aviso al mail de la cuenta |
-| U084 · cancelar un evento entero | Sí, un botón, con los mismos avisos y la misma penalidad por cancelación tardía que cancelar cada puesto |
-| U101 · edad | Pedir fecha de nacimiento y bloquear a menores de 18 en el alta (cambia el flujo y sube la versión legal) · 🔵 PR abierto, espera el «sí» de Julieta por lo legal |
-| U106 · asistente y verificación | Se corrige la documentación: el asistente no responde por la verificación (Julieta sin preferencia; se tomó la recomendada) |
+| U018 · aviso al trabajador al finalizar el turno | Sí, aviso nuevo en la campanita y por push: «Cerró tu turno · Calificalo» · ✅ #618 |
+| U039 · Google sobre una cuenta con mail sin confirmar | Sigue reclamándola, más un mail de aviso al mail de la cuenta · ✅ #615 |
+| U084 · cancelar un evento entero | Sí, un botón, con los mismos avisos y la misma penalidad por cancelación tardía que cancelar cada puesto · ✅ #617 |
+| U101 · edad | Pedir fecha de nacimiento y bloquear a menores de 18 en el alta (cambia el flujo y sube la versión legal) · ✅ #616 (versión legal `2026-11-17-2`, con el «sí» de Julieta) |
+| U106 · asistente y verificación | Se corrige la documentación: el asistente no responde por la verificación (Julieta sin preferencia; se tomó la recomendada) · ✅ `QUE_EXISTE_HOY.md`, en el cierre de la etapa |
 | U109 · dorso del DNI | No: sigue frente y selfie |
-| U111 · calificación | Definitiva; la pantalla lo avisa antes de enviar |
-| U140, U142, U143 · tope del plan | Diferidos hasta encender el cobro, junto con U094 y U137 |
+| U111 · calificación | Definitiva; la pantalla lo avisa antes de enviar · ✅ #618 |
+| U140, U142, U143 · tope del plan | Diferidos hasta encender el cobro, junto con U094 y U137 (ver la regla de cambio de plan, abajo) |
+
+**Regla de cambio de plan (Julieta, 2026-11-17), para implementar antes de
+encender el cobro**, junto con U140, U142 y U143. Es la práctica de la mayoría
+de las suscripciones mensuales:
+
+- **Subir de plan:** inmediato, pagando la diferencia entre los dos planes por
+  los días que quedan del mes pago (un pago suelto más de Checkout Pro); la
+  fecha de renovación no cambia.
+- **Bajar de plan:** rige al vencer el mes pago, sin reembolso; hasta ese día
+  sigue el plan actual.
+- **El contador de turnos no se reinicia al cambiar:** lo usado en el mes
+  cuenta contra el tope del plan nuevo (cierra U140).
+- Hoy, con el cobro prendido, pagar otro plan a mitad de mes cobra el precio
+  entero, suma los días y reinicia el contador: eso es lo que cambia.
+- Pasarela: Mercado Pago. Stripe no abre cuentas a negocios de Argentina
+  (sólo vía una empresa en EE. UU.); se revisa si Oído sale del país.
+
+**Otras decisiones de la sesión (2026-11-17):** el plan elegido en la landing
+se guarda sólo al terminar el alta (no en cualquier visita a «Mi plan»); la
+pantalla `/shifts` del comercio se llama «Panel» en todos lados (#620); un
+trabajador puede atar a un ticket de soporte cualquier comercio cuyo perfil
+público ve (#623).
 
 ## Antes de abrir: medir la beta (anotado el 2026-11-17)
 
@@ -501,7 +504,7 @@ Los KRs del trimestre (objetivo 1: «demostrar que Oído funciona con locales
 reales») alimentan la lámina de tracción del deck. Se revisó qué registra hoy
 la app y qué muestra `/admin/metricas`. Son ítems para hacer antes de abrir la
 beta, porque lo que no se mide desde el primer turno no se recupera después.
-**M1 a M5 están hechos (2026-11-17); M6 y M7 siguen abiertos.** La columna
+**M1 a M6 están hechos (2026-11-17); M7 sigue abierto.** La columna
 «Qué hay hoy» describe cómo estaba antes de este cambio.
 
 | KR | Qué hay hoy | Qué falta | Estado |
@@ -511,7 +514,7 @@ beta, porque lo que no se mide desde el primer turno no se recupera después.
 | Turnos cubiertos | Sí, por 7/30 días (`period-metrics`) | M3 · «Cubierto» hoy es `first_assigned_at`: **el comercio eligió a alguien**, no que la persona confirmó ni que fue. Un turno rechazado o con ausencia queda contado como cubierto. Guardar cuándo confirma la persona (`Shift.confirm` no guarda la hora) y contar como cubierto el turno **confirmado**. Sumar **cumplido** = hubo check-in en el local (`Shift.check_in`, ya con ubicación), mostrado como % de los cubiertos. «Elegido por el comercio» queda como dato interno del embudo (ver la definición abajo) | ✅ |
 | Tiempo de publicar a cubrir | Promedio y % en menos de 10 min por 7/30 días, medido de `published_at` a `first_assigned_at` | M4 · (a) medirlo de `published_at` a la **primera confirmación** (depende de M3); (b) separar los turnos para hoy o urgentes de los publicados con días de anticipación: uno publicado el lunes para el sábado no puede «cubrirse en 10 minutos» y mezclarlos ensucia la promesa; (c) mostrar la mediana además del promedio, que un solo turno lento mueve mucho | ✅ |
 | Locales que repiten | «Comercios que repiten» = 2 o más turnos **publicados** / 1 o más, sin período (`events_published`) | M5 · Repetir después de que funcionó: de los comercios con un turno cubierto, cuántos publican otro dentro de los 30 días. Por período | ✅ |
-| Locales que pagan o se comprometen | «Ingreso mensual recurrente» muestra 0 con el cobro apagado y aparte «Potencial si se cobrara». Con el cobro apagado toda suscripción se crea `activa` (`SubscriptionService`, línea 115), así que el potencial cuenta a todos los comercios | M6 · (a) El plan que el comercio elige en la landing vive sólo en el navegador (`lib/plan-elegido.ts`) y se borra al llegar a «Mi plan»: guardarlo en el servidor al darse de alta. (b) El compromiso de pago («precio fundador») no se registra en ningún lado: sumar un estado en Crecimiento (`lead`, hoy nuevo → … → alta) o un campo en la suscripción. (c) Al prender Mercado Pago, contar como «pagan» sólo los comercios con un pago aprobado | ⚪ |
+| Locales que pagan o se comprometen | «Ingreso mensual recurrente» muestra 0 con el cobro apagado y aparte «Potencial si se cobrara». Con el cobro apagado toda suscripción se crea `activa` (`SubscriptionService`, línea 115), así que el potencial cuenta a todos los comercios | M6 · (a) El plan que el comercio elige en la landing vive sólo en el navegador (`lib/plan-elegido.ts`) y se borra al llegar a «Mi plan»: guardarlo en el servidor al darse de alta. (b) El compromiso de pago («precio fundador») no se registra en ningún lado: sumar un estado en Crecimiento (`lead`, hoy nuevo → … → alta) o un campo en la suscripción. (c) Al prender Mercado Pago, contar como «pagan» sólo los comercios con un pago aprobado | ✅ #619 |
 | Para el deck | `period-metrics` sólo compara 7/30 días contra el período anterior; el ingreso es una foto sin historia | M7 · Una serie semanal desde el día 1 de la beta (o un CSV desde el admin) para la lámina de tracción. Puede esperar a después de M1-M6 | ⚪ |
 
 **Hecho (2026-11-17), M1 a M5.**
