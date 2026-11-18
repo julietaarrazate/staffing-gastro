@@ -10,11 +10,18 @@ class NotificationType(str, Enum):
     SHIFT_ASSIGNED = "shift_assigned"
     SHIFT_CONFIRMED = "shift_confirmed"
     SHIFT_REJECTED = "shift_rejected"
+    # Al comercio: la persona marcó la salida. También el recordatorio de
+    # cerrarlo a las 24 h (decisión 24): mismo turno, mismo destino y la
+    # misma acción pendiente.
     SHIFT_CHECKED_OUT = "shift_checked_out"
     SHIFT_PAID = "shift_paid"
     # U018: el comercio cerró el turno; al trabajador se le avisa que ya puede
     # calificar al comercio.
     SHIFT_FINISHED = "shift_finished"
+    # Decisión 24: el comercio no cerró el turno a las 72 h de la salida y
+    # Oído lo cerró solo; al comercio se le avisa que le queda marcarlo como
+    # pagado (al trabajador le llega SHIFT_FINISHED con su texto propio).
+    SHIFT_AUTO_FINISHED = "shift_auto_finished"
     SHIFT_REOPENED = "shift_reopened"
     CHAT_MESSAGE = "chat_message"
     REVIEW_RECEIVED = "review_received"
@@ -100,6 +107,7 @@ _DEEP_LINKS: dict[NotificationType, str] = {
     NotificationType.SHIFT_CONFIRMED: "/shifts",
     NotificationType.SHIFT_REJECTED: "/shifts",
     NotificationType.SHIFT_CHECKED_OUT: "/shifts",
+    NotificationType.SHIFT_AUTO_FINISHED: "/shifts",
     NotificationType.SHIFT_REOPENED: "/shifts",
     NotificationType.WORKER_EN_ROUTE: "/shifts",
     # Sólo al comercio (ADR-0015): si había un trabajador asignado sin

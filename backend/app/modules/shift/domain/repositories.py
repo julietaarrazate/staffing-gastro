@@ -142,6 +142,14 @@ class ShiftRepository(ABC):
         camino»; devuelve si marcó (si no, no hay que avisar)."""
 
     @abstractmethod
+    async def mark_finish_reminder_sent(self, shift_id: UUID, sent_at: datetime) -> bool:
+        """Registra que se le recordó al comercio cerrar el turno (decisión
+        24), sin subir la `version` (ADR-0016), igual que
+        `mark_departure_reminder_sent`. Sólo marca si el turno sigue en
+        CHECK_OUT y sin marca previa; devuelve si marcó (si no, no hay que
+        avisar: dos pasadas a la vez mandan un solo aviso)."""
+
+    @abstractmethod
     async def get_by_id(self, shift_id: UUID) -> Shift | None:
         """Busca un turno por su id."""
 
@@ -285,6 +293,14 @@ class ShiftRepository(ABC):
         Python, mismo criterio que `_naive` en `ShiftService` para no
         pelearse con el tz-naive de SQLite en tests— si mandar el
         recordatorio de check-in o marcar no-show automático."""
+
+    @abstractmethod
+    async def list_awaiting_finish(self) -> list[Shift]:
+        """Turnos CHECK_OUT (salida marcada, sin cerrar), sin paginar.
+
+        Uso interno (no expuesto por API): el scheduler (decisión 24) los
+        recorre —comparando `check_out_at` en Python, como el resto de los
+        chequeos— para recordarle al comercio que lo cierre o cerrarlo solo."""
 
     @abstractmethod
     async def list_recently_filled(

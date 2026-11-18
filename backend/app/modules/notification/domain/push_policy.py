@@ -86,6 +86,8 @@ DEFAULT_POLICY_TYPES: frozenset[NotificationType] = frozenset(
     {
         _N.SHIFT_PAID,
         _N.SHIFT_FINISHED,
+        # Oído cerró el turno solo: queda marcarlo pagado, sin apuro de hora.
+        _N.SHIFT_AUTO_FINISHED,
         # Informativo: no pide hacer nada ahora.
         _N.APPLICATIONS_WITHDRAWN,
         _N.REVIEW_RECEIVED,

@@ -1,6 +1,6 @@
 """Scheduler en proceso del ciclo de vida del turno.
 
-Seis chequeos independientes (más los que entran de afuera), un solo loop:
+Siete chequeos independientes (más los que entran de afuera), un solo loop:
 
 1. **Asistencia (ADR-0008):** turnos CONFIRMADO/EN_CAMINO sin check-in —
    antes del inicio, le recuerda al trabajador que avise al salir ("va en
@@ -15,13 +15,16 @@ Seis chequeos independientes (más los que entran de afuera), un solo loop:
    pasó — se resuelven solos a NO_CUBIERTO. La ventana depende de `urgent`
    (30 min si el turno era urgente, 2 h si no) para que uno inmediato no
    quede colgado como si siguiera activo mucho después de su hora.
-4. **"Disponible ahora" (ADR-0014):** perfiles de trabajador con esa posición
+4. **Cierre (ADR-0008, decisión 24):** turnos CHECK_OUT que el comercio no
+   cerró — a las 24 h de la salida se le recuerda una vez; a las 72 h Oído
+   lo cierra solo (`run_finish_check`).
+5. **"Disponible ahora" (ADR-0014):** perfiles de trabajador con esa posición
    prendida cuyo TTL ya venció — se apaga sola (`WorkerProfile.stop_available_now`).
    No es una regla de negocio, es minimización de datos: `is_available_now`
    ya la trata como vencida en cuanto pasa el TTL (el matching/mapa nunca la
    usan de más), este chequeo sólo borra la posición de la base en vez de
    dejarla ahí sin uso indefinidamente.
-5. **Retención (2026-10-23):** borra las sesiones de refresh vencidas hace
+6. **Retención (2026-10-23):** borra las sesiones de refresh vencidas hace
    más de `REFRESH_SESSION_RETENTION` y las notificaciones **leídas** de más
    de `READ_NOTIFICATION_RETENTION`. Como mucho una vez cada
    `RETENTION_INTERVAL`; no agrega despertares propios (va colgada de las
@@ -29,11 +32,11 @@ Seis chequeos independientes (más los que entran de afuera), un solo loop:
    corren los pasos que entran de afuera (`retention_steps`); hoy uno: el
    barrido de dispositivos push de las cuentas con las sesiones revocadas
    (`notification/infrastructure/device_sweep_job.py`, 2026-11-18).
-6. **Vencimiento del plan pago (ADR-0022):** sólo con el cobro de Mercado
+7. **Vencimiento del plan pago (ADR-0022):** sólo con el cobro de Mercado
    Pago prendido — avisa 3 días antes y el día que vence, y marca `vencida`
    después de los 3 días de gracia (`run_subscription_expiry_check`, vive en
    `subscription/infrastructure/expiry_job.py`).
-7. **Chequeos que entran de afuera (`extra_checks`):** `app/main.py` los
+8. **Chequeos que entran de afuera (`extra_checks`):** `app/main.py` los
    pasa a `start_scheduler` para que este archivo no importe la
    infraestructura de otro módulo (candado de capas). Hoy uno: el borrado de
    los documentos de verificación que Cloudinary no pudo borrar al decidir
@@ -97,8 +100,10 @@ from app.modules.notification.infrastructure.repositories import (
     SqlAlchemyNotificationRepository,
 )
 from app.modules.shift.application.services import (
+    AUTO_FINISH_DELAY,
     CHECKIN_REMINDER_DELAY,
     DEPARTURE_REMINDER_LEAD,
+    FINISH_REMINDER_DELAY,
     ESCALATION_DELAY,
     coverage_deadline,
     NO_SHOW_GRACE_PERIOD,
@@ -323,6 +328,43 @@ async def run_coverage_check() -> datetime | None:
         return next_deadline
 
 
+async def run_finish_check() -> datetime | None:
+    """Una pasada del chequeo de cierre (ADR-0008, decisión 24). Público para
+    poder testearlo sin el loop.
+
+    Turnos CHECK_OUT que el comercio no cerró: a `FINISH_REMINDER_DELAY` de
+    `check_out_at` se le recuerda una sola vez; a `AUTO_FINISH_DELAY` Oído lo
+    cierra solo. Devuelve la próxima deadline FUTURA (el recordatorio o el
+    cierre pendiente más temprano), o `None`.
+
+    No hace falta despertar el loop al marcar la salida: el primer umbral
+    está a un día y el loop nunca duerme más de `MAX_SLEEP` (6 h), así que la
+    pasada siguiente ya lo ve a tiempo."""
+    async with AsyncSessionLocal() as session:
+        service = _build_service(session)
+        now = _naive(datetime.now(timezone.utc))
+        shifts = await service.list_shifts_awaiting_finish()
+        next_deadline: datetime | None = None
+        for shift in shifts:
+            if shift.check_out_at is None:
+                continue
+            checked_out = _naive(shift.check_out_at)
+            reminder_at = checked_out + FINISH_REMINDER_DELAY
+            finish_at = checked_out + AUTO_FINISH_DELAY
+            if now >= finish_at:
+                await _act(service.auto_finish, shift.id)
+                # Se cerró (o lo cerró el comercio): no aporta deadline.
+                continue
+            if shift.finish_reminder_sent_at is None:
+                if now < reminder_at:
+                    next_deadline = _earlier(next_deadline, reminder_at)
+                    continue
+                await _act(service.send_finish_reminder, shift.id)
+            # Ya recordado: su próxima (y última) deadline es el cierre.
+            next_deadline = _earlier(next_deadline, finish_at)
+        return next_deadline
+
+
 async def run_available_now_cleanup() -> datetime | None:
     """Una pasada de limpieza de "Disponible ahora" (ADR-0014). Público para
     poder testearlo sin el loop.
@@ -453,6 +495,11 @@ async def scheduler_loop(
         except Exception:
             had_error = True
             logger.exception("Error en el chequeo de cobertura")
+        try:
+            next_deadline = _earlier(next_deadline, await run_finish_check())
+        except Exception:
+            had_error = True
+            logger.exception("Error en el chequeo de cierre de turnos")
         try:
             next_deadline = _earlier(next_deadline, await run_available_now_cleanup())
         except Exception:
