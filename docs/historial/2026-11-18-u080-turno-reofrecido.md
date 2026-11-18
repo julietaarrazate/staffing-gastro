@@ -128,3 +128,13 @@ persona y sin chance de reemplazo, con horas de turno por delante.
 - `appliedShiftIds` mira las 50 postulaciones más recientes de
   `/applications/mine`: a quien tenga más, una `desasignada` vieja se le
   podría escapar (caso raro, no se tocó).
+
+**Segunda revisión (aprobada con observaciones), y lo que se corrigió:** un
+turno se reofrece sólo si le quedan más de 2 horas y 15 minutos: con 2 h 00
+min 30 s se reofrecía, salían los avisos urgentes y a los 30 segundos dejaba
+de ofrecerse (y el comercio recibía casi juntos «lo reofrecimos» y «quedó sin
+cubrir»). El aviso al comercio y la línea del panel dicen que se ofrece «hasta
+las HH:MM, dos horas antes de que termine (a las HH:MM)»: se leía como si el
+turno terminara a esa hora. Se probó en la app con base propia: reofrecer,
+salir de la oferta a las 2 horas, cierre directo con poco horario, y un turno
+común confirmado tarde que queda como antes.

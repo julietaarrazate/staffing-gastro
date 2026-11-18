@@ -29,7 +29,12 @@ from app.modules.notification.domain.value_objects import NotificationType
 from app.modules.shift.application.dtos import EventData, EventResult, ShiftData
 from app.modules.shift.application.scheduler_signal import notify_scheduler
 from app.modules.shift.application.zones import locals_of_unplaced, measuring_zone
-from app.modules.shift.domain.entities import REOFFER_MIN_REMAINING, Reapertura, Shift
+from app.modules.shift.domain.entities import (
+    REOFFER_MIN_OFFER_WINDOW,
+    REOFFER_MIN_REMAINING,
+    Reapertura,
+    Shift,
+)
 from app.modules.shift.domain.pay_benchmark import (
     BENCHMARK_WINDOW_DAYS,
     PayBand,
@@ -837,9 +842,9 @@ class ShiftService(AccountSuspensionEffects):
                 NotificationType.SHIFT_NOT_COVERED,
                 "Un turno quedó sin cubrir",
                 (
-                    f"\"{turno}\" quedó sin cubrir: {motivo_cierre} y quedan menos "
-                    f"de {format_duracion(REOFFER_MIN_REMAINING)} de horario, así "
-                    "que no lo reofrecimos. Podés publicarlo de nuevo."
+                    f"\"{turno}\" quedó sin cubrir: {motivo_cierre} y queda muy "
+                    f"poco horario (menos de {format_duracion(REOFFER_MIN_REMAINING + REOFFER_MIN_OFFER_WINDOW)}), "
+                    "así que no lo reofrecimos. Podés publicarlo de nuevo."
                 ),
             )
         elif outcome is Reapertura.REOFRECIDO:
@@ -849,7 +854,8 @@ class ShiftService(AccountSuspensionEffects):
                 titulo,
                 (
                     f"{paso} Como ya había empezado, lo reofrecimos como urgente "
-                    f"hasta las {_hora(shift.offered_until)}; se paga lo que reste "
+                    f"hasta las {_hora(shift.offered_until)}, dos horas antes de que "
+                    f"termine (a las {_hora(shift.end_at)}); se paga lo que reste "
                     "desde que llegue el reemplazo."
                 ),
                 # Lo que el comercio necesita es elegir a otro: el aviso abre

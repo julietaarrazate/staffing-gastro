@@ -172,7 +172,7 @@ test("Panel del comercio: el turno reofrecido se distingue y dice hasta cuándo 
   await page.goto("/shifts");
 
   const main = page.locator("main");
-  await expect(main).toContainText(`Reofrecido como urgente hasta las ${ofrecidoHasta(reofrecido.end_at)}.`);
+  await expect(main).toContainText(`Reofrecido como urgente hasta las ${ofrecidoHasta(reofrecido.end_at)} (dos horas antes del final).`);
   await expect(main).toContainText("$10.000");
   await expect(main).toContainText("Se paga lo que reste desde que llegue el reemplazo");
 });

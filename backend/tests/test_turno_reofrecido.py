@@ -20,6 +20,7 @@ from app.modules.shift.application.services import (
 )
 from app.modules.shift.domain.entities import (
     NO_SHOW_EARLIEST_AFTER_START,
+    REOFFER_MIN_OFFER_WINDOW,
     REOFFER_MIN_REMAINING,
     Reapertura,
     Shift,
@@ -98,7 +99,9 @@ def test_ausencia_con_menos_de_una_hora_pasa_a_no_cubierto():
     assert shift.no_show_at is not None
 
 
-def test_el_limite_son_dos_horas_justas():
+def test_el_limite_son_dos_horas_y_un_cuarto_de_oferta():
+    """Se reofrece si quedan más de 2 h + 15 min: con menos, el turno saldría
+    de la oferta enseguida (a las 2 h) y los avisos urgentes serían por nada."""
     start = datetime(2026, 11, 18, 20, 0, tzinfo=timezone.utc)
 
     def reabrir(now: datetime) -> tuple[Reapertura, Shift]:
@@ -115,13 +118,22 @@ def test_el_limite_son_dos_horas_justas():
         return shift.worker_cancel(now=now), shift
 
     assert REOFFER_MIN_REMAINING == timedelta(hours=2)
-    justo, shift = reabrir(start + timedelta(hours=4) - REOFFER_MIN_REMAINING)
-    assert justo is Reapertura.REOFRECIDO
-    assert shift.reoffered_at == start + timedelta(hours=2)
+    assert REOFFER_MIN_OFFER_WINDOW == timedelta(minutes=15)
+    fin = start + timedelta(hours=4)
+    con_margen = fin - REOFFER_MIN_REMAINING - REOFFER_MIN_OFFER_WINDOW - timedelta(seconds=1)
+    alcanza, shift = reabrir(con_margen)
+    assert alcanza is Reapertura.REOFRECIDO
+    assert shift.reoffered_at == con_margen
 
-    por_poco, shift = reabrir(start + timedelta(hours=2, seconds=1))
-    assert por_poco is Reapertura.SIN_CUBRIR
-    assert shift.status == ShiftStatus.NO_CUBIERTO
+    # Justo en el límite, o con 2 h 00 min 30 s, ya no: se ofrecería segundos.
+    for now in (
+        fin - REOFFER_MIN_REMAINING - REOFFER_MIN_OFFER_WINDOW,
+        fin - REOFFER_MIN_REMAINING - timedelta(seconds=30),
+        fin - REOFFER_MIN_REMAINING,
+    ):
+        no_alcanza, cerrado = reabrir(now)
+        assert no_alcanza is Reapertura.SIN_CUBRIR
+        assert cerrado.status == ShiftStatus.NO_CUBIERTO
 
     # En el instante del inicio ya empezó.
     al_inicio, _ = reabrir(start)
@@ -659,7 +671,10 @@ async def test_ausencia_sin_dos_horas_de_horario_cierra_el_turno_con_un_solo_avi
     assert marked.json()["reoffered_at"] is None
 
     [aviso] = await _avisos(client, comercio, "shift_not_covered")
-    assert "Ana Ausente no se presentó y quedan menos de 2 horas de horario" in aviso["message"]
+    assert (
+        "Ana Ausente no se presentó y queda muy poco horario "
+        "(menos de 2 horas y 15 minutos)" in aviso["message"]
+    )
     assert "no lo reofrecimos" in aviso["message"]
     assert await _avisos(client, comercio, "shift_reopened") == []
     # Nadie más recibe nada; a quien faltó le cuenta la ausencia.
@@ -1010,7 +1025,7 @@ async def test_la_reapertura_por_suspension_de_un_turno_empezado_lo_reofrece(
 
 
 @asyncio
-async def test_la_reapertura_por_suspension_sin_una_hora_cierra_sin_restaurar(
+async def test_la_reapertura_por_suspension_sin_el_minimo_cierra_sin_restaurar(
     client: AsyncClient, session_factory
 ):
     shift_id, comercio, c_id = await _turno_con_rechazado(

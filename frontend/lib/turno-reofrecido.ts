@@ -3,7 +3,8 @@ import type { Shift } from "@/lib/types";
 
 /**
  * Turno reofrecido (U080): un turno que se reabre con el horario ya empezado
- * se vuelve a ofrecer como urgente si le quedan al menos 2 horas; con menos,
+ * se vuelve a ofrecer como urgente si le quedan más de 2 horas y 15 minutos
+ * (2 horas, decisión 19, más 15 minutos a la vista); con menos,
  * pasa a «no cubierto». Ya reofrecido, sale de la oferta cuando le quedan
  * menos de 2 horas. La regla vive en el backend (`Shift._reopen`,
  * `offered_until`, `REOFFER_MIN_REMAINING`); esto es su espejo para los
@@ -14,6 +15,10 @@ import type { Shift } from "@/lib/types";
  *  ofreciéndolo (decisión 19: 2 horas). Espejo de `REOFFER_MIN_REMAINING`. */
 export const REOFFER_MIN_REMAINING_MS = 2 * 60 * 60_000;
 
+/** Lo mínimo que queda a la vista un turno que se reofrece: con menos, no
+ *  se reofrece. Espejo de `REOFFER_MIN_OFFER_WINDOW`. */
+export const REOFFER_MIN_OFFER_WINDOW_MS = 15 * 60_000;
+
 /** «No se presentó» se habilita 15 minutos después de la hora en que se
  *  esperaba a la persona (la tolerancia de la puntualidad). */
 export const NO_SHOW_AFTER_MS = 15 * 60_000;
@@ -23,7 +28,10 @@ type Reofrecible = Pick<Shift, "start_at" | "end_at">;
 /** ¿Se reofrecería si se reabre ahora? Sólo tiene sentido con el turno ya
  *  empezado: antes vuelve a buscar personal como siempre. */
 export function seReofrece(shift: Reofrecible, now: number = Date.now()): boolean {
-  return new Date(shift.end_at).getTime() - now >= REOFFER_MIN_REMAINING_MS;
+  return (
+    new Date(shift.end_at).getTime() - now >
+    REOFFER_MIN_REMAINING_MS + REOFFER_MIN_OFFER_WINDOW_MS
+  );
 }
 
 /** «HH:MM» hasta la que se ofrece un turno reofrecido: cuando le quedan
@@ -66,16 +74,17 @@ export function noShowConfirmCopy(shift: Reofrecible, now: number = Date.now()):
   const hasta = ofrecidoHasta(shift);
   const resta = new Date(shift.end_at).getTime() - now;
   const queda =
-    Math.abs(resta - REOFFER_MIN_REMAINING_MS) < REOFFER_UNCERTAIN_MARGIN_MS
-      ? `Como el turno ya empezó, si al marcarlo le quedan al menos 2 horas de horario lo reofrecemos como urgente hasta las ${hasta} (quien lo tome cobra lo que reste desde que llegue); si no, pasa a «no cubierto» y podés publicarlo de nuevo.`
+    Math.abs(resta - (REOFFER_MIN_REMAINING_MS + REOFFER_MIN_OFFER_WINDOW_MS)) <
+    REOFFER_UNCERTAIN_MARGIN_MS
+      ? `Como el turno ya empezó, si al marcarlo le quedan más de 2 horas y 15 minutos de horario lo reofrecemos como urgente hasta las ${hasta}, dos horas antes del final (quien lo tome cobra lo que reste desde que llegue); si no, pasa a «no cubierto» y podés publicarlo de nuevo.`
       : seReofrece(shift, now)
-        ? `Como el turno ya empezó, lo reofrecemos como urgente hasta las ${hasta}: quien lo tome cobra lo que reste desde que llegue.`
-        : "Quedan menos de 2 horas de horario, así que no se reofrece: el turno pasa a «no cubierto» y podés publicarlo de nuevo.";
+        ? `Como el turno ya empezó, lo reofrecemos como urgente hasta las ${hasta}, dos horas antes del final: quien lo tome cobra lo que reste desde que llegue.`
+        : "Queda poco horario (menos de 2 horas y 15 minutos), así que no se reofrece: el turno pasa a «no cubierto» y podés publicarlo de nuevo.";
   return `${queda} Al trabajador le va a impactar la reputación. Esta acción queda registrada.`;
 }
 
 /** La línea del panel para un turno reofrecido que todavía busca reemplazo:
  *  hasta cuándo se ofrece (cuando le quedan 2 horas de horario). */
 export function reofferedHint(shift: Pick<Shift, "end_at">): string {
-  return `Reofrecido como urgente hasta las ${ofrecidoHasta(shift)}.`;
+  return `Reofrecido como urgente hasta las ${ofrecidoHasta(shift)} (dos horas antes del final).`;
 }

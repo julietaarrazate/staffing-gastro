@@ -402,6 +402,9 @@ implemente.
   **al menos 2 horas** de horario; con menos, pasa a «no cubierto» (Julieta
   lo subió de 1 a 2 horas el mismo día: nadie toma un turno reabierto por una
   sola hora; también sale de la oferta cuando le quedan menos de 2 horas).
+  En el código se reofrece con más de 2 horas y 15 minutos, para que quede a
+  la vista al menos un cuarto de hora (sin ese margen, una reapertura justo
+  en el límite mandaba avisos urgentes por un turno que se ofrecía segundos).
 - **20.** U072: el texto nuevo de `/privacidad` (versión `2026-11-18-1`),
   aprobado: al apagar «va en camino» se borra la posición y el comercio deja
   de verla; «desde dos horas antes»; el identificador del dispositivo se

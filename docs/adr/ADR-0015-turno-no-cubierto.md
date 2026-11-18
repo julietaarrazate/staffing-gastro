@@ -186,7 +186,10 @@ horas de turno por delante.
    - todavía no empezó: vuelve a `BUSCANDO_PERSONAL`, como siempre;
    - ya empezó y le quedan **al menos 2 horas** de horario
      (`REOFFER_MIN_REMAINING`, decisión 19; Julieta lo subió de 1 a 2 horas
-     el mismo día: nadie toma un turno reabierto por una sola hora): vuelve a `BUSCANDO_PERSONAL`
+     el mismo día: nadie toma un turno reabierto por una sola hora), **más 15
+     minutos** (`REOFFER_MIN_OFFER_WINDOW`: que quede a la vista al menos ese
+     rato; sin el margen, una reapertura con 2 h 00 min 30 s mandaba avisos
+     urgentes por un turno que dejaba de ofrecerse a los 30 segundos): vuelve a `BUSCANDO_PERSONAL`
      **reofrecido como urgente** (`reoffered_at`, `urgent`; `escalated_at` se
      marca si no lo estaba, para que la escalada no avise otra vez);
    - ya empezó y le queda menos: pasa **directo a `NO_CUBIERTO`** en la misma

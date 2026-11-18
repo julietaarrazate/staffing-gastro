@@ -74,6 +74,14 @@ NO_SHOW_EARLIEST_AFTER_START = timedelta(minutes=15)
 # lo cierra si nadie confirmó. Es la única constante de esta regla.
 REOFFER_MIN_REMAINING = timedelta(hours=2)
 
+# Cuánto tiene que quedar a la vista, como mínimo, un turno que se reofrece.
+# Sin esto, una reapertura con 2 h 00 min 30 s de horario mandaba avisos
+# urgentes por un turno que dejaba de ofrecerse a los 30 segundos, y el
+# comercio recibía casi juntos «lo reofrecimos» y «quedó sin cubrir»
+# (revisión independiente de U080). Se reofrece sólo si le quedan más de
+# `REOFFER_MIN_REMAINING + REOFFER_MIN_OFFER_WINDOW`.
+REOFFER_MIN_OFFER_WINDOW = timedelta(minutes=15)
+
 
 class Reapertura(str, Enum):
     """Cómo quedó un turno después de que la persona que lo tenía lo dejó
@@ -430,7 +438,7 @@ class Shift:
         self._clear_en_route()
         if _naive(now) < _naive(self.start_at):
             return Reapertura.ABIERTO
-        if _naive(self.end_at) - _naive(now) >= REOFFER_MIN_REMAINING:
+        if _naive(self.end_at) - _naive(now) > REOFFER_MIN_REMAINING + REOFFER_MIN_OFFER_WINDOW:
             self.reoffered_at = now
             self.urgent = True
             if self.escalated_at is None:
