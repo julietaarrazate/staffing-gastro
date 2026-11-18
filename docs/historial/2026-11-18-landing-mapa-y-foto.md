@@ -33,5 +33,23 @@ Los metros que faltan se quedan: es lo único que la app sabe de verdad de
 quien viene. Las fotos son de banco, como las del inicio; qué va en cada
 lugar, en `docs/design-system/fotos-landing.md`.
 
+**Dos cosas más del mismo día** (Julieta, con capturas de su celular):
+
+- **La pantalla de arranque de la app instalada.** Al abrirla, Android
+  mostraba un fondo blanco con el ícono chico dentro de un cuadrado azul y
+  «Oído» en letra de sistema. Ese fondo sale de `background_color` del
+  manifiesto (`frontend/app/manifest.ts`), que estaba en blanco; ahora es el
+  azul hondo del ícono, y el cuadrado desaparece. Efecto a mirar en un
+  celular: Android usa ese color también para su barra de abajo mientras la
+  app está abierta. Si molesta, vuelve a blanco y se piensa otra salida.
+  Android actualiza una app ya instalada con demora (hasta un día), o al
+  reinstalarla.
+- **El ícono viejo en Google.** El sitio ya sirve el ícono nuevo
+  (`/favicon.ico` publicado es el del repo, visto el 2026-11-18) y lo declara
+  bien; lo que muestra Google es su copia guardada, que renueva cuando
+  vuelve a pasar. Se acelera pidiendo la indexación de la página de inicio
+  en Search Console. De paso se borró `frontend/public/logo.svg`, el logo de
+  las manos y la oreja: no lo usaba nada y seguía publicado.
+
 **Queda abierto:** el ejemplo de la comanda sigue siendo «un mozo» y la
 oferta dice «Bartender»: son dos ejemplos distintos, como en la prueba.
