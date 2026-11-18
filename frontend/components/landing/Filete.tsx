@@ -1,10 +1,11 @@
 import { useId, type ReactNode } from "react";
 
 /**
- * El «oído» fileteado (2026-10-23): letra de cartel antiguo (Sancreek, con
- * espolones, como los alfabetos "lettres fantaisie" y los carteles de
- * fileteado) en crema, con filete interior de luz, borde y relieve azul hondo
- * y canto dorado. En el tamaño grande, adornos finos dorados: arco con doble
+ * El «oído» fileteado: letra gorda e inclinada (Shrikhand desde el
+ * 2026-11-17, como la letra fantasía de los carteles fileteados; antes
+ * Sancreek) en crema, con filete interior de luz, borde y relieve azul hondo
+ * y canto dorado. Los mismos dibujos en vector, con la letra convertida a
+ * trazos, están en docs/design-system/marca/. En el tamaño grande, adornos finos dorados: arco con doble
  * filete y flor de tres hojas arriba, filete cortado con eses y rombo abajo,
  * rulos y perlitas.
  *
@@ -20,7 +21,7 @@ const RAYO = "#9a6410";
 const HONDO = "#14456a";
 const HONDO_CLARO = "#1c5478";
 const CANTO = "#c98a1a";
-const FUENTE = "var(--font-sancreek), Georgia, serif";
+const FUENTE = "var(--font-shrikhand), Georgia, serif";
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
 
