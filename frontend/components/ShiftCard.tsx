@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { SKILL_LABELS, STATUS_LABELS, Shift } from "@/lib/types";
 import { SKILL_ACCENT, SKILL_HERO_TONE, heroInk } from "@/lib/skill-style";
-import { Avatar, Badge, Button } from "@/components/ui";
+import { Avatar, Badge, Button, Comanda, textoCartel } from "@/components/ui";
 import {
   CalendarPlusIcon,
   ClockIcon,
@@ -91,10 +91,23 @@ const DIMMED_STATUSES = new Set(["cancelado", "pagado", "no_cubierto"]);
 // poco es ruido; en uno terminado o cancelado, es ruido sobre historia.
 const PAY_HINT_STATUSES = new Set(["borrador", "publicado", "buscando_personal"]);
 
+// En la comanda (`comanda`), el estado es un sello de goma: toma el color de
+// la letra. Verde para lo que salió bien, rojo sólo para cancelado, gris para
+// lo que no arrancó o no se cubrió, azul hondo para todo lo que está en curso.
+const SELLO_COLORS: Record<string, string> = {
+  borrador: "text-ink-soft",
+  confirmado: "text-success-text",
+  finalizado: "text-success-text",
+  pagado: "text-success-text",
+  cancelado: "text-danger-text",
+  no_cubierto: "text-ink-soft",
+};
+
 export default function ShiftCard({
   shift,
   perspective = "employer",
   showLifecycle = true,
+  comanda = false,
   children,
 }: {
   shift: Shift;
@@ -107,6 +120,12 @@ export default function ShiftCard({
    * no tiene ninguna relación: mostrar el stepper ahí diría "Postulado"
    * sobre un turno al que el trabajador ni se postuló. */
   showLifecycle?: boolean;
+  /** La tarjeta como comanda de papel (dirección «con relieve», 2026-11-18):
+   *  sin banda de color ni foto, el puesto en brocha y el estado como sello
+   *  de goma. La usan las pantallas que ya migraron (el panel del comercio);
+   *  las demás siguen con la tarjeta de siempre. Los datos, las acciones y
+   *  lo que se muestra según el lado son los mismos. */
+  comanda?: boolean;
   children?: React.ReactNode;
 }) {
   const { Icon } = SKILL_ACCENT[shift.position];
@@ -119,6 +138,8 @@ export default function ShiftCard({
   const heroPhoto = shiftHeroPhoto(shift);
   const hasPhoto = Boolean(heroPhoto) && !broken;
   const ink = heroInk(shift.position, hasPhoto);
+  // La raíz: la comanda de papel o la tarjeta de siempre.
+  const Raiz: React.ElementType = comanda ? Comanda : "div";
 
   return (
     // `.no-select` (bug C0 #2, docs/planning/PULIDO_ROADMAP.md fix 2): esta tarjeta es
@@ -127,7 +148,7 @@ export default function ShiftCard({
     // seleccionar como una página web (captura de la operadora). El único
     // texto de lectura real que cuelga de acá (comentario de reseña ya
     // escrito, ver ReviewBox) se reactiva puntualmente con `.select-text`.
-    <div
+    <Raiz
       data-testid="shift-card"
       data-shift-id={shift.id}
       // Antes tenía `overflow-hidden` (sólo para redondear la esquina de arriba
@@ -136,10 +157,52 @@ export default function ShiftCard({
       // dropdown `position: absolute`, quedaba tapado/recortado en una tira
       // finita en vez de mostrarse completo (bug real con captura, Julieta
       // 2026-07-29). El link de arriba ahora redondea sus propias esquinas.
-      className={`no-select rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99] ${
-        isDimmed ? "opacity-65 saturate-[0.85]" : ""
-      }`}
+      className={`no-select ${
+        comanda ? "" : "rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99]"
+      } ${isDimmed ? "opacity-65 saturate-[0.85]" : ""}`}
     >
+      {comanda ? (
+        // La cabeza de la comanda: el puesto en brocha, de quién es y dónde.
+        // Sin banda de color: sobre el papel, lo que distingue un turno de
+        // otro es el puesto, grande.
+        <div className="px-4 pt-4">
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="letra-cartel letra-cartel-puesto min-w-0 break-words">
+              {textoCartel(SKILL_LABELS[shift.position])}
+            </h3>
+            {shift.urgent && <span className="sello-goma mt-1 shrink-0 text-danger-text">Urgente</span>}
+          </div>
+          <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm text-ink-soft">
+            {shift.company_name && (
+              <>
+                <Link href={`/companies/${shift.company_id}`} className="font-semibold text-ink underline-offset-2 hover:underline">
+                  {shift.company_name}
+                </Link>
+                <span aria-hidden>·</span>
+              </>
+            )}
+            <span className="inline-flex items-center gap-1">
+              <MapPinIcon size={13} />
+              {shift.city ?? "Ubicación a confirmar"}
+            </span>
+          </p>
+          {(shift.company_verified || shift.event_name) && (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {shift.company_verified && (
+                <Badge tone="trust" icon={<ShieldIcon size={11} />}>
+                  Comercio verificado
+                </Badge>
+              )}
+              {shift.event_name && (
+                <span className="inline-flex items-center gap-1 text-xs font-bold text-primary-text">
+                  <CalendarPlusIcon size={12} /> {shift.event_name}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
       {/* BANNER (Julieta, captura 2026-08-17: "todas las publicaciones son
           genéricas, sin fotos, sin distinto color de banner... la idea es que
           entre tantas tengan distinto color, al menos un corte de otro color
@@ -252,8 +315,10 @@ export default function ShiftCard({
           </div>
         </div>
       </div>
+        </>
+      )}
 
-      <div className="px-5 pb-5 pt-4">
+      <div className={comanda ? "px-4 pb-4 pt-3" : "px-5 pb-5 pt-4"}>
         {/* El pago, sobre BLANCO. Sigue siendo lo más grande de la tarjeta
             —jerarquía por tamaño y peso, no por color (ART_DIRECTION.md §9.4)—
             pero ahora se lee como dato y no como parte del cartel de color.
@@ -268,7 +333,7 @@ export default function ShiftCard({
             salían por el borde. Ahora bajan a la línea siguiente. */}
         <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
           <div>
-            <p className="font-mono text-label font-bold uppercase tracking-wide text-ink/45">
+            <p className={comanda ? "text-label font-semibold text-ink-soft" : "font-mono text-label font-bold uppercase tracking-wide text-ink/45"}>
               Pago
             </p>
             <p className="text-price font-extrabold tracking-tight text-ink">
@@ -314,9 +379,12 @@ export default function ShiftCard({
             vuelve cuando el turno se cortó, porque ahí agrega en qué paso. */}
         <div className="mt-4 flex items-start gap-3">
           <span
-            className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${
-              STATUS_COLORS[shift.status] ?? "bg-surface text-ink/70"
-            }`}
+            data-testid="shift-status"
+            className={
+              comanda
+                ? `sello-goma shrink-0 ${SELLO_COLORS[shift.status] ?? "text-primary-text"}`
+                : `shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${STATUS_COLORS[shift.status] ?? "bg-surface text-ink/70"}`
+            }
           >
             {STATUS_LABELS[shift.status]}
           </span>
@@ -430,6 +498,6 @@ export default function ShiftCard({
           </p>
         )}
       </div>
-    </div>
+    </Raiz>
   );
 }

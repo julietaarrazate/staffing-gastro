@@ -266,7 +266,9 @@ como exploración abierta):
    y `--radius-relieve`, no valores sueltos.
 3. Un PR por pantalla, en este orden: ~~Inicio del trabajador~~ (hecho el
    2026-11-18, [historial](../historial/2026-11-18-inicio-trabajador-relieve.md)),
-   Panel del comercio, Candidatos, Mis turnos; ~~la landing~~ (hecha). La
+   ~~Panel del comercio~~ (hecho el 2026-11-18,
+   [historial](../historial/2026-11-18-panel-comercio-relieve.md)),
+   Candidatos, Mis turnos; ~~la landing~~ (hecha). La
    barra de abajo es de toda la app y va aparte. Capturas en claro y oscuro.
 
 ## Piezas compartidas de la app (desde el Inicio del trabajador)
@@ -283,3 +285,6 @@ Antes de dibujar algo nuevo en una pantalla, usar éstas:
 | `.sello-goma` | `globals.css` | Un estado como sello de goma (toma el color de la letra) |
 | `.cartelito` | `globals.css` | «Disponible» como el cartelito de la puerta |
 | `AIAssistantBar recto` | `components/AIAssistantBar.tsx` | El buscador sin píldora ni sombra |
+| `ShiftCard comanda` | `components/ShiftCard.tsx` | La tarjeta de un turno (con sus pasos y acciones) como comanda: puesto en brocha y estado como sello. La usa el panel; «Mis turnos» la toma pasando el prop |
+| `.app-banda` + `.riel` | `globals.css` | La banda azul hondo donde cuelgan las comandas en curso, y la barra del riel. Sobre la banda el relieve cambia de tono solo |
+| `.boton-relieve` | `globals.css` | El botón con relieve de la pantalla (uno): borde azul hondo, sombra dura, se aprieta. El fondo lo pone quien lo usa |

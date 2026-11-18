@@ -11,6 +11,7 @@ import { useIdempotencyKeys } from "@/lib/idempotency";
 import { useTapGuard } from "@/lib/use-tap-guard";
 import { useLiveRefresh } from "@/lib/live-refresh";
 import { coberturaPorEvento } from "@/lib/evento-cobertura";
+import { LETRAS_APP } from "@/lib/letras";
 import {
   cancelConfirmCopy,
   cancelEventConfirmCopy,
@@ -503,15 +504,27 @@ function MyShiftsPanel() {
   // igual, vacía, con su propio mensaje de marca.
   const visibleFamilies: Family[] =
     tab === "todos" ? FAMILY_ORDER.filter((family) => families[family].length > 0) : [tab];
+  // Sólo de la vista: qué familias cuelgan del riel (en curso y con turnos)
+  // y cuáles van debajo, sobre el lienzo.
+  const cuelga = (family: Family) =>
+    (family === "buscando" || family === "en_marcha") && families[family].length > 0;
+  const enElRiel = visibleFamilies.filter(cuelga);
+  const fueraDelRiel = visibleFamilies.filter((family) => !cuelga(family));
 
   return (
-    <div className="app-container px-4 pb-10 pt-6">
+    // Desde el 2026-11-18 el panel lleva la dirección «con relieve»
+    // (docs/design-system/direccion-relieve.md): el saludo en brocha,
+    // «Publicar turno» como el botón con relieve, y los turnos como comandas
+    // de papel. Los que están en curso (buscando y en marcha) cuelgan del
+    // riel, sobre una banda azul hondo; los que ya salieron van debajo, sobre
+    // el lienzo. La lógica no cambió.
+    <div className={`${LETRAS_APP} app-container px-4 pb-10 pt-6`}>
       <div>
-        {/* Saludo en serif, igual que el home del trabajador (DS v5.0). */}
-        <h1 className="font-display text-h1 font-semibold text-ink">
+        {/* Saludo en brocha, igual que el Inicio del trabajador. */}
+        <h1 className="letra-cartel letra-cartel-pantalla break-words">
           {firstName ? `Hola, ${firstName}` : "Hola"}
         </h1>
-        <p className="mt-0.5 text-sm text-ink/55">Gestioná los turnos de tu comercio.</p>
+        <p className="mt-1 text-sm text-ink-soft">Gestioná los turnos de tu comercio.</p>
       </div>
 
       {/* Arriba, sólo lo que se hace desde acá (2026-09-28, diagnóstico de
@@ -536,20 +549,22 @@ function MyShiftsPanel() {
         <Link
           href="/shifts/new"
           data-tour="shifts-publish"
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-btn)] bg-primary px-4 py-3 text-sm font-bold text-night shadow-[var(--shadow-primary-sm)] transition active:scale-95"
+          // El botón con relieve de la pantalla: ámbar, con la sombra dura
+          // del filete, que se aprieta al tocarlo.
+          className="boton-relieve flex flex-1 items-center justify-center gap-1.5 bg-primary px-4 py-3 text-sm font-bold text-night"
         >
           <PlusIcon size={18} /> Publicar turno
         </Link>
         <Link
           href="/shifts/new-event"
-          className="flex items-center justify-center gap-1.5 rounded-[var(--radius-btn)] bg-card px-4 py-3 text-sm font-semibold text-ink/75 ring-1 ring-line transition active:scale-95"
+          className="flex items-center justify-center gap-1.5 rounded-[var(--radius-relieve)] bg-card px-4 py-3 text-sm font-semibold text-ink/75 ring-1 ring-line transition active:scale-95"
         >
           <CalendarPlusIcon size={17} /> Evento
         </Link>
       </div>
 
-      <div className="mt-3">
-        <AIAssistantBar />
+      <div className="mt-3.5">
+        <AIAssistantBar recto />
       </div>
 
         </>
@@ -578,7 +593,7 @@ function MyShiftsPanel() {
           {eventGroups.map((event) => (
             <div
               key={event.eventId}
-              className="flex items-center justify-between gap-3 rounded-2xl bg-card px-4 py-3 ring-1 ring-line"
+              className="flex items-center justify-between gap-3 rounded-[var(--radius-btn)] bg-card px-4 py-3 ring-1 ring-line"
             >
               <p className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{event.name}</p>
               <span
@@ -634,53 +649,78 @@ function MyShiftsPanel() {
               tarjeta de 360px y media pantalla vacía, grupo tras grupo
               (auditoría visual 2026-09-24, A3). Ahora dos familias de un
               turno cada una comparten fila, cada una con su encabezado. */}
-          <div
-            className="mt-6 grid items-start gap-x-4 gap-y-6 md:grid-cols-2 xl:grid-cols-3"
-            data-testid="shifts-panel-list"
-          >
-            {visibleFamilies.map((family) => {
-              const list = families[family];
-              const meta = FAMILY_META[family];
-              // Con una sola familia a la vista (una pestaña puntual) ocupa el
-              // ancho entero, como antes: no hay otra con quién compartir fila.
-              const full = tab !== "todos" || list.length >= 3;
-              const span = full ? "md:col-span-2 xl:col-span-3" : list.length === 2 ? "md:col-span-2" : "";
-              const cols = full ? "md:grid-cols-2 xl:grid-cols-3" : list.length === 2 ? "md:grid-cols-2" : "";
-              return (
-                <section key={family} className={`min-w-0 ${span}`} data-family={family}>
-                  <h2 className="mb-2 flex items-center gap-1.5 text-xs font-bold font-mono uppercase tracking-wide text-ink/40">
-                    {meta.icon}
-                    {meta.title}
-                    <span className="font-semibold text-ink/25">· {list.length}</span>
-                  </h2>
-
-                  {list.length === 0 ? (
-                    <EmptyState icon={meta.icon} title={meta.emptyTitle} subtitle={meta.emptySubtitle} />
-                  ) : (
-                    <div className={`grid gap-4 ${cols}`}>
-                      {list.map((shift) => (
-                        <ShiftCard key={shift.id} shift={shift}>
-                          <ShiftActions
-                            shift={shift}
-                            busy={busy}
-                            locked={tapGuard.locked}
-                            onRun={run}
-                            onMarkPaid={() => askMarkPaid(shift.id)}
-                            onNoShow={() => setConfirmNoShowId(shift.id)}
-                            onCancel={() => void askCancel(shift.id)}
-                          />
-                          {(shift.status === "finalizado" || shift.status === "pagado") && (
-                            <div className="mt-3">
-                              <ReviewBox shiftId={shift.id} />
-                            </div>
-                          )}
-                        </ShiftCard>
+          {/* Dos grupos (2026-11-18). «En el riel»: las familias en curso
+              que tienen turnos, sobre la banda azul hondo y colgando del
+              riel. Debajo, sobre el lienzo, las demás (terminados,
+              cancelados, borradores) y las que están vacías, cuyo cartel
+              de vacío no se leería sobre el azul. Cada grupo es una grilla
+              como la de antes. */}
+          <div data-testid="shifts-panel-list">
+            {[enElRiel, fueraDelRiel].map((grupo, g) =>
+              grupo.length === 0 ? null : (
+                <div
+                  key={g === 0 ? "riel" : "resto"}
+                  className={g === 0 ? "app-banda -mx-4 mt-6 px-4 pb-7 pt-0" : "mt-6"}
+                >
+                  {g === 0 && (
+                    <div aria-hidden className="riel">
+                      {[8, 30, 52, 74, 94].map((x) => (
+                        <i key={x} style={{ left: `${x}%` }} />
                       ))}
                     </div>
                   )}
-                </section>
-              );
-            })}
+                  <div className={`grid items-start gap-x-4 gap-y-6 md:grid-cols-2 xl:grid-cols-3 ${g === 0 ? "pt-5" : ""}`}>
+                    {grupo.map((family) => {
+                      const list = families[family];
+                      const meta = FAMILY_META[family];
+                      // Con una sola familia a la vista (una pestaña puntual) ocupa el
+                      // ancho entero, como antes: no hay otra con quién compartir fila.
+                      const full = tab !== "todos" || list.length >= 3;
+                      const span = full ? "md:col-span-2 xl:col-span-3" : list.length === 2 ? "md:col-span-2" : "";
+                      const cols = full ? "md:grid-cols-2 xl:grid-cols-3" : list.length === 2 ? "md:grid-cols-2" : "";
+                      return (
+                        <section key={family} className={`min-w-0 ${span}`} data-family={family}>
+                          <h2
+                            className={`mb-2.5 flex items-center gap-1.5 text-sm font-semibold ${
+                              g === 0 ? "text-[color:var(--app-banda-tinta)]" : "text-ink-soft"
+                            }`}
+                          >
+                            {meta.icon}
+                            {meta.title}
+                            <span className="font-medium opacity-70">· {list.length}</span>
+                          </h2>
+
+                          {list.length === 0 ? (
+                            <EmptyState icon={meta.icon} title={meta.emptyTitle} subtitle={meta.emptySubtitle} />
+                          ) : (
+                            <div className={`grid gap-4 ${cols}`}>
+                              {list.map((shift) => (
+                                <ShiftCard key={shift.id} shift={shift} comanda>
+                                  <ShiftActions
+                                    shift={shift}
+                                    busy={busy}
+                                    locked={tapGuard.locked}
+                                    onRun={run}
+                                    onMarkPaid={() => askMarkPaid(shift.id)}
+                                    onNoShow={() => setConfirmNoShowId(shift.id)}
+                                    onCancel={() => void askCancel(shift.id)}
+                                  />
+                                  {(shift.status === "finalizado" || shift.status === "pagado") && (
+                                    <div className="mt-3">
+                                      <ReviewBox shiftId={shift.id} />
+                                    </div>
+                                  )}
+                                </ShiftCard>
+                              ))}
+                            </div>
+                          )}
+                        </section>
+                      );
+                    })}
+                  </div>
+                </div>
+              )
+            )}
           </div>
         </>
       )}
