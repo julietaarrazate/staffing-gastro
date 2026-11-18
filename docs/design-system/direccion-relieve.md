@@ -227,9 +227,9 @@ como exploración abierta):
 
 ## Qué conviene llevar a producción, y en qué orden
 
-1. **La comanda como papel de cocina que se imprime** (`Comanda.tsx`): es
-   chica, no depende de las otras decisiones y cierra el ítem 3 de
-   `STATUS.md`.
+1. ~~La comanda como papel de cocina~~ **Hecho el 2026-11-18:** la comanda
+   de la landing va en Inter, con filete liso y corte recto
+   ([historial](../historial/2026-11-18-comanda-papel-de-cocina.md)).
 2. **Los tokens del relieve** en `globals.css` (sombra dura, botón recto,
    radio), sin romper los que hay y con ADR si cambia el sistema.
 3. **El isotipo**, cuando esté elegido: primero el vector provisorio en lugar

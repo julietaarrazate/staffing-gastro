@@ -85,13 +85,7 @@ Revisado contra el código y los PRs el 2026-10-03.
    con `sticky` y por qué la landing no se oscurece, en
    [`historial/2026-10-06-landing-historia-de-un-turno.md`](./historial/2026-10-06-landing-historia-de-un-turno.md)
    y [`design-system/motion.md`](./design-system/motion.md).
-3. 🟡 **Que la marca no se parezca a otra marca del rubro** (crema, azul
-   francia, grabados y un ticket). Análisis del 2026-11-17:
-   https://claude.ai/artifact/KunFKqPLnUuuaZCDNy9WWW. El ícono y la letra ya
-   se resolvieron (ítem 0). Falta que **la comanda** de la landing deje de
-   parecer un ticket (sin número, sin raya punteada, datos en Inter); las
-   reglas que quedan están en `design-system/marca-hoy.md`, regla 5.
-4. 🟡 **Landing "cielo": fotos propias y prueba real** (2026-10-18). La
+3. 🟡 **Landing "cielo": fotos propias y prueba real** (2026-10-18). La
    rueda del inicio y la oferta usan fotos de banco (dominio público/CC0,
    de otros países); hay que reemplazarlas por fotos de locales porteños
    (`frontend/public/landing/`): qué foto va en cada lugar, con tamaño,
@@ -99,17 +93,17 @@ Revisado contra el código y los PRs el 2026-10-03.
    [`design-system/fotos-landing.md`](./design-system/fotos-landing.md).
    Cuando haya locales usando Oído, sumar una cita corta con nombre. Detalle en
    [`historial/2026-10-18-landing-cielo.md`](./historial/2026-10-18-landing-cielo.md).
-5. 🟡 **"Datos del comercio" muestra la dirección tres veces**: en el
+4. 🟡 **"Datos del comercio" muestra la dirección tres veces**: en el
    buscador, en el campo Dirección y en "Ubicación" (`/profile/edit`, rol
    comercio). Quedó anotado al cerrar la simplificación del Perfil (#396).
-6. 🟢 **Subir Node de 22 a 24**, sin apuro (Node 22 tiene soporte hasta
+5. 🟢 **Subir Node de 22 a 24**, sin apuro (Node 22 tiene soporte hasta
    abril de 2027). **Vercel ya corre 24.x** (visto en la config del
    proyecto el 2026-10-10), así que hoy CI prueba con una versión distinta
    de la que corre en producción. Faltan `node-version` en
    `.github/workflows/ci.yml` y `@types/node` en `frontend/package.json`.
    Dependabot tiene ignoradas las subas mayores de `@types/node` (#375) para
    que los tipos no se adelanten a la versión que corre.
-7. 🟠 **Cobro real de la suscripción** — **código listo, apagado**
+6. 🟠 **Cobro real de la suscripción** — **código listo, apagado**
    (ADR-0022, 2026-10-23): un pago por mes con Checkout Pro de Mercado Pago,
    sin débito automático ni tarjeta de crédito; webhook firmado que acredita
    30 días, estado "pendiente", bloqueo al publicar sin mes pago, avisos de
@@ -122,12 +116,12 @@ Revisado contra el código y los PRs el 2026-10-03.
    "Cobro mensual con Mercado Pago"). Decidir qué hacer con los comercios de
    la beta que hoy publican sin pagar cuando se exija (quedan bloqueados
    hasta su primer pago).
-8. ⏸️ **Post-beta, a propósito:** pago al trabajador y facturación dentro de
+7. ⏸️ **Post-beta, a propósito:** pago al trabajador y facturación dentro de
    la app (lo que tienen todos los competidores grandes), passkeys (diseñado
    en [`reference/ACCESO_MODERNO.md`](./reference/ACCESO_MODERNO.md), Feature
    3), WhatsApp Business API y R4 (Redis, multi-ciudad, OSRM) recién con
    tráfico real.
-9. 🟠 **Auditoría del 2026-10-10: lo que queda.** Cerrados lo de privacidad
+8. 🟠 **Auditoría del 2026-10-10: lo que queda.** Cerrados lo de privacidad
    (#416), las carreras sobre el turno más la idempotencia (#417) y el token
    de sesión del frontend ("Va en camino", formularios que se recargaban,
    401 sin reintento, #419), Google sobre cuenta sin verificar y
@@ -137,7 +131,7 @@ Revisado contra el código y los PRs el 2026-10-03.
    así que es global; falta confirmar qué header de IP es confiable en
    Render antes de tocarlo, ver el historial de autenticación); después, los
    de dominio y los menores.
-10. 🟠 **Mudar el frontend de Vercel a Cloudflare Workers** antes de la
+9. 🟠 **Mudar el frontend de Vercel a Cloudflare Workers** antes de la
    beta comercial (Vercel Hobby no permite uso comercial; ADR-0017,
    propuesto). Etapa 1, prueba de compatibilidad: hecha (#428). Etapa 2,
    auditoría de seguridad del frontend publicado: hecha; lo chico se arregló
@@ -161,13 +155,13 @@ Revisado contra el código y los PRs el 2026-10-03.
    [`historial/2026-10-13-cloudflare-prueba-compatibilidad.md`](./historial/2026-10-13-cloudflare-prueba-compatibilidad.md)
    y [`reference/DEPLOY.md`](./reference/DEPLOY.md).
 
-11. 🟠 **Cubrir el turno en minutos: propuesta para pulir** (pedido de
+10. 🟠 **Cubrir el turno en minutos: propuesta para pulir** (pedido de
     Julieta, 2026-10-14). Lo primero es sacar el backend de Render free
     (se duerme a los 15 min y con él el scheduler de la escalada); después,
     "el primero que toma" para urgentes, cascada por tandas y verificación
     de identidad gratis. Nada decidido:
     [`planning/PROPUESTA_COBERTURA_URGENTE.md`](./planning/PROPUESTA_COBERTURA_URGENTE.md).
-12. 🔴 **Revisión de seguridad del 2026-10-20** (pedido de Julieta: "todas
+11. 🔴 **Revisión de seguridad del 2026-10-20** (pedido de Julieta: "todas
    por prioridad"). Un PR por tema; al cerrar uno, borrarlo de esta lista.
    Origen en
    [`historial/2026-10-20-revision-seguridad-clave-gemini.md`](./historial/2026-10-20-revision-seguridad-clave-gemini.md).
