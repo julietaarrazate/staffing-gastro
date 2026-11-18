@@ -186,10 +186,10 @@ describe("cierre automático (decisión 24)", () => {
 
   it("la línea del trabajador dice el plazo, con la fecha cuando se sabe", () => {
     expect(autoFinishWorkerNote(salida, new Date("2026-11-18T18:00:00Z"))).toBe(
-      "Si no lo cierra, se cierra solo el viernes 20/11 a las 15:00, a las 72 horas de tu salida.",
+      "Esperando que el comercio lo cierre. Si no, Oído lo cierra el viernes 20/11 a las 15:00 (72 horas después de tu salida).",
     );
     expect(autoFinishWorkerNote(null)).toBe(
-      "Si no lo cierra, se cierra solo a las 72 horas de tu salida.",
+      "Esperando que el comercio lo cierre. Si no, Oído lo cierra 72 horas después de tu salida.",
     );
   });
 });

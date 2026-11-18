@@ -174,7 +174,7 @@ export function autoFinishPhrase(
 
 /**
  * La línea del trabajador mientras espera el cierre: que si el comercio no lo
- * cierra, se cierra solo a las 72 horas de su salida (con cuándo, si se sabe).
+ * cierra, lo cierra Oído a las 72 horas de su salida (con cuándo, si se sabe).
  */
 export function autoFinishWorkerNote(
   checkOutIso: string | null | undefined,
@@ -182,6 +182,6 @@ export function autoFinishWorkerNote(
 ): string {
   const at = autoFinishPhrase(checkOutIso, now);
   return at
-    ? `Si no lo cierra, se cierra solo ${at}, a las 72 horas de tu salida.`
-    : "Si no lo cierra, se cierra solo a las 72 horas de tu salida.";
+    ? `Esperando que el comercio lo cierre. Si no, Oído lo cierra ${at} (72 horas después de tu salida).`
+    : "Esperando que el comercio lo cierre. Si no, Oído lo cierra 72 horas después de tu salida.";
 }
