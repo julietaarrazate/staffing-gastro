@@ -356,12 +356,14 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   /* Tipografía (todas libres): Young Serif para títulos de pantalla
-     (font-display, desde el 2026-11-16; un solo peso); Fraunces sólo para el wordmark
-     (font-serif); Inter para texto y encabezados de sección; DM Mono cargada
-     para datos (los precios no la usan, decisión de Julieta). */
+     (font-display, desde el 2026-11-16; un solo peso); Shrikhand sólo para la
+     palabra «oído» (font-oido, desde el 2026-11-17; hasta ahí el wordmark iba
+     en Fraunces, que ya no se carga); Inter para texto y encabezados de
+     sección; DM Mono cargada para datos (los precios no la usan, decisión de
+     Julieta). */
   --font-sans: var(--font-inter);
   --font-display: var(--font-young-serif), ui-serif, Georgia, serif;
-  --font-serif: var(--font-fraunces);
+  --font-oido: var(--font-shrikhand), Georgia, serif;
   --font-mono: var(--font-dm-mono);
 }
 
@@ -835,6 +837,21 @@ textarea,
  * el piso de arriba suma un segundo anillo (el layer de utilities de Tailwind
  * pierde contra una regla sin layer, así que `outline-none` no alcanza). */
 input[data-foco-contenedor]:focus-visible {
+  outline: none;
+}
+/* El contenedor dibuja ese único contorno, el mismo de la marca. Sólo cuando
+ * el foco está en SU campo: otro control adentro (la «X» de borrar del buscador
+ * de direcciones) lleva su propio contorno global, y si el contenedor también
+ * se encendiera serían dos (revisión de #627). */
+.foco-contenedor:has([data-foco-contenedor]:focus-visible) {
+  outline: 2px solid var(--focus-ring, var(--color-primary));
+  outline-offset: 2px;
+}
+/* Elementos que dibujan su propio foco por dentro (tarjeta con enlace que la
+ * cubre entera, donde un contorno de afuera se recortaría): ese es el ÚNICO
+ * indicador, así que se apaga el global. `outline-none` de Tailwind no alcanza
+ * porque el global no está en ninguna capa. */
+.foco-propio:focus-visible {
   outline: none;
 }
 
@@ -2021,12 +2038,12 @@ body:has([data-landing]) main {
 }
 
 /* La marca en el encabezado: la misma letra del «oído» fileteado, plana y en
-   azul hondo (2026-11-13). El fileteado completo queda una sola vez, al
-   cierre. */
+   azul hondo (2026-11-13; Shrikhand desde el 2026-11-17). El fileteado
+   completo queda una sola vez, al cierre. */
 .landing-marca {
   display: block;
   padding-top: 5px;
-  font-family: var(--font-sancreek), Georgia, serif;
+  font-family: var(--font-shrikhand), Georgia, serif;
   font-size: 2rem;
   line-height: 1;
   letter-spacing: 0.01em;

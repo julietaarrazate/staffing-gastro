@@ -5,7 +5,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { formatAgo } from "@/lib/datetime";
-import { formatKm } from "@/lib/format";
+import { formatDistance } from "@/lib/format";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useCompanyPlace } from "@/lib/company-place";
@@ -63,9 +63,28 @@ export default function SearchPage() {
   // useSearchParams exige un boundary de Suspense en build estático.
   return (
     <Suspense fallback={null}>
-      <SearchPageContent />
+      <SearchGuard />
     </Suspense>
   );
+}
+
+// Comercio y admin: son los que el backend deja buscar (`EmployerOrAdminDep`).
+// Hasta conocer el rol no se monta nada (así no sale ningún pedido de más).
+// La guarda va por fuera: con otro rol la pantalla ni se monta (no pide la
+// ubicación del navegador ni busca) mientras redirige a la home de su rol.
+function SearchGuard() {
+  const { allowed, user } = useRequireAuth({ roles: ["employer", "admin"] });
+  if (!allowed) return null;
+  if (!user) {
+    return (
+      <div data-testid="guarda-cargando" aria-busy className="mx-auto max-w-md space-y-3 px-4 pb-8 pt-4 md:max-w-5xl">
+        <WorkerRowSkeleton />
+        <WorkerRowSkeleton />
+        <WorkerRowSkeleton />
+      </div>
+    );
+  }
+  return <SearchPageContent />;
 }
 
 function SearchPageContent() {
@@ -141,14 +160,14 @@ function SearchPageContent() {
   useEffect(() => {
     // El trabajador (y el admin) siguen midiendo desde donde están; el comercio
     // mide desde su local y no le pide la ubicación al navegador.
-    if (origin !== "cerca" || !navigator.geolocation) return;
+    if (!token || origin !== "cerca" || !navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => setGeoCenter([pos.coords.latitude, pos.coords.longitude]),
       () => {
         // Sin permiso o sin soporte: nos quedamos con el centro por defecto.
       }
     );
-  }, [origin]);
+  }, [origin, token]);
 
   async function search() {
     if (!token || !filtersRestored) return;
@@ -193,7 +212,7 @@ function SearchPageContent() {
       <select
         value={skill}
         onChange={(e) => setSkill(e.target.value as WorkerSkill | "")}
-        className="flex-1 rounded-full bg-surface px-3 py-2 text-sm font-medium text-ink/75 ring-1 ring-line transition focus:bg-card focus:ring-2 focus:ring-primary/40"
+        className="flex-1 rounded-full bg-surface px-3 py-2 text-sm font-medium text-ink/75 ring-1 ring-line transition focus:bg-card"
       >
         <option value="">Todos los roles</option>
         {WORKER_SKILLS.map((s) => (
@@ -210,7 +229,7 @@ function SearchPageContent() {
         onChange={(e) => setRadiusKm(Number(e.target.value))}
         title="Radio en km"
         aria-label="Radio en kilómetros"
-        className="w-12 rounded-full bg-surface px-1 py-2 text-center text-sm font-medium text-ink/75 ring-1 ring-line transition focus:bg-card focus:ring-2 focus:ring-primary/40"
+        className="w-12 rounded-full bg-surface px-1 py-2 text-center text-sm font-medium text-ink/75 ring-1 ring-line transition focus:bg-card"
       />
       <span className="-ml-1 text-sm font-medium text-ink/60" aria-hidden>
         km
@@ -335,7 +354,7 @@ function SearchPageContent() {
                     <RatingOrNew rating={worker.rating} size={13} numberClassName="text-xs text-ink/50" />
                     {worker.distance_km != null && (
                       <span className="text-xs text-ink/40">
-                        · {formatKm(worker.distance_km)}
+                        · {formatDistance(worker.distance_km)}
                       </span>
                     )}
                   </div>

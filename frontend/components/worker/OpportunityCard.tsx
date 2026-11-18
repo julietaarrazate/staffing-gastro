@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { SKILL_LABELS, Shift } from "@/lib/types";
 import { SKILL_ACCENT, SKILL_HERO_TONE, heroInk } from "@/lib/skill-style";
-import { formatPayAmount, payPerHour } from "@/lib/pay";
+import { formatMoney, formatPayAmount, payPerHour } from "@/lib/pay";
 import { Avatar, Badge } from "@/components/ui";
 import { CheckIcon, ClockIcon, CloseIcon, FlameIcon, MapPinIcon, RouteIcon, ShareIcon, ShieldIcon } from "@/components/icons";
 import { shareShift } from "@/lib/shift-share";
@@ -13,18 +13,13 @@ import { cldThumb } from "@/lib/cloudinary";
 import { Button } from "@/components/ui";
 import SaveShiftButton from "@/components/worker/SaveShiftButton";
 import { shiftHeroPhoto } from "@/lib/company-photo";
-import { formatKm } from "@/lib/format";
+import { formatDistance } from "@/lib/format";
 
 /**
  * Tarjeta grande de oportunidad (DS v2, foto-first): foto real
  * del local como hero, cuerpo blanco con los datos y un chip de ícono con
  * acento sobrio por rubro. Si no hay foto, hero limpio con el tinte del rubro.
  */
-/** Distancia legible: bajo 1 km en metros redondeados, arriba con un decimal. */
-function formatDistance(km: number): string {
-  return km < 1 ? `a ${Math.round(km * 1000)} m` : `a ${formatKm(km)}`;
-}
-
 export default function OpportunityCard({
   shift,
   distanceKm,
@@ -94,7 +89,7 @@ export default function OpportunityCard({
           href={href}
           data-testid="opportunity-card-link"
           aria-label={`Ver el turno de ${SKILL_LABELS[shift.position]}${shift.company_name ? ` en ${shift.company_name}` : ""}`}
-          className="absolute inset-0 z-[1] rounded-[var(--radius-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+          className="absolute inset-0 z-[1] rounded-[var(--radius-card)] foco-propio focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-(--focus-ring)"
         />
       )}
       {/* Hero: antes competía 50/50 por el alto con el cuerpo (ambos flex-1) —
@@ -221,7 +216,7 @@ export default function OpportunityCard({
             {/* Al 85% y no al 70%: sobre el degradé violeta que probó la landing
                 el 70% daba 3,98:1 (medido con píxeles a 390 y 1440px); al
                 85%, 5,1. */}
-            {distanceKm != null && <span className={ink.softer}>· {formatDistance(distanceKm)}</span>}
+            {distanceKm != null && <span className={ink.softer}>· a {formatDistance(distanceKm)}</span>}
           </p>
         </div>
       </div>
@@ -273,7 +268,7 @@ export default function OpportunityCard({
           <p className="text-price font-extrabold tracking-tight text-ink">{formatPayAmount(shift)}</p>
           {perHour && (
             <p className="text-xs font-medium text-ink/50">
-              ≈ {formatPayAmount({ pay_amount: String(Math.round(perHour)), currency: shift.currency })} por hora
+              ≈ {formatMoney(perHour, shift.currency)} por hora
             </p>
           )}
         </div>

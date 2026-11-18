@@ -29,6 +29,7 @@ import {
 } from "@/components/ui";
 import { CheckCircleIcon, ChevronLeftIcon, EyeIcon, UsersIcon } from "@/components/icons";
 import { SectionLabel } from "@/components/admin/AdminStats";
+import PlanCompromiso from "@/components/admin/PlanCompromiso";
 import {
   ROLE_LABELS,
   STATUS_LABELS,
@@ -344,6 +345,15 @@ export default function AdminPersonPage() {
             </div>
           </Card>
         </div>
+      )}
+
+      {detail.company && detail.subscription && token && (
+        <PlanCompromiso
+          userId={detail.user.id}
+          token={token}
+          summary={detail.subscription}
+          onChange={(subscription) => setDetail({ ...detail, subscription })}
+        />
       )}
 
       {(detail.worker || detail.company) && (

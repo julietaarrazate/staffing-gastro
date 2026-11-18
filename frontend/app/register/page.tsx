@@ -180,7 +180,7 @@ function RegisterForm() {
                 type="checkbox"
                 checked={acceptedTerms}
                 onChange={(e) => setAcceptedTerms(e.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 rounded border-line accent-primary focus:ring-primary"
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-line accent-primary"
               />
               <span>
                 Acepto los{" "}

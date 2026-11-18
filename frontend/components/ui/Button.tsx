@@ -19,8 +19,11 @@ const VARIANTS: Record<Variant, string> = {
   secondary:
     "bg-success text-white shadow-[var(--shadow-success)] hover:brightness-[1.04]",
   danger: "bg-danger text-white shadow-[var(--shadow-danger)] hover:brightness-[1.04]",
-  surface: "bg-card text-ink ring-1 ring-line hover:bg-surface",
-  ghost: "bg-transparent text-ink/80 hover:bg-surface",
+  // Desactivados como el de `primary`: sin opacidad (a opacity-50 la tinta sobre
+  // la tarjeta blanca quedaba tenue en claro), fondo `surface` y tinta apagada.
+  surface:
+    "bg-card text-ink ring-1 ring-line hover:bg-surface disabled:bg-surface disabled:text-ink-mute disabled:opacity-100",
+  ghost: "bg-transparent text-ink/80 hover:bg-surface disabled:text-ink-mute disabled:opacity-100",
 };
 
 // Touch targets >= 44px (accesibilidad móvil).
@@ -67,7 +70,7 @@ export default function Button({
       whileTap={{ scale: 0.96 }}
       transition={{ type: "spring", stiffness: 400, damping: 25 }}
       className={cn(
-        "inline-flex items-center justify-center rounded-[var(--radius-btn)] font-semibold transition-[filter,background-color] outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-50 disabled:pointer-events-none",
+        "inline-flex items-center justify-center rounded-[var(--radius-btn)] font-semibold transition-[filter,background-color] outline-none disabled:opacity-50 disabled:pointer-events-none",
         VARIANTS[variant],
         SIZES[size],
         fullWidth && "w-full",

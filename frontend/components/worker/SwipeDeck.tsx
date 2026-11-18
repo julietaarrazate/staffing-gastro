@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { motion, useAnimationControls, useMotionValue, useReducedMotion, useTransform } from "motion/react";
 import { Shift } from "@/lib/types";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
@@ -141,7 +141,13 @@ export default function SwipeDeck({
     });
   }
 
-  useEffect(() => {
+  // useLayoutEffect y no useEffect: el listener se vuelve a registrar con cada
+  // render (`go` cierra sobre `busy`). Un efecto pasivo corre DESPUÉS de pintar,
+  // así que entre que el botón «Turno siguiente» se habilitaba y se registraba
+  // el listener nuevo, una flecha del teclado llegaba al listener viejo (con
+  // `busy` en true) y se perdía: el e2e quedaba en «2 de 3» con la máquina
+  // cargada. El layout effect corre en el mismo commit que habilita el botón.
+  useLayoutEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "ArrowRight") go(1);
       else if (e.key === "ArrowLeft") go(-1);
@@ -213,7 +219,7 @@ export default function SwipeDeck({
           <button
             type="button"
             onClick={() => onOpen(current)}
-            className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:left-1/2 focus-visible:top-2 focus-visible:z-20 focus-visible:-translate-x-1/2 focus-visible:rounded-full focus-visible:bg-card focus-visible:px-4 focus-visible:py-2 focus-visible:text-caption focus-visible:font-semibold focus-visible:text-ink focus-visible:ring-2 focus-visible:ring-primary"
+            className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:left-1/2 focus-visible:top-2 focus-visible:z-20 focus-visible:-translate-x-1/2 focus-visible:rounded-full focus-visible:bg-card focus-visible:px-4 focus-visible:py-2 focus-visible:text-caption focus-visible:font-semibold focus-visible:text-ink"
           >
             Ver el detalle del turno
           </button>

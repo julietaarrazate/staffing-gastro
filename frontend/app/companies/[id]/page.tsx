@@ -13,6 +13,7 @@ import RateMeter from "@/components/RateMeter";
 import { hasPaymentRate, hasRating } from "@/lib/reputation";
 import MiniMap from "@/components/MiniMap";
 import { MapPinIcon, RouteIcon } from "@/components/icons";
+import { plural } from "@/lib/format";
 
 function ProfilePageSkeleton() {
   return (
@@ -138,7 +139,7 @@ export default function PublicCompanyProfilePage() {
             {profile.events_published > 0 && (
               <span className="text-sm text-ink/40">
                 {hasRating(profile.rating) ? "· " : ""}
-                {profile.events_published} turnos publicados
+                {plural(profile.events_published, "turno publicado", "turnos publicados")}
               </span>
             )}
           </div>
@@ -165,7 +166,7 @@ export default function PublicCompanyProfilePage() {
 
           <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
             {profile.capacity != null && (
-              <Metric label="Capacidad" value={`${profile.capacity} personas`} />
+              <Metric label="Capacidad" value={plural(profile.capacity, "persona", "personas")} />
             )}
             {profile.opening_hours && <Metric label="Horario" value={profile.opening_hours} />}
             {profile.address && <Metric label="Dirección" value={profile.address} />}

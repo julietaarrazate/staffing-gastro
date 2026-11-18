@@ -88,7 +88,7 @@ test("con el cobro activo, la sección Suscripciones muestra el MRR real y la di
 
   await expect(page.getByText("Suscripciones")).toBeVisible();
   await expect(page.getByText("Ingreso mensual recurrente")).toBeVisible();
-  await expect(page.getByText("ARS 65.000")).toBeVisible();
+  await expect(page.getByText("$65.000")).toBeVisible();
   await expect(page.getByText("Cobro no activado")).toHaveCount(0);
   await expect(page.getByText("Potencial si se cobrara")).toHaveCount(0);
   await expect(page.getByText("Cerca del límite")).toBeVisible();
@@ -122,6 +122,6 @@ test("sin el cobro activo, el MRR muestra $0 real y el potencial como dato secun
   await page.goto("/admin/metricas");
 
   await expect(page.getByText("Cobro no activado")).toBeVisible();
-  await expect(page.getByText("ARS 0")).toBeVisible();
-  await expect(page.getByText("Potencial si se cobrara: ARS 65.000")).toBeVisible();
+  await expect(page.getByText("$0", { exact: true })).toBeVisible();
+  await expect(page.getByText("Potencial si se cobrara: $65.000")).toBeVisible();
 });

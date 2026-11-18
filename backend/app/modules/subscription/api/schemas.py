@@ -47,6 +47,12 @@ class SubscribeRequest(BaseModel):
     plan_code: str = Field(min_length=1, max_length=40)
 
 
+class ChosenPlanRequest(BaseModel):
+    """`POST /subscription/plan-elegido`."""
+
+    plan_code: str = Field(min_length=1, max_length=40)
+
+
 class SubscribeResponse(BaseModel):
     """`POST /subscription/subscribe`."""
 

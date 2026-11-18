@@ -21,6 +21,9 @@ M6, los grupos H y E y los pendientes de las tandas 1 a 3, y cerrar la etapa
 - #623 U110: reportar un turno o un comercio desde soporte.
 - #624 pendientes de la tanda 3: indicador de etapas en azul, deshabilitado
   legible, guardas de rol en `/feed` y `/search`, e2e de «Descubrir rápido».
+- #627 un solo indicador de foco por campo (reporte de Julieta durante la
+  sesión: bordes «verde y ámbar» encimados al tocar un campo; era el anillo
+  ámbar propio encima del contorno celeste de la marca).
 - H (#609) y N (#608, #611) los cerró otra sesión el mismo día (#610).
 - Este PR: U106 (`docs/reference/QUE_EXISTE_HOY.md`: el asistente no responde
   por la verificación), tablero y STATUS.

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { formatArs } from "@/lib/format";
+import { formatArs, plural } from "@/lib/format";
 import { planValido, urlAltaConPlan } from "@/lib/plan-elegido";
 import type { SubscriptionPlan } from "@/lib/types";
 import { RESPALDO } from "./planes";
@@ -107,7 +107,7 @@ export default function Precios() {
 
                 <div className="mt-6">
                   <p className="mb-2 font-mono text-caption font-medium uppercase tracking-[0.1em] text-ink-mute">
-                    {p.max_turnos_mes === null ? "Turnos sin tope" : `${p.max_turnos_mes} turnos por mes`}
+                    {p.max_turnos_mes === null ? "Turnos sin tope" : `${plural(p.max_turnos_mes, "turno", "turnos")} por mes`}
                   </p>
                   <Tope max={p.max_turnos_mes} />
                 </div>

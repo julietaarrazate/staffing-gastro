@@ -21,7 +21,7 @@ descuidado.
 | 1 | Probar de punta a punta, sin arreglar | ✅ cerrada: 142 hallazgos (3 bloqueantes, 79 graves, 60 menores). Entorno de prueba (`tools/e2e-local/`) y estado escrito en #527 |
 | 2 | Arreglar: bloqueantes, después graves | en curso (ver abajo) |
 | 3 | Que nada se vea descuidado (los 60 menores y lo que salió de las revisiones) | ✅ cerrada el 2026-11-17: grupos A a N, las diez decisiones de Julieta, M6 y los pendientes de las tres tandas (ver abajo) |
-| 4 | Identidad, marca e isotipo | ⚪ (la landing «con convicción» ya está en producción, #543) |
+| 4 | Identidad, marca e isotipo | 🔵 Julieta eligió Shrikhand y ámbar (2026-11-17); letra, ícono «oí», miniatura, vectores, manual en PDF y brand system en el PR de la marca; campanita en #622. Siguen el isotipo propio (el «oí» es provisorio) y la dirección «con relieve» en la app, pantalla por pantalla (ver STATUS, ítem 0) |
 | 5 | Lista de salida a beta | ⚪ (incluye la medición de los KRs: ver «Antes de abrir: medir la beta»; y pasar a TypeScript 7, el compilador en Go: PR aparte que sube `typescript` de 6 a 7 y corre tsc, lint, build y e2e; si ESLint con tipos se traba hasta la 7.1, ESLint sigue con TypeScript 6 mientras tanto. Decidido por Julieta el 2026-11-17) |
 | 6 | SEO y GEO | ⚪ |
 
@@ -443,6 +443,8 @@ revisión independiente de cada PR; el resto ⚪ sin empezar):
 - Indicador de etapas en azul (un solo ámbar), deshabilitado legible, guardas
   de rol en `/feed` y `/search` y el e2e intermitente de «Descubrir rápido»
   ✅ #624.
+- Un solo indicador de foco por campo (reporte de Julieta del 2026-11-18:
+  bordes «verde y ámbar» encimados al tocar un campo) ✅ #627.
 
 Quedan, a propósito, sin código:
 

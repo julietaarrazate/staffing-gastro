@@ -15,6 +15,7 @@ import { ErrorBanner, Skeleton } from "@/components/ui";
 import RatingOrNew from "@/components/RatingOrNew";
 import WorkerReviews from "@/components/WorkerReviews";
 import { BriefcaseIcon, ChevronLeftIcon, ClipboardIcon, DownloadIcon, HeartIcon, MapPinIcon } from "@/components/icons";
+import { plural } from "@/lib/format";
 
 /** Botón "Favorito" (comercio → trabajador), sólo visible para empleadores
  * (el propio trabajador no ve ni sabe quién lo favoriteó — bookmark privado
@@ -194,7 +195,7 @@ export default function PublicWorkerProfilePage() {
               {profile.events_completed > 0 && (
                 <span className="text-sm text-ink/40">
                   {hasRating(profile.rating) ? "· " : ""}
-                  {profile.events_completed} eventos
+                  {plural(profile.events_completed, "evento", "eventos")}
                 </span>
               )}
             </div>

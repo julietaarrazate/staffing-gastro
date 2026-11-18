@@ -21,6 +21,8 @@ import { BikeIcon, CalendarIcon, CarIcon, FlameIcon, FootprintsIcon, MapPinIcon,
 import { formatShiftRange } from "@/lib/datetime";
 import MapSheet from "@/components/worker/MapSheet";
 import ConfirmOverlay from "@/components/ui/ConfirmOverlay";
+import { formatPayAmount } from "@/lib/pay";
+import { formatDistance, plural } from "@/lib/format";
 
 const ShiftMap = dynamic(() => import("@/components/worker/ShiftMap"), {
   ssr: false,
@@ -126,7 +128,7 @@ function ShiftRow({
               <Link
                 href={`/turno/${shift.id}`}
                 data-testid="map-row-link"
-                className="after:absolute after:inset-0 after:rounded-[var(--radius-card)] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-primary"
+                className="after:absolute after:inset-0 after:rounded-[var(--radius-card)] foco-propio focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-(--focus-ring)"
               >
                 {SKILL_LABELS[shift.position]}
               </Link>
@@ -142,11 +144,11 @@ function ShiftRow({
       </div>
       <div className="mt-2.5 flex items-end justify-between gap-2">
         <p className="text-base font-extrabold text-primary-text">
-          {shift.currency} {Number(shift.pay_amount).toLocaleString("es-AR")}
+          {formatPayAmount(shift)}
         </p>
         <p className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-ink/50">
           <MapPinIcon size={12} />
-          {distance != null ? `${distance.toFixed(1)} km` : (shift.city ?? "")}
+          {distance != null ? formatDistance(distance) : (shift.city ?? "")}
         </p>
       </div>
       <div className="relative z-10 mt-3">
@@ -412,8 +414,8 @@ export default function MapPage() {
               : locationUnavailable
                 ? "Turnos en el centro de Buenos Aires"
                 : usingZone
-                  ? `${shifts.length} turnos cerca de tu zona`
-                  : `${shifts.length} turnos cerca tuyo`}
+                  ? `${plural(shifts.length, "turno", "turnos")} cerca de tu zona`
+                  : `${plural(shifts.length, "turno", "turnos")} cerca tuyo`}
           </h1>
           {!loading && locationUnavailable && (
             <p className="mt-1 text-sm text-ink/50">
@@ -487,8 +489,8 @@ export default function MapPage() {
             : locationUnavailable
               ? "Turnos en el centro de Buenos Aires"
               : usingZone
-                ? `${shifts.length} turnos cerca de tu zona`
-                : `${shifts.length} turnos cerca tuyo`}
+                ? `${plural(shifts.length, "turno", "turnos")} cerca de tu zona`
+                : `${plural(shifts.length, "turno", "turnos")} cerca tuyo`}
         </div>
         {!loading && locationUnavailable && (
           <div className="pointer-events-auto rounded-full bg-white/95 px-3.5 py-1.5 text-xs font-medium text-night/50 shadow-[var(--shadow-soft)] ring-1 ring-line backdrop-blur">
@@ -581,11 +583,11 @@ export default function MapPage() {
                 </div>
                 <div className="mt-3 flex items-end justify-between">
                   <p className="text-xl font-extrabold text-primary-text">
-                    {shift.currency} {Number(shift.pay_amount).toLocaleString("es-AR")}
+                    {formatPayAmount(shift)}
                   </p>
                   <p className="inline-flex items-center gap-1 text-xs font-medium text-ink/50">
                     <MapPinIcon size={13} />
-                    {distance != null ? `${distance.toFixed(1)} km` : (shift.city ?? "")}
+                    {distance != null ? formatDistance(distance) : (shift.city ?? "")}
                   </p>
                 </div>
                 {distance != null && (
@@ -675,7 +677,7 @@ export default function MapPage() {
                     </Link>
                     <p className="flex items-center gap-1 text-xs font-medium text-ink/45">
                       <MapPinIcon size={13} />
-                      {distance != null ? `A ${distance.toFixed(1)} km` : (shift.city ?? "Zona a confirmar")}
+                      {distance != null ? `A ${formatDistance(distance)}` : (shift.city ?? "Zona a confirmar")}
                     </p>
                   </div>
                   {shift.urgent && (
@@ -700,8 +702,7 @@ export default function MapPage() {
                     <WalletIcon size={18} />
                   </span>
                   <p className="font-display text-price font-extrabold tracking-tight text-white">
-                    <span className="text-lg text-primary">{shift.currency}</span>{" "}
-                    {Number(shift.pay_amount).toLocaleString("es-AR")}
+                    {formatPayAmount(shift)}
                   </p>
                   <p className="mt-1 text-label font-bold font-mono uppercase tracking-wide text-manteca">
                     Pago ofrecido{shift.tips ? " + propinas" : ""}{shift.meal ? " + comida" : ""}

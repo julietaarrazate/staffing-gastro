@@ -59,6 +59,7 @@ import {
 import { useTapGuard } from "@/lib/use-tap-guard";
 import IconChip, { type IconChipTone } from "@/components/ui/IconChip";
 import { LIMITES } from "@/lib/limites";
+import { formatArs } from "@/lib/format";
 
 // Sin paso "Personas": un turno = una persona (ADR-0003), así que esa
 // pantalla mostraba siempre un 1 fijo y costaba un toque más en cada
@@ -708,7 +709,7 @@ function NewShiftWizard() {
                       rows={2}
                       maxLength={LIMITES.pedidoAsistente}
                       placeholder="Ej: necesito un mozo el sábado a la noche, se paga 45000"
-                      className={`w-full resize-none rounded-2xl bg-card px-3.5 py-2.5 text-sm text-ink outline-none ring-1 ring-line focus:ring-2 focus:ring-primary/40 ${
+                      className={`w-full resize-none rounded-2xl bg-card px-3.5 py-2.5 text-sm text-ink outline-none ring-1 ring-line ${
                         speechSupported ? "pr-10" : ""
                       }`}
                     />
@@ -817,7 +818,7 @@ function NewShiftWizard() {
                       }}
                       aria-invalid={horario.errorInicio ? true : undefined}
                       aria-describedby={horario.errorInicio ? "error-inicio" : undefined}
-                      className={`min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40 ${horario.errorInicio ? "ring-danger/60" : "ring-line"}`}
+                      className={`min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 focus:bg-card ${horario.errorInicio ? "ring-danger/60" : "ring-line"}`}
                     />
                     {horario.errorInicio && (
                       <p id="error-inicio" role="alert" className="text-sm font-semibold text-danger-text">
@@ -837,7 +838,7 @@ function NewShiftWizard() {
                       }}
                       aria-invalid={horario.errorFin ? true : undefined}
                       aria-describedby={horario.errorFin ? "error-fin" : undefined}
-                      className={`min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40 ${horario.errorFin ? "ring-danger/60" : "ring-line"}`}
+                      className={`min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 focus:bg-card ${horario.errorFin ? "ring-danger/60" : "ring-line"}`}
                     />
                     {horario.errorFin ? (
                       <p id="error-fin" role="alert" className="text-sm font-semibold text-danger-text">
@@ -869,7 +870,7 @@ function NewShiftWizard() {
                 <p className="mt-1 text-sm text-ink/50">
                   Pago por la jornada completa, por persona (no por hora).
                 </p>
-                <div className="mt-6 flex items-center gap-2 rounded-2xl bg-surface px-4 ring-1 ring-line focus-within:bg-card focus-within:ring-2 focus-within:ring-primary/40">
+                <div className="foco-contenedor mt-6 flex items-center gap-2 rounded-2xl bg-surface px-4 ring-1 ring-line focus-within:bg-card">
                   <span className="text-2xl font-bold text-ink/40">$</span>
                   <PesosInput
                     aria-label="Pago por la jornada, en pesos"
@@ -879,12 +880,13 @@ function NewShiftWizard() {
                       setPayAmount(monto);
                     }}
                     placeholder="48.000"
+                    focoContenedor
                     className="min-h-[56px] w-full bg-transparent text-2xl font-extrabold text-ink outline-none"
                   />
                 </div>
                 {payPerHour != null && durationMinutes != null && (
                   <p className="mt-2 text-sm text-ink/55">
-                    ≈ ${payPerHour.toLocaleString("es-AR")} por hora
+                    ≈ {formatArs(payPerHour)} por hora
                     <span className="text-ink/40"> · jornada de {formatDuration(durationMinutes)}</span>
                   </p>
                 )}
@@ -993,8 +995,7 @@ function NewShiftWizard() {
                     </p>
                   )}
                   <p className="mt-1 text-ink/50">
-                    {quantity} {quantity === 1 ? "persona" : "personas"} · ARS{" "}
-                    {Number(payAmount || 0).toLocaleString("es-AR")}
+                    {quantity} {quantity === 1 ? "persona" : "personas"} · {formatArs(Number(payAmount || 0))}
                     {meal && " · con comida"}
                     {urgent && " · Urgente"}
                   </p>
@@ -1133,7 +1134,7 @@ function WizardPreview({
     startAt && endAt
       ? formatShiftRange(localInputToArgentinaISO(startAt), localInputToArgentinaISO(endAt))
       : null;
-  const pay = Number(payAmount) > 0 ? `ARS ${Number(payAmount).toLocaleString("es-AR")}` : null;
+  const pay = Number(payAmount) > 0 ? formatArs(Number(payAmount)) : null;
 
   return (
     <div className={className}>

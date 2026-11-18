@@ -11,6 +11,7 @@ from app.modules.company.domain.repositories import (
 )
 from app.modules.company.domain.value_objects import CompanyCategory
 from app.modules.company.infrastructure.models import CompanyProfileModel
+from app.modules.identity.infrastructure.models import UserModel
 
 
 def _to_entity(model: CompanyProfileModel) -> CompanyProfile:
@@ -164,7 +165,10 @@ class SqlAlchemyCompanyProfileRepository(CompanyProfileRepository):
         model.payments_recorded = new_payments
         await self._session.commit()
 
-    async def count_total(self) -> int:
+    async def count_total(self, *, exclude_user_emails: frozenset[str] = frozenset()) -> int:
         stmt = select(func.count()).select_from(CompanyProfileModel)
+        if exclude_user_emails:
+            excluded = select(UserModel.id).where(UserModel.email.in_(exclude_user_emails))
+            stmt = stmt.where(CompanyProfileModel.user_id.not_in(excluded))
         result = await self._session.execute(stmt)
         return result.scalar_one() or 0

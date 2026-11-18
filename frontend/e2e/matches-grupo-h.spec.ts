@@ -164,6 +164,11 @@ test("turno confirmado: el ámbar va en la acción que se puede usar ahora (tres
   await expect(page.locator("#turno-lejos").getByText("Se habilita 30 min antes del turno.")).toBeVisible();
   // De 2 h a 30 min: «Voy en camino» ámbar; «Llegué» sigue deshabilitado.
   expect(await esAmbar(boton("camino", "Voy en camino"))).toBe(true);
+  // El paso actual del indicador de etapas va en azul de marca: el ámbar es del botón.
+  const pasoActual = page.locator("#turno-camino").locator('[aria-current="step"]');
+  await expect(pasoActual).toHaveCount(1);
+  expect(await esAmbar(pasoActual)).toBe(false);
+  await expect(pasoActual).toHaveClass(/bg-primary-text/);
   expect(await esAmbar(boton("camino", "Llegué"))).toBe(false);
   await expect(boton("camino", "Llegué")).toBeDisabled();
   // Ya compartiendo: ninguno en ámbar.
@@ -226,5 +231,9 @@ test("?turno= estando ya en Matches (aviso tocado desde la campanita) salta otra
 test("?turno= con un turno que no está en la lista no pasa nada", async ({ page }) => {
   await abrir(page, [], assigned, [], "/my-shifts?turno=no-existe");
   await expect(page.getByRole("heading", { name: "Matches" })).toBeVisible();
-  await expect(page.locator("[class*='ring-primary-text']")).toHaveCount(0);
+  // Ninguna tarjeta (`#turno-…`) lleva el token exacto del resaltado en su classList.
+  const resaltadas = await page
+    .locator("[id^='turno-']")
+    .evaluateAll((els) => els.filter((el) => el.classList.contains("ring-primary-text")).length);
+  expect(resaltadas).toBe(0);
 });

@@ -319,7 +319,7 @@ function Pregunta({
             onChange={(v) => set("pago", v)}
             placeholder="Por ejemplo, 40.000"
             aria-label="Pesos por persona, por una jornada de 8 horas"
-            className="min-h-[48px] w-full rounded-[var(--radius-input)] bg-surface px-4 text-body text-ink outline-none ring-1 ring-line transition focus:ring-2 focus:ring-primary/40"
+            className="min-h-[48px] w-full rounded-[var(--radius-input)] bg-surface px-4 text-body text-ink outline-none ring-1 ring-line transition"
           />
         </label>
       );

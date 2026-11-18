@@ -36,11 +36,12 @@ import {
   DownloadIcon,
   MapPinIcon,
 } from "@/components/icons";
+import { plural } from "@/lib/format";
 
 type Filter = LeadStatus | "todos";
 
 const SELECT_CLASS =
-  "rounded-full bg-surface px-3 py-2 text-sm font-medium text-ink/75 ring-1 ring-line transition focus:bg-card focus:ring-2 focus:ring-primary/40";
+  "rounded-full bg-surface px-3 py-2 text-sm font-medium text-ink/75 ring-1 ring-line transition focus:bg-card";
 
 type Seccion = "comercios" | "encuesta";
 
@@ -132,7 +133,7 @@ function ComerciosACaptar() {
       toast(
         result.found === 0
           ? `OpenStreetMap no devolvió comercios para ${result.barrio}`
-          : `${result.found} comercios: ${result.created} nuevos, ${result.updated} actualizados`,
+          : `${plural(result.found, "comercio", "comercios")}: ${plural(result.created, "nuevo", "nuevos")}, ${plural(result.updated, "actualizado", "actualizados")}`,
         result.found === 0 ? "info" : "success"
       );
       load();
@@ -376,7 +377,7 @@ function LeadCard({
         onBlur={() => {
           if (notes !== lead.notes) onPatch(lead, { notes });
         }}
-        className="mt-2 w-full resize-y rounded-[var(--radius-input)] bg-surface px-3 py-2 text-sm text-ink ring-1 ring-line placeholder:text-ink/40 focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40"
+        className="mt-2 w-full resize-y rounded-[var(--radius-input)] bg-surface px-3 py-2 text-sm text-ink ring-1 ring-line placeholder:text-ink/40 focus:bg-card"
       />
     </li>
   );
