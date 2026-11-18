@@ -37,6 +37,7 @@ from app.modules.matching.api.routes import router as matching_router
 from app.modules.matching.api.routes import search_router as matching_search_router
 from app.modules.notification.api.routes import push_router
 from app.modules.notification.api.routes import router as notification_router
+from app.modules.notification.infrastructure.device_sweep_job import run_device_sweep
 from app.modules.notification.infrastructure.push_tasks import shutdown_pending_pushes
 from app.modules.review.api.routes import router as review_router
 from app.modules.shift.api.routes import router as shift_router
@@ -79,7 +80,12 @@ async def lifespan(_: FastAPI):
     # urgencia): no-op fuera de producción. Se le suma el reintento del
     # borrado de documentos de verificación (ADR-0021): entra por acá para
     # que el scheduler no importe la infraestructura de otro módulo.
-    scheduler_task = start_scheduler(extra_checks=(run_evidence_file_cleanup,))
+    scheduler_task = start_scheduler(
+        extra_checks=(run_evidence_file_cleanup,),
+        # Paso de la pasada de retención (una vez por día): los dispositivos
+        # push de las cuentas que se quedaron sin sesión por una revocación.
+        retention_steps=(run_device_sweep,),
+    )
     # Cierra la conexión ociosa del pool para que Neon pueda dormirse con
     # Render siempre prendido (`core/database.py`): no-op fuera de producción.
     idle_closer_task = start_idle_connection_closer()

@@ -505,20 +505,17 @@ export const api = {
  * llega a quien llamó pero NO se avisa a `onTwoFactorGate`. Un pedido que la
  * persona no hizo no puede llevarla al alta ni cerrarle la sesión antes de
  * que una pantalla pida algo, y el de la baja contesta cuando la sesión ya se
- * cerró (mandaba al alta, o al login, a alguien que acababa de salir). */
+ * cerró (mandaba al alta, o al login, a alguien que acababa de salir).
+ *
+ * `token: null` = sin sesión: la baja del dispositivo (`POST /push/release`)
+ * no lleva token, se prueba con la clave de la suscripción. */
 export const backgroundApi = {
-  post: <T>(path: string, body: unknown, token: string) =>
+  post: <T>(path: string, body: unknown, token: string | null, timeoutMs?: number) =>
     request<T>(path, {
       method: "POST",
       body: JSON.stringify(body),
       token,
-      skipTwoFactorGate: true,
-    }),
-  del: <T>(path: string, body: unknown, token: string) =>
-    request<T>(path, {
-      method: "DELETE",
-      body: JSON.stringify(body),
-      token,
+      timeoutMs,
       skipTwoFactorGate: true,
     }),
 };

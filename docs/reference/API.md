@@ -116,6 +116,7 @@ Hasta el 2026-11-12 sólo respondía 200 en `publicado` y todo lo demás era 404
 | GET | `/push/public-key` | Clave pública VAPID (sin autenticar; `null` = push desactivado en el servidor) |
 | POST | `/push/subscribe` | Suscribir este dispositivo a nombre de la cuenta que lo pide. Un `endpoint`, una fila: repetirlo es idempotente y, si el `endpoint` era de otra cuenta, se reasigna sólo cuando llega con las claves ya guardadas (el mismo navegador); con otras claves no cambia nada y responde igual |
 | DELETE | `/push/subscribe` | Desuscribir este dispositivo (sólo si es de quien lo pide; si no, no hace nada) |
+| POST | `/push/release` | Baja del dispositivo **sin sesión** (cierre de sesión, sesión vencida): cuerpo `{endpoint, auth, user_id}`. Borra sólo si coinciden el `endpoint`, la clave `auth` de esa suscripción y la cuenta. Responde 204 siempre; límite por IP |
 
 ### `chat` — `/chats`
 | Método | Ruta | Qué hace |

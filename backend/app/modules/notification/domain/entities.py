@@ -77,3 +77,12 @@ class PushSubscription:
         same_p256dh = _same_key(self.p256dh_key, other.p256dh_key)
         same_auth = _same_key(self.auth_key, other.auth_key)
         return self.endpoint == other.endpoint and same_p256dh and same_auth
+
+    def is_released_by(self, *, user_id: UUID, auth_key: str) -> bool:
+        """¿Esta baja sin sesión puede borrar la suscripción? Sólo si trae la
+        clave `auth` (el secreto que comparten el navegador y el servidor: es
+        la prueba de que la manda ese navegador) y la fila sigue siendo de la
+        cuenta que salió. `user_id` no prueba nada: está para que una baja
+        vieja no borre el registro de otra cuenta que ya entró ahí."""
+        same_auth = _same_key(self.auth_key, auth_key)
+        return self.user_id == user_id and same_auth

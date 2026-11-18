@@ -1,10 +1,10 @@
 """Adaptador de persistencia: implementación SQLAlchemy de los repos de identity."""
 
 from collections.abc import Sequence
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
-from sqlalchemy import case, delete, desc, func, or_, select
+from sqlalchemy import and_, case, delete, desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.identity.domain.entities import (
@@ -237,6 +237,44 @@ class SqlAlchemyRefreshSessionRepository(RefreshSessionRepository):
         )
         await self._session.commit()
         return result.rowcount or 0
+
+    async def user_ids_ended_by_revocation(
+        self, user_ids: list[UUID], *, now: datetime, revoked_grace: timedelta
+    ) -> set[UUID]:
+        if not user_ids:
+            return set()
+        alive = and_(
+            RefreshSessionModel.expires_at > now,
+            or_(
+                RefreshSessionModel.revoked_at.is_(None),
+                RefreshSessionModel.revoked_at > now - revoked_grace,
+            ),
+        )
+        # Una fila por cuenta que tenga sesiones: si le queda alguna viva,
+        # cuándo se creó la última, y cuándo la última sin revocar.
+        stmt = (
+            select(
+                RefreshSessionModel.user_id,
+                func.max(case((alive, 1), else_=0)),
+                func.max(RefreshSessionModel.created_at),
+                func.max(
+                    case(
+                        (RefreshSessionModel.revoked_at.is_(None), RefreshSessionModel.created_at)
+                    )
+                ),
+            )
+            .where(RefreshSessionModel.user_id.in_(user_ids))
+            .group_by(RefreshSessionModel.user_id)
+        )
+        ended: set[UUID] = set()
+        for user_id, has_alive, latest, latest_unrevoked in await self._session.execute(stmt):
+            if has_alive:
+                continue
+            # La más reciente está revocada: no hay ninguna sin revocar, o
+            # todas las que quedan sin revocar son anteriores a la última.
+            if latest_unrevoked is None or latest_unrevoked < latest:
+                ended.add(user_id)
+        return ended
 
 
 def _reset_token_to_entity(model: PasswordResetTokenModel) -> PasswordResetToken:

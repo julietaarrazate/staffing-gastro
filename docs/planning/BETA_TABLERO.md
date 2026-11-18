@@ -156,8 +156,11 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 - «Compartir» no aparece en un turno reabierto.
 - «Ver mis turnos» lleva a «Matches»: nombres distintos en celular y escritorio.
 - A 390 px el cartel «Viendo como…» del admin no muestra el nombre.
-- Avisos al celular: que el cierre de sesión borre el dispositivo en el
+- ✅ Avisos al celular: que el cierre de sesión borre el dispositivo en el
   servidor (cierra la sesión vencida, el token vencido y las dos pestañas).
+  Hecho el 2026-11-18: baja sin sesión con reintento, borrado al suspender y
+  barrido diario de las cuentas con las sesiones revocadas; Julieta aprobó
+  el merge con el barrido, que borra registros de producción.
 - ✅ Panel del comercio con un turno sin coordenadas: con la persona ya en
   viaje seguía diciendo «Te avisamos cuando salga para allá» y no mostraba
   nada. Ahora dice que va en camino y, sin mapa, la última señal (2026-11-18).

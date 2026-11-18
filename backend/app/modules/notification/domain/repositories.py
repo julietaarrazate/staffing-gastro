@@ -64,6 +64,19 @@ class PushSubscriptionRepository(ABC):
         no existe o es de otra persona)."""
 
     @abstractmethod
+    async def get_by_endpoint(self, endpoint: str) -> PushSubscription | None:
+        """La suscripción de ese endpoint (hay una sola), o `None`."""
+
+    @abstractmethod
+    async def remove_all_for_users(self, user_ids: list[UUID]) -> int:
+        """Elimina todas las suscripciones de esas cuentas (todos sus
+        dispositivos) y devuelve cuántas eran."""
+
+    @abstractmethod
+    async def list_user_ids(self) -> list[UUID]:
+        """Las cuentas que tienen al menos un dispositivo registrado."""
+
+    @abstractmethod
     async def list_by_user(self, user_id: UUID) -> list[PushSubscription]:
         """Lista las suscripciones activas de un usuario (todos sus dispositivos)."""
 

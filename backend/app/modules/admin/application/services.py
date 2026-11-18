@@ -47,7 +47,7 @@ from app.modules.identity.domain.repositories import RefreshSessionRepository, U
 from app.modules.identity.domain.value_objects import UserRole, UserStatus
 from app.modules.shift.domain.value_objects import ShiftStatus
 from app.modules.shift.domain.repositories import ShiftPeriodStats, ShiftRepository
-from app.modules.admin.application.ports import LiveConnectionCloser
+from app.modules.admin.application.ports import AccountDeviceRemover, LiveConnectionCloser
 from app.modules.shift.domain.suspension import AccountSuspensionEffects, SuspensionImpact
 from app.modules.subscription.domain.billing_gateway import BillingGateway
 from app.modules.subscription.domain.plans import DEFAULT_PLAN_CODE, get_plan, list_plans
@@ -115,9 +115,11 @@ class AdminService:
         # sólo cambia el estado de la cuenta, como antes.
         suspension_effects: AccountSuspensionEffects | None = None,
         connection_closer: LiveConnectionCloser | None = None,
+        device_remover: AccountDeviceRemover | None = None,
     ) -> None:
         self._suspension_effects = suspension_effects
         self._connection_closer = connection_closer
+        self._device_remover = device_remover
         self._users = users
         self._shifts = shifts
         self._workers = workers
@@ -677,6 +679,22 @@ class AdminService:
             except Exception:
                 logger.exception(
                     "Segunda pasada de efectos de suspensión: fallo inesperado "
+                    "(user_id=%s)",
+                    user_id,
+                )
+        if self._device_remover is not None:
+            # Sus dispositivos dejan de estar registrados para los avisos: sin
+            # sesión no reciben nada, y una cuenta suspendida no tiene sesión.
+            # Va después de marcarla (ya no puede volver a registrar ninguno) y
+            # después de la segunda pasada: comparten la sesión de la base, y
+            # si este borrado fallara dejaría la sesión sin poder seguir.
+            # Best-effort, como el corte de sockets: si falla, la suspensión
+            # queda hecha (a una cuenta suspendida igual no se le manda push).
+            try:
+                await self._device_remover.remove_for_user(user_id)
+            except Exception:
+                logger.exception(
+                    "Borrar los dispositivos al suspender: fallo inesperado "
                     "(user_id=%s)",
                     user_id,
                 )

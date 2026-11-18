@@ -109,3 +109,7 @@ Seis arreglos de una auditoría de esta misma decisión; ninguno cambia lo decid
 4. **Avisos:** al suspender se cortan los WebSockets de avisos de esa cuenta (puerto `LiveConnectionCloser` del admin) y no se le manda push; el aviso in-app se sigue guardando.
 5. **«Mis postulaciones»:** las del turno de un comercio suspendido vienen con `shift: null` (salvo el turno asignado a la misma persona); el estado de la postulación no cambia.
 6. **Asistente de IA:** `find_applicant_by_name` excluye cuentas suspendidas, como la lista de postulantes.
+
+## Actualización 2026-11-18 (dispositivos)
+
+Al suspender una cuenta se borran todos sus dispositivos registrados para los avisos push (sus filas de `push_subscriptions`), por el puerto `AccountDeviceRemover` del admin. Va después de marcar la cuenta y es best-effort, como el corte de sockets: si falla se registra y la suspensión queda hecha (a una cuenta suspendida igual no se le manda push, y el barrido de dispositivos de cuentas con las sesiones revocadas los levanta después: suspender las revoca todas). Reactivar no restaura nada: cada dispositivo se vuelve a registrar solo en el próximo ingreso. Detalle en `docs/reference/ACCESO_MODERNO.md` → «Baja del dispositivo».
