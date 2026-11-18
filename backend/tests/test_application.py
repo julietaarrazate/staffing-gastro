@@ -8,6 +8,7 @@ from httpx import AsyncClient
 from sqlalchemy import update
 
 from app.modules.application.infrastructure.models import ShiftApplicationModel
+from tests._turno_empezado import correr_reloj_del_turno
 from tests.conftest import auth_headers
 
 pytestmark = pytest.mark.asyncio
@@ -535,6 +536,9 @@ async def test_reopening_shift_restores_rejected_applicants(client: AsyncClient)
     carrera para que el comercio los pueda re-elegir)."""
     employer = await _employer_with_company(client, "emp_p5b@staffya.com")
     shift_id = await _published_shift(client, employer)
+    # El rechazo tiene que caer antes del inicio: con el horario ya terminado
+    # el turno no se reabre, pasa a «no cubierto» (U080).
+    await correr_reloj_del_turno(shift_id, -(60 * 24 * 365))
     chosen, chosen_id = await _worker_with_profile(client, "w_p5b_chosen@staffya.com")
     loser, _ = await _worker_with_profile(client, "w_p5b_loser@staffya.com")
     await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=chosen)
