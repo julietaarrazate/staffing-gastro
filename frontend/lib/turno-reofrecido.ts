@@ -26,21 +26,22 @@ export function seReofrece(shift: Reofrecible, now: number = Date.now()): boolea
 
 /**
  * Desde cuándo se espera a la persona, en milisegundos: el inicio del turno
- * o, si confirmó con el turno ya empezado (el reemplazo de un turno
- * reofrecido), el momento en que confirmó. Mismo criterio que
- * `Shift.expected_from` en el backend.
+ * o, si es el reemplazo de un turno reofrecido (confirmó con el turno ya
+ * empezado), el momento en que confirmó. En un turno común se cuenta desde el
+ * inicio aunque haya confirmado tarde. Mismo criterio que
+ * `Shift.expected_from` / `taken_after_start` en el backend.
  */
-export function esperadoDesde(shift: Pick<Shift, "start_at" | "confirmed_at">): number {
+type Esperable = Pick<Shift, "start_at" | "confirmed_at" | "reoffered_at">;
+
+export function esperadoDesde(shift: Esperable): number {
   const inicio = new Date(shift.start_at).getTime();
+  if (!shift.reoffered_at) return inicio;
   const confirmo = shift.confirmed_at ? new Date(shift.confirmed_at).getTime() : NaN;
   return Number.isFinite(confirmo) && confirmo > inicio ? confirmo : inicio;
 }
 
 /** ¿Ya se puede marcar «No se presentó»? El servidor aplica la misma regla. */
-export function puedeMarcarAusencia(
-  shift: Pick<Shift, "start_at" | "confirmed_at">,
-  now: number = Date.now()
-): boolean {
+export function puedeMarcarAusencia(shift: Esperable, now: number = Date.now()): boolean {
   return now >= esperadoDesde(shift) + NO_SHOW_AFTER_MS;
 }
 

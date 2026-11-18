@@ -30,12 +30,13 @@ bidireccional: comercio y trabajador se califican mutuamente.
   marcar hasta 30 min antes) siempre cuenta como puntual. La regla es la
   función pura `arrived_on_time` en
   `backend/app/modules/shift/domain/punctuality.py`. **Quien tomó un turno ya
-  empezado** (confirmó después de `start_at`: el reemplazo de un turno
-  reofrecido, U080) no tiene una hora pactada contra la cual medirlo: el
+  empezado** (el reemplazo de un turno reofrecido, U080: `Shift.taken_after_start`)
+  no tiene una hora pactada contra la cual medirlo: el
   turno le suma en `events_completed` y **su puntualidad no se mueve, ni a
   favor ni en contra** (`punctuality_of`, mismo archivo; si es su primer
   turno arranca en 1, sin llegadas tarde registradas). Si no llega, la
-  ausencia sí cuenta. `finish()` sólo es alcanzable
+  ausencia sí cuenta. En un turno común que se confirmó después del inicio
+  la puntualidad se mide contra `start_at`, como siempre. `finish()` sólo es alcanzable
   habiendo pasado por check-in y check-out (ver
   `Shift._transition` en `shift/domain/entities.py`), así que siempre hay un
   check-in real para evaluar.

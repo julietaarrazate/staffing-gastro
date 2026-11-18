@@ -272,16 +272,25 @@ class Shift:
 
     @property
     def taken_after_start(self) -> bool:
-        """¿Quien lo tiene ahora confirmó con el turno ya empezado? Es el
-        reemplazo de un turno reofrecido."""
-        return self.confirmed_at is not None and _naive(self.confirmed_at) > _naive(
-            self.start_at
+        """¿Quien lo tiene ahora es el reemplazo de un turno reofrecido, que
+        confirmó con el turno ya empezado?
+
+        Sólo en un turno **reofrecido** (U080). En un turno común, confirmar
+        después del inicio (lo asignaron antes de empezar o durante la gracia
+        de «no cubierto» y confirmó tarde) no cambia nada: se lo espera desde
+        el inicio, su puntualidad se mide contra el inicio y la ausencia corre
+        desde ahí, como antes de U080."""
+        return (
+            self.is_reoffered
+            and self.confirmed_at is not None
+            and _naive(self.confirmed_at) > _naive(self.start_at)
         )
 
     @property
     def expected_from(self) -> datetime:
-        """Desde cuándo se espera a la persona: el inicio del turno o, si
-        confirmó con el turno ya empezado, el momento en que confirmó. Es la
+        """Desde cuándo se espera a la persona: el inicio del turno o, si es
+        el reemplazo de un turno reofrecido (`taken_after_start`), el momento
+        en que confirmó. Es la
         referencia del recordatorio de llegada y de la ausencia (ADR-0008,
         actualización 2026-11-18): a quien toma un turno a las 21:10 no se le
         puede contar la ausencia desde las 20:00."""

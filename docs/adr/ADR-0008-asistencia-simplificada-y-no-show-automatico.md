@@ -160,11 +160,15 @@ de las 20:00 le llegaba el recordatorio en el acto y quedaba ausente a las
 22:00, con 50 minutos para llegar.
 
 - **Referencia nueva: `Shift.expected_from`**, «desde cuándo se espera a la
-  persona»: el mayor entre `start_at` y `confirmed_at` (columna nueva,
-  migración `0053`: cuándo confirmó quien tiene el turno ahora; se borra al
-  reabrir). Para todo turno confirmado antes de empezar es `start_at`: **no
-  cambia nada**. Los turnos confirmados antes de la migración no tienen la
-  marca y siguen midiendo desde `start_at`.
+  persona»: en un **turno reofrecido** (`reoffered_at`), el mayor entre
+  `start_at` y `confirmed_at` (columna nueva, migración `0053`: cuándo
+  confirmó quien tiene el turno ahora; se borra al reabrir). En **cualquier
+  otro turno es `start_at`, aunque la persona haya confirmado después del
+  inicio** (la asignaron antes de empezar o en la gracia de «no cubierto» y
+  confirmó tarde): **no cambia nada** respecto de antes de U080
+  (`Shift.taken_after_start`, corregido tras la revisión del mismo día). Los
+  turnos confirmados antes de la migración no tienen la marca y siguen
+  midiendo desde `start_at`.
 - **Recordatorio de llegada:** `expected_from` + `CHECKIN_REMINDER_DELAY`
   (20 min). `checkin_reminder_sent_at` se borra al reabrir el turno, para que
   al reemplazo le llegue el suyo (antes quedaba marcado por la persona
@@ -177,7 +181,7 @@ de las 20:00 le llegaba el recordatorio en el acto y quedaba ausente a las
   panel aplica la misma regla (`puedeMarcarAusencia`,
   `frontend/lib/turno-reofrecido.ts`).
 - **El recordatorio de salida no cambia** (sólo corre antes del inicio).
-- **Puntualidad:** quien tomó el turno ya empezado no tiene una hora pactada
+- **Puntualidad:** quien tomó un turno reofrecido ya empezado no tiene una hora pactada
   contra la cual medir su llegada. El turno le suma como completado y **su
   puntualidad no se mueve, ni a favor ni en contra** (`punctuality_of`,
   `shift/domain/punctuality.py`; detalle en `docs/reference/REPUTATION.md`).

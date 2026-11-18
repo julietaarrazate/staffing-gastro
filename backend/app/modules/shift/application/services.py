@@ -2048,7 +2048,9 @@ class ShiftService(AccountSuspensionEffects):
 
         La regla vive en `shift/domain/punctuality.py`.
         """
-        return punctuality_of(shift.check_in_at, shift.start_at, shift.confirmed_at)
+        return punctuality_of(
+            shift.check_in_at, shift.start_at, shift.taken_after_start
+        )
 
     @staticmethod
     def _was_paid_on_time(shift: Shift) -> bool:

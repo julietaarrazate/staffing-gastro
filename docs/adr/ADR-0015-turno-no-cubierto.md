@@ -222,7 +222,9 @@ horas de turno por delante.
    reapertura con el valor por hora. Al comercio, **uno** que dice qué pasó y
    qué sigue. Detalle en `docs/reference/NOTIFICATIONS.md`.
 6. **Quien lo toma ya empezado:** su recordatorio y su ausencia se cuentan
-   desde que confirmó, y su puntualidad no se mueve
+   desde que confirmó, y su puntualidad no se mueve. Sólo en un turno
+   reofrecido: en un turno común confirmado tarde todo se sigue contando
+   desde el inicio
    ([ADR-0008](./ADR-0008-asistencia-simplificada-y-no-show-automatico.md),
    actualización del mismo día).
 

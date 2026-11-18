@@ -123,10 +123,17 @@ describe("desde cuándo se puede marcar la ausencia", () => {
   });
 
   it("al reemplazo que confirmó con el turno empezado, 15 minutos después de confirmar", () => {
-    const shift = { ...turno, confirmed_at: "2026-11-18T21:10:00-03:00" };
+    const shift = { ...reofrecido, confirmed_at: "2026-11-18T21:10:00-03:00" };
     expect(esperadoDesde(shift)).toBe(at("21:10"));
     expect(puedeMarcarAusencia(shift, at("21:20"))).toBe(false);
     expect(puedeMarcarAusencia(shift, at("21:25"))).toBe(true);
+  });
+
+  it("en un turno común que se confirmó tarde, igual desde el inicio", () => {
+    const shift = { ...turno, reoffered_at: null, confirmed_at: "2026-11-18T20:30:00-03:00" };
+    expect(esperadoDesde(shift)).toBe(at("20:00"));
+    expect(puedeMarcarAusencia(shift, at("20:14"))).toBe(false);
+    expect(puedeMarcarAusencia(shift, at("20:15"))).toBe(true);
   });
 
   it("sin la marca de confirmación (turnos viejos, respuestas sin el campo) cuenta el inicio", () => {

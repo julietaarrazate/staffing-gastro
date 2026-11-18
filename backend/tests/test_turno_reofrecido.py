@@ -29,7 +29,6 @@ from app.modules.shift.domain.punctuality import punctuality_of
 from app.modules.shift.domain.value_objects import ShiftStatus
 from app.modules.shift.infrastructure.models import ShiftModel
 from app.modules.worker.domain.value_objects import WorkerSkill
-from tests._turno_empezado import confirmo_a_tiempo
 from tests.conftest import auth_headers
 
 PALERMO = {"latitude": -34.58, "longitude": -58.43}
@@ -354,13 +353,29 @@ def test_llegar_tarde_a_un_turno_normal_no_prorratea():
 def test_la_puntualidad_no_se_mueve_para_quien_lo_tomo_ya_empezado():
     start = datetime(2026, 11, 18, 20, 0)
     llego = start + timedelta(hours=1, minutes=40)
-    # Confirmó con el turno empezado: ni a favor ni en contra.
-    assert punctuality_of(llego, start, start + timedelta(hours=1)) is None
-    # Confirmó antes: la regla de siempre.
-    assert punctuality_of(start + timedelta(minutes=10), start, start - timedelta(days=1)) is True
-    assert punctuality_of(llego, start, start - timedelta(days=1)) is False
-    # Turnos confirmados antes de la migración 0053 (sin la marca).
-    assert punctuality_of(start, start, None) is True
+    # El reemplazo de un turno reofrecido: ni a favor ni en contra.
+    assert punctuality_of(llego, start, taken_after_start=True) is None
+    # Cualquier otro: la regla de siempre, contra el inicio.
+    assert punctuality_of(start + timedelta(minutes=10), start, taken_after_start=False) is True
+    assert punctuality_of(llego, start, taken_after_start=False) is False
+
+
+def test_en_un_turno_comun_confirmar_tarde_no_cambia_las_reglas():
+    """Asignado antes del inicio (o en la gracia de «no cubierto») y
+    confirmado con el turno ya empezado, pero sin reofrecer: se lo espera
+    desde el inicio, como antes de U080."""
+    shift = _turno(empezo_hace=timedelta(minutes=40), status=ShiftStatus.ASIGNADO)
+    shift.confirm()
+    assert shift.confirmed_at is not None and shift.confirmed_at > shift.start_at
+    assert not shift.is_reoffered
+    assert not shift.taken_after_start
+    assert shift.expected_from == shift.start_at
+
+    # «No se presentó» desde los 15 minutos del inicio, no de la confirmación.
+    with pytest.raises(InvalidShiftTransitionError) as exc:
+        shift.no_show(now=shift.start_at + NO_SHOW_EARLIEST_AFTER_START - timedelta(seconds=1))
+    assert "después de que empieza el turno" in str(exc.value)
+    assert shift.no_show(now=shift.start_at + NO_SHOW_EARLIEST_AFTER_START) is Reapertura.REOFRECIDO
 
 
 # --- Casos de uso, por la API ----------------------------------------------
@@ -408,7 +423,10 @@ async def _turno_confirmado_y_empezado(
     empezo_hace: timedelta = timedelta(minutes=30),
     horas: float = 4,
 ) -> tuple[str, dict, dict, str]:
-    """A confirmó a tiempo un turno que empezó hace `empezo_hace`."""
+    """A tiene confirmado un turno común que empezó hace `empezo_hace`.
+
+    Lo confirma ahora, con el turno ya empezado: en un turno común eso no
+    cambia nada (se lo espera desde el inicio, como a quien confirmó antes)."""
     comercio = await _comercio(client, f"reof_emp_{tag}@staffya.com")
     a, a_id = await _trabajador(client, f"reof_a_{tag}@staffya.com", "Ana Ausente")
     created = await client.post(
@@ -427,7 +445,6 @@ async def _turno_confirmado_y_empezado(
     assert (
         await client.post(f"/api/v1/shifts/{shift_id}/confirm", headers=a)
     ).status_code == 200
-    await confirmo_a_tiempo(shift_id)
     return shift_id, comercio, a, a_id
 
 
@@ -565,6 +582,61 @@ async def test_la_puntualidad_que_ya_tenia_no_se_mueve(client: AsyncClient, sess
     perfil = (await client.get("/api/v1/workers/me/profile", headers=b)).json()
     assert perfil["events_completed"] == 5
     assert perfil["punctuality_rate"] == pytest.approx(0.75)
+
+
+@asyncio
+async def test_turno_comun_confirmado_tarde_se_mide_desde_el_inicio(
+    client: AsyncClient, session_factory, monkeypatch
+):
+    """Un turno común confirmado con el horario ya empezado sigue las reglas
+    de antes de U080: recordatorio, «No se presentó» y ausencia automática
+    desde el inicio, y la puntualidad medida contra el inicio."""
+    from app.modules.worker.infrastructure.models import WorkerProfileModel
+
+    monkeypatch.setattr(scheduler, "AsyncSessionLocal", session_factory)
+
+    async def estado(shift_id: str, comercio: dict) -> str:
+        r = await client.get(f"/api/v1/shifts/{shift_id}", headers=comercio)
+        return r.json()["status"]
+
+    # Empezó hace 40 minutos y lo confirmó recién: el recordatorio sale ya
+    # (20 minutos desde el inicio) y la ausencia se puede marcar (15).
+    shift_id, comercio, a, _a_id = await _turno_confirmado_y_empezado(
+        client, "comun_rec", empezo_hace=timedelta(minutes=40)
+    )
+    detalle = (await client.get(f"/api/v1/shifts/{shift_id}", headers=comercio)).json()
+    assert detalle["reoffered_at"] is None
+    await scheduler.run_attendance_check()
+    assert await estado(shift_id, comercio) == "confirmado"
+    assert len(await _avisos(client, a, "checkin_reminder")) == 1
+    marcado = await client.post(f"/api/v1/shifts/{shift_id}/no-show", headers=comercio)
+    assert marcado.status_code == 200, marcado.text
+
+    # Empezó hace más de 2 horas y lo confirmó recién: ausencia automática
+    # en la primera pasada (contada desde el inicio, no desde la confirmación).
+    shift_id, comercio, b, _b_id = await _turno_confirmado_y_empezado(
+        client, "comun_aus", empezo_hace=NO_SHOW_GRACE_PERIOD + timedelta(minutes=5), horas=8
+    )
+    await scheduler.run_attendance_check()
+    assert await estado(shift_id, comercio) == "buscando_personal"
+    assert len(await _avisos(client, b, "shift_no_show")) == 1
+
+    # Llegó 40 minutos tarde: le baja la puntualidad (no es un reemplazo).
+    shift_id, comercio, c, c_id = await _turno_confirmado_y_empezado(
+        client, "comun_punt", empezo_hace=timedelta(minutes=40)
+    )
+    async with session_factory() as session:
+        model = await session.get(WorkerProfileModel, UUID(c_id))
+        model.events_completed = 4
+        model.punctuality_rate = 0.75
+        await session.commit()
+    await client.post(f"/api/v1/shifts/{shift_id}/check-in", headers=c, json=PALERMO)
+    await client.post(f"/api/v1/shifts/{shift_id}/check-out", headers=c, json=PALERMO)
+    finished = await client.post(f"/api/v1/shifts/{shift_id}/finish", headers=comercio)
+    assert finished.status_code == 200, finished.text
+    perfil = (await client.get("/api/v1/workers/me/profile", headers=c)).json()
+    assert perfil["events_completed"] == 5
+    assert perfil["punctuality_rate"] == pytest.approx(0.6)
 
 
 @asyncio
