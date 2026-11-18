@@ -102,10 +102,27 @@ describe("el panel del comercio", () => {
   });
 
   it("y que queda sin cubrir si queda menos de una hora", () => {
-    const copy = noShowConfirmCopy(turno, at("23:10"));
+    const copy = noShowConfirmCopy(turno, at("23:20"));
     expect(copy).toContain("Queda menos de una hora de horario");
     expect(copy).toContain("«no cubierto»");
     expect(copy).not.toContain("reofrecemos");
+  });
+
+  it("a menos de 15 minutos del umbral, dice las dos posibilidades", () => {
+    // Le queda 1 h 10 o 55 minutos: lo decide la hora del servidor al marcarlo.
+    for (const hora of ["22:50", "23:00", "23:05"]) {
+      const copy = noShowConfirmCopy(turno, at(hora));
+      expect(copy).toContain("si al marcarlo le queda al menos una hora de horario lo reofrecemos");
+      expect(copy).toContain("hasta las 00:00");
+      expect(copy).toContain("si no, pasa a «no cubierto»");
+      expect(copy).toContain("le va a impactar la reputación");
+    }
+  });
+
+  it("a 15 minutos justos del umbral ya dice una sola cosa", () => {
+    expect(noShowConfirmCopy(turno, at("22:45"))).toContain("lo reofrecemos como urgente hasta las 00:00:");
+    expect(noShowConfirmCopy(turno, at("23:15"))).toContain("Queda menos de una hora de horario");
+    expect(noShowConfirmCopy(turno, at("23:15"))).not.toContain("si al marcarlo");
   });
 
   it("el límite es una hora justa, igual que en el servidor", () => {

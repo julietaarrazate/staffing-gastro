@@ -45,13 +45,23 @@ export function puedeMarcarAusencia(shift: Esperable, now: number = Date.now()):
   return now >= esperadoDesde(shift) + NO_SHOW_AFTER_MS;
 }
 
-/** El cuerpo de «¿Marcar que no se presentó?»: qué pasa con el turno. */
+/** Cerca del umbral de una hora, el reloj del dispositivo no alcanza para
+ *  decir qué va a pasar: lo decide el servidor con su hora, al marcarlo, y
+ *  entre abrir el diálogo y tocar pueden pasar minutos. */
+export const REOFFER_UNCERTAIN_MARGIN_MS = 15 * 60_000;
+
+/** El cuerpo de «¿Marcar que no se presentó?»: qué pasa con el turno. A menos
+ *  de 15 minutos del umbral (en cualquiera de los dos sentidos) dice las dos
+ *  posibilidades en vez de prometer una. */
 export function noShowConfirmCopy(shift: Reofrecible, now: number = Date.now()): string {
-  const queda = seReofrece(shift, now)
-    ? `Como el turno ya empezó, lo reofrecemos como urgente hasta las ${formatShiftTime(
-        shift.end_at
-      )}: quien lo tome cobra lo que reste desde que llegue.`
-    : "Queda menos de una hora de horario, así que no se reofrece: el turno pasa a «no cubierto» y podés publicarlo de nuevo.";
+  const fin = formatShiftTime(shift.end_at);
+  const resta = new Date(shift.end_at).getTime() - now;
+  const queda =
+    Math.abs(resta - REOFFER_MIN_REMAINING_MS) < REOFFER_UNCERTAIN_MARGIN_MS
+      ? `Como el turno ya empezó, si al marcarlo le queda al menos una hora de horario lo reofrecemos como urgente hasta las ${fin} (quien lo tome cobra lo que reste desde que llegue); si no, pasa a «no cubierto» y podés publicarlo de nuevo.`
+      : seReofrece(shift, now)
+        ? `Como el turno ya empezó, lo reofrecemos como urgente hasta las ${fin}: quien lo tome cobra lo que reste desde que llegue.`
+        : "Queda menos de una hora de horario, así que no se reofrece: el turno pasa a «no cubierto» y podés publicarlo de nuevo.";
   return `${queda} Al trabajador le va a impactar la reputación. Esta acción queda registrada.`;
 }
 
