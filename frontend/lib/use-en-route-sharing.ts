@@ -12,6 +12,14 @@
  * - **Se apaga a mano, y también solo.** Además del botón, se corta al
  *   desmontar y cuando el turno deja de estar "en viaje" — nada queda
  *   reportando de fondo si el usuario navega a otra pantalla.
+ * - **Apagar es apagar también para el comercio (U072).** «Dejar de
+ *   compartir» no sólo deja de mandar posiciones: le pide al servidor que
+ *   borre la última (`DELETE /shifts/{id}/en-route`), así el comercio deja de
+ *   verla en el momento. Si ese pedido no sale por falta de red se reintenta
+ *   solo unas veces y, si no, se dice: la persona no puede quedarse creyendo
+ *   que ya no la ven. Salir de la pantalla sin apagar sólo deja de mandar:
+ *   la última posición queda, con su hora, hasta la llegada o hasta que se
+ *   borre desde acá (`clearLast`).
  * - **No se recuerda entre sesiones.** No hay `localStorage` acá a propósito:
  *   si la persona cierra la app, deja de compartir. Un consentimiento que
  *   sobrevive a que cierres la app es un consentimiento que la gente olvida
@@ -35,6 +43,13 @@ const REPORT_INTERVAL_MS = 60_000;
 /** Fallos de red seguidos antes de avisar que la ubicación no está llegando. */
 const FAILURES_BEFORE_WARNING = 3;
 
+/** Reintentos del pedido de borrado si no hay red, y cada cuánto. */
+const STOP_RETRIES = 4;
+const STOP_RETRY_MS = 4_000;
+
+export const STOP_FAILED_MESSAGE =
+  "No pudimos borrar tu última ubicación: el comercio todavía la ve. Revisá tu conexión y tocá «Borrar mi última ubicación».";
+
 export interface EnRouteSharing {
   /** `true` mientras se está compartiendo la posición. */
   sharing: boolean;
@@ -43,7 +58,14 @@ export interface EnRouteSharing {
   /** `true` mientras se resuelve el primer envío (feedback del botón). */
   starting: boolean;
   start: () => Promise<void>;
+  /** Deja de compartir y borra la última posición en el servidor. */
   stop: () => void;
+  /** Borra la última posición en el servidor (sin estar compartiendo acá). */
+  clearLast: () => void;
+  /** `true` desde que el servidor confirmó que ya no guarda una posición. */
+  cleared: boolean;
+  /** `true` si el borrado no salió: el comercio todavía ve la última posición. */
+  clearFailed: boolean;
 }
 
 export function useEnRouteSharing(
@@ -62,10 +84,54 @@ export function useEnRouteSharing(
     }
   }, []);
 
+  const [cleared, setCleared] = useState(false);
+  const [clearFailed, setClearFailed] = useState(false);
+  const stopRetryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearStopRetry = useCallback(() => {
+    if (stopRetryRef.current !== null) {
+      clearTimeout(stopRetryRef.current);
+      stopRetryRef.current = null;
+    }
+  }, []);
+
+  /** Pide al servidor que borre la última posición; reintenta si no hay red. */
+  const clearLast = useCallback(() => {
+    if (!token) return;
+    clearStopRetry();
+    setClearFailed(false);
+    let attempt = 0;
+    const send = () => {
+      attempt += 1;
+      api
+        .del(`/shifts/${shiftId}/en-route`, undefined, token)
+        .then(() => {
+          setCleared(true);
+          setError(null);
+        })
+        .catch((err) => {
+          // El servidor contestó (el turno ya no es suyo, ya llegó): no hay
+          // nada que borrar de este lado y reintentar no cambia nada.
+          if (err instanceof ApiError) {
+            setCleared(true);
+            return;
+          }
+          if (attempt <= STOP_RETRIES) {
+            stopRetryRef.current = setTimeout(send, STOP_RETRY_MS);
+          } else {
+            setClearFailed(true);
+            setError(STOP_FAILED_MESSAGE);
+          }
+        });
+    };
+    send();
+  }, [shiftId, token, clearStopRetry]);
+
   const stop = useCallback(() => {
     clearTimer();
     setSharing(false);
-  }, [clearTimer]);
+    clearLast();
+  }, [clearTimer, clearLast]);
 
   const report = useCallback(async () => {
     if (!token) return;
@@ -81,6 +147,10 @@ export function useEnRouteSharing(
     if (!token) return;
     setError(null);
     setStarting(true);
+    // Vuelve a compartir: un borrado que todavía estaba reintentando ya no va.
+    clearStopRetry();
+    setCleared(false);
+    setClearFailed(false);
     try {
       // El primer envío va antes de arrancar el intervalo: si el permiso está
       // denegado o el backend rechaza (fuera de ventana, turno ya no
@@ -120,11 +190,17 @@ export function useEnRouteSharing(
     } finally {
       setStarting(false);
     }
-  }, [token, report, clearTimer]);
+  }, [token, report, clearTimer, clearStopRetry]);
 
   // Al desmontar deja de reportar. Sin esto, salir de la pantalla dejaría el
   // intervalo vivo mandando la posición desde cualquier otra parte de la app.
-  useEffect(() => clearTimer, [clearTimer]);
+  useEffect(
+    () => () => {
+      clearTimer();
+      clearStopRetry();
+    },
+    [clearTimer, clearStopRetry]
+  );
 
-  return { sharing, error, starting, start, stop };
+  return { sharing, error, starting, start, stop, clearLast, cleared, clearFailed };
 }

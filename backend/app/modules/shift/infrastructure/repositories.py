@@ -94,6 +94,7 @@ def _to_entity(model: ShiftModel) -> Shift:
         en_route_latitude=model.en_route_latitude,
         en_route_longitude=model.en_route_longitude,
         en_route_at=model.en_route_at,
+        en_route_announced_at=model.en_route_announced_at,
         check_in_latitude=model.check_in_latitude,
         check_in_longitude=model.check_in_longitude,
         check_in_at=model.check_in_at,
@@ -129,6 +130,7 @@ def _apply_fields(model: ShiftModel, shift: Shift) -> None:
     model.en_route_latitude = shift.en_route_latitude
     model.en_route_longitude = shift.en_route_longitude
     model.en_route_at = shift.en_route_at
+    model.en_route_announced_at = shift.en_route_announced_at
     model.check_in_latitude = shift.check_in_latitude
     model.check_in_longitude = shift.check_in_longitude
     model.check_in_at = shift.check_in_at

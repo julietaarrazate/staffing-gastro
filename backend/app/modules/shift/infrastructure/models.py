@@ -82,6 +82,10 @@ class ShiftModel(Base):
     en_route_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # Cuándo se avisó al comercio «salió para tu local» en este viaje (U072).
+    en_route_announced_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     check_in_latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     check_in_longitude: Mapped[float | None] = mapped_column(Float, nullable=True)

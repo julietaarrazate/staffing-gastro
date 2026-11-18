@@ -115,7 +115,8 @@ listados más abajo.
   **Lo prende y lo apaga él**, nunca arranca solo. Modelo de privacidad
   deliberado, no un detalle de implementación: se guarda **sólo la última
   posición, nunca el recorrido**, la ventana es de 2h antes del turno, se
-  borra al marcar la llegada y en las cuatro transiciones que desasignan, y
+  borra **cuando él lo apaga** (también para el comercio, U072, 2026-11-18),
+  al marcar la llegada y en las cuatro transiciones que desasignan, y
   los guards viven en el DOMINIO (`Shift.report_en_route_location`), no en la
   UI. Está reflejado en `/privacidad` — si tocás esto, esa página se actualiza
   en el mismo PR.
