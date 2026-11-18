@@ -1078,6 +1078,13 @@ body:has([data-landing]) main {
 .letra-cartel-puesto {
   font-size: 1.875rem;
 }
+/* El título en brocha directo sobre la banda azul hondo (Mis turnos): en la
+   tinta de la banda. Va con clase propia y no como `.app-banda
+   .letra-cartel`, que le pegaría también al puesto de las comandas que
+   cuelgan del riel. */
+.letra-cartel-sobre-banda {
+  color: var(--app-banda-tinta);
+}
 /* La barra de «Mozo/a», en la letra de texto (ver `textoCartel`). */
 .letra-cartel .barra {
   margin-inline: 0.06em;
