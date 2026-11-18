@@ -121,8 +121,9 @@ toda vista previa y el sitemap apuntaban ahí.
   Por qué: en el plan free el servidor se duerme a los 15 minutos sin tráfico.
   Quien entra después espera 30 a 60 s, y mientras duerme **no corre el
   scheduler** (`shift/application/scheduler.py`): no salen los recordatorios
-  de llegada, no se amplía la búsqueda de un turno sin cubrir y no se marcan
-  ausencias. El backend ya está preparado para que Neon siga en el plan free
+  de llegada, no se amplía la búsqueda de un turno sin cubrir, no se marcan
+  ausencias y no salen el recordatorio de cerrar un turno ni su cierre
+  automático (decisión 24: salen en la pasada siguiente, tarde). El backend ya está preparado para que Neon siga en el plan free
   con Render siempre prendido (#429, cierra la conexión ociosa a los 2
   minutos; detalle en `docs/historial/2026-10-13-neon-dormir.md`).
   Pasos: Render → el servicio del backend → Settings → Instance Type →

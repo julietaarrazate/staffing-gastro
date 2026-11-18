@@ -210,7 +210,9 @@ junto a las otras constantes del scheduler en
   condicional que no sube la versión (mismo patrón que el recordatorio de
   salida, ADR-0016), así que dos pasadas no mandan dos avisos. Con la cuenta
   del comercio suspendida la marca se pone igual y no se avisa nada
-  (ADR-0024). Reusa el tipo `shift_checked_out`.
+  (ADR-0024). El aviso dice la fecha real de la salida (la pasada puede
+  llegar tarde) y tiene tipo propio, `shift_finish_reminder`, con push de
+  urgencia normal: puede salir de madrugada.
 - **`AUTO_FINISH_DELAY` = 72 h — cierre automático**
   (`ShiftService.auto_finish`): `CHECK_OUT → FINALIZADO`,
   `Shift.auto_finished_at` (migración `0056`), y los **mismos efectos que el
@@ -234,6 +236,10 @@ depender del comercio; avisar antes le da al comercio dos días para cerrarlo
 él (y calificar, y registrar el pago). El pago no se toca: el turno queda
 `finalizado`, y `mark_paid` y su tolerancia siguen como estaban. Cancelar no
 era una salida (el turno ya se trabajó, ADR-0007 act. 2026-11-18).
+
+**Para decidir (Julieta).** Marcar pagado después del cierre automático
+cuenta como pago tardío: `PAYMENT_TOLERANCE` son 48 h desde el fin del turno
+y el cierre llega a las 72 h de la salida. No se tocó.
 
 **Fuera de alcance.** Plazos por comercio; avisar también a la persona a las
 24 h (lo que puede hacer es escribirle al comercio por el chat). Al desplegar,
