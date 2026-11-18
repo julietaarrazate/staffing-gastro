@@ -3,32 +3,51 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from app.core.idempotency import IdempotencyRecorder, idempotent
+from app.core.rate_limit import RateLimiter
+from app.modules.company.api.dependencies import get_company_repository
+from app.modules.company.domain.repositories import CompanyProfileRepository
 from app.modules.application.api.dependencies import get_application_service
 from app.modules.application.api.schemas import ApplicantResponse, ApplicationResponse
 from app.modules.application.application.services import ApplicationService
 from app.modules.application.domain.exceptions import (
     AlreadyAppliedError,
+    AlreadyUnassignedError,
     ApplicationNotFoundError,
     InvalidApplicationTransitionError,
     ShiftNotApplicableError,
 )
+from app.modules.identity.api.dependencies import get_current_user, per_account_quota_key
+from app.modules.identity.domain.entities import User
 from app.modules.shift.api.dependencies import get_my_company_id, get_my_worker_profile_id
 from app.modules.shift.api.schemas import ShiftResponse, without_worker_data
 from app.modules.shift.domain.entities import Shift
+from app.modules.verification.api.dependencies import get_verification_service
+from app.modules.verification.application.services import VerificationService
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
 ServiceDep = Annotated[ApplicationService, Depends(get_application_service)]
 WorkerProfileIdDep = Annotated[UUID, Depends(get_my_worker_profile_id)]
 CompanyIdDep = Annotated[UUID, Depends(get_my_company_id)]
+VerificationDep = Annotated[VerificationService, Depends(get_verification_service)]
+CompaniesDep = Annotated[CompanyProfileRepository, Depends(get_company_repository)]
 LimitDep = Annotated[int, Query(ge=1, le=100)]
 OffsetDep = Annotated[int, Query(ge=0)]
 # Idempotencia (product/IDEMPOTENCIA_SPEC.md): último parámetro de
 # dependencia, después de `worker_profile_id`/`company_id`.
 RecorderDep = Annotated[IdempotencyRecorder, Depends(idempotent)]
+
+# Tope de intentos de postularse a UN mismo turno, por cuenta (la invitada
+# compartida, por cuenta + IP: ver `per_account_quota_key`). Cada postulación
+# que entra, también la que reactiva una retirada, le avisa al comercio; el
+# tope acota esos avisos sin tocar a quien se postula a muchos turnos
+# distintos. Una respuesta repetida por idempotencia no llega acá y no cuenta.
+_apply_to_shift_rate_limit = RateLimiter(
+    max_attempts=5, window_seconds=3600, name="apply-to-shift"
+)
 
 _SHIFT_NOT_FOUND = HTTPException(
     status_code=status.HTTP_404_NOT_FOUND,
@@ -44,14 +63,27 @@ _SHIFT_NOT_FOUND = HTTPException(
 )
 async def apply_to_shift(
     shift_id: UUID,
+    request: Request,
+    current_user: Annotated[User, Depends(get_current_user)],
     worker_profile_id: WorkerProfileIdDep,
     service: ServiceDep,
     recorder: RecorderDep,
 ):
+    _apply_to_shift_rate_limit.check(
+        f"{per_account_quota_key(current_user, request)}:{shift_id}"
+    )
     try:
         application = await service.apply(worker_profile_id, shift_id)
     except ShiftNotApplicableError as exc:
         raise _SHIFT_NOT_FOUND from exc
+    except AlreadyUnassignedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Ya tuviste este turno asignado. Si el comercio te vuelve a "
+                "elegir, te avisamos."
+            ),
+        ) from exc
     except AlreadyAppliedError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -92,6 +124,8 @@ async def withdraw_application(
 async def my_applications(
     worker_profile_id: WorkerProfileIdDep,
     service: ServiceDep,
+    companies: CompaniesDep,
+    verification: VerificationDep,
     limit: LimitDep = 50,
     offset: OffsetDep = 0,
 ):
@@ -101,25 +135,49 @@ async def my_applications(
     enriched = await service.list_my_applications(
         worker_profile_id, limit=limit, offset=offset
     )
+    # Nombre/logo del comercio de cada turno: el mismo que el trabajador ya ve
+    # en el turno (`/shifts/mine`, el detalle) y resuelto igual, con UN
+    # `list_by_ids` para todos los comercios de la página.
+    company_ids = list({s.company_id for _, s in enriched if s is not None})
+    companies_by_id = await companies.list_by_ids(company_ids)
+    owner_ids = [c.user_id for c in companies_by_id.values()]
+    verified_owner_ids = (
+        await verification.verified_business_user_ids(owner_ids) if owner_ids else set()
+    )
     return [
         ApplicationResponse(
             id=application.id,
             shift_id=application.shift_id,
             worker_profile_id=application.worker_profile_id,
             status=application.status.value,
+            motivo=application.motivo.value if application.motivo else None,
             created_at=application.created_at,
-            shift=_shift_for_applicant(shift, worker_profile_id),
+            shift=_shift_for_applicant(
+                shift, worker_profile_id, companies_by_id, verified_owner_ids
+            ),
         )
         for application, shift in enriched
     ]
 
 
-def _shift_for_applicant(shift: Shift | None, worker_profile_id: UUID) -> ShiftResponse | None:
+def _shift_for_applicant(
+    shift: Shift | None,
+    worker_profile_id: UUID,
+    companies_by_id: dict,
+    verified_owner_ids: set,
+) -> ShiftResponse | None:
     """Postularse no te hace parte del turno: si lo tomó otro, el postulante
-    no ve quién ni dónde está (su postulación rechazada sigue en la lista)."""
+    no ve quién ni dónde está (su postulación rechazada sigue en la lista).
+    El comercio sí se ve: es el mismo dato público del turno."""
     if shift is None:
         return None
     response = ShiftResponse.model_validate(shift)
+    company = companies_by_id.get(shift.company_id)
+    if company:
+        response.company_name = company.name
+        response.company_logo_url = company.logo_url
+        response.company_cover_url = company.cover_photo_url
+        response.company_verified = company.user_id in verified_owner_ids
     if shift.worker_profile_id != worker_profile_id:
         return without_worker_data(response)
     return response
@@ -134,6 +192,7 @@ async def shift_applicants(
     shift_id: UUID,
     company_id: CompanyIdDep,
     service: ServiceDep,
+    verification: VerificationDep,
 ):
     try:
         applicants = await service.list_applicants(company_id, shift_id)
@@ -141,7 +200,11 @@ async def shift_applicants(
         raise _SHIFT_NOT_FOUND from exc
 
     # Enriquecido ya viene resuelto del repo (JOIN, sin N+1): sólo se mapea
-    # al esquema de respuesta (mismo shape que antes).
+    # al esquema de respuesta. «Identidad verificada» (dominio Identity, por
+    # puerto, igual que en matching) se pide en UNA consulta para todos.
+    verified = await verification.verified_user_ids(
+        [a.user_id for a in applicants if a.user_id is not None]
+    )
     return [
         ApplicantResponse(
             application_id=applicant.application_id,
@@ -151,12 +214,14 @@ async def shift_applicants(
             rating=applicant.rating,
             is_available=applicant.is_available,
             status=applicant.status.value,
+            motivo=applicant.motivo.value if applicant.motivo else None,
             created_at=applicant.created_at,
             events_completed=applicant.events_completed,
             punctuality_rate=applicant.punctuality_rate,
             years_experience=applicant.years_experience,
             badges=list(applicant.badges),
             level=applicant.level,
+            identidad_verificada=applicant.user_id in verified,
         )
         for applicant in applicants
     ]

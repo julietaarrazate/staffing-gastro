@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import type { Shift } from "@/lib/types";
 import SwipeDeck from "@/components/worker/SwipeDeck";
 import { CloseIcon } from "@/components/icons";
+import { useEscapeLayer } from "@/lib/use-escape-layer";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 
 /**
@@ -41,15 +42,12 @@ export default function DiscoverDeck({
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", onKey);
     };
-  }, [onClose]);
+  }, []);
+  // z-50, igual que Sheet: si encima se abre otra capa, Escape cierra esa primero.
+  useEscapeLayer(true, onClose, 50);
 
   return createPortal(
     <div

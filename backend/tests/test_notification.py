@@ -3,6 +3,7 @@
 import pytest
 from httpx import AsyncClient
 
+from tests._turno_empezado import correr_reloj_del_turno
 from tests.conftest import auth_headers, make_admin
 
 
@@ -21,7 +22,10 @@ async def _worker_with_profile(client: AsyncClient, email: str) -> tuple[dict, s
     profile = await client.post(
         "/api/v1/workers/me/profile",
         headers=headers,
-        json={"skills": ["mozo"]},
+        # Con zona, la misma del turno de `_shift_payload`: el aviso de
+        # "turno cerca tuyo" sólo le llega a quien está cerca (sin
+        # coordenadas, a quien es de la misma ciudad).
+        json={"skills": ["mozo"], "city": "Palermo"},
     )
     return headers, profile.json()["id"]
 
@@ -135,6 +139,9 @@ async def test_reject_notifies_company(client: AsyncClient):
         headers=employer_headers,
         json={"worker_profile_id": worker_profile_id},
     )
+    # El rechazo tiene que caer antes del inicio: con el horario ya terminado
+    # el turno pasa a «no cubierto» y el aviso es otro (U080).
+    await correr_reloj_del_turno(shift_id, -(60 * 24 * 365))
     await client.post(f"/api/v1/shifts/{shift_id}/reject", headers=worker_headers)
 
     notifications = await client.get("/api/v1/notifications", headers=employer_headers)
@@ -244,6 +251,7 @@ def test_notifications_websocket_closes_after_too_many_frames():
                     "full_name": "Worker Flood",
                     "role": "worker",
                     "accepted_terms": True,
+                "birth_date": "1995-05-20",
                 },
             )
             assert register.status_code == 201
@@ -323,3 +331,89 @@ async def test_admin_can_mark_all_read(client: AsyncClient, session_factory):
     response = await client.post("/api/v1/notifications/read-all", headers=admin_headers)
     assert response.status_code == 200
     assert response.json() == {"marked": 0}
+
+
+def test_notification_entity_clips_long_title_and_message():
+    """El tope de las columnas (255 / 500) se hace cumplir en la entidad, para
+    todo aviso: SQLite no lo exige y Postgres rechaza el INSERT."""
+    from uuid import uuid4
+
+    from app.modules.notification.domain.entities import Notification
+    from app.modules.notification.domain.value_objects import NotificationType
+
+    largo = Notification(
+        user_id=uuid4(),
+        type=NotificationType.CHAT_MESSAGE,
+        title="T" * 400,
+        message="M" * 900,
+    )
+    assert len(largo.title) == 255 and largo.title.endswith("…")
+    assert len(largo.message) == 500 and largo.message.endswith("…")
+
+    corto = Notification(
+        user_id=uuid4(), type=NotificationType.CHAT_MESSAGE, title="Hola", message="Qué tal"
+    )
+    assert (corto.title, corto.message) == ("Hola", "Qué tal")
+
+
+@pytest.mark.asyncio
+async def test_repository_stores_long_notification_clipped(session_factory):
+    """Lo guardado (la fila) no pasa los topes de la columna: SQLite no los
+    hace cumplir, así que se mide el largo del valor, no un error de la base."""
+    from uuid import uuid4
+
+    from sqlalchemy import select
+
+    from app.modules.notification.domain.entities import Notification
+    from app.modules.notification.domain.value_objects import NotificationType
+    from app.modules.notification.infrastructure.models import NotificationModel
+    from app.modules.notification.infrastructure.repositories import (
+        SqlAlchemyNotificationRepository,
+    )
+    from app.modules.identity.infrastructure.models import UserModel
+
+    user_id = uuid4()
+    async with session_factory() as session:
+        session.add(
+            UserModel(
+                id=user_id,
+                email="notif_clip@staffya.com",
+                hashed_password="x",
+                full_name="Persona",
+                role="employer",
+            )
+        )
+        await session.commit()
+        await SqlAlchemyNotificationRepository(session).add(
+            Notification(
+                user_id=user_id,
+                type=NotificationType.CHAT_MESSAGE,
+                title="Nuevo mensaje de " + "N" * 400,
+                message="M" * 900,
+            )
+        )
+        row = (await session.execute(select(NotificationModel))).scalars().one()
+    assert len(row.title) == 255 and row.title.endswith("…")
+    assert len(row.message) == 500 and row.message.endswith("…")
+
+
+@pytest.mark.asyncio
+async def test_finish_notifies_worker_to_rate_the_company(client: AsyncClient):
+    """U018: al finalizar, el trabajador recibe «Cerró tu turno» con link a ese turno en Mis turnos."""
+    from tests.test_admin import _run_shift_to_finish  # noqa: PLC0415
+
+    employer_headers = await _employer_with_company(client, "n_emp_fin@staffya.com")
+    worker_headers, worker_profile_id = await _worker_with_profile(
+        client, "n_worker_fin@staffya.com"
+    )
+    await _run_shift_to_finish(client, employer_headers, worker_headers, worker_profile_id)
+    mine = (await client.get("/api/v1/shifts/mine", headers=worker_headers)).json()
+    shift_id = next(s["id"] for s in mine if s["status"] == "finalizado")
+
+    body = (await client.get("/api/v1/notifications", headers=worker_headers)).json()
+    finished = [n for n in body if n["type"] == "shift_finished"]
+    assert len(finished) == 1
+    assert finished[0]["title"] == "Cerró tu turno"
+    assert finished[0]["message"].startswith("Calificá a ")
+    assert finished[0]["link"] == f"/my-shifts?turno={shift_id}"
+    assert "Bar Palermo" in finished[0]["message"]

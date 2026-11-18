@@ -3,22 +3,26 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
+import { appliedShiftIds, unassignedShiftIds } from "@/lib/applications";
 import { useAuth } from "@/lib/auth-context";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
 import { getErrorMessage } from "@/lib/errors";
-import { SKILL_LABELS, Shift, ShiftPublic } from "@/lib/types";
+import { SKILL_LABELS, Shift, ShiftApplication, ShiftPublic } from "@/lib/types";
 import { SKILL_ACCENT, SKILL_HERO_TONE, heroInk } from "@/lib/skill-style";
 import { cldThumb } from "@/lib/cloudinary";
-import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
-import { formatPayAmount, payPerHour } from "@/lib/pay";
+import { formatDuration, formatShiftWhenLive, shiftDurationMinutes } from "@/lib/datetime";
+import { formatMoney, payPerHour, payView } from "@/lib/pay";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import SaveShiftButton from "@/components/worker/SaveShiftButton";
+import { useLiveRefresh } from "@/lib/live-refresh";
 import { Skeleton, useToast } from "@/components/ui";
 import DrawnCheck from "@/components/ui/DrawnCheck";
+import { loginHref, registerHref } from "@/lib/safe-next";
+import { reportShiftHref } from "@/lib/support-reference";
 import { shiftHeroPhoto } from "@/lib/company-photo";
 import {
   ChevronLeftIcon,
@@ -46,7 +50,12 @@ const MiniMap = dynamic(() => import("@/components/MiniMap"), {
  *  sin sesión) y, si hay sesión, el turno completo encima. */
 type Detail = ShiftPublic & Partial<Shift>;
 
-type ApplyState = "unknown" | "can_apply" | "applying" | "applied";
+// `released`: tuvo este turno asignado y lo dejó (G4). No se postula otra vez:
+// sigue en la lista del comercio, que decide si lo vuelve a elegir.
+type ApplyState = "unknown" | "can_apply" | "applying" | "applied" | "released";
+// Comienzo del 409 de `POST /applications/shifts/{id}` para quien tuvo el
+// turno y lo dejó (`backend/app/modules/application/api/routes.py`).
+const ALREADY_UNASSIGNED_PREFIX = "Ya tuviste este turno asignado";
 
 /**
  * Detalle de un turno (`/turno/[id]`), con la composición del board: cabecera
@@ -80,35 +89,90 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
 
   const isWorker = user?.role === "worker";
 
+  // El turno completo y, para el trabajador, si ya se postuló. Es lo que cambia
+  // por fuera de esta pantalla (el comercio cancela, lo cubre otra persona), así
+  // que también lo vuelve a pedir `useLiveRefresh` más abajo. `silent`: si falla
+  // no se toca nada de lo que ya se ve.
+  // Último pedido gana, y se cancela al cambiar de turno o desmontar: una
+  // respuesta vieja no pisa a una más nueva ni al turno de otra pantalla.
+  const latestLoad = useRef(0);
+  // Cuenta las veces que la persona se postuló (o empezó a hacerlo): una
+  // respuesta que salió antes nunca baja un «applied»/«applying» a «can_apply».
+  const applyEpoch = useRef(0);
+  useEffect(() => {
+    const current = latestLoad;
+    return () => {
+      current.current += 1;
+    };
+  }, [publicShift.id]);
+  // La primera carga terminó (bien o mal). Hasta entonces las recargas por
+  // avisos esperan: una silenciosa que fallara tras descartar a la primera
+  // dejaría `apply` en «unknown» (esqueleto del botón) para siempre.
+  const [loadedOnce, setLoadedOnce] = useState(false);
+  const loadState = useCallback(
+    async ({ silent = false }: { silent?: boolean } = {}) => {
+      if (!token || !user) return;
+      const mine = ++latestLoad.current;
+      const epoch = applyEpoch.current;
+      const tasks: Promise<unknown>[] = [
+        api
+          .get<Shift>(`/shifts/${publicShift.id}`, token)
+          .then((shift) => {
+            if (mine === latestLoad.current) setFull(shift);
+          })
+          .catch(() => {
+            // Sin el turno completo, la vista pública alcanza: no es un error
+            // que haya que mostrarle a nadie.
+          }),
+      ];
+      if (user.role === "worker") {
+        tasks.push(
+          api
+            .get<ShiftApplication[]>("/applications/mine?limit=100", token)
+            .then((mine_) => {
+              if (mine !== latestLoad.current) return;
+              const applied = appliedShiftIds(mine_).has(publicShift.id);
+              const released = unassignedShiftIds(mine_).has(publicShift.id);
+              setApply((prev) => {
+                // Se postuló (o está postulándose) después de que salió este
+                // pedido: la lista que trae puede no incluirla todavía.
+                if (epoch !== applyEpoch.current || prev === "applying") return prev;
+                if (released) return "released";
+                return applied ? "applied" : "can_apply";
+              });
+            })
+            .catch(() => {
+              if (!silent && mine === latestLoad.current) {
+                setApply((prev) => (prev === "unknown" ? "can_apply" : prev));
+              }
+            })
+        );
+      }
+      await Promise.all(tasks);
+    },
+    [token, user, publicShift.id]
+  );
+
   useEffect(() => {
     if (!token || !user) return;
     let cancelled = false;
-    api
-      .get<Shift>(`/shifts/${publicShift.id}`, token)
-      .then((shift) => !cancelled && setFull(shift))
-      .catch(() => {
-        // Sin el turno completo, la vista pública alcanza: no es un error
-        // que haya que mostrarle a nadie.
-      });
     if (user.role === "employer") {
       api
         .get<{ id: string }>("/companies/me/profile", token)
         .then((company) => !cancelled && setMyCompanyId(company.id))
         .catch(() => {});
     }
-    if (user.role === "worker") {
-      api
-        .get<{ shift_id: string }[]>("/applications/mine?limit=100", token)
-        .then((mine) => {
-          if (cancelled) return;
-          setApply(mine.some((a) => a.shift_id === publicShift.id) ? "applied" : "can_apply");
-        })
-        .catch(() => !cancelled && setApply("can_apply"));
-    }
+    setLoadedOnce(false);
+    void loadState().finally(() => !cancelled && setLoadedOnce(true));
     return () => {
       cancelled = true;
     };
-  }, [token, user, publicShift.id]);
+  }, [token, user, loadState]);
+
+  // Al día con los avisos (G1, U013): si el comercio canceló o lo cubrió otra
+  // persona mientras mirabas el turno, se ve sin recargar. En pausa mientras se
+  // envía la postulación.
+  useLiveRefresh(loadState, { paused: apply === "applying" || !loadedOnce });
 
   const shift: Detail = { ...publicShift, ...(full ?? {}) };
   const { Icon } = SKILL_ACCENT[shift.position];
@@ -117,12 +181,14 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
   const photo = heroPhoto && !photoBroken ? heroPhoto : null;
   const minutes = shiftDurationMinutes(shift.start_at, shift.end_at);
   const perHour = payPerHour(shift);
+  const pay = payView(shift);
   const isOwner = Boolean(full && myCompanyId && full.company_id === myCompanyId);
   const hasCoords = shift.latitude != null && shift.longitude != null;
   const where = shift.address ? [shift.address, shift.city].filter(Boolean).join(", ") : shift.city;
 
   async function onApply() {
     if (!token) return;
+    applyEpoch.current += 1;
     setApply("applying");
     try {
       await api.post(`/applications/shifts/${shift.id}`, undefined, token, undefined, keyFor(shift.id));
@@ -136,7 +202,9 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         clear(shift.id);
-        setApply("applied");
+        // Con la pestaña vieja, el 409 puede ser «Ya tuviste este turno
+        // asignado» (G4), no «Ya te postulaste»: lo distingue el servidor.
+        setApply(err.message.startsWith(ALREADY_UNASSIGNED_PREFIX) ? "released" : "applied");
         return;
       }
       setApply("can_apply");
@@ -219,8 +287,10 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
         {/* Datos con íconos: cuándo, cuánto dura, dónde. */}
         <dl className="mt-5 space-y-3">
           <InfoRow icon={<ClockIcon size={18} />} tone="cielo" label="Cuándo">
-            {formatShiftWhen(shift.start_at, shift.end_at)}
-            {minutes != null && <span className="text-ink/50"> · {formatDuration(minutes)}</span>}
+            {formatShiftWhenLive(shift)}
+            {minutes != null && pay.kind !== "por_hora" && (
+              <span className="text-ink/50"> · {formatDuration(minutes)}</span>
+            )}
           </InfoRow>
           <InfoRow icon={<MapPinIcon size={18} />} tone="trust" label="Dónde">
             {where ?? "Zona a confirmar"}
@@ -240,10 +310,21 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-on-brand/75">Pago</p>
             <p className="text-price font-extrabold tracking-tight text-on-brand">
-              {formatPayAmount(shift)}
+              {pay.amount}
+              {pay.suffix && (
+                <span className="ml-1.5 text-body font-bold tracking-normal text-on-brand/85">
+                  {pay.suffix}
+                </span>
+              )}
             </p>
+            {/* Turno reofrecido (U080): el número ya es por hora (o el monto
+                que quedó fijo al llegar), y la línea lo explica. */}
             <p className="text-sm text-on-brand/80">
-              {[shift.tips ? "+ propinas" : null, perHour ? `≈ ${formatPayAmount({ pay_amount: String(Math.round(perHour)), currency: shift.currency })} por hora` : null]
+              {[
+                shift.tips ? "+ propinas" : null,
+                pay.note ??
+                  (perHour ? `≈ ${formatMoney(perHour, shift.currency)} por hora` : null),
+              ]
                 .filter(Boolean)
                 .join(" · ")}
             </p>
@@ -304,8 +385,18 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
           </section>
         )}
 
-        <div className="mt-7 flex justify-center border-t border-line pt-4">
+        <div className="mt-7 flex flex-col items-center gap-3 border-t border-line pt-4">
           <ShareShiftButton shift={shift} shiftId={shift.id} />
+          {/* U110: discreto, sin acento. Sólo un trabajador con sesión puede
+              atar el turno a un ticket. */}
+          {isWorker && (
+            <Link
+              href={reportShiftHref(shift.id)}
+              className="text-sm font-semibold text-ink/50 underline-offset-2 hover:text-ink hover:underline"
+            >
+              Reportar un problema
+            </Link>
+          )}
         </div>
       </div>
     </div>
@@ -346,7 +437,7 @@ function Chip({ icon, children }: { icon: React.ReactNode; children: React.React
 }
 
 const PRIMARY_BUTTON =
-  "flex min-h-[56px] w-full items-center justify-center gap-2 rounded-[var(--radius-btn)] bg-primary px-6 text-base font-bold text-night shadow-[var(--shadow-primary)] transition active:scale-[0.98] disabled:opacity-70";
+  "flex min-h-[56px] w-full items-center justify-center gap-2 boton-relieve bg-primary px-6 text-base font-bold text-night disabled:opacity-70";
 
 function PrimaryAction({
   loading,
@@ -372,14 +463,22 @@ function PrimaryAction({
 
   if (!loggedIn) {
     // Quien llega por un link compartido casi siempre es un trabajador: se
-    // preselecciona su rol en el registro (mismo patrón que la landing).
+    // preselecciona su rol en el registro (mismo patrón que la landing). Tanto
+    // el alta como el ingreso vuelven a este turno (`next`, U062).
+    const aca = `/turno/${shiftId}`;
     return (
       <>
-        <Link href="/register?rol=trabajador" className={PRIMARY_BUTTON}>
+        <Link href={registerHref({ rol: "trabajador", next: aca })} className={PRIMARY_BUTTON}>
           Postulate en Oído
         </Link>
         <p className="mt-2.5 text-center text-xs text-ink/45">
           Creá tu perfil gratis y postulate a este y otros turnos gastronómicos.
+        </p>
+        <p className="mt-2 text-center text-sm text-ink/70">
+          ¿Ya tenés cuenta?{" "}
+          <Link href={loginHref({ next: aca })} className="font-semibold text-primary-text">
+            Ingresá
+          </Link>
         </p>
       </>
     );
@@ -398,7 +497,18 @@ function PrimaryAction({
         };
     return (
       <AnimatePresence mode="wait" initial={false}>
-        {apply === "applied" ? (
+        {apply === "released" ? (
+          <motion.div
+            key="released"
+            {...swap}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            data-testid="turno-ya-asignado-antes"
+            className="rounded-[var(--radius-card)] bg-surface px-4 py-3.5 ring-1 ring-line"
+          >
+            <p className="text-body font-semibold text-ink">Ya tuviste este turno asignado</p>
+            <p className="text-sm text-ink/60">Si el comercio te vuelve a elegir, te avisamos.</p>
+          </motion.div>
+        ) : apply === "applied" ? (
           <motion.div
             key="applied"
             {...swap}

@@ -6,6 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.core.gemini import GeminiNotConfiguredError, GeminiRequestError, suggest_ticket_reply
+from app.core.idempotency import IdempotencyRecorder, idempotent
 from app.core.rate_limit import RateLimiter
 from app.modules.identity.api.dependencies import get_current_user, require_roles
 from app.modules.identity.domain.entities import User
@@ -14,16 +15,22 @@ from app.modules.support.api.dependencies import get_support_service
 from app.modules.support.api.schemas import (
     AdminTicketResponse,
     CreateTicketRequest,
+    CompanyRefResponse,
     MessageResponse,
+    ReferencesResponse,
     SendMessageRequest,
+    ShiftRefResponse,
     TicketDetailResponse,
+    TicketOpenerResponse,
     TicketResponse,
     TicketSuggestionResponse,
 )
 from app.modules.support.application.services import SupportService
 from app.modules.support.domain.exceptions import (
     EmptyMessageError,
+    ReferenceNotFoundError,
     TicketClosedError,
+    TicketNotClosedError,
     TicketNotFoundError,
 )
 from app.modules.support.domain.value_objects import TicketStatus
@@ -32,6 +39,7 @@ router = APIRouter(prefix="/support", tags=["support"])
 
 ServiceDep = Annotated[SupportService, Depends(get_support_service)]
 CurrentUserDep = Annotated[User, Depends(get_current_user)]
+RecorderDep = Annotated[IdempotencyRecorder, Depends(idempotent)]
 AdminDep = Annotated[User, Depends(require_roles(UserRole.ADMIN))]
 LimitDep = Annotated[int, Query(ge=1, le=100)]
 OffsetDep = Annotated[int, Query(ge=0)]
@@ -41,6 +49,8 @@ OffsetDep = Annotated[int, Query(ge=0)]
 _create_ticket_rate_limit = RateLimiter(
     max_attempts=10, window_seconds=3600, name="support_create_ticket"
 )
+# Confirmar qué se va a atar (U110): más holgado que crear, pero con tope.
+_reference_rate_limit = RateLimiter(max_attempts=60, window_seconds=3600, name="support_reference")
 _send_message_rate_limit = RateLimiter(
     max_attempts=30, window_seconds=60, name="support_send_message"
 )
@@ -55,6 +65,34 @@ _ai_suggestion_rate_limit = RateLimiter(
 _TICKET_NOT_FOUND = HTTPException(
     status_code=status.HTTP_404_NOT_FOUND, detail="Ticket no encontrado"
 )
+# U110: mismo texto para el turno/comercio inexistente y para el ajeno.
+_REFERENCE_NOT_FOUND = HTTPException(
+    status_code=status.HTTP_404_NOT_FOUND, detail="No encontramos ese turno o comercio"
+)
+
+
+def _references_response(refs, *, is_admin: bool) -> ReferencesResponse:
+    return ReferencesResponse(
+        shift=(
+            ShiftRefResponse(
+                id=refs.shift.id,
+                title=refs.shift.title,
+                start_at=refs.shift.start_at,
+                company_name=refs.shift.company_name,
+            )
+            if refs.shift
+            else None
+        ),
+        company=(
+            CompanyRefResponse(
+                id=refs.company.id,
+                name=refs.company.name,
+                user_id=refs.company.user_id if is_admin else None,
+            )
+            if refs.company
+            else None
+        ),
+    )
 
 
 @router.post(
@@ -64,19 +102,54 @@ _TICKET_NOT_FOUND = HTTPException(
     summary="Abrir un ticket de soporte",
 )
 async def create_ticket(
-    payload: CreateTicketRequest, current_user: CurrentUserDep, service: ServiceDep
+    payload: CreateTicketRequest,
+    current_user: CurrentUserDep,
+    service: ServiceDep,
+    recorder: RecorderDep,
 ):
     _create_ticket_rate_limit.check(str(current_user.id))
     try:
         ticket, _first_message = await service.create_ticket(
-            current_user.id, payload.category, payload.subject, payload.body
+            current_user.id,
+            payload.category,
+            payload.subject,
+            payload.body,
+            shift_id=payload.shift_id,
+            company_id=payload.company_id,
         )
+    except ReferenceNotFoundError as exc:
+        raise _REFERENCE_NOT_FOUND from exc
     except EmptyMessageError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="El asunto y el mensaje no pueden estar vacíos",
         ) from exc
-    return ticket
+    # Reintento con la misma Idempotency-Key: mismo ticket, sin duplicar (U012).
+    response = TicketResponse.model_validate(ticket, from_attributes=True)
+    await recorder.save(status.HTTP_201_CREATED, response.model_dump(mode="json"))
+    return response
+
+
+@router.get(
+    "/reference",
+    response_model=ReferencesResponse,
+    summary="Qué turno o comercio se va a atar a un ticket nuevo (para confirmarlo)",
+)
+async def get_reference(
+    current_user: CurrentUserDep,
+    service: ServiceDep,
+    shift_id: UUID | None = None,
+    company_id: UUID | None = None,
+):
+    # Mismas reglas y mismo 404 que al crear el ticket: ajeno = inexistente.
+    _reference_rate_limit.check(str(current_user.id))
+    try:
+        refs = await service.resolve_references(
+            current_user.id, shift_id=shift_id, company_id=company_id
+        )
+    except ReferenceNotFoundError as exc:
+        raise _REFERENCE_NOT_FOUND from exc
+    return _references_response(refs, is_admin=False)
 
 
 @router.get(
@@ -117,12 +190,29 @@ async def get_ticket(ticket_id: UUID, current_user: CurrentUserDep, service: Ser
         )
     except TicketNotFoundError as exc:
         raise _TICKET_NOT_FOUND from exc
+    opened_by = None
+    if current_user.role == UserRole.ADMIN:
+        # Sólo el admin ve quién abrió el ticket (no-disclosure: un usuario
+        # común sólo ve sus propios tickets y no necesita ese dato).
+        opener = await service.get_opener(ticket.id)
+        if opener is not None:
+            opened_by = TicketOpenerResponse(
+                user_id=opener.user_id, full_name=opener.full_name, role=opener.role
+            )
+    references = _references_response(
+        await service.describe_references(ticket),
+        is_admin=current_user.role == UserRole.ADMIN,
+    )
     return TicketDetailResponse(
+        opened_by=opened_by,
+        references=references,
         id=ticket.id,
         user_id=ticket.user_id,
         category=ticket.category,
         subject=ticket.subject,
         status=ticket.status,
+        shift_id=ticket.shift_id,
+        company_id=ticket.company_id,
         created_at=ticket.created_at,
         updated_at=ticket.updated_at,
         messages=[MessageResponse.model_validate(m, from_attributes=True) for m in messages],
@@ -176,11 +266,12 @@ async def send_message(
     payload: SendMessageRequest,
     current_user: CurrentUserDep,
     service: ServiceDep,
+    recorder: RecorderDep,
 ):
     _send_message_rate_limit.check(str(current_user.id))
     is_admin = current_user.role == UserRole.ADMIN
     try:
-        return await service.add_message(
+        message = await service.add_message(
             current_user.id, ticket_id, payload.body, is_admin=is_admin
         )
     except TicketNotFoundError as exc:
@@ -195,6 +286,9 @@ async def send_message(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="El mensaje no puede estar vacío",
         ) from exc
+    response = MessageResponse.model_validate(message, from_attributes=True)
+    await recorder.save(status.HTTP_201_CREATED, response.model_dump(mode="json"))
+    return response
 
 
 @router.post(
@@ -212,4 +306,23 @@ async def close_ticket(ticket_id: UUID, current_user: CurrentUserDep, service: S
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Este ticket ya está cerrado",
+        ) from exc
+
+
+@router.post(
+    "/tickets/{ticket_id}/reopen",
+    response_model=TicketResponse,
+    summary="Reabrir un ticket cerrado (admin)",
+)
+async def reopen_ticket(ticket_id: UUID, _admin: AdminDep, service: ServiceDep):
+    # La persona no reabre sola (decisión 12): sólo el admin, con este botón
+    # o escribiéndole en el ticket cerrado.
+    try:
+        return await service.reopen_ticket(ticket_id)
+    except TicketNotFoundError as exc:
+        raise _TICKET_NOT_FOUND from exc
+    except TicketNotClosedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Este ticket ya está abierto",
         ) from exc

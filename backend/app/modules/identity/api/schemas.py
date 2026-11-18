@@ -4,7 +4,7 @@ Definen el contrato de la API (request/response) — separados de los DTOs
 de aplicación y de las entidades de dominio.
 """
 
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
 from typing import Annotated
 from uuid import UUID
@@ -25,6 +25,17 @@ class RegisterableRole(str, Enum):
     EMPLOYER = "employer"
 
 
+def _reject_repeated_char(value: str) -> str:
+    """Regla mínima de clave, la misma en registro y reset: un único carácter
+    repetido («aaaaaaaa», «11111111») no cuenta como clave."""
+    if len(set(value)) == 1:
+        raise ValueError(
+            "La contraseña no puede ser un solo carácter repetido. "
+            "Combiná letras y números."
+        )
+    return value
+
+
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
@@ -33,6 +44,20 @@ class RegisterRequest(BaseModel):
     # El checkbox de términos y privacidad. Tiene que llegar en True: la ruta
     # rechaza el alta sin él y guarda la constancia (`TermsAcceptance`).
     accepted_terms: bool = False
+    # U101: obligatoria (la ruta responde 422 con un texto claro si falta o si
+    # la persona es menor de 18). Opcional en el esquema para que el mensaje
+    # sea ése y no el genérico de Pydantic.
+    birth_date: date | None = None
+
+    @field_validator("full_name")
+    @classmethod
+    def _name_not_blank(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("Escribí tu nombre")
+        return stripped
+
+    _password_rule = field_validator("password")(_reject_repeated_char)
 
 
 class UpdateMeRequest(BaseModel):
@@ -75,6 +100,7 @@ class ResetPasswordRequest(BaseModel):
     # Misma regla que el registro (`RegisterRequest.password`): no se
     # inventan reglas nuevas para el reset.
     new_password: str = Field(min_length=8, max_length=128)
+    _password_rule = field_validator("new_password")(_reject_repeated_char)
 
 
 class VerifyEmailRequest(BaseModel):
@@ -105,6 +131,9 @@ class TokenResponse(BaseModel):
     # remoto). Forward-ref porque `UserResponse` se define más abajo; se
     # resuelve con `TokenResponse.model_rebuild()` al final del módulo.
     user: "UserResponse | None" = None
+    # Admin sin la verificación en dos pasos: la sesión sólo le deja activarla
+    # (ADR-0023). Lo mismo que `MeResponse`, para el login.
+    two_factor_setup_required: bool = False
 
 
 class GoogleAuthRequest(BaseModel):
@@ -115,6 +144,8 @@ class GoogleAuthRequest(BaseModel):
     role: RegisterableRole | None = None
     # Obligatorio en True cuando viene `role`, o sea cuando se crea la cuenta.
     accepted_terms: bool = False
+    # Igual que en el registro con email: obligatoria al crear la cuenta (U101).
+    birth_date: date | None = None
 
 
 class GoogleRoleRequiredResponse(BaseModel):
@@ -136,6 +167,15 @@ class UserResponse(BaseModel):
     status: UserStatus
     is_verified: bool
     created_at: datetime | None = None
+
+
+class MeResponse(UserResponse):
+    """`GET /auth/me`: el usuario y, para un admin sin la verificación en dos
+    pasos activada, `two_factor_setup_required` (ADR-0023). Así el frontend
+    sabe al abrir la sesión que sólo puede ir al alta y no dispara pedidos que
+    el backend rechaza con 403."""
+
+    two_factor_setup_required: bool = False
 
 
 # Resuelve el forward-ref `user: "UserResponse"` de TokenResponse ahora que

@@ -12,10 +12,12 @@
 import Link from "next/link";
 import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
-import { useAuth } from "@/lib/auth-context";
+import { useAuth, type SesionAbierta } from "@/lib/auth-context";
 import { useResolvedTheme } from "@/lib/theme";
-import { ApiError } from "@/lib/api";
-import { Button } from "@/components/ui";
+import { ApiError, isAccountSuspended } from "@/lib/api";
+import { Button, TextField } from "@/components/ui";
+import { SESSION_END_MESSAGES } from "@/lib/safe-next";
+import { EDAD_MINIMA, motivoFechaNacimiento, nacimientoMasReciente } from "@/lib/edad";
 
 /**
  * El botón de Google (widget de Google Identity Services, fuera de nuestro
@@ -51,15 +53,33 @@ const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
 export default function GoogleAuthButton({
   onDone,
+  rolElegido,
+  terminosAceptados,
+  nacimientoElegido,
 }: {
   /** Se llama cuando la sesión queda lista. `isNewAccount` distingue "recién
-   * creada" (para mandar a completar perfil) de "ya existía" (a home). */
-  onDone: (isNewAccount: boolean) => void;
+   * creada" (para mandar a completar perfil) de "ya existía" (a home). En
+   * una cuenta nueva llega también el rol elegido (lo usa /register para el
+   * plan que se eligió en la landing, `lib/plan-elegido.ts`). */
+  onDone: (isNewAccount: boolean, role?: "worker" | "employer", sesion?: SesionAbierta) => void;
+  /** Desde /register (U043): el rol y la aceptación de términos que ya se
+   * eligieron en el formulario. Con `rolElegido`, una cuenta nueva se crea
+   * directo con ese rol, sin volver a preguntar ni mostrar otra casilla. La
+   * aceptación sigue siendo la misma casilla de siempre (el formulario);
+   * sin ella la cuenta no se crea. Sin `rolElegido` (p. ej. /login) queda el
+   * paso propio de rol + casilla. */
+  rolElegido?: "worker" | "employer";
+  terminosAceptados?: boolean;
+  /** Desde /register: la fecha de nacimiento del formulario (U101). */
+  nacimientoElegido?: string;
 }) {
   const { loginWithGoogle } = useAuth();
   const isDark = useResolvedTheme() === "dark";
   const buttonHostRef = useRef<HTMLDivElement>(null);
   const idTokenRef = useRef<string | null>(null);
+  // El callback de Google se registra una sola vez: lee el formulario por ref.
+  const formularioRef = useRef({ rolElegido, terminosAceptados, nacimientoElegido });
+  formularioRef.current = { rolElegido, terminosAceptados, nacimientoElegido };
   const [scriptReady, setScriptReady] = useState(false);
   const [pendingRole, setPendingRole] = useState<{ email: string; fullName: string } | null>(
     null
@@ -71,7 +91,12 @@ export default function GoogleAuthButton({
   // del rol porque es el único que se muestra sólo a cuentas NUEVAS: quien ya
   // tiene cuenta entra directo y ya los aceptó al registrarse.
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  // U101: la cuenta nueva pide la fecha de nacimiento, también con Google. En
+  // /register viene del formulario; en /login se pide en el paso del rol.
+  const [birthDate, setBirthDate] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const nacimiento = nacimientoElegido ?? birthDate;
+  const motivoNacimiento = motivoFechaNacimiento(nacimiento);
 
   async function handleCredential(idToken: string) {
     setError(null);
@@ -79,14 +104,29 @@ export default function GoogleAuthButton({
     try {
       const result = await loginWithGoogle(idToken);
       if (result.requiresRole) {
+        const {
+          rolElegido: rol,
+          terminosAceptados: aceptados,
+          nacimientoElegido: fecha,
+        } = formularioRef.current;
+        if (rol && aceptados && fecha !== undefined && !motivoFechaNacimiento(fecha)) {
+          await crearConRol(rol, fecha);
+          return;
+        }
         setPendingRole({ email: result.email, fullName: result.fullName });
       } else if (!result.twoFactor) {
-        onDone(false);
+        onDone(false, undefined, result.sesion);
       }
       // Con `twoFactor` (admin con la verificación en dos pasos), /login
       // pasa a pedir el código: no hay sesión todavía.
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo continuar con Google");
+      setError(
+        isAccountSuspended(err)
+          ? SESSION_END_MESSAGES.suspendida
+          : err instanceof ApiError
+            ? err.message
+            : "No se pudo continuar con Google"
+      );
     }
   }
 
@@ -124,12 +164,17 @@ export default function GoogleAuthButton({
   }, [scriptReady, isDark]);
 
   async function chooseRole(role: "worker" | "employer") {
-    if (!idTokenRef.current || !acceptedTerms) return;
+    if (!acceptedTerms || motivoNacimiento) return;
+    await crearConRol(role, nacimiento);
+  }
+
+  async function crearConRol(role: "worker" | "employer", fecha: string) {
+    if (!idTokenRef.current) return;
     setError(null);
     setRoleLoading(role);
     try {
-      const result = await loginWithGoogle(idTokenRef.current, role);
-      if (!result.requiresRole && !result.twoFactor) onDone(true);
+      const result = await loginWithGoogle(idTokenRef.current, role, fecha);
+      if (!result.requiresRole && !result.twoFactor) onDone(true, role, result.sesion);
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message : "No se pudo crear la cuenta con Google"
@@ -162,7 +207,26 @@ export default function GoogleAuthButton({
           mismo `<div>` al pasar de un lado al otro del ternario, y el botón
           que Google inyectó a mano adentro (fuera de React) quedaba visible
           encima de la pregunta del rol. */}
-      {pendingRole ? (
+      {pendingRole && rolElegido ? (
+        // Rol y términos vienen del formulario: sólo falta tildar la casilla.
+        <div key="terminos" className="rounded-2xl bg-surface p-4 text-center ring-1 ring-line">
+          <p className="text-sm text-ink/70">
+            Para crear tu cuenta con Google como {rolElegido === "employer" ? "comercio" : "trabajador/a"},
+            completá tu fecha de nacimiento y aceptá los términos y la política de privacidad (arriba).
+          </p>
+          <div className="mt-3">
+            <Button
+              size="sm"
+              fullWidth
+              loading={roleLoading !== null}
+              disabled={roleLoading !== null || !terminosAceptados || Boolean(motivoNacimiento)}
+              onClick={() => crearConRol(rolElegido, nacimiento)}
+            >
+              Crear cuenta con Google
+            </Button>
+          </div>
+        </div>
+      ) : pendingRole ? (
         <div key="role" className="rounded-2xl bg-surface p-4 text-center ring-1 ring-line">
           <p className="text-sm font-semibold text-ink">
             ¿Buscás trabajo o buscás personal?
@@ -170,12 +234,30 @@ export default function GoogleAuthButton({
           <p className="mt-1 text-xs text-ink/50">
             Elegí para terminar de crear tu cuenta de Google, {pendingRole.fullName}.
           </p>
+          <div className="mt-3 text-left">
+            <TextField
+              type="date"
+              label="Fecha de nacimiento"
+              name="bday"
+              autoComplete="bday"
+              value={birthDate}
+              onChange={setBirthDate}
+              max={nacimientoMasReciente()}
+              required
+              error={birthDate && motivoNacimiento ? motivoNacimiento : undefined}
+            />
+            {!(birthDate && motivoNacimiento) && (
+              <p className="mt-1.5 text-xs text-ink/50">
+                Oído es para mayores de {EDAD_MINIMA} años. No se la mostramos a nadie.
+              </p>
+            )}
+          </div>
           <label className="mt-3 flex items-start gap-2.5 text-left text-sm text-ink/70">
             <input
               type="checkbox"
               checked={acceptedTerms}
               onChange={(e) => setAcceptedTerms(e.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 rounded border-line accent-primary focus:ring-primary"
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-line accent-primary"
             />
             <span>
               Acepto los{" "}
@@ -204,7 +286,7 @@ export default function GoogleAuthButton({
               size="sm"
               fullWidth
               loading={roleLoading === "worker"}
-              disabled={roleLoading !== null || !acceptedTerms}
+              disabled={roleLoading !== null || !acceptedTerms || Boolean(motivoNacimiento)}
               onClick={() => chooseRole("worker")}
             >
               Busco trabajo
@@ -214,7 +296,7 @@ export default function GoogleAuthButton({
               size="sm"
               fullWidth
               loading={roleLoading === "employer"}
-              disabled={roleLoading !== null || !acceptedTerms}
+              disabled={roleLoading !== null || !acceptedTerms || Boolean(motivoNacimiento)}
               onClick={() => chooseRole("employer")}
             >
               Busco personal

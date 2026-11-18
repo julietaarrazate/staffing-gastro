@@ -8,7 +8,8 @@ que `FakeEmailSender`)."""
 from dataclasses import dataclass, field
 
 from app.modules.notification.domain.entities import PushSubscription
-from app.modules.notification.domain.push_sender import PushSendResult, PushSender
+from app.modules.notification.domain.push_policy import DEFAULT_PUSH_POLICY, PushPolicy
+from app.modules.notification.domain.push_sender import PushSender, PushSendResult
 
 
 @dataclass
@@ -16,6 +17,7 @@ class SentPush:
     user_id: object
     title: str
     body: str
+    policy: PushPolicy = DEFAULT_PUSH_POLICY
 
 
 @dataclass
@@ -25,9 +27,17 @@ class FakePushSender(PushSender):
     sent: list[SentPush] = field(default_factory=list)
 
     async def send(
-        self, subscription: PushSubscription, *, title: str, body: str, url: str = "/"
+        self,
+        subscription: PushSubscription,
+        *,
+        title: str,
+        body: str,
+        url: str = "/",
+        policy: PushPolicy = DEFAULT_PUSH_POLICY,
     ) -> PushSendResult:
         if self.raise_on_send:
             raise RuntimeError("FakePushSender: fallo simulado del proveedor")
-        self.sent.append(SentPush(user_id=subscription.user_id, title=title, body=body))
+        self.sent.append(
+            SentPush(user_id=subscription.user_id, title=title, body=body, policy=policy)
+        )
         return self.result_override or PushSendResult.SENT

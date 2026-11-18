@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash } from "./mocks";
+import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash, enDias } from "./mocks";
 
 /**
  * Suscripción (ADR-0005, Fase 1 — mensualidad al comercio). Sin backend real:
@@ -149,10 +149,10 @@ test("publicar turno al límite del plan: muestra el mensaje con CTA, no un erro
   await page.goto("/shifts/new");
 
   await page.getByRole("button", { name: "Mozo/a" }).click();
-  await page.locator('input[type="datetime-local"]').first().fill("2026-07-15T20:00");
-  await page.locator('input[type="datetime-local"]').nth(1).fill("2026-07-15T23:00");
+  await page.locator('input[type="datetime-local"]').first().fill(enDias(30, "20:00"));
+  await page.locator('input[type="datetime-local"]').nth(1).fill(enDias(30, "23:00"));
   await page.getByRole("button", { name: "Continuar" }).click();
-  await page.getByPlaceholder("48000").fill("15000");
+  await page.getByPlaceholder("48.000").fill("15000");
   await page.getByRole("button", { name: "Continuar" }).click();
   await page.locator("select").nth(1).selectOption("Palermo");
 
@@ -162,7 +162,7 @@ test("publicar turno al límite del plan: muestra el mensaje con CTA, no un erro
   await expect(page.getByText("Llegaste al límite de 15 turnos de tu plan Básico este mes.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Mejorá tu plan" })).toBeVisible();
   // Sigue en /shifts/new: no navega hasta que el usuario elija qué hacer.
-  await expect(page).toHaveURL("/shifts/new");
+  await expect(page).toHaveURL(/\/shifts\/new(\?paso=\d)?$/);
 
   await page.screenshot({ path: "/tmp/sub-fe-limit-reached.png", fullPage: true });
 });
@@ -362,14 +362,102 @@ test("publicar sin plan pago: modal propio con CTA a pagar", async ({ page }) =>
 
   await page.goto("/shifts/new");
   await page.getByRole("button", { name: "Mozo/a" }).click();
-  await page.locator('input[type="datetime-local"]').first().fill("2026-07-15T20:00");
-  await page.locator('input[type="datetime-local"]').nth(1).fill("2026-07-15T23:00");
+  await page.locator('input[type="datetime-local"]').first().fill(enDias(30, "20:00"));
+  await page.locator('input[type="datetime-local"]').nth(1).fill(enDias(30, "23:00"));
   await page.getByRole("button", { name: "Continuar" }).click();
-  await page.getByPlaceholder("48000").fill("15000");
+  await page.getByPlaceholder("48.000").fill("15000");
   await page.getByRole("button", { name: "Continuar" }).click();
   await page.locator("select").nth(1).selectOption("Palermo");
   await page.getByRole("button", { name: "Publicar turno" }).click();
 
   await expect(page.getByText("Activá tu plan para publicar")).toBeVisible();
   await expect(page.getByRole("button", { name: "Ir a pagar el mes" })).toBeVisible();
+});
+
+const SUB_BASE = {
+  plan_code: "inicial",
+  status: "activa",
+  period_end: "2026-12-01T00:00:00Z",
+  price_ars: 9900,
+  max_turnos_mes: 5,
+  turnos_usados_mes: 9,
+};
+
+test("G11 · con el tope sin exigir (beta): uso sin alarma, línea de la beta y sin oferta", async ({ page }) => {
+  await mockAuthAndSession(page);
+  await mockPlans(page);
+  await page.route("**/api/v1/subscription", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ...SUB_BASE, limite_exigido: false }),
+    })
+  );
+
+  await page.goto("/subscription");
+
+  await expect(page.getByText("9 turnos publicados este mes")).toBeVisible();
+  await expect(page.getByText("Durante la beta no hay tope de turnos.", { exact: true })).toBeVisible();
+  await expect(page.getByText("9 de 5 turnos usados")).toHaveCount(0);
+  await expect(page.getByText(/Alcanzaste el límite/)).toHaveCount(0);
+  await expect(page.getByText(/Te quedan/)).toHaveCount(0);
+  // Las tarjetas de planes siguen con su propio botón: el de la oferta por el
+  // tope (el que acompaña al aviso) es el que no tiene que estar.
+  await expect(page.getByText(/Alcanzaste|Te quedan/)).toHaveCount(0);
+});
+
+test("G11 · con el tope exigido: todo como siempre", async ({ page }) => {
+  await mockAuthAndSession(page);
+  await mockPlans(page);
+  await page.route("**/api/v1/subscription", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ...SUB_BASE, turnos_usados_mes: 5, limite_exigido: true }),
+    })
+  );
+
+  await page.goto("/subscription");
+
+  await expect(page.getByText("5 de 5 turnos usados")).toBeVisible();
+  await expect(page.getByText(/Alcanzaste el límite/)).toBeVisible();
+  await expect(
+    page.getByText(/Alcanzaste el límite/).locator("xpath=../..").getByRole("button", { name: "Mejorá tu plan" })
+  ).toBeVisible();
+  await expect(page.getByText("Durante la beta no hay tope de turnos.")).toHaveCount(0);
+});
+
+test("G11 · «Pagado hasta» se vuelve a pedir al volver a la pestaña, sin esqueleto", async ({ page }) => {
+  await mockAuthAndSession(page);
+  await mockPlans(page);
+  let pagadoHasta = "2026-12-10T12:00:00Z";
+  await page.route("**/api/v1/subscription", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...SUB_BASE,
+        turnos_usados_mes: 1,
+        billing_enabled: true,
+        paid_until: pagadoHasta,
+        renews: true,
+        can_publish: true,
+        limite_exigido: true,
+      }),
+    })
+  );
+
+  await page.goto("/subscription");
+  await expect(page.getByText(/Pagado hasta el/)).toContainText("10");
+
+  pagadoHasta = "2027-01-09T12:00:00Z";
+  // Volver a la pestaña: la página estuvo oculta y vuelve a verse.
+  await page.evaluate(() => {
+    Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
+    document.dispatchEvent(new Event("visibilitychange"));
+    Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "visible" });
+    window.dispatchEvent(new Event("online"));
+  });
+  await expect(page.getByText(/Pagado hasta el/)).toContainText("9");
+  await expect(page.getByText(/Pagado hasta el/)).toContainText("2027");
 });

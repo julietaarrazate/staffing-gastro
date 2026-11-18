@@ -119,7 +119,9 @@ HTTP en `api/`.
 
 Dos canales, además del REST:
 
-- **Chat:** `WS /api/v1/chats/{shift_id}/ws` — mensajes del turno en vivo.
+- **Chat:** `WS /api/v1/chats/{shift_id}/ws` — mensajes en vivo del hilo vigente
+  del turno (el comercio con la persona asignada ahora). La conexión queda atada
+  a ese hilo: si el turno se reasigna, deja de recibir y se corta.
 - **Notificaciones:** `WS /api/v1/notifications/ws` — avisos del usuario en vivo.
 
 `ConnectionManager` (`app/core/ws_manager.py`) vive en memoria del proceso —

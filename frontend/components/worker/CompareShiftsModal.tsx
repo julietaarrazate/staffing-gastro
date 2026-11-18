@@ -4,13 +4,8 @@ import { Modal } from "@/components/ui";
 import { SKILL_LABELS, Shift } from "@/lib/types";
 import { formatShiftRange } from "@/lib/datetime";
 import { distanceOf } from "@/lib/current-location";
-import { payPerHour } from "@/lib/pay";
-
-/** Distancia legible: bajo 1 km en metros redondeados, arriba con un
- * decimal — mismo formato que `OpportunityCard.formatDistance`. */
-function formatDistance(km: number): string {
-  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
-}
+import { formatMoney, formatPayAmount, payPerHour, payView } from "@/lib/pay";
+import { formatDistance } from "@/lib/format";
 
 /**
  * Comparador de turnos guardados (evolución directa de "guardar turnos":
@@ -52,16 +47,17 @@ export default function CompareShiftsModal({
                   <div>
                     <p className="text-label font-bold font-mono uppercase tracking-wide text-ink/40">Pago</p>
                     <p className="text-base font-extrabold leading-tight text-primary-text">
-                      {shift.currency} {Number(shift.pay_amount).toLocaleString("es-AR")}
+                      {formatPayAmount(shift)}
                     </p>
                   </div>
-                  {perHour !== null && (
+                  {/* En un turno reofrecido el pago ya es por hora (U080). */}
+                  {perHour !== null && payView(shift).kind !== "por_hora" && (
                     <div>
                       <p className="text-label font-bold font-mono uppercase tracking-wide text-ink/40">
                         Por hora
                       </p>
                       <p className="font-semibold text-ink">
-                        {shift.currency} {Math.round(perHour).toLocaleString("es-AR")}
+                        {formatMoney(perHour, shift.currency)}
                       </p>
                     </div>
                   )}

@@ -5,15 +5,21 @@ import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
-import { getErrorMessage } from "@/lib/errors";
+import { getErrorMessage, isNotFound } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
+import { isCancellable } from "@/lib/cancelar-turno";
 import { useIdempotencyKeys } from "@/lib/idempotency";
-import { Applicant, CandidateMatch, SKILL_LABELS, Shift } from "@/lib/types";
-import { SKILL_ACCENT, heroTile } from "@/lib/skill-style";
+import { Applicant, CandidateMatch, SKILL_LABELS, STATUS_LABELS, Shift } from "@/lib/types";
 import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
 import { formatPayAmount } from "@/lib/pay";
-import { rankApplicants, standoutApplicant } from "@/lib/applicants";
+import {
+  activeApplicantCount,
+  rankApplicants,
+  standoutApplicant,
+  unassignedLabel,
+} from "@/lib/applicants";
 import CandidateCard from "@/components/CandidateCard";
+import IdentityVerifiedBadge from "@/components/IdentityVerifiedBadge";
 import ConfirmOverlay from "@/components/ui/ConfirmOverlay";
 import GuaranteeCard from "@/components/candidate/GuaranteeCard";
 import { CandidateStatChips } from "@/components/candidate/CandidateSignals";
@@ -22,17 +28,63 @@ import {
   Badge,
   Button,
   CardSkeletons,
+  Comanda,
+  ComandaFila,
+  Flechita,
   EmptyState,
   ErrorBanner,
   SegmentedControl,
+  textoCartel,
   useToast,
 } from "@/components/ui";
-import { ClockIcon, StarIcon, UsersIcon } from "@/components/icons";
+import { useLiveRefresh } from "@/lib/live-refresh";
+import { LETRAS_APP } from "@/lib/letras";
+import { ChevronLeftIcon, UsersIcon, XCircleIcon } from "@/components/icons";
 
 type Tab = "postulantes" | "recomendados";
 
+// Mismos estados desde los que el servidor deja asignar (`Shift.assign`).
+// Mientras el turno no cargó se asume asignable (el servidor igual decide).
+const ASSIGNABLE_STATUSES = ["publicado", "buscando_personal"];
+
+/**
+ * Carga una lista. 404 (turno ajeno o inexistente) = lista vacía, como
+ * siempre; cualquier otra falla deja `error` y conserva lo ya cargado. Una
+ * respuesta vieja que llega tarde no pisa a la más nueva.
+ */
+function useLoadedList<T>(path: string, token: string | null | undefined) {
+  const [items, setItems] = useState<T[]>([]);
+  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const latest = useRef(0);
+  // `silent` (recarga por un aviso, ver `lib/live-refresh.ts`): sin esqueleto
+  // y sin marcar error si falla; se conserva lo que ya se ve.
+  const reload = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
+    if (!token) return;
+    const mine = ++latest.current;
+    if (!silent) setLoading(true);
+    try {
+      const data = await api.get<T[]>(path, token);
+      if (mine !== latest.current) return;
+      setItems(data);
+      setError(false);
+    } catch (err) {
+      if (mine !== latest.current) return;
+      if (isNotFound(err)) {
+        setItems([]);
+        setError(false);
+      } else if (!silent) {
+        setError(true);
+      }
+    } finally {
+      if (mine === latest.current) setLoading(false);
+    }
+  }, [path, token]);
+  return { items, error, loading, reload };
+}
+
 function ShiftCandidatesContent() {
-  const { token } = useRequireAuth();
+  const { token } = useRequireAuth({ roles: ["employer"] });
   const router = useRouter();
   const toast = useToast();
   const params = useParams<{ id: string }>();
@@ -50,12 +102,36 @@ function ShiftCandidatesContent() {
     router.replace(`/shifts/${shiftId}/candidates?tab=${next}`, { scroll: false });
   }
   const [shift, setShift] = useState<Shift | null>(null);
-  const [applicants, setApplicants] = useState<Applicant[]>([]);
+  const [shiftError, setShiftError] = useState(false);
+  // Sin el estado del turno no se ofrece «Asignar»: se carga o se reintenta.
+  const canAssign = shift !== null && ASSIGNABLE_STATUSES.includes(shift.status);
+  // La «Garantía Oído» vale mientras el turno está vivo: buscando, o con
+  // alguien asignado o confirmado («si no se presenta, reabrís el turno»).
+  // Con el turno cerrado (cancelado, terminado, pagado, sin cubrir) ya no
+  // aplica. Mientras no se sabe el estado (cargando o con error) no se
+  // muestra, para que no aparezca y desaparezca.
+  const mostrarGarantia = shift !== null && isCancellable(shift.status);
+  // Cada lista carga y falla por su cuenta. Un error NUNCA se convierte en
+  // lista vacía: «Todavía nadie se postuló» sólo aparece si el servidor
+  // contestó bien con cero postulantes. Si ya había datos y una recarga
+  // falla, se conservan y se avisa.
+  const {
+    items: applicants,
+    error: appsError,
+    loading: loadingApps,
+    reload: reloadApps,
+  } = useLoadedList<Applicant>(`/applications/shifts/${shiftId}`, token);
+  const {
+    items: candidates,
+    error: candsError,
+    loading: loadingCands,
+    reload: reloadCands,
+  } = useLoadedList<CandidateMatch>(`/shifts/${shiftId}/candidates`, token);
   const rankedApplicants = useMemo(() => rankApplicants(applicants), [applicants]);
   const standout = standoutApplicant(rankedApplicants);
-  const [candidates, setCandidates] = useState<CandidateMatch[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  // La pestaña cuenta a quienes están en carrera, como el panel: quien tuvo
+  // el turno y lo dejó se lista al final pero no suma (G4).
+  const activeApplicants = useMemo(() => activeApplicantCount(applicants), [applicants]);
   const [assigning, setAssigning] = useState<string | null>(null);
   // Recién asignado: su tarjeta sube arriba con la confirmación y el resto
   // se atenúa, un instante antes de volver al panel. La decisión se VE, en
@@ -83,31 +159,34 @@ function ShiftCandidatesContent() {
   }
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
 
-  const load = useCallback(async () => {
-    if (!token) return;
-    setLoading(true);
-    try {
-      const [apps, cands] = await Promise.all([
-        api.get<Applicant[]>(`/applications/shifts/${shiftId}`, token).catch(() => []),
-        api.get<CandidateMatch[]>(`/shifts/${shiftId}/candidates`, token).catch(() => []),
-      ]);
-      setApplicants(apps);
-      setCandidates(cands);
-      setError(null);
-    } catch (err) {
-      setError(getErrorMessage(err, "Error al cargar candidatos"));
-    } finally {
-      setLoading(false);
-    }
+  const load = useCallback(({ silent = false }: { silent?: boolean } = {}) => {
+    reloadApps({ silent });
+    reloadCands({ silent });
     // Aparte de la carga principal: si falla, la pantalla igual funciona sin
     // el resumen del turno de arriba (era información nueva agregada acá, no
     // el contenido central de esta pantalla).
-    api.get<Shift>(`/shifts/${shiftId}`, token).then(setShift).catch(() => {});
-  }, [token, shiftId]);
+    if (token) {
+      api
+        .get<Shift>(`/shifts/${shiftId}`, token)
+        .then((data) => {
+          setShift(data);
+          setShiftError(false);
+        })
+        .catch(() => {
+          if (!silent) setShiftError(true);
+        });
+    }
+  }, [reloadApps, reloadCands, token, shiftId]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  // Al día con los avisos (G1, U014): llega una postulación nueva, o se cae el
+  // turno, y la lista se actualiza sola. En pausa mientras se asigna.
+  useLiveRefresh(load, {
+    paused: loadingApps || loadingCands || assigning !== null || assignedId !== null,
+  });
 
   async function assign(profileId: string) {
     if (!token) return;
@@ -134,46 +213,71 @@ function ShiftCandidatesContent() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 pb-10 pt-6 md:max-w-6xl">
-      <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">Candidatos</h1>
-      <p className="mt-0.5 text-sm text-ink/50">
-        Elegí a quién asignarle el turno. Los postulantes ya levantaron la mano.
-      </p>
+    // Desde el 2026-11-18 con la dirección «con relieve»
+    // (docs/design-system/direccion-relieve.md): arriba el cielo con el título
+    // en brocha, el turno como comanda montada sobre su borde, y en la lista el
+    // destacado con el relieve del filete y los demás planos. La lógica no
+    // cambió.
+    <div className={`${LETRAS_APP} mx-auto max-w-2xl px-4 pb-10 md:max-w-6xl md:pt-4`}>
+      <div
+        // El hueco de abajo para la comanda queda reservado también mientras
+        // el turno carga: si no, al llegar la lista bajaba de golpe 68 px.
+        className={`app-cielo -mx-4 px-4 pt-4 md:mx-0 md:rounded-[var(--radius-card)] md:px-6 md:pb-6 ${
+          shift || !shiftError ? "pb-[72px]" : "pb-6"
+        }`}
+      >
+        <Link
+          href="/shifts"
+          className="mb-2 inline-flex min-h-[44px] items-center gap-1 text-sm font-semibold underline-offset-2 hover:underline"
+        >
+          <ChevronLeftIcon size={16} /> Volver al panel
+        </Link>
+        <h1 className="letra-cartel letra-cartel-pantalla break-words">Candidatos</h1>
+        <p className="mt-1 text-sm">
+          {canAssign
+            ? "Elegí a quién asignarle el turno. Los postulantes ya levantaron la mano."
+            : "Estos son los candidatos de este turno."}
+        </p>
+      </div>
 
       {/* Recordatorio de PARA QUÉ turno son estos candidatos: un comercio con
           varios turnos abiertos podía llegar acá (desde el panel, un link
           del asistente de IA, o el próximo-paso de publicar) sin ninguna
           referencia de puesto/horario/pago en la pantalla. Mismo endpoint
           que ya usa "Duplicar turno" (`GET /shifts/{id}`) — no hace falta
-          nada nuevo del backend. */}
+          nada nuevo del backend. Desde el 2026-11-18 es la comanda del turno,
+          montada sobre el borde del cielo (en escritorio, debajo). */}
       {shift && (
-        <div className="mt-4 flex items-center gap-3 rounded-[var(--radius-card)] bg-card p-3.5 shadow-[var(--shadow-soft)] ring-1 ring-line">
-          {(() => {
-            // Mismo tono por rubro que el banner de las tarjetas de turno
-            // (SKILL_HERO_TONE) — el tinte pálido de antes quedaba como un
-            // cuadro claro en el modo oscuro.
-            const { Icon } = SKILL_ACCENT[shift.position];
-            return (
-              <span
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${heroTile(shift.position)}`}
-              >
-                <Icon size={20} />
-              </span>
-            );
-          })()}
-          <div className="min-w-0 flex-1">
-            <p className="truncate font-display text-lg font-medium text-ink">{SKILL_LABELS[shift.position]}</p>
-            <p className="mt-0.5 inline-flex items-center gap-1.5 text-xs text-ink/55">
-              <ClockIcon size={13} className="shrink-0 text-ink/35" />
-              {formatShiftWhen(shift.start_at, shift.end_at)}
-              {(() => {
-                const minutes = shiftDurationMinutes(shift.start_at, shift.end_at);
-                return minutes != null ? ` · ${formatDuration(minutes)}` : "";
-              })()}
-            </p>
+        <Comanda as="section" aria-label="El turno" className="relative z-[1] -mt-[56px] md:mt-4 md:max-w-xl">
+          <div className="px-4 pb-2 pt-4">
+            <p className="letra-cartel letra-cartel-puesto break-words">{textoCartel(SKILL_LABELS[shift.position])}</p>
+            <dl className="mt-2">
+              <ComandaFila rotulo="Cuándo">
+                {formatShiftWhen(shift.start_at, shift.end_at)}
+                {(() => {
+                  const minutes = shiftDurationMinutes(shift.start_at, shift.end_at);
+                  return minutes != null ? ` · ${formatDuration(minutes)}` : "";
+                })()}
+              </ComandaFila>
+              <ComandaFila rotulo="Pago">{formatPayAmount(shift)}</ComandaFila>
+            </dl>
           </div>
-          <p className="shrink-0 text-right text-lg font-extrabold text-ink">{formatPayAmount(shift)}</p>
-        </div>
+        </Comanda>
+      )}
+
+      {!shift && shiftError && (
+        <ErrorBanner message="No pudimos cargar el estado del turno, así que por ahora no se puede asignar." onRetry={() => load()} />
+      )}
+      {!canAssign && shift && (
+        <p
+          role="status"
+          data-testid="candidatos-turno-cerrado"
+          className="mt-4 rounded-[var(--radius-card)] bg-surface p-3.5 text-sm text-ink/75 ring-1 ring-line"
+        >
+          {shift.status === "asignado"
+            ? "Este turno ya tiene a alguien asignado: no se puede asignar a otra persona."
+            : `Este turno está ${STATUS_LABELS[shift.status as keyof typeof STATUS_LABELS]?.toLowerCase() ?? shift.status}: ya no se puede asignar a nadie.`}
+        </p>
       )}
 
       <div className="mt-4">
@@ -181,16 +285,51 @@ function ShiftCandidatesContent() {
           value={tab}
           onChange={setTab}
           options={[
-            { value: "postulantes", label: `Postulantes${applicants.length > 0 ? ` (${applicants.length})` : ""}` },
+            { value: "postulantes", label: `Postulantes${activeApplicants > 0 ? ` (${activeApplicants})` : ""}` },
             { value: "recomendados", label: `Recomendados${candidates.length > 0 ? ` (${candidates.length})` : ""}` },
           ]}
         />
       </div>
 
-      {loading && <CardSkeletons />}
-      {error && <ErrorBanner message={error} onRetry={load} />}
+      {tab === "postulantes" && loadingApps && <CardSkeletons />}
+      {tab === "recomendados" && loadingCands && <CardSkeletons />}
 
-      {!loading && !error && tab === "postulantes" && (
+      {/* El aviso de postulantes va en las dos pestañas: es la lista principal
+          y el error no puede quedar escondido tras la otra pestaña. */}
+      {!loadingApps && appsError && (
+        <ErrorBanner
+          message={
+            applicants.length > 0
+              ? "No pudimos actualizar los postulantes. Te mostramos los que ya habían cargado."
+              : "No pudimos cargar los postulantes. Reintentá en un momento."
+          }
+          onRetry={() => reloadApps()}
+        />
+      )}
+      {tab === "recomendados" && !loadingCands && candsError && (
+        <ErrorBanner
+          message={
+            candidates.length > 0
+              ? "No pudimos actualizar los recomendados. Te mostramos los que ya habían cargado."
+              : "No pudimos cargar los recomendados. Reintentá en un momento."
+          }
+          onRetry={() => reloadCands()}
+        />
+      )}
+      {tab === "postulantes" && !loadingCands && candsError && (
+        <p role="status" className="mt-3 text-xs text-ink/60">
+          No pudimos cargar los recomendados.{" "}
+          <button
+            type="button"
+            onClick={() => reloadCands()}
+            className="font-semibold underline underline-offset-2 hover:opacity-80"
+          >
+            Reintentar
+          </button>
+        </p>
+      )}
+
+      {tab === "postulantes" && !loadingApps && (!appsError || applicants.length > 0) && (
         <div className="mt-5">
           {applicants.length === 0 ? (
             <EmptyState
@@ -208,9 +347,12 @@ function ShiftCandidatesContent() {
                   Oído" de la otra pestaña: UNA acción principal, no tres
                   empatadas. La Garantía va DESPUÉS de la lista: antes ocupaba
                   la mitad de la pantalla antes del primer postulante. */}
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {shownApplicants.map((a) => {
                   const top = standout?.application_id === a.application_id;
+                  // Tuvo este turno y lo dejó: va al final (`rankApplicants`),
+                  // con su marca, y se le puede volver a asignar (G4).
+                  const mark = unassignedLabel(a);
                   return (
                     <motion.div
                       key={a.application_id}
@@ -219,15 +361,17 @@ function ShiftCandidatesContent() {
                       transition={{ duration: 0.3, ease: "easeOut" }}
                       // `.no-select`: fila de chrome (rating, chips), mismo criterio
                       // C0 #2 que ShiftCard/CandidateCard.
-                      className={`no-select relative rounded-[var(--radius-card)] p-4 ${
-                        top
-                          ? "bg-secondary shadow-[var(--shadow-float)]"
-                          : "bg-card shadow-[var(--shadow-soft)] ring-1 ring-line"
+                      // El destacado lleva el relieve del filete; los demás,
+                      // planos con un filete (2026-11-18; antes celeste lleno).
+                      data-destacado={top || undefined}
+                      className={`no-select relative min-w-0 rounded-[var(--radius-card)] p-4 ${
+                        top ? "tarjeta-relieve" : "bg-card ring-1 ring-line"
                       }`}
                     >
                       {top && (
-                        <p className="mb-3 inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wide text-on-brand-label">
-                          <StarIcon size={13} filled /> Mejor valorado
+                        <p className="letra-mano mb-2 flex items-end gap-1 text-xl">
+                          Mejor valorado
+                          <Flechita className="translate-y-2" />
                         </p>
                       )}
                       <div className="flex items-center gap-3">
@@ -238,38 +382,57 @@ function ShiftCandidatesContent() {
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                             <Link
                               href={`/workers/${a.worker_profile_id}`}
-                              className={`truncate font-semibold ${top ? "text-on-brand" : "text-ink"}`}
+                              className="min-w-0 truncate font-semibold text-ink"
                             >
                               {a.full_name}
                             </Link>
-                            {a.is_available && !top && <Badge tone="secondary">Disponible</Badge>}
+                            {a.is_available && !top && !mark && <Badge tone="secondary">Disponible</Badge>}
                           </div>
-                          <CandidateStatChips signals={a} className="mt-1" onDark={top} />
+                          {mark && (
+                            <p
+                              data-testid="postulante-desasignado"
+                              className="mt-1 inline-flex items-center gap-1.5 text-xs font-semibold text-ink/70"
+                            >
+                              <XCircleIcon size={13} className="shrink-0 text-ink/45" />
+                              {mark}
+                            </p>
+                          )}
+                          {/* Mismo sello que en «Recomendados» (`CandidateCard`). */}
+                          {a.identidad_verificada && (
+                            // Desde 390 px el chip entero; de 360 a 389 px
+                            // «Verificada»; por debajo, sólo el escudo.
+                            <IdentityVerifiedBadge verified responsive className="mt-1 block" />
+                          )}
+                          <CandidateStatChips signals={a} className="mt-1" />
                         </div>
-                        <Button
-                          size="sm"
-                          variant={top || !standout ? "primary" : "surface"}
-                          onClick={() => assign(a.worker_profile_id)}
-                          loading={assigning === a.worker_profile_id}
-                          disabled={assigning !== null}
-                        >
-                          Asignar
-                        </Button>
+                        {canAssign && (
+                          <Button
+                            size="sm"
+                            variant={!mark && (top || !standout) ? "primary" : "surface"}
+                            onClick={() => assign(a.worker_profile_id)}
+                            loading={assigning === a.worker_profile_id}
+                            disabled={assigning !== null}
+                          >
+                            Asignar
+                          </Button>
+                        )}
                       </div>
                       {assignedId === a.worker_profile_id && <ConfirmOverlay label="Asignado" detail={a.full_name} />}
                     </motion.div>
                   );
                 })}
               </div>
-              <div className="mt-4">
-                <GuaranteeCard />
-              </div>
+              {mostrarGarantia && (
+                <div className="mt-4">
+                  <GuaranteeCard />
+                </div>
+              )}
             </>
           )}
         </div>
       )}
 
-      {!loading && !error && tab === "recomendados" && (
+      {tab === "recomendados" && !loadingCands && (!candsError || candidates.length > 0) && (
         <div className="mt-5">
           {candidates.length === 0 ? (
             <EmptyState
@@ -279,20 +442,22 @@ function ShiftCandidatesContent() {
             />
           ) : (
             <>
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {shownCandidates.map((candidate) => (
                   <motion.div
                     key={candidate.profile_id}
                     layout={!reducedMotion}
                     animate={settle(candidate.profile_id)}
                     transition={{ duration: 0.3, ease: "easeOut" }}
-                    className="relative rounded-[var(--radius-card)]"
+                    className="relative min-w-0 rounded-[var(--radius-card)]"
                   >
                     <CandidateCard
                       candidate={candidate}
                       recommended={candidate.profile_id === candidates[0]?.profile_id}
                       disabled={assigning !== null}
+                      canAssign={canAssign}
                       onAssign={() => assign(candidate.profile_id)}
+                      relieve
                     />
                     {assignedId === candidate.profile_id && (
                       <ConfirmOverlay label="Asignado" detail={candidate.full_name} />
@@ -300,9 +465,11 @@ function ShiftCandidatesContent() {
                   </motion.div>
                 ))}
               </div>
-              <div className="mt-4">
-                <GuaranteeCard />
-              </div>
+              {mostrarGarantia && (
+                <div className="mt-4">
+                  <GuaranteeCard />
+                </div>
+              )}
             </>
           )}
         </div>

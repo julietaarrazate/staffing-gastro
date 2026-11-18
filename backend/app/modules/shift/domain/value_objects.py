@@ -17,7 +17,8 @@ class ShiftStatus(str, Enum):
     `check_out()` directo desde CHECK_IN.
 
     CANCELADO es alcanzable desde cualquier estado no terminal (acción del
-    comercio o del trabajador).
+    comercio), salvo CHECK_OUT: con la salida marcada el turno ya se trabajó
+    y se finaliza y se paga (U081, `NOT_CANCELLABLE_STATUSES`).
 
     NO_CUBIERTO (ADR-0015) es distinto: automático, del sistema, nunca de una
     persona. Se llega desde PUBLICADO/BUSCANDO_PERSONAL/ASIGNADO cuando pasa
@@ -52,6 +53,11 @@ TERMINAL_STATUSES: frozenset[ShiftStatus] = frozenset(
         ShiftStatus.NO_CUBIERTO,
     }
 )
+
+# Estados desde los que el comercio ya no puede cancelar: los terminales y,
+# desde U081 (ADR-0007, actualización 2026-11-18), el turno con la salida
+# marcada. Ese turno ya se trabajó: se finaliza y se paga.
+NOT_CANCELLABLE_STATUSES: frozenset[ShiftStatus] = TERMINAL_STATUSES | {ShiftStatus.CHECK_OUT}
 
 # Estados en los que el turno todavía puede editarse por el comercio.
 EDITABLE_STATUSES: frozenset[ShiftStatus] = frozenset(
@@ -88,5 +94,18 @@ UNCOVERED_ELIGIBLE_STATUSES: frozenset[ShiftStatus] = frozenset(
         ShiftStatus.PUBLICADO,
         ShiftStatus.BUSCANDO_PERSONAL,
         ShiftStatus.ASIGNADO,
+    }
+)
+
+# Turnos con alguien asignado o confirmado que todavía no empezaron (nadie
+# marcó la llegada). Son los que toca la suspensión de una cuenta (ADR-0024):
+# si se suspende el comercio, se cancelan; si se suspende el trabajador, se
+# reabren. EN_CAMINO («salí») cuenta como no empezado: la llegada no está
+# marcada. CHECK_IN en adelante ya empezó y no se toca.
+TAKEN_NOT_STARTED_STATUSES: frozenset[ShiftStatus] = frozenset(
+    {
+        ShiftStatus.ASIGNADO,
+        ShiftStatus.CONFIRMADO,
+        ShiftStatus.EN_CAMINO,
     }
 )

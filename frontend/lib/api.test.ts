@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   api,
   ApiError,
+  backgroundApi,
   bindSessionToken,
   isTransientFailure,
   NetworkError,
@@ -169,7 +170,110 @@ describe("errores con código (verificación en dos pasos, ADR-0023)", () => {
       code: "two_factor_required",
       message: "Volvé a ingresar",
     });
-    expect(parseErrorDetail([{ loc: ["body"], msg: "x" }])).toEqual({ message: "Error inesperado" });
+    expect(parseErrorDetail([{ loc: ["body"], msg: "x" }])).toEqual({ message: "Revisá los datos." });
+  });
+
+  it("un 422 con tipo propio del backend muestra su mensaje", () => {
+    expect(
+      parseErrorDetail([{ type: "zona_requerida", loc: ["body"], msg: "Elegí la zona del evento" }])
+    ).toEqual({ message: "Elegí la zona del evento" });
+  });
+
+  // La forma que manda de verdad el backend (`backend/app/main.py`,
+  // `handle_validation_error`): `{type, loc, msg}` y, sólo si hay cotas
+  // numéricas del esquema, `ctx` con ellas. Nunca `input` ni textos en `ctx`.
+  describe("422 de Pydantic traducido por tipo", () => {
+    const msg = (detail: unknown) => parseErrorDetail(detail).message;
+
+    it("mail sin dominio (sin ctx: el backend no manda el motivo)", () => {
+      expect(
+        msg([
+          {
+            type: "value_error",
+            loc: ["body", "email"],
+            msg: "value is not a valid email address: The part after the @-sign is not valid. It should have a period.",
+          },
+        ])
+      ).toBe("Mail: tiene que ser un mail válido");
+    });
+
+    it("texto largo y corto, con las cotas que manda el backend", () => {
+      expect(
+        msg([
+          { type: "string_too_long", loc: ["body", "body"], msg: "String should have at most 2000 characters", ctx: { max_length: 2000 } },
+        ])
+      ).toBe("Mensaje: máximo 2000 caracteres");
+      expect(
+        msg([
+          { type: "string_too_short", loc: ["body", "password"], msg: "String should have at least 8 characters", ctx: { min_length: 8 } },
+        ])
+      ).toBe("Contraseña: mínimo 8 caracteres");
+      expect(
+        msg([
+          { type: "string_too_short", loc: ["body", "full_name"], msg: "String should have at least 1 character", ctx: { min_length: 1 } },
+        ])
+      ).toBe("Nombre: no puede estar vacío");
+      expect(
+        msg([{ type: "string_too_short", loc: ["body", "text"], msg: "String should have at least 3 characters", ctx: { min_length: 3 } }])
+      ).toBe("Texto: mínimo 3 caracteres");
+    });
+
+    it("sin cotas (un backend viejo) no inventa: una contraseña corta no es «vacía»", () => {
+      expect(msg([{ type: "string_too_short", loc: ["body", "password"], msg: "String should have at least 8 characters" }])).toBe(
+        "Contraseña: es demasiado corto"
+      );
+      expect(msg([{ type: "string_too_long", loc: ["body", "body"], msg: "x" }])).toBe("Mensaje: es demasiado largo");
+    });
+
+    it("números: entre dos cotas cuando el campo tiene rango", () => {
+      expect(
+        msg([
+          { type: "less_than_equal", loc: ["body", "roles", 0, "count"], msg: "Input should be less than or equal to 50", ctx: { le: 50 } },
+        ])
+      ).toBe("Cantidad: entre 1 y 50");
+      expect(
+        msg([
+          { type: "greater_than_equal", loc: ["body", "years_experience"], msg: "x", ctx: { ge: 0 } },
+        ])
+      ).toBe("Años de experiencia: entre 0 y 80");
+      expect(msg([{ type: "greater_than_equal", loc: ["body", "pay_amount"], msg: "x", ctx: { ge: 0 } }])).toBe("Pago: mínimo 0");
+      expect(msg([{ type: "less_than_equal", loc: ["body", "latitude"], msg: "x", ctx: { le: 90 } }])).toBe("Máximo 90");
+    });
+
+    it("falta un dato, número ilegible, fecha ilegible", () => {
+      expect(msg([{ type: "missing", loc: ["body", "email"], msg: "Field required" }])).toBe("Mail: falta completarlo");
+      expect(msg([{ type: "int_parsing", loc: ["body", "years_experience"], msg: "Input should be a valid integer, unable to parse string as an integer" }])).toBe(
+        "Años de experiencia: tiene que ser un número"
+      );
+      expect(msg([{ type: "datetime_from_date_parsing", loc: ["body", "start_at"], msg: "x" }])).toBe(
+        "Inicio: tiene que ser una fecha válida"
+      );
+    });
+
+    it("el texto de un validador nunca se muestra, aunque llegara en `ctx`", () => {
+      expect(
+        msg([
+          {
+            type: "value_error",
+            loc: ["body", "photo_url"],
+            msg: "Value error, La dirección tiene que empezar con https://",
+            ctx: { error: "La dirección tiene que empezar con https://" },
+          },
+        ])
+      ).toBe("Revisá los datos.");
+    });
+
+    it("varios errores se unen sin repetir; tipo desconocido es «Revisá los datos.»", () => {
+      expect(
+        msg([
+          { type: "value_error", loc: ["body", "email"], msg: "x" },
+          { type: "string_too_long", loc: ["body", "full_name"], msg: "x", ctx: { max_length: 255 } },
+        ])
+      ).toBe("Mail: tiene que ser un mail válido · Nombre: máximo 255 caracteres");
+      const raro = msg([{ type: "tipo_nuevo", loc: ["body", "x"], msg: "Some English message" }]);
+      expect(raro).toBe("Revisá los datos.");
+      expect(msg([{ type: "value_error", loc: ["body", "x"], msg: "Value error, in English" }])).toBe("Revisá los datos.");
+    });
   });
 
   it("un 403 del candado avisa al manejador y llega a la pantalla con su código", async () => {
@@ -180,11 +284,40 @@ describe("errores con código (verificación en dos pasos, ADR-0023)", () => {
         detail: { code: "two_factor_setup_required", message: "Activá la verificación" },
       })
     );
-    const err = (await api.get("/admin/stats", "tok").catch((e) => e)) as ApiError;
+    const err = (await api.get("/admin/stats", "tok").catch((e: unknown) => e as ApiError)) as ApiError;
     expect(err).toBeInstanceOf(ApiError);
     expect(err.code).toBe("two_factor_setup_required");
     expect(err.message).toBe("Activá la verificación");
     expect(gate).toHaveBeenCalledWith("two_factor_setup_required");
+  });
+
+  it("un pedido que la app hace por su cuenta no avisa al manejador, y el error le llega igual", async () => {
+    const gate = vi.fn();
+    setTwoFactorGateHandler(gate);
+    const candado = () =>
+      jsonResponse(403, {
+        detail: { code: "two_factor_required", message: "Volvé a ingresar" },
+      });
+    fetchMock.mockImplementation(async () => candado());
+
+    const alta = (await backgroundApi
+      .post("/push/subscribe", { endpoint: "https://push.example/x" }, "tok")
+      .catch((e: unknown) => e as ApiError)) as ApiError;
+    // La baja va sin sesión (`token: null`): sale sin `Authorization`.
+    const baja = (await backgroundApi
+      .post("/push/release", { endpoint: "https://push.example/x" }, null)
+      .catch((e: unknown) => e as ApiError)) as ApiError;
+
+    expect(alta.code).toBe("two_factor_required");
+    expect(baja.code).toBe("two_factor_required");
+    expect(
+      fetchMock.mock.calls.map(
+        ([, init]) => ((init as RequestInit).headers as Record<string, string>).Authorization
+      )
+    ).toEqual(["Bearer tok", undefined]);
+    // Nadie pidió esto desde una pantalla: no puede llevar al alta ni cerrar
+    // la sesión. El candado lo dispara el primer pedido que sí hace una.
+    expect(gate).not.toHaveBeenCalled();
   });
 
   it("otros errores con código no tocan la sesión", async () => {
@@ -195,8 +328,74 @@ describe("errores con código (verificación en dos pasos, ADR-0023)", () => {
         detail: { code: "two_factor_challenge_invalid", message: "El ingreso venció." },
       })
     );
-    const err = (await api.post("/auth/2fa/verify", { code: "1" }).catch((e) => e)) as ApiError;
+    const err = (await api.post("/auth/2fa/verify", { code: "1" }).catch((e: unknown) => e as ApiError)) as ApiError;
     expect(err.code).toBe("two_factor_challenge_invalid");
     expect(gate).not.toHaveBeenCalled();
+  });
+});
+
+const fail = (p: Promise<unknown>) =>
+  p.then(
+    () => {
+      throw new Error("tenía que fallar");
+    },
+    (e: unknown) => e as ApiError
+  );
+
+describe("errores del servidor y sin conexión (U113, U144)", () => {
+  const fetchMock = vi.fn();
+
+  beforeEach(() => {
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock.mockReset();
+    bindSessionToken(null);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("sin red: NetworkError con mensaje claro en español", async () => {
+    fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
+    const err = await fail(api.get("/x"));
+    expect(err).toBeInstanceOf(NetworkError);
+    expect(err.message).toMatch(/no hay conexión/i);
+  });
+
+  it("502 con statusText en inglés nunca muestra «Bad Gateway»", async () => {
+    fetchMock.mockResolvedValue(new Response("<html>", { status: 502, statusText: "Bad Gateway" }));
+    const err = await fail(api.get("/x"));
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err.message).not.toMatch(/bad gateway/i);
+    expect(err.message).toMatch(/servidor no está disponible/i);
+  });
+
+  it("500 con detail en inglés se traduce; con detail propio en español se respeta", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(500, { detail: "Internal Server Error" }));
+    expect((await fail(api.get("/x"))).message).toMatch(/falló de nuestro lado/i);
+    fetchMock.mockResolvedValueOnce(jsonResponse(500, { detail: "No se pudo enviar el mail." }));
+    expect((await fail(api.get("/x"))).message).toBe("No se pudo enviar el mail.");
+  });
+
+  it("429 sin tiempo en el detail agrega cuánto esperar desde Retry-After", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ detail: "Demasiados intentos." }), {
+        status: 429,
+        headers: { "Content-Type": "application/json", "Retry-After": "120" },
+      })
+    );
+    const err = await fail(api.get("/x"));
+    expect(err.message).toBe("Demasiados intentos. Esperá 2 minutos y volvé a probar.");
+  });
+
+  it("429 cuyo detail ya dice cuánto, no se repite", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ detail: "Esperá 15 minutos y volvé a probar." }), {
+        status: 429,
+        headers: { "Content-Type": "application/json", "Retry-After": "900" },
+      })
+    );
+    const err = await fail(api.get("/x"));
+    expect(err.message).toBe("Esperá 15 minutos y volvé a probar.");
   });
 });

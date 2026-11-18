@@ -1,8 +1,10 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ShiftPublic } from "@/lib/types";
+import type { ApplicationStatus, ShiftPublic } from "@/lib/types";
 import ShiftDetail from "./ShiftDetail";
+import { emitLiveRefresh } from "@/lib/live-refresh";
+import { ApiError } from "@/lib/api";
 
 /**
  * La acción del detalle de turno cambia según quién lo mira. El bug que motivó
@@ -51,7 +53,7 @@ const SHIFT: ShiftPublic = {
   urgent: false,
 };
 
-function mockGets(applications: { shift_id: string }[]) {
+function mockGets(applications: { shift_id: string; status: ApplicationStatus }[]) {
   get.mockImplementation((path: string) => {
     if (path.startsWith("/applications/mine")) return Promise.resolve(applications);
     if (path === "/shifts/s1") return Promise.resolve({ ...SHIFT, tips: true, meal: false, dress_code: null });
@@ -70,7 +72,9 @@ describe("ShiftDetail", () => {
     render(<ShiftDetail publicShift={SHIFT} />);
 
     const link = screen.getByRole("link", { name: "Postulate en Oído" });
-    expect(link).toHaveAttribute("href", "/register?rol=trabajador");
+    // Y vuelve a este turno al terminar el alta (G16).
+    expect(link).toHaveAttribute("href", "/register?rol=trabajador&next=%2Fturno%2Fs1");
+    expect(screen.getByRole("link", { name: "Ingresá" })).toHaveAttribute("href", "/login?next=%2Fturno%2Fs1");
     expect(get).not.toHaveBeenCalled();
   });
 
@@ -90,11 +94,52 @@ describe("ShiftDetail", () => {
 
   it("si ya estaba postulado, no le ofrece postularse de nuevo", async () => {
     auth.value = { user: { role: "worker" }, token: "tok", loading: false };
-    mockGets([{ shift_id: "s1" }]);
+    mockGets([{ shift_id: "s1", status: "pendiente" }]);
     render(<ShiftDetail publicShift={SHIFT} />);
 
     expect(await screen.findByText("Ya te postulaste")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Postularme" })).not.toBeInTheDocument();
+  });
+
+  it("si tuvo el turno asignado y lo dejó, no le ofrece postularse ni dice que se postuló (G4)", async () => {
+    auth.value = { user: { role: "worker" }, token: "tok", loading: false };
+    mockGets([{ shift_id: "s1", status: "desasignada" }]);
+    render(<ShiftDetail publicShift={SHIFT} />);
+
+    expect(await screen.findByText("Ya tuviste este turno asignado")).toBeInTheDocument();
+    expect(screen.getByText("Si el comercio te vuelve a elegir, te avisamos.")).toBeInTheDocument();
+    expect(screen.queryByText("Ya te postulaste")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Postularme" })).not.toBeInTheDocument();
+  });
+
+  it("con la pestaña vieja, el 409 de quien dejó el turno no se muestra como «Ya te postulaste»", async () => {
+    auth.value = { user: { role: "worker" }, token: "tok", loading: false };
+    mockGets([]);
+    post.mockRejectedValue(
+      new ApiError(409, "Ya tuviste este turno asignado. Si el comercio te vuelve a elegir, te avisamos.")
+    );
+    const user = userEvent.setup();
+    render(<ShiftDetail publicShift={SHIFT} />);
+
+    await user.click(await screen.findByRole("button", { name: "Postularme" }));
+
+    expect(await screen.findByText("Ya tuviste este turno asignado")).toBeInTheDocument();
+    expect(screen.queryByText("Ya te postulaste")).not.toBeInTheDocument();
+  });
+
+  it("si retiró la postulación, no dice que sigue postulado: puede postularse de nuevo", async () => {
+    auth.value = { user: { role: "worker" }, token: "tok", loading: false };
+    mockGets([{ shift_id: "s1", status: "retirada" }]);
+    post.mockResolvedValue({ id: "a1", status: "pendiente" });
+    const user = userEvent.setup();
+    render(<ShiftDetail publicShift={SHIFT} />);
+
+    const apply = await screen.findByRole("button", { name: "Postularme" });
+    expect(screen.queryByText("Ya te postulaste")).not.toBeInTheDocument();
+    await user.click(apply);
+
+    expect(post).toHaveBeenCalledWith("/applications/shifts/s1", undefined, "tok", undefined, expect.any(String));
+    expect(await screen.findByText("Ya te postulaste")).toBeInTheDocument();
   });
 
   it("sin sesión ya muestra las condiciones del turno", () => {
@@ -115,5 +160,62 @@ describe("ShiftDetail", () => {
     render(<ShiftDetail publicShift={SHIFT} />);
 
     await waitFor(() => expect(screen.getByText("Traer delantal")).toBeInTheDocument());
+  });
+});
+
+describe("ShiftDetail: respuesta vieja de una recarga silenciosa", () => {
+  it("una lista de postulaciones que salió antes de postularse no vuelve a ofrecer «Postularme»", async () => {
+    auth.value = { user: { role: "worker" }, token: "tok", loading: false };
+    let calls = 0;
+    let soltarVieja: (value: unknown[]) => void = () => {};
+    get.mockImplementation((path: string) => {
+      if (path.startsWith("/applications/mine")) {
+        calls += 1;
+        // La 1ª (carga inicial) contesta ya; la 2ª (recarga por un aviso) queda en vuelo.
+        return calls === 1 ? Promise.resolve([]) : new Promise((resolve) => (soltarVieja = resolve));
+      }
+      if (path === "/shifts/s1") return Promise.resolve({ ...SHIFT });
+      return Promise.reject(new Error(`sin mock: ${path}`));
+    });
+    post.mockResolvedValue({ id: "a1" });
+    const user = userEvent.setup();
+    render(<ShiftDetail publicShift={SHIFT} />);
+    const boton = await screen.findByRole("button", { name: "Postularme" });
+
+    act(() => emitLiveRefresh());
+    await waitFor(() => expect(calls).toBe(2), { timeout: 3000 });
+
+    await user.click(boton);
+    expect(await screen.findByText("Ya te postulaste")).toBeInTheDocument();
+
+    // Llega la respuesta vieja, sin la postulación: no pisa lo ya hecho.
+    await act(async () => soltarVieja([]));
+    expect(screen.getByText("Ya te postulaste")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Postularme" })).not.toBeInTheDocument();
+  });
+});
+
+describe("ShiftDetail: aviso durante la primera carga", () => {
+  it("la recarga espera a que termine la primera y, si ésta falla, el botón no queda en esqueleto", async () => {
+    auth.value = { user: { role: "worker" }, token: "tok", loading: false };
+    let calls = 0;
+    let fallarPrimera: (e: Error) => void = () => {};
+    get.mockImplementation((path: string) => {
+      if (path.startsWith("/applications/mine")) {
+        calls += 1;
+        return new Promise((_, reject) => (fallarPrimera = reject));
+      }
+      if (path === "/shifts/s1") return Promise.resolve({ ...SHIFT });
+      return Promise.reject(new Error(`sin mock: ${path}`));
+    });
+    render(<ShiftDetail publicShift={SHIFT} />);
+    await waitFor(() => expect(calls).toBe(1));
+
+    act(() => emitLiveRefresh());
+    await new Promise((r) => setTimeout(r, 700)); // más que el debounce
+    expect(calls).toBe(1); // la silenciosa no arrancó pisando a la primera
+
+    await act(async () => fallarPrimera(new Error("red")));
+    expect(await screen.findByRole("button", { name: "Postularme" })).toBeInTheDocument();
   });
 });

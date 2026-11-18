@@ -121,8 +121,8 @@ async def test_worker_cannot_reply_to_closed_ticket(client: AsyncClient):
 async def test_admin_can_still_reply_to_closed_ticket(
     client: AsyncClient, session_factory: async_sessionmaker[AsyncSession]
 ):
-    """Cerrar es una acción del usuario/admin, no bloquea al admin si necesita
-    aclarar algo después — sólo el usuario no puede reabrir mandando mensajes."""
+    """Cerrar no bloquea al admin si necesita aclarar algo después (y su
+    mensaje reabre el ticket, ver test_admin_message_reopens_closed_ticket)."""
     worker = await auth_headers(client, "worker", "w_sup6@staffya.com")
     admin = await _make_admin(client, session_factory, "admin_sup6@staffya.com")
 
@@ -280,3 +280,186 @@ async def test_empty_ticket_body_is_rejected(client: AsyncClient):
         json={"category": "general", "subject": "  ", "body": "algo"},
     )
     assert response.status_code == 422
+
+
+async def _closed_ticket(client: AsyncClient, worker: dict, subject: str = "Test") -> str:
+    created = await client.post(
+        "/api/v1/support/tickets",
+        headers=worker,
+        json={"category": "otro", "subject": subject, "body": "Mensaje inicial."},
+    )
+    ticket_id = created.json()["id"]
+    await client.post(f"/api/v1/support/tickets/{ticket_id}/close", headers=worker)
+    return ticket_id
+
+
+async def test_admin_message_reopens_closed_ticket_and_worker_can_answer(
+    client: AsyncClient, session_factory: async_sessionmaker[AsyncSession]
+):
+    worker = await auth_headers(client, "worker", "w_sup_g27a@staffya.com")
+    admin = await _make_admin(client, session_factory, "admin_sup_g27a@staffya.com")
+    ticket_id = await _closed_ticket(client, worker, "Ticket reabierto")
+
+    reply = await client.post(
+        f"/api/v1/support/tickets/{ticket_id}/messages",
+        headers=admin,
+        json={"body": "Una aclaración."},
+    )
+    assert reply.status_code == 201
+
+    detail = await client.get(f"/api/v1/support/tickets/{ticket_id}", headers=worker)
+    assert detail.json()["status"] == "abierto"
+
+    answer = await client.post(
+        f"/api/v1/support/tickets/{ticket_id}/messages",
+        headers=worker,
+        json={"body": "Gracias, sigo con el problema."},
+    )
+    assert answer.status_code == 201
+
+    notif = next(
+        n
+        for n in (await client.get("/api/v1/notifications", headers=worker)).json()
+        if n["type"] == "support_reply"
+    )
+    assert "Reabrimos" in notif["message"]
+    assert "Ticket reabierto" in notif["message"]
+
+
+async def test_admin_message_on_open_ticket_keeps_plain_notification(
+    client: AsyncClient, session_factory: async_sessionmaker[AsyncSession]
+):
+    worker = await auth_headers(client, "worker", "w_sup_g27b@staffya.com")
+    admin = await _make_admin(client, session_factory, "admin_sup_g27b@staffya.com")
+    created = await client.post(
+        "/api/v1/support/tickets",
+        headers=worker,
+        json={"category": "otro", "subject": "Abierto", "body": "Hola."},
+    )
+    ticket_id = created.json()["id"]
+    await client.post(
+        f"/api/v1/support/tickets/{ticket_id}/messages", headers=admin, json={"body": "Hola."}
+    )
+    notif = next(
+        n
+        for n in (await client.get("/api/v1/notifications", headers=worker)).json()
+        if n["type"] == "support_reply"
+    )
+    assert "Reabrimos" not in notif["message"]
+
+
+async def test_admin_reopen_button_reopens_closed_ticket(
+    client: AsyncClient, session_factory: async_sessionmaker[AsyncSession]
+):
+    worker = await auth_headers(client, "worker", "w_sup_g27c@staffya.com")
+    admin = await _make_admin(client, session_factory, "admin_sup_g27c@staffya.com")
+    ticket_id = await _closed_ticket(client, worker)
+
+    reopened = await client.post(f"/api/v1/support/tickets/{ticket_id}/reopen", headers=admin)
+    assert reopened.status_code == 200
+    assert reopened.json()["status"] == "abierto"
+
+    again = await client.post(f"/api/v1/support/tickets/{ticket_id}/reopen", headers=admin)
+    assert again.status_code == 400
+
+
+async def test_worker_cannot_reopen_own_closed_ticket(client: AsyncClient):
+    worker = await auth_headers(client, "worker", "w_sup_g27d@staffya.com")
+    ticket_id = await _closed_ticket(client, worker)
+
+    response = await client.post(f"/api/v1/support/tickets/{ticket_id}/reopen", headers=worker)
+    assert response.status_code == 403
+
+    detail = await client.get(f"/api/v1/support/tickets/{ticket_id}", headers=worker)
+    assert detail.json()["status"] == "cerrado"
+    # Tampoco escribiendo: sigue cerrado.
+    msg = await client.post(
+        f"/api/v1/support/tickets/{ticket_id}/messages", headers=worker, json={"body": "Hola"}
+    )
+    assert msg.status_code == 400
+
+
+async def test_admin_reopen_missing_ticket_returns_404(
+    client: AsyncClient, session_factory: async_sessionmaker[AsyncSession]
+):
+    admin = await _make_admin(client, session_factory, "admin_sup_g27e@staffya.com")
+    response = await client.post(
+        "/api/v1/support/tickets/00000000-0000-0000-0000-000000000000/reopen", headers=admin
+    )
+    assert response.status_code == 404
+
+
+async def test_other_worker_cannot_reopen_nor_see_foreign_ticket(client: AsyncClient):
+    owner = await auth_headers(client, "worker", "w_sup_g27f@staffya.com")
+    other = await auth_headers(client, "worker", "w_sup_g27g@staffya.com")
+    ticket_id = await _closed_ticket(client, owner)
+
+    assert (
+        await client.post(f"/api/v1/support/tickets/{ticket_id}/reopen", headers=other)
+    ).status_code == 403
+    assert (
+        await client.get(f"/api/v1/support/tickets/{ticket_id}", headers=other)
+    ).status_code == 404
+    assert (
+        await client.post(
+            f"/api/v1/support/tickets/{ticket_id}/messages", headers=other, json={"body": "x"}
+        )
+    ).status_code == 404
+
+
+async def test_create_ticket_twice_same_key_creates_one_ticket(client: AsyncClient):
+    """U012: reintentar «abrir ticket» con la misma Idempotency-Key no duplica."""
+    worker = await auth_headers(client, "worker", "w_sup_idem1@staffya.com")
+    headers = {**worker, "Idempotency-Key": "abrir-ticket-reintento"}
+    payload = {"category": "otro", "subject": "Consulta", "body": "Hola, necesito ayuda."}
+    first = await client.post("/api/v1/support/tickets", headers=headers, json=payload)
+    second = await client.post("/api/v1/support/tickets", headers=headers, json=payload)
+    assert first.status_code == 201
+    assert second.status_code == 201
+    assert second.json() == first.json()
+    mine = await client.get("/api/v1/support/tickets/mine", headers=worker)
+    assert len(mine.json()) == 1
+
+
+async def test_ticket_reply_twice_same_key_creates_one_message(client: AsyncClient):
+    worker = await auth_headers(client, "worker", "w_sup_idem2@staffya.com")
+    created = await client.post(
+        "/api/v1/support/tickets",
+        headers=worker,
+        json={"category": "otro", "subject": "Consulta", "body": "Primero"},
+    )
+    ticket_id = created.json()["id"]
+    headers = {**worker, "Idempotency-Key": "responder-ticket-reintento"}
+    first = await client.post(
+        f"/api/v1/support/tickets/{ticket_id}/messages", headers=headers, json={"body": "Segundo"}
+    )
+    second = await client.post(
+        f"/api/v1/support/tickets/{ticket_id}/messages", headers=headers, json={"body": "Segundo"}
+    )
+    assert first.status_code == 201
+    assert second.json() == first.json()
+    detail = await client.get(f"/api/v1/support/tickets/{ticket_id}", headers=worker)
+    assert len(detail.json()["messages"]) == 2  # el primero + UNA respuesta
+
+
+async def test_ticket_detail_shows_opener_only_to_admin(
+    client: AsyncClient, session_factory: async_sessionmaker[AsyncSession]
+):
+    """U130: el admin ve quién abrió el ticket; la persona común no recibe ese dato."""
+    worker = await auth_headers(client, "worker", "w_sup_opener@staffya.com", "Juana Soporte")
+    created = await client.post(
+        "/api/v1/support/tickets",
+        headers=worker,
+        json={"category": "otro", "subject": "Consulta", "body": "Hola"},
+    )
+    ticket = created.json()
+    admin = await _make_admin(client, session_factory, "adm_sup_opener@staffya.com")
+
+    as_admin = await client.get(f"/api/v1/support/tickets/{ticket['id']}", headers=admin)
+    assert as_admin.json()["opened_by"] == {
+        "user_id": ticket["user_id"],
+        "full_name": "Juana Soporte",
+        "role": "worker",
+    }
+    as_owner = await client.get(f"/api/v1/support/tickets/{ticket['id']}", headers=worker)
+    assert as_owner.json()["opened_by"] is None

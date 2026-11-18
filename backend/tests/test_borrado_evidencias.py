@@ -143,6 +143,38 @@ def test_reenviar_estando_pendiente_manda_a_borrar_lo_reemplazado():
     assert claim.evidences[0].file.public_id == "oido/identidad/c"
 
 
+def test_reenviar_con_el_mismo_archivo_no_lo_manda_a_borrar():
+    """El pedido pendiente sigue usando ese archivo: borrarlo del storage
+    dejaría al admin con un link a algo que ya no existe."""
+    claim = _pending_claim()
+    claim.submit(
+        [
+            _ev(EvidenceType.DNI_FRENTE, "oido/identidad/a"),
+            _ev(EvidenceType.SELFIE, "oido/identidad/b"),
+        ],
+        VerificationMethod.ADMIN_MANUAL,
+        datetime.now(UTC),
+    )
+    assert claim.files_to_delete == []
+    assert [e.file.public_id for e in claim.evidences] == [
+        "oido/identidad/a",
+        "oido/identidad/b",
+    ]
+
+
+def test_reenviar_cambiando_solo_un_archivo_borra_solo_el_reemplazado():
+    claim = _pending_claim()
+    claim.submit(
+        [
+            _ev(EvidenceType.DNI_FRENTE, "oido/identidad/a"),
+            _ev(EvidenceType.SELFIE, "oido/identidad/nueva"),
+        ],
+        VerificationMethod.ADMIN_MANUAL,
+        datetime.now(UTC),
+    )
+    assert [d.file.public_id for d in claim.files_to_delete] == ["oido/identidad/b"]
+
+
 def test_los_reintentos_se_espacian_hasta_una_vez_por_dia():
     now = datetime(2026, 10, 23, tzinfo=UTC)
     deletion = EvidenceFileDeletion.request(

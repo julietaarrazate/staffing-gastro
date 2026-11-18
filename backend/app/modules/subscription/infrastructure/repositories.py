@@ -3,10 +3,14 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import and_, func, or_, select, update
+from decimal import Decimal
+
+from sqlalchemy import and_, func, or_, select, true, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dt import naive as _naive
+from app.modules.company.infrastructure.models import CompanyProfileModel
+from app.modules.identity.infrastructure.models import UserModel
 from app.modules.subscription.domain.entities import (
     PERIOD_LENGTH,
     Subscription,
@@ -28,6 +32,19 @@ from app.modules.subscription.infrastructure.models import (
 )
 
 
+def _not_from_companies_of(emails: frozenset[str]):
+    """Condición «el comercio de la suscripción NO es una de estas cuentas»
+    (de prueba o invitadas, fuera de las métricas de la beta)."""
+    if not emails:
+        return true()
+    excluded = (
+        select(CompanyProfileModel.id)
+        .join(UserModel, UserModel.id == CompanyProfileModel.user_id)
+        .where(UserModel.email.in_(emails))
+    )
+    return SubscriptionModel.company_id.not_in(excluded)
+
+
 def _to_entity(model: SubscriptionModel) -> Subscription:
     return Subscription(
         id=model.id,
@@ -40,6 +57,11 @@ def _to_entity(model: SubscriptionModel) -> Subscription:
         paid_until=model.paid_until,
         renews=model.renews,
         expiry_notice=ExpiryNotice(model.expiry_notice) if model.expiry_notice else None,
+        chosen_plan_code=model.chosen_plan_code,
+        chosen_plan_at=model.chosen_plan_at,
+        payment_commitment_at=model.payment_commitment_at,
+        payment_commitment_plan_code=model.payment_commitment_plan_code,
+        payment_commitment_price_ars=model.payment_commitment_price_ars,
         created_at=model.created_at,
         updated_at=model.updated_at,
     )
@@ -61,6 +83,11 @@ class SqlAlchemySubscriptionRepository(SubscriptionRepository):
             paid_until=subscription.paid_until,
             renews=subscription.renews,
             expiry_notice=subscription.expiry_notice.value if subscription.expiry_notice else None,
+            chosen_plan_code=subscription.chosen_plan_code,
+            chosen_plan_at=subscription.chosen_plan_at,
+            payment_commitment_at=subscription.payment_commitment_at,
+            payment_commitment_plan_code=subscription.payment_commitment_plan_code,
+            payment_commitment_price_ars=subscription.payment_commitment_price_ars,
         )
         self._session.add(model)
         await self._session.commit()
@@ -81,6 +108,9 @@ class SqlAlchemySubscriptionRepository(SubscriptionRepository):
         model.expiry_notice = (
             subscription.expiry_notice.value if subscription.expiry_notice else None
         )
+        # `chosen_plan_*` y `payment_commitment_*` NO se escriben acá: una
+        # entidad leída antes (webhook de pago, cambio de plan) pisaría lo que
+        # otro pedido registró mientras tanto. Tienen sus propios métodos.
         await self._session.commit()
         await self._session.refresh(model)
         return _to_entity(model)
@@ -118,14 +148,74 @@ class SqlAlchemySubscriptionRepository(SubscriptionRepository):
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
 
-    async def count_by_plan_and_status(self) -> list[tuple[str, str, int]]:
-        stmt = select(
-            SubscriptionModel.plan_code, SubscriptionModel.status, func.count()
-        ).group_by(SubscriptionModel.plan_code, SubscriptionModel.status)
+    async def count_by_plan_and_status(
+        self, *, exclude_company_emails: frozenset[str] = frozenset()
+    ) -> list[tuple[str, str, int]]:
+        stmt = (
+            select(SubscriptionModel.plan_code, SubscriptionModel.status, func.count())
+            .where(_not_from_companies_of(exclude_company_emails))
+            .group_by(SubscriptionModel.plan_code, SubscriptionModel.status)
+        )
         result = await self._session.execute(stmt)
         return [(plan_code, status, count) for plan_code, status, count in result.all()]
 
-    async def count_at_plan_limit(self, limits: dict[str, int], *, now: datetime) -> int:
+    async def set_chosen_plan(self, company_id: UUID, plan_code: str, at: datetime) -> bool:
+        # La primera gana de verdad, aunque dos pedidos lleguen a la vez: el
+        # UPDATE condicional lo decide la base, no la entidad en memoria.
+        stmt = (
+            update(SubscriptionModel)
+            .where(
+                SubscriptionModel.company_id == company_id,
+                SubscriptionModel.chosen_plan_code.is_(None),
+            )
+            .values(chosen_plan_code=plan_code, chosen_plan_at=at)
+        )
+        result = await self._session.execute(stmt)
+        await self._session.commit()
+        return result.rowcount > 0
+
+    async def set_payment_commitment(
+        self, company_id: UUID, plan_code: str, price_ars: Decimal, at: datetime
+    ) -> None:
+        stmt = (
+            update(SubscriptionModel)
+            .where(SubscriptionModel.company_id == company_id)
+            .values(
+                payment_commitment_at=at,
+                payment_commitment_plan_code=plan_code,
+                payment_commitment_price_ars=price_ars,
+            )
+        )
+        await self._session.execute(stmt)
+        await self._session.commit()
+
+    async def clear_payment_commitment(self, company_id: UUID) -> None:
+        stmt = (
+            update(SubscriptionModel)
+            .where(SubscriptionModel.company_id == company_id)
+            .values(
+                payment_commitment_at=None,
+                payment_commitment_plan_code=None,
+                payment_commitment_price_ars=None,
+            )
+        )
+        await self._session.execute(stmt)
+        await self._session.commit()
+
+    async def list_for_metrics(
+        self, *, exclude_company_emails: frozenset[str] = frozenset()
+    ) -> list[Subscription]:
+        stmt = select(SubscriptionModel).where(_not_from_companies_of(exclude_company_emails))
+        result = await self._session.execute(stmt)
+        return [_to_entity(m) for m in result.scalars().all()]
+
+    async def count_at_plan_limit(
+        self,
+        limits: dict[str, int],
+        *,
+        now: datetime,
+        exclude_company_emails: frozenset[str] = frozenset(),
+    ) -> int:
         if not limits:
             return 0
         conditions = [
@@ -140,7 +230,9 @@ class SqlAlchemySubscriptionRepository(SubscriptionRepository):
         # devuelve datetimes naive, Postgres los devuelve con tz — comparar
         # directo en SQL mezclaría los dos formatos. Volumen chico en esta
         # etapa (un comercio por fila), sin costo real.
-        stmt = select(SubscriptionModel.period_end).where(or_(*conditions))
+        stmt = select(SubscriptionModel.period_end).where(
+            or_(*conditions), _not_from_companies_of(exclude_company_emails)
+        )
         result = await self._session.execute(stmt)
         now_naive = _naive(now)
         return sum(1 for period_end in result.scalars().all() if _naive(period_end) > now_naive)

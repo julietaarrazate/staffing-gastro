@@ -7,8 +7,14 @@ import type { Notification, NotificationType } from "@/lib/types";
 const BY_TYPE: Record<NotificationType, string> = {
   shift_assigned: "/my-shifts",
   shift_paid: "/my-shifts",
-  shift_no_show: "/my-shifts",
+  // Cerró el turno: a calificar al comercio, en Mis turnos.
+  shift_finished: "/my-shifts",
+  // La ausencia se ve en el perfil (ausencias y cancelaciones), no en Turnos.
+  shift_no_show: "/profile",
   shift_cancelled_late: "/my-shifts",
+  // El comercio canceló antes de que confirmara: el turno sigue en
+  // «Asignados», marcado como cancelado.
+  shift_cancelled: "/my-shifts",
   checkin_reminder: "/my-shifts",
   departure_reminder: "/my-shifts",
   new_applicant: "/shifts",
@@ -21,10 +27,17 @@ const BY_TYPE: Record<NotificationType, string> = {
   // confirmar, no se le avisa nada — mismo criterio que el backend
   // (`deep_link_for` en notification/domain/value_objects.py).
   shift_not_covered: "/shifts",
+  // Sólo para avisos viejos sin `link`: los nuevos traen `/turno/<id>`.
   new_shift_nearby: "/feed",
   // Escalada automática de urgencia (ADR-0009): mismo destino que el aviso
   // común, el turno todavía no es suyo.
   urgent_shift_nearby: "/feed",
+  // Se canceló un turno al que estaba postulado: esa postulación ya no figura
+  // en ninguna lista suya, lo útil es el Inicio con los otros turnos.
+  applied_shift_cancelled: "/feed",
+  // Al confirmar un turno se retiraron postulaciones del mismo horario
+  // (U123): «Mis turnos», con el confirmado y lo que sigue postulado.
+  applications_withdrawn: "/my-shifts",
   chat_message: "/chats",
   review_received: "/profile",
   support_reply: "/support",

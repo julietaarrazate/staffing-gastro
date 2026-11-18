@@ -1,3 +1,5 @@
+import { formatArs } from "@/lib/format";
+
 /**
  * Lee un pedido escrito como se habla ("necesito un mozo hoy de 21 a 2, pago
  * 70.000") y saca el puesto, el día, el horario y el pago. Lo usa la comanda
@@ -29,10 +31,10 @@ const PUESTOS: [RegExp, string][] = [
 ];
 
 // "pasado mañana" antes que "mañana", así no se queda con la palabra corta.
+// Un día explícito (viernes) gana sobre "mañana" suelto: va antes en la lista.
 const DIAS: [RegExp, string][] = [
   [/\bhoy\b/, "Hoy"],
   [/\bpasado mañana\b/, "Pasado mañana"],
-  [/\bmañana\b/, "Mañana"],
   [/\blunes\b/, "Lunes"],
   [/\bmartes\b/, "Martes"],
   [/\bmi[eé]rcoles\b/, "Miércoles"],
@@ -41,14 +43,19 @@ const DIAS: [RegExp, string][] = [
   [/\bs[aá]bado\b/, "Sábado"],
   [/\bdomingo\b/, "Domingo"],
   [/\bfinde\b/, "El finde"],
+  [/\bmañana\b/, "Mañana"],
 ];
+
+// "2 de la mañana", "a la mañana", "por la mañana": es la parte del día, no el
+// día siguiente. Se saca antes de buscar el día ("mañana" suelto sí cuenta).
+const MOMENTO_DEL_DIA = /\b(?:de|a|por|en)\s+la\s+mañana\b/g;
 
 const NUMEROS: Record<string, number> = { un: 1, una: 1, uno: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5 };
 
 const hora = (h: string, m?: string) => `${String(Number(h) % 24).padStart(2, "0")}:${m ?? "00"}`;
 
 export function leerPedido(texto: string): PedidoLeido {
-  const t = texto.toLowerCase();
+  const t = texto.toLowerCase().replace(MOMENTO_DEL_DIA, "");
   const leido: PedidoLeido = {};
 
   leido.puesto = PUESTOS.find(([re]) => re.test(t))?.[1];
@@ -67,7 +74,7 @@ export function leerPedido(texto: string): PedidoLeido {
     : numero
       ? parseInt(numero[1].replace(/\./g, ""), 10)
       : undefined;
-  if (pago) leido.pago = `$${pago.toLocaleString("es-AR")}`;
+  if (pago) leido.pago = formatArs(pago);
 
   const cuantos = t.match(
     /\b(\d|un[oa]?|dos|tres|cuatro|cinco)\s+(?:moz|meser|camarer|bartender|barm|bacher|barista|cociner|ayudante|runner|cajer|parriller)/

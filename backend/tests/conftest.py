@@ -1,6 +1,7 @@
 """Fixtures de pytest: base de datos SQLite en memoria y cliente HTTP async."""
 
 from collections.abc import AsyncGenerator
+from datetime import datetime, timezone
 
 import pytest
 import pytest_asyncio
@@ -48,6 +49,7 @@ from app.modules.application.infrastructure import models as application_models 
 from app.modules.assistant.infrastructure import models as assistant_models  # noqa: F401
 from app.modules.chat.infrastructure import models as chat_models  # noqa: F401
 from app.modules.company.infrastructure import models as company_models  # noqa: F401
+from app.modules.encuesta.infrastructure import models as encuesta_models  # noqa: F401
 from app.modules.favorite.infrastructure import models as favorite_models  # noqa: F401
 from app.modules.identity.infrastructure import models as identity_models  # noqa: F401
 from app.modules.lead.infrastructure import models as lead_models  # noqa: F401
@@ -124,6 +126,8 @@ async def client(
 # (`from tests.conftest import ...`) para evitar duplicar estos patrones.
 
 DEFAULT_PASSWORD = "supersecreta123"
+# El alta pública pide la fecha de nacimiento de un mayor de 18 (U101).
+ADULT_BIRTH_DATE = "1995-05-20"
 
 
 async def register_user(
@@ -142,6 +146,7 @@ async def register_user(
         "full_name": full_name,
         "role": role,
         "accepted_terms": True,
+        "birth_date": ADULT_BIRTH_DATE,
     }
     payload.update(overrides)
     return await client.post("/api/v1/auth/register", json=payload)
@@ -254,3 +259,19 @@ async def make_admin(
 ) -> dict:
     """Header Authorization de un admin con la verificación activa."""
     return (await enroll_admin(client, session_factory, email, full_name))["headers"]
+
+
+@pytest.fixture(autouse=True)
+def _reloj_de_la_regla_de_horario(request, monkeypatch):
+    """La regla de horario de un turno NUEVO (G14: inicio no pasado, 1 a 16 h,
+    `shift/domain/schedule.py`) mira el reloj. Muchos tests de otras áreas
+    arman turnos que ya empezaron (o con una fecha fija que el reloj dejó
+    atrás) para probar asistencia, el scheduler o el "no cubierto"; a ellos la
+    regla no les incumbe, así que su reloj queda en el año 2000. Sólo
+    `tests/test_shift_horario.py` (marca `regla_de_horario`) usa el reloj real."""
+    if request.node.get_closest_marker("regla_de_horario"):
+        return
+    monkeypatch.setattr(
+        "app.modules.shift.domain.schedule.now_art",
+        lambda: datetime(2000, 1, 1, tzinfo=timezone.utc),
+    )

@@ -9,12 +9,11 @@ from app.core.config import settings
 from app.core.edge import client_ip
 from app.core.origin import require_allowed_origin
 from app.core.log_privacy import email_log_key
-from app.core.rate_limit import RateLimiter
+from app.core.rate_limit import RateLimiter, retry_after_headers
 from app.core.turnstile import require_turnstile
 from app.modules.identity.api.dependencies import (
     get_current_session,
     get_current_user,
-    get_current_user_allow_pending_2fa,
     get_identity_service,
     get_two_factor_service,
     two_factor_gate_error,
@@ -26,6 +25,7 @@ from app.modules.identity.api.schemas import (
     GoogleRoleRequiredResponse,
     GuestLoginRequest,
     LoginRequest,
+    MeResponse,
     RecoveryCodesResponse,
     RegisterRequest,
     ResendVerificationRequest,
@@ -58,6 +58,8 @@ from app.modules.identity.application.two_factor import (
 )
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.exceptions import (
+    BirthDateInvalidError,
+    BirthDateRequiredError,
     EmailAlreadyExistsError,
     EmailVerificationTokenInvalidError,
     GoogleAuthNotConfiguredError,
@@ -78,6 +80,7 @@ from app.modules.identity.domain.exceptions import (
     TwoFactorNotEnabledError,
     TwoFactorReauthRequiredError,
     TwoFactorTooManyAttemptsError,
+    UnderageError,
     UserNotFoundError,
 )
 from app.modules.identity.domain.two_factor import AdminGate
@@ -184,6 +187,21 @@ def _terms_not_accepted() -> HTTPException:
     )
 
 
+_BIRTH_DATE_MESSAGES: dict[type[Exception], str] = {
+    BirthDateRequiredError: "Para crear la cuenta necesitamos tu fecha de nacimiento",
+    BirthDateInvalidError: "Revisá tu fecha de nacimiento",
+    UnderageError: "Oído es sólo para mayores de 18 años",
+}
+
+
+def _birth_date_rejected(exc: Exception) -> HTTPException:
+    """U101: el alta sin fecha, con una fecha imposible o de un menor."""
+    return HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        detail=_BIRTH_DATE_MESSAGES[type(exc)],
+    )
+
+
 @router.post(
     "/register",
     response_model=UserResponse,
@@ -202,13 +220,33 @@ async def register(payload: RegisterRequest, service: ServiceDep) -> User:
                 full_name=payload.full_name,
                 role=UserRole(payload.role.value),
                 accepted_terms=True,
+                birth_date=payload.birth_date,
             )
         )
+    except (BirthDateRequiredError, BirthDateInvalidError, UnderageError) as exc:
+        raise _birth_date_rejected(exc) from exc
     except EmailAlreadyExistsError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="El email ya está registrado",
         ) from exc
+
+
+ACCOUNT_SUSPENDED_CODE = "account_suspended"
+ACCOUNT_SUSPENDED_MESSAGE = (
+    "Tu cuenta está suspendida. Si creés que es un error, escribinos a hola@oido.com.ar"
+)
+
+
+def _account_suspended() -> HTTPException:
+    """403 de una cuenta que no está activa (ADR-0024, punto 8), con el
+    código que espera el frontend (`lib/api.ts`, `ACCOUNT_SUSPENDED_CODE`).
+    Sólo sale con la contraseña (o la sesión, o Google) correcta: a quien no
+    la sabe se le contesta lo de siempre. Nunca lleva el motivo de la admin."""
+    return HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail={"code": ACCOUNT_SUSPENDED_CODE, "message": ACCOUNT_SUSPENDED_MESSAGE},
+    )
 
 
 @router.post(
@@ -242,10 +280,7 @@ async def login(
         ) from exc
     except InactiveUserError as exc:
         logger.warning("login rechazado (cuenta inactiva) ip=%s", _client_ip(request))
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="La cuenta no está activa",
-        ) from exc
+        raise _account_suspended() from exc
     if isinstance(tokens, TwoFactorChallengeIssued):
         return _challenge_response(tokens)
     _set_refresh_cookie(response, tokens.refresh_token)
@@ -315,8 +350,11 @@ async def google_auth(
                 id_token=payload.id_token,
                 role=UserRole(payload.role.value) if payload.role else None,
                 accepted_terms=payload.accepted_terms,
+                birth_date=payload.birth_date,
             )
         )
+    except (BirthDateRequiredError, BirthDateInvalidError, UnderageError) as exc:
+        raise _birth_date_rejected(exc) from exc
     except GoogleAuthNotConfiguredError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -333,10 +371,7 @@ async def google_auth(
             detail="Google no verificó este email",
         ) from exc
     except InactiveUserError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="La cuenta no está activa",
-        ) from exc
+        raise _account_suspended() from exc
 
     if isinstance(result, GoogleRoleRequired):
         return GoogleRoleRequiredResponse(email=result.email, full_name=result.full_name)
@@ -377,10 +412,7 @@ async def refresh(service: ServiceDep, request: Request, response: Response) -> 
             detail="Refresh token inválido",
         ) from exc
     except InactiveUserError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="La cuenta no está activa",
-        ) from exc
+        raise _account_suspended() from exc
     _set_refresh_cookie(response, tokens.refresh_token)
     return TokenResponse(**tokens.__dict__)
 
@@ -409,15 +441,21 @@ async def logout(service: ServiceDep, request: Request, response: Response) -> N
 
 @router.get(
     "/me",
-    response_model=UserResponse,
+    response_model=MeResponse,
     summary="Datos del usuario autenticado",
 )
 async def me(
-    current_user: Annotated[User, Depends(get_current_user_allow_pending_2fa)],
-) -> User:
+    session: Annotated[AuthenticatedSession, Depends(get_current_session)],
+) -> MeResponse:
     # También para un admin sin la verificación en dos pasos: el frontend
-    # necesita saber quién es para llevarlo a activarla (ADR-0023).
-    return current_user
+    # necesita saber quién es para llevarlo a activarla (ADR-0023), y si le
+    # falta activarla, para no pedirle nada más que el alta.
+    return MeResponse.model_validate(
+        {
+            **UserResponse.model_validate(session.user).model_dump(),
+            "two_factor_setup_required": session.gate is AdminGate.SETUP_REQUIRED,
+        }
+    )
 
 
 @router.patch(
@@ -651,13 +689,12 @@ async def two_factor_verify(
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Demasiados códigos incorrectos. Esperá 15 minutos y volvé a probar.",
+            headers=retry_after_headers(15 * 60),
         ) from exc
     except TwoFactorNotConfiguredError as exc:
         raise _two_factor_http_error(exc) from exc
     except InactiveUserError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="La cuenta no está activa"
-        ) from exc
+        raise _account_suspended() from exc
     _set_refresh_cookie(response, tokens.refresh_token)
     return TwoFactorVerifyResponse(
         **tokens.__dict__,

@@ -22,9 +22,12 @@ import { WorkerMapResult } from "@/lib/types";
 export default function WorkerSearchMap({
   center,
   workers,
+  showOrigin = true,
   className = "h-[60vh] w-full rounded-2xl ring-1 ring-line",
 }: {
   center: [number, number];
+  /** Punto de origen («vos estás acá»); se oculta si todavía no hay origen real. */
+  showOrigin?: boolean;
   workers: WorkerMapResult[];
   className?: string;
 }) {
@@ -78,7 +81,7 @@ export default function WorkerSearchMap({
           onLoad={handleLoad}
           className="absolute inset-0 h-full w-full"
         >
-          <UserPuck center={center} />
+          {showOrigin && <UserPuck center={center} />}
           {located.map((worker, index) => (
             <WorkerMarker
               key={worker.profile_id}

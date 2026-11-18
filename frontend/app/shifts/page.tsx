@@ -4,16 +4,31 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
+import { comercioSinPerfilTras400 } from "@/lib/perfil-faltante";
+import { bienvenidaHref } from "@/lib/safe-next";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
+import { useTapGuard } from "@/lib/use-tap-guard";
+import { useLiveRefresh } from "@/lib/live-refresh";
+import { coberturaPorEvento } from "@/lib/evento-cobertura";
+import { LETRAS_APP } from "@/lib/letras";
+import {
+  cancelConfirmCopy,
+  cancelEventConfirmCopy,
+  isCancellable,
+  withFreshState,
+} from "@/lib/cancelar-turno";
 import { Shift, ShiftStatus } from "@/lib/types";
 import ShiftCard from "@/components/ShiftCard";
 import ShiftActions from "@/components/ShiftActions";
 import AIAssistantBar from "@/components/AIAssistantBar";
+import PerfilFaltanteCard from "@/components/PerfilFaltanteCard";
 import Link from "next/link";
 import ReviewBox from "@/components/ReviewBox";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import ShiftPublishedNextSteps from "@/components/ShiftPublishedNextSteps";
+import { payView } from "@/lib/pay";
+import { noShowConfirmCopy } from "@/lib/turno-reofrecido";
 import GuidedTour, { type TourStep } from "@/components/GuidedTour";
 import { EmptyPanelIllustration } from "@/components/illustrations";
 import {
@@ -23,6 +38,7 @@ import {
   ErrorBanner,
   Modal,
   SegmentedControl,
+  Skeleton,
   useToast,
 } from "@/components/ui";
 import {
@@ -163,6 +179,9 @@ export default function MyShiftsPage() {
   );
 }
 
+/** Cuánto se espera la relectura del turno al abrir «¿Cancelar este turno?». */
+const CANCEL_RECHECK_TIMEOUT_MS = 5_000;
+
 /** Cada cuánto se refresca el panel mientras alguien puede venir en camino. */
 const EN_ROUTE_REFRESH_MS = 30_000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -182,7 +201,7 @@ function mayBeOnTheWay(shift: Shift, now: number): boolean {
 }
 
 function MyShiftsPanel() {
-  const { token, user } = useRequireAuth();
+  const { token, user } = useRequireAuth({ roles: ["employer"] });
   const router = useRouter();
   const firstName = user?.full_name?.split(" ")[0];
   const toast = useToast();
@@ -196,12 +215,29 @@ function MyShiftsPanel() {
     return isTab(fromUrl) ? fromUrl : "todos";
   });
   const [error, setError] = useState<string | null>(null);
+  // La cuenta del comercio todavía no tiene perfil (se cortó la bienvenida):
+  // en vez del error del backend, el cartel que lleva a completarlo.
+  const [sinPerfil, setSinPerfil] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [planLimitMessage, setPlanLimitMessage] = useState<string | null>(null);
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
+  // Guarda contra el toque de más (ver `lib/use-tap-guard.ts`): el botón
+  // principal de cada tarjeta está siempre en el mismo lugar y cambia de
+  // acción con el estado. Un segundo toque después de «Cerrar turno» no
+  // tiene que alcanzar a «Marcar como pagado» ni al «Cerrar turno» del turno
+  // que subió a ese lugar.
+  const tapGuard = useTapGuard();
   const [confirmNoShowId, setConfirmNoShowId] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
+  // Mientras se relee el turno al abrir el diálogo de cancelar (`askCancel`).
+  const [cancelChecking, setCancelChecking] = useState(false);
+  const cancelCheckRef = useRef(0);
+  const [confirmMarkPaidId, setConfirmMarkPaidId] = useState<string | null>(null);
+  // U084: cancelar un evento entero. Mientras se relee el panel al abrir el
+  // diálogo (`askCancelEvent`), el texto queda en espera.
+  const [confirmEventId, setConfirmEventId] = useState<string | null>(null);
+  const [eventChecking, setEventChecking] = useState(false);
   // Pantalla "esto es lo que sigue" (Fix 2, docs/planning/PULIDO_ROADMAP.md): guarda
   // el id del turno que se acaba de publicar DESDE ESTE PANEL (borrador →
   // publicado). Reemplaza el cartel de una sola vez ("ya estás buscando
@@ -210,19 +246,36 @@ function MyShiftsPanel() {
   // `ShiftPublishedNextSteps` para la justificación completa).
   const [justPublishedId, setJustPublishedId] = useState<string | null>(null);
 
+  const latestLoad = useRef(0);
   // `silent`: el refresco de fondo del "va en camino" no vuelve a mostrar el
   // esqueleto de carga ni pisa la lista con un error pasajero de red.
   const load = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!token) return;
+    // Último pedido gana: una respuesta vieja (una carga normal, o la de
+    // `act()`, cruzada con una silenciosa) no pisa a la más nueva.
+    const mine = ++latestLoad.current;
     if (!silent) setLoading(true);
     try {
       const data = await api.get<Shift[]>("/shifts/me", token);
+      if (mine !== latestLoad.current) return;
       setShifts(data);
       setError(null);
+      setSinPerfil(false);
     } catch (err) {
-      if (!silent) setError(getErrorMessage(err, "Error al cargar tus turnos"));
+      // Un 400 puede ser «todavía no creaste tu comercio»: se confirma con el
+      // perfil antes de decirlo.
+      const sin = mine === latestLoad.current && (await comercioSinPerfilTras400(err, token));
+      if (mine !== latestLoad.current) return;
+      if (sin) {
+        setSinPerfil(true);
+        setError(null);
+      } else if (!silent) {
+        setError(getErrorMessage(err, "Error al cargar tus turnos"));
+      }
     } finally {
-      if (!silent) setLoading(false);
+      // El último pedido siempre baja el esqueleto (si uno normal quedó
+      // pisado por uno silencioso, nadie más lo bajaría).
+      if (mine === latestLoad.current) setLoading(false);
     }
   }, [token]);
 
@@ -251,38 +304,63 @@ function MyShiftsPanel() {
       if (shiftsRef.current.some((s) => mayBeOnTheWay(s, now))) void load({ silent: true });
     };
     const timer = setInterval(refresh, EN_ROUTE_REFRESH_MS);
-    document.addEventListener("visibilitychange", refresh);
-    return () => {
-      clearInterval(timer);
-      document.removeEventListener("visibilitychange", refresh);
-    };
+    return () => clearInterval(timer);
   }, [hasConfirmed, load]);
 
+  // Al día con los avisos (G1, U013): el trabajador confirma, se baja o llega y
+  // el panel pasa solo, sin recargar. Al volver a la pestaña también (eso lo
+  // resuelve el hook; antes lo hacía acá el listener de `visibilitychange`).
+  // En pausa mientras hay un diálogo abierto o una acción en curso: la lista no
+  // se mueve debajo de lo que la persona está decidiendo.
+  // También en pausa mientras corre una carga normal (la primera, o la de
+  // `act()`): una silenciosa la pisaría por la guarda de «último pedido gana» y,
+  // si fallara, sin avisar, la pantalla quedaría sin su error ni «Reintentar».
+  useLiveRefresh(load, {
+    paused:
+      loading ||
+      busy !== null ||
+      tapGuard.locked ||
+      confirmNoShowId !== null ||
+      confirmCancelId !== null ||
+      confirmMarkPaidId !== null ||
+      confirmEventId !== null ||
+      planLimitMessage !== null ||
+      justPublishedId !== null,
+  });
+
   // Helper único para las acciones de estado del turno: registra qué tarjeta
-  // está ocupada (para loading/disabled), atrapa errores del POST (antes se
-  // dejaban sin manejar) y refresca la lista al terminar.
+  // está ocupada (para el indicador de carga), atrapa errores del POST (antes
+  // se dejaban sin manejar) y refresca la lista al terminar. Pasa por la
+  // guarda: no arranca si hay otra acción en curso, y cuando termina y la
+  // lista se redibuja deja un instante en el que ninguna otra arranca.
   async function run(id: string, action: Action) {
     if (!token) return;
     const key = `${id}:${action}`;
-    setBusy(key);
-    try {
-      // Idempotencia (product/IDEMPOTENCIA_SPEC.md): mismo intento = misma
-      // key mientras no haya terminado bien; un doble-tap sobre "Publicar"/
-      // "Cancelar" con `busy` ya deshabilitando el botón, más este header,
-      // cubre tanto el 90% cliente-side como el reintento de red server-side.
-      await api.post(`/shifts/${id}/${ACTION_PATH[action]}`, undefined, token, undefined, keyFor(key));
-      clearIdempotencyKey(key);
-      await load();
-      if (action === "publish") setJustPublishedId(id);
-    } catch (err) {
-      if (action === "publish" && isPlanLimitError(err)) {
-        setPlanLimitMessage(getErrorMessage(err));
-      } else {
-        toast(getErrorMessage(err, "No se pudo completar la acción"), "error");
+    await tapGuard.run(async () => {
+      setBusy(key);
+      try {
+        // Idempotencia (product/IDEMPOTENCIA_SPEC.md): mismo intento = misma
+        // key mientras no haya terminado bien. La guarda frena el toque de
+        // más del lado del cliente; este header cubre el reintento de red
+        // del lado del servidor.
+        await api.post(`/shifts/${id}/${ACTION_PATH[action]}`, undefined, token, undefined, keyFor(key));
+        clearIdempotencyKey(key);
+        await load();
+        if (action === "publish") setJustPublishedId(id);
+      } catch (err) {
+        if (action === "publish" && isPlanLimitError(err)) {
+          setPlanLimitMessage(getErrorMessage(err));
+        } else {
+          toast(getErrorMessage(err, "No se pudo completar la acción"), "error");
+        }
+        // También al fallar: el turno pudo cambiar (el trabajador se bajó, ya
+        // estaba cancelado) y la pantalla no puede seguir ofreciendo el
+        // botón. Silenciosa: sin esqueleto, y si falla no pisa el aviso.
+        await load({ silent: true });
+      } finally {
+        setBusy(null);
       }
-    } finally {
-      setBusy(null);
-    }
+    });
   }
 
   async function confirmNoShow(id: string) {
@@ -290,9 +368,105 @@ function MyShiftsPanel() {
     await run(id, "noShow");
   }
 
-  async function confirmCancel(id: string) {
+  // «¿Cancelar este turno?» dice a quién se le avisa y si suma una
+  // cancelación tardía, y eso depende del estado del turno AHORA, no del que
+  // tenía cuando se cargó el panel: con la lista vieja, un turno que el
+  // trabajador confirmó hace un minuto se cancelaba sin el aviso (y sumaba la
+  // tardía), y uno del que se bajó prometía una tardía que no iba a existir.
+  // Al abrir se relee ese turno; hasta que llega, el texto queda en espera y
+  // el «Sí» apagado, así no se ve un texto que después cambia por otro.
+  //
+  // Si la relectura falla (sin red, backend dormido), se muestra el texto del
+  // estado que el panel conoce y decide el servidor, como antes: no se
+  // inventa un aviso de «puede sumarte…».
+  async function askCancel(id: string) {
+    setConfirmCancelId(id);
+    if (!token) return;
+    const check = ++cancelCheckRef.current;
+    setCancelChecking(true);
+    try {
+      const fresh = await api.get<Shift>(`/shifts/${id}`, token, CANCEL_RECHECK_TIMEOUT_MS);
+      // El diálogo se cerró (o se abrió otro) mientras llegaba: no se toca nada.
+      if (cancelCheckRef.current !== check) return;
+      setShifts((prev) => prev.map((s) => (s.id === id ? withFreshState(s, fresh) : s)));
+      if (!isCancellable(fresh.status)) {
+        // Terminó, se canceló o quedó sin cubrir mientras el panel estaba
+        // abierto: la tarjeta ya muestra el estado nuevo.
+        setConfirmCancelId(null);
+        toast(
+          fresh.status === "check_out"
+            ? "La persona ya marcó la salida: este turno se finaliza y se paga, no se cancela."
+            : "Este turno ya no se puede cancelar.",
+          "info"
+        );
+      }
+    } catch {
+      // Sin dato fresco: vale el estado conocido (ver arriba).
+    } finally {
+      if (cancelCheckRef.current === check) setCancelChecking(false);
+    }
+  }
+
+  function closeCancel() {
+    cancelCheckRef.current += 1;
+    setCancelChecking(false);
     setConfirmCancelId(null);
+  }
+
+  async function confirmCancel(id: string) {
+    closeCancel();
     await run(id, "cancel");
+  }
+
+  // Cancelar un evento entero (U084): mismas reglas que cada puesto, y el
+  // texto dice cuántos puestos se cancelan y cuántas tardías suma. Igual que
+  // `askCancel`, al abrir se relee el panel para que ese texto sea el de ahora.
+  async function askCancelEvent(eventId: string) {
+    // Abrir pasa por la guarda (como «Marcar como pagado»): el segundo toque
+    // de un doble toque no confirma. La relectura va afuera, para que la
+    // guarda no siga trabada mientras llega.
+    const opened = await tapGuard.run(() => setConfirmEventId(eventId));
+    if (!opened) return;
+    setEventChecking(true);
+    try {
+      await load({ silent: true });
+    } finally {
+      setEventChecking(false);
+    }
+  }
+
+  async function confirmCancelEvent(eventId: string) {
+    if (!token) return;
+    const key = `${eventId}:cancel-event`;
+    await tapGuard.run(async () => {
+      setConfirmEventId(null);
+      setBusy(key);
+      try {
+        await api.post(`/shifts/events/${eventId}/cancel`, undefined, token, undefined, keyFor(key));
+        clearIdempotencyKey(key);
+        toast("Cancelaste el evento.", "success");
+      } catch (err) {
+        toast(getErrorMessage(err, "No se pudo cancelar el evento"), "error");
+      } finally {
+        // También al fallar: algún puesto pudo haber cambiado.
+        await load({ silent: true });
+        setBusy(null);
+      }
+    });
+  }
+
+  // «Marcar como pagado» no se puede deshacer y le avisa al trabajador que
+  // cobró: primero se pregunta. Abrir el diálogo también pasa por la guarda,
+  // así el toque que cae justo después de «Cerrar turno» no lo abre, y el
+  // segundo toque de un doble toque no lo confirma ni lo cierra (durante ese
+  // instante el «Sí» está deshabilitado y tocar afuera no hace nada).
+  function askMarkPaid(id: string) {
+    void tapGuard.run(() => setConfirmMarkPaidId(id));
+  }
+
+  async function confirmMarkPaid(id: string) {
+    setConfirmMarkPaidId(null);
+    await run(id, "markPaid");
   }
 
   // Agrupa una sola vez por familia; cada pestaña (incluida "Todos") lee de
@@ -312,39 +486,51 @@ function MyShiftsPanel() {
 
   // Progreso de cobertura por evento (publicación masiva, /shifts/new-event):
   // cruza TODAS las familias — un evento de 6 roles puede tener 4 ya
-  // asignados/en marcha y 2 todavía buscando, repartidos en pestañas
-  // distintas. `covered` = ya tiene trabajador asignado (worker_profile_id),
-  // sin importar en qué paso del ciclo vaya después de eso.
-  const eventGroups = useMemo(() => {
-    const byId = new Map<string, { name: string; total: number; covered: number }>();
-    for (const shift of shifts) {
-      if (!shift.event_id) continue;
-      const entry = byId.get(shift.event_id) ?? {
-        name: shift.event_name ?? "Evento",
-        total: 0,
-        covered: 0,
-      };
-      entry.total += 1;
-      if (shift.worker_profile_id) entry.covered += 1;
-      byId.set(shift.event_id, entry);
-    }
-    return Array.from(byId.entries()).map(([eventId, data]) => ({ eventId, ...data }));
-  }, [shifts]);
+  // confirmados y 2 todavía buscando, repartidos en pestañas distintas. No
+  // cuenta los cancelados; «cubiertos» son los confirmados en adelante
+  // (`lib/evento-cobertura.ts`).
+  const eventGroups = useMemo(() => coberturaPorEvento(shifts), [shifts]);
+
+  const cancelCopy = cancelConfirmCopy(
+    confirmCancelId ? shifts.find((s) => s.id === confirmCancelId) : undefined
+  );
+  const eventCopy = cancelEventConfirmCopy(
+    confirmEventId ? shifts.filter((s) => s.event_id === confirmEventId) : []
+  );
+  const payingShift = confirmMarkPaidId
+    ? shifts.find((s) => s.id === confirmMarkPaidId)
+    : undefined;
+  const payingWorkerName = payingShift?.worker_name ?? null;
+  const noShowShift = confirmNoShowId
+    ? shifts.find((s) => s.id === confirmNoShowId)
+    : undefined;
 
   // En "Todos" se listan sólo las familias con contenido (no tiene sentido
   // mostrar 4 estados vacíos apilados). En una pestaña puntual se muestra
   // igual, vacía, con su propio mensaje de marca.
   const visibleFamilies: Family[] =
     tab === "todos" ? FAMILY_ORDER.filter((family) => families[family].length > 0) : [tab];
+  // Sólo de la vista: qué familias cuelgan del riel (en curso y con turnos)
+  // y cuáles van debajo, sobre el lienzo.
+  const cuelga = (family: Family) =>
+    (family === "buscando" || family === "en_marcha") && families[family].length > 0;
+  const enElRiel = visibleFamilies.filter(cuelga);
+  const fueraDelRiel = visibleFamilies.filter((family) => !cuelga(family));
 
   return (
-    <div className="app-container px-4 pb-10 pt-6">
+    // Desde el 2026-11-18 el panel lleva la dirección «con relieve»
+    // (docs/design-system/direccion-relieve.md): el saludo en brocha,
+    // «Publicar turno» como el botón con relieve, y los turnos como comandas
+    // de papel. Los que están en curso (buscando y en marcha) cuelgan del
+    // riel, sobre una banda azul hondo; los que ya salieron van debajo, sobre
+    // el lienzo. La lógica no cambió.
+    <div className={`${LETRAS_APP} app-container px-4 pb-10 pt-6`}>
       <div>
-        {/* Saludo en serif, igual que el home del trabajador (DS v5.0). */}
-        <h1 className="font-display text-h1 font-semibold text-ink">
+        {/* Saludo en brocha, igual que el Inicio del trabajador. */}
+        <h1 className="letra-cartel letra-cartel-pantalla break-words">
           {firstName ? `Hola, ${firstName}` : "Hola"}
         </h1>
-        <p className="mt-0.5 text-sm text-ink/55">Gestioná los turnos de tu comercio.</p>
+        <p className="mt-1 text-sm text-ink-soft">Gestioná los turnos de tu comercio.</p>
       </div>
 
       {/* Arriba, sólo lo que se hace desde acá (2026-09-28, diagnóstico de
@@ -354,33 +540,49 @@ function MyShiftsPanel() {
           pestañas; Favoritos y Mi plan siguen a un toque desde Perfil. Queda
           Publicar como la acción, Evento al lado como variante, y el
           asistente. */}
+      {sinPerfil && !loading && (
+        <PerfilFaltanteCard
+          title="Te falta completar tu comercio"
+          body="Cargá el nombre y la ubicación para publicar turnos y que te encuentren los candidatos."
+          actionLabel="Completar mi comercio"
+          href={bienvenidaHref("/shifts")}
+        />
+      )}
+
+      {!sinPerfil && (
+        <>
       <div className="mt-4 flex gap-2">
         <Link
           href="/shifts/new"
           data-tour="shifts-publish"
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-btn)] bg-primary px-4 py-3 text-sm font-bold text-night shadow-[var(--shadow-primary-sm)] transition active:scale-95"
+          // El botón con relieve de la pantalla: ámbar, con la sombra dura
+          // del filete, que se aprieta al tocarlo.
+          className="boton-relieve flex flex-1 items-center justify-center gap-1.5 bg-primary px-4 py-3 text-sm font-bold text-night"
         >
           <PlusIcon size={18} /> Publicar turno
         </Link>
         <Link
           href="/shifts/new-event"
-          className="flex items-center justify-center gap-1.5 rounded-[var(--radius-btn)] bg-card px-4 py-3 text-sm font-semibold text-ink/75 ring-1 ring-line transition active:scale-95"
+          className="flex items-center justify-center gap-1.5 rounded-[var(--radius-relieve)] bg-card px-4 py-3 text-sm font-semibold text-ink/75 ring-1 ring-line transition active:scale-95"
         >
           <CalendarPlusIcon size={17} /> Evento
         </Link>
       </div>
 
-      <div className="mt-3">
-        <AIAssistantBar />
+      <div className="mt-3.5">
+        <AIAssistantBar recto />
       </div>
 
+        </>
+      )}
+
       {loading && <CardSkeletons />}
-      {error && <ErrorBanner message={error} onRetry={() => load()} />}
+      {error && !sinPerfil && <ErrorBanner message={error} onRetry={() => load()} />}
 
       {/* Primera experiencia (Parte B): CTA imposible de errar + qué va a
           pasar en 3 pasos concretos. Reusa el `EmptyState` de marca (mismo
           componente que usan los estados vacíos por familia, abajo). */}
-      {!loading && !error && shifts.length === 0 && (
+      {!loading && !error && !sinPerfil && shifts.length === 0 && (
         <EmptyState
           icon={<EmptyPanelIllustration color="var(--color-primary)" />}
           title="Publicá tu primer turno"
@@ -392,14 +594,14 @@ function MyShiftsPanel() {
         />
       )}
 
-      {!loading && !error && eventGroups.length > 0 && (
+      {!loading && !error && !sinPerfil && eventGroups.length > 0 && (
         <div className="mt-4 space-y-2">
           {eventGroups.map((event) => (
             <div
               key={event.eventId}
-              className="flex items-center justify-between gap-3 rounded-2xl bg-card px-4 py-3 ring-1 ring-line"
+              className="flex items-center justify-between gap-3 rounded-[var(--radius-btn)] bg-card px-4 py-3 ring-1 ring-line"
             >
-              <p className="truncate text-sm font-semibold text-ink">{event.name}</p>
+              <p className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{event.name}</p>
               <span
                 className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${
                   event.covered === event.total
@@ -409,12 +611,23 @@ function MyShiftsPanel() {
               >
                 {event.covered}/{event.total} cubiertos
               </span>
+              {shifts.some((s) => s.event_id === event.eventId && isCancellable(s.status)) && (
+                <button
+                  type="button"
+                  onClick={() => void askCancelEvent(event.eventId)}
+                  disabled={busy !== null || tapGuard.locked}
+                  aria-label={`Cancelar el evento ${event.name}`}
+                  className="-my-2 -mr-2 min-h-[44px] shrink-0 rounded-full px-2 text-sm font-semibold text-danger-text hover:underline disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+              )}
             </div>
           ))}
         </div>
       )}
 
-      {!loading && !error && shifts.length > 0 && (
+      {!loading && !error && !sinPerfil && shifts.length > 0 && (
         <>
           {/* Control segmentado por familia de estado. En 390px de ancho 5
               segmentos con conteo no entran sin achicar el texto a ilegible
@@ -442,51 +655,78 @@ function MyShiftsPanel() {
               tarjeta de 360px y media pantalla vacía, grupo tras grupo
               (auditoría visual 2026-09-24, A3). Ahora dos familias de un
               turno cada una comparten fila, cada una con su encabezado. */}
-          <div
-            className="mt-6 grid items-start gap-x-4 gap-y-6 md:grid-cols-2 xl:grid-cols-3"
-            data-testid="shifts-panel-list"
-          >
-            {visibleFamilies.map((family) => {
-              const list = families[family];
-              const meta = FAMILY_META[family];
-              // Con una sola familia a la vista (una pestaña puntual) ocupa el
-              // ancho entero, como antes: no hay otra con quién compartir fila.
-              const full = tab !== "todos" || list.length >= 3;
-              const span = full ? "md:col-span-2 xl:col-span-3" : list.length === 2 ? "md:col-span-2" : "";
-              const cols = full ? "md:grid-cols-2 xl:grid-cols-3" : list.length === 2 ? "md:grid-cols-2" : "";
-              return (
-                <section key={family} className={`min-w-0 ${span}`} data-family={family}>
-                  <h2 className="mb-2 flex items-center gap-1.5 text-xs font-bold font-mono uppercase tracking-wide text-ink/40">
-                    {meta.icon}
-                    {meta.title}
-                    <span className="font-semibold text-ink/25">· {list.length}</span>
-                  </h2>
-
-                  {list.length === 0 ? (
-                    <EmptyState icon={meta.icon} title={meta.emptyTitle} subtitle={meta.emptySubtitle} />
-                  ) : (
-                    <div className={`grid gap-4 ${cols}`}>
-                      {list.map((shift) => (
-                        <ShiftCard key={shift.id} shift={shift}>
-                          <ShiftActions
-                            shift={shift}
-                            busy={busy}
-                            onRun={run}
-                            onNoShow={() => setConfirmNoShowId(shift.id)}
-                            onCancel={() => setConfirmCancelId(shift.id)}
-                          />
-                          {(shift.status === "finalizado" || shift.status === "pagado") && (
-                            <div className="mt-3">
-                              <ReviewBox shiftId={shift.id} />
-                            </div>
-                          )}
-                        </ShiftCard>
+          {/* Dos grupos (2026-11-18). «En el riel»: las familias en curso
+              que tienen turnos, sobre la banda azul hondo y colgando del
+              riel. Debajo, sobre el lienzo, las demás (terminados,
+              cancelados, borradores) y las que están vacías, cuyo cartel
+              de vacío no se leería sobre el azul. Cada grupo es una grilla
+              como la de antes. */}
+          <div data-testid="shifts-panel-list">
+            {[enElRiel, fueraDelRiel].map((grupo, g) =>
+              grupo.length === 0 ? null : (
+                <div
+                  key={g === 0 ? "riel" : "resto"}
+                  className={g === 0 ? "app-banda -mx-4 mt-6 px-4 pb-7 pt-0" : "mt-6"}
+                >
+                  {g === 0 && (
+                    <div aria-hidden className="riel">
+                      {[8, 30, 52, 74, 94].map((x) => (
+                        <i key={x} style={{ left: `${x}%` }} />
                       ))}
                     </div>
                   )}
-                </section>
-              );
-            })}
+                  <div className={`grid items-start gap-x-4 gap-y-6 md:grid-cols-2 xl:grid-cols-3 ${g === 0 ? "pt-5" : ""}`}>
+                    {grupo.map((family) => {
+                      const list = families[family];
+                      const meta = FAMILY_META[family];
+                      // Con una sola familia a la vista (una pestaña puntual) ocupa el
+                      // ancho entero, como antes: no hay otra con quién compartir fila.
+                      const full = tab !== "todos" || list.length >= 3;
+                      const span = full ? "md:col-span-2 xl:col-span-3" : list.length === 2 ? "md:col-span-2" : "";
+                      const cols = full ? "md:grid-cols-2 xl:grid-cols-3" : list.length === 2 ? "md:grid-cols-2" : "";
+                      return (
+                        <section key={family} className={`min-w-0 ${span}`} data-family={family}>
+                          <h2
+                            className={`mb-2.5 flex items-center gap-1.5 text-sm font-semibold ${
+                              g === 0 ? "text-[color:var(--app-banda-tinta)]" : "text-ink-soft"
+                            }`}
+                          >
+                            {meta.icon}
+                            {meta.title}
+                            <span className={`font-medium ${g === 0 ? "opacity-75" : ""}`}>· {list.length}</span>
+                          </h2>
+
+                          {list.length === 0 ? (
+                            <EmptyState icon={meta.icon} title={meta.emptyTitle} subtitle={meta.emptySubtitle} />
+                          ) : (
+                            <div className={`grid gap-4 ${cols}`}>
+                              {list.map((shift) => (
+                                <ShiftCard key={shift.id} shift={shift} comanda>
+                                  <ShiftActions
+                                    shift={shift}
+                                    busy={busy}
+                                    locked={tapGuard.locked}
+                                    onRun={run}
+                                    onMarkPaid={() => askMarkPaid(shift.id)}
+                                    onNoShow={() => setConfirmNoShowId(shift.id)}
+                                    onCancel={() => void askCancel(shift.id)}
+                                  />
+                                  {(shift.status === "finalizado" || shift.status === "pagado") && (
+                                    <div className="mt-3">
+                                      <ReviewBox shiftId={shift.id} />
+                                    </div>
+                                  )}
+                                </ShiftCard>
+                              ))}
+                            </div>
+                          )}
+                        </section>
+                      );
+                    })}
+                  </div>
+                </div>
+              )
+            )}
           </div>
         </>
       )}
@@ -512,9 +752,11 @@ function MyShiftsPanel() {
         onClose={() => setConfirmNoShowId(null)}
         title="¿Marcar que no se presentó?"
       >
+        {/* Qué pasa con el turno depende de cuánto horario le queda (U080). */}
         <p className="text-sm text-ink/60">
-          El turno se libera para volver a buscar personal y le va a impactar
-          la reputación al trabajador. Esta acción queda registrada.
+          {noShowShift
+            ? noShowConfirmCopy(noShowShift)
+            : "El turno se libera para volver a buscar personal y le va a impactar la reputación al trabajador. Esta acción queda registrada."}
         </p>
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="surface" size="sm" onClick={() => setConfirmNoShowId(null)}>
@@ -532,25 +774,109 @@ function MyShiftsPanel() {
 
       <Modal
         open={confirmCancelId !== null}
-        onClose={() => setConfirmCancelId(null)}
+        onClose={closeCancel}
         title="¿Cancelar este turno?"
       >
-        <p className="text-sm text-ink/60">
-          {confirmCancelId &&
-          shifts.find((s) => s.id === confirmCancelId)?.worker_profile_id
-            ? "Ya tenés un trabajador asignado: se le avisa que el turno se cancela y no vas a poder deshacerlo."
-            : "El turno deja de estar disponible para postularse. No vas a poder deshacerlo."}
-        </p>
+        {cancelChecking ? (
+          // Texto en espera mientras se relee el turno (ver `askCancel`).
+          <div role="status" aria-busy="true" data-testid="cancel-checking">
+            <span className="sr-only">Revisando el estado del turno…</span>
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="mt-2 h-4 w-full" />
+            <Skeleton className="mt-2 h-4 w-2/3" />
+          </div>
+        ) : (
+          <>
+            <p className="text-sm text-ink/60">{cancelCopy.body}</p>
+            {/* El costo va antes de confirmar y sólo cuando aplica (ADR-0007:
+                cancelar con el trabajador ya confirmado). */}
+            {cancelCopy.lateCancellation && (
+              <p className="mt-2 text-sm font-semibold text-ink">{cancelCopy.lateCancellation}</p>
+            )}
+          </>
+        )}
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="surface" size="sm" onClick={() => setConfirmCancelId(null)}>
+          <Button variant="surface" size="sm" onClick={closeCancel}>
             Volver
           </Button>
           <Button
             variant="danger"
             size="sm"
+            disabled={cancelChecking}
             onClick={() => confirmCancelId && confirmCancel(confirmCancelId)}
           >
             Sí, cancelar turno
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal
+        open={confirmEventId !== null}
+        onClose={() => {
+          if (!tapGuard.locked) setConfirmEventId(null);
+        }}
+        title="¿Cancelar el evento entero?"
+      >
+        {eventChecking ? (
+          <div role="status" aria-busy="true" data-testid="cancel-event-checking">
+            <span className="sr-only">Revisando el estado del evento…</span>
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="mt-2 h-4 w-2/3" />
+          </div>
+        ) : eventCopy.count === 0 ? (
+          <p className="text-sm text-ink/60">Este evento ya no tiene puestos para cancelar.</p>
+        ) : (
+          <>
+            <p className="text-sm text-ink/60">{eventCopy.body}</p>
+            {eventCopy.lateCancellation && (
+              <p className="mt-2 text-sm font-semibold text-ink">{eventCopy.lateCancellation}</p>
+            )}
+          </>
+        )}
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="surface" size="sm" onClick={() => setConfirmEventId(null)}>
+            Volver
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            disabled={eventChecking || tapGuard.locked || eventCopy.count === 0}
+            onClick={() => confirmEventId && confirmCancelEvent(confirmEventId)}
+          >
+            Sí, cancelar evento
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal
+        open={confirmMarkPaidId !== null}
+        onClose={() => {
+          if (!tapGuard.locked) setConfirmMarkPaidId(null);
+        }}
+        title="¿Ya le pagaste este turno?"
+      >
+        <p className="text-sm text-ink/60">
+          Se le avisa {payingWorkerName ? `a ${payingWorkerName}` : "al trabajador"} que ya cobró
+          este turno y no vas a poder deshacerlo.
+        </p>
+        {/* Turno reofrecido (U080): lo que corresponde pagar es lo que
+            restaba desde la llegada, no el monto publicado. */}
+        {payingShift && payView(payingShift).kind === "prorrateado" && (
+          <p className="mt-2 text-sm font-semibold text-ink">
+            Corresponde pagar {payView(payingShift).amount}: lo que restaba del turno desde su
+            llegada.
+          </p>
+        )}
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="surface" size="sm" onClick={() => setConfirmMarkPaidId(null)}>
+            Volver
+          </Button>
+          <Button
+            size="sm"
+            disabled={tapGuard.locked}
+            onClick={() => confirmMarkPaidId && confirmMarkPaid(confirmMarkPaidId)}
+          >
+            Sí, ya le pagué
           </Button>
         </div>
       </Modal>

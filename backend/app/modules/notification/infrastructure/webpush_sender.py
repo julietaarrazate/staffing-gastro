@@ -12,7 +12,8 @@ import logging
 
 from app.core.config import Settings
 from app.modules.notification.domain.entities import PushSubscription
-from app.modules.notification.domain.push_sender import PushSendResult, PushSender
+from app.modules.notification.domain.push_policy import DEFAULT_PUSH_POLICY, PushPolicy
+from app.modules.notification.domain.push_sender import PushSender, PushSendResult
 from app.modules.notification.domain.value_objects import is_known_push_endpoint
 
 logger = logging.getLogger(__name__)
@@ -29,7 +30,13 @@ class WebPushSender(PushSender):
         self._settings = settings
 
     async def send(
-        self, subscription: PushSubscription, *, title: str, body: str, url: str = "/"
+        self,
+        subscription: PushSubscription,
+        *,
+        title: str,
+        body: str,
+        url: str = "/",
+        policy: PushPolicy = DEFAULT_PUSH_POLICY,
     ) -> PushSendResult:
         if not is_known_push_endpoint(subscription.endpoint):
             # Suscripciones guardadas antes de validar el alta (revisión
@@ -43,7 +50,7 @@ class WebPushSender(PushSender):
             )
             return PushSendResult.GONE
         try:
-            return await asyncio.to_thread(self._send_sync, subscription, title, body, url)
+            return await asyncio.to_thread(self._send_sync, subscription, title, body, url, policy)
         except Exception:
             # Defensa en profundidad: aunque `_send_sync` ya atrapa sus
             # propios errores, un fallo inesperado acá tampoco debe
@@ -55,7 +62,12 @@ class WebPushSender(PushSender):
             return PushSendResult.FAILED
 
     def _send_sync(
-        self, subscription: PushSubscription, title: str, body: str, url: str
+        self,
+        subscription: PushSubscription,
+        title: str,
+        body: str,
+        url: str,
+        policy: PushPolicy,
     ) -> PushSendResult:
         from pywebpush import WebPushException, webpush
 
@@ -74,6 +86,12 @@ class WebPushSender(PushSender):
                 # Sin timeout, un servicio que no responde dejaba un hilo del
                 # pool colgado por cada aviso (revisión de seguridad 2026-10-20).
                 timeout=_PUSH_TIMEOUT_SECONDS,
+                # Vigencia: cuánto guarda el servicio push el aviso si el
+                # celular no está conectado. La librería usa 0 por defecto, y
+                # con 0 el aviso se descarta al instante (sin señal, subte,
+                # ahorro de batería): la persona nunca se entera.
+                ttl=policy.ttl_seconds,
+                headers={"Urgency": policy.urgency.value},
             )
             return PushSendResult.SENT
         except WebPushException as exc:

@@ -7,12 +7,14 @@ No conoce detalles de HTTP ni de SQLAlchemy.
 import hashlib
 import logging
 import secrets
-from datetime import datetime, timedelta, timezone
+from dataclasses import replace
+from datetime import date, datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 import jwt
 
 from app.core.config import settings
+from app.core.tz import hoy_art
 from app.core.security import (
     ACCESS_TOKEN,
     REFRESH_TOKEN,
@@ -37,6 +39,7 @@ from app.modules.identity.application.two_factor import (
     TwoFactorLoginVerified,
     TwoFactorService,
 )
+from app.modules.identity.domain.edad import validar_fecha_nacimiento
 from app.modules.identity.domain.entities import (
     EmailVerificationToken,
     PasswordResetToken,
@@ -66,6 +69,7 @@ from app.modules.identity.domain.repositories import (
     TermsAcceptanceRepository,
     UserRepository,
 )
+from app.modules.identity.domain.two_factor import AdminGate, admin_gate
 from app.modules.identity.domain.value_objects import (
     LEGAL_TERMS_VERSION,
     TermsAcceptanceChannel,
@@ -74,6 +78,7 @@ from app.modules.identity.domain.value_objects import (
 from app.modules.notification.domain.email_sender import EmailSender
 from app.modules.notification.domain.email_templates import (
     render_confirm_email_html,
+    render_google_claimed_account_email_html,
     render_password_reset_email_html,
     render_welcome_employer_email_html,
     render_welcome_worker_email_html,
@@ -171,6 +176,7 @@ class IdentityService:
         Best-effort: si se cablearon `email_verification_tokens`, dispara el
         email de verificación (nunca bloquea el registro si el envío falla,
         mismo contrato que el resto de los emails transaccionales)."""
+        birth_date = self._alta_birth_date(command.accepted_terms, command.birth_date)
         if await self._users.exists_by_email(command.email):
             raise EmailAlreadyExistsError(command.email)
 
@@ -179,6 +185,7 @@ class IdentityService:
             hashed_password=await hash_password_async(command.password),
             full_name=command.full_name,
             role=command.role,
+            birth_date=birth_date,
         )
         created = await self._users.add(user)
         if command.accepted_terms:
@@ -263,11 +270,13 @@ class IdentityService:
         if command.role is None:
             return GoogleRoleRequired(email=email, full_name=identity.full_name)
 
+        birth_date = self._alta_birth_date(command.accepted_terms, command.birth_date)
         user = User(
             email=email,
             hashed_password=await _google_local_password(),
             full_name=identity.full_name,
             role=command.role,
+            birth_date=birth_date,
             # Google ya verificó la propiedad del email: no hace falta el
             # flujo de verificación propio para estas cuentas.
             is_verified=True,
@@ -281,6 +290,15 @@ class IdentityService:
         await self._send_welcome_email(user)
         return await self._issue_tokens(user)
 
+    @staticmethod
+    def _alta_birth_date(accepted_terms: bool, birth_date: date | None) -> date | None:
+        """Toda alta pública (la que acepta términos, por email o por Google)
+        trae una fecha de nacimiento de alguien mayor de 18 (U101). Las altas
+        internas (seed, scripts) no aceptan nada y no la piden."""
+        if not accepted_terms:
+            return birth_date
+        return validar_fecha_nacimiento(birth_date, hoy_art())
+
     async def _claim_unverified_account(self, user: User) -> None:
         """Google acaba de probar que quien entra es dueño del email; la cuenta
         que ya existía con ese email nunca lo probó (se registró con
@@ -293,12 +311,33 @@ class IdentityService:
         Ahora la cuenta queda de quien probó el email: se marca verificada, la
         contraseña anterior deja de servir y se cierran todas las sesiones
         abiertas. Si era la misma persona, pierde la contraseña que nunca
-        confirmó y la recupera con "Olvidé mi contraseña"."""
+        confirmó y la recupera con "¿Olvidaste tu contraseña?". Desde 2026-11-17
+        se avisa además por mail a la dirección de la cuenta (U039)."""
         user.verify()
         user.hashed_password = await _google_local_password()
         await self._users.update(user)
         await self._sessions.revoke_all_for_user(user.id)
         logger.info("google.claimed_unverified_account", extra={"user_id": str(user.id)})
+        await self._send_claimed_account_email(user)
+
+    async def _send_claimed_account_email(self, user: User) -> None:
+        """Avisa al mail de la cuenta que se la reclamó con Google (la
+        contraseña dejó de servir y las sesiones se cerraron). Best-effort,
+        mismo contrato que el resto: si el envío falla, el ingreso sigue. El
+        mail no va a los logs, sólo el id."""
+        html = render_google_claimed_account_email_html(
+            user.full_name, f"{settings.frontend_url}/recuperar"
+        )
+        try:
+            await self._email_sender.send(
+                to=user.email,
+                subject="Se entró a tu cuenta de Oído con Google",
+                html=html,
+            )
+        except Exception:
+            logger.exception(
+                "No se pudo enviar el aviso de cuenta reclamada a %s", user.id
+            )
 
     async def _record_terms_acceptance(
         self, user: User, channel: TermsAcceptanceChannel
@@ -328,6 +367,13 @@ class IdentityService:
             raise InvalidTokenError()
         if session.is_revoked:
             await self._sessions.revoke_all_for_user(session.user_id)
+            # Suspender revoca todas las sesiones (`AdminService.suspend_user`):
+            # quien vuelve con la suya tiene que enterarse de que la cuenta está
+            # suspendida, no de que la sesión venció (ADR-0024, punto 8). La
+            # sesión ya era de esta persona: no se le revela nada nuevo.
+            owner = await self._users.get_by_id(session.user_id)
+            if owner is not None and not owner.is_active:
+                raise InactiveUserError()
             raise RefreshTokenRevokedError()
 
         user = await self._users.get_by_id(session.user_id)
@@ -606,13 +652,24 @@ class IdentityService:
         verificación activa recibe un desafío en vez de la sesión. Un admin
         sin activarla entra igual, con una sesión que sólo le deja activarla
         (ver `resolve_session`): así nadie queda afuera al prenderla."""
-        if (
+        enabled = (
             self._two_factor is not None
             and TwoFactorService.applies_to(user)
             and await self._two_factor.is_enabled(user.id)
-        ):
+        )
+        if enabled and self._two_factor is not None:
             return await self._two_factor.issue_challenge(user)
-        return await self._issue_tokens(user)
+        pair = await self._issue_tokens(user)
+        # La regla de qué puede hacer una sesión admin vive en `admin_gate`: un
+        # admin sin la verificación activada recibe una sesión que sólo sirve
+        # para activarla, y el frontend lo sabe desde el login.
+        if (
+            self._two_factor is not None
+            and admin_gate(user, enabled=enabled, session_verified=False)
+            is AdminGate.SETUP_REQUIRED
+        ):
+            return replace(pair, two_factor_setup_required=True)
+        return pair
 
     async def _issue_tokens(self, user: User, *, two_factor_verified: bool = False) -> TokenPair:
         """Emite un par de tokens y persiste la sesión del refresh (ADR-0002)."""
@@ -670,7 +727,7 @@ async def _google_local_password() -> str:
     un secreto aleatorio de 32 bytes que nunca se persiste ni se revela.
     Nadie puede loguearse con contraseña porque nadie conoce el secreto —
     el efecto es el mismo que "sin contraseña", sin tocar el esquema.
-    El usuario puede pedir "Olvidé mi contraseña" más adelante y setear una
+    El usuario puede pedir "¿Olvidaste tu contraseña?" más adelante y setear una
     propia sin cambios adicionales (el flujo de reset ya no le importa el
     hash anterior). Ver docs/reference/ACCESO_MODERNO.md.
     """

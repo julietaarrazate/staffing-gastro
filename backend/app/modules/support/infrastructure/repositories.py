@@ -6,19 +6,35 @@ mismo patrón que `favorite/infrastructure/repositories.py` para
 `shifts_together`: sin N+1 al listar.
 """
 
+from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.modules.application.infrastructure.models import ShiftApplicationModel
+from app.modules.company.infrastructure.models import CompanyProfileModel
+from app.modules.identity.domain.value_objects import UserStatus
 from app.modules.identity.infrastructure.models import UserModel
-from app.modules.support.domain.entities import EnrichedTicket, SupportMessage, SupportTicket
+from app.modules.shift.domain.entities import REOFFER_MIN_REMAINING
+from app.modules.shift.domain.value_objects import OPEN_STATUSES
+from app.modules.shift.infrastructure.models import ShiftModel
+from app.modules.support.domain.entities import (
+    CompanyFacts,
+    EnrichedTicket,
+    ShiftFacts,
+    SupportMessage,
+    SupportTicket,
+    TicketOpener,
+)
 from app.modules.support.domain.repositories import (
+    ReferenceLookup,
     SupportMessageRepository,
     SupportTicketRepository,
 )
 from app.modules.support.domain.value_objects import TicketCategory, TicketStatus
 from app.modules.support.infrastructure.models import SupportMessageModel, SupportTicketModel
+from app.modules.worker.infrastructure.models import WorkerProfileModel
 
 
 def _to_ticket(model: SupportTicketModel) -> SupportTicket:
@@ -28,9 +44,18 @@ def _to_ticket(model: SupportTicketModel) -> SupportTicket:
         category=TicketCategory(model.category),
         subject=model.subject,
         status=TicketStatus(model.status),
+        shift_id=model.shift_id,
+        company_id=model.company_id,
         created_at=model.created_at,
         updated_at=model.updated_at,
     )
+
+
+def shift_title_text(title: str | None, position: str | None) -> str | None:
+    """El título del turno, o su puesto si el comercio no le puso título."""
+    if title and title.strip():
+        return title.strip()
+    return position.capitalize() if position else None
 
 
 def _to_message(model: SupportMessageModel) -> SupportMessage:
@@ -54,6 +79,8 @@ class SqlAlchemySupportTicketRepository(SupportTicketRepository):
             category=ticket.category.value,
             subject=ticket.subject,
             status=ticket.status.value,
+            shift_id=ticket.shift_id,
+            company_id=ticket.company_id,
         )
         self._session.add(model)
         await self._session.commit()
@@ -86,6 +113,18 @@ class SqlAlchemySupportTicketRepository(SupportTicketRepository):
         result = await self._session.execute(stmt)
         return [_to_ticket(m) for m in result.scalars().all()]
 
+    async def get_opener(self, ticket_id: UUID) -> TicketOpener | None:
+        row = (
+            await self._session.execute(
+                select(UserModel.id, UserModel.full_name, UserModel.role)
+                .join(SupportTicketModel, SupportTicketModel.user_id == UserModel.id)
+                .where(SupportTicketModel.id == ticket_id)
+            )
+        ).first()
+        if row is None:
+            return None
+        return TicketOpener(user_id=row[0], full_name=row[1], role=row[2])
+
     async def list_all_enriched(
         self, *, status: TicketStatus | None = None, limit: int = 50, offset: int = 0
     ) -> list[EnrichedTicket]:
@@ -109,8 +148,14 @@ class SqlAlchemySupportTicketRepository(SupportTicketRepository):
                 UserModel.role,
                 message_count.label("message_count"),
                 last_message_at.label("last_message_at"),
+                ShiftModel.title,
+                ShiftModel.position,
+                ShiftModel.start_at,
+                CompanyProfileModel.name,
             )
             .join(UserModel, UserModel.id == SupportTicketModel.user_id)
+            .outerjoin(ShiftModel, ShiftModel.id == SupportTicketModel.shift_id)
+            .outerjoin(CompanyProfileModel, CompanyProfileModel.id == SupportTicketModel.company_id)
             .order_by(SupportTicketModel.updated_at.desc())
             .limit(limit)
             .offset(offset)
@@ -131,8 +176,24 @@ class SqlAlchemySupportTicketRepository(SupportTicketRepository):
                 message_count=msg_count,
                 last_message_at=last_msg_at,
                 created_at=ticket.created_at,
+                shift_id=ticket.shift_id,
+                shift_title=shift_title_text(shift_title, shift_position),
+                shift_start_at=shift_start_at,
+                company_id=ticket.company_id,
+                company_name=company_name,
             )
-            for ticket, full_name, email, role, msg_count, last_msg_at in result.all()
+            for (
+                ticket,
+                full_name,
+                email,
+                role,
+                msg_count,
+                last_msg_at,
+                shift_title,
+                shift_position,
+                shift_start_at,
+                company_name,
+            ) in result.all()
         ]
 
 
@@ -166,3 +227,87 @@ class SqlAlchemySupportMessageRepository(SupportMessageRepository):
         )
         result = await self._session.execute(stmt)
         return [_to_message(m) for m in result.scalars().all()]
+
+
+class SqlAlchemyReferenceLookup(ReferenceLookup):
+    """Hechos de shift, application, company y worker para atar un ticket.
+
+    Sólo lee; la regla de quién puede atar qué vive en `SupportService`."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def get_shift_facts(self, shift_id: UUID) -> ShiftFacts | None:
+        row = (
+            await self._session.execute(
+                select(ShiftModel, CompanyProfileModel, UserModel.status)
+                .join(CompanyProfileModel, CompanyProfileModel.id == ShiftModel.company_id)
+                .join(UserModel, UserModel.id == CompanyProfileModel.user_id)
+                .where(ShiftModel.id == shift_id)
+            )
+        ).first()
+        if row is None:
+            return None
+        shift, company, owner_status = row
+        start_at = shift.start_at
+        now = datetime.now(timezone.utc)
+        # SQLite (tests) devuelve fechas sin zona: se comparan como UTC.
+        start_utc = start_at if start_at.tzinfo else start_at.replace(tzinfo=timezone.utc)
+        end_at = shift.end_at
+        end_utc = end_at if end_at.tzinfo else end_at.replace(tzinfo=timezone.utc)
+        # Misma regla que `Shift.is_open_for_applications`: todavía no empezó,
+        # o es un turno reofrecido (U080) al que le quedan al menos
+        # `REOFFER_MIN_REMAINING` de horario.
+        still_offered = start_utc > now or (
+            shift.reoffered_at is not None and end_utc - REOFFER_MIN_REMAINING > now
+        )
+        return ShiftFacts(
+            id=shift.id,
+            title=shift_title_text(shift.title, shift.position) or "Turno",
+            start_at=start_at,
+            company_id=company.id,
+            company_name=company.name,
+            company_user_id=company.user_id,
+            worker_profile_id=shift.worker_profile_id,
+            publicly_open=(
+                shift.status in {s.value for s in OPEN_STATUSES}
+                and still_offered
+                and owner_status == UserStatus.ACTIVE.value
+            ),
+        )
+
+    async def get_company_facts(self, company_id: UUID) -> CompanyFacts | None:
+        row = (
+            await self._session.execute(
+                select(CompanyProfileModel, UserModel.status)
+                .join(UserModel, UserModel.id == CompanyProfileModel.user_id)
+                .where(CompanyProfileModel.id == company_id)
+            )
+        ).first()
+        if row is None:
+            return None
+        company, owner_status = row
+        return CompanyFacts(
+            id=company.id,
+            user_id=company.user_id,
+            name=company.name,
+            account_active=owner_status == UserStatus.ACTIVE.value,
+        )
+
+    async def worker_profile_id_of(self, user_id: UUID) -> UUID | None:
+        return (
+            await self._session.execute(
+                select(WorkerProfileModel.id).where(WorkerProfileModel.user_id == user_id)
+            )
+        ).scalar_one_or_none()
+
+    async def worker_applied_to(self, shift_id: UUID, worker_profile_id: UUID) -> bool:
+        found = (
+            await self._session.execute(
+                select(ShiftApplicationModel.id).where(
+                    ShiftApplicationModel.shift_id == shift_id,
+                    ShiftApplicationModel.worker_profile_id == worker_profile_id,
+                )
+            )
+        ).first()
+        return found is not None

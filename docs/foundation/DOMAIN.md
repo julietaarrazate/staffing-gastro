@@ -41,6 +41,11 @@ campos, estados o transiciones. Se documenta la realidad y se marca cada caso.
     `ADMIN_EMAILS`.
   - El `User` es la identidad; el **perfil** (worker o company) es una entidad
     aparte ligada por `user_id`.
+  - Una cuenta **suspendida** no entra ni renueva la sesión: con la contraseña
+    correcta (o Google, o una sesión que tenía) responde 403 `account_suspended`,
+    sin el motivo; con la contraseña mal, lo de siempre. Suspender tiene
+    efectos sobre turnos ajenos ([ADR-0024](../adr/ADR-0024-efectos-de-una-suspension.md),
+    ver Shift).
 
 ## Worker — `WorkerProfile`
 
@@ -98,10 +103,40 @@ campos, estados o transiciones. Se documenta la realidad y se marca cada caso.
   pagado`, más `cancelado`.
 - **Reglas / invariantes:**
   - `start_at < end_at` (horario válido).
-  - Sólo editable/cancelable por su comercio dueño.
+  - **Al crear** un turno (y al cambiar su horario al editarlo): el inicio no
+    puede haber pasado (tolerancia de 5 minutos) y la duración va de 1 a 16
+    horas (`shift/domain/schedule.py`; el formulario aplica la misma regla en
+    `frontend/lib/turno-horario.ts`). Un turno ya creado puede tener otro
+    horario: la regla no corre al leerlo ni al operarlo. Los turnos de un
+    evento pasan por la misma regla.
+  - Sólo editable/cancelable por su comercio dueño. **No se cancela un turno
+    con la salida marcada** (`check_out`): ya se trabajó, el comercio lo
+    finaliza y lo paga, y un problema va por soporte (`Shift.is_cancellable`,
+    [ADR-0007](../adr/ADR-0007-no-show-y-cancelacion-tardia.md), actualización
+    2026-11-18).
   - Aparece en el **feed** sólo si está en estados abiertos
-    (`publicado`/`buscando_personal`, `OPEN_STATUSES`).
+    (`publicado`/`buscando_personal`, `OPEN_STATUSES`) y todavía no empezó; la
+    excepción es el turno reofrecido (abajo).
   - `reject` de un asignado vuelve el turno a `buscando_personal`.
+  - **Turno reofrecido (U080, [ADR-0015](../adr/ADR-0015-turno-no-cubierto.md),
+    actualización 2026-11-18):** si quien tenía el turno lo deja (rechaza,
+    cancela, falta) con el horario ya empezado, el turno se **reofrece como
+    urgente** cuando le quedan al menos 2 horas (`reoffered_at`); con menos,
+    pasa directo a `no_cubierto` (`Shift._reopen`). Mientras está reofrecido
+    aparece en el feed aunque haya empezado, hasta que le quedan menos de 2
+    horas (`offered_until`); si nadie confirmó para entonces, pasa a
+    `no_cubierto`. Quien lo toma cobra **lo que resta desde que marca la
+    llegada**: hasta ahí se muestra el valor por hora, y al llegar queda fijo
+    `prorated_pay_amount` (`Shift.amount_due` decide qué se paga). A esa
+    persona el recordatorio y la ausencia se le cuentan desde que confirmó
+    (`confirmed_at`, `Shift.expected_from`, [ADR-0008](../adr/ADR-0008-asistencia-simplificada-y-no-show-automatico.md)).
+  - **Cuenta suspendida ([ADR-0024](../adr/ADR-0024-efectos-de-una-suspension.md)):**
+    los turnos abiertos de un comercio suspendido no aparecen en el feed, en la
+    página pública ni aceptan postulaciones (no cambian de estado: vuelven a
+    verse si se reactiva); los suyos `asignado`/`confirmado`/`en_camino` se
+    cancelan sin cancelación tardía. Los de un trabajador suspendido en esos
+    estados vuelven a `buscando_personal` (`release_worker`) sin sumarle una
+    cancelación. Desde `check_in` no se toca nada.
   - `cancelado`, `finalizado`, `pagado` son **terminales**.
   - check-in/check-out capturan geolocalización y exigen estar a ≤ 300 m del
     local del turno (`CHECK_RADIUS_KM`); si el turno no tiene coordenadas no se
@@ -113,13 +148,35 @@ campos, estados o transiciones. Se documenta la realidad y se marca cada caso.
 - **Propósito:** el "match" tiene **dos lados**:
   - **Lado trabajador:** `ShiftApplication` — el worker se **postula** a un turno
     abierto (swipe derecha). Estados `ApplicationStatus`: `pendiente`, `aceptada`,
-    `rechazada`, `retirada`. Único por (turno, trabajador).
+    `rechazada`, `retirada`, `desasignada`. Único por (turno, trabajador): hay
+    una sola fila, que cambia de estado.
   - **Lado comercio:** la **asignación** — el comercio elige un postulante (o un
     candidato recomendado por `matching`) y asigna el turno; el worker confirma o
     rechaza. Se materializa en `Shift.worker_profile_id` + estado
     `asignado`/`confirmado`.
-- **Invariante:** un trabajador se postula una sola vez por turno; sólo se puede
-  postular a turnos abiertos.
+- **Invariante:** un trabajador tiene a lo sumo **una postulación por turno**;
+  sólo se puede postular a turnos abiertos (y de un comercio con la cuenta
+  activa). No se puede asignar a una cuenta suspendida, y la lista de
+  postulantes no la muestra ([ADR-0024](../adr/ADR-0024-efectos-de-una-suspension.md)). Con una postulación activa
+  (`pendiente` o `aceptada`) no puede postularse otra vez.
+- **Quien tuvo el turno y lo dejó ([ADR-0026](../adr/ADR-0026-postulacion-desasignada.md)):**
+  si la persona asignada rechaza, cancela ya confirmada o no se presenta, su
+  postulación pasa a `desasignada` con el motivo (`rechazo`, `cancelacion`,
+  `ausencia`); si la asignaron sin postularse, la fila se crea así, con
+  `se_postulo` en falso (no cuenta como postulación suya: no le abre el CV al
+  comercio ni entra en las métricas). El
+  comercio la ve al final de los postulantes, con su marca, y puede volver a
+  asignarle el turno (`desasignada → aceptada`); ella no puede postularse
+  otra vez a ese turno, y `matching` no la recomienda para él. Una suspensión
+  no deja marca: la postulación vuelve a `pendiente` (ADR-0024). Quien retiró
+  su postulación no aparece en la lista de postulantes.
+- **Volver a postularse:** una postulación `retirada` (la canceló el trabajador,
+  o el sistema al confirmar otro turno del mismo horario) se **reactiva** si el
+  trabajador se postula de nuevo y el turno sigue abierto: la misma postulación
+  vuelve a `pendiente` con fecha nueva (`ShiftApplication.reapply`) y el comercio
+  recibe el aviso como con una postulación nueva. Una `rechazada` no se reactiva
+  así: es decisión del comercio y vuelve a `pendiente` sola si el turno se
+  reabre.
 - No hay una entidad `Match` única: el match es la conjunción postulación +
   asignación + confirmación. Ver [MATCHING.md](../reference/MATCHING.md) (Fase 2).
 
@@ -133,11 +190,20 @@ campos, estados o transiciones. Se documenta la realidad y se marca cada caso.
 
 ## Chat — `ChatMessage`
 
-- **Propósito:** mensajería trabajador↔comercio **por turno**.
-- **Datos:** `shift_id`, `sender_user_id`, `body`, `read`, `created_at`.
+- **Propósito:** mensajería trabajador↔comercio dentro de un turno, **una
+  conversación por turno y persona asignada**.
+- **Datos:** `shift_id`, `worker_user_id` (la persona del hilo), `sender_user_id`,
+  `body`, `read`, `created_at`.
 - **Reglas:** la conversación la integran el comercio y el trabajador **asignado**
   a ese turno; entrega en **tiempo real por WebSocket**; avisa al destinatario con
   una `Notification`.
+- **Un hilo por persona asignada:** la conversación es del comercio con **una**
+  persona, la que estaba asignada cuando se escribió cada mensaje (hilo =
+  turno + trabajador). Si el turno se reasigna, quien lo recibe arranca con el
+  hilo vacío, el comercio ve sólo el hilo con la persona asignada ahora y la
+  anterior deja de tener acceso. Los mensajes del hilo anterior se conservan,
+  pero no se le muestran a nadie que no haya sido parte. Detalle en
+  [CHAT.md](../reference/CHAT.md).
 
 ## Review — `Review`
 

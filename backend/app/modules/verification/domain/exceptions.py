@@ -29,3 +29,9 @@ class ClaimNotFoundError(VerificationError):
 class EvidenceNotFoundError(VerificationError):
     """No hay archivo para mostrar: la evidencia no existe, ya se purgó, o su
     claim ya no está pendiente (ADR-0021: sólo se mira mientras se revisa)."""
+
+
+class ClaimAlreadyExistsError(VerificationError):
+    """Se intentó crear un claim del mismo tipo para un sujeto que ya tiene
+    uno: otro envío casi simultáneo ganó la carrera. El caso de uso lo
+    resuelve releyendo el claim existente y reenviando sobre él."""

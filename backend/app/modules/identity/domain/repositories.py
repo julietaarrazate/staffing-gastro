@@ -5,8 +5,9 @@ concretas (adaptadores) viven en la capa de infraestructura.
 """
 
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from uuid import UUID
 
 from app.modules.identity.domain.entities import (
@@ -64,8 +65,13 @@ class UserRepository(ABC):
         role: UserRole | None = None,
         status: UserStatus | None = None,
         verified: bool | None = None,
+        also_user_ids: Sequence[UUID] = (),
     ) -> list[User]:
         """Lista usuarios (más recientes primero).
+
+        `also_user_ids`: con `search`, suma a los que coinciden por nombre o
+        email estos usuarios (los que el caso de uso encontró por otro dato,
+        p. ej. el nombre del local); el resto de los filtros sigue valiendo.
 
         Filtros opcionales del buscador de "Personas" (panel de admin):
         `search` busca en nombre y email sin distinguir mayúsculas; `role`,
@@ -118,6 +124,23 @@ class RefreshSessionRepository(ABC):
         """Borra las sesiones cuyo `expires_at` es anterior a `cutoff` y
         devuelve cuántas borró (retención: un refresh vencido ya no sirve,
         su JWT también venció)."""
+
+    @abstractmethod
+    async def user_ids_ended_by_revocation(
+        self, user_ids: list[UUID], *, now: datetime, revoked_grace: timedelta
+    ) -> set[UUID]:
+        """De `user_ids`, los que se quedaron sin sesión por una revocación.
+        Tienen que darse las tres cosas:
+
+        1. No tienen ninguna sesión viva (sin vencer y sin revocar). Una
+           revocada hace menos de `revoked_grace` también cuenta como viva:
+           renovar revoca la sesión usada y recién después guarda la nueva, y
+           el access token que salió con ella sigue sirviendo unos minutos.
+        2. Tienen al menos una fila (la retención borra las vencidas hace
+           más de una semana: sin filas no se sabe cómo terminó).
+        3. Su fila más reciente (`created_at`) está revocada. Si la última
+           sólo venció, la cuenta está inactiva, no cerrada: no entra. Ante
+           un empate de fechas alcanza una sin revocar para que no entre."""
 
 
 class PasswordResetTokenRepository(ABC):

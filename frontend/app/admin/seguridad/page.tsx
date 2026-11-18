@@ -94,9 +94,8 @@ export default function AdminSecurityPage() {
     setBusy(true);
     setError(null);
     try {
-      const result = await twoFactorApi.confirm(token, code);
       // Sesión nueva, ya verificada: las demás de la cuenta se cerraron.
-      await adoptSession(result);
+      const result = await adoptSession(() => twoFactorApi.confirm(token, code));
       setStatus({
         enabled: true,
         enabled_at: status?.enabled_at ?? new Date().toISOString(),
