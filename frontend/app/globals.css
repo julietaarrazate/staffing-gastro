@@ -837,6 +837,18 @@ textarea,
 input[data-foco-contenedor]:focus-visible {
   outline: none;
 }
+/* El contenedor dibuja ese único contorno, el mismo de la marca. */
+.foco-contenedor:has(:focus-visible) {
+  outline: 2px solid var(--focus-ring, var(--color-primary));
+  outline-offset: 2px;
+}
+/* Elementos que dibujan su propio foco por dentro (tarjeta con enlace que la
+ * cubre entera, donde un contorno de afuera se recortaría): ese es el ÚNICO
+ * indicador, así que se apaga el global. `outline-none` de Tailwind no alcanza
+ * porque el global no está en ninguna capa. */
+.foco-propio:focus-visible {
+  outline: none;
+}
 
 /* Oculta scrollbars en carruseles/filas horizontales sin perder el scroll. */
 .no-scrollbar {

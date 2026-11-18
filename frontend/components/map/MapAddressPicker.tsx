@@ -191,7 +191,7 @@ export default function MapAddressPicker({
   return (
     <div className="flex flex-col gap-3">
       <div className="relative">
-        <div className="flex items-center gap-2 rounded-[var(--radius-input)] bg-card px-3.5 ring-1 ring-line focus-within:ring-2 focus-within:ring-primary">
+        <div className="foco-contenedor flex items-center gap-2 rounded-[var(--radius-input)] bg-card px-3.5 ring-1 ring-line">
           <SearchIcon size={17} className="shrink-0 text-ink/40" />
           <input
             value={query}

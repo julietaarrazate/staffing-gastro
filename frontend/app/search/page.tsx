@@ -193,7 +193,7 @@ function SearchPageContent() {
       <select
         value={skill}
         onChange={(e) => setSkill(e.target.value as WorkerSkill | "")}
-        className="flex-1 rounded-full bg-surface px-3 py-2 text-sm font-medium text-ink/75 ring-1 ring-line transition focus:bg-card focus:ring-2 focus:ring-primary/40"
+        className="flex-1 rounded-full bg-surface px-3 py-2 text-sm font-medium text-ink/75 ring-1 ring-line transition focus:bg-card"
       >
         <option value="">Todos los roles</option>
         {WORKER_SKILLS.map((s) => (
@@ -210,7 +210,7 @@ function SearchPageContent() {
         onChange={(e) => setRadiusKm(Number(e.target.value))}
         title="Radio en km"
         aria-label="Radio en kilómetros"
-        className="w-12 rounded-full bg-surface px-1 py-2 text-center text-sm font-medium text-ink/75 ring-1 ring-line transition focus:bg-card focus:ring-2 focus:ring-primary/40"
+        className="w-12 rounded-full bg-surface px-1 py-2 text-center text-sm font-medium text-ink/75 ring-1 ring-line transition focus:bg-card"
       />
       <span className="-ml-1 text-sm font-medium text-ink/60" aria-hidden>
         km

@@ -51,6 +51,18 @@ Buenos Aires, el papel de la comanda y el filete de los carteles de bodegón.
    va en celeste, no en beige. El ámbar queda sólo en la palabra que cambia
    del inicio.
 
+**Foco: un solo indicador por elemento.** El contorno global de
+`globals.css` (`:focus-visible`, 2px, `--focus-ring`: azul de marca en claro,
+celeste en oscuro) es el único. Los campos y botones NO suman un anillo propio
+(`focus:ring-2 focus:ring-primary/40` y similares): se veían dos juntos, ámbar
+sobre celeste, y en el celular el tap enfoca los campos. De reposo queda el
+borde fino (`ring-1 ring-line`) y, en error, `ring-danger`. Dos excepciones, con
+clase en `globals.css`: `.foco-contenedor` (el contenedor de un campo sin borde
+propio dibuja el contorno y el input lleva `data-foco-contenedor`) y
+`.foco-propio` (un enlace que cubre una tarjeta y dibuja su ring por dentro;
+apaga el global). `outline-none` de Tailwind no apaga el global (no tiene
+capa). Lo cuida `frontend/e2e/un-solo-foco.spec.ts`.
+
 ## Paleta
 
 | Rol | Claro | Oscuro |
