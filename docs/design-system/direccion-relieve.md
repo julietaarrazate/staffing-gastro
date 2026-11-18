@@ -136,10 +136,14 @@ El híbrido parte de la landing de hoy, sección por sección y con sus textos
 - **El mapa** va en celeste, con quien va acercándose al bar y la ficha «Va
   en camino», sin reloj ni horarios: en la landing un reloj se lee como
   promesa.
-- **Los precios como carta**, con «sugerencia de la casa» en Mansalva y la
-  comanda de la caja que se imprime al elegir un plan.
+- **Los precios como carta**, con «sugerencia de la casa» en Mansalva. La
+  acompaña una **pizarra de bodegón** donde la tiza escribe el plan elegido y
+  marca los turnos con palitos de a cinco (uno para Inicial, tres para
+  Básico, y siguen con puntos para Pro). Primero tenía una segunda comanda
+  saliendo de la caja; Julieta la sacó el 2026-11-18: «dos comandas es
+  redundante», la carta pide otra animación.
 - **La comanda** sale de la misma impresora oscura de hoy, como papel de
-  cocina, y recibe la cinta «¡Oído!».
+  cocina, y recibe la cinta «¡Oído!». Es la única comanda de la landing.
 - **Botones de hoy con el relieve** azul hondo en lugar de la sombra difusa.
 - **Pie de color** azul hondo; el cierre va **sin el Sol de Mayo**.
 - Ninguna bajada: una idea por sección, como manda `marca-hoy.md`, regla 1.
@@ -184,15 +188,17 @@ Falta mirarla con Julieta y decidir qué de esto entra a la app real.
 ## Isotipo (2026-11-18)
 
 Cinco conceptos en vector, a 16, 32, 180 y 512 px, en claro y oscuro, en la
-pestaña y en el celular junto al «oí» de hoy: la voluta (filete), el pinche
+pestaña y en el celular junto al «oí» de entonces: la voluta (filete), el pinche
 (la comanda clavada), la campanita (el pase), grito y respuesta, y la o que
 grita.
 
-**Recomendado: «grito y respuesta».** Los dos signos de «¡Oído!»: el blanco
-abre (el local que pide) y el ámbar cierra (quien contesta). Sólo existe en
-castellano, aguanta los 16 px y arma el logo con la palabra («¡oído!»). El
-riesgo es que un signo solo se lee como alerta: van siempre los dos,
-espejados y de distinto color. La voluta queda como adorno, no como ícono.
+**Se recomendó «grito y respuesta»** (los dos signos de «¡Oído!»), pero
+**Julieta eligió otro después de verlos: el pinche con «oído»** (2026-11-18),
+la comanda de papel clavada en el pinche de la cocina con la palabra
+fileteada en el papel y, de 48 px para abajo, la misma comanda con la «o»
+sola. Está en el código (ver `marca-hoy.md`, regla 4). La voluta queda como
+adorno, no como ícono. El brief de abajo era para «grito y respuesta»; si se
+encarga a un fileteador, hay que reescribirlo para el pinche.
 
 **Brief para un fileteador** (conviene encargarlo con el concepto cerrado, no
 como exploración abierta):
@@ -213,14 +219,15 @@ como exploración abierta):
   títulos de sección, en lugar de Young Serif; Mansalva para lo anotado a
   mano; Inter para el texto. Todavía no rige: `typography.md` y `marca-hoy.md`
   se actualizan en el PR que lo lleve al código.
-- **Isotipo: «grito y respuesta»**, sólo como ícono de la app (no va junto al
-  «oído»). Reemplaza al «oí» cuando se lleve al código.
+- **Isotipo: el pinche con «oído»**, elegido por Julieta el 2026-11-18 después
+  de verlo, sólo como ícono de la app (no va junto al «oído»). Ya reemplazó al
+  «oí» en el código.
 - **Los planes como carta**, y la base de la landing es el híbrido.
 
 ## Falta que decida Julieta
 
 1. Qué le cambia al híbrido (es la base desde el 2026-11-18).
-2. Si el isotipo se encarga a un fileteador o se usa el vector de la prueba.
+2. Si el isotipo se encarga a un fileteador o se queda el vector propio.
 3. Qué de la prueba de la app entra a la app real, y en qué orden.
 4. Antes de producción, confirmar contra el producto lo que la prueba afirma:
    «Gratis para quien trabaja», «gente verificada» y «Hecho en Buenos Aires».
@@ -232,8 +239,10 @@ como exploración abierta):
    ([historial](../historial/2026-11-18-comanda-papel-de-cocina.md)).
 2. **Los tokens del relieve** en `globals.css` (sombra dura, botón recto,
    radio), sin romper los que hay y con ADR si cambia el sistema.
-3. **El isotipo**, cuando esté elegido: primero el vector provisorio en lugar
-   del «oí» (`scripts/build-icons.mjs`), después el del fileteador.
+3. ~~**El isotipo**: primero el vector provisorio en lugar del «oí»
+   (`scripts/build-icons.mjs`), después el del fileteador.~~ **Hecho el
+   2026-11-18:** el pinche con «oído» es el ícono de la app (vectores en
+   `marca/isotipo-pinche*.svg`); lo del fileteador queda opcional.
 4. **Los precios como carta** (`Precios.tsx`): toca cómo se muestran los
    planes, así que se pregunta antes.
 5. **El héroe elegido, los títulos y la letra**, con el instructivo y el pie

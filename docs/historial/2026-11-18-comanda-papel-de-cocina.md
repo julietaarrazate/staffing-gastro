@@ -1,4 +1,4 @@
-# La comanda de la landing es papel de cocina, no un ticket
+# La comanda de la landing es papel de cocina, no un ticket (#630)
 
 **Pedido:** Julieta, 2026-11-18: con la letra y el isotipo ya elegidos,
 arrancar a llevar la dirección «con relieve» al código en el orden de

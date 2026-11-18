@@ -37,13 +37,17 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
   fila, en [`planning/BETA_TABLERO.md`](./planning/BETA_TABLERO.md). Es lo
   primero que se lee y lo que se edita en cada PR de la beta.
 
-0. 🟡 **Marca: Shrikhand e ícono «oí» (beta, etapa 4).** Julieta eligió el
-   2026-11-17 la letra Shrikhand y seguir con el ámbar. El «oí» es
-   provisorio: Julieta eligió el 2026-11-18 el isotipo **«grito y
-   respuesta»**, los dos signos de «¡Oído!», sólo como ícono de la app
-   (cinco conceptos en https://claude.ai/artifact/TqfGBkrBX1aGFJSygrsQkS).
-   **Falta llevarlo al código** y decidir si se encarga a un fileteador. La app, la landing,
-   los íconos, la miniatura, los vectores y el manual en PDF de
+0. 🟡 **Marca: Shrikhand e ícono «el pinche con oído» (beta, etapa 4).** Julieta eligió el
+   2026-11-17 la letra Shrikhand y seguir con el ámbar. El 2026-11-18 eligió,
+   después de ver cinco conceptos (https://claude.ai/artifact/TqfGBkrBX1aGFJSygrsQkS),
+   el ícono **«el pinche con oído»** (la comanda clavada en el pinche, con
+   «oído» en el papel; «o» sola de 48 px para abajo), sólo como ícono de la
+   app: **ya está en el código** (íconos grandes, maskable, favicon, silueta y
+   los vectores `isotipo-pinche*` de `design-system/marca/`;
+   [historial](./historial/2026-11-18-icono-pinche-oido.md)). Falta, opcional,
+   decidir si se encarga a un fileteador y regenerar el manual en PDF, que
+   sigue con el «oí». La app, la landing,
+   la miniatura, los vectores y el manual en PDF de
    `design-system/marca/` y el brand system navegable ya están
    ([historial](./historial/2026-11-17-marca-shrikhand-isotipo-oi.md)). Sigue
    **la dirección «con relieve»** (Julieta eligió
