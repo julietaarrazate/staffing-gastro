@@ -1204,20 +1204,29 @@ body:has([data-landing]) main {
    con borde azul hondo y la sombra dura del filete; al tocarlo se corre lo
    que mide la sombra. El color de fondo y de letra los pone quien lo usa. */
 .boton-relieve {
-  border: 1.5px solid var(--relieve);
+  /* El borde va como sombra hacia adentro y no como `border`: un borde de
+     verdad agranda el botón y lo dejaba 2 px más alto que el secundario de
+     al lado (lo midió la revisión del 2026-11-18). */
+  --relieve-borde: inset 0 0 0 1.5px var(--relieve);
   border-radius: var(--radius-relieve);
-  box-shadow: var(--shadow-relieve);
+  box-shadow: var(--relieve-borde), var(--shadow-relieve);
   transition:
     transform 0.12s ease,
-    box-shadow 0.12s ease;
+    box-shadow 0.12s ease,
+    filter 0.15s ease,
+    background-color 0.15s ease;
 }
 .boton-relieve:active {
   transform: translate(var(--relieve-btn), var(--relieve-btn));
-  box-shadow: 0 0 0 var(--relieve);
+  box-shadow: var(--relieve-borde), 0 0 0 var(--relieve);
+}
+/* El anillo de foco, separado del botón: pegado se confundía con el borde y
+   con el relieve, que en claro son del mismo azul. */
+.boton-relieve:focus-visible {
+  outline-offset: 4px;
 }
 /* Desactivado: sin borde de color ni relieve, con un filete. No se aprieta. */
 .boton-relieve:disabled {
-  border-color: transparent;
   box-shadow: 0 0 0 1px var(--color-line);
   transform: none;
 }

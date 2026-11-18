@@ -78,8 +78,15 @@ desentonaba era «Elegir a alguien» plano, con su resplandor, al lado de
 toda la app: el `Button` en su variante `primary` (que al tocarlo se corre
 3 px en lugar de achicarse) y los cinco botones ámbar hechos a mano
 (`ShiftActions`, `ShiftDetail`, `PaginaAviso`, `PerfilFaltanteCard`,
-`ImageCropModal`). Los secundarios siguen planos. Desactivado va sin borde
-ni relieve, con un filete.
+`ImageCropModal`, y «Enviar» del chat). Los secundarios siguen planos.
+Desactivado va sin borde ni relieve, con un filete. Su revisión
+independiente (login, registro, panel, modal de pago, publicar turno; 320 a
+1280 px, claro y oscuro) no encontró sombras cortadas ni scroll horizontal, y
+marcó tres cosas menores que se arreglaron: el borde agrandaba el botón 2 px
+respecto del secundario de al lado (ahora es una sombra hacia adentro), el
+anillo de foco se confundía con el borde (va separado 4 px) y «Enviar» del
+chat había quedado plano. No abrió el detalle del turno, el recorte de fotos
+ni las hojas inferiores: ahí el botón se probó sólo con la suite.
 
 **Queda abierto:** Candidatos y Mis turnos (ítem 0 de `STATUS.md`). Con
 «Publicar turno» y «Elegir a alguien» sigue habiendo dos ámbar en la
