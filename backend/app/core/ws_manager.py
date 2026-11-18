@@ -101,6 +101,14 @@ class ConnectionManager:
             except Exception:
                 self.disconnect_notification(user_id, ws)
 
+    async def close_user_connections(self, user_id: UUID) -> int:
+        """Corta los sockets de avisos abiertos de este usuario (cuenta
+        suspendida, ADR-0024) y los saca del registro. Devuelve cuántos."""
+        sockets = list(self._notifications.pop(user_id, ()))
+        if sockets:
+            await asyncio.gather(*(_close_quietly(ws) for ws in sockets))
+        return len(sockets)
+
 
 async def _close_quietly(websocket: WebSocket) -> None:
     try:

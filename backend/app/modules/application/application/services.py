@@ -171,7 +171,18 @@ class ApplicationService:
             worker_profile_id, limit=limit, offset=offset
         )
         shift_ids = list({a.shift_id for a in applications})
-        shifts_by_id = {s.id: s for s in await self._shifts.list_by_ids(shift_ids)}
+        shifts = await self._shifts.list_by_ids(shift_ids)
+        # Los turnos de un comercio suspendido dejan de verse (ADR-0024): la
+        # postulación se devuelve sin turno, como si ya no existiera, salvo el
+        # que tiene asignado esta misma persona (puede estar trabajándolo).
+        inactive = await self._shifts.companies_with_inactive_account(
+            list({s.company_id for s in shifts})
+        )
+        shifts_by_id = {
+            s.id: s
+            for s in shifts
+            if s.company_id not in inactive or s.worker_profile_id == worker_profile_id
+        }
         return [(a, shifts_by_id.get(a.shift_id)) for a in applications]
 
     async def withdraw(

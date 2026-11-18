@@ -214,6 +214,9 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
                 # Gente que se postuló: no quien fue asignado sin postularse.
                 ShiftApplicationModel.se_postulo.is_(True),
                 UserModel.full_name.ilike(f"%{name_query}%"),
+                # Igual que la lista de postulantes: una cuenta suspendida no
+                # se encuentra (ADR-0024).
+                UserModel.status == UserStatus.ACTIVE.value,
             )
             .order_by(ShiftApplicationModel.created_at.desc())
             .limit(1)
