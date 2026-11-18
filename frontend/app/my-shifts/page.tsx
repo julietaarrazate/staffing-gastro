@@ -569,7 +569,9 @@ function MatchesContent() {
                   </Button>
                 )}
                 {shift.status === "check_out" && (
-                  <p className="text-sm text-ink/50">
+                  // ink/60 como la línea de estado del panel: con el plazo es
+                  // información que la persona tiene que poder leer bien.
+                  <p className="text-sm text-ink/60">
                     Esperando que el comercio cierre el turno. {autoFinishWorkerNote(shift.check_out_at, now)}
                   </p>
                 )}
