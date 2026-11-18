@@ -266,7 +266,7 @@ el modelo del dominio, un ADR vigente o un texto legal:
   [ADR-0026](../adr/ADR-0026-postulacion-desasignada.md)).
 - **U080, U081 y U072** (decisiones 2, 3, 4 y 16). Al 2026-11-18:
   - ✅ **U081** en `main` (#632, ADR-0007 actualizado).
-  - ✅ **U072** en `main` (#PRU072; migración 0052, ADR-0014 actualizado,
+  - ✅ **U072** en `main` (#633; migración 0052, ADR-0014 actualizado,
     versión legal `2026-11-18-1`; Julieta aprobó el texto, decisión 20).
   - ⚪ **U080** diseñado y con sus datos decididos (18 y 19), **sin
     escribir**: es lo primero de la sesión que sigue. El diseño: marca
