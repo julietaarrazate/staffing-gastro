@@ -102,6 +102,16 @@ services:
         sync: false
       - key: MERCADOPAGO_WEBHOOK_SECRET
         sync: false
+      # --- Verificación en dos pasos del admin (ADR-0023) ---
+      # Clave Fernet que cifra en la base el secreto de la app autenticadora
+      # de las cuentas admin. Se genera UNA vez (comando en
+      # docs/reference/PENDIENTE_OPERATIVO.md, "Verificación en dos pasos") y
+      # no se reemplaza sin rotarla: perdida, hay que volver a activar la
+      # verificación. Vacía = el panel de admin queda cerrado (la verificación
+      # es obligatoria y sin clave no se puede activar); trabajadores y
+      # comercios no se enteran. Cargarla ANTES del deploy que la trae.
+      - key: TWO_FACTOR_ENCRYPTION_KEY
+        sync: false
       # --- Interpretación por IA (Gemini) ---
       # Sin esta clave, `POST /shifts/parse-text` y los dos asistentes
       # responden 503 y la app cae a "completá los datos a mano". Se declara

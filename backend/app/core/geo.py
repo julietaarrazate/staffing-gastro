@@ -2,6 +2,7 @@
 
 import hashlib
 import math
+import unicodedata
 
 EARTH_RADIUS_KM = 6371.0
 
@@ -19,6 +20,67 @@ def haversine_km(
 
     a = math.sin(d_phi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(d_lambda / 2) ** 2
     return 2 * EARTH_RADIUS_KM * math.asin(math.sqrt(a))
+
+
+def bounding_box(
+    lat: float, lng: float, radius_km: float
+) -> tuple[float, float, float, float]:
+    """Caja `(lat_min, lat_max, lng_min, lng_max)` que contiene entero el
+    círculo de `radius_km` alrededor de `(lat, lng)`.
+
+    Es el filtro GRUESO de «cerca»: comparaciones simples de coordenadas que
+    cualquier base resuelve (Postgres en producción, SQLite en los tests, sin
+    PostGIS). La caja sobra en las esquinas a propósito; quien la usa mide
+    después la distancia exacta con `haversine_km`.
+    """
+    # 1% de margen: que un redondeo nunca deje afuera a alguien del borde.
+    angular = (radius_km / EARTH_RADIUS_KM) * 1.01
+    d_lat = math.degrees(angular)
+    # Los meridianos se juntan hacia los polos: un mismo radio abarca más
+    # grados de longitud cuanto más lejos del ecuador. Se usa la latitud más
+    # alejada del ecuador que toca el círculo, que es donde más abarca.
+    widest_lat = min(abs(lat) + d_lat, 89.0)
+    d_lng = math.degrees(angular / math.cos(math.radians(widest_lat)))
+    return lat - d_lat, lat + d_lat, lng - d_lng, lng + d_lng
+
+
+def normalize_city(name: str | None) -> str | None:
+    """Nombre de ciudad listo para comparar: sin mayúsculas, sin tildes y sin
+    espacios de más. `None` si no hay nada escrito.
+
+    La ciudad es texto libre en el perfil y en el turno («Córdoba»,
+    «cordoba », «CORDOBA»): comparar tal cual dejaba afuera a la misma ciudad
+    escrita de otra forma."""
+    if not name:
+        return None
+    decomposed = unicodedata.normalize("NFKD", name)
+    plain = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
+    collapsed = " ".join(plain.casefold().split())
+    return collapsed or None
+
+
+def same_city(a: str | None, b: str | None) -> bool:
+    """¿Es la misma ciudad? Falso si falta alguna de las dos: sin ciudad no
+    hay con qué comparar, y eso nunca cuenta como «la misma»."""
+    left, right = normalize_city(a), normalize_city(b)
+    return left is not None and left == right
+
+
+def is_near(
+    distance_km: float | None,
+    radius_km: float,
+    city: str | None,
+    other_city: str | None,
+) -> bool:
+    """La regla de «cerca», una sola para los avisos y para las listas.
+
+    - Con distancia medible: adentro del radio, borde incluido.
+    - Sin distancia (a alguna de las dos puntas le faltan coordenadas): sólo
+      si la ciudad es la misma. Sin ciudad en alguna de las dos, no es cerca.
+    """
+    if distance_km is not None:
+        return distance_km <= radius_km
+    return same_city(city, other_city)
 
 
 # TECH_DEBT.md S4 / ADR-0014 §3: el mapa del comercio (y el de admin, mismo

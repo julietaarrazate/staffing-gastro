@@ -18,6 +18,7 @@ export default function TextField({
   inputMode,
   min,
   max,
+  step,
   minLength,
   maxLength,
   error,
@@ -38,8 +39,10 @@ export default function TextField({
   required?: boolean;
   leftIcon?: ReactNode;
   inputMode?: "text" | "numeric" | "decimal" | "email" | "tel";
-  min?: number;
-  max?: number;
+  /** Número, o `AAAA-MM-DD` en un campo `type="date"`. */
+  min?: number | string;
+  max?: number | string;
+  step?: number;
   minLength?: number;
   maxLength?: number;
   /** Mensaje de error del campo: conecta `aria-describedby`/`aria-invalid`
@@ -80,12 +83,13 @@ export default function TextField({
           spellCheck={noSpellCheck ? false : undefined}
           min={min}
           max={max}
+          step={step}
           minLength={minLength}
           maxLength={maxLength}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
           className={cn(
-            "min-h-[48px] w-full rounded-[var(--radius-input)] bg-surface px-4 text-body text-ink outline-none ring-1 ring-line transition focus:ring-2 focus:ring-primary/40",
+            "min-h-[48px] w-full rounded-[var(--radius-input)] bg-surface px-4 text-body text-ink outline-none ring-1 ring-line transition",
             Boolean(leftIcon) && "pl-11",
             isPassword && "pr-12",
             error && "ring-2 ring-danger"

@@ -99,6 +99,13 @@ export function syncInteractiveHandlers(raw: unknown, interactive: boolean) {
   }
 }
 
+/** Carteles de `cooperativeGestures` en español (MapLibre los trae en inglés). */
+export const MAP_LOCALE_ES = {
+  "CooperativeGesturesHandler.WindowsHelpText": "Usá Ctrl + scroll para acercar o alejar el mapa",
+  "CooperativeGesturesHandler.MacHelpText": "Usá ⌘ + scroll para acercar o alejar el mapa",
+  "CooperativeGesturesHandler.MobileHelpText": "Usá dos dedos para mover el mapa",
+};
+
 // Mismo problema que arriba, pero con `cooperativeGestures` — el gesto que
 // exige dos dedos para panear un mapa embebido en una página con scroll
 // (reporte real de Julieta, ver el prop más abajo). `cooperativeGestures` es
@@ -198,6 +205,16 @@ const MapView = forwardRef<MapRef, MapViewProps>(function MapView(
   // reintentar sobre la misma instancia no sirve, el estilo ya falló en ella.
   const [intento, setIntento] = useState(0);
 
+  // `onLoad` se avisa desde un efecto y no dentro del evento `load`: en un mapa
+  // reciclado (`reuseMaps`) ese evento llega antes de que React asigne
+  // `mapRef.current`, y quien esperaba el `MapRef` (el encuadre de
+  // `EnRouteMap`, U071) no se enteraba nunca al volver a una pantalla.
+  const onLoadRef = useRef(onLoad);
+  onLoadRef.current = onLoad;
+  useEffect(() => {
+    if (loaded && mapRef.current) onLoadRef.current?.(mapRef.current);
+  }, [loaded, intento]);
+
   useEffect(() => {
     if (loaded) return;
     const id = setTimeout(() => setFalloCarga(true), TIMEOUT_CARGA_MS);
@@ -219,6 +236,7 @@ const MapView = forwardRef<MapRef, MapViewProps>(function MapView(
           reuseMaps
           interactive={interactive}
           cooperativeGestures={cooperativeGestures}
+          locale={MAP_LOCALE_ES}
           initialViewState={{ longitude: center[1], latitude: center[0], zoom }}
           mapStyle={MAP_STYLE_URL}
           attributionControl={false}
@@ -235,7 +253,6 @@ const MapView = forwardRef<MapRef, MapViewProps>(function MapView(
             syncCamera(e.target, center, zoom);
             setLoaded(true);
             setFalloCarga(false);
-            if (mapRef.current) onLoad?.(mapRef.current);
           }}
           onMoveEnd={onMoveEnd}
         >

@@ -1,0 +1,15 @@
+# Estado generado: vive en E1_DIR (fuera del repo). Esto sólo ataja accidentes.
+admin.json
+.env
+.env.*
+*.pem
+.totp/
+.seeded
+assets/
+__pycache__/
+smoke-result.json
+state/
+logs/
+evidence/
+cloud/
+mailbox.jsonl

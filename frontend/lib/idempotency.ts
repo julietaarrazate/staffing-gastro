@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { borrarSesion, guardarSesion, leerSesion } from "@/lib/almacen-sesion";
 
 /**
  * Keys de idempotencia por intento de mutación crítica (ver
@@ -16,21 +17,41 @@ import { useRef } from "react";
  * vez que se dispare la misma acción sea un intento nuevo con key nueva. Si
  * no se llama a `clear` (p. ej. quedó pendiente por un error de red), la
  * key persiste: un reintento del usuario reusa el mismo intento.
+ *
+ * Con `persistKey` las keys también se guardan en `sessionStorage`: una
+ * recarga a mitad de un intento sin respuesta sigue siendo el MISMO intento
+ * (BK-7DCC7E4AB945). Sin almacenamiento se comporta igual que sin la opción.
  */
-export function useIdempotencyKeys() {
-  const keys = useRef<Record<string, string>>({});
+export function useIdempotencyKeys(persistKey?: string) {
+  const keys = useRef<Record<string, string> | null>(null);
+
+  function current(): Record<string, string> {
+    if (keys.current === null) {
+      keys.current = (persistKey && leerSesion<Record<string, string>>(persistKey)) || {};
+    }
+    return keys.current;
+  }
+
+  function persist(): void {
+    if (!persistKey) return;
+    if (Object.keys(current()).length === 0) borrarSesion(persistKey);
+    else guardarSesion(persistKey, current());
+  }
 
   function keyFor(action: string): string {
-    let key = keys.current[action];
+    const all = current();
+    let key = all[action];
     if (!key) {
       key = crypto.randomUUID();
-      keys.current[action] = key;
+      all[action] = key;
+      persist();
     }
     return key;
   }
 
   function clear(action: string): void {
-    delete keys.current[action];
+    delete current()[action];
+    persist();
   }
 
   return { keyFor, clear };

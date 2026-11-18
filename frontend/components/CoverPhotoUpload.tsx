@@ -6,6 +6,7 @@ import { cldThumb, uploadImage } from "@/lib/cloudinary";
 import { getErrorMessage } from "@/lib/errors";
 import { CameraIcon, TrashIcon } from "@/components/icons";
 import ImageCropModal from "@/components/ImageCropModal";
+import { checkPhotoFile } from "@/lib/upload-validation";
 
 /**
  * Foto del local: la imagen grande de las tarjetas del feed y del detalle del
@@ -37,6 +38,12 @@ export default function CoverPhotoUpload({
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    // Un PDF o un archivo raro no debe abrir el encuadre con una imagen rota.
+    const problem = checkPhotoFile(file);
+    if (problem) {
+      setError(problem);
+      return;
+    }
     setError(null);
     setPendingFile(file);
   }

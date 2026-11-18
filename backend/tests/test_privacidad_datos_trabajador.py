@@ -292,3 +292,28 @@ async def test_assigned_applicant_still_sees_their_own_shift_whole(client: Async
     [application] = (await client.get("/api/v1/applications/mine", headers=worker)).json()
     assert application["shift"]["worker_profile_id"] == profile_id
     assert application["shift"]["en_route_latitude"] == _EN_ROUTE["latitude"]
+
+
+async def test_cv_filename_is_hidden_like_the_cv_url(client: AsyncClient):
+    """El nombre del archivo del CV (`Perez_Juan_CV.pdf`) también es un dato
+    personal: sólo lo ve quien puede ver el CV."""
+    worker, profile_id = await _worker_with_profile(client, "priv_cvn_w@staffya.com")
+    updated = await client.put(
+        "/api/v1/workers/me/profile",
+        headers=worker,
+        json={
+            "skills": ["mozo"],
+            "cv_url": "https://example.com/mi-cv.pdf",
+            "cv_filename": "Perez_Juan_CV.pdf",
+        },
+    )
+    assert updated.status_code == 200
+    stranger = await _employer_with_company(client, "priv_cvn_emp@staffya.com")
+    other_worker, _ = await _worker_with_profile(client, "priv_cvn_otro@staffya.com")
+
+    for headers in (stranger, other_worker):
+        response = await client.get(f"/api/v1/workers/{profile_id}", headers=headers)
+        assert response.json()["cv_filename"] is None
+        assert "Perez_Juan" not in response.text
+    mine = (await client.get(f"/api/v1/workers/{profile_id}", headers=worker)).json()
+    assert mine["cv_filename"] == "Perez_Juan_CV.pdf"

@@ -85,12 +85,14 @@ export default function MapAddressPicker({
   );
 
   useEffect(() => {
+    // Lo pendiente se cancela siempre (también cuando la selección se salta la
+    // búsqueda); si no, un timer viejo dispara igual y reabre la lista encima.
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    abortRef.current?.abort();
     if (skipNextSearchRef.current) {
       skipNextSearchRef.current = false;
       return;
     }
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    abortRef.current?.abort();
 
     // Query corta: no se dispara pedido ni se resetea estado acá (evita
     // setState síncrono en el cuerpo del efecto) — el render ya oculta el
@@ -121,6 +123,10 @@ export default function MapAddressPicker({
   }, []);
 
   function selectResult(result: GeocodeResult) {
+    // El cambio de texto que hace esta selección no tiene que reabrir la lista
+    // (el efecto de búsqueda se dispararía con el texto elegido). Si el texto no
+    // cambia, el efecto no corre y el flag quedaría armado para la próxima tecla.
+    if (result.address !== query) skipNextSearchRef.current = true;
     setQuery(result.address);
     setAddress(result.address);
     setCity(result.city);
@@ -185,13 +191,14 @@ export default function MapAddressPicker({
   return (
     <div className="flex flex-col gap-3">
       <div className="relative">
-        <div className="flex items-center gap-2 rounded-[var(--radius-input)] bg-card px-3.5 ring-1 ring-line focus-within:ring-2 focus-within:ring-primary/40">
+        <div className="foco-contenedor flex items-center gap-2 rounded-[var(--radius-input)] bg-card px-3.5 ring-1 ring-line">
           <SearchIcon size={17} className="shrink-0 text-ink/40" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscá la dirección de tu local"
             aria-label="Buscar dirección"
+            data-foco-contenedor
             className="min-h-[48px] w-full bg-transparent text-body text-ink outline-none placeholder:text-ink/40"
           />
           {status === "loading" && (

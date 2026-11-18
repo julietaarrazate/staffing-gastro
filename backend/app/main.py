@@ -4,7 +4,9 @@ Cada módulo de dominio (identity, worker, shift, ...) registra su propio router
 """
 
 import logging
+import math
 from contextlib import asynccontextmanager
+from decimal import Decimal
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -26,6 +28,8 @@ from app.modules.assistant.api.routes import router as assistant_router
 from app.modules.chat.api.routes import router as chat_router
 from app.modules.company.api.routes import router as company_router
 from app.modules.favorite.api.routes import router as favorite_router
+from app.modules.encuesta.api.routes import admin_router as encuesta_admin_router
+from app.modules.encuesta.api.routes import public_router as encuesta_router
 from app.modules.lead.api.routes import router as lead_router
 from app.modules.saved_shift.api.routes import router as saved_shift_router
 from app.modules.identity.api.routes import router as identity_router
@@ -33,6 +37,7 @@ from app.modules.matching.api.routes import router as matching_router
 from app.modules.matching.api.routes import search_router as matching_search_router
 from app.modules.notification.api.routes import push_router
 from app.modules.notification.api.routes import router as notification_router
+from app.modules.notification.infrastructure.device_sweep_job import run_device_sweep
 from app.modules.notification.infrastructure.push_tasks import shutdown_pending_pushes
 from app.modules.review.api.routes import router as review_router
 from app.modules.shift.api.routes import router as shift_router
@@ -75,7 +80,12 @@ async def lifespan(_: FastAPI):
     # urgencia): no-op fuera de producción. Se le suma el reintento del
     # borrado de documentos de verificación (ADR-0021): entra por acá para
     # que el scheduler no importe la infraestructura de otro módulo.
-    scheduler_task = start_scheduler(extra_checks=(run_evidence_file_cleanup,))
+    scheduler_task = start_scheduler(
+        extra_checks=(run_evidence_file_cleanup,),
+        # Paso de la pasada de retención (una vez por día): los dispositivos
+        # push de las cuentas que se quedaron sin sesión por una revocación.
+        retention_steps=(run_device_sweep,),
+    )
     # Cierra la conexión ociosa del pool para que Neon pueda dormirse con
     # Render siempre prendido (`core/database.py`): no-op fuera de producción.
     idle_closer_task = start_idle_connection_closer()
@@ -110,6 +120,8 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # El navegador sólo deja leer Retry-After (429) si se expone.
+    expose_headers=["Retry-After"],
 )
 
 # Headers de seguridad en cada respuesta; HSTS sólo en producción (HTTPS).
@@ -145,14 +157,42 @@ async def handle_idempotency_replay(_: Request, exc: IdempotencyReplay) -> JSONR
     return JSONResponse(status_code=exc.status_code, content=exc.body)
 
 
+# Del contexto de un error de validación sólo salen las cotas numéricas del
+# esquema (las pone el código, no la persona): con ellas la app dice «Máximo
+# 2000 caracteres» o «Entre 1 y 50» (G8). Nunca el valor enviado, ni el texto
+# de un validador (puede repetir lo que se mandó), ni nada que no sea número.
+_CTX_PERMITIDO = frozenset(
+    {"min_length", "max_length", "ge", "le", "gt", "lt", "max_digits", "decimal_places"}
+)
+
+
+def _ctx_seguro(ctx: object) -> dict[str, int | float] | None:
+    if not isinstance(ctx, dict):
+        return None
+    filtrado = {
+        clave: valor
+        for clave, valor in ctx.items()
+        if clave in _CTX_PERMITIDO
+        and isinstance(valor, int | float | Decimal)
+        and not isinstance(valor, bool)
+    }
+    numeros = {clave: float(v) if isinstance(v, Decimal) else v for clave, v in filtrado.items()}
+    # Una cota infinita o `nan` no se puede escribir en JSON: el 422 sería un 500.
+    return {clave: v for clave, v in numeros.items() if math.isfinite(v)} or None
+
+
 @app.exception_handler(RequestValidationError)
 async def handle_validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
     """422 con la misma forma de siempre, sin devolver el valor enviado
-    (`input`), el contexto interno (`ctx`) ni la URL de documentación."""
-    errors = [
-        {"type": e.get("type"), "loc": e.get("loc"), "msg": e.get("msg")}
-        for e in exc.errors()
-    ]
+    (`input`) ni la URL de documentación. Del contexto (`ctx`) sólo viajan las
+    cotas numéricas del esquema (`_CTX_PERMITIDO`)."""
+    errors = []
+    for e in exc.errors():
+        error = {"type": e.get("type"), "loc": e.get("loc"), "msg": e.get("msg")}
+        ctx = _ctx_seguro(e.get("ctx"))
+        if ctx:
+            error["ctx"] = ctx
+        errors.append(error)
     return JSONResponse(status_code=422, content={"detail": jsonable_encoder(errors)})
 
 
@@ -185,6 +225,8 @@ app.include_router(application_router, prefix="/api/v1")
 app.include_router(subscription_router, prefix="/api/v1")
 app.include_router(favorite_router, prefix="/api/v1")
 app.include_router(lead_router, prefix="/api/v1")
+app.include_router(encuesta_router, prefix="/api/v1")
+app.include_router(encuesta_admin_router, prefix="/api/v1")
 app.include_router(saved_shift_router, prefix="/api/v1")
 app.include_router(support_router, prefix="/api/v1")
 app.include_router(upload_router, prefix="/api/v1")

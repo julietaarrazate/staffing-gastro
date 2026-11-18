@@ -10,6 +10,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useRequireAuth } from "@/lib/use-require-auth";
+import { useAuth } from "@/lib/auth-context";
 import { EmptyState, OidoLoader } from "@/components/ui";
 import { ShieldIcon } from "@/components/icons";
 import { AdminInboxProvider, formatCount, useAdminInbox } from "@/components/admin/AdminInbox";
@@ -42,6 +43,8 @@ const NAV: NavItem[] = [
   { href: "/admin/leads", label: "Crecimiento" },
   { href: "/admin/metricas", label: "Métricas" },
   { href: "/admin/herramientas", label: "Herramientas" },
+  // Verificación en dos pasos de la cuenta (ADR-0023).
+  { href: "/admin/seguridad", label: "Seguridad" },
 ];
 
 function isActive(pathname: string, href: string): boolean {
@@ -85,6 +88,10 @@ function AdminNav({ pathname }: { pathname: string }) {
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const { user, token, loading } = useRequireAuth();
+  // Admin sin la verificación en dos pasos (ADR-0023): el backend le
+  // responde 403 a todo lo de admin y `AuthProvider` la trae a
+  // /admin/seguridad. Mientras tanto, ni menú ni contadores: sólo el alta.
+  const { twoFactorSetupPending } = useAuth();
   const pathname = usePathname();
 
   if (loading) {
@@ -108,13 +115,15 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AdminInboxProvider token={token} refreshKey={pathname}>
+    <AdminInboxProvider token={twoFactorSetupPending ? null : token} refreshKey={pathname}>
       <div className="app-container px-4 pb-10 pt-6">
         <p className="flex items-center gap-1.5 text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">
           <ShieldIcon size={14} /> Administración
         </p>
         <div className="mt-3 md:flex md:gap-8">
-          <AdminNav pathname={pathname} />
+          {/* Mismo árbol con o sin menú: al terminar el alta aparece el menú
+              y la pantalla no se remonta (perdería los códigos a la vista). */}
+          {!twoFactorSetupPending && <AdminNav pathname={pathname} />}
           <div className="mt-5 min-w-0 flex-1 md:mt-0">{children}</div>
         </div>
       </div>

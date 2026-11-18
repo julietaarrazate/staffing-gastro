@@ -169,12 +169,17 @@ class Claim:
 
         Un reenvío estando PENDIENTE reemplaza archivos que nadie va a
         revisar: van a la cola de borrado igual que al decidir (ADR-0021).
-        Desde RECHAZADA ya se habían mandado a borrar al rechazar."""
+        Desde RECHAZADA ya se habían mandado a borrar al rechazar.
+
+        Un archivo que las evidencias nuevas siguen usando NO se manda a
+        borrar (mismo cuerpo reenviado, o cambiar sólo uno de los archivos):
+        el pedido pendiente lo referencia."""
         if self.status == ClaimStatus.VERIFICADA:
             raise ClaimAlreadyVerifiedError(str(self.user_id))
         if not evidences or not any(e.has_data for e in evidences):
             raise EvidenceRequiredError(str(self.claim_type))
-        self._purge_evidence_data(now)
+        still_used = {e.file.public_id for e in evidences if e.file is not None}
+        self._purge_evidence_data(now, keep=still_used)
         self.evidences = evidences
         self.method = method
         self.status = ClaimStatus.PENDIENTE
@@ -218,10 +223,12 @@ class Claim:
         self.rejection_reason = reason
         self._purge_evidence_data(now)
 
-    def _purge_evidence_data(self, now: datetime) -> None:
+    def _purge_evidence_data(
+        self, now: datetime, keep: frozenset[str] | set[str] = frozenset()
+    ) -> None:
         for evidence in self.evidences:
             released = evidence.purge_data()
-            if released is not None:
+            if released is not None and released.public_id not in keep:
                 self.files_to_delete.append(
                     EvidenceFileDeletion.request(released, now)
                 )

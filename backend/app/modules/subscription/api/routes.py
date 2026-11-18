@@ -16,6 +16,7 @@ from app.modules.subscription.api.dependencies import (
     get_subscription_service,
 )
 from app.modules.subscription.api.schemas import (
+    ChosenPlanRequest,
     PlanResponse,
     PlansResponse,
     SubscribeRequest,
@@ -81,6 +82,7 @@ def _subscription_response(overview: SubscriptionOverview) -> SubscriptionRespon
         renews=subscription.renews,
         can_publish=overview.can_publish,
         withdrawal_until=overview.withdrawal_until,
+        limite_exigido=overview.limit_enforced,
     )
 
 
@@ -145,6 +147,23 @@ async def subscribe(
     )
     await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
     return response
+
+
+@router.post(
+    "/plan-elegido",
+    status_code=status.HTTP_200_OK,
+    summary="Registrar el plan que elegí al darme de alta (sólo la primera vez)",
+)
+async def register_chosen_plan(
+    payload: ChosenPlanRequest, company_id: CompanyIdDep, service: ServiceDep
+):
+    try:
+        await service.register_chosen_plan(company_id, payload.plan_code)
+    except UnknownPlanError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
+    return {"ok": True}
 
 
 @router.post(

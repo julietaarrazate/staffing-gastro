@@ -54,9 +54,14 @@ listados más abajo.
   celular, sin tarjeta de crédito), webhook firmado, vencimiento con 3 días de
   gracia y avisos, "Dar de baja" y "Arrepentirme" en Mi plan. **Apagado**
   hasta que estén `MERCADOPAGO_ACCESS_TOKEN` y `MERCADOPAGO_WEBHOOK_SECRET`.
+  Desde el 2026-10-30 cada plan de la landing tiene su botón "Empezar con
+  <plan>": alta de comercio con el plan, onboarding y "Mi plan" con ese plan
+  resaltado y un aviso con la misma acción de las tarjetas (`lib/plan-elegido.ts`).
 - **Compartir turno por WhatsApp** (deep-link `wa.me`, Web Share API con
   fallback) + **duplicar turno** desde el panel del comercio. Página pública
-  de turno sin auth para compartir. Desde 2026-07-23 el **trabajador también
+  de turno sin auth para compartir: se ve mientras el turno esté abierto
+  (también si se reabrió); cuando ya se tomó, se canceló o pasó la hora dice
+  «Este turno ya no está disponible» y ofrece una salida (2026-11-12). Desde 2026-07-23 el **trabajador también
   comparte** desde la tarjeta del feed (`OpportunityCard`), para pasarle un
   turno a un colega. (Distinto de la API de WhatsApp Business, que sigue
   bloqueada por cuenta/credenciales de Julieta.)
@@ -66,15 +71,34 @@ listados más abajo.
   pantalla **"esto es lo que sigue"** al publicar un turno (timeline de los
   próximos pasos, se muestra cada vez que se publica).
 - **No-show + cancelación tardía** (ADR-0007): el comercio puede marcar "no se
-  presentó" (reabre el turno, penaliza al trabajador) y la cancelación con el
+  presentó" (sólo desde 15 minutos después del inicio; reabre el turno,
+  penaliza al trabajador) y la cancelación con el
   trabajador ya comprometido avisa y penaliza al comercio
   (`late_cancellations`) — antes no hacía ninguna de las dos cosas.
+- **Cancelar un turno le avisa a quien corresponde** (2026-11-13): al
+  asignado, haya confirmado o no, y a cada persona con la postulación
+  pendiente; un aviso por persona, en la campanita y por push. La
+  confirmación del panel le dice al comercio, antes de confirmar, si suma una
+  cancelación tardía (sólo con el trabajador ya confirmado), y la cuenta se
+  ve en su `/profile`.
+- **Un turno ya trabajado no se cancela** (U081, 2026-11-18): con la salida
+  marcada el panel no ofrece «Cancelar turno» y el servidor lo rechaza; el
+  comercio lo finaliza y lo paga, y un problema va por soporte.
 - **Turno "no cubierto"** (ADR-0015): un turno ASIGNADO cuyo trabajador nunca
   confirma ni rechaza, o uno PUBLICADO/BUSCANDO_PERSONAL que nadie tomó,
   cuyo `start_at` ya pasó, se resuelve solo — **sin** impacto de reputación
   (nunca llegó a comprometerse). La ventana de gracia depende de `urgent`
   (30 min si el turno era urgente, 2 h si no). El feed (`list_open`) además
   deja de ofrecer algo cuyo horario ya pasó, esté o no resuelto todavía.
+- **Turno reofrecido** (U080, 2026-11-18): si la persona confirmada falta,
+  cancela o rechaza con el turno ya empezado, el turno se vuelve a ofrecer
+  como urgente si le quedan al menos 2 horas (con menos, queda «no cubierto»
+  en el momento), y se ofrece hasta que le quedan menos de 2 horas. Les llega un aviso urgente a
+  quienes están cerca, con el valor por hora, y uno al comercio que dice qué
+  pasó. Las tarjetas dicen «Ya empezó · hasta las HH:MM» y «$X por hora»;
+  quien lo toma cobra lo que resta desde que marca la llegada, y ese monto es
+  el que ve en la tarjeta y en sus ganancias. A esa persona la ausencia se le
+  cuenta desde que confirmó, y su puntualidad no se mueve.
 - **Idempotencia** en mutaciones críticas vía header `Idempotency-Key`
   (`backend/app/core/idempotency.py`).
 - **Helper de zona horaria Argentina** (`backend/app/core/tz.py`,
@@ -91,15 +115,17 @@ listados más abajo.
   postulantes — entra de verdad al ranking de matching (verificado
   end-to-end en el launch-gate, #88).
 - **Asistente de IA para el trabajador** (`/assistant`, pantalla propia, no un
-  sheet): busca turnos en lenguaje natural y responde por su estado de
-  verificación. Igual que "Describí el turno" del comercio, depende de
+  sheet): busca turnos en lenguaje natural. No responde por el estado de
+  verificación: eso está en el perfil (U106, decisión de Julieta del
+  2026-11-17). Igual que "Describí el turno" del comercio, depende de
   `GEMINI_API_KEY` y degrada con un mensaje claro si no está.
 - **"Va en camino"** (#320 backend + #321 frontend): el trabajador avisa que
   está viajando a un turno confirmado y el comercio lo ve llegar en un mapa.
   **Lo prende y lo apaga él**, nunca arranca solo. Modelo de privacidad
   deliberado, no un detalle de implementación: se guarda **sólo la última
   posición, nunca el recorrido**, la ventana es de 2h antes del turno, se
-  borra al marcar la llegada y en las cuatro transiciones que desasignan, y
+  borra **cuando él lo apaga** (también para el comercio, U072, 2026-11-18),
+  al marcar la llegada y en las cuatro transiciones que desasignan, y
   los guards viven en el DOMINIO (`Shift.report_en_route_location`), no en la
   UI. Está reflejado en `/privacidad` — si tocás esto, esa página se actualiza
   en el mismo PR.
@@ -111,6 +137,18 @@ listados más abajo.
   `app/core/geo.py::fuzz_point` la desplaza siempre dentro de un anillo de
   150–350m (TECH_DEBT.md S4) — un desplazamiento determinístico (mismo
   trabajador, mismo punto en cada render), no aleatorio en cada carga.
+- **«Cerca» es un límite, no una preferencia** (2026-11-13): el aviso
+  «Turno cerca tuyo» sale sólo a quien está a 25 km o menos del turno (40 km
+  en la escalada a urgente), y lo mismo los recomendados que ve el comercio.
+  El Inicio y el Mapa del trabajador muestran sólo los turnos a 40 km o
+  menos de la **zona de su perfil**; Buscar muestra todo. Sin coordenadas en
+  alguna de las dos puntas se compara la ciudad, y un turno publicado sin
+  zona se mide desde el local del comercio. La zona del perfil es lo único
+  que usa el servidor para armar el feed: "Estoy acá" y el GPS del mapa
+  siguen sin salir del dispositivo (la pantalla corta desde ese punto), y
+  "Disponible ahora" sigue siendo sólo para que el comercio mida desde ahí
+  —por eso, con eso prendido lejos de la zona del perfil, el aviso y el
+  Inicio pueden no coincidir—. Detalle en `docs/reference/LOCATION.md`.
 - **Mapa con el pago en el pin** (#319) y **pago de referencia** (#332,
   ADR-0012): el marcador lleva el monto, el rubro es un punto de color, y el
   turno que **paga por encima de lo típico** para su puesto y ciudad se
@@ -143,6 +181,7 @@ listados más abajo.
   (`identity_evidence_file_deletions`) y el scheduler reintenta. Los subidos
   antes se privatizan (pendientes) o se borran (ya decididos) con
   `backend/scripts/privatize_identity_evidence.py`.
+- **Encuesta para locales** (`/encuesta`, ADR-0025): pública y sin cuenta, mide cómo usan personal eventual los locales y junta interesados en la beta. Módulo propio (no un lead), sin IP guardada, rol, nombre del local y barrio obligatorios, contacto opcional con consentimiento, guardado mientras dure la beta y el lanzamiento, que la admin borra por respuesta («Borrar contacto») o de todas con `backend/scripts/clear_survey_contacts.py` (el nombre del local queda); el resumen cuenta sólo dueños y encargados; los resultados están en `/admin/leads` → «Encuesta».
 - **Panel de admin** con métricas del dashboard, estadísticas de suscripción/
   MRR y **cuentas de prueba** (trabajador/comercio) creables desde ahí. Las
   cuentas sintéticas se excluyen de las métricas a propósito.

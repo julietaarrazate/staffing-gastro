@@ -7,11 +7,12 @@ import { useAuth } from "@/lib/auth-context";
 import { SKILL_LABELS, WORKER_SKILLS, WorkerProfile, WorkerSkill } from "@/lib/types";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 import CvUpload from "@/components/CvUpload";
-import { toWorkerProfileInput, WorkerProfileInput } from "@/lib/worker-profile";
+import { saveProfilePart, WorkerProfileInput } from "@/lib/worker-profile";
 import { Button, ErrorBanner, Skeleton, TextField, Toggle } from "@/components/ui";
 import { CheckCircleIcon, MapPinIcon } from "@/components/icons";
 import IconChip, { type IconChipTone } from "@/components/ui/IconChip";
 import { normalizeUserLink } from "@/lib/safe-url";
+import { LIMITES } from "@/lib/limites";
 
 /**
  * Encabezado de sección con ícono de acento (mismo patrón que los
@@ -44,6 +45,13 @@ function FieldHeading({
 }
 
 /** "Español, Inglés" → ["Español", "Inglés"] (limpia vacíos y espacios). */
+/** Vacío o no numérico = 0 (el backend no acepta null); se respeta el tope. */
+export function parseYears(text: string): number {
+  const n = parseInt(text, 10);
+  if (Number.isNaN(n)) return LIMITES.aniosExperienciaMin;
+  return Math.min(LIMITES.aniosExperienciaMax, Math.max(LIMITES.aniosExperienciaMin, n));
+}
+
 function parseList(text: string): string[] {
   return text
     .split(",")
@@ -56,7 +64,9 @@ export default function WorkerProfileForm() {
   const [exists, setExists] = useState(false);
   const [city, setCity] = useState("");
   const [skills, setSkills] = useState<WorkerSkill[]>([]);
-  const [yearsExperience, setYearsExperience] = useState(0);
+  // Texto, no número: así el campo se puede vaciar y no queda «07» (U052). El
+  // backend exige un entero 0-80 (default 0), por eso vacío se guarda como 0.
+  const [yearsExperience, setYearsExperience] = useState("0");
   const [bio, setBio] = useState("");
   // Idiomas y certificaciones se editan como texto separado por comas y se
   // guardan como lista (el modelo/API ya los soporta; el form no los exponía).
@@ -83,7 +93,7 @@ export default function WorkerProfileForm() {
         setExists(true);
         setCity(p.city ?? "");
         setSkills(p.skills);
-        setYearsExperience(p.years_experience);
+        setYearsExperience(String(p.years_experience));
         setBio(p.bio ?? "");
         setLanguagesText((p.languages ?? []).join(", "));
         setCertificationsText((p.certifications ?? []).join(", "));
@@ -124,7 +134,7 @@ export default function WorkerProfileForm() {
       city: city || null,
       bio: bio.trim() || null,
       skills,
-      years_experience: yearsExperience,
+      years_experience: parseYears(yearsExperience),
       languages: parseList(languagesText),
       certifications: parseList(certificationsText),
       cv_url: normalizeUserLink(cvUrl),
@@ -136,18 +146,12 @@ export default function WorkerProfileForm() {
     setSubmitting(true);
     try {
       if (exists) {
-        // El endpoint reemplaza, no parchea (ver `toWorkerProfileInput`), y la
-        // foto se sube desde otro componente — el hero de `WorkerGameCard`,
-        // con su propia copia del perfil. Si mandáramos el `photo_url` que
-        // leímos al montar, guardar el formulario después de cambiar la foto
-        // la revertiría en silencio. Por eso se relee el perfil justo antes de
-        // guardar y los cambios del formulario van encima de ese estado.
-        const current = await api.get<WorkerProfile>("/workers/me/profile", token);
-        await api.put<WorkerProfile>(
-          "/workers/me/profile",
-          toWorkerProfileInput(current, changes),
-          token
-        );
+        // El endpoint reemplaza, no parchea, y la foto se sube desde otro
+        // componente (el hero de `WorkerGameCard`). `saveProfilePart` relee el
+        // perfil justo antes de guardar y pone los cambios del formulario
+        // encima: así guardar el formulario no revierte una foto cambiada
+        // después de abrirlo.
+        await saveProfilePart(token, changes);
       } else {
         // Todavía no hay perfil: no hay nada que preservar.
         const payload: WorkerProfileInput = {
@@ -158,6 +162,8 @@ export default function WorkerProfileForm() {
         await api.post<WorkerProfile>("/workers/me/profile", payload, token);
       }
       setExists(true);
+      // Lo guardado es lo que se muestra: un campo vaciado queda en «0».
+      setYearsExperience(String(parseYears(yearsExperience)));
       setSaved(true);
     } catch (err) {
       setError(getErrorMessage(err, "No se pudo guardar el perfil"));
@@ -194,10 +200,11 @@ export default function WorkerProfileForm() {
           Ubicación
         </FieldHeading>
         <p className="mt-0.5 text-xs text-ink/50">
-          Tu zona define a qué turnos te recomendamos primero (los más cercanos).
+          Tu zona define qué turnos ves en el Inicio y de cuáles te avisamos.
         </p>
         <div className="mt-2">
           <LocationPicker
+            initialCity={city}
             onSelect={(loc: LocationSelection) => {
               setCity(loc.city);
               setLatitude(loc.latitude);
@@ -219,10 +226,11 @@ export default function WorkerProfileForm() {
         <TextField
           type="number"
           inputMode="numeric"
-          min={0}
-          max={80}
+          min={LIMITES.aniosExperienciaMin}
+          max={LIMITES.aniosExperienciaMax}
+          step={1}
           value={yearsExperience}
-          onChange={(v) => setYearsExperience(Number(v) || 0)}
+          onChange={(v) => setYearsExperience(v.replace(/\D/g, "").replace(/^0+(?=\d)/, ""))}
         />
       </div>
 
@@ -272,9 +280,9 @@ export default function WorkerProfileForm() {
           value={bio}
           onChange={(e) => setBio(e.target.value)}
           rows={3}
-          maxLength={1000}
+          maxLength={LIMITES.bio}
           placeholder="Ej: Mozo con 5 años en cafeterías de especialidad, experiencia en barra y salón."
-          className="mt-2 w-full rounded-[var(--radius-input)] bg-surface px-3.5 py-2.5 text-sm text-ink outline-none ring-1 ring-line focus:ring-2 focus:ring-primary/40"
+          className="mt-2 w-full rounded-[var(--radius-input)] bg-surface px-3.5 py-2.5 text-sm text-ink outline-none ring-1 ring-line"
         />
       </div>
 

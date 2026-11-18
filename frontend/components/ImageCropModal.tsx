@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Modal from "@/components/ui/Modal";
+import Button from "@/components/ui/Button";
 
 // Tamaño del visor (px en pantalla) y de la imagen final que se sube, por
 // forma. 640 es de sobra para un avatar (nunca se pinta a más de ~170px, ver
@@ -77,6 +78,9 @@ export default function ImageCropModal({
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [saving, setSaving] = useState(false);
+  // La imagen no se pudo leer (archivo que no es imagen, corrupto o HEIC que
+  // el navegador no dibuja): se avisa en vez de dejar un visor con imagen rota.
+  const [loadFailed, setLoadFailed] = useState(false);
   const dragRef = useRef<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null);
 
   useEffect(() => {
@@ -85,6 +89,7 @@ export default function ImageCropModal({
     setImgUrl(url);
     setZoom(1);
     setOffset({ x: 0, y: 0 });
+    setLoadFailed(false);
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
@@ -153,6 +158,16 @@ export default function ImageCropModal({
 
   return (
     <Modal open title={shape === "wide" ? "Encuadrá la foto del local" : "Encuadrá tu foto"} onClose={onCancel}>
+      {loadFailed ? (
+        <div className="flex flex-col items-center gap-4 py-2 text-center">
+          <p role="alert" className="text-sm font-medium text-danger-text">
+            No pudimos abrir ese archivo como foto. Probá con una imagen JPG o PNG.
+          </p>
+          <Button variant="ghost" onClick={onCancel}>
+            Elegir otra
+          </Button>
+        </div>
+      ) : (
       <div className="flex flex-col items-center gap-4">
         <div
           onPointerDown={handlePointerDown}
@@ -173,6 +188,7 @@ export default function ImageCropModal({
               const el = e.currentTarget;
               setNatural({ width: el.naturalWidth, height: el.naturalHeight });
             }}
+            onError={() => setLoadFailed(true)}
             style={{
               position: "absolute",
               left: "50%",
@@ -211,12 +227,13 @@ export default function ImageCropModal({
             type="button"
             onClick={confirm}
             disabled={saving || natural.width === 0}
-            className="flex-1 rounded-[var(--radius-btn)] bg-primary py-2.5 text-sm font-semibold text-night disabled:opacity-60"
+            className="boton-relieve flex-1 bg-primary py-2.5 text-sm font-semibold text-night disabled:bg-surface disabled:text-ink-mute"
           >
             {saving ? "Guardando..." : "Usar esta foto"}
           </button>
         </div>
       </div>
+      )}
     </Modal>
   );
 }

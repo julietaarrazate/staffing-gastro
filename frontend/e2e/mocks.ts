@@ -14,6 +14,15 @@ export const TOKEN_KEY = "staffya_token";
 // frontend que vale la pena intentar `/auth/refresh` si el access token
 // vence, sin exponer ningún secreto.
 export const HAS_SESSION_KEY = "staffya_has_session";
+// Hay dos claves más, que escribe y limpia `auth-context.tsx` para las
+// otras pestañas y que los specs no necesitan inyectar:
+// `staffya_session_end` (por qué se borró la marca) y `staffya_session_user`
+// (el id de la cuenta dueña de la sesión, que no es un secreto).
+// En `sessionStorage`, `staffya_reloaded_for` evita recargar dos veces la
+// misma pestaña por la misma cuenta.
+// Y una que escribe `lib/push.ts`: `staffya_push_release_pending`, los ids de
+// las cuentas cuya baja del dispositivo todavía no llegó al servidor (se
+// reintenta al abrir la app, al volver la conexión y al volver la pestaña).
 
 // Claves de localStorage de los mini-tours de `components/GuidedTour.tsx`
 // (uno por pantalla). `injectSession` los marca como ya vistos por
@@ -90,4 +99,23 @@ export async function mockEmptyNotifications(page: Page) {
     }
     return route.continue();
   });
+}
+
+/**
+ * Un día futuro, en hora de Argentina, para llenar el horario del formulario de
+ * publicar. El servidor y el formulario rechazan un inicio que ya pasó (G14),
+ * así que los specs no pueden usar una fecha fija: tarde o temprano el reloj la
+ * alcanza. Devuelve el valor de un `<input type="datetime-local">`
+ * ("2026-12-20T20:00"); `dias` cuenta desde hoy.
+ */
+export function enDias(dias: number, hora = "20:00"): string {
+  const dia = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Argentina/Buenos_Aires" }).format(
+    new Date(Date.now() + dias * 24 * 60 * 60 * 1000)
+  );
+  return `${dia}T${hora}`;
+}
+
+/** Lo mismo como ISO con el offset de Argentina, para armar respuestas de la API. */
+export function isoEnDias(dias: number, hora = "20:00"): string {
+  return `${enDias(dias, hora)}:00-03:00`;
 }

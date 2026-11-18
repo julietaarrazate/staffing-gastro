@@ -11,6 +11,10 @@
 - La acción **"marcar como pagado"** (`mark-paid`) sólo **registra que el comercio
   pagó por fuera** (cambia el estado a `pagado`). **No procesa ningún cobro** ni
   mueve dinero.
+- En el panel del comercio la acción **pide confirmación** antes de registrar
+  (desde el 2026-11-11): le avisa al trabajador que cobró (`shift_paid`, ver
+  [NOTIFICATIONS.md](./NOTIFICATIONS.md)) y no se puede deshacer, así que un
+  toque de más no alcanza para dejar un turno pagado.
 - No hay integración con ninguna pasarela, ni comisiones, ni comprobantes.
 
 > **Por lo tanto: Staffya hoy NO maneja dinero.** El pago ocurre fuera de la

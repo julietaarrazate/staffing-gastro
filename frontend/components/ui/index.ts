@@ -1,5 +1,6 @@
 export { default as Button } from "./Button";
 export { default as Card } from "./Card";
+export { Comanda, ComandaFila, Apunte, Flechita, textoCartel } from "./Comanda";
 export { default as Avatar } from "./Avatar";
 export { default as Badge } from "./Badge";
 export { default as Rating } from "./Rating";
@@ -18,3 +19,4 @@ export { default as CountUp } from "./CountUp";
 export { default as DrawnCheck } from "./DrawnCheck";
 export { default as ConfirmOverlay } from "./ConfirmOverlay";
 export { default as MessageBubble } from "./MessageBubble";
+export { default as PesosInput } from "./PesosInput";

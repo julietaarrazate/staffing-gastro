@@ -14,3 +14,19 @@ export const ConversationsContext = createContext<Conversation[]>([]);
 export function useConversation(shiftId: string): Conversation | undefined {
   return useContext(ConversationsContext).find((c) => c.shift_id === shiftId);
 }
+
+/**
+ * Lo que la conversación abierta necesita del layout además de la lista:
+ * `reload` vuelve a pedirla en silencio (al mandar el primer mensaje, hasta
+ * entonces el hilo no tiene mensajes y por eso no figura: U016) y `ready` dice
+ * que ya se intentó cargarla (bien o mal), para no pedir el turno de más
+ * mientras la lista todavía está en camino.
+ */
+export const ConversationsControlContext = createContext<{ reload: () => void; ready: boolean }>({
+  reload: () => {},
+  ready: false,
+});
+
+export function useConversationsControl(): { reload: () => void; ready: boolean } {
+  return useContext(ConversationsControlContext);
+}

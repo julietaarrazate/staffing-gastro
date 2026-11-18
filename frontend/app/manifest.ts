@@ -10,10 +10,20 @@ export default function manifest(): MetadataRoute.Manifest {
       "Publicás un turno y en minutos tenés candidatos rankeados por cercanía y reputación.",
     start_url: "/",
     display: "standalone",
-    // Blanco (2026-10-19): el crema #fff8f0 y el ámbar eran de la paleta
-    // anterior; en la app instalada pintaban la barra de abajo de crema y la
-    // de arriba de naranja.
-    background_color: "#ffffff",
+    // `background_color` es el fondo de la pantalla de arranque que arma
+    // Android al abrir la app instalada, antes de que cargue la nuestra. Va
+    // en el azul hondo del ícono (2026-11-18): Android muestra ahí el ícono
+    // con margen (`icon-maskable-512.png`), que es un cuadrado de ese azul, y
+    // sobre blanco quedaba un cuadradito suelto con «Oído» en letra de
+    // sistema (Julieta: "se ve eso que es feo antes de leerse oído"). Con el
+    // mismo azul el cuadrado desaparece: se ve el pinche sobre un fondo
+    // entero. Si se cambia el fondo del ícono
+    // (`scripts/build-isotipo-pinche.py`), cambiar esto también.
+    //
+    // Ojo: Android usa este color también para su barra de abajo mientras la
+    // app está abierta (el 2026-10-19 era crema por eso, y se pasó a blanco).
+    // `theme_color` (la barra de arriba) sigue en blanco.
+    background_color: "#1c5478",
     theme_color: "#ffffff",
     lang: "es",
     icons: [

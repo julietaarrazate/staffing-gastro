@@ -2,8 +2,17 @@
 
 from dataclasses import dataclass
 
-# Radio por defecto fuera del cual la distancia deja de aportar puntaje.
+# Radio del primer aviso «Turno cerca tuyo» y de los recomendados que ve el
+# comercio. Es un LÍMITE DURO: fuera de él no se avisa ni se sugiere a nadie,
+# por bien que puntúe en lo demás (ver `scoring.is_within_radius`). Adentro,
+# es la escala del puntaje de cercanía: 1 en el lugar, 0 en el borde.
 DEFAULT_MAX_RADIUS_KM = 25.0
+
+# Radio de la escalada a urgente (ADR-0009): el círculo más amplio al que
+# llega un turno que tarda en cubrirse, también como límite duro. Es además
+# el alcance máximo de «cerca» en las listas del trabajador: el feed del
+# Inicio y del Mapa no muestra nada más lejos que esto.
+ESCALATION_RADIUS_KM = 40.0
 
 # Años de experiencia que ya representan el máximo puntaje en ese factor.
 EXPERIENCE_CAP_YEARS = 10

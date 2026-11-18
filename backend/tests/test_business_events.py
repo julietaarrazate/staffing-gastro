@@ -11,6 +11,7 @@ import logging
 import pytest
 from httpx import AsyncClient
 
+from tests._turno_empezado import empezar_turno
 from tests.conftest import auth_headers
 
 pytestmark = pytest.mark.asyncio
@@ -128,6 +129,33 @@ async def test_apply_logs_application_submitted(client: AsyncClient, caplog):
     assert record.worker_profile_id == worker_id
 
 
+async def test_reapply_logs_application_submitted_as_reapplied(client: AsyncClient, caplog):
+    """Volver a postularse después de retirar cuenta como una postulación más
+    (`application.submitted`), marcada con `reapplied` para poder separar las
+    vueltas de las primeras veces."""
+    employer = await _employer_with_company(client, "emp_evt_reapply@staffya.com")
+    created = await client.post("/api/v1/shifts", headers=employer, json=_shift_payload())
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer)
+    worker, worker_id = await _worker_with_profile(client, "w_evt_reapply@staffya.com")
+    caplog.set_level(logging.INFO)
+    applied = await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
+    first = next(r for r in caplog.records if r.message == "application.submitted")
+    assert first.reapplied is False
+    await client.post(
+        f"/api/v1/applications/{applied.json()['id']}/withdraw", headers=worker
+    )
+
+    caplog.clear()
+    caplog.set_level(logging.INFO)
+    await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
+
+    record = next(r for r in caplog.records if r.message == "application.submitted")
+    assert record.reapplied is True
+    assert record.shift_id == shift_id
+    assert record.worker_profile_id == worker_id
+
+
 async def test_withdraw_logs_application_withdrawn(client: AsyncClient, caplog):
     employer = await _employer_with_company(client, "emp_evt_withdraw@staffya.com")
     created = await client.post("/api/v1/shifts", headers=employer, json=_shift_payload())
@@ -165,7 +193,7 @@ async def test_cancel_shift_logs_shift_cancelled(client: AsyncClient, caplog):
 
 
 async def test_mark_no_show_logs_worker_no_show_with_manual_trigger(
-    client: AsyncClient, caplog
+    client: AsyncClient, caplog, session_factory
 ):
     caplog.set_level(logging.INFO)
     employer = await _employer_with_company(client, "emp_evt_noshow@staffya.com")
@@ -181,6 +209,7 @@ async def test_mark_no_show_logs_worker_no_show_with_manual_trigger(
     )
     await client.post(f"/api/v1/shifts/{shift_id}/confirm", headers=worker)
 
+    await empezar_turno(session_factory, shift_id)
     caplog.clear()
     await client.post(f"/api/v1/shifts/{shift_id}/no-show", headers=employer)
 

@@ -9,7 +9,7 @@
 | Componente | Plataforma | Trigger |
 |------------|-----------|---------|
 | **Backend** (FastAPI) | **Render** (contenedor Docker, región `ohio`) | auto-deploy desde `main` |
-| **Frontend** (Next.js) | **Vercel** | auto-deploy desde `main` + preview por PR |
+| **Frontend** (Next.js) | **Cloudflare Workers** (desde 2026-10-19; ver sección abajo) | deploy del Worker `oido-frontend` |
 | **DB** (PostgreSQL) | **Neon** (serverless, `aws-us-east-2`) | connection string manual en Render, **no** gestionada por `render.yaml` (ver comentario en el propio archivo) |
 
 Config declarativa en `render.yaml` (raíz del repo).
@@ -54,18 +54,16 @@ proyecto queda guardado, sin borrar. `FRONTEND_URL` y `CORS_ORIGINS` ya no
 nombran `staffing-gastro.vercel.app`. Lo que sigue describe cómo funcionaba,
 por si hubiera que volver.
 
+**La configuración del repo para Vercel se sacó el 2026-11-16** (Vercel está
+retirado): ya no existen `frontend/vercel.json` ni
+`frontend/scripts/vercel-ignore-build.sh`. Para volver a esa config hay que
+recuperarlos del historial de git, anterior a ese cambio.
+
 - Auto-deploy desde `main`; **preview por PR** (comentario de Vercel con la URL).
-- **Sólo buildea si cambió `frontend/`** (`frontend/vercel.json` →
-  `frontend/scripts/vercel-ignore-build.sh`, desde 2026-10-10): compara contra
-  el último deploy de la rama (`VERCEL_GIT_PREVIOUS_SHA`, o el commit anterior
-  si ese no existe). Un PR de backend o de docs no genera preview, y un merge
-  así a `main` no redespliega el frontend. Motivo: los 8 proyectos de la cuenta
-  Hobby comparten los Build CPU Minutes y Oído los llevó al 75% con builds que
-  no cambiaban nada (100 deploys en 13 días, 76 previews). **Trampa:** Vercel
-  toma 0 = saltear, 1 = buildear y cualquier otro código = deploy fallido; un
-  `git diff` contra un commit que ya no existe (rama rehecha) sale 128 y corta
-  el deploy. Por eso es un script que sólo sale 0 o 1 y ante la duda buildea.
-  Para forzar un build: "Redeploy" en el panel.
+- Sólo buildaba si cambió `frontend/` (Ignored Build Step, desde 2026-10-10:
+  `vercel.json` + `vercel-ignore-build.sh`, sacados el 2026-11-16). Motivo de
+  entonces: los 8 proyectos de la cuenta Hobby compartían los Build CPU
+  Minutes. Hoy no hay equivalente en el repo.
 - API remota vía `NEXT_PUBLIC_API_URL` (sin `localhost` en config de producto).
 
 ## Frontend en Cloudflare Workers (producción desde 2026-10-19)
@@ -124,7 +122,9 @@ Etapas y resultados en
   comparte por WhatsApp, y armarla tardaba entre 1,3 y 2 s. La caché usa
   como clave sólo la ruta y deja afuera RSC, lo que no sea 200 y las
   respuestas con `Set-Cookie`; la lógica está en `turno-cache.mjs`, con sus
-  tests. Si OpenNext suma Durable Objects nuevos, hay que reexportarlos ahí.
+  tests. Por eso las pantallas «Este turno ya no está disponible» y «No
+  encontramos esa página» responden 404 a propósito: no se guardan, y un
+  turno que se reabre se vuelve a ver en el momento. Si OpenNext suma Durable Objects nuevos, hay que reexportarlos ahí.
   En `workers.dev` la Cache API no guarda nada, así que ahí no se nota.
   En el panel de la zona, **Caching → Configuration → Browser Cache TTL**
   tiene que quedar en "Respect Existing Headers": si no, Cloudflare reescribe
@@ -235,12 +235,10 @@ valores secretos van sólo en los paneles, nunca acá ni en el chat.
    (que todavía llama a `onrender.com`) se queda sin login. Para volver
    atrás, vaciar la variable.
 3. **El frontend usa la API nueva:** `NEXT_PUBLIC_API_URL=https://api.oido.com.ar/api/v1`
-   en el build (Vercel y Cloudflare), y volver a publicar. CORS no cambia:
-   los orígenes permitidos son los del frontend. **Trampa de Vercel:** un
-   Redeploy después de cambiar sólo variables se cancela solo, porque
-   `scripts/vercel-ignore-build.sh` no ve cambios en `frontend/`. En el
-   diálogo de Redeploy hay que desmarcar *Use project's Ignore Build Step*
-   (y *Use existing Build Cache*); vale sólo para ese redeploy.
+   en el build de Cloudflare (y en el de Vercel, si hubiera que volver), y
+   volver a publicar. CORS no cambia: los orígenes permitidos son los del
+   frontend. (La trampa del Ignored Build Step de Vercel ya no aplica: el
+   script se sacó el 2026-11-16.)
 4. **Turnstile.** En Cloudflare, Turnstile → Add widget (modo *Managed*,
    hostnames `oido.com.ar` y `www.oido.com.ar`; sumar el `*.workers.dev` de
    prueba en la etapa 4). Clave del

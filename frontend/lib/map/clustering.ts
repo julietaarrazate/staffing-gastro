@@ -1,3 +1,4 @@
+import { formatPayCompact } from "@/lib/pay";
 import Supercluster, { type ClusterFeature, type PointFeature } from "supercluster";
 import type { Shift, WorkerSkill } from "@/lib/types";
 
@@ -23,6 +24,9 @@ export interface ShiftPointProps {
    * hay cerca y cuánto paga: con el ícono solo, esa respuesta costaba un toque
    * por pin. Ver `ShiftMarker`. */
   payAmount: string | number;
+  /** El pago ya escrito para el pin: "$40.000", o "$10.000/h" en un turno
+   *  reofrecido (U080, `formatPayCompact`). */
+  payLabel: string;
   /** `true` si el turno paga por encima de lo típico para su puesto y ciudad
    *  (ADR-0012). Es el estado "match" del marcador, que quedó declarado y
    *  vacío en el #319 esperando este dato. */
@@ -55,6 +59,7 @@ export function buildShiftClusterIndex(
         urgent: s.urgent,
         position: s.position,
         payAmount: s.pay_amount,
+        payLabel: formatPayCompact(s),
         isMatch: s.pay_band === "por_encima",
       },
       geometry: { type: "Point", coordinates: [s.longitude, s.latitude] },

@@ -12,23 +12,15 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.core.tz import ARG_TZ
 from app.modules.admin.application.periods import day_bounds, period_bounds
 from app.modules.application.infrastructure.models import ShiftApplicationModel
-from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
 from app.modules.shift.infrastructure.models import ShiftModel
-from tests.conftest import auth_headers, login
+from tests.conftest import auth_headers, make_admin
 from tests.test_shift import _count_queries
 
 pytestmark = pytest.mark.asyncio
 
 
 async def _make_admin(client: AsyncClient, session_factory, email: str) -> dict:
-    await auth_headers(client, "employer", email)
-    async with session_factory() as session:
-        repo = SqlAlchemyUserRepository(session)
-        user = await repo.get_by_email(email)
-        user.promote_to_admin()
-        await repo.update(user)
-    tokens = await login(client, email)
-    return {"Authorization": f"Bearer {tokens['access_token']}"}
+    return await make_admin(client, session_factory, email)
 
 
 async def _employer(client: AsyncClient, email: str, name: str) -> dict:
@@ -146,7 +138,7 @@ async def test_live_shifts_lists_uncovered_most_urgent_first(client, session_fac
     assert resp.status_code == 200
     body = resp.json()
     titles = [s["title"] for s in body["shifts"]]
-    assert titles == ["Escalado", "Urgente del comercio", "Viejo sin cubrir", "Nuevo sin cubrir"]
+    assert titles == ["Escalado", "Urgente del comercio", "Nuevo sin cubrir", "Viejo sin cubrir"]
     assert (body["total"], body["urgent"], body["escalated"]) == (4, 2, 1)
 
     by_title = {s["title"]: s for s in body["shifts"]}
@@ -156,6 +148,31 @@ async def test_live_shifts_lists_uncovered_most_urgent_first(client, session_fac
     assert 39 <= by_title["Viejo sin cubrir"]["minutes_open"] <= 41
     assert by_title["Escalado"]["escalated"] is True
     assert by_title["Urgente del comercio"]["escalated"] is False
+
+
+async def test_live_shifts_cap_keeps_recent_and_totals_cover_everything(
+    client, session_factory, monkeypatch
+):
+    """Con más turnos que el tope se muestran los más recientes, pero los
+    totales y `shown_live` dicen la verdad (la pantalla avisa que faltan)."""
+    from app.modules.admin.application.services import AdminService
+
+    monkeypatch.setattr(AdminService, "LIVE_SHIFTS_LIMIT", 2)
+    admin = await _make_admin(client, session_factory, "vivo_tope_admin@test.com")
+    employer = await _employer(client, "vivo_tope@test.com", "Bar Tope")
+    viejo = await _published_shift(client, employer, title="Muy viejo")
+    medio = await _published_shift(client, employer, title="Medio")
+    nuevo = await _published_shift(client, employer, title="Recien publicado", urgent=True)
+    nuevo2 = await _published_shift(client, employer, title="Otro reciente")
+    await _set(session_factory, viejo, published_at=_ago(90))
+    await _set(session_factory, medio, published_at=_ago(30))
+    await _set(session_factory, nuevo, published_at=_ago(2))
+    await _set(session_factory, nuevo2, published_at=_ago(1))
+
+    body = (await client.get("/api/v1/admin/live-shifts", headers=admin)).json()
+    assert [s["title"] for s in body["shifts"]] == ["Recien publicado", "Otro reciente"]
+    assert (body["total"], body["urgent"], body["escalated"]) == (4, 1, 0)
+    assert (body["shown_live"], body["limit"]) == (2, 2)
 
 
 async def test_live_shifts_includes_assigned_not_confirmed(client, session_factory):
@@ -216,15 +233,25 @@ async def test_live_shifts_query_count_is_constant(client, session_factory):
 async def test_today_counts_urgent_uncovered_and_no_shows(client, session_factory):
     admin = await _make_admin(client, session_factory, "hoy_admin@test.com")
     employer = await _employer(client, "hoy_emp@test.com", "Bar Hoy")
+    day_start, _ = day_bounds(datetime.now(UTC))
+    hoy_noche = day_start + timedelta(hours=23)  # 20:00 ART de hoy
 
-    await _published_shift(client, employer, urgent=True)
+    urgente = await _published_shift(client, employer, urgent=True)
+    await _set(session_factory, urgente, start_at=hoy_noche, end_at=hoy_noche + timedelta(hours=4))
     escalado = await _published_shift(client, employer)
-    await _set(session_factory, escalado, urgent=True, escalated_at=_ago(2))
+    await _set(
+        session_factory,
+        escalado,
+        urgent=True,
+        escalated_at=_ago(2),
+        start_at=hoy_noche,
+        end_at=hoy_noche + timedelta(hours=4),
+    )
     await _published_shift(client, employer)  # no urgente: no cuenta
     asignado = await _published_shift(client, employer, urgent=True)
-    await _set(session_factory, asignado, status="asignado")  # ya tiene a alguien
+    # ya tiene a alguien
+    await _set(session_factory, asignado, status="asignado", start_at=hoy_noche)
 
-    day_start, _ = day_bounds(datetime.now(UTC))
     hoy = await _published_shift(client, employer)
     await _set(session_factory, hoy, no_show_at=day_start + timedelta(minutes=1))
     ayer = await _published_shift(client, employer)
@@ -233,6 +260,63 @@ async def test_today_counts_urgent_uncovered_and_no_shows(client, session_factor
     resp = await client.get("/api/v1/admin/today", headers=admin)
     assert resp.status_code == 200
     assert resp.json() == {"urgent_uncovered": 2, "no_shows_today": 1}
+
+
+async def test_today_urgent_counts_only_shifts_starting_on_the_argentine_day(
+    client, session_factory
+):
+    """Un urgente de ayer o de mañana no es de la portada de hoy. El corte es
+    la medianoche ART (03:00 UTC), no la UTC: los bordes se prueban a uno y a
+    cero minutos de cada lado. Un turno que cruza la medianoche cuenta en el
+    día en que empieza."""
+    admin = await _make_admin(client, session_factory, "hoy_borde_admin@test.com")
+    employer = await _employer(client, "hoy_borde_emp@test.com", "Bar Borde")
+    day_start, day_end = day_bounds(datetime.now(UTC))
+    assert day_start.hour == 3 and day_end - day_start == timedelta(days=1)  # 00:00 ART
+
+    async def urgente(start: datetime) -> None:
+        shift_id = await _published_shift(client, employer, urgent=True)
+        await _set(
+            session_factory, shift_id, start_at=start, end_at=start + timedelta(hours=6)
+        )
+
+    async def contados() -> int:
+        resp = await client.get("/api/v1/admin/today", headers=admin)
+        return resp.json()["urgent_uncovered"]
+
+    await urgente(day_start - timedelta(days=1))  # ayer
+    await urgente(day_start - timedelta(minutes=1))  # 23:59 ART de ayer (cruza a hoy)
+    await urgente(day_end)  # 00:00 ART de mañana
+    await urgente(day_end + timedelta(days=1))  # pasado mañana
+    assert await contados() == 0
+
+    await urgente(day_start)  # 00:00 ART de hoy
+    await urgente(day_end - timedelta(minutes=1))  # 23:59 ART de hoy (cruza a mañana)
+    assert await contados() == 2
+
+
+async def test_live_shifts_no_shows_filter_lists_todays_absences(client, session_factory):
+    admin = await _make_admin(client, session_factory, "aus_admin@test.com")
+    employer = await _employer(client, "aus_emp@test.com", "Bar Ausencias")
+    day_start, _ = day_bounds(datetime.now(UTC))
+
+    hoy = await _published_shift(client, employer, title="Faltó hoy")
+    await _set(session_factory, hoy, no_show_at=day_start + timedelta(minutes=5))
+    ayer = await _published_shift(client, employer, title="Faltó ayer")
+    await _set(session_factory, ayer, no_show_at=day_start - timedelta(minutes=5))
+    await _published_shift(client, employer, title="Sin ausencia")
+
+    resp = await client.get("/api/v1/admin/live-shifts?no_shows=true", headers=admin)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert [s["title"] for s in body["shifts"]] == ["Faltó hoy"]
+    assert body["shifts"][0]["no_show_at"] is not None
+    assert body["no_shows"] == 1
+    assert body["total"] == 3  # los totales siguen siendo los de la lista en vivo
+
+    todos = (await client.get("/api/v1/admin/live-shifts", headers=admin)).json()
+    assert todos["no_shows"] == 1
+    assert len(todos["shifts"]) == 3
 
 
 async def test_day_bounds_cut_at_argentina_midnight():
@@ -276,18 +360,18 @@ async def test_period_metrics_compare_current_and_previous(client, session_facto
     # Período actual: 3 publicados, 2 cubiertos (a los 5 y a los 25 min).
     rapido = await _published_shift(client, employer)
     await _set(
-        session_factory, rapido, published_at=cur, first_assigned_at=cur + timedelta(minutes=5)
+        session_factory, rapido, published_at=cur, first_confirmed_at=cur + timedelta(minutes=5)
     )
     lento = await _published_shift(client, employer)
     await _set(
-        session_factory, lento, published_at=cur, first_assigned_at=cur + timedelta(minutes=25)
+        session_factory, lento, published_at=cur, first_confirmed_at=cur + timedelta(minutes=25)
     )
     abierto = await _published_shift(client, employer)
     await _set(session_factory, abierto, published_at=cur)
     # Período anterior: 1 publicado, cubierto a los 8 min.
     viejo = await _published_shift(client, employer)
     await _set(
-        session_factory, viejo, published_at=prev, first_assigned_at=prev + timedelta(minutes=8)
+        session_factory, viejo, published_at=prev, first_confirmed_at=prev + timedelta(minutes=8)
     )
     # Fuera de los dos períodos: no cuenta.
     fuera = await _published_shift(client, employer)

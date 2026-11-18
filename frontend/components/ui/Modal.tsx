@@ -1,9 +1,48 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "motion/react";
 import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useEscapeLayer } from "@/lib/use-escape-layer";
 import { useFocusTrap } from "@/lib/use-focus-trap";
+
+/**
+ * Capa del diálogo. Mientras se anima el cierre (`AnimatePresence` la
+ * mantiene montada) sigue recibiendo los toques y se los TRAGA: con
+ * `pointer-events: none` el toque atravesaría el hueco y activaría lo que hay
+ * en la pantalla de atrás, en el mismo punto (un doble toque en «Confirmar»
+ * tocaría otro botón). El velo de salida no cierra nada y el diálogo queda
+ * `inert`: sin foco ni clics (el toque cae en el velo, que lo absorbe).
+ */
+function ModalLayer({
+  onClose,
+  reducedMotion,
+  children,
+}: {
+  onClose: () => void;
+  reducedMotion: boolean | null;
+  children: ReactNode;
+}) {
+  const isPresent = useIsPresent();
+  const layerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const dialog = layerRef.current?.querySelector<HTMLElement>('[role="dialog"]');
+    if (dialog) dialog.inert = !isPresent;
+  }, [isPresent]);
+  return (
+    <div ref={layerRef} className="fixed inset-0 z-[60] flex items-center justify-center p-5">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={reducedMotion ? { duration: 0 } : undefined}
+        onClick={isPresent ? onClose : undefined}
+        className="absolute inset-0 bg-black/40"
+      />
+      {children}
+    </div>
+  );
+}
 
 /**
  * Diálogo centrado con backdrop (para confirmaciones). Para acciones desde
@@ -28,42 +67,32 @@ export default function Modal({
   const reducedMotion = useReducedMotion();
   const dialogRef = useRef<HTMLDivElement>(null);
   useFocusTrap(dialogRef, open);
+  // Prioridad = z-index de la capa (z-[60]): Escape cierra sólo la de más arriba.
+  useEscapeLayer(open, onClose, 60);
 
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKeyDown);
     return () => {
       document.body.style.overflow = prev;
-      document.removeEventListener("keydown", onKeyDown);
     };
-  }, [open, onClose]);
+  }, [open]);
 
   const content = (
     <AnimatePresence>
       {open && (
         // `z-[60]`, por encima del `z-50` de `Sheet`: ambos portan a
-        // `document.body` (ver nota de arriba) y pueden coexistir de verdad
+        // `document.body` (ver nota de arriba) y podían coexistir de verdad
         // — p. ej. el modal "¡Turno publicado!" y el sheet de activar
-        // notificaciones push, disparados por la misma acción de publicar.
+        // notificaciones push, que se disparaban con la misma acción de publicar
+        // (hoy el pedido sale recién al cerrar la confirmación).
         // Antes del portal el orden salía bien de pura casualidad (el modal
         // vivía más profundo en el árbol que el sheet del prompt de push,
         // que envuelve toda la app desde el layout); con los dos en el mismo
         // contenedor hay que decidir la prioridad a mano: una confirmación
         // que el usuario tiene que resolver pesa más que un nudge dismisible.
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-5">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={reducedMotion ? { duration: 0 } : undefined}
-            onClick={onClose}
-            className="absolute inset-0 bg-black/40"
-          />
+        <ModalLayer onClose={onClose} reducedMotion={reducedMotion}>
           <motion.div
             ref={dialogRef}
             role="dialog"
@@ -78,7 +107,7 @@ export default function Modal({
             {title && <h3 className="text-lg font-extrabold text-ink">{title}</h3>}
             <div className={title ? "mt-2" : ""}>{children}</div>
           </motion.div>
-        </div>
+        </ModalLayer>
       )}
     </AnimatePresence>
   );

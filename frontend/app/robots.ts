@@ -30,6 +30,7 @@ export default function robots(): MetadataRoute.Robots {
         "/map",
         "/companies",
         "/workers",
+        "/encuesta",
         "/recuperar",
         "/restablecer",
       ],

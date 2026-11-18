@@ -1,39 +1,48 @@
 import Link from "next/link";
-import { useId } from "react";
-import { Degrades, Letras, Sol } from "./Filete";
+import Filete from "./Filete";
+import BancoDeNubes from "./Nubes";
+import CompartirLanding from "./CompartirLanding";
 
 /**
- * El final (2026-10-23), como el cierre de coofounder: arriba los links y la
- * firma; abajo, al borde de la página, la palabra «oído» grande y fileteada
- * con el Sol de Mayo saliendo detrás, que le da el color al cielo. La palabra
- * queda apenas cortada por el borde. Links: Términos y condiciones y
- * Privacidad, cada uno por su lado.
+ * El final. Cierra el panel de cielo que empieza en «¿Te falta alguien hoy?»
+ * (`.landing-cierre` arriba, `.landing-firma` abajo): la palabra «oído»
+ * fileteada, **entera** y con sus adornos de cuerpo (la misma `firma` de la
+ * pantalla de bienvenida), apoyada sobre un banco de nubes como el del
+ * inicio; y sobre las nubes, una sola línea con lo legal y el ©.
+ *
+ * 2026-11-18, segunda vuelta (Julieta: "queda raro ese oído cortado y abajo
+ * una tarjeta llena de cosas, quizás con términos y privacidad es
+ * suficiente"). Antes la palabra iba gigante y cortada por el borde, y
+ * debajo había un panel aparte con seis links (azul hondo en la primera
+ * vuelta del híbrido, blanco antes). Los otros caminos (Precios, Para
+ * trabajar, Preguntas, Ingresar) ya están en el encabezado y en la página.
+ * El Sol de Mayo se fue en la primera vuelta; sigue en `Filete.tsx`.
  */
 export default function LandingFooter() {
-  const id = `pie-${useId().replace(/:/g, "")}`;
   return (
-    <footer className="landing-pie">
+    <footer className="landing-firma">
+      <BancoDeNubes id="landing-final" className="landing-firma-nubes" />
+      <Filete palabra="oído" tam="firma" className="landing-firma-palabra" />
       <div className="landing-pie-fila">
-        <nav aria-label="Pie" className="flex flex-wrap justify-center gap-x-5 gap-y-1.5 text-sm lg:justify-start">
+        <nav aria-label="Pie" className="flex flex-wrap justify-center gap-x-5 gap-y-1">
+          {/* Un link directo para pasar la página (Julieta, 2026-11-18): acá,
+              con lo legal, para que esté sin llamar la atención. */}
+          <CompartirLanding />
           <Link href="/terminos">Términos y condiciones</Link>
           <Link href="/privacidad">Privacidad</Link>
         </nav>
-        <p className="text-xs">© 2026 Julieta Arrazate — Oído. Hecho en Argentina.</p>
-      </div>
-      <div className="landing-firma">
-        <svg aria-hidden viewBox="0 0 1000 400">
-          <Degrades id={id} />
-          <defs>
-            <radialGradient id={`${id}-brillo`} cx=".5" cy=".55" r=".5">
-              <stop offset="0" stopColor="#ffd77a" stopOpacity=".75" />
-              <stop offset=".45" stopColor="#ffe9b0" stopOpacity=".35" />
-              <stop offset="1" stopColor="#ffe9b0" stopOpacity="0" />
-            </radialGradient>
-          </defs>
-          <circle cx={500} cy={190} r={330} fill={`url(#${id}-brillo)`} />
-          <Sol cx={500} cy={190} r={95} id={id} />
-          <Letras x={500} y={425} tam={360} texto="oído" id={`${id}-p`} anchor="middle" e={2} />
-        </svg>
+        {/* La marca, el rubro y la ciudad: lo que un buscador usa para ubicar
+            la página (Julieta, 2026-11-18). El nombre de la titular está en
+            Términos y Privacidad (`lib/legal.ts`), no acá. */}
+        {/* En el celular no entra en un renglón: se parte en el punto, que
+            ahí se esconde, y no en medio de la frase. */}
+        <p className="flex flex-col items-center gap-x-1.5 min-[400px]:flex-row">
+          <span>© 2026 Oído</span>
+          <span aria-hidden className="hidden min-[400px]:inline">
+            ·
+          </span>
+          <span>Personal gastronómico en Buenos Aires</span>
+        </p>
       </div>
     </footer>
   );
