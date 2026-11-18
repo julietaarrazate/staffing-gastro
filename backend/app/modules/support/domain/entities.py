@@ -21,6 +21,10 @@ class SupportTicket:
     category: TicketCategory
     subject: str
     status: TicketStatus = TicketStatus.ABIERTO
+    # U110: referencia opcional a un turno y/o un comercio (ya validada por el
+    # caso de uso: sólo lo que la persona puede ver).
+    shift_id: UUID | None = None
+    company_id: UUID | None = None
 
     id: UUID = field(default_factory=uuid4)
     created_at: datetime | None = None
@@ -76,3 +80,62 @@ class EnrichedTicket:
     message_count: int
     last_message_at: datetime | None
     created_at: datetime | None
+    shift_id: UUID | None = None
+    shift_title: str | None = None
+    shift_start_at: datetime | None = None
+    company_id: UUID | None = None
+    company_name: str | None = None
+
+
+@dataclass(frozen=True)
+class ShiftFacts:
+    """Lo que el caso de uso necesita saber de un turno para decidir si una
+    persona puede atarlo a un ticket (lo arma el puerto `ReferenceLookup`)."""
+
+    id: UUID
+    title: str
+    start_at: datetime
+    company_id: UUID
+    company_name: str | None
+    company_user_id: UUID
+    worker_profile_id: UUID | None
+    # Abierto a postulaciones (publicado o buscando personal, con la hora de
+    # inicio por delante) y con la cuenta del comercio activa: el turno que
+    # cualquiera ve en el Inicio.
+    publicly_open: bool
+
+
+@dataclass(frozen=True)
+class CompanyFacts:
+    """Lo que el caso de uso necesita saber de un comercio."""
+
+    id: UUID
+    user_id: UUID
+    name: str
+    account_active: bool
+
+
+@dataclass(frozen=True)
+class ShiftRef:
+    """El turno al que está atado un ticket, para mostrarlo."""
+
+    id: UUID
+    title: str
+    start_at: datetime
+    company_name: str | None = None
+
+
+@dataclass(frozen=True)
+class CompanyRef:
+    """El comercio al que está atado un ticket, para mostrarlo.
+    `user_id` es la cuenta dueña (el admin llega a su ficha por ahí)."""
+
+    id: UUID
+    name: str
+    user_id: UUID
+
+
+@dataclass(frozen=True)
+class TicketReferences:
+    shift: ShiftRef | None = None
+    company: CompanyRef | None = None

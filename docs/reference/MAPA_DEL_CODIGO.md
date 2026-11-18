@@ -25,7 +25,7 @@ servidor y no se pueden mockear con `page.route` (ver
 | `/map` | Turnos en el mapa, con el pago en el pin | `worker/MapSheet`, `lib/map/` | `/shifts/feed` |
 | `/my-shifts` | Mis turnos y en qué paso están | `ShiftCard`, `ShiftLifecycleStepper`, `worker/EnRouteToggle` ("Va en camino"), `worker/CompareShiftsModal`, `ReviewBox` | `/shifts/mine`, `/applications/mine`, `/saved-shifts` |
 | `/assistant` | Asistente de IA (lenguaje natural) | `lib/use-worker-ai-assistant.ts` | `/assistant/worker-query` |
-| `/companies/[id]` | Perfil público de un comercio | `MiniMap`, `RateMeter` | `/companies/{id}` |
+| `/companies/[id]` | Perfil público de un comercio. Link discreto «Reportar un problema» (trabajador) hacia `/support?categoria=comercio&comercio=<id>` | `MiniMap`, `RateMeter`, `lib/support-reference.ts` | `/companies/{id}` |
 
 Llegada al turno: el trabajador marca "salí", "llegué" (check-in con
 ubicación, desde 30 min antes) y "terminé" desde `/my-shifts`. Si no llega,
@@ -56,7 +56,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | `/profile/edit` | Editar datos (`WorkerProfileForm` / `CompanyProfileForm`) |
 | `/profile/settings` | Apariencia, notificaciones push, soporte, cerrar sesión |
 | `/chats`, `/chats/[shiftId]` | Chat por turno (WebSocket, `lib/useWebSocket.ts`) |
-| `/support`, `/support/[id]` | Tickets de soporte |
+| `/support`, `/support/[id]` | Tickets de soporte. Categorías «Un turno» y «Un comercio»: con `?categoria=turno&turno=<id>` o `?categoria=comercio&comercio=<id>` (los dos «Reportar un problema», del detalle y la tarjeta de turno del trabajador, y del perfil del comercio) el formulario sale precargado y muestra de qué se trata; el ticket guarda `shift_id`/`company_id` (U110) | `lib/support-reference.ts`, `ShiftDetail`, `ShiftCard` | `/support/reference`, `/support/tickets` |
 | `/turno/[id]` **SSR** | Página pública de un turno, para compartir (`ShiftDetail`). Se ve mientras el turno esté abierto a postulaciones (`lib/turno-publico.ts` lee `GET /shifts/{id}/public`: 200, 410 o 404). Si ya se tomó, se canceló o pasó la hora: «Este turno ya no está disponible» (`components/TurnoNoDisponible.tsx`, con salida según la sesión; la muestra `app/turno/[id]/not-found.tsx`). Si no existe: la «no encontrada» global (lo corta `app/turno/[id]/layout.tsx`) |
 | cualquier dirección que no existe | «No encontramos esa página», con «Volver al inicio» (`app/not-found.tsx`). También la usa todo `notFound()` sin una pantalla propia más cerca |
 | `/encuesta` | Encuesta pública para locales (~3 min, se comparte por WhatsApp con `?ref=` para saber qué grupo la trajo): una pregunta por pantalla, sin sesión, sin barras de la app y fuera de los buscadores (ADR-0025). Cielo de la landing arriba, opciones grandes, rol, nombre del local y barrio obligatorios, contacto opcional con consentimiento. Borrador en `sessionStorage`; clave de reintento por envío | `components/encuesta/` (`EncuestaForm`, `Opciones`), `lib/encuesta.ts` (opciones, pasos, qué falta, cuerpo del pedido) | `POST /encuesta` |
@@ -64,7 +64,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | `/admin` ("Hoy") | Portada del admin: urgentes sin cubrir y ausencias del día, pendientes con contador y la promesa de los 10 min. Menú y control de acceso en `app/admin/layout.tsx`; contadores en `components/admin/AdminInbox.tsx` |
 | `/admin/en-vivo` ("Turnos en vivo") | Turnos publicados sin nadie confirmado, lo más urgente primero, filtros urgentes/escalados/ausencias de hoy (`?filtro=`; la portada «Ausencias de hoy» entra por `?filtro=ausencias`), se actualiza cada 30 s. Cuentas en `components/admin/live.ts` |
 | `/admin/personas`, `/admin/personas/[id]` | Buscador y filtros de usuarios · ficha con perfil, turnos, tickets y acciones de moderación (`components/admin/people.ts`); en un comercio, el bloque «Plan» (plan actual, plan elegido al darse de alta, compromiso de pago: `components/admin/PlanCompromiso.tsx`) |
-| `/admin/verificacion`, `/admin/support` | Cola de DNI y constancia AFIP · tickets |
+| `/admin/verificacion`, `/admin/support` | Cola de DNI y constancia AFIP · tickets (con el turno o comercio atado: texto en la lista, link al turno y a la ficha del comercio en el detalle) |
 | `/admin/metricas`, `/admin/herramientas` | Últimos 7/30 días contra el período anterior (`DeltaStatCard` en `components/admin/AdminStats.tsx`), conteos, promesa, métricas de producto y suscripciones (incluye «Eligieron un plan al darse de alta» y «Se comprometieron a pagar») · cuentas de prueba |
 | `/admin/leads` ("Crecimiento") | Comercios a captar: lista por barrio desde OpenStreetMap, estado y notas (ADR-0019, `lib/leads.ts`) · sección «Encuesta» (`components/admin/EncuestaPanel.tsx`): resumen (total, dueños y encargados, con contacto; distribuciones y mediana sólo con quien decide) y locales que dejaron contacto (ADR-0025) |
 | `/admin/seguridad` ("Seguridad") | Verificación en dos pasos de la cuenta admin (ADR-0023): el alta (QR con `components/admin/TotpQr.tsx`, clave a mano, códigos de recuperación con `RecoveryCodesPanel`), estado, códigos nuevos y cambio de celular. Una admin sin activarla sólo ve esta pantalla (`twoFactorSetupPending` en `lib/auth-context.tsx`). El paso del código en `/login` es `components/TwoFactorLoginStep.tsx`; API en `lib/two-factor.ts` |
@@ -145,7 +145,7 @@ Esto es para saber qué existe sin abrir cada archivo.
 | `/workers`, `/companies` | perfil propio (`me/profile`), perfil público; `workers/me/earnings`, `workers/me/available-now` |
 | `/favorites`, `/saved-shifts` | favoritos del comercio, turnos guardados del trabajador |
 | `/identity` | verificación: DNI y selfie, constancia AFIP, cola de admin, link que vence de cada evidencia (`/evidences/{id}/link`) |
-| `/reviews`, `/chats`, `/notifications`, `/support` | reseñas, chat por turno, avisos, tickets |
+| `/reviews`, `/chats`, `/notifications`, `/support` | reseñas, chat por turno, avisos, tickets (`support/reference` confirma qué turno o comercio se ata; reglas en `SupportService`, cruce por el puerto `ReferenceLookup`) |
 | `/subscription` | plan, planes, suscribirse (Checkout Pro), baja, arrepentimiento, `plan-elegido` (primera vez gana), `webhooks/mercadopago` |
 | `/uploads` | firma de subida de CV y de constancia |
 | `/assistant` | IA del comercio (`query`) y del trabajador (`worker-query`) |

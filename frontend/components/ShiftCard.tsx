@@ -20,6 +20,7 @@ import { cldThumb } from "@/lib/cloudinary";
 import { downloadShiftIcs } from "@/lib/calendar";
 import ShiftLifecycleStepper, { type ShiftStepperPerspective } from "@/components/ShiftLifecycleStepper";
 import { shiftHeroPhoto } from "@/lib/company-photo";
+import { reportShiftHref } from "@/lib/support-reference";
 
 const MiniMap = dynamic(() => import("@/components/MiniMap"), {
   ssr: false,
@@ -415,6 +416,19 @@ export default function ShiftCard({
         )}
 
         {children && <div className="mt-4">{children}</div>}
+
+        {/* U110: discreto, sin acento. Del lado del trabajador, que sólo
+            ve acá turnos suyos o abiertos. */}
+        {perspective === "worker" && (
+          <p className="mt-3 text-center">
+            <Link
+              href={reportShiftHref(shift.id)}
+              className="text-xs font-semibold text-ink/50 underline-offset-2 hover:text-ink hover:underline"
+            >
+              Reportar un problema
+            </Link>
+          </p>
+        )}
       </div>
     </div>
   );

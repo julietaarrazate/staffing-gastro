@@ -1,13 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
+import { parseSupportPrefill } from "@/lib/support-reference";
+import { formatShiftDate, formatShiftTime } from "@/lib/datetime";
 import {
+  SupportReferences,
   SupportTicket,
   TICKET_CATEGORY_LABELS,
   TicketCategory,
@@ -24,10 +27,33 @@ import {
 } from "@/components/ui";
 import { MessageIcon, PlusIcon } from "@/components/icons";
 
-const CATEGORIES: TicketCategory[] = ["general", "cv_documentos", "pagos", "cuenta", "otro"];
+const CATEGORIES: TicketCategory[] = [
+  "general",
+  "cv_documentos",
+  "pagos",
+  "cuenta",
+  "turno",
+  "comercio",
+  "otro",
+];
 
+type Reference = { shiftId: string | null; companyId: string | null };
+
+// «Reportar un problema» (U110) abre esta pantalla con `?categoria=…&turno=…`
+// o `?comercio=…`: el formulario sale precargado y se muestra de qué turno o
+// comercio se trata, para que la persona lo confirme.
 export default function SupportPage() {
+  // useSearchParams exige un boundary de Suspense en build estático.
+  return (
+    <Suspense fallback={null}>
+      <SupportContent />
+    </Suspense>
+  );
+}
+
+function SupportContent() {
   const { token } = useRequireAuth();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const toast = useToast();
   const { keyFor, clear } = useIdempotencyKeys();
@@ -40,6 +66,11 @@ export default function SupportPage() {
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // Turno o comercio atado al ticket nuevo (sólo si la persona lo trae de
+  // «Reportar un problema») y lo que el servidor contestó de él.
+  const [reference, setReference] = useState<Reference | null>(null);
+  const [refInfo, setRefInfo] = useState<SupportReferences | null>(null);
+  const [refMissing, setRefMissing] = useState(false);
 
   const load = useCallback(() => {
     if (!token) return;
@@ -58,10 +89,52 @@ export default function SupportPage() {
     load();
   }, [load]);
 
+  // Precarga desde la URL: una vez por llegada (cambia sólo si cambia la URL).
+  const prefillKey = searchParams.toString();
+  useEffect(() => {
+    const prefill = parseSupportPrefill(searchParams);
+    if (!prefill) return;
+    setCategory(prefill.category);
+    setReference({ shiftId: prefill.shiftId, companyId: prefill.companyId });
+    setRefInfo(null);
+    setRefMissing(false);
+    setShowNew(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillKey]);
+
+  // Qué turno o comercio se va a atar: lo contesta el servidor con las mismas
+  // reglas que al crear el ticket. Si no lo encuentra (o no es de esa persona)
+  // el ticket se manda igual, sin referencia.
+  useEffect(() => {
+    if (!token || !reference) return;
+    let cancelled = false;
+    const query = reference.shiftId
+      ? `shift_id=${reference.shiftId}`
+      : `company_id=${reference.companyId}`;
+    api
+      .get<SupportReferences>(`/support/reference?${query}`, token)
+      .then((data) => {
+        if (!cancelled) setRefInfo(data);
+      })
+      .catch(() => {
+        if (!cancelled) setRefMissing(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token, reference]);
+
+  function dropReference() {
+    setReference(null);
+    setRefInfo(null);
+    setRefMissing(false);
+  }
+
   function resetForm() {
     setCategory("general");
     setSubject("");
     setBody("");
+    dropReference();
   }
 
   async function submitTicket(e: React.FormEvent) {
@@ -69,11 +142,19 @@ export default function SupportPage() {
     if (!token) return;
     setSubmitting(true);
     // U012: mismo formulario reintentado = misma key (no duplica el ticket).
-    const attempt = JSON.stringify([category, subject, body]);
+    const shiftId = refInfo?.shift ? refInfo.shift.id : null;
+    const companyId = refInfo?.company ? refInfo.company.id : null;
+    const attempt = JSON.stringify([category, subject, body, shiftId, companyId]);
     try {
       const ticket = await api.post<SupportTicket>(
         "/support/tickets",
-        { category, subject, body },
+        {
+          category,
+          subject,
+          body,
+          ...(shiftId ? { shift_id: shiftId } : {}),
+          ...(companyId ? { company_id: companyId } : {}),
+        },
         token,
         undefined,
         keyFor(attempt)
@@ -165,6 +246,42 @@ export default function SupportPage() {
             </select>
           </label>
 
+          {reference && (refInfo || refMissing) && (
+            <div
+              data-testid="ticket-reference"
+              className="flex items-start justify-between gap-3 rounded-[var(--radius-card)] bg-surface px-4 py-3 ring-1 ring-line"
+            >
+              <div className="min-w-0 text-sm">
+                {refInfo?.shift ? (
+                  <>
+                    <p className="text-xs font-semibold text-ink/50">Turno que reportás</p>
+                    <p className="truncate font-semibold text-ink">{refInfo.shift.title}</p>
+                    <p className="text-ink/60">
+                      {formatShiftDate(refInfo.shift.start_at)} · {formatShiftTime(refInfo.shift.start_at)}
+                      {refInfo.shift.company_name ? ` · ${refInfo.shift.company_name}` : ""}
+                    </p>
+                  </>
+                ) : refInfo?.company ? (
+                  <>
+                    <p className="text-xs font-semibold text-ink/50">Comercio que reportás</p>
+                    <p className="truncate font-semibold text-ink">{refInfo.company.name}</p>
+                  </>
+                ) : (
+                  <p className="text-ink/60">
+                    No pudimos asociar el turno o comercio. Contanos igual qué pasó y lo vemos.
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={dropReference}
+                className="shrink-0 text-sm font-semibold text-primary-text"
+              >
+                Quitar
+              </button>
+            </div>
+          )}
+
           <TextField
             label="Asunto"
             value={subject}
@@ -191,7 +308,14 @@ export default function SupportPage() {
             <Button type="button" variant="surface" fullWidth onClick={() => setShowNew(false)}>
               Cancelar
             </Button>
-            <Button type="submit" fullWidth loading={submitting}>
+            {/* Hasta que el servidor confirma el turno o comercio, no se manda:
+                si no, el ticket saldría sin la referencia. */}
+            <Button
+              type="submit"
+              fullWidth
+              loading={submitting}
+              disabled={Boolean(reference) && !refInfo && !refMissing}
+            >
               Enviar
             </Button>
           </div>
