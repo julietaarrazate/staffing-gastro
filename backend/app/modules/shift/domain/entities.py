@@ -66,11 +66,13 @@ EN_ROUTE_WINDOW = timedelta(hours=2)
 NO_SHOW_EARLIEST_AFTER_START = timedelta(minutes=15)
 
 # Turno reofrecido (U080, ADR-0015 actualizado el 2026-11-18): un turno que
-# se reabre cuando ya empezó se vuelve a ofrecer como urgente hasta que
-# termina su horario, pero sólo si le queda al menos esto de horario
-# (decisión 19 de Julieta). Con menos, nadie llega a trabajar algo que valga
-# el viaje: pasa directo a «no cubierto».
-REOFFER_MIN_REMAINING = timedelta(hours=1)
+# se reabre cuando ya empezó se vuelve a ofrecer como urgente sólo si le queda
+# al menos esto de horario, y sale de la oferta cuando le queda menos
+# (decisión 19 de Julieta, subida de 1 a 2 horas el mismo día: nadie toma un
+# turno reabierto por una sola hora). Al reabrir con menos, pasa directo a
+# «no cubierto»; ya reofrecido, deja de ofrecerse y la pasada de cobertura
+# lo cierra si nadie confirmó. Es la única constante de esta regla.
+REOFFER_MIN_REMAINING = timedelta(hours=2)
 
 
 class Reapertura(str, Enum):
@@ -189,7 +191,7 @@ class Shift:
 
     # Turno reofrecido (U080): cuándo se volvió a ofrecer un turno que se
     # reabrió con el horario ya empezado. Mientras esté, el turno se ofrece
-    # hasta `end_at` (no hasta `start_at`) y quien lo tome cobra lo que resta
+    # hasta `offered_until` (no hasta `start_at`) y quien lo tome cobra lo que resta
     # desde que llega. No se borra: queda como marca del turno. Si se reabre
     # otra vez, se pisa con la hora del ciclo nuevo.
     reoffered_at: datetime | None = None
@@ -258,17 +260,26 @@ class Shift:
         cubierto» (ADR-0015), pero nadie puede llegar a tiempo.
 
         La excepción es el turno reofrecido (U080): se reabrió con el horario
-        ya empezado, así que se ofrece mientras le quede horario."""
+        ya empezado, así que se ofrece hasta `offered_until` (mientras le
+        quede al menos `REOFFER_MIN_REMAINING` de horario)."""
         if self.status not in OPEN_STATUSES:
             return False
         if _naive(self.start_at) > _naive(now):
             return True
-        return self.is_reoffered and _naive(self.end_at) > _naive(now)
+        return self.is_reoffered and _naive(self.offered_until) > _naive(now)
 
     @property
     def is_reoffered(self) -> bool:
         """¿Se volvió a ofrecer con el horario ya empezado (U080)?"""
         return self.reoffered_at is not None
+
+    @property
+    def offered_until(self) -> datetime:
+        """Hasta cuándo se ofrece un turno reofrecido (U080): mientras le
+        quede al menos `REOFFER_MIN_REMAINING` de horario. Desde ahí deja de
+        verse y de aceptar postulaciones, y si nadie confirmó la pasada de
+        cobertura lo cierra (`coverage_deadline`)."""
+        return self.end_at - REOFFER_MIN_REMAINING
 
     @property
     def taken_after_start(self) -> bool:
@@ -400,7 +411,7 @@ class Shift:
         - Todavía no empezó: vuelve a BUSCANDO_PERSONAL, como siempre.
         - Ya empezó y le queda al menos `REOFFER_MIN_REMAINING` de horario:
           vuelve a BUSCANDO_PERSONAL **reofrecido como urgente**. Se ofrece
-          hasta `end_at` (`is_open_for_applications`). `escalated_at` se marca
+          hasta `offered_until` (`is_open_for_applications`). `escalated_at` se marca
           si no lo estaba: el aviso urgente sale con la reapertura, y la
           escalada no tiene que mandarlo otra vez.
         - Ya empezó y le queda menos: NO_CUBIERTO en la misma operación

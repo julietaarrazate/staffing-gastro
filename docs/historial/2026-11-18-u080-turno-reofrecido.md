@@ -9,9 +9,12 @@ persona y sin chance de reemplazo, con horas de turno por delante.
 **Qué cambió:**
 
 - Si la persona que tenía el turno falta, cancela o rechaza **con el horario
-  ya empezado**, el turno se vuelve a ofrecer como urgente hasta que termina.
-  Sólo si le queda al menos 1 hora; con menos pasa a «no cubierto» en el
-  momento, con un aviso al comercio que dice por qué.
+  ya empezado**, el turno se vuelve a ofrecer como urgente. Sólo si le
+  quedan al menos 2 horas; con menos pasa a «no cubierto» en el momento, con
+  un aviso al comercio que dice por qué. Ya reofrecido, sale de la oferta
+  cuando le quedan menos de 2 horas, y si nadie confirmó pasa a «no
+  cubierto» (decisión 19: Julieta subió el mínimo de 1 a 2 horas el mismo
+  día, ver abajo).
 - A quienes están cerca les llega un aviso urgente con el **valor por hora**
   («Paga $10.000 por hora, desde que llegás»). A quien ya tuvo ese turno y lo
   dejó, no. Las tarjetas (Inicio, «Cerca tuyo», Buscar, Mapa y su pin,
@@ -51,7 +54,7 @@ persona y sin chance de reemplazo, con horas de turno por delante.
 - Un solo paso de dominio (`_reopen`) para las cuatro transiciones que
   reabren: antes cada una repetía «soltar a la persona y volver a buscar», y
   la regla de la hora habría quedado copiada cuatro veces.
-- Con menos de 1 hora el turno se cierra en la misma operación, en vez de
+- Con menos de 2 horas el turno se cierra en la misma operación, en vez de
   quedar en «Buscando personal» hasta la pasada de cobertura: el comercio veía
   durante hasta 2 horas un turno que nadie podía tomar.
 - El valor por hora y el monto fijado los calcula el backend; el frontend no
@@ -88,9 +91,20 @@ persona y sin chance de reemplazo, con horas de turno por delante.
 - **Carrera en la cobertura:** `mark_not_covered` relee el turno y, si
   todavía no corresponde (`coverage_deadline`, que pasa a `end_at` si se
   reofreció en el medio), no hace nada.
-- **Diálogo de «No se presentó»:** a menos de 15 minutos del umbral de 1
-  hora dice las dos posibilidades, porque lo decide el reloj del servidor al
+- **Diálogo de «No se presentó»:** a menos de 15 minutos del umbral (hoy 2
+  horas) dice las dos posibilidades, porque lo decide el reloj del servidor al
   marcarlo.
+- **El mínimo pasó de 1 a 2 horas** (decisión 19 actualizada por Julieta el
+  mismo día: nadie toma un turno reabierto por una sola hora), en las dos
+  puntas: para reofrecer al reabrir, y para seguir ofreciéndolo
+  (`Shift.offered_until` = `end_at` − 2 h: feed, página pública, soporte,
+  postularse y el plazo de «no cubierto»). Una sola constante,
+  `REOFFER_MIN_REMAINING`, con su espejo `REOFFER_MIN_REMAINING_MS` en
+  `frontend/lib/turno-reofrecido.ts`. El filtro de `_open_stmt` compara
+  `end_at` contra un límite calculado en Python en UTC (sumar un intervalo a
+  `now()` cambia según el motor). Los avisos y el panel dicen «hasta las
+  HH:MM» con la hora en que deja de ofrecerse; las tarjetas del trabajador
+  siguen mostrando el fin del horario.
 - **Quien dejó el turno y lo seguía viendo:** no hizo falta cambiar nada.
   Inicio, Buscar y Mapa ya esconden los turnos con la postulación
   `desasignada` (`appliedShiftIds` en `frontend/lib/applications.ts` la

@@ -70,9 +70,10 @@ class ApplicationService:
         if shift.is_reoffered and not shift.is_open_for_applications(
             datetime.now(timezone.utc)
         ):
-            # Turno reofrecido (U080): se ofrece hasta que termina su horario.
-            # Entre el final y la pasada que lo cierra como «no cubierto» ya
-            # no acepta postulaciones.
+            # Turno reofrecido (U080): se ofrece mientras le queden al menos 2
+            # horas de horario (`Shift.offered_until`). Desde ahí, y hasta la
+            # pasada que lo cierra como «no cubierto», ya no acepta
+            # postulaciones.
             raise ShiftNotApplicableError(str(shift_id))
         company = await self._companies.get_by_id(shift.company_id)
         if not await self._account_active(company.user_id if company else None):

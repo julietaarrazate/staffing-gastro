@@ -19,6 +19,9 @@ const hhmm = (iso: string) =>
     minute: "2-digit",
     hour12: false,
   });
+// Un reofrecido se ofrece mientras le queden 2 horas de horario.
+const ofrecidoHasta = (endIso: string) =>
+  hhmm(new Date(new Date(endIso).getTime() - 2 * 60 * 60_000).toISOString());
 
 function turno(overrides: Record<string, unknown> = {}) {
   return {
@@ -169,7 +172,7 @@ test("Panel del comercio: el turno reofrecido se distingue y dice hasta cuándo 
   await page.goto("/shifts");
 
   const main = page.locator("main");
-  await expect(main).toContainText(`Reofrecido como urgente hasta las ${hhmm(reofrecido.end_at)}.`);
+  await expect(main).toContainText(`Reofrecido como urgente hasta las ${ofrecidoHasta(reofrecido.end_at)}.`);
   await expect(main).toContainText("$10.000");
   await expect(main).toContainText("Se paga lo que reste desde que llegue el reemplazo");
 });
@@ -190,7 +193,7 @@ test("«¿Marcar que no se presentó?» dice que el turno se reofrece y cómo se
   await page.getByRole("button", { name: "Más acciones" }).first().click();
   await page.getByRole("button", { name: /No se presentó/ }).click();
   const dialogo = page.getByRole("dialog", { name: "¿Marcar que no se presentó?" });
-  await expect(dialogo).toContainText(`lo reofrecemos como urgente hasta las ${hhmm(confirmado.end_at)}`);
+  await expect(dialogo).toContainText(`lo reofrecemos como urgente hasta las ${ofrecidoHasta(confirmado.end_at)}`);
   await expect(dialogo).toContainText("quien lo tome cobra lo que reste desde que llegue");
   await expect(dialogo).toContainText("le va a impactar la reputación");
 });

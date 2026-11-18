@@ -113,7 +113,7 @@ class ShiftResponse(BaseModel):
     first_assigned_at: datetime | None = None
     created_at: datetime | None = None
     # Turno reofrecido (U080): se reabrió con el horario ya empezado y se
-    # ofrece como urgente hasta `end_at`. Mientras nadie marcó la llegada, lo
+    # ofrece como urgente hasta `offered_until`. Mientras nadie marcó la llegada, lo
     # que se muestra es el valor por hora (`hourly_pay_amount`, calculado en
     # el dominio; `None` en cualquier otro turno), porque el total depende de
     # cuándo llegue quien lo tome. Son datos del turno: los ve cualquiera.
@@ -266,7 +266,7 @@ class ShiftPublicResponse(BaseModel):
     city: str | None
     pay_amount: Decimal
     currency: str
-    # Turno reofrecido (U080): ya empezó y se ofrece hasta `end_at`; se
+    # Turno reofrecido (U080): ya empezó y se ofrece hasta `offered_until`; se
     # muestra el valor por hora. Ver `ShiftResponse`.
     reoffered_at: datetime | None = None
     hourly_pay_amount: Decimal | None = None

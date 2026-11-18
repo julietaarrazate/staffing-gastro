@@ -3,14 +3,16 @@ import type { Shift } from "@/lib/types";
 
 /**
  * Turno reofrecido (U080): un turno que se reabre con el horario ya empezado
- * se vuelve a ofrecer como urgente hasta que termina, si le queda al menos
- * una hora; con menos, pasa a «no cubierto». La regla vive en el backend
- * (`Shift._reopen`, `REOFFER_MIN_REMAINING`); esto es su espejo para los
+ * se vuelve a ofrecer como urgente si le quedan al menos 2 horas; con menos,
+ * pasa a «no cubierto». Ya reofrecido, sale de la oferta cuando le quedan
+ * menos de 2 horas. La regla vive en el backend (`Shift._reopen`,
+ * `offered_until`, `REOFFER_MIN_REMAINING`); esto es su espejo para los
  * textos del panel del comercio, que dicen qué va a pasar antes de tocar.
  */
 
-/** Lo mínimo de horario que tiene que quedar para reofrecer. */
-export const REOFFER_MIN_REMAINING_MS = 60 * 60_000;
+/** Lo mínimo de horario que tiene que quedar para reofrecer, y para seguir
+ *  ofreciéndolo (decisión 19: 2 horas). Espejo de `REOFFER_MIN_REMAINING`. */
+export const REOFFER_MIN_REMAINING_MS = 2 * 60 * 60_000;
 
 /** «No se presentó» se habilita 15 minutos después de la hora en que se
  *  esperaba a la persona (la tolerancia de la puntualidad). */
@@ -22,6 +24,13 @@ type Reofrecible = Pick<Shift, "start_at" | "end_at">;
  *  empezado: antes vuelve a buscar personal como siempre. */
 export function seReofrece(shift: Reofrecible, now: number = Date.now()): boolean {
   return new Date(shift.end_at).getTime() - now >= REOFFER_MIN_REMAINING_MS;
+}
+
+/** «HH:MM» hasta la que se ofrece un turno reofrecido: cuando le quedan
+ *  2 horas de horario (`Shift.offered_until` en el backend). */
+function ofrecidoHasta(shift: Pick<Shift, "end_at">): string {
+  const fin = new Date(shift.end_at).getTime();
+  return formatShiftTime(new Date(fin - REOFFER_MIN_REMAINING_MS).toISOString());
 }
 
 /**
@@ -45,7 +54,7 @@ export function puedeMarcarAusencia(shift: Esperable, now: number = Date.now()):
   return now >= esperadoDesde(shift) + NO_SHOW_AFTER_MS;
 }
 
-/** Cerca del umbral de una hora, el reloj del dispositivo no alcanza para
+/** Cerca del umbral de 2 horas, el reloj del dispositivo no alcanza para
  *  decir qué va a pasar: lo decide el servidor con su hora, al marcarlo, y
  *  entre abrir el diálogo y tocar pueden pasar minutos. */
 export const REOFFER_UNCERTAIN_MARGIN_MS = 15 * 60_000;
@@ -54,18 +63,19 @@ export const REOFFER_UNCERTAIN_MARGIN_MS = 15 * 60_000;
  *  de 15 minutos del umbral (en cualquiera de los dos sentidos) dice las dos
  *  posibilidades en vez de prometer una. */
 export function noShowConfirmCopy(shift: Reofrecible, now: number = Date.now()): string {
-  const fin = formatShiftTime(shift.end_at);
+  const hasta = ofrecidoHasta(shift);
   const resta = new Date(shift.end_at).getTime() - now;
   const queda =
     Math.abs(resta - REOFFER_MIN_REMAINING_MS) < REOFFER_UNCERTAIN_MARGIN_MS
-      ? `Como el turno ya empezó, si al marcarlo le queda al menos una hora de horario lo reofrecemos como urgente hasta las ${fin} (quien lo tome cobra lo que reste desde que llegue); si no, pasa a «no cubierto» y podés publicarlo de nuevo.`
+      ? `Como el turno ya empezó, si al marcarlo le quedan al menos 2 horas de horario lo reofrecemos como urgente hasta las ${hasta} (quien lo tome cobra lo que reste desde que llegue); si no, pasa a «no cubierto» y podés publicarlo de nuevo.`
       : seReofrece(shift, now)
-        ? `Como el turno ya empezó, lo reofrecemos como urgente hasta las ${fin}: quien lo tome cobra lo que reste desde que llegue.`
-        : "Queda menos de una hora de horario, así que no se reofrece: el turno pasa a «no cubierto» y podés publicarlo de nuevo.";
+        ? `Como el turno ya empezó, lo reofrecemos como urgente hasta las ${hasta}: quien lo tome cobra lo que reste desde que llegue.`
+        : "Quedan menos de 2 horas de horario, así que no se reofrece: el turno pasa a «no cubierto» y podés publicarlo de nuevo.";
   return `${queda} Al trabajador le va a impactar la reputación. Esta acción queda registrada.`;
 }
 
-/** La línea del panel para un turno reofrecido que todavía busca reemplazo. */
+/** La línea del panel para un turno reofrecido que todavía busca reemplazo:
+ *  hasta cuándo se ofrece (cuando le quedan 2 horas de horario). */
 export function reofferedHint(shift: Pick<Shift, "end_at">): string {
-  return `Reofrecido como urgente hasta las ${formatShiftTime(shift.end_at)}.`;
+  return `Reofrecido como urgente hasta las ${ofrecidoHasta(shift)}.`;
 }

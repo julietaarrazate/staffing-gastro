@@ -14,7 +14,7 @@ from sqlalchemy.orm.exc import StaleDataError
 from app.modules.company.infrastructure.models import CompanyProfileModel
 from app.modules.identity.domain.value_objects import UserStatus
 from app.modules.identity.infrastructure.models import UserModel
-from app.modules.shift.domain.entities import Shift
+from app.modules.shift.domain.entities import REOFFER_MIN_REMAINING, Shift
 from app.modules.shift.domain.exceptions import ShiftConcurrentModificationError
 from app.modules.shift.domain.pay_benchmark import hourly_rate
 from app.modules.shift.domain.repositories import (
@@ -599,11 +599,15 @@ class SqlAlchemyShiftRepository(ShiftRepository):
             # (producción) que la comparación en Python evita de otra forma.
             #
             # La excepción es el turno reofrecido (U080): se reabrió con el
-            # horario ya empezado y se ofrece mientras le quede horario. Es la
-            # misma regla que `Shift.is_open_for_applications`.
+            # horario ya empezado y se ofrece mientras le queden al menos
+            # `REOFFER_MIN_REMAINING` de horario. Es la misma regla que
+            # `Shift.is_open_for_applications` (`offered_until`). El límite va
+            # como parámetro en UTC (la suma de un intervalo a `now()` es
+            # distinta en cada motor), igual que los de `sum_worker_earnings`.
             or_(
                 ShiftModel.start_at > func.now(),
-                ShiftModel.reoffered_at.is_not(None) & (ShiftModel.end_at > func.now()),
+                ShiftModel.reoffered_at.is_not(None)
+                & (ShiftModel.end_at > datetime.now(timezone.utc) + REOFFER_MIN_REMAINING),
             ),
         )
         if city is not None:

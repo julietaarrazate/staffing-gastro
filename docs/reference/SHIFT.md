@@ -95,7 +95,8 @@ transiciones). **Editables:** `borrador`, `publicado`. **Abiertos (feed):**
 - **Horario válido:** `start_at < end_at`.
 - **Visibilidad:** un turno aparece en el feed **sólo** en estados abiertos
   y con la hora de inicio por delante. Excepción: el **turno reofrecido**
-  (U080, se reabrió ya empezado) se ofrece hasta que termina su horario, y se
+  (U080, se reabrió ya empezado) se ofrece mientras le queden 2 horas de
+  horario (`offered_until`), y se
   paga lo que resta desde la llegada ([ADR-0015](../adr/ADR-0015-turno-no-cubierto.md),
   actualización 2026-11-18).
 - **Propiedad:** las acciones del lado comercio (publicar, editar, cancelar,

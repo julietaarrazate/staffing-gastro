@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 
 from app.core.dt import naive as _naive
 from app.core.geo import bounding_box, haversine_km
-from app.core.tz import ARG_TZ, format_turno_art, to_art
+from app.core.tz import ARG_TZ, format_duracion, format_turno_art, to_art
 from app.modules.application.domain.repositories import ShiftApplicationRepository
 from app.modules.application.domain.entities import ASSIGNABLE_FROM, ShiftApplication
 from app.modules.application.domain.value_objects import (
@@ -29,7 +29,7 @@ from app.modules.notification.domain.value_objects import NotificationType
 from app.modules.shift.application.dtos import EventData, EventResult, ShiftData
 from app.modules.shift.application.scheduler_signal import notify_scheduler
 from app.modules.shift.application.zones import locals_of_unplaced, measuring_zone
-from app.modules.shift.domain.entities import Reapertura, Shift
+from app.modules.shift.domain.entities import REOFFER_MIN_REMAINING, Reapertura, Shift
 from app.modules.shift.domain.pay_benchmark import (
     BENCHMARK_WINDOW_DAYS,
     PayBand,
@@ -146,10 +146,10 @@ def coverage_deadline(shift: Shift) -> datetime:
     compara el scheduler).
 
     Lo normal es `start_at` más una gracia que depende de `urgent`. El turno
-    reofrecido (U080) ya empezó y se ofrece mientras le quede horario: su
-    plazo es `end_at`."""
+    reofrecido (U080) ya empezó y se ofrece mientras le queden al menos
+    `REOFFER_MIN_REMAINING` de horario: su plazo es `offered_until`."""
     if shift.is_reoffered:
-        return _naive(shift.end_at)
+        return _naive(shift.offered_until)
     grace = NOT_COVERED_GRACE_URGENT if shift.urgent else NOT_COVERED_GRACE_NORMAL
     return _naive(shift.start_at) + grace
 
@@ -837,9 +837,9 @@ class ShiftService(AccountSuspensionEffects):
                 NotificationType.SHIFT_NOT_COVERED,
                 "Un turno quedó sin cubrir",
                 (
-                    f"\"{turno}\" quedó sin cubrir: {motivo_cierre} y queda menos "
-                    "de una hora de horario, así que no lo reofrecimos. Podés "
-                    "publicarlo de nuevo."
+                    f"\"{turno}\" quedó sin cubrir: {motivo_cierre} y quedan menos "
+                    f"de {format_duracion(REOFFER_MIN_REMAINING)} de horario, así "
+                    "que no lo reofrecimos. Podés publicarlo de nuevo."
                 ),
             )
         elif outcome is Reapertura.REOFRECIDO:
@@ -849,8 +849,8 @@ class ShiftService(AccountSuspensionEffects):
                 titulo,
                 (
                     f"{paso} Como ya había empezado, lo reofrecimos como urgente "
-                    f"hasta las {_hora(shift.end_at)}; se paga lo que reste desde "
-                    "que llegue el reemplazo."
+                    f"hasta las {_hora(shift.offered_until)}; se paga lo que reste "
+                    "desde que llegue el reemplazo."
                 ),
                 # Lo que el comercio necesita es elegir a otro: el aviso abre
                 # los candidatos de ESE turno.
@@ -1129,7 +1129,7 @@ class ShiftService(AccountSuspensionEffects):
             },
         )
         # Una ausencia siempre cae con el turno empezado: se reofrece como
-        # urgente o, si queda menos de una hora, pasa a «no cubierto» (U080).
+        # urgente o, si quedan menos de 2 horas, pasa a «no cubierto» (U080).
         await self._record_reopen(
             updated,
             outcome,
@@ -1288,12 +1288,12 @@ class ShiftService(AccountSuspensionEffects):
         )
         nombre = updated.title or updated.position.label
         if reofrecido:
-            # U080: se reabrió ya empezado y se ofreció hasta el final. Decir
-            # «nadie confirmó» sería falso: alguien lo tuvo y lo dejó.
+            # U080: se reabrió ya empezado y se ofreció mientras le quedaba
+            # horario. Decir «nadie confirmó» sería falso: alguien lo tuvo y
+            # lo dejó.
             message = (
                 f"\"{nombre}\" quedó sin cubrir: lo reofrecimos como urgente y no "
-                "se consiguió reemplazo antes de que terminara su horario. Podés "
-                "publicarlo de nuevo."
+                "se consiguió reemplazo a tiempo. Podés publicarlo de nuevo."
             )
         elif tras_ausencia:
             message = (

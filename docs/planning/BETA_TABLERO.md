@@ -71,7 +71,7 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 | U063, U085 | Inicio, Buscar y Mapa traen los 50 turnos más recientes de todo el país, sin filtrar por distancia: con más… (y 1 más de la misma causa) | ✅ en `main` | #547 |
 | U058 | Evento: se publican turnos sin zona («Ubicación a confirmar») y los trabajadores cercanos no reciben aviso | ✅ en `main` | #546 (prueba en la app hecha el 2026-11-13) |
 | U013, U014, U016 | El panel del comercio y la lista de candidatos no se actualizan solos (postulante nuevo, confirmación, rech… (y 2 más de la misma causa) | ✅ en `main` | #560 (prueba en la app hecha el 2026-11-14) |
-| U080 | Al reabrirse un turno por ausencia nadie recibe un aviso nuevo y, si ya empezó, tampoco vuelve al feed | ✅ escrito y revisado, rama `claude/u080-reofrecer` | se reofrece como urgente hasta que termina si le queda ≥ 1 h y se paga lo que resta desde la llegada (decisiones 4, 16, 18 y 19; ADR-0015 y ADR-0008, migración 0053) |
+| U080 | Al reabrirse un turno por ausencia nadie recibe un aviso nuevo y, si ya empezó, tampoco vuelve al feed | ✅ escrito y revisado, rama `claude/u080-reofrecer` | se reofrece como urgente si le quedan ≥ 2 h, sale de la oferta con menos de 2 h, y se paga lo que resta desde la llegada (decisiones 4, 16, 18 y 19; ADR-0015 y ADR-0008, migración 0053) |
 
 **Tanda 2**
 
@@ -280,8 +280,9 @@ el modelo del dominio, un ADR vigente o un texto legal:
     y ADR-0008 actualizados, migración 0053; tras la revisión, un turno
     común confirmado tarde vuelve a medirse desde el inicio). El diseño: marca
     `reoffered_at` en el turno; el Inicio, la página pública y postularse lo
-    aceptan hasta que termina su horario; «no cubierto» pasa al final del
-    horario; aviso urgente a quienes están cerca y aviso al comercio cuando
+    aceptan mientras le queden 2 horas de horario (decisión 19, subida a 2
+    horas el mismo día); «no cubierto» pasa a cuando le quedan menos de 2
+    horas; aviso urgente a quienes están cerca y aviso al comercio cuando
     falta alguien confirmado; para quien lo toma ya empezado, recordatorio,
     ausencia y puntualidad se miden desde que confirmó, no desde el inicio;
     el pago se prorratea desde la llegada (valor por hora en el aviso, monto
@@ -397,8 +398,10 @@ implemente.
 - **18.** U080, «se paga lo que resta»: se cuenta **desde que el reemplazo
   marca la llegada**. El aviso muestra el valor por hora y el monto queda
   fijo al llegar.
-- **19.** U080: un turno reabierto que ya empezó se reofrece sólo si le queda
-  **al menos 1 hora** de horario; con menos, pasa a «no cubierto».
+- **19.** U080: un turno reabierto que ya empezó se reofrece sólo si le quedan
+  **al menos 2 horas** de horario; con menos, pasa a «no cubierto» (Julieta
+  lo subió de 1 a 2 horas el mismo día: nadie toma un turno reabierto por una
+  sola hora; también sale de la oferta cuando le quedan menos de 2 horas).
 - **20.** U072: el texto nuevo de `/privacidad` (versión `2026-11-18-1`),
   aprobado: al apagar «va en camino» se borra la posición y el comercio deja
   de verla; «desde dos horas antes»; el identificador del dispositivo se

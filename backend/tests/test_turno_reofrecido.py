@@ -98,7 +98,7 @@ def test_ausencia_con_menos_de_una_hora_pasa_a_no_cubierto():
     assert shift.no_show_at is not None
 
 
-def test_el_limite_es_una_hora_justa():
+def test_el_limite_son_dos_horas_justas():
     start = datetime(2026, 11, 18, 20, 0, tzinfo=timezone.utc)
 
     def reabrir(now: datetime) -> tuple[Reapertura, Shift]:
@@ -114,11 +114,12 @@ def test_el_limite_es_una_hora_justa():
         )
         return shift.worker_cancel(now=now), shift
 
+    assert REOFFER_MIN_REMAINING == timedelta(hours=2)
     justo, shift = reabrir(start + timedelta(hours=4) - REOFFER_MIN_REMAINING)
     assert justo is Reapertura.REOFRECIDO
-    assert shift.reoffered_at == start + timedelta(hours=3)
+    assert shift.reoffered_at == start + timedelta(hours=2)
 
-    por_poco, shift = reabrir(start + timedelta(hours=3, seconds=1))
+    por_poco, shift = reabrir(start + timedelta(hours=2, seconds=1))
     assert por_poco is Reapertura.SIN_CUBRIR
     assert shift.status == ShiftStatus.NO_CUBIERTO
 
@@ -148,8 +149,8 @@ def test_cancelar_con_el_turno_empezado_reofrece():
     assert shift.status == ShiftStatus.BUSCANDO_PERSONAL and shift.urgent
 
 
-def test_cancelar_sin_una_hora_de_horario_deja_el_turno_sin_cubrir():
-    shift = _turno(empezo_hace=timedelta(minutes=5), dura=timedelta(hours=1))
+def test_cancelar_sin_dos_horas_de_horario_deja_el_turno_sin_cubrir():
+    shift = _turno(empezo_hace=timedelta(minutes=5), dura=timedelta(hours=2))
     tenia = shift.worker_profile_id
 
     assert shift.worker_cancel() is Reapertura.SIN_CUBRIR
@@ -166,7 +167,7 @@ def test_rechazar_con_el_turno_empezado_sigue_la_misma_regla():
     assert con_horario.is_reoffered
 
     sin_horario = _turno(
-        empezo_hace=timedelta(minutes=10), dura=timedelta(hours=1), status=ShiftStatus.ASIGNADO
+        empezo_hace=timedelta(minutes=10), dura=timedelta(hours=2), status=ShiftStatus.ASIGNADO
     )
     assert sin_horario.reject() is Reapertura.SIN_CUBRIR
     assert sin_horario.status == ShiftStatus.NO_CUBIERTO
@@ -202,10 +203,10 @@ def test_un_reofrecido_que_se_vuelve_a_reabrir_repite_la_regla():
     assert shift.reoffered_at is not None and shift.reoffered_at >= primera
     assert shift.confirmed_at is None
 
-    # Ciclo nuevo, pero ya sin una hora por delante: se cierra.
+    # Ciclo nuevo, pero ya sin dos horas por delante: se cierra.
     shift.assign(uuid4())
     shift.confirm()
-    al_final = shift.end_at - timedelta(minutes=20)
+    al_final = shift.end_at - timedelta(hours=1, minutes=50)
     assert shift.worker_cancel(now=al_final) is Reapertura.SIN_CUBRIR
     assert shift.status == ShiftStatus.NO_CUBIERTO
 
@@ -213,14 +214,17 @@ def test_un_reofrecido_que_se_vuelve_a_reabrir_repite_la_regla():
 # --- Dominio: hasta cuándo se ofrece ---------------------------------------
 
 
-def test_un_reofrecido_se_ofrece_hasta_que_termina_su_horario():
+def test_un_reofrecido_se_ofrece_mientras_le_queden_dos_horas():
     shift = _turno(empezo_hace=timedelta(minutes=30))
     shift.no_show()
 
+    assert shift.offered_until == shift.end_at - timedelta(hours=2)
     assert shift.is_open_for_applications(_now())
-    assert shift.is_open_for_applications(shift.end_at - timedelta(seconds=1))
-    assert not shift.is_open_for_applications(shift.end_at)
-    assert coverage_deadline(shift) == shift.end_at.replace(tzinfo=None)
+    assert shift.is_open_for_applications(shift.offered_until - timedelta(seconds=1))
+    assert not shift.is_open_for_applications(shift.offered_until)
+    assert not shift.is_open_for_applications(shift.end_at - timedelta(seconds=1))
+    # Si nadie confirmó para entonces, la pasada de cobertura lo cierra.
+    assert coverage_deadline(shift) == shift.offered_until.replace(tzinfo=None)
 
 
 def test_un_turno_empezado_que_no_se_reofrecio_no_se_ofrece():
@@ -640,12 +644,12 @@ async def test_turno_comun_confirmado_tarde_se_mide_desde_el_inicio(
 
 
 @asyncio
-async def test_ausencia_sin_una_hora_de_horario_cierra_el_turno_con_un_solo_aviso(
+async def test_ausencia_sin_dos_horas_de_horario_cierra_el_turno_con_un_solo_aviso(
     client: AsyncClient,
 ):
     b, _b_id = await _trabajador(client, "reof_b_corto@staffya.com")
     shift_id, comercio, a, _a_id = await _turno_confirmado_y_empezado(
-        client, "corto", empezo_hace=timedelta(minutes=20), horas=1
+        client, "corto", empezo_hace=timedelta(minutes=20), horas=2
     )
     antes_b = len(await _avisos(client, b, "urgent_shift_nearby"))
 
@@ -655,7 +659,7 @@ async def test_ausencia_sin_una_hora_de_horario_cierra_el_turno_con_un_solo_avis
     assert marked.json()["reoffered_at"] is None
 
     [aviso] = await _avisos(client, comercio, "shift_not_covered")
-    assert "Ana Ausente no se presentó y queda menos de una hora de horario" in aviso["message"]
+    assert "Ana Ausente no se presentó y quedan menos de 2 horas de horario" in aviso["message"]
     assert "no lo reofrecimos" in aviso["message"]
     assert await _avisos(client, comercio, "shift_reopened") == []
     # Nadie más recibe nada; a quien faltó le cuenta la ausencia.
@@ -736,7 +740,7 @@ async def test_rechazar_con_el_turno_empezado_reofrece(client: AsyncClient):
 
 
 @asyncio
-async def test_pasado_el_final_ya_no_se_ofrece_ni_acepta_postulaciones(
+async def test_con_menos_de_dos_horas_ya_no_se_ofrece_ni_acepta_postulaciones(
     client: AsyncClient, session_factory
 ):
     b, _b_id = await _trabajador(client, "reof_b_fin@staffya.com")
@@ -744,10 +748,10 @@ async def test_pasado_el_final_ya_no_se_ofrece_ni_acepta_postulaciones(
     await client.post(f"/api/v1/shifts/{shift_id}/no-show", headers=comercio)
     assert shift_id in [s["id"] for s in (await client.get("/api/v1/shifts/feed", headers=b)).json()]
 
-    # El horario terminó y la pasada que lo cierra todavía no corrió.
+    # Le quedan 1 h 59 de horario y la pasada que lo cierra todavía no corrió.
     async with session_factory() as session:
         model = await session.get(ShiftModel, UUID(shift_id))
-        model.end_at = _now() - timedelta(minutes=1)
+        model.end_at = _now() + REOFFER_MIN_REMAINING - timedelta(minutes=1)
         model.start_at = model.end_at - timedelta(hours=4)
         await session.commit()
 
@@ -891,7 +895,7 @@ async def test_suspender_al_reemplazo_no_reofrece_y_sigue_hasta_la_ausencia(
     """Suspender a quien tomó un turno reofrecido no lo vuelve a reofrecer:
     ya empezó, y lo empezado no se toca (ADR-0024, punto 3). Sigue su curso
     hasta la ausencia automática, contada desde que confirmó, y ahí se
-    reofrece si le queda al menos una hora."""
+    reofrece si le quedan al menos dos horas."""
     from tests.conftest import make_admin
 
     monkeypatch.setattr(scheduler, "AsyncSessionLocal", session_factory)
@@ -1057,7 +1061,7 @@ async def test_no_cubierto_con_una_foto_vieja_no_cierra_un_turno_reofrecido(
     client: AsyncClient, session_factory
 ):
     """Carrera: el scheduler leyó el turno cuando su plazo ya había vencido y,
-    antes de actuar, el turno se reofreció (su plazo pasó a `end_at`). El caso
+    antes de actuar, el turno se reofreció (su plazo pasó a `offered_until`). El caso
     de uso relee el turno y, si todavía no corresponde, no hace nada."""
     shift_id, comercio, _a, _a_id = await _turno_confirmado_y_empezado(client, "carrera")
     await client.post(f"/api/v1/shifts/{shift_id}/no-show", headers=comercio)

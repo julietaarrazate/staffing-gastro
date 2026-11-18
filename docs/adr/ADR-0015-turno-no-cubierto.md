@@ -184,8 +184,9 @@ horas de turno por delante.
    deja (`no_show`, `worker_cancel`, `reject`, `release_worker`) pasa por un
    único paso de dominio, `Shift._reopen`, que mira la hora:
    - todavía no empezó: vuelve a `BUSCANDO_PERSONAL`, como siempre;
-   - ya empezó y le queda **al menos 1 hora** de horario
-     (`REOFFER_MIN_REMAINING`, decisión 19): vuelve a `BUSCANDO_PERSONAL`
+   - ya empezó y le quedan **al menos 2 horas** de horario
+     (`REOFFER_MIN_REMAINING`, decisión 19; Julieta lo subió de 1 a 2 horas
+     el mismo día: nadie toma un turno reabierto por una sola hora): vuelve a `BUSCANDO_PERSONAL`
      **reofrecido como urgente** (`reoffered_at`, `urgent`; `escalated_at` se
      marca si no lo estaba, para que la escalada no avise otra vez);
    - ya empezó y le queda menos: pasa **directo a `NO_CUBIERTO`** en la misma
@@ -195,15 +196,22 @@ horas de turno por delante.
    Un turno reofrecido que se vuelve a reabrir repite la regla (ciclo nuevo).
    Un turno publicado que nadie tomó **no** se reofrece: sigue el punto 3 de
    este ADR.
-2. **Se ofrece hasta que termina su horario.** `Shift.is_open_for_applications`
+2. **Se ofrece mientras le queden 2 horas.** `Shift.is_open_for_applications`
    y el `WHERE` de `list_open` aceptan un turno reofrecido mientras
-   `end_at > ahora` (Inicio, Buscar, Mapa, página pública, postularse,
-   soporte). Las tarjetas dicen «Ya empezó · hasta las HH:MM».
-3. **«No cubierto» al final del horario.** Para un turno reofrecido el plazo
-   de la pasada de cobertura es `end_at`, no `start_at` más la gracia
-   (`coverage_deadline`). El aviso al comercio dice lo que pasó: «lo
-   reofrecimos como urgente y no se consiguió reemplazo antes de que terminara
-   su horario».
+   `end_at - REOFFER_MIN_REMAINING > ahora` (`Shift.offered_until`; Inicio,
+   Buscar, Mapa, página pública, postularse, soporte). La misma constante
+   decide si se reofrece y hasta cuándo se ofrece. Las tarjetas dicen «Ya
+   empezó · hasta las HH:MM» (el fin del horario, que es hasta cuando se
+   trabaja); el panel del comercio, «Reofrecido como urgente hasta las HH:MM»
+   (`offered_until`).
+3. **«No cubierto» cuando le quedan menos de 2 horas.** Para un turno
+   reofrecido el plazo de la pasada de cobertura es `offered_until`, no
+   `start_at` más la gracia (`coverage_deadline`): si nadie confirmó para
+   entonces (también si hay alguien asignado sin confirmar), pasa a «no
+   cubierto». Quien ya confirmó sigue su curso: llegada, o ausencia
+   automática desde que confirmó (como confirmó con 2 horas o más por
+   delante, cae antes del fin). El aviso al comercio dice lo que pasó: «lo
+   reofrecimos como urgente y no se consiguió reemplazo a tiempo».
 4. **Se paga lo que resta, desde que el reemplazo marca la llegada**
    (decisiones 16 y 18). Mientras nadie llegó, el aviso y las pantallas
    muestran el **valor por hora** (`pay_amount` dividido por las horas del
@@ -233,7 +241,7 @@ horas de turno por delante.
    ([ADR-0024](./ADR-0024-efectos-de-una-suspension.md), punto 3: lo empezado no se
    toca), y un turno reofrecido ya empezó. Si se suspende a quien lo tomó, el
    turno sigue su curso hasta la ausencia automática, contada desde que
-   confirmó (punto 6), y ahí se reofrece si le queda al menos 1 hora (o pasa
+   confirmó (punto 6), y ahí se reofrece si le quedan al menos 2 horas (o pasa
    a «no cubierto»). Por si eso cambia, la reapertura por suspensión ya usa
    lo que devuelve `release_worker` y el mismo aviso que el resto
    (`_announce_reopen`): reofrecido, con el aviso urgente a quienes están

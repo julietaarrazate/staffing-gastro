@@ -307,8 +307,8 @@ async def run_coverage_check() -> datetime | None:
     (`NOT_COVERED_GRACE_URGENT`) si el turno era urgente —el comercio
     necesita saber rápido si quedó sin cubrir—, normal
     (`NOT_COVERED_GRACE_NORMAL`, mismo valor que `NO_SHOW_GRACE_PERIOD`) si
-    no. Un turno reofrecido (U080) se espera hasta `end_at`
-    (`coverage_deadline`)."""
+    no. Un turno reofrecido (U080) se espera mientras le queden 2 horas de
+    horario (`offered_until`, ver `coverage_deadline`)."""
     async with AsyncSessionLocal() as session:
         service = _build_service(session)
         now = _naive(datetime.now(timezone.utc))

@@ -48,18 +48,19 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
 - **Turno reofrecido (U080, [ADR-0015](../adr/ADR-0015-turno-no-cubierto.md)).**
   Cuando quien tenía un turno lo deja con el horario ya empezado:
   - **Al comercio, un solo aviso por reapertura**, que dice qué pasó y qué
-    sigue. Si se reofreció (queda al menos 1 hora), con el tipo de siempre
+    sigue. Si se reofreció (quedan al menos 2 horas), con el tipo de siempre
     (`shift_reopened`; `shift_rejected` si fue un rechazo) y link a
     `/shifts/<id>/candidates`: «<qué pasó> Como ya había empezado, lo
     reofrecimos como urgente hasta las HH:MM; se paga lo que reste desde que
-    llegue el reemplazo.» Qué pasó: «No registramos la llegada de <nombre> a
+    llegue el reemplazo.» La hora es hasta cuándo se ofrece: 2 horas antes
+    del fin del horario. Qué pasó: «No registramos la llegada de <nombre> a
     "X".» (ausencia automática, título «No registramos la llegada a tu
     turno»), «Marcaste que <nombre> no se presentó a "X".» (ausencia manual,
     título «Reofrecimos tu turno como urgente»), o el texto de la cancelación
     o del rechazo. El nombre es el de la persona que el comercio ya ve en su
     panel.
-  - Si no quedaba 1 hora, el único aviso es `shift_not_covered`: «"X" quedó
-    sin cubrir: <motivo> y queda menos de una hora de horario, así que no lo
+  - Si no quedaban 2 horas, el único aviso es `shift_not_covered`: «"X" quedó
+    sin cubrir: <motivo> y quedan menos de 2 horas de horario, así que no lo
     reofrecimos. Podés publicarlo de nuevo.»
   - **A quienes están cerca** (`urgent_shift_nearby`, el círculo de la
     escalada y los favoritos; no a quien ya tuvo ese turno y lo dejó): título
@@ -67,10 +68,9 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
     cubrir <puesto> ya: el turno empezó y va hasta las HH:MM. Paga $X por
     hora, desde que llegás. Postulate ahora.» Abre `/turno/<id>`. Uno por
     reapertura; la escalada no lo repite.
-  - Si el turno reofrecido llega al final de su horario sin reemplazo
+  - Si al turno reofrecido le quedan menos de 2 horas y nadie confirmó
     (`shift_not_covered`): «"X" quedó sin cubrir: lo reofrecimos como urgente
-    y no se consiguió reemplazo antes de que terminara su horario. Podés
-    publicarlo de nuevo.»
+    y no se consiguió reemplazo a tiempo. Podés publicarlo de nuevo.»
   - Un turno que quedó reabierto por una ausencia **antes** de este cambio (sin
     la marca de reofrecido) conserva el texto anterior: «"X" quedó sin
     cubrir: una persona confirmada no se presentó y no se consiguió reemplazo

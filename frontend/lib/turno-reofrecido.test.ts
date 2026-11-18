@@ -83,9 +83,11 @@ describe("compartir un turno reofrecido", () => {
 describe("el panel del comercio", () => {
   it("la línea del turno reofrecido dice hasta cuándo se ofrece", () => {
     const shift = { ...reofrecido, status: "buscando_personal" } as Shift;
-    expect(reofferedHint(shift)).toBe("Reofrecido como urgente hasta las 00:00.");
+    // Se ofrece mientras le queden 2 horas: hasta las 22:00 de un turno que
+    // termina a las 00:00.
+    expect(reofferedHint(shift)).toBe("Reofrecido como urgente hasta las 22:00.");
     const step = nextStepFor(shift);
-    expect(step.hint).toBe("Reofrecido como urgente hasta las 00:00.");
+    expect(step.hint).toBe("Reofrecido como urgente hasta las 22:00.");
     expect(step.action).toBe("candidates");
   });
 
@@ -94,40 +96,40 @@ describe("el panel del comercio", () => {
     expect(nextStepFor({ ...turno, reoffered_at: null, status: "buscando_personal" } as Shift).hint).toBe("");
   });
 
-  it("«¿Marcar que no se presentó?» dice que se reofrece si queda una hora o más", () => {
+  it("«¿Marcar que no se presentó?» dice que se reofrece si quedan 2 horas o más", () => {
     const copy = noShowConfirmCopy(turno, at("20:20"));
-    expect(copy).toContain("lo reofrecemos como urgente hasta las 00:00");
+    expect(copy).toContain("lo reofrecemos como urgente hasta las 22:00");
     expect(copy).toContain("cobra lo que reste desde que llegue");
     expect(copy).toContain("le va a impactar la reputación");
   });
 
-  it("y que queda sin cubrir si queda menos de una hora", () => {
-    const copy = noShowConfirmCopy(turno, at("23:20"));
-    expect(copy).toContain("Queda menos de una hora de horario");
+  it("y que queda sin cubrir si quedan menos de 2 horas", () => {
+    const copy = noShowConfirmCopy(turno, at("22:20"));
+    expect(copy).toContain("Quedan menos de 2 horas de horario");
     expect(copy).toContain("«no cubierto»");
     expect(copy).not.toContain("reofrecemos");
   });
 
   it("a menos de 15 minutos del umbral, dice las dos posibilidades", () => {
-    // Le queda 1 h 10 o 55 minutos: lo decide la hora del servidor al marcarlo.
-    for (const hora of ["22:50", "23:00", "23:05"]) {
+    // Le quedan 2 h 10, 2 h o 1 h 55: lo decide la hora del servidor al marcarlo.
+    for (const hora of ["21:50", "22:00", "22:05"]) {
       const copy = noShowConfirmCopy(turno, at(hora));
-      expect(copy).toContain("si al marcarlo le queda al menos una hora de horario lo reofrecemos");
-      expect(copy).toContain("hasta las 00:00");
+      expect(copy).toContain("si al marcarlo le quedan al menos 2 horas de horario lo reofrecemos");
+      expect(copy).toContain("hasta las 22:00");
       expect(copy).toContain("si no, pasa a «no cubierto»");
       expect(copy).toContain("le va a impactar la reputación");
     }
   });
 
   it("a 15 minutos justos del umbral ya dice una sola cosa", () => {
-    expect(noShowConfirmCopy(turno, at("22:45"))).toContain("lo reofrecemos como urgente hasta las 00:00:");
-    expect(noShowConfirmCopy(turno, at("23:15"))).toContain("Queda menos de una hora de horario");
-    expect(noShowConfirmCopy(turno, at("23:15"))).not.toContain("si al marcarlo");
+    expect(noShowConfirmCopy(turno, at("21:45"))).toContain("lo reofrecemos como urgente hasta las 22:00:");
+    expect(noShowConfirmCopy(turno, at("22:15"))).toContain("Quedan menos de 2 horas de horario");
+    expect(noShowConfirmCopy(turno, at("22:15"))).not.toContain("si al marcarlo");
   });
 
-  it("el límite es una hora justa, igual que en el servidor", () => {
-    expect(seReofrece(turno, at("23:00"))).toBe(true);
-    expect(seReofrece(turno, at("23:00") + 1000)).toBe(false);
+  it("el límite son 2 horas justas, igual que en el servidor", () => {
+    expect(seReofrece(turno, at("22:00"))).toBe(true);
+    expect(seReofrece(turno, at("22:00") + 1000)).toBe(false);
   });
 });
 

@@ -92,8 +92,8 @@ listados más abajo.
   deja de ofrecer algo cuyo horario ya pasó, esté o no resuelto todavía.
 - **Turno reofrecido** (U080, 2026-11-18): si la persona confirmada falta,
   cancela o rechaza con el turno ya empezado, el turno se vuelve a ofrecer
-  como urgente hasta que termina su horario (si le queda al menos una hora;
-  con menos, queda «no cubierto» en el momento). Les llega un aviso urgente a
+  como urgente si le quedan al menos 2 horas (con menos, queda «no cubierto»
+  en el momento), y se ofrece hasta que le quedan menos de 2 horas. Les llega un aviso urgente a
   quienes están cerca, con el valor por hora, y uno al comercio que dice qué
   pasó. Las tarjetas dicen «Ya empezó · hasta las HH:MM» y «$X por hora»;
   quien lo toma cobra lo que resta desde que marca la llegada, y ese monto es
