@@ -25,7 +25,10 @@ Seis chequeos independientes (más los que entran de afuera), un solo loop:
    más de `REFRESH_SESSION_RETENTION` y las notificaciones **leídas** de más
    de `READ_NOTIFICATION_RETENTION`. Como mucho una vez cada
    `RETENTION_INTERVAL`; no agrega despertares propios (va colgada de las
-   pasadas que ya ocurren, al menos cada `MAX_SLEEP`).
+   pasadas que ya ocurren, al menos cada `MAX_SLEEP`). En la misma pasada
+   corren los pasos que entran de afuera (`retention_steps`); hoy uno: el
+   barrido de dispositivos push de las cuentas con las sesiones revocadas
+   (`notification/infrastructure/device_sweep_job.py`, 2026-11-18).
 6. **Vencimiento del plan pago (ADR-0022):** sólo con el cobro de Mercado
    Pago prendido — avisa 3 días antes y el día que vence, y marca `vencida`
    después de los 3 días de gracia (`run_subscription_expiry_check`, vive en
@@ -355,12 +358,23 @@ RETENTION_INTERVAL = timedelta(hours=24)
 _last_retention_run: datetime | None = None
 
 
-async def run_retention_cleanup(*, force: bool = False) -> datetime | None:
+# Un paso de retención que entra de afuera (`retention_steps`): borra lo suyo
+# y devuelve cuánto borró.
+RetentionStep = Callable[[], Awaitable[int]]
+
+
+async def run_retention_cleanup(
+    *, force: bool = False, extra_steps: Sequence[RetentionStep] = ()
+) -> datetime | None:
     """Una pasada de retención. Público para poder testearlo sin el loop.
 
     Corre como mucho una vez cada `RETENTION_INTERVAL` (`force` lo saltea, para
     tests). Devuelve siempre `None`: no es una deadline que justifique
-    despertar la base, se aprovecha la próxima pasada del loop."""
+    despertar la base, se aprovecha la próxima pasada del loop.
+
+    `extra_steps` son los borrados de otros módulos (los pasa `app/main.py`).
+    Si uno falla se registra y la pasada se da por hecha igual: lo reintenta
+    la de mañana, no cada pocos minutos (cuota de Neon)."""
     global _last_retention_run
     now = datetime.now(UTC)
     if (
@@ -369,6 +383,16 @@ async def run_retention_cleanup(*, force: bool = False) -> datetime | None:
         and now - _last_retention_run < RETENTION_INTERVAL
     ):
         return None
+    # Los pasos de afuera van ANTES de borrar las sesiones vencidas: el
+    # barrido de dispositivos decide mirando esas filas, y una sesión revocada
+    # que esta misma pasada va a borrar tiene que alcanzar a verla.
+    extra_deleted: dict[str, int] = {}
+    for step in extra_steps:
+        name = getattr(step, "__name__", "paso")
+        try:
+            extra_deleted[name] = await step()
+        except Exception:
+            logger.exception("Error en el paso de retención %s", name)
     async with AsyncSessionLocal() as session:
         sessions_deleted = await SqlAlchemyRefreshSessionRepository(
             session
@@ -382,6 +406,7 @@ async def run_retention_cleanup(*, force: bool = False) -> datetime | None:
         extra={
             "refresh_sessions_deleted": sessions_deleted,
             "notifications_deleted": notifications_deleted,
+            "extra_steps_deleted": extra_deleted,
         },
     )
     return None
@@ -392,7 +417,9 @@ async def run_retention_cleanup(*, force: bool = False) -> datetime | None:
 Check = Callable[[], Awaitable[datetime | None]]
 
 
-async def scheduler_loop(extra_checks: Sequence[Check] = ()) -> None:
+async def scheduler_loop(
+    extra_checks: Sequence[Check] = (), retention_steps: Sequence[RetentionStep] = ()
+) -> None:
     """Loop infinito: corre los chequeos y duerme hasta la próxima deadline.
 
     En vez de un intervalo fijo, cada pasada calcula la deadline más temprana
@@ -433,7 +460,7 @@ async def scheduler_loop(extra_checks: Sequence[Check] = ()) -> None:
             had_error = True
             logger.exception("Error en el chequeo de vencimiento de planes")
         try:
-            await run_retention_cleanup()
+            await run_retention_cleanup(extra_steps=retention_steps)
         except Exception:
             had_error = True
             logger.exception("Error en la limpieza de retención")
@@ -446,7 +473,9 @@ async def scheduler_loop(extra_checks: Sequence[Check] = ()) -> None:
         await wait_for_wakeup(_seconds_until(next_deadline, had_error=had_error))
 
 
-def start_scheduler(extra_checks: Sequence[Check] = ()) -> asyncio.Task | None:
+def start_scheduler(
+    extra_checks: Sequence[Check] = (), retention_steps: Sequence[RetentionStep] = ()
+) -> asyncio.Task | None:
     """Arranca el loop como task de fondo, sólo en producción.
 
     En desarrollo/tests (`settings.is_production` False) es un no-op, mismo
@@ -454,4 +483,4 @@ def start_scheduler(extra_checks: Sequence[Check] = ()) -> asyncio.Task | None:
     Resend) — nunca corre en `pytest` ni en un entorno local sin querer."""
     if not settings.is_production:
         return None
-    return asyncio.create_task(scheduler_loop(extra_checks))
+    return asyncio.create_task(scheduler_loop(extra_checks, retention_steps))

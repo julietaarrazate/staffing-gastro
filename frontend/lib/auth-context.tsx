@@ -11,14 +11,17 @@ import {
   isTransientFailure,
   NetworkError,
   renewSessionToken,
-  resolveToken,
   setTwoFactorGateHandler,
   setUnauthorizedHandler,
   NO_CONNECTION_MESSAGE,
   TIMEOUT_MESSAGE,
 } from "@/lib/api";
 import { emitLiveRefresh } from "@/lib/live-refresh";
-import { claimPushForAccount, releasePushFromAccount } from "@/lib/push";
+import {
+  claimPushForAccount,
+  releasePushFromAccount,
+  retryPendingPushReleases,
+} from "@/lib/push";
 import { restartAtHome } from "@/lib/restart-at-home";
 import { isSessionEndReason, loginHref, type SessionEndReason } from "@/lib/safe-next";
 import { clearAllCached } from "@/lib/screen-cache";
@@ -238,6 +241,12 @@ function endReasonFrom(err: unknown): SessionEndReason {
   return isAccountSuspended(err) ? "suspendida" : "vencida";
 }
 
+/** La cuenta dueña de la sesión de este navegador según lo guardado, o
+ * `null` si no hay sesión. */
+function storedSessionOwner(): string | null {
+  return localStorage.getItem(HAS_SESSION_KEY) ? localStorage.getItem(SESSION_USER_KEY) : null;
+}
+
 function clearSession() {
   localStorage.removeItem("staffya_token");
   localStorage.removeItem(HAS_SESSION_KEY);
@@ -302,6 +311,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Varias pantallas reciben el mismo 403 a la vez: se actúa una sola vez.
   const leavingForReauth = useRef(false);
 
+  /** La cuenta dueña de la sesión que hay en esta pestaña (la admin, si está
+   * viendo como otra persona). Hay que leerla ANTES de borrar la sesión. */
+  function sessionOwner(): string | null {
+    return sessionUserId.current ?? storedSessionOwner();
+  }
+
+  /** Da de baja este dispositivo para la cuenta cuya sesión terminó acá. No
+   * se espera y nunca rompe el cierre: si no llega, queda pendiente y se
+   * reintenta (ver `releasePushFromAccount`). */
+  function releaseDevice(accountId: string) {
+    releasePushFromAccount(accountId).catch(() => {});
+  }
+
   /** Cambia de SESIÓN (login, logout, impersonar): el `token` del contexto
    * sólo cambia acá. Renovar el access token no pasa por acá (ver
    * `tryRefresh` y `lib/api.ts`), así que no recarga las pantallas. */
@@ -319,12 +341,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * `token` ni `user`. Antes sólo se borraba lo guardado y las pantallas
    * seguían como si hubiera sesión, mostrando «No autorizado» (U112, U096).
    * `announce: false` cuando el aviso llegó de otra pestaña, que ya lo dejó
-   * escrito. */
+   * escrito.
+   *
+   * Sin sesión, este dispositivo no recibe los avisos de la cuenta: la
+   * pestaña que DETECTA el fin (`announce`) lo da de baja, igual que un
+   * cierre de sesión. La que sólo lo refleja no: la otra ya mandó la baja (y
+   * si no llegó, quedó pendiente en `localStorage`, que es de todas), y una
+   * segunda en vuelo podría llegar después de un reingreso y borrar el
+   * registro nuevo. */
   function endSession(reason: SessionEndReason, { announce = true } = {}) {
+    const owner = announce ? sessionOwner() : null;
     sessionEpoch.current += 1;
     sessionUserId.current = null;
     if (announce) localStorage.setItem(SESSION_END_KEY, reason);
     clearSession();
+    if (owner) releaseDevice(owner);
     clearAllCached();
     impersonatingRef.current = false;
     setImpersonating(null);
@@ -478,7 +509,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       if (leavingForReauth.current) return;
       leavingForReauth.current = true;
+      // La sesión se cierra acá: el dispositivo se da de baja como en
+      // cualquier cierre. La recarga puede cortar el pedido; queda pendiente
+      // y sale al abrir el ingreso.
+      const owner = sessionOwner();
       clearSession();
+      if (owner) releaseDevice(owner);
       clearAllCached();
       bindSessionToken(null);
       api.post("/auth/logout").catch(() => {});
@@ -790,18 +826,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // `backgroundApi`), así que al alta, o al login, la lleva el primer pedido
   // de una pantalla y no este.
   const pushClaimedFor = useRef<string | null>(null);
-  const hasUser = user !== null;
+  const accountId = user?.id ?? null;
   useEffect(() => {
     if (!token) {
       pushClaimedFor.current = null;
       return;
     }
-    if (!hasUser || impersonating || impersonatingRef.current) return;
+    if (!accountId || impersonating || impersonatingRef.current) return;
     if (twoFactorSetupPending) return;
     if (pushClaimedFor.current === token) return;
     pushClaimedFor.current = token;
-    void claimPushForAccount(token);
-  }, [token, hasUser, impersonating, twoFactorSetupPending]);
+    void claimPushForAccount(token, accountId);
+  }, [token, accountId, impersonating, twoFactorSetupPending]);
+
+  // Una baja que no llegó al servidor (sin red, token vencido antes de este
+  // cambio, app cerrada con el pedido en camino) queda pendiente y se
+  // reintenta sola: al abrir la app, al volver la conexión y al volver la
+  // pestaña al frente. La de la cuenta que tiene la sesión abierta acá no se
+  // manda: ese dispositivo es suyo (la descarta su registro).
+  useEffect(() => {
+    function retry() {
+      void retryPendingPushReleases(sessionUserId.current ?? storedSessionOwner());
+    }
+    function onVisible() {
+      if (document.visibilityState === "visible") retry();
+    }
+    retry();
+    window.addEventListener("online", retry);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("online", retry);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
 
   /** Abre la sesión con los tokens de una respuesta de login. */
   async function startSession(tokens: SessionTokens): Promise<SesionAbierta> {
@@ -986,15 +1043,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     // Sin sesión, este dispositivo no recibe los avisos de la cuenta: se da
-    // de baja en el servidor antes de soltar el token. Va con el vigente (el
-    // `token` del contexto es el de cuando se abrió la sesión y pudo haber
-    // vencido) y no se espera: si falla, el cierre sigue y el backend le pasa
-    // el dispositivo a la próxima cuenta que entre acá. La suscripción del
-    // navegador y el permiso no se tocan (ver `claimPushForAccount`). La
-    // respuesta llega con la sesión ya cerrada: por eso tampoco avisa al
-    // candado de dos pasos (ver `backgroundApi`).
-    const leavingToken = resolveToken(token);
-    if (leavingToken) releasePushFromAccount(leavingToken).catch(() => {});
+    // de baja en el servidor. No lleva el token (pudo haber vencido): la
+    // prueba es la clave de la suscripción. No se espera: si no llega, el
+    // cierre sigue, la baja queda pendiente y se reintenta sola. La
+    // suscripción del navegador y el permiso no se tocan (ver
+    // `claimPushForAccount`).
+    const leaving = sessionOwner() ?? user?.id ?? null;
+    if (leaving) releaseDevice(leaving);
     // TECH_DEBT.md S1: el refresh token viaja como cookie httpOnly — el
     // navegador la manda sola (`credentials: "include"`, lib/api.ts), no hay
     // que leerla ni reenviarla a mano. El backend la revoca server-side y la

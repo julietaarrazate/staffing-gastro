@@ -303,16 +303,18 @@ describe("errores con código (verificación en dos pasos, ADR-0023)", () => {
     const alta = (await backgroundApi
       .post("/push/subscribe", { endpoint: "https://push.example/x" }, "tok")
       .catch((e: unknown) => e as ApiError)) as ApiError;
+    // La baja va sin sesión (`token: null`): sale sin `Authorization`.
     const baja = (await backgroundApi
-      .del("/push/subscribe", { endpoint: "https://push.example/x" }, "tok")
+      .post("/push/release", { endpoint: "https://push.example/x" }, null)
       .catch((e: unknown) => e as ApiError)) as ApiError;
 
     expect(alta.code).toBe("two_factor_required");
     expect(baja.code).toBe("two_factor_required");
-    expect(fetchMock.mock.calls.map(([, init]) => (init as RequestInit).method)).toEqual([
-      "POST",
-      "DELETE",
-    ]);
+    expect(
+      fetchMock.mock.calls.map(
+        ([, init]) => ((init as RequestInit).headers as Record<string, string>).Authorization
+      )
+    ).toEqual(["Bearer tok", undefined]);
     // Nadie pidió esto desde una pantalla: no puede llevar al alta ni cerrar
     // la sesión. El candado lo dispara el primer pedido que sí hace una.
     expect(gate).not.toHaveBeenCalled();

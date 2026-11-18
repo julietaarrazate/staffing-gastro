@@ -257,6 +257,24 @@ class SqlAlchemyPushSubscriptionRepository(PushSubscriptionRepository):
             await self._session.delete(model)
             await self._session.commit()
 
+    async def get_by_endpoint(self, endpoint: str) -> PushSubscription | None:
+        stmt = select(PushSubscriptionModel).where(PushSubscriptionModel.endpoint == endpoint)
+        model = (await self._session.execute(stmt)).scalar_one_or_none()
+        return _push_to_entity(model) if model is not None else None
+
+    async def remove_all_for_users(self, user_ids: list[UUID]) -> int:
+        if not user_ids:
+            return 0
+        result = await self._session.execute(
+            delete(PushSubscriptionModel).where(PushSubscriptionModel.user_id.in_(user_ids))
+        )
+        await self._session.commit()
+        return result.rowcount or 0
+
+    async def list_user_ids(self) -> list[UUID]:
+        stmt = select(PushSubscriptionModel.user_id).distinct()
+        return list((await self._session.execute(stmt)).scalars().all())
+
     async def list_by_user(self, user_id: UUID) -> list[PushSubscription]:
         stmt = select(PushSubscriptionModel).where(PushSubscriptionModel.user_id == user_id)
         result = await self._session.execute(stmt)

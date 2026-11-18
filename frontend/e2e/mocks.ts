@@ -20,6 +20,9 @@ export const HAS_SESSION_KEY = "staffya_has_session";
 // (el id de la cuenta dueña de la sesión, que no es un secreto).
 // En `sessionStorage`, `staffya_reloaded_for` evita recargar dos veces la
 // misma pestaña por la misma cuenta.
+// Y una que escribe `lib/push.ts`: `staffya_push_release_pending`, los ids de
+// las cuentas cuya baja del dispositivo todavía no llegó al servidor (se
+// reintenta al abrir la app, al volver la conexión y al volver la pestaña).
 
 // Claves de localStorage de los mini-tours de `components/GuidedTour.tsx`
 // (uno por pantalla). `injectSession` los marca como ya vistos por
