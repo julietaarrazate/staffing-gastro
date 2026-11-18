@@ -7,11 +7,13 @@
 // viejo durante semanas (el .ico, además, porque `sharp` no escribe ICO).
 // El .ico se arma a mano: un ICO puede contener PNG tal cual (Vista+ y todos
 // los navegadores), así que alcanza con un encabezado + un directorio.
-// Desde el 2026-11-17 el ícono es «oí» en Shrikhand (vectores fuente en
-// docs/design-system/marca/): fileteado con relieve en los grandes
-// (logo-mark.svg), plano en el favicon (logo-mark-chico.svg: a 16–48 px el
-// relieve se empasta) y en silueta blanca para el badge de las
+// Desde el 2026-11-18 el ícono es el pinche con «oído»: la comanda clavada en
+// el pinche, con relieve y la palabra en los grandes (logo-mark.svg), plana y
+// con la «o» sola en el favicon (logo-mark-chico.svg: a 16–48 px el relieve
+// se empasta) y en silueta blanca con la «o» calada para el badge de las
 // notificaciones de Android (logo-figure.svg: Android usa sólo el alfa).
+// Los SVG (letra ya convertida a trazos) los escribe
+// `python3 scripts/build-isotipo-pinche.py`; este script sólo los rasteriza.
 import { readFile, writeFile } from "node:fs/promises";
 import sharp from "sharp";
 

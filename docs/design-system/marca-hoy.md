@@ -1,15 +1,16 @@
 # La marca hoy (ficha corta)
 
-> Estado al **2026-11-17** (letra Shrikhand e ícono «oí»; la landing «con convicción» es del 2026-11-13). Una página para arrancar sin leer el historial.
+> Estado al **2026-11-18** (letra Shrikhand e ícono «el pinche con oído»; la landing «con convicción» es del 2026-11-13). Una página para arrancar sin leer el historial.
 > Brand system navegable para el diseñador (colores en los dos temas,
 > tipografía, piezas y logos en vector): https://claude.ai/artifact/J8s5yUUpW3Ufz2hbWKYYns
 > (privado: compartirlo desde su menú Share). Los vectores, con la letra
 > convertida a trazos (se abren en Illustrator o Figma sin la fuente), están
 > en [`marca/`](./marca/): `oido-filete` (con adornos), `oido-filete-marca`
 > (sola, con relieve), `oido-filete-cinta` («¡Oído!»), `oido-plano` y
-> `oido-plano-blanco`, `isotipo-oi` (fileteado), `isotipo-oi-chico`,
-> `isotipo-oi-maskable` e `isotipo-oi-silueta`, más el manual en PDF para el
-> diseñador (`oido-manual-de-marca.pdf`).
+> `oido-plano-blanco`, `isotipo-pinche` (con relieve), `isotipo-pinche-chico`,
+> `isotipo-pinche-maskable` e `isotipo-pinche-silueta` (el ícono vigente; los
+> `isotipo-oi*` son el «oí» anterior, que queda de archivo), más el manual en
+> PDF para el diseñador (`oido-manual-de-marca.pdf`, todavía con el «oí»).
 
 ## En una frase
 
@@ -47,18 +48,28 @@ Buenos Aires, el papel de la comanda y el filete de los carteles de bodegón.
    La miniatura para compartir usa la `firma` (`assets/og/filete-oido.png`,
    desde el 2026-10-30).
    No va en ningún otro lugar ni con otra palabra.
-4. **El ícono es «oí», provisorio** (desde el 2026-11-17; reemplaza a las
-   manos y la oreja, que en chico se parecían al ícono de otra marca del rubro): las dos
-   primeras letras de la marca, que además dicen «te escuché». Es una
-   solución tipográfica mientras se diseña un isotipo propio (Julieta,
-   2026-11-17: «hay que hacer uno, no ese genérico»; ver Pendiente). Crema sobre azul hondo
-   `#1C5478`. **Fileteado** (relieve azul y canto dorado) en los tamaños
-   grandes: app en el celular, Apple, arranque de Android, `public/logo-mark.svg`
-   y `logo-maskable.svg`. **Plano** de 48 px para abajo (pestaña, encabezado
-   de `/bienvenida`: `logo-mark-chico.svg`), donde el relieve se empasta. En
-   **silueta blanca** para el badge de las notificaciones de Android y los
-   estados vacíos (`logo-figure.svg`). Los PNG y el `.ico` salen de
-   `node scripts/build-icons.mjs`.
+4. **El ícono es el pinche con «oído»** (Julieta, 2026-11-18, después de
+   verlo; reemplaza al «oí» provisorio del 2026-11-17, y antes a las manos y
+   la oreja, que en chico se parecían al ícono de otra marca del rubro): la
+   comanda de papel clavada en el pinche de la cocina, con la palabra «oído»
+   fileteada en el papel (el pedido que queda a la vista hasta que alguien lo
+   toma). Papel blanco, pinche celeste y letra crema con relieve sobre azul
+   hondo `#1C5478`; el relieve duro `#0F3A5B` corrido abajo a la derecha es
+   el del filete. **Grande** (con relieve y la palabra): app en el celular,
+   Apple, 192 y 512, `public/logo-mark.svg`. **Con margen** para Android
+   (`logo-maskable.svg`): la misma, achicada para entrar entera en la zona
+   segura (círculo central del 80 %) y con el fondo azul a sangre. **Chica y
+   plana** de 48 px para abajo (pestaña, `favicon.ico`, encabezado de
+   `/bienvenida`: `logo-mark-chico.svg`): la misma comanda con la «o» sola,
+   sin relieve, porque la palabra no entra y el relieve se empasta. En
+   **silueta de un solo color** (papel, pinche y base, con la «o» calada)
+   para el badge de las notificaciones de Android y los estados vacíos
+   (`logo-figure.svg`). Es **sólo ícono de la app**: no va al lado de la
+   palabra «oído» en encabezados ni en la landing, y el Sol de Mayo no se
+   usa. La letra va **convertida a trazos** (no depende de la fuente):
+   `frontend/scripts/build-isotipo-pinche.py` escribe los vectores (en
+   `public/` y en [`marca/`](./marca/)) y `node scripts/build-icons.mjs` los
+   PNG y el `.ico`.
 5. **Lo que no se hace, para no parecerse a otra marca del rubro** (crema,
    azul francia, grabados y un ticket; análisis del 2026-11-17 en el
    historial): el crema
@@ -112,7 +123,7 @@ Detalle y contrastes: [`color-system.md`](./color-system.md).
 | **Young Serif** | Títulos de la landing y de pantalla (desde el 2026-11-16: el medidor marcó la letra neutra de Schibsted Grotesk, que regía desde el 2026-10-18; un solo peso) |
 | **Inter** | Texto, botones, inputs |
 | **DM Mono** | Rótulos de la comanda, horarios |
-| **Shrikhand** | Sólo la palabra «oído», fileteada o plana, y el ícono «oí» (desde el 2026-11-17; antes Sancreek; recorte local de 1,5 KB) |
+| **Shrikhand** | Sólo la palabra «oído», fileteada o plana, y la «o» del ícono (no va como fuente en el ícono: está convertida a trazos; desde el 2026-11-17; antes Sancreek; recorte local de 1,5 KB) |
 
 Detalle: [`typography.md`](./typography.md).
 
@@ -123,13 +134,9 @@ Palermo dibujado, la rueda de fotos del inicio y la miniatura al compartir.
 
 ## Pendiente
 
-- **Isotipo propio**, no tipográfico: dibujado para Oído, que funcione en
-  16 px. Hay cinco conceptos en vector (2026-11-18:
-  https://claude.ai/artifact/TqfGBkrBX1aGFJSygrsQkS); el recomendado es
-  «grito y respuesta», los dos signos de «¡Oído!», para encargar a un
-  fileteador con el brief de [`direccion-relieve.md`](./direccion-relieve.md).
-  **Julieta lo eligió el 2026-11-18**, sólo como ícono de la app; falta
-  llevarlo al código. Hasta entonces, «oí».
+- **Fileteador para el isotipo (opcional):** el pinche con «oído» ya es el
+  ícono en el código, dibujado por nosotros. Si se encarga a un fileteador,
+  que parta de `marca/isotipo-pinche*.svg` y mantenga el concepto cerrado.
 - **Llevar la dirección «con relieve» a la app** (Julieta, 2026-11-17: la sombra
   dura azul hondo del filete como profundidad de la interfaz), pantalla por
   pantalla: [`direccion-relieve.md`](./direccion-relieve.md).
