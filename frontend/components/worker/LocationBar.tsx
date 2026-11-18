@@ -57,7 +57,7 @@ export default function LocationBar({
     // letra hereda la tinta del cielo, y lo que se toca va subrayado en vez
     // de en el azul de los links, que sobre el celeste no llega a contraste.
     <div className="mt-1">
-      <p className="flex min-w-0 flex-wrap items-center gap-x-1.5 text-sm">
+      <p className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-0.5 text-sm">
         <MapPinIcon size={14} className="shrink-0 opacity-70" />
         <span className="min-w-0 truncate">
           {current ? (
@@ -72,7 +72,8 @@ export default function LocationBar({
             "Ordená los turnos por cercanía"
           )}
         </span>
-        <span aria-hidden className="opacity-50">·</span>
+        {/* Sin punto entre la zona y la acción: a 320 px la acción baja de
+            renglón y el punto quedaba colgando. La separa el subrayado. */}
         {current ? (
           <button
             type="button"

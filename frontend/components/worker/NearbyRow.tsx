@@ -49,14 +49,9 @@ function NearbyItem({ shift, distanceKm }: { shift: Shift; distanceKm: number | 
           )}
         </span>
         <span className="min-w-0">
-          <span className="flex items-center gap-1.5">
-            <span className="truncate text-body font-semibold text-ink">{SKILL_LABELS[shift.position]}</span>
-            {shift.urgent && (
-              <span className="inline-flex shrink-0 items-center gap-0.5 text-label font-bold text-danger-text">
-                <FlameIcon size={11} /> Urgente
-              </span>
-            )}
-          </span>
+          {/* El puesto no se corta: es lo primero que se lee (a 320 px, con
+              «Urgente» al lado, quedaba «Ayudante …»). */}
+          <span className="block text-body font-semibold text-ink">{SKILL_LABELS[shift.position]}</span>
           {(where || shift.company_verified) && (
             <span className="flex items-center gap-1 text-caption text-ink-soft">
               {/* Forma compacta: sello de `company_verified` con nombre
@@ -74,7 +69,16 @@ function NearbyItem({ shift, distanceKm }: { shift: Shift; distanceKm: number | 
               <span className="truncate">{where}</span>
             </span>
           )}
-          <span className="block truncate text-caption text-ink-soft">{formatShiftWhen(shift.start_at, shift.end_at)}</span>
+          {/* Si «Urgente» y el horario no entran juntos (320 px), el horario
+              baja de renglón: tampoco se corta. */}
+          <span className="flex flex-wrap items-center gap-x-1.5 text-caption text-ink-soft">
+            {shift.urgent && (
+              <span className="inline-flex shrink-0 items-center gap-0.5 font-bold text-danger-text">
+                <FlameIcon size={11} /> Urgente
+              </span>
+            )}
+            <span>{formatShiftWhen(shift.start_at, shift.end_at)}</span>
+          </span>
         </span>
         <span className="text-body font-bold tabular-nums text-ink">{formatPayAmount(shift)}</span>
       </Link>

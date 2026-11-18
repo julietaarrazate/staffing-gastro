@@ -78,7 +78,7 @@ function FeedHero({ shift }: { shift: Shift }) {
             </span>
           )}
           <div className="min-w-0 flex-1">
-            <h3 className="letra-cartel letra-cartel-puesto [overflow-wrap:anywhere]">{textoCartel(label)}</h3>
+            <h3 className="letra-cartel letra-cartel-puesto break-words">{textoCartel(label)}</h3>
             {where && <p className="mt-1 text-sm text-ink-soft">{where}</p>}
           </div>
         </div>

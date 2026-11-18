@@ -1165,6 +1165,12 @@ body:has([data-landing]) main {
   border-radius: inherit;
   color: var(--color-ink);
 }
+/* El foco de un link de la comanda va por dentro del papel. Por fuera caía
+   sobre el cielo o el lienzo con el azul de claro (adentro la comanda está
+   forzada a claro), y de noche no llegaba a 3:1. */
+.comanda a:focus-visible {
+  outline-offset: -4px;
+}
 .comanda-fila {
   display: flex;
   justify-content: space-between;

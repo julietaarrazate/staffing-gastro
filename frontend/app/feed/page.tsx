@@ -518,6 +518,9 @@ function WorkerFeedPanel() {
   const incompleto =
     !!profile && (profile.latitude == null || profile.longitude == null || !profile.skills?.length);
   const hayCartel = sinPerfil || incompleto;
+  // Sólo de la vista: qué se monta sobre el borde del cielo (la comanda del
+  // recomendado o el cartel de perfil; ver el contenedor de abajo).
+  const seMonta = !loading && (hayCartel || (!error && !!heroShift));
   // Sólo de la vista: el cartelito gira recién después del primer toque.
   const [cartelitoTocado, setCartelitoTocado] = useState(false);
   const emptyState = sinPerfil ? null : (
@@ -540,9 +543,15 @@ function WorkerFeedPanel() {
     // scrollea; el mazo para deslizar sigue como "Descubrir rápido"
     // (decisión de Julieta, 2026-09-22). La lógica no cambió.
     <div className={`${LETRAS_APP} mx-auto max-w-md px-4 pb-8 md:max-w-5xl md:pt-4`}>
-      <div className="app-cielo -mx-4 px-4 pb-[88px] pt-4 md:mx-0 md:rounded-[var(--radius-card)] md:px-6 md:pb-6">
-        <header className="flex items-end justify-between gap-3">
-          <h1 className="letra-cartel letra-cartel-pantalla min-w-0 pb-1 [overflow-wrap:anywhere]">
+      <div
+        className={`app-cielo -mx-4 px-4 pt-4 md:mx-0 md:rounded-[var(--radius-card)] md:px-6 md:pb-6 ${seMonta ? "pb-[88px]" : "pb-6"}`}
+      >
+        {/* El saludo ocupa lo que deja el cartelito y se parte entre
+            palabras; si una sola palabra no entra al lado (un nombre largo
+            a 320 px), el cartelito baja a su renglón en vez de partir el
+            nombre por la mitad. */}
+        <header className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
+          <h1 className="letra-cartel letra-cartel-pantalla min-w-min flex-1 break-words pb-1">
             {firstName ? `Hola, ${firstName}` : "Hola"}
           </h1>
           {/* «Disponible» es el cartelito de la puerta: verde como el de
@@ -554,7 +563,7 @@ function WorkerFeedPanel() {
               setCartelitoTocado(true);
               toggleAvailable();
             }}
-            className={`cartelito ${available ? "" : "cartelito-no"} ${cartelitoTocado ? "cartelito-gira" : ""}`}
+            className={`cartelito ml-auto ${available ? "" : "cartelito-no"} ${cartelitoTocado ? "cartelito-gira" : ""}`}
             aria-label="Cambiar disponibilidad"
             aria-pressed={available}
           >
@@ -579,9 +588,11 @@ function WorkerFeedPanel() {
         <AIAssistantBar recto />
       </div>
 
-      {/* Lo que sigue se monta sobre el borde del cielo. En escritorio no:
-          ahí el cielo es un panel y la grilla va debajo, con su aire. */}
-      <div className="relative z-[1] -mt-[68px] md:mt-5">
+      {/* La comanda (o el cartel de perfil) se monta sobre el borde del
+          cielo. Cargando, con error o vacío no: el esqueleto y el dibujo del
+          vacío quedaban cortados por el borde. En escritorio tampoco: ahí el
+          cielo es un panel y la grilla va debajo, con su aire. */}
+      <div className={`relative z-[1] md:mt-5 ${seMonta ? "-mt-[68px]" : "mt-5"}`}>
 
       {/* Alta a medias (G12, U034, U035): sin perfil, o con el perfil pero sin
           zona u oficio, el Inicio no puede personalizar nada. El cartel queda
@@ -628,7 +639,7 @@ function WorkerFeedPanel() {
 
       {loading ? (
         <>
-          <div className="space-y-5 pt-9 md:hidden" aria-hidden>
+          <div className="space-y-5 md:hidden" aria-hidden>
             <Skeleton className="h-[212px] w-full rounded-[2px]" />
             <div className="space-y-3">
               {[0, 1, 2].map((i) => (

@@ -56,6 +56,25 @@ con la píldora hasta que migre).
   montarse. Las tarjetas de esa grilla (`OpportunityCard`, que también usa
   «Descubrir rápido») no se tocaron: son otra pieza.
 
+**Revisión independiente** (otro agente; de 320 a 1280 px, en claro y
+oscuro, con teclado, con «reducir movimiento» y en los estados cargando,
+error, vacío y sin perfil): aprobado con arreglos menores, hechos acá.
+
+- A 320 px un nombre largo se partía por la mitad («MAXIMILIAN / O»): el
+  saludo ya no se parte dentro de una palabra, y si no entra al lado del
+  cartelito, el cartelito baja a su renglón.
+- De noche, el anillo de foco de la comanda caía sobre el cielo con el azul
+  de claro y no llegaba a 3:1: ahora va por dentro del papel.
+- En «Cerca tuyo», con «Urgente» al lado, el puesto se cortaba («Ayudante
+  …»): «Urgente» pasó al renglón del horario y nada se corta.
+- Cargando, con error o vacío, el esqueleto y el dibujo del vacío quedaban
+  cortados por el borde del cielo: ahí ya no se monta nada (`seMonta`).
+- El punto entre la zona y «Estoy acá» quedaba colgando a 320 px: se fue.
+
+Anotó además que el nombre accesible del cartelito («Cambiar
+disponibilidad») no incluye el texto que se ve («Disponible»); ya era así con
+el interruptor anterior y `aria-pressed` dice el estado. No se tocó.
+
 **Queda abierto:** el Panel del comercio, Candidatos y Mis turnos (ítem 0 de
 `STATUS.md`). La barra de abajo «pegada al borde, con una raya azul hondo»
 de la prueba es de toda la app y va en su propio PR. `OpportunityCard` y el
