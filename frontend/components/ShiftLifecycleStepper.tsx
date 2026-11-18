@@ -4,8 +4,10 @@ import { cn } from "@/lib/cn";
 
 export type ShiftStepperPerspective = "employer" | "worker";
 
-// Cuatro hitos del ciclo de vida (Ley de marca: un solo acento naranja; el
-// stepper usa naranja para lo vivo/actual y rojo SÓLO para cancelado).
+// Cuatro hitos del ciclo de vida (Ley de marca: un solo ámbar por pantalla, y
+// ése es del botón de la tarjeta; el stepper marca lo actual en azul de marca,
+// `primary-text` con `card` encima, como el círculo de comparar de Matches, y
+// rojo SÓLO para cancelado).
 const EMPLOYER_STEPS = ["Publicado", "Asignado", "En curso", "Finalizado"] as const;
 const WORKER_STEPS = ["Postulado", "Aceptado", "En curso", "Finalizado"] as const;
 
@@ -143,7 +145,7 @@ export default function ShiftLifecycleStepper({
                 className={cn(
                   "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-colors",
                   state === "completed" && "bg-primary-tint text-primary-text",
-                  state === "current" && "bg-primary text-night ring-2 ring-primary/20",
+                  state === "current" && "bg-primary-text text-card ring-2 ring-primary-text/20",
                   state === "future" && "bg-surface text-ink/35",
                   state === "death" && "bg-danger text-white ring-2 ring-danger/20",
                   state === "uncovered" && "bg-surface text-ink/60 ring-2 ring-line",
@@ -160,7 +162,7 @@ export default function ShiftLifecycleStepper({
                   className={cn(
                     "mx-1 h-0 flex-1 border-t-2 transition-colors",
                     i < currentStep
-                      ? "border-solid border-primary/40"
+                      ? "border-solid border-primary-text/40"
                       : isCutShort
                         ? "border-dashed border-line"
                         : "border-solid border-line"
