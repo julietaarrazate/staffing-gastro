@@ -3,7 +3,7 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash }
 
 /**
  * U080: un turno que se reabre con el horario ya empezado se reofrece como
- * urgente hasta que termina, y se paga lo que resta desde que llega el
+ * urgente mientras le queden 2 horas, y se paga lo que resta desde que llega el
  * reemplazo. El backend manda el valor por hora (`hourly_pay_amount`) mientras
  * nadie llegó y el monto fijo (`prorated_pay_amount`) después; las pantallas
  * muestran lo que corresponde (`payView`, `lib/pay.ts`) y dicen que ya empezó.
