@@ -14,7 +14,8 @@ import {
   RouteIcon,
   ShieldIcon,
 } from "@/components/icons";
-import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
+import { formatAgo, formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
+import { firstNameOf } from "@/lib/shift-next-step";
 import { formatPayAmount } from "@/lib/pay";
 import { cldThumb } from "@/lib/cloudinary";
 import { downloadShiftIcs } from "@/lib/calendar";
@@ -353,11 +354,11 @@ export default function ShiftCard({
             sin que haya que limpiar nada acá. Es la pregunta que se hace un
             comercio a las 20:45 con el turno confirmado: "¿viene?". */}
         {perspective === "employer" &&
-          shift.en_route_latitude != null &&
-          shift.en_route_longitude != null &&
           shift.en_route_at != null &&
+          (shift.en_route_latitude != null &&
+          shift.en_route_longitude != null &&
           shift.latitude != null &&
-          shift.longitude != null && (
+          shift.longitude != null ? (
             <div className="mt-3">
               <EnRouteMap
                 venueLatitude={shift.latitude}
@@ -368,7 +369,19 @@ export default function ShiftCard({
                 workerName={shift.worker_name}
               />
             </div>
-          )}
+          ) : (
+            // Sin coordenadas no se puede dibujar el mapa, pero el reporte de
+            // viaje existe: misma señal que el pie del mapa, sin hueco.
+            <div
+              data-testid="en-route-note"
+              className="mt-3 rounded-[var(--radius-card)] bg-card px-3 py-2 ring-1 ring-line"
+            >
+              <p className="truncate text-sm font-semibold text-ink">
+                {shift.worker_name ? `${firstNameOf(shift.worker_name)} va en camino` : "Va en camino"}
+              </p>
+              <p className="text-xs text-ink/60">{formatAgo(shift.en_route_at)}</p>
+            </div>
+          ))}
 
         {/* Mini-mapa + "Cómo llegar"/"Agendar": sólo tiene sentido del lado
             del trabajador (es quien tiene que viajar hasta el local y

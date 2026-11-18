@@ -119,9 +119,20 @@ function candidatesLabel(count: number | null | undefined): string {
   return typeof count === "number" && count > 0 ? `Elegir a alguien (${count})` : "Elegir a alguien";
 }
 
+/**
+ * Estado a efectos del texto: un turno `confirmado` con `en_route_at` ya está
+ * en viaje (la persona tocó «salí» y comparte «va en camino»), aunque el
+ * estado siga en `confirmado`. Cuando el viaje se apaga, `en_route_at` vuelve
+ * a null y el texto vuelve solo a «Confirmó…». Único lugar que decide esto.
+ */
+export function effectiveStatus(shift: Pick<Shift, "status" | "en_route_at">): ShiftStatus {
+  return shift.status === "confirmado" && shift.en_route_at ? "en_camino" : shift.status;
+}
+
 export function nextStepFor(shift: Shift): NextStep {
-  const base = NEXT_STEP[shift.status] ?? { hint: "", action: null };
-  const hint = hintWithWorker(shift.status, firstNameOf(shift.worker_name));
+  const status = effectiveStatus(shift);
+  const base = NEXT_STEP[status] ?? { hint: "", action: null };
+  const hint = hintWithWorker(status, firstNameOf(shift.worker_name));
   if (base.action === "candidates") {
     return { ...base, actionLabel: candidatesLabel(shift.pending_applicants_count) };
   }
