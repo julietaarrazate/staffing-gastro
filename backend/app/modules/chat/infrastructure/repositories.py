@@ -11,7 +11,7 @@ de lectura ya es un patrón establecido en el repo (ver
 
 from uuid import UUID
 
-from sqlalchemy import ColumnElement, func, or_, select, tuple_, update
+from sqlalchemy import ColumnElement, func, select, tuple_, union, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
@@ -117,10 +117,31 @@ class SqlAlchemyChatMessageRepository(ChatMessageRepository):
                 WorkerProfileModel.id == ShiftModel.worker_profile_id,
             )
             .join(UserModel, UserModel.id == WorkerProfileModel.user_id)
+            # Los turnos del usuario se buscan por los índices de `shifts`
+            # (`company_id`, `worker_profile_id`), uno por cada rol. Con
+            # `company.user_id = X OR worker.user_id = X` Postgres tenía que
+            # unir TODOS los turnos con alguien asignado y recién después
+            # filtrar: el costo crecía con el total de la plataforma, no con
+            # los turnos del usuario. Un `OR` entre subconsultas tampoco sirve
+            # (cae a recorrer `shifts`): va una unión de dos lecturas por índice.
             .where(
-                or_(
-                    CompanyProfileModel.user_id == user_id,
-                    WorkerProfileModel.user_id == user_id,
+                ShiftModel.id.in_(
+                    union(
+                        select(ShiftModel.id).where(
+                            ShiftModel.company_id.in_(
+                                select(CompanyProfileModel.id).where(
+                                    CompanyProfileModel.user_id == user_id
+                                )
+                            )
+                        ),
+                        select(ShiftModel.id).where(
+                            ShiftModel.worker_profile_id.in_(
+                                select(WorkerProfileModel.id).where(
+                                    WorkerProfileModel.user_id == user_id
+                                )
+                            )
+                        ),
+                    )
                 )
             )
         )
