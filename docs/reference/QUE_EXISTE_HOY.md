@@ -90,6 +90,15 @@ listados más abajo.
   (nunca llegó a comprometerse). La ventana de gracia depende de `urgent`
   (30 min si el turno era urgente, 2 h si no). El feed (`list_open`) además
   deja de ofrecer algo cuyo horario ya pasó, esté o no resuelto todavía.
+- **Turno reofrecido** (U080, 2026-11-18): si la persona confirmada falta,
+  cancela o rechaza con el turno ya empezado, el turno se vuelve a ofrecer
+  como urgente hasta que termina su horario (si le queda al menos una hora;
+  con menos, queda «no cubierto» en el momento). Les llega un aviso urgente a
+  quienes están cerca, con el valor por hora, y uno al comercio que dice qué
+  pasó. Las tarjetas dicen «Ya empezó · hasta las HH:MM» y «$X por hora»;
+  quien lo toma cobra lo que resta desde que marca la llegada, y ese monto es
+  el que ve en la tarjeta y en sus ganancias. A esa persona la ausencia se le
+  cuenta desde que confirmó, y su puntualidad no se mueve.
 - **Idempotencia** en mutaciones críticas vía header `Idempotency-Key`
   (`backend/app/core/idempotency.py`).
 - **Helper de zona horaria Argentina** (`backend/app/core/tz.py`,

@@ -433,7 +433,11 @@ export default function ShiftCard({
             {perspective === "worker"
               ? formatShiftWhenLive(shift)
               : formatShiftWhen(shift.start_at, shift.end_at)}
-            {durationMin != null && <span className="text-ink/45"> · {formatDuration(durationMin)}</span>}
+            {/* «Ya empezó · hasta las 23:00 · 4 h» mentiría: ya no son 4 h. */}
+            {durationMin != null &&
+              !(perspective === "worker" && shift.hourly_pay_amount != null) && (
+                <span className="text-ink/45"> · {formatDuration(durationMin)}</span>
+              )}
           </span>
         </p>
 

@@ -148,3 +148,41 @@ tracking que el navegador no permite.
   recursos (conexión a la base, CPU) con el tráfico normal de la API — si el
   volumen de turnos concurrentes crece mucho, revisar si conviene separarlo
   (documentado como riesgo, no como bloqueo).
+
+## Actualización 2026-11-18 (U080): a quien toma un turno ya empezado se lo espera desde que confirmó
+
+Decisiones 4, 16, 18 y 19 del [tablero de la beta](../planning/BETA_TABLERO.md).
+Un turno que se reabre con el horario ya empezado se reofrece
+([ADR-0015](./ADR-0015-turno-no-cubierto.md), actualización del mismo día), así
+que ahora alguien puede **confirmar un turno después de su `start_at`**. Todo
+lo de este ADR medía desde `start_at`: a quien confirmaba a las 21:10 un turno
+de las 20:00 le llegaba el recordatorio en el acto y quedaba ausente a las
+22:00, con 50 minutos para llegar.
+
+- **Referencia nueva: `Shift.expected_from`**, «desde cuándo se espera a la
+  persona»: el mayor entre `start_at` y `confirmed_at` (columna nueva,
+  migración `0053`: cuándo confirmó quien tiene el turno ahora; se borra al
+  reabrir). Para todo turno confirmado antes de empezar es `start_at`: **no
+  cambia nada**. Los turnos confirmados antes de la migración no tienen la
+  marca y siguen midiendo desde `start_at`.
+- **Recordatorio de llegada:** `expected_from` + `CHECKIN_REMINDER_DELAY`
+  (20 min). `checkin_reminder_sent_at` se borra al reabrir el turno, para que
+  al reemplazo le llegue el suyo (antes quedaba marcado por la persona
+  anterior y el reemplazo no recibía nada).
+- **Ausencia automática:** `expected_from` + `NO_SHOW_GRACE_PERIOD` (2 h), sin
+  tope en `end_at`: quien confirmó diez minutos antes del final no puede
+  quedar ausente a los diez minutos.
+- **Ausencia manual («No se presentó»):** se habilita 15 minutos después de
+  `expected_from`; el mensaje dice «después de que confirmó el reemplazo». El
+  panel aplica la misma regla (`puedeMarcarAusencia`,
+  `frontend/lib/turno-reofrecido.ts`).
+- **El recordatorio de salida no cambia** (sólo corre antes del inicio).
+- **Puntualidad:** quien tomó el turno ya empezado no tiene una hora pactada
+  contra la cual medir su llegada. El turno le suma como completado y **su
+  puntualidad no se mueve, ni a favor ni en contra** (`punctuality_of`,
+  `shift/domain/punctuality.py`; detalle en `docs/reference/REPUTATION.md`).
+  Es la opción reversible: si se decide medir «llegó hasta X minutos después
+  de confirmar», se cambia en esa función. Si no llega, la ausencia sí cuenta.
+- **El comercio ahora recibe un aviso cuando alguien confirmado falta** (este
+  ADR lo dejaba fuera de alcance): uno solo por reapertura, que dice qué pasó
+  y qué hizo la app con el turno. Textos en `docs/reference/NOTIFICATIONS.md`.

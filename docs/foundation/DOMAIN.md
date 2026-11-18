@@ -115,8 +115,20 @@ campos, estados o transiciones. Se documenta la realidad y se marca cada caso.
     [ADR-0007](../adr/ADR-0007-no-show-y-cancelacion-tardia.md), actualización
     2026-11-18).
   - Aparece en el **feed** sólo si está en estados abiertos
-    (`publicado`/`buscando_personal`, `OPEN_STATUSES`).
+    (`publicado`/`buscando_personal`, `OPEN_STATUSES`) y todavía no empezó; la
+    excepción es el turno reofrecido (abajo).
   - `reject` de un asignado vuelve el turno a `buscando_personal`.
+  - **Turno reofrecido (U080, [ADR-0015](../adr/ADR-0015-turno-no-cubierto.md),
+    actualización 2026-11-18):** si quien tenía el turno lo deja (rechaza,
+    cancela, falta) con el horario ya empezado, el turno se **reofrece como
+    urgente** hasta `end_at` cuando le queda al menos 1 hora
+    (`reoffered_at`); con menos, pasa directo a `no_cubierto`
+    (`Shift._reopen`). Mientras está reofrecido aparece en el feed aunque
+    haya empezado. Quien lo toma cobra **lo que resta desde que marca la
+    llegada**: hasta ahí se muestra el valor por hora, y al llegar queda fijo
+    `prorated_pay_amount` (`Shift.amount_due` decide qué se paga). A esa
+    persona el recordatorio y la ausencia se le cuentan desde que confirmó
+    (`confirmed_at`, `Shift.expected_from`, [ADR-0008](../adr/ADR-0008-asistencia-simplificada-y-no-show-automatico.md)).
   - **Cuenta suspendida ([ADR-0024](../adr/ADR-0024-efectos-de-una-suspension.md)):**
     los turnos abiertos de un comercio suspendido no aparecen en el feed, en la
     página pública ni aceptan postulaciones (no cambian de estado: vuelven a
