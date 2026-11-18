@@ -10,7 +10,6 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { isCancellable } from "@/lib/cancelar-turno";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { Applicant, CandidateMatch, SKILL_LABELS, STATUS_LABELS, Shift } from "@/lib/types";
-import { SKILL_ACCENT, heroTile } from "@/lib/skill-style";
 import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
 import { formatPayAmount } from "@/lib/pay";
 import {
@@ -29,13 +28,18 @@ import {
   Badge,
   Button,
   CardSkeletons,
+  Comanda,
+  ComandaFila,
+  Flechita,
   EmptyState,
   ErrorBanner,
   SegmentedControl,
+  textoCartel,
   useToast,
 } from "@/components/ui";
 import { useLiveRefresh } from "@/lib/live-refresh";
-import { ChevronLeftIcon, ClockIcon, StarIcon, UsersIcon, XCircleIcon } from "@/components/icons";
+import { LETRAS_APP } from "@/lib/letras";
+import { ChevronLeftIcon, UsersIcon, XCircleIcon } from "@/components/icons";
 
 type Tab = "postulantes" | "recomendados";
 
@@ -209,19 +213,58 @@ function ShiftCandidatesContent() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 pb-10 pt-6 md:max-w-6xl">
-      <Link
-        href="/shifts"
-        className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-ink/60 transition hover:text-ink"
+    // Desde el 2026-11-18 con la dirección «con relieve»
+    // (docs/design-system/direccion-relieve.md): arriba el cielo con el título
+    // en brocha, el turno como comanda montada sobre su borde, y en la lista el
+    // destacado con el relieve del filete y los demás planos. La lógica no
+    // cambió.
+    <div className={`${LETRAS_APP} mx-auto max-w-2xl px-4 pb-10 md:max-w-6xl md:pt-4`}>
+      <div
+        // El hueco de abajo para la comanda queda reservado también mientras
+        // el turno carga: si no, al llegar la lista bajaba de golpe 68 px.
+        className={`app-cielo -mx-4 px-4 pt-4 md:mx-0 md:rounded-[var(--radius-card)] md:px-6 md:pb-6 ${
+          shift || !shiftError ? "pb-[72px]" : "pb-6"
+        }`}
       >
-        <ChevronLeftIcon size={16} /> Volver al panel
-      </Link>
-      <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">Candidatos</h1>
-      <p className="mt-0.5 text-sm text-ink/50">
-        {canAssign
-          ? "Elegí a quién asignarle el turno. Los postulantes ya levantaron la mano."
-          : "Estos son los candidatos de este turno."}
-      </p>
+        <Link
+          href="/shifts"
+          className="mb-2 inline-flex min-h-[44px] items-center gap-1 text-sm font-semibold underline-offset-2 hover:underline"
+        >
+          <ChevronLeftIcon size={16} /> Volver al panel
+        </Link>
+        <h1 className="letra-cartel letra-cartel-pantalla break-words">Candidatos</h1>
+        <p className="mt-1 text-sm">
+          {canAssign
+            ? "Elegí a quién asignarle el turno. Los postulantes ya levantaron la mano."
+            : "Estos son los candidatos de este turno."}
+        </p>
+      </div>
+
+      {/* Recordatorio de PARA QUÉ turno son estos candidatos: un comercio con
+          varios turnos abiertos podía llegar acá (desde el panel, un link
+          del asistente de IA, o el próximo-paso de publicar) sin ninguna
+          referencia de puesto/horario/pago en la pantalla. Mismo endpoint
+          que ya usa "Duplicar turno" (`GET /shifts/{id}`) — no hace falta
+          nada nuevo del backend. Desde el 2026-11-18 es la comanda del turno,
+          montada sobre el borde del cielo (en escritorio, debajo). */}
+      {shift && (
+        <Comanda as="section" aria-label="El turno" className="relative z-[1] -mt-[56px] md:mt-4 md:max-w-xl">
+          <div className="px-4 pb-2 pt-4">
+            <p className="letra-cartel letra-cartel-puesto break-words">{textoCartel(SKILL_LABELS[shift.position])}</p>
+            <dl className="mt-2">
+              <ComandaFila rotulo="Cuándo">
+                {formatShiftWhen(shift.start_at, shift.end_at)}
+                {(() => {
+                  const minutes = shiftDurationMinutes(shift.start_at, shift.end_at);
+                  return minutes != null ? ` · ${formatDuration(minutes)}` : "";
+                })()}
+              </ComandaFila>
+              <ComandaFila rotulo="Pago">{formatPayAmount(shift)}</ComandaFila>
+            </dl>
+          </div>
+        </Comanda>
+      )}
+
       {!shift && shiftError && (
         <ErrorBanner message="No pudimos cargar el estado del turno, así que por ahora no se puede asignar." onRetry={() => load()} />
       )}
@@ -229,48 +272,12 @@ function ShiftCandidatesContent() {
         <p
           role="status"
           data-testid="candidatos-turno-cerrado"
-          className="mt-3 rounded-[var(--radius-card)] bg-surface p-3.5 text-sm text-ink/75 ring-1 ring-line"
+          className="mt-4 rounded-[var(--radius-card)] bg-surface p-3.5 text-sm text-ink/75 ring-1 ring-line"
         >
           {shift.status === "asignado"
             ? "Este turno ya tiene a alguien asignado: no se puede asignar a otra persona."
             : `Este turno está ${STATUS_LABELS[shift.status as keyof typeof STATUS_LABELS]?.toLowerCase() ?? shift.status}: ya no se puede asignar a nadie.`}
         </p>
-      )}
-
-      {/* Recordatorio de PARA QUÉ turno son estos candidatos: un comercio con
-          varios turnos abiertos podía llegar acá (desde el panel, un link
-          del asistente de IA, o el próximo-paso de publicar) sin ninguna
-          referencia de puesto/horario/pago en la pantalla. Mismo endpoint
-          que ya usa "Duplicar turno" (`GET /shifts/{id}`) — no hace falta
-          nada nuevo del backend. */}
-      {shift && (
-        <div className="mt-4 flex items-center gap-3 rounded-[var(--radius-card)] bg-card p-3.5 shadow-[var(--shadow-soft)] ring-1 ring-line">
-          {(() => {
-            // Mismo tono por rubro que el banner de las tarjetas de turno
-            // (SKILL_HERO_TONE) — el tinte pálido de antes quedaba como un
-            // cuadro claro en el modo oscuro.
-            const { Icon } = SKILL_ACCENT[shift.position];
-            return (
-              <span
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${heroTile(shift.position)}`}
-              >
-                <Icon size={20} />
-              </span>
-            );
-          })()}
-          <div className="min-w-0 flex-1">
-            <p className="truncate font-display text-lg font-medium text-ink">{SKILL_LABELS[shift.position]}</p>
-            <p className="mt-0.5 inline-flex items-center gap-1.5 text-xs text-ink/55">
-              <ClockIcon size={13} className="shrink-0 text-ink/35" />
-              {formatShiftWhen(shift.start_at, shift.end_at)}
-              {(() => {
-                const minutes = shiftDurationMinutes(shift.start_at, shift.end_at);
-                return minutes != null ? ` · ${formatDuration(minutes)}` : "";
-              })()}
-            </p>
-          </div>
-          <p className="shrink-0 text-right text-lg font-extrabold text-ink">{formatPayAmount(shift)}</p>
-        </div>
       )}
 
       <div className="mt-4">
@@ -354,15 +361,17 @@ function ShiftCandidatesContent() {
                       transition={{ duration: 0.3, ease: "easeOut" }}
                       // `.no-select`: fila de chrome (rating, chips), mismo criterio
                       // C0 #2 que ShiftCard/CandidateCard.
+                      // El destacado lleva el relieve del filete; los demás,
+                      // planos con un filete (2026-11-18; antes celeste lleno).
+                      data-destacado={top || undefined}
                       className={`no-select relative min-w-0 rounded-[var(--radius-card)] p-4 ${
-                        top
-                          ? "bg-secondary shadow-[var(--shadow-float)]"
-                          : "bg-card shadow-[var(--shadow-soft)] ring-1 ring-line"
+                        top ? "tarjeta-relieve" : "bg-card ring-1 ring-line"
                       }`}
                     >
                       {top && (
-                        <p className="mb-3 inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wide text-on-brand-label">
-                          <StarIcon size={13} filled /> Mejor valorado
+                        <p className="letra-mano mb-2 flex items-end gap-1 text-xl">
+                          Mejor valorado
+                          <Flechita className="translate-y-2" />
                         </p>
                       )}
                       <div className="flex items-center gap-3">
@@ -373,7 +382,7 @@ function ShiftCandidatesContent() {
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                             <Link
                               href={`/workers/${a.worker_profile_id}`}
-                              className={`min-w-0 truncate font-semibold ${top ? "text-on-brand" : "text-ink"}`}
+                              className="min-w-0 truncate font-semibold text-ink"
                             >
                               {a.full_name}
                             </Link>
@@ -394,7 +403,7 @@ function ShiftCandidatesContent() {
                             // «Verificada»; por debajo, sólo el escudo.
                             <IdentityVerifiedBadge verified responsive className="mt-1 block" />
                           )}
-                          <CandidateStatChips signals={a} className="mt-1" onDark={top} />
+                          <CandidateStatChips signals={a} className="mt-1" />
                         </div>
                         {canAssign && (
                           <Button
@@ -448,6 +457,7 @@ function ShiftCandidatesContent() {
                       disabled={assigning !== null}
                       canAssign={canAssign}
                       onAssign={() => assign(candidate.profile_id)}
+                      relieve
                     />
                     {assignedId === candidate.profile_id && (
                       <ConfirmOverlay label="Asignado" detail={candidate.full_name} />

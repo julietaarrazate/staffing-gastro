@@ -52,7 +52,14 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
    sigue con el «oí». La app, la landing,
    la miniatura, los vectores y el manual en PDF de
    `design-system/marca/` y el brand system navegable ya están
-   ([historial](./historial/2026-11-17-marca-shrikhand-isotipo-oi.md)). Sigue
+   ([historial](./historial/2026-11-17-marca-shrikhand-isotipo-oi.md)). **Los
+   adornos del «oído» fileteado tienen cuerpo** desde el 2026-11-18 (Julieta:
+   los de línea fina «quedaron demasiado finos»): nivel «medio» en el final
+   de la landing y la bienvenida, «cargado» en la miniatura; entran el rojo y
+   el rosa sólo en las flores del filete y la letra sigue crema con relieve
+   azul hondo ([historial](./historial/2026-11-18-filete-adornos-con-cuerpo.md)).
+   Queda por decidir si un toque de ese filete va también en el ícono del
+   pinche (Julieta: «quizás»; iría en un PR aparte). Sigue
    **la dirección «con relieve»** (Julieta eligió
    seguirla: la sombra dura azul hondo del filete como profundidad de la
    interfaz; prueba en https://claude.ai/artifact/WNXBXhkNgGrFdBbqFNsQan).
@@ -76,11 +83,12 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
    2026-11-18). Hecho: el Inicio del trabajador
    ([historial](./historial/2026-11-18-inicio-trabajador-relieve.md)) y el
    Panel del comercio
-   ([historial](./historial/2026-11-18-panel-comercio-relieve.md)).
+   ([historial](./historial/2026-11-18-panel-comercio-relieve.md)),
+   Candidatos ([historial](./historial/2026-11-18-candidatos-relieve.md)) y
    Mis turnos ([historial](./historial/2026-11-18-mis-turnos-relieve.md)).
-   **Sigue:** Candidatos (PR propio, en curso), y lo que es de toda la app,
-   cada cosa en su PR: la barra de abajo, las pestañas, los botones
-   secundarios, los pasos tachados a mano y el detalle del turno. Las piezas compartidas ya están
+   **Sigue** lo que es de toda la app, cada cosa en su PR: la barra de abajo,
+   las pestañas, los botones secundarios, los pasos tachados a mano, los
+   colores de los sellos y el detalle del turno. Las piezas compartidas ya están
    (`components/ui/Comanda.tsx`, `lib/letras.ts`, `.app-cielo`). Qué tiene, las referencias de Julieta,
    lo que falta decidir y el orden, en
    [`design-system/direccion-relieve.md`](./design-system/direccion-relieve.md).

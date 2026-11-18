@@ -121,7 +121,7 @@ test("quien dejó el turno va al final, con su marca, y no cuenta como postulant
   // La destacada es quien sigue en carrera, no la de mejor reputación que rechazó.
   await expect(page.getByText("Mejor valorado")).toHaveCount(1);
   await expect(
-    page.locator("div.bg-secondary", { hasText: "Mejor valorado" }).getByText("Sofía Sigue")
+    page.locator("[data-destacado]", { hasText: "Mejor valorado" }).getByText("Sofía Sigue")
   ).toBeVisible();
 });
 

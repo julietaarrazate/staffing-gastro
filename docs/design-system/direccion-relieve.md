@@ -268,7 +268,9 @@ como exploración abierta):
    2026-11-18, [historial](../historial/2026-11-18-inicio-trabajador-relieve.md)),
    ~~Panel del comercio~~ (hecho el 2026-11-18,
    [historial](../historial/2026-11-18-panel-comercio-relieve.md)),
-   Candidatos, ~~Mis turnos~~ (hecho el 2026-11-18,
+   ~~Candidatos~~ (hecho el 2026-11-18,
+   [historial](../historial/2026-11-18-candidatos-relieve.md)), ~~Mis
+   turnos~~ (hecho el 2026-11-18,
    [historial](../historial/2026-11-18-mis-turnos-relieve.md)); ~~la
    landing~~ (hecha). La
    barra de abajo es de toda la app y va aparte. Capturas en claro y oscuro.
@@ -284,6 +286,8 @@ Antes de dibujar algo nuevo en una pantalla, usar éstas:
 | `.app-cielo` | `globals.css` | El cielo de arriba de la pantalla (celeste de día, azul noche de noche). Lo de encima hereda `--app-cielo-tinta` |
 | `Comanda`, `ComandaFila` | `components/ui/Comanda.tsx` | El turno como papel de cocina, con relieve. Adentro va forzada a claro: el papel es papel en los dos temas |
 | `Apunte`, `.letra-mano` | ídem | Un apunte a mano con óvalo. Uno por pantalla |
+| `Flechita` | ídem | La flechita a mano que acompaña un apunte («el que te recomendamos») |
+| `.tarjeta-relieve` | `globals.css` | Lo destacado de una lista (el candidato recomendado): blanco con el borde y el relieve del filete. Uno por lista |
 | `.sello-goma` | `globals.css` | Un estado como sello de goma (toma el color de la letra) |
 | `.cartelito` | `globals.css` | «Disponible» como el cartelito de la puerta |
 | `AIAssistantBar recto` | `components/AIAssistantBar.tsx` | El buscador sin píldora ni sombra |
