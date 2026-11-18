@@ -21,7 +21,10 @@ from app.modules.application.domain.repositories import (
     ApplicationStats,
     ShiftApplicationRepository,
 )
-from app.modules.application.domain.value_objects import ApplicationStatus
+from app.modules.application.domain.value_objects import (
+    ApplicationStatus,
+    MotivoDesasignacion,
+)
 from app.modules.application.infrastructure.models import ShiftApplicationModel
 from app.modules.identity.domain.value_objects import UserStatus
 from app.modules.identity.infrastructure.models import UserModel
@@ -37,6 +40,7 @@ def _to_entity(model: ShiftApplicationModel) -> ShiftApplication:
         worker_profile_id=model.worker_profile_id,
         status=ApplicationStatus(model.status),
         created_at=model.created_at,
+        motivo=MotivoDesasignacion(model.motivo) if model.motivo else None,
     )
 
 
@@ -50,6 +54,7 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
             shift_id=application.shift_id,
             worker_profile_id=application.worker_profile_id,
             status=application.status.value,
+            motivo=application.motivo.value if application.motivo else None,
         )
         self._session.add(model)
         await self._session.commit()
@@ -61,6 +66,7 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
         if model is None:
             raise ValueError(f"Postulación {application.id} no encontrada")
         model.status = application.status.value
+        model.motivo = application.motivo.value if application.motivo else None
         # La fecha sólo cambia cuando el trabajador vuelve a postularse
         # (`ShiftApplication.reapply`); en el resto de las transiciones es la
         # misma que se leyó y no se reescribe.
@@ -129,10 +135,20 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
             )
             .outerjoin(UserModel, UserModel.id == WorkerProfileModel.user_id)
             .where(ShiftApplicationModel.shift_id == shift_id)
+            # Quien retiró su postulación no aparece (G4): ya no quiere el
+            # turno, y si vuelve a postularse la misma fila se reactiva.
+            .where(ShiftApplicationModel.status != ApplicationStatus.RETIRADA.value)
             # Cuenta suspendida: no se muestra (ADR-0024, mismo criterio que
             # «Recomendados»). Sin usuario resuelto sigue el fallback de arriba.
             .where(or_(UserModel.id.is_(None), UserModel.status == UserStatus.ACTIVE.value))
-            .order_by(ShiftApplicationModel.created_at.desc())
+            # Quien tuvo el turno y lo dejó va al final, con su marca.
+            .order_by(
+                case(
+                    (ShiftApplicationModel.status == ApplicationStatus.DESASIGNADA.value, 1),
+                    else_=0,
+                ),
+                ShiftApplicationModel.created_at.desc(),
+            )
         )
         result = await self._session.execute(stmt)
         return [
@@ -145,6 +161,9 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
                 is_available=worker.is_available,
                 status=ApplicationStatus(application.status),
                 created_at=application.created_at,
+                motivo=(
+                    MotivoDesasignacion(application.motivo) if application.motivo else None
+                ),
                 events_completed=worker.events_completed,
                 punctuality_rate=worker.punctuality_rate,
                 years_experience=worker.years_experience,

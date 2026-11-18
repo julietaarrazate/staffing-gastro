@@ -19,6 +19,12 @@ class AlreadyAppliedError(ApplicationError):
     Una RETIRADA no cae acá: se reactiva."""
 
 
+class AlreadyUnassignedError(AlreadyAppliedError):
+    """El trabajador tuvo ese turno asignado y lo dejó (rechazó, canceló o no
+    se presentó): su postulación está DESASIGNADA. Sigue en la lista del
+    comercio, que decide si lo vuelve a elegir; no se postula otra vez."""
+
+
 class ApplicationNotFoundError(ApplicationError):
     """La postulación no existe (o no pertenece al trabajador que la busca).
 

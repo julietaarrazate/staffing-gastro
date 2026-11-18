@@ -14,6 +14,7 @@ from app.modules.application.api.schemas import ApplicantResponse, ApplicationRe
 from app.modules.application.application.services import ApplicationService
 from app.modules.application.domain.exceptions import (
     AlreadyAppliedError,
+    AlreadyUnassignedError,
     ApplicationNotFoundError,
     InvalidApplicationTransitionError,
     ShiftNotApplicableError,
@@ -75,6 +76,14 @@ async def apply_to_shift(
         application = await service.apply(worker_profile_id, shift_id)
     except ShiftNotApplicableError as exc:
         raise _SHIFT_NOT_FOUND from exc
+    except AlreadyUnassignedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Ya tuviste este turno asignado. Si el comercio te vuelve a "
+                "elegir, te avisamos."
+            ),
+        ) from exc
     except AlreadyAppliedError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -141,6 +150,7 @@ async def my_applications(
             shift_id=application.shift_id,
             worker_profile_id=application.worker_profile_id,
             status=application.status.value,
+            motivo=application.motivo.value if application.motivo else None,
             created_at=application.created_at,
             shift=_shift_for_applicant(
                 shift, worker_profile_id, companies_by_id, verified_owner_ids
@@ -204,6 +214,7 @@ async def shift_applicants(
             rating=applicant.rating,
             is_available=applicant.is_available,
             status=applicant.status.value,
+            motivo=applicant.motivo.value if applicant.motivo else None,
             created_at=applicant.created_at,
             events_completed=applicant.events_completed,
             punctuality_rate=applicant.punctuality_rate,

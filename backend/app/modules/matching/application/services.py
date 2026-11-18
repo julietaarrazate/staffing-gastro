@@ -3,6 +3,8 @@
 from uuid import UUID
 
 from app.core.geo import fuzz_point, haversine_km
+from app.modules.application.domain.repositories import ShiftApplicationRepository
+from app.modules.application.domain.value_objects import ApplicationStatus
 from app.modules.matching.domain.entities import (
     CandidateProfile,
     MatchResult,
@@ -52,11 +54,14 @@ class MatchingService:
         shifts: ShiftRepository,
         candidates: CandidateRepository,
         companies: CompanyProfileRepository | None = None,
+        applications: ShiftApplicationRepository | None = None,
     ) -> None:
         self._shifts = shifts
         self._candidates = candidates
         # Para medir desde el local un turno que no dice dónde es.
         self._companies = companies
+        # Para no recomendar a quien ya tuvo este turno y lo dejó (G4).
+        self._applications = applications
 
     async def get_top_candidates(
         self,
@@ -87,6 +92,16 @@ class MatchingService:
             city=zone.city,
         )
         candidates = await self._candidates.list_available(shift.position)
+        # Quien ya tuvo este turno y lo rechazó, canceló o faltó no vuelve como
+        # «Recomendado»: está al final de los postulantes, con su marca, y
+        # desde ahí se le puede volver a asignar (G4).
+        if self._applications is not None:
+            unassigned = {
+                a.worker_profile_id
+                for a in await self._applications.list_by_shift(shift_id)
+                if a.status == ApplicationStatus.DESASIGNADA
+            }
+            candidates = [c for c in candidates if c.profile_id not in unassigned]
         # Fuera del radio no se sugiere a nadie (`rank_candidates` lo corta).
         # El puntaje (y su tope por radio) usa la MISMA distancia pública que
         # se muestra: con la real, el `score` la filtraba igual — tres turnos

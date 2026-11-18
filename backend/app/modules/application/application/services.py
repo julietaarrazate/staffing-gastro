@@ -6,6 +6,7 @@ from uuid import UUID
 from app.modules.application.domain.entities import EnrichedApplicant, ShiftApplication
 from app.modules.application.domain.exceptions import (
     AlreadyAppliedError,
+    AlreadyUnassignedError,
     ApplicationNotFoundError,
     ShiftNotApplicableError,
 )
@@ -58,7 +59,10 @@ class ApplicationService:
         turno), postularse de nuevo la reactiva: vuelve a PENDIENTE con fecha
         nueva y el comercio recibe el aviso como con una postulación nueva. Es
         lo que promete la app al cancelar ("si sigue abierto, podés volver a
-        postularte"). Cualquier otro estado es `AlreadyAppliedError`."""
+        postularte"). Cualquier otro estado es `AlreadyAppliedError`; si tuvo
+        el turno asignado y lo dejó (DESASIGNADA), `AlreadyUnassignedError`:
+        ya está en la lista del comercio, al final, y es el comercio quien
+        decide si lo vuelve a elegir."""
         shift = await self._shifts.get_by_id(shift_id)
         if shift is None or shift.status not in OPEN_STATUSES:
             raise ShiftNotApplicableError(str(shift_id))
@@ -78,6 +82,8 @@ class ApplicationService:
         elif existing.status == ApplicationStatus.RETIRADA:
             existing.reapply()
             application = await self._applications.update(existing)
+        elif existing.status == ApplicationStatus.DESASIGNADA:
+            raise AlreadyUnassignedError(str(shift_id))
         else:
             raise AlreadyAppliedError(str(shift_id))
         logger.info(
@@ -108,7 +114,10 @@ class ApplicationService:
         se postuló + cuántos postulantes hay en total + a qué turno, no un
         genérico 'un trabajador se postuló'."""
         position_label = shift.title or shift.position.label
-        total = len(await self._applications.list_by_shift(shift.id))
+        # Los que están en carrera, igual que el contador del panel: sin las
+        # retiradas ni quien tuvo el turno y lo dejó (G4).
+        pending = await self._applications.count_pending_by_shift_ids([shift.id])
+        total = max(pending.get(shift.id, 0), 1)
         worker_name = await self._worker_full_name(worker_profile_id)
         title = f"{total} postulante{'s' if total != 1 else ''} para {position_label}"
         message = (

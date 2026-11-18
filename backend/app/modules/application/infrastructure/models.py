@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, func
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -16,6 +16,11 @@ class ShiftApplicationModel(Base):
     __table_args__ = (
         UniqueConstraint(
             "shift_id", "worker_profile_id", name="uq_shift_applications_shift_worker"
+        ),
+        # El motivo va con una postulación desasignada, y sólo con ella (G4).
+        CheckConstraint(
+            "(status = 'desasignada') = (motivo IS NOT NULL)",
+            name="ck_shift_applications_motivo_desasignada",
         ),
     )
 
@@ -35,6 +40,8 @@ class ShiftApplicationModel(Base):
     status: Mapped[str] = mapped_column(
         String(20), nullable=False, default=ApplicationStatus.PENDIENTE.value
     )
+    # `MotivoDesasignacion`: por qué dejó el turno quien lo tenía asignado.
+    motivo: Mapped[str | None] = mapped_column(String(20), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

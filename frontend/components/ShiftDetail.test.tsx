@@ -100,6 +100,17 @@ describe("ShiftDetail", () => {
     expect(screen.queryByRole("button", { name: "Postularme" })).not.toBeInTheDocument();
   });
 
+  it("si tuvo el turno asignado y lo dejó, no le ofrece postularse ni dice que se postuló (G4)", async () => {
+    auth.value = { user: { role: "worker" }, token: "tok", loading: false };
+    mockGets([{ shift_id: "s1", status: "desasignada" }]);
+    render(<ShiftDetail publicShift={SHIFT} />);
+
+    expect(await screen.findByText("Ya tuviste este turno asignado")).toBeInTheDocument();
+    expect(screen.getByText("Si el comercio te vuelve a elegir, te avisamos.")).toBeInTheDocument();
+    expect(screen.queryByText("Ya te postulaste")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Postularme" })).not.toBeInTheDocument();
+  });
+
   it("si retiró la postulación, no dice que sigue postulado: puede postularse de nuevo", async () => {
     auth.value = { user: { role: "worker" }, token: "tok", loading: false };
     mockGets([{ shift_id: "s1", status: "retirada" }]);

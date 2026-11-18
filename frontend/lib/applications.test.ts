@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ApplicationStatus } from "@/lib/types";
-import { appliedShiftIds } from "./applications";
+import { appliedShiftIds, unassignedShiftIds } from "./applications";
 
 function application(shift_id: string, status: ApplicationStatus) {
   return { shift_id, status };
@@ -20,6 +20,12 @@ describe("appliedShiftIds", () => {
 
   it("una postulación rechazada tampoco cuenta como estar postulado", () => {
     expect(appliedShiftIds([application("turno-1", "rechazada")]).has("turno-1")).toBe(false);
+  });
+
+  it("quien tuvo el turno y lo dejó no puede postularse otra vez: el turno no se le ofrece", () => {
+    const apps = [application("turno-1", "desasignada"), application("turno-2", "pendiente")];
+    expect(appliedShiftIds(apps).has("turno-1")).toBe(true);
+    expect([...unassignedShiftIds(apps)]).toEqual(["turno-1"]);
   });
 
   it("sin postulaciones no hay turnos postulados", () => {

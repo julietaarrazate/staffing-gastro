@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
-import { appliedShiftIds } from "@/lib/applications";
+import { appliedShiftIds, unassignedShiftIds } from "@/lib/applications";
 import { useAuth } from "@/lib/auth-context";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
@@ -50,7 +50,9 @@ const MiniMap = dynamic(() => import("@/components/MiniMap"), {
  *  sin sesión) y, si hay sesión, el turno completo encima. */
 type Detail = ShiftPublic & Partial<Shift>;
 
-type ApplyState = "unknown" | "can_apply" | "applying" | "applied";
+// `released`: tuvo este turno asignado y lo dejó (G4). No se postula otra vez:
+// sigue en la lista del comercio, que decide si lo vuelve a elegir.
+type ApplyState = "unknown" | "can_apply" | "applying" | "applied" | "released";
 
 /**
  * Detalle de un turno (`/turno/[id]`), con la composición del board: cabecera
@@ -127,10 +129,12 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
             .then((mine_) => {
               if (mine !== latestLoad.current) return;
               const applied = appliedShiftIds(mine_).has(publicShift.id);
+              const released = unassignedShiftIds(mine_).has(publicShift.id);
               setApply((prev) => {
                 // Se postuló (o está postulándose) después de que salió este
                 // pedido: la lista que trae puede no incluirla todavía.
                 if (epoch !== applyEpoch.current || prev === "applying") return prev;
+                if (released) return "released";
                 return applied ? "applied" : "can_apply";
               });
             })
@@ -474,7 +478,18 @@ function PrimaryAction({
         };
     return (
       <AnimatePresence mode="wait" initial={false}>
-        {apply === "applied" ? (
+        {apply === "released" ? (
+          <motion.div
+            key="released"
+            {...swap}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            data-testid="turno-ya-asignado-antes"
+            className="rounded-[var(--radius-card)] bg-surface px-4 py-3.5 ring-1 ring-line"
+          >
+            <p className="text-body font-semibold text-ink">Ya tuviste este turno asignado</p>
+            <p className="text-sm text-ink/60">Si el comercio te vuelve a elegir, te avisamos.</p>
+          </motion.div>
+        ) : apply === "applied" ? (
           <motion.div
             key="applied"
             {...swap}
