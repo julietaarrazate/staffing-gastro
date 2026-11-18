@@ -9,8 +9,7 @@
   primera pasada.
 
 Revision ID: 0056
-Revises: 0052 (turnos: aviso «salió para tu local» al comercio). Otras ramas
-en curso usan 0053 a 0055; se encadena al integrar.
+Revises: 0055 (no cubierto con la cuenta del comercio suspendida, decisión 22)
 """
 
 from collections.abc import Sequence
@@ -20,7 +19,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "0056"
-down_revision: str | None = "0052"
+down_revision: str | None = "0055"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
