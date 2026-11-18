@@ -11,9 +11,9 @@ import { useId, type ReactNode } from "react";
  *
  * Tres tamaños: `firma` (con adornos: pantalla de inicio), `marca` (sólo la
  * palabra: encabezado) y `cinta` («¡Oído!» en la comanda). El final de la
- * landing usa `Sol` y `Letras` sueltos (LandingFooter.tsx): el Sol de Mayo
- * saliendo detrás de la palabra. Los colores son del cartel, no tokens: se
- * ve igual en cualquier tema.
+ * landing usa la `firma` entera desde el 2026-11-18 (LandingFooter.tsx);
+ * antes eran `Letras` gigantes cortadas por el borde, con el `Sol` detrás.
+ * Los colores son del cartel, no tokens: se ve igual en cualquier tema.
  */
 const ORO = "#b8801f";
 const ORO_CLARO = "#e2b04a";

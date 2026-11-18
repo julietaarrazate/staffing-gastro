@@ -2,6 +2,7 @@
 
 import Image, { getImageProps } from "next/image";
 import Link from "next/link";
+import BancoDeNubes from "./Nubes";
 import { useEffect, useRef, useState } from "react";
 import { preload } from "react-dom";
 
@@ -59,11 +60,11 @@ function PalabraQueCambia() {
   return (
     <span ref={ref} aria-hidden className="landing-palabra block text-primary-strong">
       {par.antes !== null && (
-        <b key={`s${par.antes}-${par.i}`} className="landing-palabra-sale font-medium">
+        <b key={`s${par.antes}-${par.i}`} className="landing-palabra-sale font-normal">
           {PUESTOS[par.antes]}
         </b>
       )}
-      <b key={`e${par.i}`} className="font-medium">
+      <b key={`e${par.i}`} className="font-normal">
         {PUESTOS[par.i]}
       </b>
     </span>
@@ -191,36 +192,7 @@ function Rueda() {
 function Nubes() {
   return (
     <>
-      <svg aria-hidden className="landing-nubes-banco" viewBox="0 0 1440 460" preserveAspectRatio="xMidYMax slice">
-        <defs>
-          <filter id="landing-nube" x="-30%" y="-30%" width="160%" height="160%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.014" numOctaves={5} seed={11} result="ruido" />
-            <feDisplacementMap in="SourceGraphic" in2="ruido" scale={95} xChannelSelector="R" yChannelSelector="G" />
-            <feGaussianBlur stdDeviation={4} />
-          </filter>
-          <filter id="landing-bruma" x="-30%" y="-30%" width="160%" height="160%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.008" numOctaves={3} seed={4} result="ruido" />
-            <feDisplacementMap in="SourceGraphic" in2="ruido" scale={120} xChannelSelector="R" yChannelSelector="G" />
-            <feGaussianBlur stdDeviation={22} />
-          </filter>
-          <linearGradient id="landing-nube-luz" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#ffffff" />
-            <stop offset="1" stopColor="#e3f0f8" />
-          </linearGradient>
-        </defs>
-        <g filter="url(#landing-bruma)" fill="#ffffff" opacity={0.6}>
-          <ellipse cx={720} cy={470} rx={900} ry={130} />
-        </g>
-        <g filter="url(#landing-nube)" fill="url(#landing-nube-luz)">
-          <ellipse cx={60} cy={360} rx={250} ry={110} />
-          <ellipse cx={270} cy={420} rx={240} ry={90} />
-          <ellipse cx={0} cy={250} rx={130} ry={84} />
-          <ellipse cx={1390} cy={350} rx={250} ry={114} />
-          <ellipse cx={1190} cy={420} rx={240} ry={86} />
-          <ellipse cx={1440} cy={230} rx={130} ry={88} />
-          <ellipse cx={720} cy={460} rx={360} ry={60} />
-        </g>
-      </svg>
+      <BancoDeNubes id="landing" className="landing-nubes-banco" />
       {(["a", "b"] as const).map((k) => (
         <svg key={k} aria-hidden className={`landing-cirro landing-cirro-${k}`} viewBox="0 0 520 120">
           <defs>
@@ -255,7 +227,7 @@ export default function HeroRueda() {
       <div className="relative z-[2]">
         <h1
           id="hero-titulo"
-          className="landing-entra font-display text-[clamp(3.25rem,6.4vw,6rem)] font-medium leading-[0.97] tracking-[-0.045em] text-ink"
+          className="landing-entra landing-cartel landing-cartel-inicio"
         >
           <span className="block">Encontrá tu</span>
           <span className="sr-only">mozo, bartender, bachero o cocinero</span>
