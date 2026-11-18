@@ -24,7 +24,10 @@ Buenos Aires, el papel de la comanda y el filete de los carteles de bodegón.
    pero clara").
 2. **Un solo ámbar por pantalla** (`--color-primary` `#D97706`, letra en
    tinta): la acción principal. Links, chips, avatares, íconos de rubro y
-   pestaña activa van en celeste con azul hondo `#1C5478`.
+   pestaña activa van en celeste con azul hondo `#1C5478`. Lo "actual" de un
+   indicador (el paso del `ShiftLifecycleStepper`, el círculo de comparar) es
+   `bg-primary-text text-card`, nunca `bg-primary`. Un botón desactivado no usa
+   opacidad: `surface` + `ink-mute` (`Button`: `primary`, `surface` y `ghost`).
 3. **La marca es una sola: el «oído» en Shrikhand**, gorda e inclinada como la
    letra fantasía del fileteado (desde el 2026-11-17; antes Sancreek, que se
    iba al Far West y se parecía a la letra de Bachero). Fileteada en
