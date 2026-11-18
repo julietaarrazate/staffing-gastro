@@ -26,9 +26,12 @@ esa entrada está en ese archivo: buscala por la fecha o el número de PR.
 
 Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
 
-- 🔴 **Salida a beta (etapa 3 cerrada el 2026-11-17).** Sigue, en sesiones
-  nuevas: lo de la etapa 2 que quedó «para revisar con Fable» (G4, U080,
-  U081, U072, P1 a P5, la pasada por clase de error), y en paralelo las
+- 🔴 **Salida a beta (etapa 3 cerrada el 2026-11-17).** De lo que quedó
+  «para revisar con Fable», el 2026-11-18 entraron G4, U081, U072 y la
+  segunda mirada a G6. Sigue, en una sesión nueva y en este orden: U080
+  (diseñado y con sus datos decididos), las tres reglas nuevas decididas ese
+  día (21, 22 y 24 del tablero), la pasada por clase de error con los tests
+  de contrato, y P1 a P5. En paralelo, las
   etapas 4 (marca) y 5 (lista de salida, con M7). Antes de encender el
   cobro: la regla de cambio de plan que decidió Julieta, con U140, U142 y
   U143. Antes del 17/12: revisar la excepción de picomatch (#612).
