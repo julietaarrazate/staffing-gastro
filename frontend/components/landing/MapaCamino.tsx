@@ -219,8 +219,11 @@ export default function MapaCamino() {
             </span>
             <span className="min-w-0">
               <b className="block text-base leading-tight text-ink">{LUCIA.full_name.split(" ")[0]}, moza</b>
+              {/* Dos pedazos que no se parten: a 320 px el renglón se corta
+                  entre ellos y no deja «a» colgando. */}
               <small className="block text-sm text-ink-soft">
-                Va en camino a {LOCAL} · a {metros} m
+                <span className="whitespace-nowrap">Va en camino a {LOCAL}</span>{" "}
+                <span className="whitespace-nowrap">· a {metros} m</span>
               </small>
             </span>
           </div>
