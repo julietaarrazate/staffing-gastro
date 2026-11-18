@@ -136,10 +136,14 @@ El híbrido parte de la landing de hoy, sección por sección y con sus textos
 - **El mapa** va en celeste, con quien va acercándose al bar y la ficha «Va
   en camino», sin reloj ni horarios: en la landing un reloj se lee como
   promesa.
-- **Los precios como carta**, con «sugerencia de la casa» en Mansalva y la
-  comanda de la caja que se imprime al elegir un plan.
+- **Los precios como carta**, con «sugerencia de la casa» en Mansalva. La
+  acompaña una **pizarra de bodegón** donde la tiza escribe el plan elegido y
+  marca los turnos con palitos de a cinco (uno para Inicial, tres para
+  Básico, y siguen con puntos para Pro). Primero tenía una segunda comanda
+  saliendo de la caja; Julieta la sacó el 2026-11-18: «dos comandas es
+  redundante», la carta pide otra animación.
 - **La comanda** sale de la misma impresora oscura de hoy, como papel de
-  cocina, y recibe la cinta «¡Oído!».
+  cocina, y recibe la cinta «¡Oído!». Es la única comanda de la landing.
 - **Botones de hoy con el relieve** azul hondo en lugar de la sombra difusa.
 - **Pie de color** azul hondo; el cierre va **sin el Sol de Mayo**.
 - Ninguna bajada: una idea por sección, como manda `marca-hoy.md`, regla 1.
