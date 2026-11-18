@@ -7,7 +7,7 @@ memoria de cuál hablaba.
 **Qué cambió:**
 - Dos categorías nuevas, «Un turno» (`turno`) y «Un comercio» (`comercio`), y
   una referencia opcional en el ticket: `shift_id` y `company_id`
-  (`support_tickets`, migración `0048`, FK con `ON DELETE SET NULL`: si el
+  (`support_tickets`, migración `0050`, FK con `ON DELETE SET NULL`: si el
   turno o el comercio se borran, el ticket queda sin la referencia).
 - Link discreto «Reportar un problema» (sin acento ámbar) en el detalle del
   turno (`components/ShiftDetail.tsx`), en la tarjeta del trabajador
@@ -50,5 +50,3 @@ nada y hacía fallar el link del perfil.
   dice «ya no está disponible»: no hay todavía una vista de turno para el admin
   (los datos del turno están en el ticket: título, fecha y comercio).
 - Un comercio no puede reportar un trabajador (no hay categoría «usuario»).
-- La migración se numeró `0048` de forma provisional; quien coordina la
-  renumera al mergear.

@@ -5,8 +5,8 @@
 - Las categorías nuevas `turno` y `comercio` no necesitan cambio de esquema:
   `category` es un `String(20)` sin restricción.
 
-Revision ID: 0048
-Revises: 0047 (encuesta para locales)
+Revision ID: 0050
+Revises: 0049 (plan elegido y compromiso de pago)
 """
 
 from collections.abc import Sequence
@@ -16,8 +16,8 @@ from sqlalchemy.dialects import postgresql
 
 from alembic import op
 
-revision: str = "0048"
-down_revision: str | None = "0047"
+revision: str = "0050"
+down_revision: str | None = "0049"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
