@@ -119,6 +119,29 @@ async def test_no_reminder_before_24_hours(client, session_factory, monkeypatch)
     assert row.status == ShiftStatus.CHECK_OUT.value
 
 
+async def test_reminder_counts_the_payment_deadline_from_the_end_not_the_checkout(
+    client, session_factory, monkeypatch
+):
+    """El plazo de pago (`PAYMENT_TOLERANCE`) se cuenta desde el fin del turno,
+    como `_was_paid_on_time`, no desde la salida: acá la persona se fue tres
+    horas antes del fin."""
+    monkeypatch.setattr(scheduler, "AsyncSessionLocal", session_factory)
+    shift_id, employer, _worker, checked_out = await _checked_out_shift(
+        client, session_factory, "fin_plazo", out_ago=FINISH_REMINDER_DELAY + timedelta(minutes=5)
+    )
+    end_at = checked_out + timedelta(hours=3)
+    async with session_factory() as session:
+        model = await session.get(ShiftModel, UUID(shift_id))
+        model.end_at = end_at
+        await session.commit()
+
+    await scheduler.run_finish_check()
+
+    [aviso] = await _notices(client, employer, "shift_finish_reminder")
+    pago_hasta = format_inicio_art(end_at + PAYMENT_TOLERANCE)
+    assert f"Para que cuente como pago a tiempo, registralo hasta {pago_hasta}." in aviso["message"]
+
+
 async def test_reminder_at_24_hours_goes_once_and_only_to_the_company(
     client, session_factory, monkeypatch
 ):
