@@ -17,7 +17,8 @@ class ShiftStatus(str, Enum):
     `check_out()` directo desde CHECK_IN.
 
     CANCELADO es alcanzable desde cualquier estado no terminal (acción del
-    comercio o del trabajador).
+    comercio), salvo CHECK_OUT: con la salida marcada el turno ya se trabajó
+    y se finaliza y se paga (U081, `NOT_CANCELLABLE_STATUSES`).
 
     NO_CUBIERTO (ADR-0015) es distinto: automático, del sistema, nunca de una
     persona. Se llega desde PUBLICADO/BUSCANDO_PERSONAL/ASIGNADO cuando pasa

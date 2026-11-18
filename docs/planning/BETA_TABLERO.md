@@ -208,6 +208,11 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
 - El comercio no recibe un aviso propio cuando una persona confirmada falta:
   se entera por el panel, o por el aviso de «no cubierto» si no consigue
   reemplazo (salió de #562; sumarlo es decidir quién recibe qué, va con U080).
+- Un turno con la salida marcada que el comercio nunca cierra queda «en
+  marcha» para siempre: la persona ve «Esperando que el comercio cierre el
+  turno» y no puede calificar ni verlo en sus ganancias. No hay recordatorio
+  ni cierre automático (salió de la revisión de U081; antes pasaba igual, y
+  cancelar no era una salida buena). Es una regla nueva: decide Julieta.
 - Suspender a un trabajador: si al reabrir su turno falla la vuelta a
   pendiente de los demás postulantes, al repetir ese turno ya no entra y
   quedan rechazados (raro; salió de la revisión de #572).
