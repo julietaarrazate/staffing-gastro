@@ -40,6 +40,17 @@ suite completa tarda **8 a 10 minutos**; durante el trabajo conviene correr
 sólo los archivos del área, y la completa una vez antes del push. No uses
 `-p no:logging`: rompe 6 tests.
 
+- **La salida de una falla trae miles de líneas de DEBUG** (las tablas que
+  crea cada test). Para leerla sin llenar el contexto:
+  `… | grep -E "^E   .{0,200}$|[0-9]+ (passed|failed)|^FAILED" | head -20`.
+- **La completa va sin `-x`.** Con `-x` corta en la primera falla y esconde
+  las demás; con cuatro tareas a la vez tarda 15 a 25 minutos.
+- **La completa encuentra lo que el área no.** El 2026-11-18 (G4) los tests
+  del área y la revisión independiente estaban en verde, y la suite completa
+  cortó en `test_privacidad_datos_trabajador`: una fila nueva de postulación
+  le abría el CV al comercio. No pushees con sólo los tests del área si
+  tocaste un modelo que leen otros módulos.
+
 ## 3. Frontend: install, build y Playwright
 
 - **Cada worktree necesita su `npm ci`** (unos 30 s). No symlinkees
@@ -139,6 +150,19 @@ cd frontend && npm run build && npx playwright test e2e/zz-captura.spec.ts
 
 ## 5. Git, GitHub y CI
 
+- **Una sola rama por sesión, un PR por ítem** (visto el 2026-11-18): el
+  entorno deja pushear a una rama, así que los PRs van de a uno. Lo que
+  anduvo: cada ítem en su worktree con una rama **local**
+  (`git worktree add ../staffya-<tema> -b claude/<tema> origin/main`), todo
+  se escribe, revisa y prueba en paralelo, y al mergear un PR se pushea el
+  siguiente con `git push --force-with-lease origin HEAD:<rama-de-la-sesión>`
+  después de `git rebase origin/main`. Para la prueba en la app, un worktree
+  más con todas las ramas mergeadas (sin pushear) y el arnés sobre ese árbol.
+  El ítem que espera un «sí» va último: mientras su PR está abierto la rama
+  queda tomada.
+- **El aviso de «CI falló» puede ser de un commit viejo.** Cada push corta la
+  corrida anterior y esa llega como falla. Mirá el `head_sha` del aviso contra
+  `git rev-parse HEAD` antes de investigar.
 - **`gh` puede no tener sesión** (*"Failed to log in to github.com using
   token (GH_TOKEN)"*, visto el 2026-10-30). `git push` igual anda; el PR
   en draft y los checks se manejan con las herramientas MCP de GitHub
