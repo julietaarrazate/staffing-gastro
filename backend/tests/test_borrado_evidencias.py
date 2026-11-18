@@ -332,6 +332,7 @@ async def test_el_scheduler_corre_los_chequeos_inyectados_y_duerme_hasta_su_dead
         "run_attendance_check",
         "run_escalation_check",
         "run_coverage_check",
+        "run_finish_check",
         "run_available_now_cleanup",
         "run_subscription_expiry_check",
         "run_retention_cleanup",
