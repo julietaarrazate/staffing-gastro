@@ -749,6 +749,25 @@ async def report_en_route(
     return ShiftResponse.model_validate(shift)
 
 
+@router.delete(
+    "/{shift_id}/en-route",
+    response_model=ShiftResponse,
+    summary="Dejar de compartir la ubicación de camino al turno (trabajador)",
+)
+async def stop_en_route(
+    shift_id: UUID,
+    worker_profile_id: WorkerProfileIdDep,
+    service: ServiceDep,
+):
+    """El trabajador apaga «va en camino»: su última posición se borra en el
+    momento y el comercio deja de verla (U072). Apagar dos veces da lo mismo."""
+    try:
+        shift = await service.stop_en_route(worker_profile_id, shift_id)
+    except (ShiftNotFoundError, ShiftNotAssignedToWorkerError) as exc:
+        raise _not_found() from exc
+    return ShiftResponse.model_validate(shift)
+
+
 @router.post(
     "/{shift_id}/check-in",
     response_model=ShiftResponse,

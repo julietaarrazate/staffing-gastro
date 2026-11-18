@@ -515,6 +515,7 @@ function MatchesContent() {
                     shiftId={shift.id}
                     token={token}
                     prominent={arrivalPhase(shift) === "en_camino"}
+                    lastSharedAt={shift.en_route_at}
                     onSharingChange={(on) => setEnRouteSharing(shift.id, on)}
                   />
                 )}

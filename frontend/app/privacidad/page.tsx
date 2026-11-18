@@ -158,10 +158,12 @@ export default function PrivacidadPage() {
                 un turno ya confirmado, para verificar que estuviste ahí; y
                 mientras vos elijas avisar que vas en camino, para que el
                 comercio vea que estás llegando. Esto último lo prendés y lo
-                apagás vos, sólo funciona hasta dos horas antes del turno, se
-                corta solo cuando marcás tu llegada, y guardamos únicamente tu
-                última posición, nunca el recorrido. Fuera de esas ventanas no
-                te seguimos, ni en segundo plano.
+                apagás vos: cuando lo apagás, borramos esa posición y el
+                comercio deja de ver dónde estás. Sólo funciona desde dos
+                horas antes del turno, se corta solo cuando marcás tu
+                llegada, y guardamos únicamente tu última posición, nunca el
+                recorrido. Fuera de esas ventanas no te seguimos, ni en
+                segundo plano.
                 <br />
                 Si activás &quot;Disponible ahora&quot; para que el comercio
                 busque cerca de dónde estás en vez de tu domicilio, es el
@@ -181,7 +183,7 @@ export default function PrivacidadPage() {
               <li>
                 <strong>Notificaciones:</strong> si las activás, guardamos el
                 identificador que tu navegador nos da para mandarte avisos. Se
-                borra al desactivarlas.
+                borra al desactivarlas y al cerrar sesión en ese dispositivo.
               </li>
               <li>
                 <strong>Datos técnicos:</strong> cuando algo falla,
@@ -327,8 +329,9 @@ export default function PrivacidadPage() {
                 decide la verificación. Después se borran.
               </li>
               <li>
-                <strong>&quot;Va en camino&quot;:</strong> hasta que marcás la
-                llegada o el turno deja de estar asignado a vos.
+                <strong>&quot;Va en camino&quot;:</strong> hasta que lo
+                apagás, marcás la llegada o el turno deja de estar asignado a
+                vos.
               </li>
               <li>
                 <strong>&quot;Disponible ahora&quot;:</strong> hasta 4 horas, o

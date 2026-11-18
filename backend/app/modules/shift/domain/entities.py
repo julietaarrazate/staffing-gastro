@@ -102,6 +102,11 @@ class Shift:
     en_route_latitude: float | None = None
     en_route_longitude: float | None = None
     en_route_at: datetime | None = None
+    # Cuándo se le avisó al comercio «salió para tu local» en este viaje. No
+    # es la posición: sobrevive a que la persona deje de compartir (U072),
+    # para que apagar y volver a prender no le mande otro aviso al comercio.
+    # Se borra con el viaje (`_clear_en_route`).
+    en_route_announced_at: datetime | None = None
 
     check_in_latitude: float | None = None
     check_in_longitude: float | None = None
@@ -437,6 +442,27 @@ class Shift:
         self.en_route_longitude = longitude
         self.en_route_at = now
 
+    def stop_en_route(self) -> bool:
+        """El trabajador deja de compartir su ubicación (U072, ADR-0014
+        actualizado el 2026-11-18): la última posición se borra **en el
+        momento**, también para el comercio, que vuelve a ver «Confirmado».
+
+        Antes «Dejar de compartir» sólo dejaba de mandar posiciones nuevas: la
+        última seguía guardada y a la vista del comercio hasta la llegada.
+        Apagar es apagar: el dato deja de existir cuando la persona lo decide.
+
+        Un turno que estaba en EN_CAMINO (el paso viejo `depart`, ADR-0008)
+        vuelve a CONFIRMADO. El recordatorio de salida y el aviso ya mandado
+        al comercio no se tocan: el viaje no terminó, sólo dejó de verse.
+        Devuelve si había algo que apagar (apagar dos veces no es un error)."""
+        was_sharing = self.en_route_at is not None or self.status == ShiftStatus.EN_CAMINO
+        if self.status == ShiftStatus.EN_CAMINO:
+            self.status = ShiftStatus.CONFIRMADO
+        self.en_route_latitude = None
+        self.en_route_longitude = None
+        self.en_route_at = None
+        return was_sharing
+
     def _clear_en_route(self) -> None:
         """Borra la última posición compartida.
 
@@ -450,6 +476,7 @@ class Shift:
         self.en_route_latitude = None
         self.en_route_longitude = None
         self.en_route_at = None
+        self.en_route_announced_at = None
         self.departure_reminder_sent_at = None
 
     def _ensure_at_venue(self, latitude: float, longitude: float, action: str) -> None:

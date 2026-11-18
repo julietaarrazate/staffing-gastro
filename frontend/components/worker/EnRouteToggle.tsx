@@ -20,15 +20,28 @@ export default function EnRouteToggle({
   shiftId,
   token,
   prominent = true,
+  lastSharedAt,
   onSharingChange,
 }: {
   shiftId: string;
   token: string | null;
   /** `false` cuando otra acción de la tarjeta es la principal (un solo ámbar). */
   prominent?: boolean;
+  /**
+   * El servidor todavía guarda una última posición de este viaje
+   * (`shift.en_route_at`). Pasa cuando la persona salió de la pantalla sin
+   * apagar: acá ya no comparte, pero el comercio sigue viendo ese punto.
+   */
+  lastSharedAt?: string | null;
   onSharingChange?: (sharing: boolean) => void;
 }) {
-  const { sharing, error, starting, start, stop } = useEnRouteSharing(shiftId, token);
+  const { sharing, error, starting, start, stop, clearLast, clearing, cleared, mayBeVisible } =
+    useEnRouteSharing(shiftId, token);
+  // Puede quedar un punto a la vista del comercio sin que acá se esté
+  // compartiendo: salió de la pantalla sin apagar, el borrado todavía no se
+  // confirmó, o un error cortó el viaje. Hasta que el servidor confirme que
+  // lo borró, la tarjeta lo dice y ofrece borrarlo.
+  const leftover = !sharing && !cleared && (lastSharedAt != null || mayBeVisible);
 
   useEffect(() => {
     onSharingChange?.(sharing);
@@ -52,7 +65,11 @@ export default function EnRouteToggle({
           <p className="mt-0.5 text-xs text-ink/60">
             {sharing
               ? "El comercio ve que estás llegando. Se corta solo cuando marcás tu llegada."
-              : "El comercio ve dónde estás mientras viajás, hasta que marcás tu llegada. Podés cortarlo cuando quieras."}
+              : leftover
+                ? clearing
+                  ? "Borrando tu última ubicación…"
+                  : "Ya no estás compartiendo, pero el comercio todavía puede ver tu última ubicación."
+                : "El comercio ve dónde estás mientras viajás, hasta que marcás tu llegada. Podés cortarlo cuando quieras: deja de verte en el momento."}
           </p>
         </div>
       </div>
@@ -73,6 +90,18 @@ export default function EnRouteToggle({
       >
         {sharing ? "Dejar de compartir" : "Voy en camino"}
       </Button>
+      {leftover && (
+        <Button
+          variant="surface"
+          size="sm"
+          fullWidth
+          loading={clearing}
+          onClick={clearLast}
+          className="mt-2"
+        >
+          Borrar mi última ubicación
+        </Button>
+      )}
     </div>
   );
 }

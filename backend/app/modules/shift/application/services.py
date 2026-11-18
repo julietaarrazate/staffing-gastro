@@ -41,6 +41,7 @@ from app.modules.shift.domain.exceptions import (
     AssigneeNotFoundError,
     AssigneeUnavailableError,
     InvalidShiftTransitionError,
+    ShiftConcurrentModificationError,
     ShiftNotAssignedToWorkerError,
     ShiftNotFoundError,
 )
@@ -80,6 +81,8 @@ logger = logging.getLogger(__name__)
 
 # Cuántos turnos nombra el aviso de postulaciones retiradas (U123).
 _MAX_NAMED_SHIFTS = 3
+# Intentos de apagar «va en camino» si choca con otra escritura (U072).
+_STOP_EN_ROUTE_ATTEMPTS = 3
 
 
 # Reputación del comercio: tolerancia para considerar "a tiempo" un pago
@@ -1603,15 +1606,43 @@ class ShiftService(AccountSuspensionEffects):
         para tu local"): los siguientes son periódicos mientras viaja, y un
         push por cada uno sería inusable. Después lo ve en el mapa del panel,
         que se refresca solo. Si el trabajador apaga y vuelve a prender, no se
-        repite: `en_route_at` sigue puesto hasta que llega o se lo desasigna.
+        repite: `en_route_announced_at` sigue puesto hasta que llega o se lo
+        desasigna (apagar borra la posición, no el aviso ya mandado).
         """
         shift = await self._get_assigned_to(worker_profile_id, shift_id)
-        first_report = shift.en_route_at is None
+        first_report = shift.en_route_announced_at is None
         shift.report_en_route_location(latitude, longitude)
+        if first_report:
+            shift.en_route_announced_at = shift.en_route_at
         updated = await self._shifts.update(shift)
         if first_report:
             await self._notify_company_worker_left(updated, worker_profile_id)
         return updated
+
+    async def stop_en_route(self, worker_profile_id: UUID, shift_id: UUID) -> Shift:
+        """El trabajador deja de compartir su ubicación: se borra en el
+        momento, también para el comercio (U072, `Shift.stop_en_route`).
+
+        Mismo guard que el reporte: sólo quien tiene el turno asignado; un
+        tercero recibe 404. Apagar sin estar compartiendo no es un error y no
+        escribe nada. Al comercio no se le manda un aviso: «dejó de compartir»
+        no le pide hacer nada, y lo ve en el panel."""
+        # Un reporte periódico puede estar escribiendo el turno en el mismo
+        # momento. Apagar tiene que ganar: si choca, se relee y se repite (el
+        # 409 dejaría la posición guardada con la persona creyendo que no).
+        for attempt in range(_STOP_EN_ROUTE_ATTEMPTS):
+            shift = await self._get_assigned_to(worker_profile_id, shift_id)
+            if not shift.stop_en_route():
+                return shift
+            try:
+                updated = await self._shifts.update(shift)
+            except ShiftConcurrentModificationError:
+                if attempt == _STOP_EN_ROUTE_ATTEMPTS - 1:
+                    raise
+                continue
+            logger.info("shift.en_route_stopped", extra={"shift_id": str(updated.id)})
+            return updated
+        raise AssertionError("inalcanzable")  # pragma: no cover
 
     async def _notify_company_worker_left(
         self, shift: Shift, worker_profile_id: UUID
