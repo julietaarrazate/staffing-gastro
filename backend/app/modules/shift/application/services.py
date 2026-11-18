@@ -9,7 +9,11 @@ from app.core.dt import naive as _naive
 from app.core.geo import bounding_box, haversine_km
 from app.core.tz import ARG_TZ, format_turno_art
 from app.modules.application.domain.repositories import ShiftApplicationRepository
-from app.modules.application.domain.value_objects import ApplicationStatus
+from app.modules.application.domain.entities import ASSIGNABLE_FROM, ShiftApplication
+from app.modules.application.domain.value_objects import (
+    ApplicationStatus,
+    MotivoDesasignacion,
+)
 from app.modules.company.domain.repositories import CompanyProfileRepository
 from app.modules.favorite.domain.repositories import FavoriteRepository
 from app.modules.identity.domain.repositories import UserRepository
@@ -74,6 +78,9 @@ from app.modules.worker.domain.repositories import WorkerProfileRepository
 from app.modules.worker.domain.value_objects import WorkerSkill
 
 logger = logging.getLogger(__name__)
+
+# Cuántos turnos nombra el aviso de postulaciones retiradas (U123).
+_MAX_NAMED_SHIFTS = 3
 
 
 # Reputación del comercio: tolerancia para considerar "a tiempo" un pago
@@ -876,6 +883,9 @@ class ShiftService(AccountSuspensionEffects):
         )
         await self._restore_rejected_applicants(shift_id)
         if absent_worker_profile_id is not None:
+            await self._mark_unassigned(
+                shift_id, absent_worker_profile_id, MotivoDesasignacion.AUSENCIA
+            )
             await self._workers.record_no_show(absent_worker_profile_id)
             nombre = updated.title or updated.position.label
             if _trigger == "automatic":
@@ -1030,10 +1040,11 @@ class ShiftService(AccountSuspensionEffects):
         `ApplicationService`): además de la notificación in-app, se le manda
         un email best-effort avisándole (`_send_acceptance_email`).
 
-        Si el trabajador tenía una `ShiftApplication` PENDIENTE a este mismo
-        turno, pasa a ACEPTADA (ver `_accept_application`). Si fue asignado
-        directo (búsqueda/mapa, sin postulación previa) no hay nada que
-        actualizar y no falla. Los demás postulantes del turno pasan a RECHAZADA
+        Si el trabajador tenía una `ShiftApplication` a este mismo turno
+        (PENDIENTE, o DESASIGNADA si ya lo había tenido y lo dejó), pasa a
+        ACEPTADA (ver `_accept_application`). Si fue asignado directo
+        (búsqueda/mapa, sin postulación previa) no hay nada que actualizar y
+        no falla. Los demás postulantes del turno pasan a RECHAZADA
         (`_reject_pending_applicants`, TECH_DEBT P5): antes su postulación
         quedaba "pendiente" para siempre aunque ya no tuvieran chance. Si el
         turno se reabre (el asignado rechaza/cancela/no-show), esos rechazos se
@@ -1071,13 +1082,15 @@ class ShiftService(AccountSuspensionEffects):
         return updated
 
     async def _accept_application(self, shift_id: UUID, worker_profile_id: UUID) -> None:
-        """Marca ACEPTADA la postulación PENDIENTE de este trabajador a este
-        turno, si existe (asignación directa sin postulación previa no tiene
-        nada que actualizar acá)."""
+        """Marca ACEPTADA la postulación de este trabajador a este turno, si
+        existe (asignación directa sin postulación previa no tiene nada que
+        actualizar acá). Vale para la PENDIENTE, para la DESASIGNADA (el
+        comercio vuelve a elegir a quien había rechazado, cancelado o faltado)
+        y para la RETIRADA (lo asigna igual, desde «Recomendados»)."""
         application = await self._applications.get_by_shift_and_worker(
             shift_id, worker_profile_id
         )
-        if application is None or application.status != ApplicationStatus.PENDIENTE:
+        if application is None or application.status not in ASSIGNABLE_FROM:
             return
         application.accept()
         await self._applications.update(application)
@@ -1117,6 +1130,91 @@ class ShiftService(AccountSuspensionEffects):
                 extra={"shift_id": str(shift_id), "count": rejected_count},
             )
         return rejected_profile_ids
+
+    async def _mark_unassigned(
+        self, shift_id: UUID, worker_profile_id: UUID, motivo: MotivoDesasignacion
+    ) -> None:
+        """Deja escrito que quien tenía el turno lo dejó, y por qué (G4): su
+        postulación pasa a DESASIGNADA con el motivo. El comercio la sigue
+        viendo, al final de los postulantes y con su marca, y puede volver a
+        asignarle el turno.
+
+        Si la persona fue asignada sin haberse postulado no había fila: se
+        crea, ya DESASIGNADA. Antes la postulación quedaba ACEPTADA para
+        siempre y nada registraba el rechazo, la cancelación ni la ausencia.
+
+        El turno ya se reabrió cuando se llega acá: si esto falla se registra
+        y no se propaga (se pierde la marca, no la reapertura). Se intenta dos
+        veces: si entre leer y escribir otro pedido creó la fila (la persona
+        se postuló justo), la segunda vuelta la encuentra y la marca."""
+        for attempt in (1, 2):
+            try:
+                if await self._write_unassigned(shift_id, worker_profile_id, motivo):
+                    logger.info(
+                        "application.unassigned",
+                        extra={
+                            "shift_id": str(shift_id),
+                            "worker_profile_id": str(worker_profile_id),
+                            "motivo": motivo.value,
+                        },
+                    )
+                return
+            except Exception:
+                logger.exception(
+                    "No se pudo marcar la desasignación (shift_id=%s, motivo=%s, intento=%s)",
+                    shift_id,
+                    motivo.value,
+                    attempt,
+                )
+
+    async def _write_unassigned(
+        self, shift_id: UUID, worker_profile_id: UUID, motivo: MotivoDesasignacion
+    ) -> bool:
+        """Una vuelta de `_mark_unassigned`. Devuelve si dejó la marca."""
+        # El turno se guardó reabierto antes de llegar acá. Si en ese hueco el
+        # comercio volvió a asignar a la misma persona, hoy lo tiene: marcarla
+        # la dejaría «desasignada» con el turno en la mano.
+        shift = await self._shifts.get_by_id(shift_id)
+        if shift is not None and shift.worker_profile_id == worker_profile_id:
+            return False
+        application = await self._applications.get_by_shift_and_worker(
+            shift_id, worker_profile_id
+        )
+        if application is None:
+            await self._applications.add(
+                ShiftApplication.unassigned(shift_id, worker_profile_id, motivo)
+            )
+            return True
+        if application.status in ASSIGNABLE_FROM:
+            # No estaba ACEPTADA: una fila de antes de la migración 0051 (se
+            # la asignó sin tocar su postulación), o se postuló en el hueco
+            # entre que el turno se reabrió y esta escritura.
+            application.accept()
+        if application.status != ApplicationStatus.ACEPTADA:
+            logger.warning(
+                "application.unassign_skipped",
+                extra={
+                    "shift_id": str(shift_id),
+                    "worker_profile_id": str(worker_profile_id),
+                    "status": application.status.value,
+                },
+            )
+            return False
+        application.unassign(motivo)
+        await self._applications.update(application)
+        return True
+
+    async def _release_application(self, shift_id: UUID, worker_profile_id: UUID) -> None:
+        """La postulación ACEPTADA de quien perdió el turno por la suspensión
+        de su cuenta vuelve a PENDIENTE, sin marca (ADR-0024): no fue una
+        decisión suya. Mientras siga suspendida la lista no la muestra."""
+        application = await self._applications.get_by_shift_and_worker(
+            shift_id, worker_profile_id
+        )
+        if application is None or application.status != ApplicationStatus.ACEPTADA:
+            return
+        application.release()
+        await self._applications.update(application)
 
     async def _restore_rejected_applicants(self, shift_id: UUID) -> None:
         """Vuelve a PENDIENTE las postulaciones que habían quedado RECHAZADA al
@@ -1224,8 +1322,11 @@ class ShiftService(AccountSuspensionEffects):
         self, worker_profile_id: UUID, confirmed_shift: Shift
     ) -> None:
         """Retira (RETIRADA) las postulaciones PENDIENTE del trabajador cuyo
-        turno se solapa con el que acaba de confirmar (no puede trabajarlas)."""
+        turno se solapa con el que acaba de confirmar (no puede trabajarlas),
+        y le avisa una sola vez cuáles fueron y por qué (U123): antes
+        desaparecían de «Postulaciones» sin ninguna explicación."""
         pending = await self._applications.list_pending_by_worker(worker_profile_id)
+        withdrawn: list[Shift] = []
         for application in pending:
             if application.shift_id == confirmed_shift.id:
                 continue
@@ -1234,6 +1335,56 @@ class ShiftService(AccountSuspensionEffects):
                 continue
             application.withdraw()
             await self._applications.update(application)
+            withdrawn.append(other_shift)
+        if not withdrawn:
+            return
+        try:
+            await self._notify_withdrawn_applications(
+                worker_profile_id, confirmed_shift, withdrawn
+            )
+        except Exception:
+            # El turno ya quedó confirmado y las postulaciones retiradas: que
+            # falle el aviso no puede hacer fallar la confirmación.
+            logger.exception(
+                "Aviso de postulaciones retiradas: fallo inesperado, no se "
+                "propaga (shift_id=%s)",
+                confirmed_shift.id,
+            )
+
+    async def _notify_withdrawn_applications(
+        self, worker_profile_id: UUID, confirmed_shift: Shift, withdrawn: list[Shift]
+    ) -> None:
+        """Un solo aviso por confirmación, con los turnos nombrados (hasta
+        tres; el resto, contado)."""
+        named = [await self._shift_name_with_company(s) for s in withdrawn[:_MAX_NAMED_SHIFTS]]
+        rest = len(withdrawn) - len(named)
+        if rest:
+            named.append(f"{rest} más")
+        listed = named[0] if len(named) == 1 else f"{', '.join(named[:-1])} y {named[-1]}"
+        confirmed_name = confirmed_shift.title or confirmed_shift.position.label
+        if len(withdrawn) == 1:
+            title = "Retiramos una postulación"
+            what = f"retiramos tu postulación a {listed}, que es en el mismo horario"
+        else:
+            title = f"Retiramos {len(withdrawn)} postulaciones"
+            what = f"retiramos tus postulaciones a turnos del mismo horario: {listed}"
+        await self._notify_worker(
+            worker_profile_id,
+            NotificationType.APPLICATIONS_WITHDRAWN,
+            title,
+            (
+                f"Confirmaste \"{confirmed_name}\", así que {what}. "
+                "Si el turno confirmado se cae, podés volver a postularte."
+            ),
+            link="/my-shifts",
+        )
+
+    async def _shift_name_with_company(self, shift: Shift) -> str:
+        """`"Mozo" en La Esquina`: dos turnos del mismo puesto se distinguen
+        por el comercio."""
+        name = f"\"{shift.title or shift.position.label}\""
+        company = await self._companies.get_by_id(shift.company_id)
+        return f"{name} en {company.name}" if company is not None and company.name else name
 
     async def reject_assignment(
         self, worker_profile_id: UUID, shift_id: UUID
@@ -1243,6 +1394,7 @@ class ShiftService(AccountSuspensionEffects):
         shift.reject()
         updated = await self._shifts.update(shift)
         await self._restore_rejected_applicants(shift_id)
+        await self._mark_unassigned(shift_id, worker_profile_id, MotivoDesasignacion.RECHAZO)
         await self._notify_company(
             updated.company_id,
             NotificationType.SHIFT_REJECTED,
@@ -1270,6 +1422,9 @@ class ShiftService(AccountSuspensionEffects):
         shift.worker_cancel()
         updated = await self._shifts.update(shift)
         await self._restore_rejected_applicants(shift_id)
+        await self._mark_unassigned(
+            shift_id, worker_profile_id, MotivoDesasignacion.CANCELACION
+        )
         await self._workers.record_cancellation(worker_profile_id)
         await self._notify_company(
             updated.company_id,
@@ -1396,6 +1551,7 @@ class ShiftService(AccountSuspensionEffects):
         (vuelve a buscar personal y los demás postulantes vuelven a estar en
         carrera), pero sin `record_cancellation`: la medida es la
         suspensión, no una cancelación suya."""
+        released_worker_profile_id = shift.worker_profile_id
         shift.release_worker()
         updated = await self._shifts.update(shift)
         logger.info(
@@ -1403,6 +1559,8 @@ class ShiftService(AccountSuspensionEffects):
             extra={"shift_id": str(updated.id), "company_id": str(updated.company_id)},
         )
         await self._restore_rejected_applicants(updated.id)
+        if released_worker_profile_id is not None:
+            await self._release_application(updated.id, released_worker_profile_id)
         name = updated.title or updated.position.label
         try:
             await self._notify_company(

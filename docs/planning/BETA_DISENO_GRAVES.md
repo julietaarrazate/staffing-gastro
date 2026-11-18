@@ -24,7 +24,7 @@ vez. Como mucho cuatro PRs abiertos.
 |---|---|---|
 | A (✅ en `main`, 2026-11-14) | G1, G7, G5, G3 | Lo que más pesa en los 10 minutos y en la confianza; no se pisan entre sí |
 | B (✅ en `main`, 2026-11-14) | G2, G16, G8, G9, G13, G24 | G2 después de G1 (`app/my-shifts/page.tsx`); G16 después de G7 (`next` en el ingreso) |
-| C (reglas del producto, ya decididas; ✅ salvo G4, 2026-11-14) | G4, G6, G11, G14, G25 | G4 después de G1 y G5 (pantalla de candidatos); G4 queda para Fable |
+| C (reglas del producto, ya decididas; ✅ 2026-11-14, G4 el 2026-11-18) | G4, G6, G11, G14, G25 | G4 después de G1 y G5 (pantalla de candidatos) |
 | D (✅ G10, G12, G17, G18, G26, G27, 2026-11-14; G15, G20–G23, 2026-11-16) | G12, G15, G10, G17, G18–G23, G26, G27 | G15 después de G2 y G14 (`app/shifts/new/page.tsx`) |
 
 Archivos con más de un grupo: `app/my-shifts/page.tsx` (G1, G2, G8, G9) ·
@@ -44,26 +44,8 @@ G16 #565, G24 #566, G2 #567, G9 #569, G8 #571).
 
 ## Ola C
 
-### G4 · La lista de postulantes dice quién sigue (U021, U123) — C
-
-- Quien retiró su postulación no aparece
-  (`application/infrastructure/repositories.py`, `list_by_shift_enriched`).
-- Hoy, cuando alguien rechaza, cancela o falta, su postulación queda
-  «aceptada»: nada lo registra. Estado nuevo `desasignada` con su motivo
-  (`rechazo`, `cancelacion`, `ausencia`) en `application/domain/`; lo marcan
-  `reject_assignment`, `worker_cancel` y `mark_no_show` por el puerto que ya
-  usan. Migración Alembic (columna `motivo`), registrar en
-  `tests/conftest.py`.
-- En la pantalla, esas personas van al final, con su marca («Rechazó este
-  turno», «Canceló», «No se presentó»), y se pueden volver a asignar.
-- Antes de escribir: confirmar qué hace `ApplicationService.apply` con una
-  postulación `aceptada` de un turno reabierto, y dejarlo coherente con
-  `lib/applications.ts`.
-- U123: al confirmar un turno, la app retira las otras postulaciones del
-  mismo horario; se suma un solo aviso al trabajador que dice cuáles y por
-  qué, y que puede volver a postularse si el turno confirmado se cae.
-- Actualizar `docs/foundation/DOMAIN.md` y `NOTIFICATIONS.md`.
-
+Los cinco grupos de la ola C están en `main`: G6, G11, G14 y G25 desde el
+2026-11-14, y G4 desde el 2026-11-18 (ADR-0026).
 
 ## Ola D
 

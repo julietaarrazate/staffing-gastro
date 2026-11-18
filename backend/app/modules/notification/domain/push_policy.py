@@ -86,6 +86,8 @@ DEFAULT_POLICY_TYPES: frozenset[NotificationType] = frozenset(
     {
         _N.SHIFT_PAID,
         _N.SHIFT_FINISHED,
+        # Informativo: no pide hacer nada ahora.
+        _N.APPLICATIONS_WITHDRAWN,
         _N.REVIEW_RECEIVED,
         _N.VERIFICATION_DECIDED,
         _N.SUPPORT_REPLY,

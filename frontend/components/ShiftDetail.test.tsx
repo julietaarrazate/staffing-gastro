@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ApplicationStatus, ShiftPublic } from "@/lib/types";
 import ShiftDetail from "./ShiftDetail";
 import { emitLiveRefresh } from "@/lib/live-refresh";
+import { ApiError } from "@/lib/api";
 
 /**
  * La acción del detalle de turno cambia según quién lo mira. El bug que motivó
@@ -98,6 +99,32 @@ describe("ShiftDetail", () => {
 
     expect(await screen.findByText("Ya te postulaste")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Postularme" })).not.toBeInTheDocument();
+  });
+
+  it("si tuvo el turno asignado y lo dejó, no le ofrece postularse ni dice que se postuló (G4)", async () => {
+    auth.value = { user: { role: "worker" }, token: "tok", loading: false };
+    mockGets([{ shift_id: "s1", status: "desasignada" }]);
+    render(<ShiftDetail publicShift={SHIFT} />);
+
+    expect(await screen.findByText("Ya tuviste este turno asignado")).toBeInTheDocument();
+    expect(screen.getByText("Si el comercio te vuelve a elegir, te avisamos.")).toBeInTheDocument();
+    expect(screen.queryByText("Ya te postulaste")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Postularme" })).not.toBeInTheDocument();
+  });
+
+  it("con la pestaña vieja, el 409 de quien dejó el turno no se muestra como «Ya te postulaste»", async () => {
+    auth.value = { user: { role: "worker" }, token: "tok", loading: false };
+    mockGets([]);
+    post.mockRejectedValue(
+      new ApiError(409, "Ya tuviste este turno asignado. Si el comercio te vuelve a elegir, te avisamos.")
+    );
+    const user = userEvent.setup();
+    render(<ShiftDetail publicShift={SHIFT} />);
+
+    await user.click(await screen.findByRole("button", { name: "Postularme" }));
+
+    expect(await screen.findByText("Ya tuviste este turno asignado")).toBeInTheDocument();
+    expect(screen.queryByText("Ya te postulaste")).not.toBeInTheDocument();
   });
 
   it("si retiró la postulación, no dice que sigue postulado: puede postularse de nuevo", async () => {

@@ -6,6 +6,9 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
+from app.modules.application.infrastructure.repositories import (
+    SqlAlchemyShiftApplicationRepository,
+)
 from app.modules.company.infrastructure.repositories import (
     SqlAlchemyCompanyProfileRepository,
 )
@@ -22,4 +25,5 @@ def get_matching_service(
     shifts = SqlAlchemyShiftRepository(session)
     candidates = SqlAlchemyCandidateRepository(session)
     companies = SqlAlchemyCompanyProfileRepository(session)
-    return MatchingService(shifts, candidates, companies)
+    applications = SqlAlchemyShiftApplicationRepository(session)
+    return MatchingService(shifts, candidates, companies, applications)

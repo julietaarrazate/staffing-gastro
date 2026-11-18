@@ -369,6 +369,7 @@ export type NotificationType =
   | "shift_cancelled_late"
   | "shift_cancelled"
   | "applied_shift_cancelled"
+  | "applications_withdrawn"
   | "shift_not_covered"
   | "checkin_reminder"
   | "departure_reminder"
@@ -382,13 +383,24 @@ export type NotificationType =
   | "subscription_expired"
   | "subscription_refunded";
 
-export type ApplicationStatus = "pendiente" | "aceptada" | "rechazada" | "retirada";
+export type ApplicationStatus =
+  | "pendiente"
+  | "aceptada"
+  | "rechazada"
+  | "retirada"
+  // Tuvo el turno asignado y lo dejó: lleva su `motivo` (G4).
+  | "desasignada";
+
+/** Por qué dejó el turno quien lo tenía asignado (`status: "desasignada"`). */
+export type UnassignedReason = "rechazo" | "cancelacion" | "ausencia";
 
 export interface ShiftApplication {
   id: string;
   shift_id: string;
   worker_profile_id: string;
   status: ApplicationStatus;
+  /** Sólo con `status: "desasignada"`. */
+  motivo?: UnassignedReason | null;
   created_at: string | null;
   // Turno embebido en GET /applications/mine para pintar la tarjeta sin un
   // GET /shifts/{id} por postulación (ver backend ApplicationResponse.shift).
@@ -403,6 +415,8 @@ export interface Applicant {
   rating: number;
   is_available: boolean;
   status: ApplicationStatus;
+  /** Sólo con `status: "desasignada"`: va al final de la lista, con su marca. */
+  motivo?: UnassignedReason | null;
   created_at: string | null;
   events_completed: number;
   punctuality_rate: number;

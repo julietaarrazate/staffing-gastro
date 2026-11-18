@@ -27,6 +27,7 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
 | `shift_no_show` | el comercio marca «No se presentó» (`manual`) o el sistema no vio su llegada pasado el plazo (`automatic`, scheduler de asistencia, [ADR-0008](../adr/ADR-0008-asistencia-simplificada-y-no-show-automatico.md)); el turno vuelve a buscar personal | trabajador ausente (el comercio no recibe aviso de este tipo); abre `/profile` |
 | `shift_cancelled` | el comercio cancela un turno asignado que el trabajador todavía no había confirmado, o el turno se cancela porque se suspendió la cuenta del comercio ([ADR-0024](../adr/ADR-0024-efectos-de-una-suspension.md)) | trabajador asignado |
 | `applied_shift_cancelled` | el comercio cancela un turno con postulaciones pendientes | cada persona con la postulación pendiente |
+| `applications_withdrawn` | el trabajador confirma un turno y la app retira sus postulaciones pendientes a turnos del mismo horario (U123). Un solo aviso por confirmación; abre `/my-shifts`. Push con la política por defecto | el trabajador que confirmó |
 | `shift_finished` | el comercio finaliza el turno (U018): «Cerró tu turno» / «Calificá a <comercio> por el turno "<título>".»; abre `/my-shifts?turno=<id>` (salta a «Asignados» y resalta el turno). Push con la política por defecto (24 h) | trabajador asignado |
 | `chat_message` | llega un mensaje nuevo en el chat del turno | destinatario del mensaje |
 | `review_received` | recibió una reseña | calificado |
@@ -97,6 +98,13 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
   guardar la cancelación (`ShiftService._notify_shift_cancelled`): si la base
   rechaza un aviso o cae el push, la cancelación igual responde bien y el
   otro aviso sale.
+- **Postulaciones retiradas al confirmar (`applications_withdrawn`, U123,
+  2026-11-18).** Título «Retiramos una postulación» o «Retiramos N
+  postulaciones»; el texto nombra el turno confirmado y los retirados con su
+  comercio (`"Barra" en Bar Palermo`; hasta tres, el resto contado) y cierra
+  con «Si el turno confirmado se cae, podés volver a postularte.» Si el aviso
+  falla, la confirmación igual responde bien
+  (`ShiftService._withdraw_overlapping_applications`).
 - **Suspensión de una cuenta (2026-11-14, [ADR-0024](../adr/ADR-0024-efectos-de-una-suspension.md)).**
   Ningún texto dice el motivo ni que la otra cuenta está «suspendida»: dice
   qué pasó con el turno y qué sigue. Salen después de guardar cada turno y no

@@ -50,6 +50,9 @@ cuenta que no puede actuar es el peor caso: nadie lo cubre y nadie se entera.
    a «Buscando personal» y los demás postulantes vuelven a estar disponibles.
    Por simetría con el punto 2, **no se le suma una cancelación** a la
    reputación del trabajador: la medida es la suspensión, no la cancelación.
+   Tampoco queda marcado en la lista de postulantes: su postulación vuelve a
+   `pendiente`, no a `desasignada`
+   ([ADR-0026](./ADR-0026-postulacion-desasignada.md), punto 7).
 6. **No se lo puede asignar**: `assign_worker` lo rechaza antes de tocar a los
    demás postulantes, y la lista de postulantes no lo muestra (el mismo
    criterio que ya usaba «Recomendados»).

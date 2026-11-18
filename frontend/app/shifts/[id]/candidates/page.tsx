@@ -13,7 +13,12 @@ import { Applicant, CandidateMatch, SKILL_LABELS, STATUS_LABELS, Shift } from "@
 import { SKILL_ACCENT, heroTile } from "@/lib/skill-style";
 import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
 import { formatPayAmount } from "@/lib/pay";
-import { rankApplicants, standoutApplicant } from "@/lib/applicants";
+import {
+  activeApplicantCount,
+  rankApplicants,
+  standoutApplicant,
+  unassignedLabel,
+} from "@/lib/applicants";
 import CandidateCard from "@/components/CandidateCard";
 import IdentityVerifiedBadge from "@/components/IdentityVerifiedBadge";
 import ConfirmOverlay from "@/components/ui/ConfirmOverlay";
@@ -30,7 +35,7 @@ import {
   useToast,
 } from "@/components/ui";
 import { useLiveRefresh } from "@/lib/live-refresh";
-import { ChevronLeftIcon, ClockIcon, StarIcon, UsersIcon } from "@/components/icons";
+import { ChevronLeftIcon, ClockIcon, StarIcon, UsersIcon, XCircleIcon } from "@/components/icons";
 
 type Tab = "postulantes" | "recomendados";
 
@@ -120,6 +125,9 @@ function ShiftCandidatesContent() {
   } = useLoadedList<CandidateMatch>(`/shifts/${shiftId}/candidates`, token);
   const rankedApplicants = useMemo(() => rankApplicants(applicants), [applicants]);
   const standout = standoutApplicant(rankedApplicants);
+  // La pestaña cuenta a quienes están en carrera, como el panel: quien tuvo
+  // el turno y lo dejó se lista al final pero no suma (G4).
+  const activeApplicants = useMemo(() => activeApplicantCount(applicants), [applicants]);
   const [assigning, setAssigning] = useState<string | null>(null);
   // Recién asignado: su tarjeta sube arriba con la confirmación y el resto
   // se atenúa, un instante antes de volver al panel. La decisión se VE, en
@@ -270,7 +278,7 @@ function ShiftCandidatesContent() {
           value={tab}
           onChange={setTab}
           options={[
-            { value: "postulantes", label: `Postulantes${applicants.length > 0 ? ` (${applicants.length})` : ""}` },
+            { value: "postulantes", label: `Postulantes${activeApplicants > 0 ? ` (${activeApplicants})` : ""}` },
             { value: "recomendados", label: `Recomendados${candidates.length > 0 ? ` (${candidates.length})` : ""}` },
           ]}
         />
@@ -335,6 +343,9 @@ function ShiftCandidatesContent() {
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {shownApplicants.map((a) => {
                   const top = standout?.application_id === a.application_id;
+                  // Tuvo este turno y lo dejó: va al final (`rankApplicants`),
+                  // con su marca, y se le puede volver a asignar (G4).
+                  const mark = unassignedLabel(a);
                   return (
                     <motion.div
                       key={a.application_id}
@@ -366,8 +377,17 @@ function ShiftCandidatesContent() {
                             >
                               {a.full_name}
                             </Link>
-                            {a.is_available && !top && <Badge tone="secondary">Disponible</Badge>}
+                            {a.is_available && !top && !mark && <Badge tone="secondary">Disponible</Badge>}
                           </div>
+                          {mark && (
+                            <p
+                              data-testid="postulante-desasignado"
+                              className="mt-1 inline-flex items-center gap-1.5 text-xs font-semibold text-ink/70"
+                            >
+                              <XCircleIcon size={13} className="shrink-0 text-ink/45" />
+                              {mark}
+                            </p>
+                          )}
                           {/* Mismo sello que en «Recomendados» (`CandidateCard`). */}
                           {a.identidad_verificada && (
                             // Desde 390 px el chip entero; de 360 a 389 px
@@ -379,7 +399,7 @@ function ShiftCandidatesContent() {
                         {canAssign && (
                           <Button
                             size="sm"
-                            variant={top || !standout ? "primary" : "surface"}
+                            variant={!mark && (top || !standout) ? "primary" : "surface"}
                             onClick={() => assign(a.worker_profile_id)}
                             loading={assigning === a.worker_profile_id}
                             disabled={assigning !== null}

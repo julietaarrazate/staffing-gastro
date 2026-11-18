@@ -16,6 +16,8 @@ class ApplicationResponse(BaseModel):
     shift_id: UUID
     worker_profile_id: UUID
     status: str
+    # Sólo con `status == "desasignada"`: `rechazo`, `cancelacion` o `ausencia`.
+    motivo: str | None = None
     created_at: datetime | None = None
     # Turno embebido: presente en `/applications/mine` (lista de Matches) para
     # que el cliente pinte la tarjeta sin un GET /shifts/{id} por postulación
@@ -34,6 +36,9 @@ class ApplicantResponse(BaseModel):
     rating: float = 0.0
     is_available: bool = True
     status: str
+    # Quien tuvo el turno y lo dejó (`status == "desasignada"`): `rechazo`,
+    # `cancelacion` o `ausencia`. Va al final de la lista, con su marca.
+    motivo: str | None = None
     created_at: datetime | None = None
     events_completed: int = 0
     punctuality_rate: float = 0.0
