@@ -1551,14 +1551,13 @@ body:has([data-landing]) main {
   padding: 34px 22px 30px;
   background: var(--color-card);
   color: #141c24;
-  font-family: var(--font-dm-mono), ui-monospace, monospace;
+  /* Papel de cocina, no ticket de caja (marca-hoy.md, regla 5): los datos
+     van en Inter, los renglones con filete liso y el corte es recto. */
+  font-family: var(--font-inter), system-ui, sans-serif;
   text-align: left;
-  filter: drop-shadow(0 26px 30px rgb(20 69 106 / 0.28)) drop-shadow(0 0 1px rgb(20 69 106 / 0.3));
-  /* Corte de papel en zigzag abajo. */
-  -webkit-mask: linear-gradient(#000 0 0) top / 100% calc(100% - 9px) no-repeat,
-    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 16px 9px repeat-x;
-  mask: linear-gradient(#000 0 0) top / 100% calc(100% - 9px) no-repeat,
-    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 16px 9px repeat-x;
+  /* La sombra entra en el margen de `.landing-comanda-marco`, que recorta
+     (antes la tapaba la máscara del zigzag). */
+  box-shadow: 0 14px 18px -10px rgb(20 69 106 / 0.4), 0 0 0 1px rgb(20 69 106 / 0.1);
 }
 .landing-voluta {
   position: absolute;
@@ -1575,8 +1574,9 @@ body:has([data-landing]) main {
 }
 .landing-comanda-tope {
   padding-bottom: 6px;
-  font-size: 11px;
-  letter-spacing: 0.16em;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   text-align: center;
   color: var(--color-secondary-text);
@@ -1618,18 +1618,15 @@ body:has([data-landing]) main {
   align-items: baseline;
   gap: 16px;
   padding: 12px 0;
-  border-bottom: 1px dashed #cfe2ea;
+  border-bottom: 1px solid #dbe7ee;
 }
 .landing-comanda-fila dt {
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: 14px;
   color: var(--color-secondary-text);
 }
 .landing-comanda-fila dd {
   font-size: 17px;
-  font-weight: 500;
+  font-weight: 600;
   text-align: right;
   white-space: nowrap;
 }
@@ -1648,8 +1645,23 @@ body:has([data-landing]) main {
     width: 220px;
   }
 }
+/* En celulares angostos «Sábado 20:00 – 03:00» no entraba en el renglón. */
+@media (max-width: 360px) {
+  .landing-comanda-tope {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+  }
+  .landing-comanda-fila {
+    gap: 10px;
+  }
+  .landing-comanda-fila dt,
+  .landing-comanda-fila dd {
+    font-size: 13px;
+  }
+}
 .landing-falta {
-  color: #9aa6ad;
+  /* `#9aa6ad` daba 2,5:1 sobre el papel; `ink-mute` pasa 4,5:1. */
+  color: var(--color-ink-mute);
   font-weight: 400;
 }
 .landing-cinta {

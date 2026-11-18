@@ -30,7 +30,7 @@ Buenos Aires, el papel de la comanda y el filete de los carteles de bodegón.
    opacidad: `surface` + `ink-mute` (`Button`: `primary`, `surface` y `ghost`).
 3. **La marca es una sola: el «oído» en Shrikhand**, gorda e inclinada como la
    letra fantasía del fileteado (desde el 2026-11-17; antes Sancreek, que se
-   iba al Far West y se parecía a la letra de Bachero). Fileteada en
+   iba al Far West y se parecía a la letra de otra marca del rubro). Fileteada en
    `components/landing/Filete.tsx`:
    - `firma` (con adornos finos dorados): pantalla de inicio;
    - el final de la landing: la palabra grande, cortada por el borde, con el
@@ -48,7 +48,7 @@ Buenos Aires, el papel de la comanda y el filete de los carteles de bodegón.
    desde el 2026-10-30).
    No va en ningún otro lugar ni con otra palabra.
 4. **El ícono es «oí», provisorio** (desde el 2026-11-17; reemplaza a las
-   manos y la oreja, que en chico se parecían al ícono de Bachero): las dos
+   manos y la oreja, que en chico se parecían al ícono de otra marca del rubro): las dos
    primeras letras de la marca, que además dicen «te escuché». Es una
    solución tipográfica mientras se diseña un isotipo propio (Julieta,
    2026-11-17: «hay que hacer uno, no ese genérico»; ver Pendiente). Crema sobre azul hondo
@@ -59,8 +59,9 @@ Buenos Aires, el papel de la comanda y el filete de los carteles de bodegón.
    **silueta blanca** para el badge de las notificaciones de Android y los
    estados vacíos (`logo-figure.svg`). Los PNG y el `.ico` salen de
    `node scripts/build-icons.mjs`.
-5. **Lo que no se hace, para no parecerse a Bachero** (crema, azul francia,
-   grabados y un ticket; análisis del 2026-11-17 en el historial): el crema
+5. **Lo que no se hace, para no parecerse a otra marca del rubro** (crema,
+   azul francia, grabados y un ticket; análisis del 2026-11-17 en el
+   historial): el crema
    vive sólo adentro de la letra fileteada, nunca como fondo; el ámbar nunca
    va en notas, garabatos ni subrayados (eso va en azul hondo); la comanda es
    papel de cocina, no un ticket (sin número, sin raya punteada, datos en
@@ -122,9 +123,13 @@ Palermo dibujado, la rueda de fotos del inicio y la miniatura al compartir.
 
 ## Pendiente
 
-- **Isotipo propio**, no tipográfico: dibujado para Oído (idealmente por un
-  fileteador o un ilustrador), que funcione en 16 px y se distinga del de
-  Bachero. Hasta entonces, «oí».
+- **Isotipo propio**, no tipográfico: dibujado para Oído, que funcione en
+  16 px. Hay cinco conceptos en vector (2026-11-18:
+  https://claude.ai/artifact/TqfGBkrBX1aGFJSygrsQkS); el recomendado es
+  «grito y respuesta», los dos signos de «¡Oído!», para encargar a un
+  fileteador con el brief de [`direccion-relieve.md`](./direccion-relieve.md).
+  **Julieta lo eligió el 2026-11-18**, sólo como ícono de la app; falta
+  llevarlo al código. Hasta entonces, «oí».
 - **Llevar la dirección «con relieve» a la app** (Julieta, 2026-11-17: la sombra
   dura azul hondo del filete como profundidad de la interfaz), pantalla por
   pantalla: [`direccion-relieve.md`](./direccion-relieve.md).
