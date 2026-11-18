@@ -190,3 +190,52 @@ de las 20:00 le llegaba el recordatorio en el acto y quedaba ausente a las
 - **El comercio ahora recibe un aviso cuando alguien confirmado falta** (este
   ADR lo dejaba fuera de alcance): uno solo por reapertura, que dice qué pasó
   y qué hizo la app con el turno. Textos en `docs/reference/NOTIFICATIONS.md`.
+
+## Actualización 2026-11-18 (decisión 24): recordatorio y cierre automático
+
+**Qué pasaba.** El scheduler cuidaba la llegada pero no el cierre. Un turno
+con la salida marcada (`check_out`) que el comercio no cerraba quedaba «en
+marcha» para siempre: la persona veía «Esperando que el comercio cierre el
+turno», no podía calificar al comercio y el turno no le sumaba a sus
+ganancias ni a su reputación.
+
+**Decisión (Julieta, decisión 24).** Dos plazos medidos desde `check_out_at`,
+junto a las otras constantes del scheduler en
+`shift/application/services.py`:
+
+- **`FINISH_REMINDER_DELAY` = 24 h — recordatorio al comercio**
+  (`ShiftService.send_finish_reminder`): «Te falta cerrar un turno», con
+  cuándo se cierra solo en hora argentina. Una sola vez por turno:
+  `Shift.finish_reminder_sent_at` (migración `0056`) se reclama con un UPDATE
+  condicional que no sube la versión (mismo patrón que el recordatorio de
+  salida, ADR-0016), así que dos pasadas no mandan dos avisos. Con la cuenta
+  del comercio suspendida la marca se pone igual y no se avisa nada
+  (ADR-0024). Reusa el tipo `shift_checked_out`.
+- **`AUTO_FINISH_DELAY` = 72 h — cierre automático**
+  (`ShiftService.auto_finish`): `CHECK_OUT → FINALIZADO`,
+  `Shift.auto_finished_at` (migración `0056`), y los **mismos efectos que el
+  cierre del comercio**, extraídos a un único método
+  (`ShiftService._save_finished`): turno completado en la reputación de la
+  persona **con la puntualidad que ya quedó registrada en la llegada** (no se
+  la juzga de nuevo ni se la penaliza por la demora del comercio) y aviso
+  `shift_finished` con texto propio (ya puede calificar). Al comercio le llega
+  `shift_auto_finished` (le queda marcarlo como pagado), salvo cuenta
+  suspendida. Si el comercio cierra en el mismo instante gana uno solo: el
+  guardado con versión hace que el otro falle antes de cualquier efecto, y el
+  scheduler lo saltea (`_act`).
+
+El chequeo es `run_finish_check()` en `shift/application/scheduler.py`, con el
+mismo contrato que los demás (devuelve la próxima deadline futura). No hace
+falta despertar el loop al marcar la salida: el primer umbral está a un día y
+el loop nunca duerme más de 6 h.
+
+**Por qué así.** Cerrar solo es lo único que destraba a la persona sin
+depender del comercio; avisar antes le da al comercio dos días para cerrarlo
+él (y calificar, y registrar el pago). El pago no se toca: el turno queda
+`finalizado`, y `mark_paid` y su tolerancia siguen como estaban. Cancelar no
+era una salida (el turno ya se trabajó, ADR-0007 act. 2026-11-18).
+
+**Fuera de alcance.** Plazos por comercio; avisar también a la persona a las
+24 h (lo que puede hacer es escribirle al comercio por el chat). Al desplegar,
+un turno que ya llevaba más de 72 h con la salida marcada se cierra en la
+primera pasada sin recordatorio previo.

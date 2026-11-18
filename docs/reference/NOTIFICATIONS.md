@@ -20,7 +20,7 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
 | `shift_assigned` | el comercio asigna el turno a un trabajador | trabajador |
 | `shift_confirmed` | el trabajador confirma la asistencia | comercio |
 | `shift_rejected` | el trabajador rechaza la asignación. Si el turno ya había empezado, el texto dice que se reofreció (U080, ver «Turno reofrecido») | comercio |
-| `shift_checked_out` | el trabajador marca la salida (check-out) | comercio |
+| `shift_checked_out` | el trabajador marca la salida (check-out). También el recordatorio de cerrarlo a las 24 h de la salida si el comercio no lo cerró ([ADR-0008](../adr/ADR-0008-asistencia-simplificada-y-no-show-automatico.md), act. 2026-11-18): «Te falta cerrar un turno» / «La persona marcó la salida de "X" hace un día. Cerralo para poder calificarla y registrar el pago. Si no lo cerrás, se cierra solo el viernes 20/11 a las 15:00.» (hora argentina); abre `/shifts`. Una sola vez; con la cuenta suspendida no se manda | comercio |
 | `shift_paid` | el comercio marca el turno como pagado | trabajador |
 | `shift_reopened` | el trabajador cancela su asignación ya confirmada ([ADR-0004](../adr/ADR-0004-cancelacion-trabajador-e-insignias.md)), o se suspende la cuenta de la persona asignada o confirmada ([ADR-0024](../adr/ADR-0024-efectos-de-una-suspension.md)); el turno vuelve a buscar personal. También cuando una persona confirmada **falta** y el turno se reofrece (U080, ver «Turno reofrecido») | comercio |
 | `shift_cancelled_late` | el comercio cancela un turno con el trabajador ya confirmado o en pleno turno (cancelación tardía, [ADR-0007](../adr/ADR-0007-no-show-y-cancelacion-tardia.md)) | trabajador asignado |
@@ -28,7 +28,8 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
 | `shift_cancelled` | el comercio cancela un turno asignado que el trabajador todavía no había confirmado, o el turno se cancela porque se suspendió la cuenta del comercio ([ADR-0024](../adr/ADR-0024-efectos-de-una-suspension.md)) | trabajador asignado |
 | `applied_shift_cancelled` | el comercio cancela un turno con postulaciones pendientes | cada persona con la postulación pendiente |
 | `applications_withdrawn` | el trabajador confirma un turno y la app retira sus postulaciones pendientes a turnos del mismo horario (U123). Un solo aviso por confirmación; abre `/my-shifts`. Push con la política por defecto | el trabajador que confirmó |
-| `shift_finished` | el comercio finaliza el turno (U018): «Cerró tu turno» / «Calificá a <comercio> por el turno "<título>".»; abre `/my-shifts?turno=<id>` (salta a «Asignados» y resalta el turno). Push con la política por defecto (24 h) | trabajador asignado |
+| `shift_finished` | el comercio finaliza el turno (U018): «Cerró tu turno» / «Calificá a <comercio> por el turno "<título>".»; abre `/my-shifts?turno=<id>` (salta a «Asignados» y resalta el turno). Push con la política por defecto (24 h). Si lo cerró Oído solo a las 72 h de la salida (ADR-0008, act. 2026-11-18): «Se cerró tu turno» / «"<título>" se cerró solo porque pasaron 72 horas desde tu salida. Ya podés calificar a <comercio>.», mismo destino | trabajador asignado |
+| `shift_auto_finished` | Oído cerró solo el turno a las 72 h de la salida porque el comercio no lo cerró (ADR-0008, act. 2026-11-18): «Oído cerró un turno» / «Cerramos automáticamente "<título>": pasaron 72 horas desde que la persona marcó la salida. Te queda marcarlo como pagado.»; abre `/shifts`. Push con la política por defecto (24 h); con la cuenta suspendida no se manda | comercio |
 | `chat_message` | llega un mensaje nuevo en el chat del turno | destinatario del mensaje |
 | `review_received` | recibió una reseña | calificado |
 
