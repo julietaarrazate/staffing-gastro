@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Filete from "./Filete";
 import BancoDeNubes from "./Nubes";
+import CompartirLanding from "./CompartirLanding";
 
 /**
  * El final. Cierra el panel de cielo que empieza en «¿Te falta alguien hoy?»
@@ -24,6 +25,9 @@ export default function LandingFooter() {
       <Filete palabra="oído" tam="firma" className="landing-firma-palabra" />
       <div className="landing-pie-fila">
         <nav aria-label="Pie" className="flex flex-wrap justify-center gap-x-5 gap-y-1">
+          {/* Un link directo para pasar la página (Julieta, 2026-11-18): acá,
+              con lo legal, para que esté sin llamar la atención. */}
+          <CompartirLanding />
           <Link href="/terminos">Términos y condiciones</Link>
           <Link href="/privacidad">Privacidad</Link>
         </nav>
