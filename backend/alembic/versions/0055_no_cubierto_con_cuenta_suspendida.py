@@ -10,7 +10,7 @@
   cuenta estaba suspendida cuando venció cada turno.
 
 Revision ID: 0055
-Revises: 0052 (turnos: aviso de «en camino» al comercio)
+Revises: 0053 (turno reofrecido, U080)
 """
 
 from collections.abc import Sequence

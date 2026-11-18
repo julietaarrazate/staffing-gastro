@@ -1283,7 +1283,6 @@ class ShiftService(AccountSuspensionEffects):
         recién leído, si todavía no corresponde (`coverage_deadline`), no se
         hace nada: la próxima pasada decide con el estado nuevo.
 
-
         Con la cuenta del comercio suspendida el turno vence igual, pero sin
         ningún aviso (ADR-0024, actualización 2026-11-18)."""
         shift = await self.get_shift(shift_id)
