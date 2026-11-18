@@ -225,12 +225,15 @@ pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
 
 ## Pendiente de Julieta (operativo, no es código)
 
-- **Estrategia de crecimiento, fase 1:** leer el diagnóstico y la propuesta
-  de Go-To-Market (documento privado:
-  https://claude.ai/artifact/CbFduaLLSNXNkgTq1EYFrk), aprobarlo o corregirlo
-  y resolver las decisiones de su sección 8. Las fases siguientes esperan esa
-  aprobación
-  ([`historial/2026-11-18-diagnostico-growth-gtm.md`](./historial/2026-11-18-diagnostico-growth-gtm.md)).
+- **Estrategia de crecimiento, fase 2 (plan de 90 días):** está en el mismo
+  documento privado, una pestaña por entregable
+  (https://claude.ai/artifact/CbFduaLLSNXNkgTq1EYFrk). Antes de arrancar la
+  fase 0 el 23/11: decidir las tres cosas de «Lo que todavía decidís vos»
+  (pestaña Plan de 90 días) y pedir la consulta con un laboralista y un
+  abogado de datos, con el cuestionario de la pestaña Lanzamiento de beta.
+  Del lado del código, la fase 0 pide un cambio chico (guardar el origen de
+  cada alta) y la serie semanal M7 del tablero
+  ([`historial/2026-11-18-plan-90-dias-growth.md`](./historial/2026-11-18-plan-90-dias-growth.md)).
 - **Verificación en dos pasos del admin (ADR-0023):** **antes del merge**,
   generar `TWO_FACTOR_ENCRYPTION_KEY` y cargarla en Render (sin ella el
   panel de admin queda cerrado); **apenas se deploya**, entrar y activarla en
