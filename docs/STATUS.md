@@ -83,11 +83,12 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
    2026-11-18). Hecho: el Inicio del trabajador
    ([historial](./historial/2026-11-18-inicio-trabajador-relieve.md)) y el
    Panel del comercio
-   ([historial](./historial/2026-11-18-panel-comercio-relieve.md)) y
-   Candidatos ([historial](./historial/2026-11-18-candidatos-relieve.md)).
-   **Sigue:** Mis turnos (le alcanza con pasar `comanda` a
-   `ShiftCard`), y lo que es de toda la app, cada cosa en su PR: la barra de
-   abajo, los botones (`Button`) y las pestañas. Las piezas compartidas ya están
+   ([historial](./historial/2026-11-18-panel-comercio-relieve.md)),
+   Candidatos ([historial](./historial/2026-11-18-candidatos-relieve.md)) y
+   Mis turnos ([historial](./historial/2026-11-18-mis-turnos-relieve.md)).
+   **Sigue** lo que es de toda la app, cada cosa en su PR: la barra de abajo,
+   las pestañas, los botones secundarios, los pasos tachados a mano, los
+   colores de los sellos y el detalle del turno. Las piezas compartidas ya están
    (`components/ui/Comanda.tsx`, `lib/letras.ts`, `.app-cielo`). Qué tiene, las referencias de Julieta,
    lo que falta decidir y el orden, en
    [`design-system/direccion-relieve.md`](./design-system/direccion-relieve.md).

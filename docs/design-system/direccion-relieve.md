@@ -269,8 +269,10 @@ como exploración abierta):
    ~~Panel del comercio~~ (hecho el 2026-11-18,
    [historial](../historial/2026-11-18-panel-comercio-relieve.md)),
    ~~Candidatos~~ (hecho el 2026-11-18,
-   [historial](../historial/2026-11-18-candidatos-relieve.md)), Mis turnos;
-   ~~la landing~~ (hecha). La
+   [historial](../historial/2026-11-18-candidatos-relieve.md)), ~~Mis
+   turnos~~ (hecho el 2026-11-18,
+   [historial](../historial/2026-11-18-mis-turnos-relieve.md)); ~~la
+   landing~~ (hecha). La
    barra de abajo es de toda la app y va aparte. Capturas en claro y oscuro.
 
 ## Piezas compartidas de la app (desde el Inicio del trabajador)

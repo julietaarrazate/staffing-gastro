@@ -17,6 +17,7 @@ import {
   originFor,
   type CurrentLocation,
 } from "@/lib/current-location";
+import { LETRAS_APP } from "@/lib/letras";
 import ShiftCard from "@/components/ShiftCard";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import ReviewBox from "@/components/ReviewBox";
@@ -437,11 +438,13 @@ function MatchesContent() {
       <div
         key={shift.id}
         id={`turno-${shift.id}`}
-        className={`scroll-mt-24 rounded-[var(--radius-card)] transition-shadow motion-reduce:transition-none ${
-          highlightId === shift.id ? "ring-2 ring-primary-text" : ""
+        // El anillo del turno resaltado (`?turno=`) va despegado del papel:
+        // pegado, quedaba encimado al relieve de la comanda.
+        className={`scroll-mt-24 rounded-[2px] transition-shadow motion-reduce:transition-none ${
+          highlightId === shift.id ? "ring-2 ring-primary-text ring-offset-8 ring-offset-background" : ""
         }`}
       >
-              <ShiftCard shift={shift} perspective="worker">
+              <ShiftCard shift={shift} perspective="worker" comanda>
                 {shift.status !== "cancelado" && (
                   <div className="mb-2 flex flex-wrap gap-2">
                     <Link
@@ -594,9 +597,15 @@ function MatchesContent() {
     .filter((s): s is Shift => s !== undefined);
 
   return (
-    <div className="app-container px-4 pb-10 pt-6">
-      <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">Matches</h1>
-      <p className="mt-0.5 text-sm text-ink/50">Tus turnos asignados, postulaciones y guardados.</p>
+    // Desde el 2026-11-18 con la dirección «con relieve»
+    // (docs/design-system/direccion-relieve.md): el encabezado sobre la banda
+    // azul hondo con el título en brocha, y cada turno como comanda de papel
+    // (`ShiftCard comanda`). La lógica no cambió.
+    <div className={`${LETRAS_APP} app-container px-4 pb-10 md:pt-4`}>
+      <div className="app-banda -mx-4 px-4 pb-6 pt-5 md:mx-0 md:px-6">
+        <h1 className="letra-cartel letra-cartel-pantalla letra-cartel-sobre-banda break-words">Matches</h1>
+        <p className="mt-1 text-sm opacity-90">Tus turnos asignados, postulaciones y guardados.</p>
+      </div>
 
       <div className="mt-4">
         <SegmentedControl
@@ -633,9 +642,14 @@ function MatchesContent() {
             />
           ) : (
             activeShifts.length > 0 && (
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {activeShifts.map(renderAssigned)}
-              </div>
+              <>
+                {/* Oculto: los puestos de las comandas son h3 y no tienen que
+                    saltar desde el h1. */}
+                <h2 className="sr-only">Asignados</h2>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {activeShifts.map(renderAssigned)}
+                </div>
+              </>
             )
           )}
           {/* U066: lo terminado (pagado, cancelado, no cubierto) va aparte,
@@ -643,7 +657,7 @@ function MatchesContent() {
           {finishedShifts.length > 0 && (
             <>
               <h2
-                className={`mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50 ${
+                className={`mb-3 text-sm font-semibold uppercase tracking-wide text-ink-soft ${
                   activeShifts.length > 0 ? "mt-8" : ""
                 }`}
               >
@@ -666,13 +680,15 @@ function MatchesContent() {
               subtitle="Postulate a un turno desde Inicio. Acá vas a seguir su estado."
             />
           ) : (
+            <>
+            <h2 className="sr-only">Postulaciones</h2>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {pending.map((application) => {
               const shift = appShifts[application.shift_id];
               if (!shift) return null;
               const isOpen = OPEN_SHIFT_STATUSES.includes(shift.status);
               return (
-                <ShiftCard key={application.id} shift={shift} perspective="worker">
+                <ShiftCard key={application.id} shift={shift} perspective="worker" comanda>
                   {isOpen ? (
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="inline-flex items-center gap-1.5 rounded-full bg-primary-tint px-3 py-1.5 text-sm font-semibold text-primary-text">
@@ -716,6 +732,7 @@ function MatchesContent() {
               );
             })}
             </div>
+            </>
           )}
         </div>
       )}
@@ -751,6 +768,7 @@ function MatchesContent() {
                 </div>
               )}
 
+              <h2 className="sr-only">Guardados</h2>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {savedShifts.map((shift) => {
                   const selected = selectedForCompare.includes(shift.id);
@@ -763,14 +781,18 @@ function MatchesContent() {
                           disabled={!selected && selectedForCompare.length >= MAX_COMPARE}
                           aria-pressed={selected}
                           aria-label={selected ? "Sacar de la comparación" : "Sumar a la comparación"}
-                          className={`absolute right-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full ring-2 ring-card transition disabled:opacity-40 ${
-                            selected ? "bg-primary-text text-card" : "bg-card/95 text-ink/40 shadow-sm"
+                          // Arriba a la derecha, por fuera del papel: adentro
+                          // tapaba el sello «Urgente» de la comanda.
+                          className={`absolute -right-2 -top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full ring-2 ring-card transition disabled:opacity-40 ${
+                            // Sin elegir va con borde azul: afuera del papel,
+                            // sobre el lienzo, el círculo blanco no se veía.
+                            selected ? "bg-primary-text text-card" : "bg-card text-ink/40 ring-primary-text"
                           }`}
                         >
                           {selected ? <CheckIcon size={14} /> : null}
                         </button>
                       )}
-                      <ShiftCard shift={shift} perspective="worker" showLifecycle={false}>
+                      <ShiftCard shift={shift} perspective="worker" showLifecycle={false} comanda>
                         <div className="flex flex-wrap items-center gap-2">
                           <Button
                             size="sm"
