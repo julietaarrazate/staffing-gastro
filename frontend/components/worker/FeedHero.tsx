@@ -5,7 +5,7 @@ import { memo, useState } from "react";
 import { SKILL_LABELS, Shift } from "@/lib/types";
 import { SKILL_ACCENT } from "@/lib/skill-style";
 import { cldThumb } from "@/lib/cloudinary";
-import { formatShiftWhen, isTodayInArgentina } from "@/lib/datetime";
+import { formatShiftWhenLive, isTodayInArgentina } from "@/lib/datetime";
 import { formatPayShort } from "@/lib/pay";
 import SaveShiftButton from "@/components/worker/SaveShiftButton";
 import { ChevronRightIcon, ShieldIcon } from "@/components/icons";
@@ -100,7 +100,7 @@ function FeedHero({ shift }: { shift: Shift }) {
         )}
 
         <dl className="mt-3">
-          <ComandaFila rotulo="Cuándo">{formatShiftWhen(shift.start_at, shift.end_at)}</ComandaFila>
+          <ComandaFila rotulo="Cuándo">{formatShiftWhenLive(shift)}</ComandaFila>
           <ComandaFila rotulo="Pago">{formatPayShort(shift)}</ComandaFila>
         </dl>
 

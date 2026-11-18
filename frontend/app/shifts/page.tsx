@@ -27,6 +27,8 @@ import Link from "next/link";
 import ReviewBox from "@/components/ReviewBox";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import ShiftPublishedNextSteps from "@/components/ShiftPublishedNextSteps";
+import { payView } from "@/lib/pay";
+import { noShowConfirmCopy } from "@/lib/turno-reofrecido";
 import GuidedTour, { type TourStep } from "@/components/GuidedTour";
 import { EmptyPanelIllustration } from "@/components/illustrations";
 import {
@@ -495,9 +497,13 @@ function MyShiftsPanel() {
   const eventCopy = cancelEventConfirmCopy(
     confirmEventId ? shifts.filter((s) => s.event_id === confirmEventId) : []
   );
-  const payingWorkerName = confirmMarkPaidId
-    ? shifts.find((s) => s.id === confirmMarkPaidId)?.worker_name
-    : null;
+  const payingShift = confirmMarkPaidId
+    ? shifts.find((s) => s.id === confirmMarkPaidId)
+    : undefined;
+  const payingWorkerName = payingShift?.worker_name ?? null;
+  const noShowShift = confirmNoShowId
+    ? shifts.find((s) => s.id === confirmNoShowId)
+    : undefined;
 
   // En "Todos" se listan sólo las familias con contenido (no tiene sentido
   // mostrar 4 estados vacíos apilados). En una pestaña puntual se muestra
@@ -746,9 +752,11 @@ function MyShiftsPanel() {
         onClose={() => setConfirmNoShowId(null)}
         title="¿Marcar que no se presentó?"
       >
+        {/* Qué pasa con el turno depende de cuánto horario le queda (U080). */}
         <p className="text-sm text-ink/60">
-          El turno se libera para volver a buscar personal y le va a impactar
-          la reputación al trabajador. Esta acción queda registrada.
+          {noShowShift
+            ? noShowConfirmCopy(noShowShift)
+            : "El turno se libera para volver a buscar personal y le va a impactar la reputación al trabajador. Esta acción queda registrada."}
         </p>
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="surface" size="sm" onClick={() => setConfirmNoShowId(null)}>
@@ -851,6 +859,14 @@ function MyShiftsPanel() {
           Se le avisa {payingWorkerName ? `a ${payingWorkerName}` : "al trabajador"} que ya cobró
           este turno y no vas a poder deshacerlo.
         </p>
+        {/* Turno reofrecido (U080): lo que corresponde pagar es lo que
+            restaba desde la llegada, no el monto publicado. */}
+        {payingShift && payView(payingShift).kind === "prorrateado" && (
+          <p className="mt-2 text-sm font-semibold text-ink">
+            Corresponde pagar {payView(payingShift).amount}: lo que restaba del turno desde su
+            llegada.
+          </p>
+        )}
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="surface" size="sm" onClick={() => setConfirmMarkPaidId(null)}>
             Volver

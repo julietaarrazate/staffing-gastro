@@ -14,8 +14,8 @@ import { getErrorMessage } from "@/lib/errors";
 import { SKILL_LABELS, Shift, ShiftApplication, ShiftPublic } from "@/lib/types";
 import { SKILL_ACCENT, SKILL_HERO_TONE, heroInk } from "@/lib/skill-style";
 import { cldThumb } from "@/lib/cloudinary";
-import { formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
-import { formatMoney, formatPayAmount, payPerHour } from "@/lib/pay";
+import { formatDuration, formatShiftWhenLive, shiftDurationMinutes } from "@/lib/datetime";
+import { formatMoney, payPerHour, payView } from "@/lib/pay";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import SaveShiftButton from "@/components/worker/SaveShiftButton";
 import { useLiveRefresh } from "@/lib/live-refresh";
@@ -181,6 +181,7 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
   const photo = heroPhoto && !photoBroken ? heroPhoto : null;
   const minutes = shiftDurationMinutes(shift.start_at, shift.end_at);
   const perHour = payPerHour(shift);
+  const pay = payView(shift);
   const isOwner = Boolean(full && myCompanyId && full.company_id === myCompanyId);
   const hasCoords = shift.latitude != null && shift.longitude != null;
   const where = shift.address ? [shift.address, shift.city].filter(Boolean).join(", ") : shift.city;
@@ -286,8 +287,10 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
         {/* Datos con íconos: cuándo, cuánto dura, dónde. */}
         <dl className="mt-5 space-y-3">
           <InfoRow icon={<ClockIcon size={18} />} tone="cielo" label="Cuándo">
-            {formatShiftWhen(shift.start_at, shift.end_at)}
-            {minutes != null && <span className="text-ink/50"> · {formatDuration(minutes)}</span>}
+            {formatShiftWhenLive(shift)}
+            {minutes != null && pay.kind !== "por_hora" && (
+              <span className="text-ink/50"> · {formatDuration(minutes)}</span>
+            )}
           </InfoRow>
           <InfoRow icon={<MapPinIcon size={18} />} tone="trust" label="Dónde">
             {where ?? "Zona a confirmar"}
@@ -307,10 +310,21 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-on-brand/75">Pago</p>
             <p className="text-price font-extrabold tracking-tight text-on-brand">
-              {formatPayAmount(shift)}
+              {pay.amount}
+              {pay.suffix && (
+                <span className="ml-1.5 text-body font-bold tracking-normal text-on-brand/85">
+                  {pay.suffix}
+                </span>
+              )}
             </p>
+            {/* Turno reofrecido (U080): el número ya es por hora (o el monto
+                que quedó fijo al llegar), y la línea lo explica. */}
             <p className="text-sm text-on-brand/80">
-              {[shift.tips ? "+ propinas" : null, perHour ? `≈ ${formatMoney(perHour, shift.currency)} por hora` : null]
+              {[
+                shift.tips ? "+ propinas" : null,
+                pay.note ??
+                  (perHour ? `≈ ${formatMoney(perHour, shift.currency)} por hora` : null),
+              ]
                 .filter(Boolean)
                 .join(" · ")}
             </p>

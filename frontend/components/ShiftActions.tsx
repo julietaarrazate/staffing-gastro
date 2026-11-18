@@ -1,5 +1,6 @@
 "use client";
 
+import { puedeMarcarAusencia } from "@/lib/turno-reofrecido";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button, Sheet } from "@/components/ui";
@@ -27,9 +28,10 @@ import type { Shift } from "@/lib/types";
 // todavía no se presentó (antes del check-in) — ADR-0007.
 const NO_SHOW_ELIGIBLE = ["confirmado", "en_camino"];
 // ...y recién desde 15 minutos después del inicio (la tolerancia de la
-// puntualidad): antes, el trabajador todavía puede llegar. El servidor aplica
-// la misma regla (`Shift.no_show`); esto sólo evita ofrecer la opción antes.
-const NO_SHOW_AFTER_START_MS = 15 * 60_000;
+// puntualidad): antes, el trabajador todavía puede llegar. A quien tomó el
+// turno ya empezado (U080) se le cuenta desde que confirmó. El servidor
+// aplica la misma regla (`Shift.no_show`); `puedeMarcarAusencia` sólo evita
+// ofrecer la opción antes.
 
 export default function ShiftActions({
   shift,
@@ -66,9 +68,7 @@ export default function ShiftActions({
     const id = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(id);
   }, []);
-  const canNoShow =
-    NO_SHOW_ELIGIBLE.includes(shift.status) &&
-    now >= new Date(shift.start_at).getTime() + NO_SHOW_AFTER_START_MS;
+  const canNoShow = NO_SHOW_ELIGIBLE.includes(shift.status) && puedeMarcarAusencia(shift, now);
   const hasWorker = Boolean(shift.worker_profile_id) && shift.status !== "cancelado";
 
   return (

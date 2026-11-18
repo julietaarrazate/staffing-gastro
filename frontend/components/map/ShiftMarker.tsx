@@ -13,6 +13,8 @@ interface ShiftMarkerProps {
   position: WorkerSkill;
   /** Pago del turno: es el contenido del marcador, no un dato secundario. */
   payAmount: string | number;
+  /** El pago ya escrito ("$10.000/h" en un turno reofrecido). Sin él, el monto. */
+  payLabel?: string;
   urgent: boolean;
   active: boolean;
   /** Paga por encima de lo típico para su puesto y ciudad (ADR-0012). */
@@ -54,6 +56,7 @@ function ShiftMarker({
   latitude,
   position,
   payAmount,
+  payLabel,
   urgent,
   active,
   isMatch,
@@ -95,7 +98,7 @@ function ShiftMarker({
         )}
         <button
           type="button"
-          aria-label={`Turno de ${SKILL_LABELS[position]}, ${formatArs(payAmount)}${
+          aria-label={`Turno de ${SKILL_LABELS[position]}, ${payLabel ?? formatArs(payAmount)}${
             isMatch ? ", paga por encima de lo habitual" : ""
           }`}
           aria-pressed={active}
@@ -122,7 +125,7 @@ function ShiftMarker({
             }`}
           />
           <span className={!active && isMatch ? "text-manteca" : undefined}>
-            {formatArs(payAmount)}
+            {payLabel ?? formatArs(payAmount)}
           </span>
           {urgent && (
             <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-danger [animation:urgentPulse_1.2s_infinite]" />
