@@ -220,8 +220,10 @@ function ShiftCandidatesContent() {
     // cambió.
     <div className={`${LETRAS_APP} mx-auto max-w-2xl px-4 pb-10 md:max-w-6xl md:pt-4`}>
       <div
+        // El hueco de abajo para la comanda queda reservado también mientras
+        // el turno carga: si no, al llegar la lista bajaba de golpe 68 px.
         className={`app-cielo -mx-4 px-4 pt-4 md:mx-0 md:rounded-[var(--radius-card)] md:px-6 md:pb-6 ${
-          shift ? "pb-[72px]" : "pb-6"
+          shift || !shiftError ? "pb-[72px]" : "pb-6"
         }`}
       >
         <Link
@@ -246,7 +248,7 @@ function ShiftCandidatesContent() {
           nada nuevo del backend. Desde el 2026-11-18 es la comanda del turno,
           montada sobre el borde del cielo (en escritorio, debajo). */}
       {shift && (
-        <Comanda as="section" aria-label="El turno" className="relative z-[1] -mt-[56px] md:mt-4">
+        <Comanda as="section" aria-label="El turno" className="relative z-[1] -mt-[56px] md:mt-4 md:max-w-xl">
           <div className="px-4 pb-2 pt-4">
             <p className="letra-cartel letra-cartel-puesto break-words">{textoCartel(SKILL_LABELS[shift.position])}</p>
             <dl className="mt-2">

@@ -38,6 +38,13 @@ Spec nuevo: `candidatos-relieve.spec.ts`.
 - **Las tarjetas de los demás siguen siendo tarjetas**, no renglones: llevan
   sellos, chips de confianza y su botón, y en escritorio van en grilla.
 
+**Revisión independiente** (otro agente; 320 a 1280 px, claro y oscuro,
+ocho escenarios: nombres y puestos largos, turno cancelado o asignado, carga
+lenta y error): aprobado. Se tomaron sus dos observaciones menores: el hueco
+de la comanda queda reservado mientras el turno carga (la lista bajaba de
+golpe al llegar) y en compu la comanda tiene un ancho máximo (estirada a
+1120 px, «Cuándo» quedaba lejos de su dato).
+
 **Queda abierto:** Mis turnos (ítem 0 de `STATUS.md`). Las pestañas
 (`SegmentedControl`) y la Garantía Oído son de toda la app y siguen como
 estaban.
