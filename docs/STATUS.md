@@ -206,6 +206,12 @@ pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
 
 ## Pendiente de Julieta (operativo, no es código)
 
+- **Estrategia de crecimiento, fase 1:** leer el diagnóstico y la propuesta
+  de Go-To-Market (documento privado:
+  https://claude.ai/artifact/CbFduaLLSNXNkgTq1EYFrk), aprobarlo o corregirlo
+  y resolver las decisiones de su sección 8. Las fases siguientes esperan esa
+  aprobación
+  ([`historial/2026-11-18-diagnostico-growth-gtm.md`](./historial/2026-11-18-diagnostico-growth-gtm.md)).
 - **Verificación en dos pasos del admin (ADR-0023):** **antes del merge**,
   generar `TWO_FACTOR_ENCRYPTION_KEY` y cargarla en Render (sin ella el
   panel de admin queda cerrado); **apenas se deploya**, entrar y activarla en
