@@ -83,8 +83,8 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Pila de capas abiertas: Escape cierra sólo la de más arriba (la usan Modal, Sheet, `DiscoverDeck` y `GuidedTour`, prioridad 70, donde Escape = «Saltar recorrido»; ignora la repetición de tecla; una capa nueva con su propio Escape tiene que usarla) | `frontend/lib/use-escape-layer.ts` |
 | Pantalla entera de «acá no hay nada» (título, una línea y salidas que son links) | `frontend/components/PaginaAviso.tsx`; la usan `app/not-found.tsx` y `TurnoNoDisponible` |
 | Íconos (Lucide, envueltos) | `frontend/components/icons.tsx` |
-| Logo | `frontend/components/Logo.tsx`: la palabra «oído» plana en Shrikhand (`Logo`), el ícono chico del pinche con la «o» (`LogoMark`) y su silueta (`LogoGlyph`) |
-| Íconos de la app (PWA, favicon, Apple, badge de Android) | el pinche con «oído»: `frontend/scripts/build-isotipo-pinche.py` dibuja los SVG (`public/logo-mark.svg`, `logo-mark-chico.svg`, `logo-maskable.svg`, `logo-figure.svg` y `docs/design-system/marca/isotipo-pinche*.svg`, letra a trazos) y `frontend/scripts/build-icons.mjs` los rasteriza a PNG y `.ico` |
+| Logo | `frontend/components/Logo.tsx`: la palabra «oído» plana en Shrikhand (`Logo`), el ícono chico del pinche con la «o» (`LogoMark`) y su silueta (`LogoGlyph`; de menos de 24 px, la «o» sola de `logo-o.svg`) |
+| Íconos de la app (PWA, favicon, Apple, badge de Android) | el pinche con «oído»: `frontend/scripts/build-isotipo-pinche.py` dibuja los SVG (`public/logo-mark.svg`, `logo-mark-chico.svg`, `logo-maskable.svg`, `logo-figure.svg`, `logo-o.svg` y `docs/design-system/marca/isotipo-pinche*.svg`, `isotipo-o-silueta.svg`, letra a trazos) y `frontend/scripts/build-icons.mjs` los rasteriza a PNG y `.ico` |
 | Miniatura para compartir | `frontend/lib/og-brand.tsx` con `frontend/assets/og/filete-oido.png` (rasterizado de `docs/design-system/marca/oido-filete.svg`) |
 | Claves de `localStorage`/`sessionStorage` (`staffya_*`) y mocks E2E | `frontend/e2e/mocks.ts` |
 | Cliente de la API (por defecto apunta a **producción**) | `frontend/lib/api.ts` |

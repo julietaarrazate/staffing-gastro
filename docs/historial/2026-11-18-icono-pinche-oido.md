@@ -37,6 +37,13 @@ avisos) y la «o» se cala con un `clipPath` evenodd, no con una máscara, que
 anda igual en las máscaras CSS de `LogoGlyph` y en el rasterizado de `sharp`.
 El pliegue celeste de la esquina desaparece en la silueta (un solo color).
 
+**Ajuste posterior (Julieta, mismo día):** `LogoGlyph` usa la silueta entera
+(`logo-figure.svg`) de 24 px para arriba y **la «o» sola** (`logo-o.svg`,
+nuevo, un color, a trazos; copia en `marca/isotipo-o-silueta.svg`) por debajo
+de 24 px, donde el dibujo entero no se lee (14 y 18 px en el asistente, en el
+paso «Describilo» de turnos nuevos y en las réplicas de la landing). El corte
+lo hace el propio componente por la prop `size`; los usos no cambian.
+
 **Queda abierto:** `design-system/marca/oido-manual-de-marca.pdf` sigue con el
 «oí» (no se regeneró). Los SVG viejos de `public/` (`logo.svg`, `logo-badge.svg`,
 `logo-figure-warm.svg`, `oido-isotipo.svg`, con la mano sobre la oreja) no

@@ -20,6 +20,7 @@ Versiones:
   Android (círculo central del 80 %), fondo a sangre.
 - chica (48 px para abajo): plana, con la «o» sola, sin relieve.
 - silueta: un solo color (blanco), con la «o» calada; sin fondo.
+- «o» sola (`logo-o.svg`): el glifo de un color para tamaños de glifo < 24 px.
 """
 import io
 import math
@@ -207,6 +208,26 @@ def silueta():
     )
 
 
+def glifo_o():
+    """La «o» sola, a trazos y de un solo color, para el glifo de la marca por
+    debajo de 24 px (donde la silueta entera del pinche no se lee): centrada por
+    su caja y ocupando 464 de los 512."""
+    from fontTools.pens.boundsPen import BoundsPen
+
+    nombre = _tt.getBestCmap()[ord("o")]
+    bp = BoundsPen(_gs)
+    _gs[nombre].draw(bp)
+    x0, y0, x1, y1 = bp.bounds
+    k = 464 / max(x1 - x0, y1 - y0)
+    m = (k, 0, 0, -k, 256 - k * (x0 + x1) / 2, 256 + k * (y0 + y1) / 2)
+    pen = _Pen(_gs, m)
+    _gs[nombre].draw(pen)
+    return (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" '
+        f'aria-label="Oído"><title>Oído</title><path d="{"".join(pen.d)}" fill="{FIG}"/></svg>\n'
+    )
+
+
 def main():
     defs_g, cuerpo_g = dibujo_grande()
     defs_c, cuerpo_c = dibujo_chico()
@@ -216,12 +237,14 @@ def main():
         "chico": envolver("Oído", defs_c, cuerpo_c, ESC_CHICO, 0),
         "maskable": envolver("Oído", defs_g, cuerpo_g, esc_m, dx_m, dy_m, redondo=False),
         "silueta": silueta(),
+        "o": glifo_o(),
     }
     destinos = {
         "mark": ["logo-mark.svg", "isotipo-pinche.svg"],
         "chico": ["logo-mark-chico.svg", "isotipo-pinche-chico.svg"],
         "maskable": ["logo-maskable.svg", "isotipo-pinche-maskable.svg"],
         "silueta": ["logo-figure.svg", "isotipo-pinche-silueta.svg"],
+        "o": ["logo-o.svg", "isotipo-o-silueta.svg"],
     }
     for clave, nombres in destinos.items():
         for nombre in nombres:

@@ -64,7 +64,10 @@ Buenos Aires, el papel de la comanda y el filete de los carteles de bodegón.
    sin relieve, porque la palabra no entra y el relieve se empasta. En
    **silueta de un solo color** (papel, pinche y base, con la «o» calada)
    para el badge de las notificaciones de Android y los estados vacíos
-   (`logo-figure.svg`). Es **sólo ícono de la app**: no va al lado de la
+   (`logo-figure.svg`) de 24 px para arriba; **por debajo de 24 px** (el
+   glifo de 14 y 18 px en el asistente y las réplicas de la landing) la
+   silueta entera no se lee y va **la «o» sola** de un color (`logo-o.svg`).
+   Es **sólo ícono de la app**: no va al lado de la
    palabra «oído» en encabezados ni en la landing, y el Sol de Mayo no se
    usa. La letra va **convertida a trazos** (no depende de la fuente):
    `frontend/scripts/build-isotipo-pinche.py` escribe los vectores (en
