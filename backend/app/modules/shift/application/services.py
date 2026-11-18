@@ -41,6 +41,7 @@ from app.modules.shift.domain.exceptions import (
     AssigneeNotFoundError,
     AssigneeUnavailableError,
     InvalidShiftTransitionError,
+    ShiftConcurrentModificationError,
     ShiftNotAssignedToWorkerError,
     ShiftNotFoundError,
 )
@@ -80,6 +81,8 @@ logger = logging.getLogger(__name__)
 
 # Cuántos turnos nombra el aviso de postulaciones retiradas (U123).
 _MAX_NAMED_SHIFTS = 3
+# Intentos de apagar «va en camino» si choca con otra escritura (U072).
+_STOP_EN_ROUTE_ATTEMPTS = 3
 
 
 # Reputación del comercio: tolerancia para considerar "a tiempo" un pago
@@ -1624,12 +1627,22 @@ class ShiftService(AccountSuspensionEffects):
         tercero recibe 404. Apagar sin estar compartiendo no es un error y no
         escribe nada. Al comercio no se le manda un aviso: «dejó de compartir»
         no le pide hacer nada, y lo ve en el panel."""
-        shift = await self._get_assigned_to(worker_profile_id, shift_id)
-        if not shift.stop_en_route():
-            return shift
-        updated = await self._shifts.update(shift)
-        logger.info("shift.en_route_stopped", extra={"shift_id": str(updated.id)})
-        return updated
+        # Un reporte periódico puede estar escribiendo el turno en el mismo
+        # momento. Apagar tiene que ganar: si choca, se relee y se repite (el
+        # 409 dejaría la posición guardada con la persona creyendo que no).
+        for attempt in range(_STOP_EN_ROUTE_ATTEMPTS):
+            shift = await self._get_assigned_to(worker_profile_id, shift_id)
+            if not shift.stop_en_route():
+                return shift
+            try:
+                updated = await self._shifts.update(shift)
+            except ShiftConcurrentModificationError:
+                if attempt == _STOP_EN_ROUTE_ATTEMPTS - 1:
+                    raise
+                continue
+            logger.info("shift.en_route_stopped", extra={"shift_id": str(updated.id)})
+            return updated
+        raise AssertionError("inalcanzable")  # pragma: no cover
 
     async def _notify_company_worker_left(
         self, shift: Shift, worker_profile_id: UUID

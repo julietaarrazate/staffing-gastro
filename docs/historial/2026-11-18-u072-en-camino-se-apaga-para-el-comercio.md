@@ -30,4 +30,17 @@ actualización 2026-11-18. Salir de la pantalla no borra (el comercio perdería
 de vista a quien abrió el chat); lo que se agrega es decirlo y dejar
 borrarla.
 
-**Queda abierto:** nada de U072.
+**Revisión independiente:** rechazó la primera versión, con razón. Dos casos
+verificados en los que la posición quedaba guardada mientras la app decía que
+se había borrado: un reporte periódico que ya había salido llegaba después
+del borrado y la volvía a guardar, y cualquier error del servidor (409, 429,
+5xx) se tomaba como «ya está borrada». También: el recordatorio de salida le
+llegaba a quien ya había salido y apagado, y un error en un envío cortaba el
+viaje sin ofrecer borrar. Todo corregido con su test antes de abrir el PR; el
+botón «Borrar mi última ubicación» pasó a ser un botón de tamaño normal con
+estado de carga.
+
+**Queda abierto:** la baja del dispositivo al cerrar sesión es un solo
+intento y no corre cuando la sesión vence sola (lo marcó la misma revisión;
+`frontend/lib/push.ts`). El texto de `/privacidad` dice «al cerrar sesión en
+ese dispositivo», que es cierto en el caso normal: va anotado para Julieta.

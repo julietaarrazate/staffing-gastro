@@ -15,11 +15,14 @@
  * - **Apagar es apagar también para el comercio (U072).** «Dejar de
  *   compartir» no sólo deja de mandar posiciones: le pide al servidor que
  *   borre la última (`DELETE /shifts/{id}/en-route`), así el comercio deja de
- *   verla en el momento. Si ese pedido no sale por falta de red se reintenta
- *   solo unas veces y, si no, se dice: la persona no puede quedarse creyendo
- *   que ya no la ven. Salir de la pantalla sin apagar sólo deja de mandar:
- *   la última posición queda, con su hora, hasta la llegada o hasta que se
- *   borre desde acá (`clearLast`).
+ *   verla. Sólo se da por borrada cuando el servidor lo confirma: si el
+ *   pedido no sale (sin red, el servidor ocupado) se reintenta solo unas
+ *   veces y, si no, se dice. La persona no puede quedarse creyendo que ya no
+ *   la ven. El borrado espera al reporte que esté en la red, y un reporte que
+ *   todavía esperaba el GPS ya no sale: si no, llegaría después del borrado y
+ *   volvería a guardar la posición. Salir de la pantalla sin apagar sólo deja
+ *   de mandar: la última posición queda, con su hora, hasta la llegada o
+ *   hasta que se borre desde acá (`clearLast`).
  * - **No se recuerda entre sesiones.** No hay `localStorage` acá a propósito:
  *   si la persona cierra la app, deja de compartir. Un consentimiento que
  *   sobrevive a que cierres la app es un consentimiento que la gente olvida
@@ -40,15 +43,31 @@ import { getCurrentPosition } from "@/lib/geolocation";
 /** Cada cuánto se manda la posición mientras dura el viaje. */
 const REPORT_INTERVAL_MS = 60_000;
 
-/** Fallos de red seguidos antes de avisar que la ubicación no está llegando. */
+/** Fallos seguidos antes de avisar que la ubicación no está llegando. */
 const FAILURES_BEFORE_WARNING = 3;
 
-/** Reintentos del pedido de borrado si no hay red, y cada cuánto. */
+/** Reintentos del pedido de borrado si no sale, y cada cuánto. */
 const STOP_RETRIES = 4;
 const STOP_RETRY_MS = 4_000;
 
 export const STOP_FAILED_MESSAGE =
   "No pudimos borrar tu última ubicación: el comercio todavía la ve. Revisá tu conexión y tocá «Borrar mi última ubicación».";
+
+/**
+ * ¿El servidor dijo que seguir no tiene sentido? Un 4xx (el turno ya no está
+ * en viaje, se salió de la ventana, ya no es suyo). Un choque con otra
+ * escritura (409), el límite de pedidos (429) o un error del servidor (5xx)
+ * son pasajeros: se reintentan como una falla de red.
+ */
+function isDefinitive(err: unknown): err is ApiError {
+  return (
+    err instanceof ApiError &&
+    err.status >= 400 &&
+    err.status < 500 &&
+    err.status !== 409 &&
+    err.status !== 429
+  );
+}
 
 export interface EnRouteSharing {
   /** `true` mientras se está compartiendo la posición. */
@@ -62,10 +81,15 @@ export interface EnRouteSharing {
   stop: () => void;
   /** Borra la última posición en el servidor (sin estar compartiendo acá). */
   clearLast: () => void;
+  /** `true` mientras el pedido de borrado está saliendo o reintentando. */
+  clearing: boolean;
   /** `true` desde que el servidor confirmó que ya no guarda una posición. */
   cleared: boolean;
-  /** `true` si el borrado no salió: el comercio todavía ve la última posición. */
-  clearFailed: boolean;
+  /**
+   * `true` si desde esta pantalla se mandó una posición que el servidor
+   * todavía puede estar guardando: se compartió y el borrado no se confirmó.
+   */
+  mayBeVisible: boolean;
 }
 
 export function useEnRouteSharing(
@@ -75,7 +99,22 @@ export function useEnRouteSharing(
   const [sharing, setSharing] = useState(false);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [clearing, setClearing] = useState(false);
+  const [cleared, setCleared] = useState(false);
+  const [mayBeVisible, setMayBeVisible] = useState(false);
+
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const stopRetryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // ¿Se sigue compartiendo? Lo miran los reportes que ya arrancaron: uno que
+  // estaba esperando el GPS cuando la persona apagó no llega a mandarse.
+  const activeRef = useRef(false);
+  // El reporte que está en la red ahora mismo, si hay uno. El borrado lo
+  // espera: si saliera antes, ese reporte llegaría después y volvería a
+  // guardar la posición sin que nadie lo sepa (revisión del 2026-11-18).
+  const inFlightRef = useRef<Promise<unknown> | null>(null);
+  // Cada borrado pedido invalida al anterior (y lo invalida volver a prender).
+  const clearRunRef = useRef(0);
+  const mountedRef = useRef(true);
 
   const clearTimer = useCallback(() => {
     if (timerRef.current !== null) {
@@ -84,63 +123,91 @@ export function useEnRouteSharing(
     }
   }, []);
 
-  const [cleared, setCleared] = useState(false);
-  const [clearFailed, setClearFailed] = useState(false);
-  const stopRetryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const clearStopRetry = useCallback(() => {
+  const cancelClear = useCallback(() => {
+    clearRunRef.current += 1;
     if (stopRetryRef.current !== null) {
       clearTimeout(stopRetryRef.current);
       stopRetryRef.current = null;
     }
   }, []);
 
-  /** Pide al servidor que borre la última posición; reintenta si no hay red. */
+  /**
+   * Pide al servidor que borre la última posición. Sólo se da por borrada
+   * cuando el servidor lo confirma (200) o dice que el turno ya no es de esta
+   * persona (404). Cualquier otra cosa (sin red, 409, 429, 5xx, sesión
+   * vencida) se reintenta y, si no sale, se avisa: la posición sigue ahí.
+   */
   const clearLast = useCallback(() => {
     if (!token) return;
-    clearStopRetry();
-    setClearFailed(false);
+    cancelClear();
+    const run = clearRunRef.current;
+    const current = () => run === clearRunRef.current;
+    const set = (fn: () => void) => {
+      if (mountedRef.current && current()) fn();
+    };
+    set(() => {
+      setClearing(true);
+      setError(null);
+    });
     let attempt = 0;
-    const send = () => {
+    const send = async () => {
+      // Primero que termine el reporte que ya estaba en la red.
+      await inFlightRef.current?.catch(() => {});
+      if (!current()) return;
       attempt += 1;
-      api
-        .del(`/shifts/${shiftId}/en-route`, undefined, token)
-        .then(() => {
-          setCleared(true);
-          setError(null);
-        })
-        .catch((err) => {
-          // El servidor contestó (el turno ya no es suyo, ya llegó): no hay
-          // nada que borrar de este lado y reintentar no cambia nada.
-          if (err instanceof ApiError) {
-            setCleared(true);
-            return;
-          }
+      try {
+        await api.del(`/shifts/${shiftId}/en-route`, undefined, token);
+      } catch (err) {
+        if (!current()) return;
+        if (!(err instanceof ApiError && err.status === 404)) {
           if (attempt <= STOP_RETRIES) {
             stopRetryRef.current = setTimeout(send, STOP_RETRY_MS);
           } else {
-            setClearFailed(true);
-            setError(STOP_FAILED_MESSAGE);
+            set(() => {
+              setClearing(false);
+              setMayBeVisible(true);
+              setError(STOP_FAILED_MESSAGE);
+            });
           }
-        });
+          return;
+        }
+      }
+      set(() => {
+        setClearing(false);
+        setCleared(true);
+        setMayBeVisible(false);
+        setError(null);
+      });
     };
-    send();
-  }, [shiftId, token, clearStopRetry]);
+    void send();
+  }, [shiftId, token, cancelClear]);
 
   const stop = useCallback(() => {
+    activeRef.current = false;
     clearTimer();
     setSharing(false);
     clearLast();
   }, [clearTimer, clearLast]);
 
-  const report = useCallback(async () => {
-    if (!token) return;
+  /** Manda la posición de ahora. Devuelve `false` si ya se había apagado. */
+  const report = useCallback(async (): Promise<boolean> => {
+    if (!token) return false;
     const position = await getCurrentPosition();
-    await api.post(
+    // Se apagó mientras el GPS contestaba: este reporte ya no sale.
+    if (!activeRef.current) return false;
+    const sent = api.post(
       `/shifts/${shiftId}/en-route`,
       { latitude: position.latitude, longitude: position.longitude },
       token
     );
+    inFlightRef.current = sent;
+    try {
+      await sent;
+    } finally {
+      if (inFlightRef.current === sent) inFlightRef.current = null;
+    }
+    if (mountedRef.current) setMayBeVisible(true);
+    return true;
   }, [shiftId, token]);
 
   const start = useCallback(async () => {
@@ -148,36 +215,43 @@ export function useEnRouteSharing(
     setError(null);
     setStarting(true);
     // Vuelve a compartir: un borrado que todavía estaba reintentando ya no va.
-    clearStopRetry();
+    cancelClear();
+    setClearing(false);
     setCleared(false);
-    setClearFailed(false);
+    activeRef.current = true;
     try {
       // El primer envío va antes de arrancar el intervalo: si el permiso está
       // denegado o el backend rechaza (fuera de ventana, turno ya no
       // confirmado), se ve el error de una en vez de quedar "compartiendo" sin
       // que llegue nada.
-      await report();
+      if (!(await report())) return;
       setSharing(true);
       clearTimer();
       let failures = 0;
       timerRef.current = setInterval(() => {
         report()
-          .then(() => {
+          .then((sent) => {
+            if (!sent) return;
             failures = 0;
             setError(null);
           })
           .catch((err) => {
+            if (!activeRef.current) return;
             // El backend rechazó (el turno ya no está en viaje, se salió de la
             // ventana): seguir mandando no tiene sentido. Se corta y se dice.
-            if (err instanceof ApiError) {
+            // La última posición que se mandó puede seguir guardada: la
+            // tarjeta ofrece borrarla (`mayBeVisible`).
+            if (isDefinitive(err)) {
+              activeRef.current = false;
               clearTimer();
               setSharing(false);
               setError(err.message);
               return;
             }
-            // Un fallo de red suelto (túnel, señal perdida) no corta el viaje:
-            // el próximo tick reintenta. Varios seguidos sí se avisan — antes
-            // la pantalla seguía diciendo "compartiendo" sin que llegara nada.
+            // Un fallo suelto (túnel, señal perdida, el servidor ocupado) no
+            // corta el viaje: el próximo tick reintenta. Varios seguidos sí se
+            // avisan — antes la pantalla seguía diciendo "compartiendo" sin
+            // que llegara nada.
             failures += 1;
             if (failures >= FAILURES_BEFORE_WARNING) {
               setError("No pudimos enviar tu ubicación hace unos minutos. Seguimos intentando.");
@@ -185,22 +259,26 @@ export function useEnRouteSharing(
           });
       }, REPORT_INTERVAL_MS);
     } catch (err) {
+      activeRef.current = false;
       setSharing(false);
       setError(err instanceof Error ? err.message : "No se pudo compartir tu ubicación");
     } finally {
       setStarting(false);
     }
-  }, [token, report, clearTimer, clearStopRetry]);
+  }, [token, report, clearTimer, cancelClear]);
 
   // Al desmontar deja de reportar. Sin esto, salir de la pantalla dejaría el
   // intervalo vivo mandando la posición desde cualquier otra parte de la app.
-  useEffect(
-    () => () => {
+  // Un borrado que la persona pidió y todavía está reintentando NO se cancela:
+  // sigue hasta salir, aunque ya no haya pantalla que lo muestre.
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      activeRef.current = false;
       clearTimer();
-      clearStopRetry();
-    },
-    [clearTimer, clearStopRetry]
-  );
+    };
+  }, [clearTimer]);
 
-  return { sharing, error, starting, start, stop, clearLast, cleared, clearFailed };
+  return { sharing, error, starting, start, stop, clearLast, clearing, cleared, mayBeVisible };
 }

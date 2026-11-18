@@ -158,11 +158,11 @@ export default function PrivacidadPage() {
                 un turno ya confirmado, para verificar que estuviste ahí; y
                 mientras vos elijas avisar que vas en camino, para que el
                 comercio vea que estás llegando. Esto último lo prendés y lo
-                apagás vos: cuando lo apagás, el comercio deja de ver dónde
-                estás y borramos esa posición en el momento. Sólo funciona
-                desde dos horas antes del turno, se corta solo cuando marcás
-                tu llegada, y guardamos únicamente tu última posición, nunca
-                el recorrido. Fuera de esas ventanas no te seguimos, ni en
+                apagás vos: cuando lo apagás, borramos esa posición y el
+                comercio deja de ver dónde estás. Sólo funciona desde dos
+                horas antes del turno, se corta solo cuando marcás tu
+                llegada, y guardamos únicamente tu última posición, nunca el
+                recorrido. Fuera de esas ventanas no te seguimos, ni en
                 segundo plano.
                 <br />
                 Si activás &quot;Disponible ahora&quot; para que el comercio

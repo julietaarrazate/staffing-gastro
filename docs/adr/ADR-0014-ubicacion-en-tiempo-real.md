@@ -245,9 +245,20 @@ Desde ahora:
   controlaba mirando si ya había una posición guardada; como ahora la
   posición se puede borrar a mitad del viaje, el aviso tiene su propia marca
   (`Shift.en_route_announced_at`, migración 0052), que dura lo que el viaje.
-- **Si el borrado no sale** (sin red), la app lo reintenta sola unas veces y,
-  si no puede, lo dice: «No pudimos borrar tu última ubicación: el comercio
-  todavía la ve». La persona no se queda creyendo que ya no la ven.
+- **Sólo se da por borrada cuando el servidor lo confirma.** Si el pedido no
+  sale (sin red, el servidor ocupado, un choque con otra escritura), la app
+  lo reintenta sola unas veces y, si no puede, lo dice: «No pudimos borrar tu
+  última ubicación: el comercio todavía la ve». La persona no se queda
+  creyendo que ya no la ven.
+- **Apagar gana las carreras** (las encontró la revisión independiente antes
+  del merge). El reporte periódico que ya estaba en la red termina antes de
+  que salga el borrado, y uno que todavía esperaba el GPS ya no se manda: si
+  no, llegaba después del borrado y volvía a guardar la posición sin que
+  nadie lo supiera. En el servidor, si el apagado choca con un reporte
+  (control de versión del turno), se repite en vez de responder 409.
+- **El recordatorio «avisá cuando salgas»** mira si ya se le avisó al
+  comercio (`en_route_announced_at`), no si hay una posición guardada: a
+  quien salió y apagó no se le recuerda nada.
 - **Salir de la pantalla sin apagar** sigue como antes: deja de mandar, y la
   última posición queda con su hora hasta la llegada. Lo nuevo es que al
   volver la tarjeta lo dice («el comercio todavía ve tu última ubicación») y
@@ -257,13 +268,21 @@ La fila «Se borra» de «va en camino» queda: **al apagarlo, al llegar y en
 las transiciones que desasignan**. Con eso los dos mecanismos («va en
 camino» y «Disponible ahora») se apagan igual, que era la idea del punto 2.
 
-**Texto de `/privacidad`** (versión `2026-11-18-1`): dice que al apagarlo el
-comercio deja de ver la posición y se borra en el momento, corrige «hasta dos
+**Texto de `/privacidad`** (versión `2026-11-18-1`): dice que al apagarlo se
+borra la posición y el comercio deja de verla (sin prometer «en el momento»:
+sin conexión el borrado no puede salir, y la app lo avisa), corrige «hasta dos
 horas antes» por «desde dos horas antes» (la ventana se abre dos horas antes
 del turno; el texto anterior decía lo contrario de lo que hace la app), y
 suma la decisión 1: el identificador del dispositivo para los avisos se
 borra también al cerrar sesión en ese dispositivo (la app ya lo hace:
 `releasePushFromAccount` al cerrar la sesión, `frontend/lib/auth-context.tsx`).
+
+Lo que el texto no cubre, a propósito: el aviso «salió para tu local» que
+ya recibió el comercio dice a qué distancia estaba la persona en ese momento,
+y ese texto no se borra (es un aviso ya entregado, con la distancia y no el
+punto). Y el identificador del dispositivo se da de baja al cerrar sesión con
+un solo pedido: si falla (sin conexión), el dispositivo pasa a la próxima
+cuenta que ingrese ahí; no se da de baja cuando la sesión vence sola.
 
 Descartado: borrar la posición también al salir de la pantalla. El comercio
 perdería de vista a quien sólo abrió el chat para avisar que llega, y la

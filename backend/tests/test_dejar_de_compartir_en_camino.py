@@ -133,3 +133,68 @@ async def test_despues_de_la_llegada_no_hay_nada_que_apagar(client: AsyncClient)
 
     assert stopped.status_code == 200
     assert stopped.json()["status"] == "check_in"
+
+
+# --- Revisión independiente -------------------------------------------------------
+
+
+async def test_quien_salio_y_apago_no_recibe_el_recordatorio_de_salida(
+    client: AsyncClient, session_factory, monkeypatch
+):
+    """El recordatorio «avisá cuando salgas» miraba si había una posición
+    guardada. Apagar la borra, pero la persona ya salió (y ya se le avisó al
+    comercio): recordárselo sería ruido."""
+    from app.modules.shift.application import scheduler
+
+    shift_id, _employer, worker = await _en_viaje(client, "7", minutes=50)
+    await _compartir(client, shift_id, worker)
+    assert (await client.delete(f"/api/v1/shifts/{shift_id}/en-route", headers=worker)).status_code == 200
+
+    monkeypatch.setattr(scheduler, "AsyncSessionLocal", session_factory)
+    await scheduler.run_attendance_check()
+
+    assert await _notices(client, worker, "departure_reminder") == []
+
+
+async def test_quien_nunca_aviso_que_salio_si_lo_recibe(
+    client: AsyncClient, session_factory, monkeypatch
+):
+    from app.modules.shift.application import scheduler
+
+    shift_id, _employer, worker = await _en_viaje(client, "8", minutes=50)
+
+    monkeypatch.setattr(scheduler, "AsyncSessionLocal", session_factory)
+    await scheduler.run_attendance_check()
+
+    assert len(await _notices(client, worker, "departure_reminder")) == 1
+
+
+async def test_apagar_gana_si_choca_con_un_reporte_que_llega_a_la_vez(
+    client: AsyncClient, monkeypatch
+):
+    """El reporte periódico y el apagado escriben el mismo turno. Si chocan
+    (control de versión, 409), apagar se repite: no puede quedar la posición
+    guardada con la persona creyendo que la borró."""
+    from app.modules.shift.domain.exceptions import ShiftConcurrentModificationError
+    from app.modules.shift.infrastructure.repositories import SqlAlchemyShiftRepository as Repo
+
+    shift_id, employer, worker = await _en_viaje(client, "9")
+    await _compartir(client, shift_id, worker)
+    real = Repo.update
+    calls = {"n": 0}
+
+    async def choca_una_vez(self, shift):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise ShiftConcurrentModificationError(str(shift.id))
+        return await real(self, shift)
+
+    monkeypatch.setattr(Repo, "update", choca_una_vez)
+
+    stopped = await client.delete(f"/api/v1/shifts/{shift_id}/en-route", headers=worker)
+
+    assert stopped.status_code == 200, stopped.text
+    assert calls["n"] == 2
+    monkeypatch.setattr(Repo, "update", real)
+    visto = (await client.get(f"/api/v1/shifts/{shift_id}", headers=employer)).json()
+    assert visto["en_route_latitude"] is None and visto["en_route_at"] is None
