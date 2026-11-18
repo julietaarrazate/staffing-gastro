@@ -264,10 +264,24 @@ el modelo del dominio, un ADR vigente o un texto legal:
 - ✅ **G4** (U021, U123): estado nuevo `desasignada` de la postulación, con
   migración (0051). Hecho el 2026-11-18 (#629,
   [ADR-0026](../adr/ADR-0026-postulacion-desasignada.md)).
-- **U080, U081 y U072** (decisiones 2, 3, 4 y 16): cambian el ADR-0007 y el
-  ADR-0008, y U072 cambia el texto de `/privacidad` (sube la versión, junto
-  con la decisión 1).
-- **P1 a P5**, las mejoras de producto aprobadas.
+- **U080, U081 y U072** (decisiones 2, 3, 4 y 16). Al 2026-11-18:
+  - ✅ **U081** en `main` (#632, ADR-0007 actualizado).
+  - 🟡 **U072** escrito, revisado y probado en la app (rama local
+    `claude/u072`, migración 0052, ADR-0014 actualizado, versión legal
+    `2026-11-18-1`). Su PR se abre al cerrar la tanda y **espera el «sí» de
+    Julieta al texto de `/privacidad`**.
+  - ⚪ **U080** diseñado, sin escribir. Espera dos datos de Julieta: desde
+    cuándo se cuenta «lo que resta» (recomendado: desde la llegada del
+    reemplazo, con el valor por hora en el aviso) y cuánto horario tiene que
+    quedar para reofrecer (recomendado: 1 hora). El diseño: marca
+    `reoffered_at` en el turno; el Inicio, la página pública y postularse lo
+    aceptan hasta que termina su horario; «no cubierto» pasa al final del
+    horario; aviso urgente a quienes están cerca y aviso al comercio cuando
+    falta alguien confirmado; para quien lo toma ya empezado, recordatorio,
+    ausencia y puntualidad se miden desde que confirmó, no desde el inicio.
+    Cambia el ADR-0008 y el ADR-0015. La próxima migración libre es la 0053.
+- **P1 a P5**, las mejoras de producto aprobadas. Sin empezar: van en una
+  sesión nueva, en el orden del tablero.
 - ✅ **Una segunda mirada a G6** (cuentas suspendidas, ADR-0024), hecha el
   2026-11-18: 2 graves y 7 menores verificados, nada bloqueante. Cinco
   arreglados en #PRG6 (los postulantes que quedaban rechazados para siempre
@@ -277,7 +291,14 @@ el modelo del dominio, un ADR vigente o un texto legal:
   postulante suspendido) y uno en #629 (el aviso «N postulantes» contaba a
   los suspendidos). Tres esperan decisión: ver «Decisiones que esperan a
   Julieta».
-- **Pasada por clase de error** (propuesta del 2026-11-14): el reporte
+- **Pasada por clase de error** (propuesta del 2026-11-14; sin empezar, va
+  en una sesión nueva junto con los tests de contrato). Lo que dejó la tanda
+  del 2026-11-18 para tener en cuenta: en tres de cuatro cambios la revisión
+  independiente o la suite completa encontraron algo que los tests del área
+  no veían (una fila nueva que abría el CV, una carrera entre el reporte y el
+  borrado de «va en camino», una sesión de la base rota tras un error
+  atrapado). Las clases «concurrencia» y «privacidad entre roles» son las que
+  más rinden: el reporte
   externo de Breken encontró en una lectura del código 9 errores que la prueba
   de punta a punta no vio (claves que se pierden al recargar, datos viejos con
   la pestaña abierta, guardados que pisan otros datos). La etapa 1 recorrió
