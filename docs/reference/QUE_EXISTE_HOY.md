@@ -90,9 +90,12 @@ listados más abajo.
   (nunca llegó a comprometerse). La ventana de gracia depende de `urgent`
   (30 min si el turno era urgente, 2 h si no). El feed (`list_open`) además
   deja de ofrecer algo cuyo horario ya pasó, esté o no resuelto todavía.
+  Los turnos ocultos de un comercio suspendido (ADR-0024) vencen igual, pero
+  sin aviso a esa cuenta y fuera de las métricas de cobertura (decisión 22,
+  2026-11-18).
 - **Turno reofrecido** (U080, 2026-11-18): si la persona confirmada falta,
   cancela o rechaza con el turno ya empezado, el turno se vuelve a ofrecer
-  como urgente si le quedan al menos 2 horas (con menos, queda «no cubierto»
+  como urgente si le quedan más de 2 horas y 15 minutos (con menos, queda «no cubierto»
   en el momento), y se ofrece hasta que le quedan menos de 2 horas. Les llega un aviso urgente a
   quienes están cerca, con el valor por hora, y uno al comercio que dice qué
   pasó. Las tarjetas dicen «Ya empezó · hasta las HH:MM» y «$X por hora»;
@@ -184,7 +187,9 @@ listados más abajo.
 - **Encuesta para locales** (`/encuesta`, ADR-0025): pública y sin cuenta, mide cómo usan personal eventual los locales y junta interesados en la beta. Módulo propio (no un lead), sin IP guardada, rol, nombre del local y barrio obligatorios, contacto opcional con consentimiento, guardado mientras dure la beta y el lanzamiento, que la admin borra por respuesta («Borrar contacto») o de todas con `backend/scripts/clear_survey_contacts.py` (el nombre del local queda); el resumen cuenta sólo dueños y encargados; los resultados están en `/admin/leads` → «Encuesta».
 - **Panel de admin** con métricas del dashboard, estadísticas de suscripción/
   MRR y **cuentas de prueba** (trabajador/comercio) creables desde ahí. Las
-  cuentas sintéticas se excluyen de las métricas a propósito.
+  cuentas sintéticas se excluyen de las métricas a propósito, y de las de
+  cobertura también los turnos que vencieron con la cuenta del comercio
+  suspendida (ADR-0024, actualización 2026-11-18).
 - **Design system con tema explícito** (#317/#318): `lib/theme.tsx` es la
   única fuente de verdad y siempre escribe `data-theme="dark"|"light"`. **La
   app no se oscurece sola**: "Sistema" resuelve a claro, por decisión de

@@ -142,6 +142,11 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
     postulantes.»
   - Los turnos abiertos de un comercio suspendido sólo se ocultan: nadie
     recibe aviso, y tampoco se escalan (sin `urgent_shift_nearby`).
+  - Si a uno de esos turnos ocultos se le pasa el horario, vence igual («no
+    cubierto») pero **no sale `shift_not_covered`** a la cuenta suspendida: ni
+    en la app, ni push, ni mail (decisión 22, 2026-11-18,
+    `ShiftService.mark_not_covered`). Si la cuenta se reactiva después, tampoco:
+    el comercio lo ve como «No cubierto» en su panel.
 - **Un aviso rechazado por la base no rompe la sesión del pedido
   (2026-11-13):** el adaptador (`SqlAlchemyNotificationRepository`) la deja
   usable y propaga el error. Vale para todos los avisos: quien atrapa el

@@ -136,7 +136,11 @@ campos, estados o transiciones. Se documenta la realidad y se marca cada caso.
     verse si se reactiva); los suyos `asignado`/`confirmado`/`en_camino` se
     cancelan sin cancelación tardía. Los de un trabajador suspendido en esos
     estados vuelven a `buscando_personal` (`release_worker`) sin sumarle una
-    cancelación. Desde `check_in` no se toca nada.
+    cancelación. Desde `check_in` no se toca nada. Un turno oculto al que se
+    le pasa el horario vence igual (`no_cubierto`), sin aviso a la cuenta
+    suspendida y con `not_covered_while_suspended` en verdadero: queda fuera
+    de las métricas de cobertura aunque la cuenta se reactive después
+    (decisión 22, 2026-11-18).
   - `cancelado`, `finalizado`, `pagado` son **terminales**.
   - check-in/check-out capturan geolocalización y exigen estar a ≤ 300 m del
     local del turno (`CHECK_RADIUS_KM`); si el turno no tiene coordenadas no se
