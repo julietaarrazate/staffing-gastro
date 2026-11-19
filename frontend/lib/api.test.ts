@@ -447,6 +447,47 @@ describe("GET idénticos en vuelo", () => {
     expect(fetchMock.mock.calls.filter((c) => (c[1] as RequestInit).method === "GET")).toHaveLength(2);
   });
 
+  it("un GET que salió DURANTE una mutación no se comparte con el que se pide cuando ya terminó", async () => {
+    // El servidor confirma la mutación recién al responder el POST: lo que
+    // se leyó antes trae la versión vieja.
+    let version = 0;
+    let terminarPost: () => void = () => {};
+    let terminarGetViejo: () => void = () => {};
+    fetchMock.mockImplementation((_url: string, init: RequestInit) => {
+      if (init.method === "POST") {
+        return new Promise((r) => (terminarPost = () => (version++, r(jsonResponse(200, {})))));
+      }
+      const leida = version;
+      if (leida === 0) return new Promise((r) => (terminarGetViejo = () => r(jsonResponse(200, { version: leida }))));
+      return Promise.resolve(jsonResponse(200, { version: leida }));
+    });
+
+    const post = api.post("/workers/me/available", { x: 1 }, "t1");
+    const durante = api.get<{ version: number }>("/workers/me/profile", "t1");
+    terminarPost();
+    await post;
+    const despues = api.get<{ version: number }>("/workers/me/profile", "t1");
+    terminarGetViejo();
+
+    expect((await durante).version).toBe(0);
+    expect((await despues).version).toBe(1);
+    expect(fetchMock.mock.calls.filter((c) => (c[1] as RequestInit).method === "GET")).toHaveLength(2);
+  });
+
+  it("getFresco nunca se suma a uno en vuelo (leer justo antes de escribir)", async () => {
+    fetchMock.mockImplementation(async () => jsonResponse(200, { ok: true }));
+
+    await Promise.all([api.get("/workers/me/profile", "t1"), api.getFresco("/workers/me/profile", "t1")]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("con un solo interesado no copia: recibe el objeto tal cual", async () => {
+    const respuesta = { items: [1] };
+    fetchMock.mockImplementation(async () => Object.assign(jsonResponse(200, {}), { json: async () => respuesta }));
+
+    expect(await api.get("/x", "t1")).toBe(respuesta);
+  });
+
   it("si falla, el error les llega a todos y el siguiente pedido reintenta", async () => {
     fetchMock.mockImplementationOnce(async () => jsonResponse(500, { detail: "boom" }));
     fetchMock.mockImplementation(async () => jsonResponse(200, { ok: true }));

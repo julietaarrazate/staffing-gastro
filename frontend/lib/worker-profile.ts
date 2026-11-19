@@ -85,7 +85,7 @@ export async function saveProfilePart(
   token: string | null,
   changes: Partial<WorkerProfileInput>
 ): Promise<WorkerProfile> {
-  const current = await api.get<WorkerProfile>("/workers/me/profile", token);
+  const current = await api.getFresco<WorkerProfile>("/workers/me/profile", token);
   return api.put<WorkerProfile>(
     "/workers/me/profile",
     toWorkerProfileInput(current, changes),

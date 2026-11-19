@@ -280,6 +280,14 @@ async def test_consultas_no_crecen_con_la_cantidad_de_filas(
             f"{filas_chico[nombre]}->{filas_grande[nombre]}"
         )
 
+    # Una lista que no crece haría pasar la guardia sin medir nada.
+    sin_crecer = [
+        f"{nombre}: {filas_chico[nombre]} -> {filas_grande[nombre]}"
+        for nombre, *_ in ENDPOINTS
+        if filas_chico[nombre] != -1 and filas_grande[nombre] <= filas_chico[nombre]
+    ]
+    assert not sin_crecer, "Listas que no crecieron entre N=2 y N=10:\n" + "\n".join(sin_crecer)
+
     crecen = []
     for nombre, *_ in ENDPOINTS:
         tope = TOPES_EXPLICITOS.get(nombre, chico[nombre])

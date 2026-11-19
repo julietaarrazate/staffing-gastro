@@ -3,7 +3,7 @@ import type { WorkerProfile } from "@/lib/types";
 
 const get = vi.fn();
 const put = vi.fn();
-vi.mock("@/lib/api", () => ({ api: { get: (...a: unknown[]) => get(...a), put: (...a: unknown[]) => put(...a) } }));
+vi.mock("@/lib/api", () => ({ api: { getFresco: (...a: unknown[]) => get(...a), put: (...a: unknown[]) => put(...a) } }));
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

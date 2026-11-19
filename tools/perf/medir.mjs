@@ -162,7 +162,9 @@ function initScript() {
   const m = (window.__perf = { lcp: 0, cls: 0, longtasks: [], phase: "load", renders: { load: 0, idle: 0, inter: 0 }, commits: { load: 0, idle: 0, inter: 0 }, byName: { load: {}, idle: {}, inter: {} } });
   try {
     new PerformanceObserver((l) => {
-      for (const e of l.getEntries()) m.lcp = e.startTime;
+      // Sólo cuenta lo pintado durante la carga: después, la interacción del
+      // escenario puede pintar algo más grande y "correr" el LCP.
+      for (const e of l.getEntries()) if (m.phase === "load") m.lcp = e.startTime;
     }).observe({ type: "largest-contentful-paint", buffered: true });
     new PerformanceObserver((l) => {
       for (const e of l.getEntries()) if (!e.hadRecentInput) m.cls += e.value;

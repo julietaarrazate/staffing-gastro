@@ -47,12 +47,15 @@ export function cargarTurnstile(): Promise<TurnstileApi> {
     const script = document.createElement("script");
     script.src = TURNSTILE_SCRIPT_SRC;
     script.async = true;
-    script.onload = () =>
-      window.turnstile ? resolve(window.turnstile) : reject(new Error("turnstile"));
-    script.onerror = () => {
+    // Si falla (o carga sin dejar `window.turnstile`), se olvida: el próximo
+    // intento (el widget al montarse) baja el script de nuevo.
+    const fallar = () => {
+      script.remove();
       scriptPromise = null;
       reject(new Error("turnstile"));
     };
+    script.onload = () => (window.turnstile ? resolve(window.turnstile) : fallar());
+    script.onerror = fallar;
     document.head.appendChild(script);
   });
   return scriptPromise;

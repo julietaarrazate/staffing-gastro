@@ -1060,8 +1060,9 @@ function NewShiftWizard() {
 }
 
 
-/** Fila de la vista previa: ícono + label + valor, o el placeholder si el
- * paso correspondiente todavía no se completó. */
+/** La grilla de puestos del primer paso. Va aparte y con `memo` para que
+ * tipear en «Describí tu turno» no la redibuje (medido en
+ * docs/reference/RENDIMIENTO.md). */
 const RejillaPuestos = memo(function RejillaPuestos({
   position,
   locked,
@@ -1097,6 +1098,8 @@ const RejillaPuestos = memo(function RejillaPuestos({
   );
 });
 
+/** Fila de la vista previa: ícono + label + valor, o el placeholder si el
+ * paso correspondiente todavía no se completó. */
 function PreviewRow({
   icon,
   tone,

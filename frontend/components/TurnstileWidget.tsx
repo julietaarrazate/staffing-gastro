@@ -82,6 +82,9 @@ export default function TurnstileWidget({
  */
 export function TurnstileTemprano() {
   if (!TURNSTILE_SITE_KEY) return null;
+  // Si la landing ya lo bajó, no hace falta (y Chrome avisaría que la
+  // precarga no se usó).
+  if (typeof window !== "undefined" && window.turnstile) return null;
   preconnect(TURNSTILE_ORIGIN);
   preload(TURNSTILE_SCRIPT_SRC, { as: "script" });
   return null;
