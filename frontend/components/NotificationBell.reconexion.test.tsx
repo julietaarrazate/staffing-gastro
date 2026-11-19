@@ -6,10 +6,14 @@ const apiGet = vi.fn();
 vi.mock("@/lib/api", () => ({ api: { get: (...a: unknown[]) => apiGet(...a), post: vi.fn() } }));
 const auth = vi.hoisted(() => ({ token: "tok" as string | null }));
 vi.mock("@/lib/auth-context", () => ({ useAuth: () => ({ token: auth.token }) }));
-const ws = vi.hoisted(() => ({ onOpen: null as null | (() => void) }));
+const ws = vi.hoisted(() => ({
+  onOpen: null as null | (() => void),
+  onMessage: null as null | ((frame: unknown) => void),
+}));
 vi.mock("@/lib/useWebSocket", () => ({
-  useWebSocket: (_p: unknown, _t: unknown, _m: unknown, onOpen: () => void) => {
+  useWebSocket: (_p: unknown, _t: unknown, onMessage: (f: unknown) => void, onOpen: () => void) => {
     ws.onOpen = onOpen;
+    ws.onMessage = onMessage;
     return { status: "open" };
   },
 }));
@@ -64,5 +68,23 @@ describe("NotificationBell: reaperturas del socket", () => {
     act(() => ws.onOpen?.());
     expect(emit).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: "Notificaciones" })).toBeInTheDocument();
+  });
+});
+
+describe("NotificationBell: cuadro de refresco (VIE-01)", () => {
+  it("un cuadro sin id pide el refresco y no entra en la campanita", async () => {
+    await montar();
+    act(() => ws.onMessage?.({ type: "live_refresh" }));
+    expect(emit).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "Notificaciones" })).not.toHaveTextContent(/\d/);
+  });
+
+  it("un aviso de verdad sigue sumando y pidiendo el refresco", async () => {
+    await montar();
+    act(() =>
+      ws.onMessage?.({ id: "n1", type: "new_applicant", title: "t", message: "m", read: false, link: null, created_at: null })
+    );
+    expect(emit).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "Notificaciones" })).toHaveTextContent("1");
   });
 });

@@ -102,10 +102,18 @@ export default function NotificationBell() {
   // layout raíz, o sea en toda pantalla con sesión). Cada aviso nuevo y cada
   // reconexión le avisan a las pantallas abiertas (`lib/live-refresh.ts`) para
   // que se pongan al día solas (G1, U013).
-  useWebSocket<Notification>(
+  useWebSocket<Notification | { type: "live_refresh" }>(
     token ? "/notifications/ws" : null,
     token,
-    (notification) => {
+    (frame) => {
+      // Cuadro que no es un aviso (sin id ni texto): sólo pide que las
+      // pantallas se pongan al día, p. ej. cuando alguien retira su
+      // postulación (VIE-01). No entra en la campanita.
+      if (!("id" in frame)) {
+        emitLiveRefresh();
+        return;
+      }
+      const notification = frame;
       setNotifications((prev) =>
         prev.some((n) => n.id === notification.id) ? prev : [notification, ...prev]
       );
