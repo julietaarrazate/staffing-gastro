@@ -38,8 +38,8 @@ problema real era el refresh de 30 días.
    circuló fuera de control. Se revocan **todas** las sesiones activas del
    usuario (`revoke_all_for_user`) y se rechaza con 401 — fuerza un
    re-login, cortando cualquier sesión robada en paralelo. Desde el
-   2026-11-19, salvo que el token se haya **rotado** hace 30 segundos o
-   menos (ver «Actualización 2026-11-19»).
+   2026-11-19, salvo una sola vez para un token **rotado** hace 30 segundos
+   o menos cuya sucesora siga viva (ver «Actualización 2026-11-19»).
 4. **Logout server-side:** nuevo endpoint `POST /auth/logout` con body
    `{"refresh_token": "..."}`. Revoca la sesión asociada; responde `204` si
    el token era válido, `401` si no lo era (no-disclosure: mismo mensaje que
