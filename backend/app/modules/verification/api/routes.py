@@ -63,6 +63,9 @@ logger = logging.getLogger(__name__)
 # La persona volvió a mandar los documentos después de lo que el admin revisó
 # (o mientras decidía): no se decide nada y la cola se vuelve a cargar (ESC-01).
 CLAIM_RESUBMITTED_DETAIL = "La persona volvió a mandar los documentos. Revisalos de nuevo."
+# El envío perdió la carrera de guardado varias veces seguidas (otro envío o
+# una decisión entraron en el medio): no se guardó nada.
+SUBMIT_CONFLICT_DETAIL = "No pudimos guardar tu envío porque cambió mientras tanto. Probá de nuevo."
 
 router = APIRouter(prefix="/identity", tags=["identity-verification"])
 
@@ -130,6 +133,10 @@ async def submit_my_document(
             status_code=status.HTTP_409_CONFLICT,
             detail="Tu identidad ya está verificada",
         ) from exc
+    except ClaimChangedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=SUBMIT_CONFLICT_DETAIL
+        ) from exc
     except EvidenceRequiredError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -162,6 +169,10 @@ async def submit_my_business_document(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Tu comercio ya está verificado",
+        ) from exc
+    except ClaimChangedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=SUBMIT_CONFLICT_DETAIL
         ) from exc
     except EvidenceRequiredError as exc:
         raise HTTPException(

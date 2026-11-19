@@ -22,9 +22,14 @@ from app.modules.verification.application.dtos import (
     PendingClaimItem,
     PendingEvidenceItem,
 )
-from app.modules.verification.domain.entities import Claim, Evidence
+from app.modules.verification.domain.entities import (
+    Claim,
+    Evidence,
+    EvidenceFileDeletion,
+)
 from app.modules.verification.domain.exceptions import (
     ClaimAlreadyExistsError,
+    ClaimAlreadyVerifiedError,
     ClaimChangedError,
     ClaimNotFoundError,
     ClaimNotPendingError,
@@ -49,6 +54,10 @@ from app.modules.verification.domain.value_objects import (
 
 # Cuánto dura el link de una evidencia privada (ADR-0021).
 EVIDENCE_LINK_TTL = timedelta(minutes=5)
+
+# Cuántas veces un envío relee y se vuelve a aplicar si otro guardado le ganó
+# (un envío simultáneo o una decisión del admin).
+CLAIM_SUBMIT_ATTEMPTS = 3
 
 # Desde cuántos intentos fallidos un borrado deja de ser un aviso y pasa a
 # error (llega a Sentry): con los reintentos espaciados, unas 4 horas.
@@ -96,21 +105,41 @@ class VerificationService:
         (a la cola de borrado van sólo los archivos que el envío nuevo
         reemplaza, no los que sigue usando). Lo mismo si otro guardado cambió
         el claim entre la lectura y este (`ClaimChangedError`): se relee y se
-        reenvía sobre lo nuevo; si lo que entró fue una aprobación, el
-        reenvío ya no corresponde (`ClaimAlreadyVerifiedError`). Un solo
-        reintento."""
-        for attempt in range(2):
+        reenvía sobre lo nuevo. Hasta `CLAIM_SUBMIT_ATTEMPTS` intentos.
+
+        Si el claim ya está verificado (también si la aprobación entró en el
+        medio), el envío no corresponde: sus archivos ya están subidos y nada
+        los apunta, así que van a la cola de borrado (ADR-0021) antes de
+        `ClaimAlreadyVerifiedError`."""
+        for attempt in range(CLAIM_SUBMIT_ATTEMPTS):
             claim = await self._claims.get_for_user(user_id, claim_type)
             is_new = claim is None
             if claim is None:
                 claim = Claim(user_id=user_id, claim_type=claim_type)
-            claim.submit(evidences, VerificationMethod.ADMIN_MANUAL, _now())
+            try:
+                claim.submit(evidences, VerificationMethod.ADMIN_MANUAL, _now())
+            except ClaimAlreadyVerifiedError:
+                await self._discard_files(evidences)
+                raise
             try:
                 return await self._save(claim, is_new=is_new)
             except (ClaimAlreadyExistsError, ClaimChangedError):
-                if attempt == 1:
+                if attempt == CLAIM_SUBMIT_ATTEMPTS - 1:
                     raise
         raise AssertionError("inalcanzable")  # pragma: no cover
+
+    async def _discard_files(self, evidences: list[Evidence]) -> None:
+        """Manda a la cola de borrado los archivos de un envío que no se
+        guardó (ADR-0021): ya están en el storage y ningún claim los apunta."""
+        now = _now()
+        deletions = [
+            EvidenceFileDeletion.request(e.file, now) for e in evidences if e.file
+        ]
+        if not deletions:
+            return
+        await self._claims.queue_file_deletions(deletions)
+        if self._delete_files_later is not None:
+            self._delete_files_later([d.id for d in deletions])
 
     async def submit_identity_document(
         self,

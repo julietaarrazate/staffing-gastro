@@ -252,6 +252,10 @@ class SqlAlchemyClaimRepository(ClaimRepository):
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
 
+    async def queue_file_deletions(self, deletions: list[EvidenceFileDeletion]) -> None:
+        self._session.add_all(_deletion_to_model(d) for d in deletions)
+        await self._session.commit()
+
     async def get_by_evidence_id(self, evidence_id: UUID) -> Claim | None:
         stmt = select(IdentityEvidenceModel.claim_id).where(
             IdentityEvidenceModel.id == evidence_id

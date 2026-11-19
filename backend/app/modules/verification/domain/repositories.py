@@ -42,6 +42,11 @@ class ClaimRepository(ABC):
         """Todos los claims del sujeto (para calcular su nivel de garantía)."""
 
     @abstractmethod
+    async def queue_file_deletions(self, deletions: list[EvidenceFileDeletion]) -> None:
+        """Manda a la cola de borrado archivos que ningún claim apunta (un
+        envío que no se guardó)."""
+
+    @abstractmethod
     async def get_by_evidence_id(self, evidence_id: UUID) -> Claim | None:
         """El claim dueño de esa evidencia, o None si no existe."""
 

@@ -250,15 +250,73 @@ async def test_el_reenvio_que_choca_con_una_aprobacion_dice_que_ya_esta_verifica
         return claim
 
     monkeypatch.setattr(SqlAlchemyClaimRepository, "get_for_user", get_for_user)
+    borrados: list[list[UUID]] = []
     async with session_factory() as s:
         with pytest.raises(ClaimAlreadyVerifiedError):
-            await VerificationService(SqlAlchemyClaimRepository(s)).submit_business_document(
-                user_id, nueva
-            )
+            await VerificationService(
+                SqlAlchemyClaimRepository(s), delete_files_later=borrados.append
+            ).submit_business_document(user_id, nueva)
 
     estado, _, cola = await _estado(session_factory)
     assert estado == ClaimStatus.VERIFICADA.value
-    assert cola == {vieja.public_id}
+    # La constancia nueva ya estaba subida y no quedó en ningún pedido: va a
+    # la cola de borrado (ADR-0021), y se borra después de responder.
+    assert cola == {vieja.public_id, nueva.public_id}
+    assert len(borrados) == 1 and len(borrados[0]) == 1
+
+
+async def test_un_reenvio_que_pierde_todas_las_veces_responde_409(
+    client: AsyncClient, session_factory, monkeypatch
+):
+    persona = await auth_headers(client, "worker", "esc01-pierde@test.com")
+    primero = _doc_payload()
+    assert (
+        await client.post("/api/v1/identity/me/document", headers=persona, json=primero)
+    ).status_code == 200
+
+    intentos = {"n": 0}
+
+    async def siempre_cambio(self, claim):
+        intentos["n"] += 1
+        raise ClaimChangedError(str(claim.id))
+
+    monkeypatch.setattr(SqlAlchemyClaimRepository, "update", siempre_cambio)
+    res = await client.post(
+        "/api/v1/identity/me/document", headers=persona, json=_doc_payload()
+    )
+    assert res.status_code == 409, res.text
+    assert res.json()["detail"] == (
+        "No pudimos guardar tu envío porque cambió mientras tanto. Probá de nuevo."
+    )
+    assert intentos["n"] == 3
+    # No se guardó nada: sigue el primer envío y la cola está vacía (los
+    # archivos del que perdió pueden volver a mandarse tal cual).
+    _, vigentes, cola = await _estado(session_factory)
+    assert vigentes == {f["public_id"] for f in primero.values()}
+    assert cola == set()
+
+
+async def test_reenviar_con_la_identidad_ya_verificada_manda_lo_subido_a_borrar(
+    client: AsyncClient, session_factory
+):
+    persona = await auth_headers(client, "worker", "esc01-verificada@test.com")
+    admin = await make_admin(client, session_factory, "esc01-admin-verificada@test.com")
+    await client.post("/api/v1/identity/me/document", headers=persona, json=_doc_payload())
+    pendiente = (await client.get("/api/v1/identity/claims/pending", headers=admin)).json()[0]
+    await client.post(
+        f"/api/v1/identity/claims/{pendiente['claim_id']}/approve",
+        headers=admin,
+        json={"submitted_at": pendiente["submitted_at"]},
+    )
+
+    otra = _doc_payload()
+    res = await client.post("/api/v1/identity/me/document", headers=persona, json=otra)
+    assert res.status_code == 409
+    assert res.json()["detail"] == "Tu identidad ya está verificada"
+    # Quedan en la cola de borrado: con el 409 no corre el borrado de después
+    # de responder, así que los borra el scheduler en su próxima pasada.
+    _, _, cola = await _estado(session_factory)
+    assert {f["public_id"] for f in otra.values()} <= cola
 
 
 # --- Dominio: se decide sobre el envío revisado -------------------------------
