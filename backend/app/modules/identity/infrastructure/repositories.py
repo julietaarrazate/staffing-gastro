@@ -284,34 +284,40 @@ class SqlAlchemyRefreshSessionRepository(RefreshSessionRepository):
     async def use_rotation_grace(
         self, rotated: RefreshSession, now: datetime, successor: RefreshSession
     ) -> bool:
-        # Una sola vez: la ventana se marca usada borrando `rotated_at`, con la
-        # condición en el mismo UPDATE (de dos pedidos con el token viejo, uno
-        # solo la usa).
-        claimed = await self._session.execute(
-            update(RefreshSessionModel)
-            .where(
-                RefreshSessionModel.jti == rotated.jti,
-                RefreshSessionModel.replaced_by == rotated.replaced_by,
-                RefreshSessionModel.rotated_at >= now - REFRESH_ROTATION_GRACE,
-            )
-            .values(rotated_at=None, replaced_by=successor.jti)
-            .execution_options(synchronize_session=False)
-        )
+        # Orden de las filas: primero la sucesora (viva) y después la rotada,
+        # el mismo que usa `revoke_all_for_user` (vivas y después rotadas).
+        # En el orden inverso las dos se bloqueaban entre sí en Postgres
+        # (revisión de seguridad del 2026-11-19).
+        #
         # La sucesora que el cliente no recibió deja de servir. Si ya no
         # estaba viva (salió con ella, contraseña nueva, la rotó), no hay
         # gracia.
-        revoked = None
-        if (claimed.rowcount or 0) == 1:
-            revoked = await self._session.execute(
+        revoked = await self._session.execute(
+            update(RefreshSessionModel)
+            .where(
+                RefreshSessionModel.jti == rotated.replaced_by,
+                RefreshSessionModel.revoked_at.is_(None),
+            )
+            .values(revoked_at=now)
+            .execution_options(synchronize_session=False)
+        )
+        # Una sola vez: la ventana se marca usada borrando `rotated_at`, con la
+        # condición en el mismo UPDATE (de dos pedidos con el token viejo, uno
+        # solo la usa: el segundo espera la fila de la sucesora y la encuentra
+        # ya revocada).
+        claimed = None
+        if (revoked.rowcount or 0) == 1:
+            claimed = await self._session.execute(
                 update(RefreshSessionModel)
                 .where(
-                    RefreshSessionModel.jti == rotated.replaced_by,
-                    RefreshSessionModel.revoked_at.is_(None),
+                    RefreshSessionModel.jti == rotated.jti,
+                    RefreshSessionModel.replaced_by == rotated.replaced_by,
+                    RefreshSessionModel.rotated_at >= now - REFRESH_ROTATION_GRACE,
                 )
-                .values(revoked_at=now)
+                .values(rotated_at=None, replaced_by=successor.jti)
                 .execution_options(synchronize_session=False)
             )
-        if revoked is None or (revoked.rowcount or 0) != 1:
+        if claimed is None or (claimed.rowcount or 0) != 1:
             await self._session.rollback()
             return False
         self._session.add(_session_to_model(successor))

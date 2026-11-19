@@ -143,7 +143,9 @@ class RefreshSessionRepository(ABC):
         `successor` como su reemplazo, todo en una transacción (UPDATE
         condicional): de dos pedidos con el mismo token gana uno. Devuelve
         True si la rotó este pedido; False si otro ya la había rotado o
-        revocado (y entonces no guarda nada)."""
+        revocado (y entonces no guarda nada). Si no gana, hace rollback de
+        toda la sesión de la base: no llamarlo con escrituras pendientes del
+        mismo pedido (hoy sólo lo llama `/auth/refresh`, que no escribe antes)."""
 
     @abstractmethod
     async def use_rotation_grace(
@@ -154,7 +156,10 @@ class RefreshSessionRepository(ABC):
         revoca la sucesora que el cliente no recibió (`rotated.replaced_by`)
         sólo si seguía viva, y guarda `successor`. Devuelve False sin cambiar
         nada si alguna de las condiciones falla (ventana usada o vencida,
-        sucesora ya revocada): es reuso."""
+        sucesora ya revocada): es reuso. Igual que `rotate`, si falla hace
+        rollback de toda la sesión de la base. Toma las filas en el mismo orden
+        que `revoke_all_for_user` (primero la sucesora viva, después la
+        rotada) para no bloquearse con ella."""
 
     @abstractmethod
     async def revoke_all_for_user(self, user_id: UUID) -> None:

@@ -167,8 +167,12 @@ el punto 3 cerraba sesiones legítimas o dejaba pasar un reuso:
   minutos, o antes ante un 401) la víctima trae un token revocado sin
   ventana, salta la detección y se corta todo, también la sesión del
   atacante (que conserva lo que le quede de su access token, hasta 15
-  minutos). Si la víctima llega segunda dentro de la ventana, la ventana ya
-  está usada y se corta todo en el acto. O sea: una sola vez por token, sin
+  minutos). Si el atacante usa el token todavía vigente antes que la
+  víctima, eso es una rotación, no la ventana: la víctima, que llega
+  segunda, usa la ventana, la sucesora del atacante queda revocada y la
+  detección salta en la próxima renovación del atacante. Y si los dos
+  llegan dentro de la ventana con un token ya rotado, el segundo uso es
+  reuso y se corta todo en el acto. O sea: una sola vez por token, sin
   cadena propia que dure más que la próxima renovación de la víctima. Es lo
   mismo que ya permitía el ADR original a quien usara el token robado
   **antes** que su dueño: la detección salta cuando el otro vuelve a
@@ -220,7 +224,15 @@ el punto 3 cerraba sesiones legítimas o dejaba pasar un reuso:
   suspensión, robo) que cae entre la lectura del token y el guardado del par
   nuevo no alcanza a la sesión nueva, por la ventana igual que por la
   rotación normal (el hueco ya estaba en la rotación antes de esta
-  actualización). No se cierra acá.
+  actualización). No se cierra acá; la revisión de seguridad propuso, como
+  seguimiento, un candado por cuenta (`SELECT … FROM users … FOR UPDATE`) en
+  la rotación, la ventana y `revoke_all_for_user`.
+- La ventana toma las filas en el mismo orden que `revoke_all_for_user`
+  (primero la sucesora viva, después la rotada): en el orden inverso las dos
+  se bloqueaban entre sí en Postgres (`deadlock detected`), y si abortaba la
+  revocación en bloque de una contraseña nueva, la contraseña quedaba
+  cambiada con las sesiones vivas (lo encontró la segunda vuelta de la
+  revisión de seguridad).
 - Tests: `backend/tests/test_renovacion_de_sesion.py` (la ventana en el
   dominio; la respuesta perdida y las dos pestañas, con la sucesora
   revocada; la ventana de un solo uso; salir con la sucesora, el cierre de
