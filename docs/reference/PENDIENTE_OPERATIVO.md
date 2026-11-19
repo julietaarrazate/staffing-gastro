@@ -121,6 +121,13 @@ toda vista previa y el sitemap apuntaban ahí.
       python -m scripts.privatize_worker_cvs          # perfiles, a protegido y huérfanos en 0
       ```
 
+   El de los documentos, **sin pedidos abiertos**: decidir antes los
+   pendientes de `/admin/verificacion` y no aprobar ni rechazar mientras
+   corre; al terminar, correrlo otra vez. Una decisión o un reenvío a la vez
+   que el script manda a borrar el archivo con el tipo viejo y el
+   `authenticated` queda huérfano hasta la segunda pasada (ADR-0021,
+   «Actualización 2026-11-19: la decisión es sobre el envío revisado»).
+
    Primero siempre sin `--apply` y leer la lista. Lo que un script marca con
    `!` (problema: «no parece un CV», «lo usa también una foto», «lo apuntan 2
    perfiles», «otra cuenta», «cambió mientras corría») no lo toca; lo que

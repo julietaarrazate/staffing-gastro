@@ -42,6 +42,13 @@ versión ni condición, y pisaban lo que otro pedido escribió en el medio.
 - La entidad lleva cómo estaba la fila al leerla (`persisted_state`, lo arma
   el repositorio) y los dos modos de guardar están en
   `backend/app/core/row_state.py`.
+- Al integrarlo sobre el CV privado (#669), la cola de borrado quedó con una
+  sola puerta: `queue_file_deletions(session, files)` sobre `add_pending`
+  (`verification/infrastructure/repositories.py`; `file_cleanup_job.py` la
+  reexporta para el CV). El pedido que se guarda encola con `add_pending`
+  en su commit, y el envío descartado usa la misma puerta y confirma solo.
+  El ADR-0021 y `PENDIENTE_OPERATIVO.md` (5c) piden correr
+  `privatize_identity_evidence.py` sin pedidos abiertos y volver a correrlo.
 - Tests: `test_verificacion_decision_vs_reenvio.py`,
   `test_usuario_escribe_sus_columnas.py`,
   `test_suscripcion_guarda_si_no_cambio.py` (carreras con dos sesiones de

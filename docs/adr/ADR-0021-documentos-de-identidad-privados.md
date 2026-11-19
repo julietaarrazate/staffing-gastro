@@ -417,9 +417,16 @@ borrado de este ADR dejaba de cumplirse.
   reenvía). Con el 409 no corre el borrado de después de responder: los
   borra el scheduler en su próxima pasada.
 - `scripts/privatize_identity_evidence.py` cambia el puntero de las
-  evidencias (de la URL pública al archivo privado) sin mover el estado ni
-  `submitted_at`, así que el guardado condicional no lo ve. Una decisión que
-  corra justo a la vez guarda las evidencias que leyó antes, con la URL
-  vieja, y ese archivo no entra a la cola de borrado; lo borra el paso 2 del
-  script al volver a correrlo (es idempotente).
+  evidencias pendientes (de la URL pública, o de `file_delivery_type`
+  `private`, a `authenticated`) sin mover el estado ni `submitted_at`, así
+  que el guardado condicional del pedido no lo ve. Una decisión o un
+  reenvío mientras corre el script trabaja con lo que leyó antes: encola el
+  borrado con el tipo viejo (o, con la URL pública, no encola nada),
+  Cloudinary contesta que ese archivo no existe, el pedido cuenta como
+  borrado y el archivo `authenticated` queda huérfano hasta volver a correr
+  el script (su paso 2 borra lo que nada apunta). Por eso el script se
+  corre **sin pedidos abiertos** (decidir antes los pendientes de
+  `/admin/verificacion` y no aprobar ni rechazar mientras corre) y **se
+  vuelve a correr al terminar** (es idempotente). Está en
+  `PENDIENTE_OPERATIVO.md`, ítem 5c.
 
