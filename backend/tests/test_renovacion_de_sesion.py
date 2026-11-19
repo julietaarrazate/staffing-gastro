@@ -30,6 +30,7 @@ from app.modules.identity.infrastructure.repositories import (
 )
 from tests.conftest import (
     DEFAULT_PASSWORD,
+    enroll_admin,
     login,
     new_client,
     pasar_la_ventana_de_gracia,
@@ -144,6 +145,24 @@ async def test_dos_pestanas_que_chocan_no_cierran_la_sesion_del_celular(
         assert (await refresh_with_cookie(pestana_2.cookies.get(COOKIE))).status_code == 200
         # Y el celular, que no tuvo nada que ver, sigue adentro.
         assert (await celular.post("/api/v1/auth/refresh")).status_code == 200
+
+
+async def test_la_ventana_no_cambia_la_verificacion_en_dos_pasos(
+    client: AsyncClient, session_factory
+):
+    """El par que da la ventana lleva el mismo `mfa` que el token: una sesión
+    admin verificada sigue verificada (ADR-0023). Sale del claim del token,
+    igual que en la rotación: una sin verificar tampoco se verifica sola."""
+    await enroll_admin(client, session_factory, "ventana-verificada@oido.com.ar")
+    verificada = client.cookies.get(COOKIE)
+    assert (await refresh_with_cookie(verificada)).status_code == 200
+    reintento = await refresh_with_cookie(verificada)
+    assert reintento.status_code == 200
+    panel = await client.get(
+        "/api/v1/admin/stats",
+        headers={"Authorization": f"Bearer {reintento.json()['access_token']}"},
+    )
+    assert panel.status_code == 200
 
 
 # --- Lo que sigue siendo robo ----------------------------------------------
