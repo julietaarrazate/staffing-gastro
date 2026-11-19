@@ -142,9 +142,11 @@ listados más abajo.
   matching de un turno) mida la distancia desde ahí y no desde su domicilio.
   Dura 4h (`AVAILABLE_NOW_TTL`) o hasta apagarlo. El pin que ve el comercio
   **nunca** es la coordenada exacta, esté o no "Disponible ahora" prendido:
-  `app/core/geo.py::fuzz_point` la desplaza siempre dentro de un anillo de
-  150–350m (TECH_DEBT.md S4) — un desplazamiento determinístico (mismo
-  trabajador, mismo punto en cada render), no aleatorio en cada carga.
+  `app/core/geo.py::fuzz_point` la lleva al centro de una celda de 0,2 km y
+  la desplaza con una clave del servidor, a entre 150 y ~640 m del punto
+  real, redondeada a 4 decimales (TECH_DEBT.md S4; ADR-0014, actualización
+  2026-11-19) — un desplazamiento determinístico (mismo trabajador en el
+  mismo lugar, mismo punto en cada render), no aleatorio en cada carga.
 - **«Cerca» es un límite, no una preferencia** (2026-11-13): el aviso
   «Turno cerca tuyo» sale sólo a quien está a 25 km o menos del turno (40 km
   en la escalada a urgente), y lo mismo los recomendados que ve el comercio.

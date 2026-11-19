@@ -540,7 +540,10 @@ decisiones pendientes) porque **el problema no dependía de esa aprobación**.
 pseudo-aleatorio pero **determinístico** (hash del `profile_id`, no
 `random`/`hash()` — ambos varían entre procesos) dentro de un anillo de
 150–350 m: alcanza para decidir a quién contactar, no para ir a golpear una
-puerta. Se aplica en `MatchingService.search_workers` (el único lugar que
+puerta. (Desde el 2026-11-19 ya no es un vector fijo por `profile_id`: el
+pin sale del centro de una celda de 0,2 km con un vector por celda y una
+clave del servidor, y se publica redondeado; ver ADR-0014, actualización
+2026-11-19.) Se aplica en `MatchingService.search_workers` (el único lugar que
 arma `WorkerMapResult`, usado tanto por el mapa del comercio como por el del
 admin, mismo endpoint). Desde el 2026-10-20 la distancia también se mide
 desde el punto desplazado (y el filtro por radio usa esa misma distancia):

@@ -313,14 +313,27 @@ centímetros de la puerta. Lo encontró la pasada por clase de error del
   perfil.
 - **Sigue habiendo al menos 150 m** entre el pin y el punto real, esté donde
   esté el punto dentro de su celda: el anillo alrededor del centro se corre
-  media diagonal de celda hacia afuera. El pin queda entre 0,15 y ~0,63 km
+  media diagonal de celda hacia afuera. El pin queda entre 0,15 y ~0,64 km
   del punto real (antes, entre 0,15 y 0,35). Alcanza igual para decidir a
   quién contactar; la distancia que ve el comercio se sigue midiendo desde
   el pin y redondeada a 0,1 km.
+- **El pin se publica redondeado a 4 decimales** (~10 m). Con todos sus
+  decimales delataba la celda: el ángulo y el radio salen de enteros de 32
+  bits del HMAC, y deshaciendo la cuenta desde cada centro de celda
+  candidato sólo el verdadero daba enteros (lo encontró la revisión
+  independiente antes del merge). El anillo se corre 10 m más para que el
+  redondeo no acerque el pin a menos de 150 m.
 - **Sigue siendo determinístico** para el mismo lugar (no invita a promediar
-  recargas). Si se rota `JWT_SECRET_KEY`, los pines se mueven una vez.
+  recargas). Si se rota `JWT_SECRET_KEY`, los pines se mueven una vez, y
+  cada rotación es otra muestra del pin de la misma celda: cruzando dos o
+  tres se acota la celda. No se rota sin motivo (si se filtró, el riesgo de
+  las sesiones pesa más).
+- **Lo que sigue sabiéndose:** si el domicilio cae en la misma celda que un
+  punto real que el comercio conoce (la persona vive a una o dos cuadras
+  del local), los dos pines son el mismo y el comercio sabe la celda de
+  0,2 km donde vive; no más que eso.
 
 Tests: `backend/tests/test_geo.py` (mínimo de 150 m sobre 3.000 puntos al
 azar, mismo pin en toda la celda, vector distinto entre celdas) y
 `backend/tests/test_pin_desplazado_punto_conocido.py` (el ataque con el punto
-conocido ya no sirve).
+conocido y el de los decimales ya no sirven).

@@ -97,9 +97,17 @@ FUZZ_MAX_RADIUS_KM = 0.35
 # real conocido ni muchas lecturas dicen más que la celda. El anillo se mide
 # desde el centro y se corre media diagonal de celda hacia afuera, para que
 # el pin quede siempre entre `FUZZ_MIN_RADIUS_KM` y
-# `FUZZ_MAX_RADIUS_KM + diagonal` (~0,63 km) del punto real, nunca más cerca.
+# `FUZZ_MAX_RADIUS_KM + diagonal + 10 m` (~0,64 km) del punto real, nunca más cerca.
 FUZZ_CELL_KM = 0.2
 _FUZZ_HALF_DIAGONAL_KM = FUZZ_CELL_KM * math.sqrt(2) / 2
+# El pin publicado va redondeado a 4 decimales (~10 m). Con todos sus
+# decimales delataba la celda: el ángulo y el radio salen de enteros de 32
+# bits del HMAC, así que deshaciendo la cuenta desde cada centro candidato
+# sólo el verdadero daba enteros (revisión independiente del 2026-11-19). El
+# redondeo mueve el pin hasta ~8 m: el anillo se corre ese margen más para
+# conservar los 150 m.
+FUZZ_DECIMALS = 4
+_FUZZ_ROUNDING_MARGIN_KM = 0.01
 _KM_POR_GRADO = EARTH_RADIUS_KM * math.pi / 180
 
 
@@ -119,7 +127,9 @@ def _fuzz_key() -> bytes:
     """Clave del servidor para el desplazamiento: sin ella, cualquiera que
     conozca el id del perfil (el comercio lo ve) calculaba el vector. Sale de
     `JWT_SECRET_KEY`, separada por propósito, para no sumar otra variable de
-    entorno. Si esa clave se rota, los pines se mueven una vez."""
+    entorno. Si esa clave se rota, los pines se mueven una vez; cada rotación
+    es otra muestra del pin de la misma celda, así que no se rota sin motivo
+    (ADR-0014, actualización 2026-11-19)."""
     from app.core.config import settings  # import tardío: geo no depende de config al importarse
 
     return hashlib.sha256(b"oido-pin-desplazado:" + settings.jwt_secret_key.encode()).digest()
@@ -130,9 +140,10 @@ def fuzz_point(
 ) -> tuple[float | None, float | None]:
     """El pin público de un punto: el centro de su celda de la grilla
     (`FUZZ_CELL_KM`), desplazado a un punto pseudo-aleatorio pero
-    determinístico dentro de un anillo alrededor de ese centro. El anillo va
-    de `FUZZ_MIN_RADIUS_KM` a `FUZZ_MAX_RADIUS_KM` más media diagonal de
-    celda: así el pin queda a 150 m o más de CUALQUIER punto de la celda.
+    determinístico dentro de un anillo alrededor de ese centro, redondeado a
+    `FUZZ_DECIMALS`. El anillo va de `FUZZ_MIN_RADIUS_KM` a
+    `FUZZ_MAX_RADIUS_KM` más media diagonal de celda y el margen del
+    redondeo: así el pin queda a 150 m o más de CUALQUIER punto de la celda.
 
     Determinístico a propósito: el mismo trabajador en el mismo lugar tiene
     que aparecer en el mismo punto en cada render, no saltar cada vez que el
@@ -162,6 +173,7 @@ def fuzz_point(
     angle = (int.from_bytes(digest[:4], "big") / 2**32) * 2 * math.pi
     distance_km = (
         _FUZZ_HALF_DIAGONAL_KM
+        + _FUZZ_ROUNDING_MARGIN_KM
         + FUZZ_MIN_RADIUS_KM
         + (int.from_bytes(digest[4:8], "big") / 2**32)
         * (FUZZ_MAX_RADIUS_KM - FUZZ_MIN_RADIUS_KM)
@@ -174,6 +186,6 @@ def fuzz_point(
         / math.cos(math.radians(centro_lat))
     )
     return (
-        centro_lat + d_lat * math.cos(angle),
-        centro_lng + d_lng * math.sin(angle),
+        round(centro_lat + d_lat * math.cos(angle), FUZZ_DECIMALS),
+        round(centro_lng + d_lng * math.sin(angle), FUZZ_DECIMALS),
     )
