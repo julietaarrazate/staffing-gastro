@@ -60,9 +60,21 @@ describe("NotificationBell: marcar todas como leídas", () => {
     expect(campana).not.toHaveTextContent("2");
     expect(screen.queryByRole("button", BOTON)).not.toBeInTheDocument();
     expect(apiPost).toHaveBeenCalledTimes(1);
-    expect(apiPost).toHaveBeenCalledWith("/notifications/read-all", undefined, "tok");
+    // Manda lo que mostró (CON-10): el servidor marca sólo esos avisos.
+    expect(apiPost).toHaveBeenCalledWith("/notifications/read-all", { ids: ["a", "b"] }, "tok");
     responder({ marked: 2 });
     await waitFor(() => expect(campana).not.toHaveTextContent("2"));
+  });
+
+  it("un aviso que llegó después de la carga no va en la lista que se manda", async () => {
+    apiPost.mockResolvedValue({ marked: 2 });
+    await abrirPanel();
+    // Los ids se toman al tocar el botón, de lo que está en pantalla: ni un
+    // aviso ya leído ni uno que la campanita no tiene cargado.
+    fireEvent.click(screen.getByRole("button", BOTON));
+    const [, body] = apiPost.mock.calls[0];
+    expect(body.ids).toEqual(["a", "b"]);
+    expect(body.ids).not.toContain("c");
   });
 
   it("si el pedido falla, vuelve atrás en silencio", async () => {

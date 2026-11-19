@@ -11,7 +11,8 @@ import { emitLiveRefresh } from "@/lib/live-refresh";
 import { Notification } from "@/lib/types";
 import { Skeleton } from "@/components/ui";
 
-/** Piso entre dos recargas por reconexión del socket. */
+/** Piso entre dos recargas por reconexión del socket, por volver a primer plano
+ *  o por volver la red (comparten el mismo contador). */
 export const RECONNECT_REFRESH_MIN_GAP_MS = 30_000;
 
 function NotificationRowSkeleton() {
@@ -66,6 +67,36 @@ export default function NotificationBell() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // VIE-04: el celular vuelve de horas en segundo plano, o vuelve la red, y el
+  // socket pudo haberse perdido avisos (o quedar muerto sin cerrarse). Relectura
+  // barata en esos dos eventos, con el mismo piso que la reconexión: un
+  // `visibilitychange` seguido de `online`, o de la reapertura del socket, es
+  // una sola recarga.
+  useEffect(() => {
+    if (!token) return;
+    function refreshIfStale(emit: boolean) {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      const now = Date.now();
+      if (now - lastReconnectAt.current < RECONNECT_REFRESH_MIN_GAP_MS) return;
+      lastReconnectAt.current = now;
+      load();
+      if (emit) emitLiveRefresh();
+    }
+    // Las pantallas abiertas ya se ponen al día solas al volver a primer plano
+    // (`useLiveRefresh`): acá sólo la campanita. Al volver la red no, y ahí sí
+    // se les avisa.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refreshIfStale(false);
+    };
+    const onOnline = () => refreshIfStale(true);
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", onOnline);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", onOnline);
+    };
+  }, [token, load]);
 
   // La campanita es la única que escucha los avisos (está en el `Navbar` del
   // layout raíz, o sea en toda pantalla con sesión). Cada aviso nuevo y cada
@@ -174,17 +205,30 @@ export default function NotificationBell() {
     }
   }
 
-  /** Marca todo como leído de una (2026-10-30): de a uno, una cuenta con
-   *  86 avisos dejaba la campanita en "9+" para siempre. Optimista: se ve
+  /** Marca como leído lo que la persona tiene en pantalla, de una (2026-10-30):
+   *  de a uno, una cuenta con 86 avisos dejaba la campanita en "9+" para
+   *  siempre. Manda los ids que mostró (CON-10): el servidor marca sólo esos,
+   *  así un aviso que llegó mientras tanto, o que no entró en la lista cargada,
+   *  no se pierde sin haberse visto. Optimista: se ve
    *  leído al instante y, si el pedido falla, vuelven a no leídos sólo los
    *  que se marcaron acá (un aviso que llegó por WebSocket mientras tanto
    *  queda como está). En silencio, igual que `markAsRead`. */
   async function markAllAsRead() {
-    const ids = new Set(notifications.filter((n) => !n.read).map((n) => n.id));
+    // Tope del backend: 500 ids por pedido (una cuenta normal tiene muchos menos).
+    const ids = new Set(
+      notifications
+        .filter((n) => !n.read)
+        .slice(0, 500)
+        .map((n) => n.id)
+    );
     if (ids.size === 0) return;
     setNotifications((prev) => prev.map((n) => (ids.has(n.id) ? { ...n, read: true } : n)));
     try {
-      await api.post<{ marked: number }>("/notifications/read-all", undefined, token);
+      await api.post<{ marked: number }>(
+        "/notifications/read-all",
+        { ids: [...ids] },
+        token
+      );
     } catch {
       setNotifications((prev) =>
         prev.map((n) => (ids.has(n.id) ? { ...n, read: false } : n))

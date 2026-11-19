@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+from collections.abc import Collection
 from datetime import datetime, timezone
 from uuid import UUID
 
@@ -169,17 +170,20 @@ class SqlAlchemyNotificationRepository(NotificationRepository):
         await self._session.refresh(model)
         return _to_entity(model)
 
-    async def mark_all_read(self, user_id: UUID) -> int:
+    async def mark_all_read(
+        self, user_id: UUID, ids: Collection[UUID] | None = None
+    ) -> int:
         # Un solo UPDATE: la campanita quedaba en "9+" para siempre porque
         # cada aviso se marcaba de a uno (había cuentas con 86 sin leer).
-        result = await self._session.execute(
-            update(NotificationModel)
-            .where(
-                NotificationModel.user_id == user_id,
-                NotificationModel.read.is_(False),
-            )
-            .values(read=True)
+        stmt = update(NotificationModel).where(
+            NotificationModel.user_id == user_id,
+            NotificationModel.read.is_(False),
         )
+        if ids is not None:
+            if not ids:
+                return 0
+            stmt = stmt.where(NotificationModel.id.in_(ids))
+        result = await self._session.execute(stmt.values(read=True))
         await self._session.commit()
         return result.rowcount or 0
 

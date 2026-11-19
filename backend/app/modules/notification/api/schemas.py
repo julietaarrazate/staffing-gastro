@@ -23,6 +23,14 @@ class NotificationResponse(BaseModel):
     created_at: datetime
 
 
+class MarkAllReadRequest(BaseModel):
+    """Los avisos que la persona tenía en pantalla al tocar «Marcar todas como
+    leídas». Sólo esos se marcan: uno que llegó después, o que no entró en la
+    lista cargada, queda sin leer (CON-10)."""
+
+    ids: list[UUID] = Field(max_length=500)
+
+
 class MarkAllReadResponse(BaseModel):
     """Cuántos avisos pasaron de no leídos a leídos (0 si no había)."""
 

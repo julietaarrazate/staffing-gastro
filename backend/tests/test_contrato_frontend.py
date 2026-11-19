@@ -339,6 +339,10 @@ async def test_contrato_frontend(client: AsyncClient, session_factory):
         f"/api/v1/shifts/{shift_id}/assign", headers=emp,
         json={"worker_profile_id": perfil_w2.json()["id"]}))
     cap.guardar("avisos_trabajador", await client.get("/api/v1/notifications", headers=wk), ordenar=True)
+    # «Marcar todas como leídas»: el cuerpo lleva los ids que la campanita mostró.
+    avisos = (await client.get("/api/v1/notifications", headers=wk)).json()
+    cap.guardar("avisos_leer_todo", await client.post(
+        "/api/v1/notifications/read-all", headers=wk, json={"ids": [a["id"] for a in avisos]}))
 
     cap.guardar("turno_confirmar", await client.post(f"/api/v1/shifts/{shift_id}/confirm", headers=wk))
     cap.guardar("turno_llegada_antes_de_tiempo", await client.post(

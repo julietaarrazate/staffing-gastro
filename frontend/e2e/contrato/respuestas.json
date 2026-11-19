@@ -101,6 +101,12 @@
     ],
     "status": 200
   },
+  "avisos_leer_todo": {
+    "body": {
+      "marked": 2
+    },
+    "status": 200
+  },
   "avisos_trabajador": {
     "body": [
       {

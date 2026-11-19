@@ -1,6 +1,7 @@
 """Puertos de los repositorios del módulo notification."""
 
 from abc import ABC, abstractmethod
+from collections.abc import Collection
 from datetime import datetime
 from uuid import UUID
 
@@ -34,9 +35,16 @@ class NotificationRepository(ABC):
         """
 
     @abstractmethod
-    async def mark_all_read(self, user_id: UUID) -> int:
-        """Marca como leídas TODAS las notificaciones no leídas del usuario,
-        en una sola operación, y devuelve cuántas marcó (0 si no había)."""
+    async def mark_all_read(
+        self, user_id: UUID, ids: Collection[UUID] | None = None
+    ) -> int:
+        """Marca como leídas, en una sola operación, las notificaciones no
+        leídas del usuario y devuelve cuántas marcó (0 si no había).
+
+        Con `ids`, sólo las de esa lista (lo que la persona tenía en pantalla):
+        un aviso que llegó después, o que no entró en la lista que se cargó,
+        no se toca. Los ids ajenos o inexistentes se ignoran. Sin `ids`
+        (`None`), todas las del usuario (cliente viejo)."""
 
     @abstractmethod
     async def delete_read_before(self, cutoff: datetime) -> int:
