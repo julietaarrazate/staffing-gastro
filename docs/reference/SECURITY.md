@@ -15,10 +15,12 @@
     `jti` único, se **rota** en cada `/auth/refresh` (el usado queda
     revocado) y `POST /api/v1/auth/logout` lo revoca explícitamente. Reusar
     un `jti` ya revocado se trata como robo: revoca **todas** las sesiones
-    del usuario. Salvo un `jti` **rotado** hace 30 s o menos (segunda
-    pestaña, reintento tras una respuesta perdida): recibe un par nuevo sin
-    tocar las demás (ADR-0002, actualización 2026-11-19). La rotación es un
-    `UPDATE` condicional: de dos pedidos con el mismo token rota uno solo.
+    del usuario. Salvo un `jti` **rotado** hace 30 s o menos cuya sucesora
+    sigue viva (segunda pestaña, reintento tras una respuesta perdida):
+    recibe un par nuevo **una sola vez**, se revoca la sucesora que no le
+    llegó y las demás sesiones no se tocan (ADR-0002, actualización
+    2026-11-19). La rotación y el uso de la ventana son `UPDATE`
+    condicionales: de dos pedidos con el mismo token gana uno.
   - Algoritmo **HS256**; claims: `sub`, `type` (`access`/`refresh`), `iat`,
     `exp`, `jti` sólo en el refresh, y `mfa: true` (en los dos) cuando la
     sesión pasó por la verificación en dos pasos (ADR-0023, abajo).
