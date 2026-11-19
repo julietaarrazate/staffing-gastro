@@ -149,7 +149,7 @@ export default function Navbar() {
               onClick={logout}
               aria-label={`Salir (${user.full_name})`}
               title={`Salir (${user.full_name})`}
-              className="hidden whitespace-nowrap rounded-full bg-surface px-3 py-1.5 hover:bg-line md:inline"
+              className="hidden whitespace-nowrap rounded-[var(--radius-relieve)] bg-surface px-3 py-1.5 hover:bg-line md:inline"
             >
               Salir
             </button>
@@ -198,7 +198,7 @@ function AuthLink({
       href={href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "inline-flex h-9 items-center whitespace-nowrap rounded-[var(--radius-btn)] px-3.5 font-semibold transition duration-150 active:scale-95 active:bg-secondary active:text-on-brand",
+        "inline-flex h-9 items-center whitespace-nowrap rounded-[var(--radius-relieve)] px-3.5 font-semibold transition duration-150 active:scale-95 active:bg-secondary active:text-on-brand",
         active
           ? "bg-secondary text-on-brand"
           : outlined

@@ -300,8 +300,10 @@ preguntó con opciones puestas sobre las pantallas ya migradas (capturas a
    2026-11-19): ~~la barra de abajo~~ (hecha el 2026-11-19,
    [historial](../historial/2026-11-19-barra-de-abajo-relieve.md)), ~~las
    pestañas~~ (hechas el 2026-11-19,
-   [historial](../historial/2026-11-19-pestanas-relieve.md)), los botones
-   secundarios, los pasos tachados a mano, los colores
+   [historial](../historial/2026-11-19-pestanas-relieve.md)), ~~los botones
+   secundarios~~ (hechos el 2026-11-19,
+   [historial](../historial/2026-11-19-botones-secundarios-relieve.md)), los
+   pasos tachados a mano, los colores
    de los sellos y el detalle del turno. Cómo va cada uno, en «Decidido por
    Julieta (2026-11-19)».
 
@@ -323,4 +325,5 @@ Antes de dibujar algo nuevo en una pantalla, usar éstas:
 | `AIAssistantBar recto` | `components/AIAssistantBar.tsx` | El buscador sin píldora ni sombra |
 | `ShiftCard comanda` | `components/ShiftCard.tsx` | La tarjeta de un turno (con sus pasos y acciones) como comanda: puesto en brocha y estado como sello. La usa el panel; «Mis turnos» la toma pasando el prop |
 | `.app-banda` + `.riel` | `globals.css` | La banda azul hondo donde cuelgan las comandas en curso, y la barra del riel. Sobre la banda el relieve cambia de tono solo |
+| `BOTON_LISO` y `Button` `surface` | `components/ui/Button.tsx` | El secundario: blanco, recto (10 px, el radio del principal), con filete y plano. `BOTON_LISO` es para lo que no puede ser un `Button` (un `Link`, un `<a>`) |
 | `.boton-relieve` | `globals.css` | El relieve del botón principal: borde azul hondo, sombra dura, se aprieta. El fondo lo pone quien lo usa. Desde el 2026-11-18 lo lleva `Button` en su variante `primary` en toda la app (sigue en ámbar): un principal plano al lado de uno con relieve desentona |

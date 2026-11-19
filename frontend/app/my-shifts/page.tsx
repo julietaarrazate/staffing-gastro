@@ -26,6 +26,7 @@ import CompareShiftsModal from "@/components/worker/CompareShiftsModal";
 import EnRouteToggle from "@/components/worker/EnRouteToggle";
 import { ShiftCoveredIllustration } from "@/components/illustrations";
 import {
+  BOTON_LISO,
   Button,
   CardSkeletons,
   EmptyState,
@@ -450,7 +451,7 @@ function MatchesContent() {
                   <div className="mb-2 flex flex-wrap gap-2">
                     <Link
                       href={`/chats/${shift.id}`}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-sm font-semibold text-ink/70 ring-1 ring-line"
+                      className={`${BOTON_LISO} px-3 py-1.5 text-sm`}
                     >
                       <MessageIcon size={16} /> Chatear
                     </Link>
@@ -761,10 +762,10 @@ function MatchesContent() {
                   <button
                     type="button"
                     onClick={() => (compareMode ? exitCompareMode() : setCompareMode(true))}
-                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ring-1 transition active:scale-95 ${
+                    className={`inline-flex min-h-[40px] items-center gap-1.5 rounded-[var(--radius-relieve)] px-3 py-1.5 text-sm font-semibold ring-1 transition active:scale-95 ${
                       compareMode
                         ? "bg-primary/10 text-primary-text ring-primary/30"
-                        : "bg-card text-ink/60 ring-line hover:bg-surface"
+                        : "bg-card text-ink ring-line hover:bg-surface"
                     }`}
                   >
                     <ScaleIcon size={14} />
