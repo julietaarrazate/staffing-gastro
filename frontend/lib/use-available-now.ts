@@ -87,7 +87,7 @@ export function useAvailableNow(token: string | null): AvailableNow {
       turnOff();
       return;
     }
-    const timer = setTimeout(turnOff, remaining);
+    const timer = setTimeout(turnOff, Math.min(remaining, 2 ** 31 - 1));
     return () => clearTimeout(timer);
   }, [until]);
 
