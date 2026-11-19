@@ -154,7 +154,7 @@ export default function RootLayout({
                     parcialmente detrás de la barra. Donde el inset vale 0 (todo
                     dispositivo sin notch, y cualquier entorno de test) el
                     cálculo da exactamente 5rem = 80px, igual que antes. */}
-                <main className="flex-1 pb-[var(--chrome-bottom)] md:pb-0">{children}</main>
+                <main className="flex-1 pb-[var(--chrome-bottom)] md:pb-0 print:pb-0">{children}</main>
                 <BottomNav />
               </PushPromptProvider>
             </ToastProvider>
