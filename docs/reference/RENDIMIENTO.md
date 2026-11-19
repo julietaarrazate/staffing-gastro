@@ -122,8 +122,8 @@ Lo que queda (~2,7 s desde el iframe) es la verificación de Cloudflare.
 | Consulta | Antes | Después | Qué se hizo |
 |---|---|---|---|
 | Lista de chats (`/chats`, los dos roles) | 8,0 ms | 0,09 ms | el `OR` entre comercio y trabajador pasó a una unión de dos lecturas por índice |
-| Ficha del admin (historial de un trabajador) | 2,8 ms | 0,17 ms | índice parcial `ix_shifts_last_no_show_worker_profile_id` (migración 0060) |
-| «Ausencias de hoy» del admin | 2,6 ms | 0,07 ms | índice parcial `ix_shifts_no_show_at` (0060) |
+| Ficha del admin (historial de un trabajador) | 2,8 ms | 0,17 ms | índice parcial `ix_shifts_last_no_show_worker_profile_id` (migración 0061) |
+| «Ausencias de hoy» del admin | 2,6 ms | 0,07 ms | índice parcial `ix_shifts_no_show_at` (0061) |
 
 - **Caché HTTP:** `GET /push/public-key` (igual para todos, sin sesión) lleva
   `Cache-Control: public, max-age=300`, como los planes públicos. El resto

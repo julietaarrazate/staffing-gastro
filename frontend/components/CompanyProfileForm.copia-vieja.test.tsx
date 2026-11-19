@@ -8,6 +8,8 @@ const put = vi.fn();
 vi.mock("@/lib/api", () => ({
   api: {
     get: (...a: unknown[]) => get(...a),
+    // Lo que se lee justo antes de guardar no se comparte con otro GET en vuelo.
+    getFresco: (...a: unknown[]) => get(...a),
     put: (...a: unknown[]) => put(...a),
     post: vi.fn(),
   },
