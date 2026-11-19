@@ -440,3 +440,29 @@ async def test_un_404_o_un_resultado_raro_no_cuentan_como_borrado(cloudinary_on)
         await _storage(404, {"error": {"message": "Invalid cloud_name"}}, []).delete(DNI)
     with pytest.raises(CloudinaryDestroyError):
         await _storage(200, {"result": "error"}, []).delete(DNI)
+
+
+@pytest.mark.asyncio
+async def test_un_fallo_tardio_no_reabre_un_borrado_ya_confirmado(session_factory):
+    """Dos pasadas cruzadas: una confirma el borrado (queda `deleted_at`) y
+    la otra, que falló, no lo vuelve a poner pendiente ni le deja el error."""
+    from app.modules.verification.infrastructure.repositories import (
+        SqlAlchemyEvidenceFileDeletionRepository,
+    )
+
+    now = datetime.now(UTC)
+    deletion = EvidenceFileDeletion.request(DNI, now)
+    async with session_factory() as session:
+        repo = SqlAlchemyEvidenceFileDeletionRepository(session)
+        repo.add_pending([deletion])
+        await session.commit()
+        await repo.mark_deleted(deletion.id, now)
+
+        deletion.record_failure("ConnectError: Cloudinary no responde", now)
+        await repo.save_failure(deletion)
+
+        row = await session.get(EvidenceFileDeletionModel, deletion.id)
+        await session.refresh(row)
+        assert row.deleted_at is not None
+        assert (row.attempts, row.last_error) == (0, None)
+        assert await repo.next_attempt_at() is None

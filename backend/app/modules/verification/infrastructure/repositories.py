@@ -292,7 +292,11 @@ class SqlAlchemyEvidenceFileDeletionRepository(EvidenceFileDeletionRepository):
 
     async def save_failure(self, deletion: EvidenceFileDeletion) -> None:
         model = await self._session.get(EvidenceFileDeletionModel, deletion.id)
-        if model is None:  # otra pasada lo borró mientras tanto
+        # Otra pasada (después de responder o el scheduler) ya confirmó el
+        # borrado y lo marcó con `deleted_at`: el fallo de ésta no lo vuelve a
+        # poner pendiente ni le deja un error. (`None` ya no pasa: las filas
+        # no se borran, salvo a mano.)
+        if model is None or model.deleted_at is not None:
             return
         model.attempts = deletion.attempts
         model.last_error = deletion.last_error
