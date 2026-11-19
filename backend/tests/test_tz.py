@@ -144,3 +144,26 @@ def test_desde_acepta_datetime_sin_zona_como_utc():
     assert tz.format_desde_art(dt_module.datetime(2026, 11, 13, 16, 20), ahora) == (
         "desde las 13:20 de hoy"
     )
+
+
+def test_parse_iso_datetime_sin_zona_asume_hora_argentina():
+    """FEC-02: si la IA devuelve la hora sin offset, es hora argentina."""
+    from datetime import timedelta
+
+    from app.core.dt import parse_iso_datetime
+
+    parsed = parse_iso_datetime("2026-12-20T20:00:00")
+    assert parsed is not None
+    assert parsed.utcoffset() == timedelta(hours=-3)
+    assert parsed.isoformat() == "2026-12-20T20:00:00-03:00"
+
+
+def test_parse_iso_datetime_conserva_la_zona_que_trae():
+    from datetime import timedelta
+
+    from app.core.dt import parse_iso_datetime
+
+    parsed = parse_iso_datetime("2026-12-20T20:00:00+00:00")
+    assert parsed is not None and parsed.utcoffset() == timedelta(0)
+    assert parse_iso_datetime("no es una fecha") is None
+    assert parse_iso_datetime(None) is None
