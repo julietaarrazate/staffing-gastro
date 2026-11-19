@@ -1,4 +1,4 @@
-# Postulación: se decide sobre un estado que ya cambió (VIE-01, CON-04, CON-11)
+# Postulación: se decide sobre un estado que ya cambió (VIE-01, CON-04, CON-11) (#671)
 
 **Pedido:** pasada por clase de error del 2026-11-19; tres hallazgos verificados con una sola causa: una decisión sobre un estado que ya no es el de la base.
 
