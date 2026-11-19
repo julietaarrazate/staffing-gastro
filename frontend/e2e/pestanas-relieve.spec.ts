@@ -152,6 +152,9 @@ test("a 320 px, Mis turnos con contadores de una cifra muestra los tres nombres 
   await page.route("**/api/v1/saved-shifts", (r) => (r.request().method() === "GET" ? r.fulfill(json([turno("g1", "publicado", "barista"), turno("g2", "publicado", "cocinero")])) : r.continue()));
   await page.goto("/my-shifts");
   await expect(page.locator('[data-shift-id="s1"]')).toBeVisible();
+  // Se mide con Inter ya cargada: con la letra de respaldo, más ancha, el
+  // nombre se recorta (en la primera corrida de CI se recortó «Asignados»).
+  await page.evaluate(() => document.fonts.ready);
   for (const name of [/^Asignados/, /^Postulaciones/, /^Guardados/]) {
     const boton = page.locator("[data-pestanas]").getByRole("button", { name });
     await expect(boton).toBeVisible();

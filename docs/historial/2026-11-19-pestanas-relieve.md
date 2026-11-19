@@ -57,8 +57,9 @@ elegido a la vista mide contra él. Spec nuevo: `e2e/pestanas-relieve.spec.ts`.
   contorno salía cortado. Ahora la pestaña que recibe el foco se trae entera a
   la vista, con aire (`scroll-padding`) en los dos contenedores que scrollean.
 - En Mis turnos a 320 px los tres nombres se recortaban con «…» aun con
-  contadores de una cifra: entre pestañas van 12 px en el celular (no 16) y el
-  número va más pegado. Con contadores de dos cifras a 320 sigue el «…», con
+  contadores de una cifra: entre pestañas van 10 px en el celular (no 16) y el
+  número va más pegado. (Con 12 px entraban en local con 11 px de sobra y en
+  la primera corrida de CI no: el test ahora mide con Inter ya cargada.) Con contadores de dos cifras a 320 sigue el «…», con
   el número a la vista, como antes.
 
 Anotó además que el filete del Panel termina a 16 px del borde, alineado con

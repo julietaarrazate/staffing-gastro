@@ -43,10 +43,10 @@ export default function SegmentedControl<T extends string>({
     // Donde scrollean (el Panel, el «En vivo» del admin), el contenedor lleva
     // `-my-1 py-1`: sin ese aire el contorno de foco, que va 4 px por fuera,
     // quedaba cortado arriba y abajo.
-    // `gap-3` en el celular: con 16 px entre pestañas, a 320 las tres de Mis
+    // `gap-2.5` en el celular: con 16 px entre pestañas, a 320 las tres de Mis
     // turnos se recortaban aun con contadores de una cifra (revisión del
-    // 2026-11-19).
-    <div data-pestanas className={cn("flex gap-3 shadow-[inset_0_-1px_0_var(--color-line)] sm:gap-6", className)}>
+    // 2026-11-19); con 12 entraban con 11 px de sobra en local y no en CI.
+    <div data-pestanas className={cn("flex gap-2.5 shadow-[inset_0_-1px_0_var(--color-line)] sm:gap-6", className)}>
       {options.map((o) => {
         const active = o.value === value;
         return (
