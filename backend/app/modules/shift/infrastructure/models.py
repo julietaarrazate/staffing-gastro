@@ -160,3 +160,22 @@ Index(
     func.lower(ShiftModel.city),
     ShiftModel.created_at,
 )
+
+# Índices parciales (0054): sólo las filas que tienen el dato (unos pocos turnos
+# de miles), así que casi no cuestan en cada escritura.
+# - `last_no_show_worker_profile_id`: la ficha de la persona en el admin
+#   (`list_history_by_worker`, un `OR` con `worker_profile_id`) y el
+#   `ON DELETE SET NULL` de la FK, que sin índice recorre todos los turnos.
+# - `no_show_at`: «Ausencias de hoy» del admin (`list_no_shows`, rango de fechas).
+Index(
+    "ix_shifts_last_no_show_worker_profile_id",
+    ShiftModel.last_no_show_worker_profile_id,
+    postgresql_where=ShiftModel.last_no_show_worker_profile_id.is_not(None),
+    sqlite_where=ShiftModel.last_no_show_worker_profile_id.is_not(None),
+)
+Index(
+    "ix_shifts_no_show_at",
+    ShiftModel.no_show_at,
+    postgresql_where=ShiftModel.no_show_at.is_not(None),
+    sqlite_where=ShiftModel.no_show_at.is_not(None),
+)
