@@ -113,8 +113,9 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
    misma estética, no puede quedar a medias»): el resto de las pantallas**,
    un PR cada una, mostrándole antes las opciones sobre la pantalla real. Orden:
    ~~Buscar del trabajador~~ (hecho el 2026-11-19, cada turno como comanda;
-   [historial](./historial/2026-11-19-buscar-trabajador-relieve.md)), Buscar
-   del comercio (`/search`), Publicar turno,
+   [historial](./historial/2026-11-19-buscar-trabajador-relieve.md)), ~~Buscar
+   del comercio~~ (hecho el 2026-11-19, fichas;
+   [historial](./historial/2026-11-19-buscar-comercio-relieve.md)), Publicar turno,
    Chats, Perfil (los dos roles), Mapa, las fichas (comercio y trabajador),
    Favoritos, Mi plan, y el ingreso, el alta y la bienvenida.
    Queda, de lo que no entró en estos PRs: el encabezado de la app sigue de
