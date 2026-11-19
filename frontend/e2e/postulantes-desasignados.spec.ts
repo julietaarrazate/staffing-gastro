@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { deContrato, fulfillContrato } from "./contrato";
 import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./mocks";
 
 /**
@@ -9,32 +10,20 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./moc
  * volver a asignar.
  */
 
-const EMPLOYER = {
-  id: "user-1",
-  email: "demo.comercio@staffya.com",
-  full_name: "Comercio Demo",
-  role: "employer",
-  status: "activo",
-  is_active: true,
-  is_verified: true,
-};
+// Respuestas reales del backend (e2e/contrato): sesión, postulante y turno.
+const EMPLOYER = deContrato("auth_me_employer");
 
 function applicant(overrides: Record<string, unknown>) {
-  return {
-    photo_url: null,
-    rating: 4.2,
-    is_available: true,
-    status: "pendiente",
-    motivo: null,
-    created_at: "2026-11-10T12:00:00-03:00",
-    events_completed: 3,
-    punctuality_rate: 0.9,
-    years_experience: 2,
-    badges: [],
-    level: "bronce",
-    identidad_verificada: false,
-    ...overrides,
-  };
+  const [real] = deContrato("postulantes", [
+    {
+      rating: 4.2,
+      events_completed: 3,
+      punctuality_rate: 0.9,
+      years_experience: 2,
+      ...overrides,
+    },
+  ]);
+  return real;
 }
 
 // La que rechazó tiene la mejor reputación: sin la regla sería la destacada.
@@ -82,18 +71,7 @@ async function setup(page: Page) {
   await mockEmptyNotifications(page);
   await page.route("**/api/v1/auth/me", (r) => r.fulfill(json(EMPLOYER)));
   await page.route("**/api/v1/shifts/shift-1", (r) =>
-    r.fulfill(
-      json({
-        id: "shift-1",
-        position: "mozo",
-        status: "buscando_personal",
-        start_at: "2026-12-10T20:00:00-03:00",
-        end_at: "2026-12-10T23:00:00-03:00",
-        pay_amount: "50000",
-        currency: "ARS",
-        tips: false,
-      })
-    )
+    r.fulfill(json(deContrato("turno_publicado_comercio", { status: "buscando_personal" })))
   );
   await page.route("**/api/v1/applications/shifts/shift-1", (r) => r.fulfill(json(APPLICANTS)));
   await page.route("**/api/v1/shifts/shift-1/candidates", (r) => r.fulfill(json([])));
@@ -130,7 +108,7 @@ test("a quien rechazó se le puede volver a asignar", async ({ page }) => {
   let asignado: unknown = null;
   await page.route("**/api/v1/shifts/shift-1/assign", (r) => {
     asignado = r.request().postDataJSON();
-    return r.fulfill(json({ id: "shift-1", status: "asignado" }));
+    return fulfillContrato(r, "turno_asignar");
   });
   await page.route("**/api/v1/shifts/me**", (r) => r.fulfill(json([])));
   await page.goto("/shifts/shift-1/candidates");

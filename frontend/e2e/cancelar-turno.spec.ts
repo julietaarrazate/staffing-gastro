@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { deContrato, fulfillContrato } from "./contrato";
 import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash } from "./mocks";
 
 /**
@@ -8,61 +9,14 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash }
  * perfil, y el trabajador llega desde el aviso a una pantalla que sirve.
  */
 
-const EMPLOYER_SESSION = {
-  id: "user-1",
-  email: "demo.comercio@staffya.com",
-  full_name: "Comercio Demo",
-  role: "employer",
-  status: "activo",
-  is_active: true,
-  is_verified: true,
-};
-
-const WORKER_SESSION = { ...EMPLOYER_SESSION, id: "user-2", role: "worker", full_name: "Ana Gomez" };
-
 const LATE_WARNING = "Te suma una cancelación tardía. La ves en tu perfil.";
 
 function shift(overrides: Partial<Record<string, unknown>>) {
-  return {
-    id: "shift-1",
-    company_id: "company-1",
-    position: "mozo",
-    quantity: 1,
-    start_at: "2026-12-20T20:00:00-03:00",
-    end_at: "2026-12-20T23:00:00-03:00",
-    pay_amount: "15000",
-    currency: "ARS",
-    tips: false,
-    dress_code: null,
-    urgent: false,
-    address: null,
-    city: "Palermo, CABA",
-    latitude: null,
-    longitude: null,
-    title: null,
-    description: null,
-    status: "confirmado",
-    worker_profile_id: "wp-1",
-    worker_name: "Trabajador Demo",
-    en_route_latitude: null,
-    en_route_longitude: null,
-    en_route_at: null,
-    check_in_latitude: null,
-    check_in_longitude: null,
-    check_in_at: null,
-    check_out_latitude: null,
-    check_out_longitude: null,
-    check_out_at: null,
-    paid_at: null,
-    no_show_at: null,
-    last_no_show_worker_profile_id: null,
-    event_id: null,
-    event_name: null,
-    created_at: "2026-12-01T12:00:00-03:00",
-    company_name: null,
-    company_logo_url: null,
-    ...overrides,
-  };
+  // Un turno de `GET /shifts/me` con la persona asignada (sin datos del comercio).
+  const [turno] = deContrato("turnos_del_comercio_con_asignado", [
+    { status: "confirmado", worker_name: "Trabajador Demo", ...overrides },
+  ]);
+  return turno;
 }
 
 const json = (body: unknown) => ({
@@ -94,7 +48,7 @@ async function mockPanel(
   await skipSplash(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
-  await page.route("**/api/v1/auth/me", (route) => route.fulfill(json(EMPLOYER_SESSION)));
+  await page.route("**/api/v1/auth/me", (route) => fulfillContrato(route, "auth_me_employer", { full_name: "Comercio Demo" }));
   await page.route("**/api/v1/reviews/shifts/*", (route) => route.fulfill(json([])));
   // La lista deja de ser vieja después de cancelar (el panel la recarga).
   await page.route("**/api/v1/shifts/me", (route) =>
@@ -104,7 +58,7 @@ async function mockPanel(
   await page.route(/\/api\/v1\/shifts\/shift-1$/, async (route) => {
     if (rereadDelayMs > 0) await new Promise((resolve) => setTimeout(resolve, rereadDelayMs));
     if (rereadFails) return route.fulfill({ status: 500, contentType: "application/json", body: "{}" });
-    return route.fulfill(json({ ...current, worker_name: undefined, company_name: "Bar Palermo" }));
+    return route.fulfill(json({ ...current, worker_name: null, company_name: "Bar Palermo" }));
   });
   await page.route(/\/api\/v1\/shifts\/[^/]+\/cancel$/, async (route) => {
     cancelCalls.push(new URL(route.request().url()).pathname);
@@ -334,7 +288,7 @@ async function mockEmployerProfile(page: Page, lateCancellations: number) {
   await skipSplash(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
-  await page.route("**/api/v1/auth/me", (route) => route.fulfill(json(EMPLOYER_SESSION)));
+  await page.route("**/api/v1/auth/me", (route) => fulfillContrato(route, "auth_me_employer", { full_name: "Comercio Demo" }));
   await page.route("**/api/v1/companies/me/profile", (route) =>
     route.fulfill(json({ ...COMPANY_PROFILE, late_cancellations: lateCancellations }))
   );
@@ -377,22 +331,16 @@ test("sin cancelaciones tardías, el perfil no muestra nada en cero", async ({ p
 // --- El aviso lleva al trabajador a una pantalla que sirve -------------------
 
 function notice(type: string, title: string, message: string) {
-  return {
-    id: `n-${type}`,
-    type,
-    title,
-    message,
-    read: false,
-    link: null,
-    created_at: "2026-12-10T12:00:00-03:00",
-  };
+  // Un aviso real del backend (e2e/contrato), con el texto del caso.
+  const [real] = deContrato("avisos_trabajador", [{ type, title, message, link: null }]);
+  return real;
 }
 
 async function mockWorkerWithNotice(page: Page, item: ReturnType<typeof notice>) {
   await injectSession(page);
   await skipSplash(page);
   await blockExternalHosts(page);
-  await page.route("**/api/v1/auth/me", (route) => route.fulfill(json(WORKER_SESSION)));
+  await page.route("**/api/v1/auth/me", (route) => fulfillContrato(route, "auth_me_worker", { full_name: "Ana Gomez" }));
   await page.route("**/api/v1/notifications", (route) => route.fulfill(json([item])));
   await page.route("**/api/v1/notifications/*/read", (route) =>
     route.fulfill(json({ ...item, read: true }))

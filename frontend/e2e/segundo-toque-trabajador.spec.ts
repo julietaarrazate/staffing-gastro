@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { deContrato, fulfillContrato } from "./contrato";
 import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash, enDias } from "./mocks";
 
 /**
@@ -21,79 +22,31 @@ const json = (body: unknown, status = 200) => ({
   body: JSON.stringify(body),
 });
 
-const WORKER_SESSION = {
-  id: "user-1",
-  email: "demo.mozo.palermo@staffya.com",
-  full_name: "Mozo Demo",
-  role: "worker",
-  status: "activo",
-  is_active: true,
-  is_verified: true,
-};
-
-const WORKER_PROFILE = {
+// Respuestas reales del backend (e2e/contrato): perfil y turno abierto del feed.
+const WORKER_PROFILE = deContrato("perfil_trabajador", {
   id: "profile-1",
   user_id: "user-1",
   full_name: "Mozo Demo",
-  photo_url: null,
-  birth_date: null,
-  age: null,
   city: "Palermo, CABA",
-  bio: null,
   latitude: -34.5875,
   longitude: -58.4257,
-  skills: ["mozo"],
-  years_experience: 2,
-  languages: [],
-  certifications: [],
-  cv_url: null,
-  is_available: true,
   rating: 4.8,
   events_completed: 10,
   punctuality_rate: 0.95,
-  cancellations: 0,
-  badges: [],
   level: "plata",
-};
+});
 
 function shift(id: string, company: string) {
-  return {
-    id,
-    company_id: `company-${id}`,
-    position: "mozo",
-    quantity: 1,
-    start_at: "2026-07-10T20:00:00-03:00",
-    end_at: "2026-07-10T23:00:00-03:00",
-    pay_amount: "15000",
-    currency: "ARS",
-    tips: true,
-    meal: false,
-    dress_code: null,
-    urgent: false,
-    address: null,
-    city: "Palermo, CABA",
-    latitude: -34.5875,
-    longitude: -58.4257,
-    title: null,
-    description: null,
-    status: "publicado",
-    worker_profile_id: null,
-    check_in_latitude: null,
-    check_in_longitude: null,
-    check_in_at: null,
-    check_out_latitude: null,
-    check_out_longitude: null,
-    check_out_at: null,
-    paid_at: null,
-    no_show_at: null,
-    last_no_show_worker_profile_id: null,
-    event_id: null,
-    event_name: null,
-    created_at: "2026-07-01T12:00:00-03:00",
-    company_name: company,
-    company_logo_url: null,
-    company_verified: false,
-  };
+  return deContrato("feed", [
+    {
+      id,
+      company_id: `company-${id}`,
+      start_at: "2026-07-10T20:00:00-03:00",
+      end_at: "2026-07-10T23:00:00-03:00",
+      pay_amount: "15000",
+      company_name: company,
+    },
+  ])[0];
 }
 
 async function centro(page: Page, selector: ReturnType<Page["getByRole"]>) {
@@ -107,7 +60,7 @@ async function prepararTrabajador(page: Page) {
   await skipSplash(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
-  await page.route("**/api/v1/auth/me", (route) => route.fulfill(json(WORKER_SESSION)));
+  await page.route("**/api/v1/auth/me", (route) => fulfillContrato(route, "auth_me_worker"));
   await page.route("**/api/v1/workers/me/profile", (route) => route.fulfill(json(WORKER_PROFILE)));
   await page.route("**/api/v1/shifts/mine", (route) => route.fulfill(json([])));
   await page.route("**/api/v1/saved-shifts", (route) => route.fulfill(json([])));
@@ -289,12 +242,12 @@ test("retirar: si el servidor dice que ya no estaba pendiente (400), no vuelve a
   });
   await page.route("**/api/v1/applications/app-1/withdraw", (route) => {
     retirada = true; // se retiró desde otro lado
-    return route.fulfill(json({ detail: "Ya estaba retirada" }, 400));
+    return fulfillContrato(route, "postulacion_retirar_repetida"); // 400, texto real
   });
   const dialog = await abrirRetiro(page);
   const antes = cargas;
   await dialog.getByRole("button", { name: "Sí, cancelar" }).click();
-  await expect(page.getByText("Ya estaba retirada")).toBeVisible();
+  await expect(page.getByText("No se puede retirar una postulación en estado retirada")).toBeVisible();
   await expect(page.getByRole("button", { name: "Cancelar postulación" })).toHaveCount(1);
   await expect.poll(() => cargas).toBeGreaterThan(antes);
   await expect(page.getByText("Bar Uno")).toHaveCount(0);

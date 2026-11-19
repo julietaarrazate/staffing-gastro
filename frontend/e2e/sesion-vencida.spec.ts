@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { deContrato, opcionesDeContrato } from "./contrato";
 import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash } from "./mocks";
 
 /**
@@ -13,22 +14,15 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash }
  *   «Reconectando…» y se recupera sola.
  */
 
-const EMPLOYER = {
-  id: "user-1",
-  email: "demo.comercio@staffya.com",
-  full_name: "Comercio Demo",
-  role: "employer",
-  status: "activo",
-  is_active: true,
-  is_verified: true,
-};
+// Sesión y respuestas de ingreso reales del backend (e2e/contrato).
+const EMPLOYER = deContrato("auth_me_employer");
 
 const json = (body: unknown, status = 200) => ({
   status,
   contentType: "application/json",
   body: JSON.stringify(body),
 });
-const NO_AUTORIZADO = json({ detail: "No autorizado" }, 401);
+const NO_AUTORIZADO = opcionesDeContrato("error_401_token_invalido");
 
 async function base(page: Page) {
   await injectSession(page);
@@ -53,7 +47,7 @@ test("sesión vencida: lleva al ingreso con el motivo y, al ingresar, vuelve a l
   );
   await page.route("**/api/v1/auth/login", (route) => {
     sessionAlive = true;
-    return route.fulfill(json({ access_token: "token-nuevo", user: EMPLOYER }));
+    return route.fulfill(opcionesDeContrato("login"));
   });
 
   await page.goto("/shifts?familia=buscando");
@@ -77,7 +71,7 @@ test("un `next` que no es una ruta de la app se ignora", async ({ page }) => {
   await mockEmptyNotifications(page);
   await page.route("**/api/v1/**", (route) => route.fulfill(json([])));
   await page.route("**/api/v1/auth/login", (route) =>
-    route.fulfill(json({ access_token: "token-nuevo", user: EMPLOYER }))
+    route.fulfill(opcionesDeContrato("login"))
   );
   await page.route("**/api/v1/auth/me", (route) => route.fulfill(json(EMPLOYER)));
 

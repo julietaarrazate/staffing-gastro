@@ -337,7 +337,7 @@ horaria.
 | Grupo (causa) | Hallazgos | Severidad | Estado |
 |---|---|---|---|
 | Datos de otra persona en la vista del trabajador | PRI-01 (la ausencia de quien tuvo el turno antes), PRI-05 (cuándo se le pagó a otra persona) | menor | ✅ #661 |
-| Pin desplazado del trabajador (se podía deshacer conociendo un punto real de la persona) | PRI-02 | grave | 🔵 este PR |
+| Pin desplazado del trabajador (se podía deshacer conociendo un punto real de la persona) | PRI-02 | grave | ✅ #665 |
 | CV del trabajador | PRI-03 | grave | ⚪ |
 | Renovación de la sesión sin ventana de gracia ni coordinación entre pestañas | CON-02, CON-03, SES-01 | grave | ⚪ |
 | Pedidos repetidos (idempotencia de las acciones del turno, duplicados que dan 500) | CON-01, CON-05, CON-12, CON-14 | menor | ⚪ |
@@ -356,8 +356,12 @@ releen el turno; el dominio impide que la acción caiga sobre otra persona),
 FEC-01 (fechas fijas en tests: un fixture congela el reloj del horario) y
 FEC-03 («ausencias de hoy» cuenta las marcadas hoy, a propósito).
 
-**Tests de contrato:** los mocks de los e2e armados con respuestas reales del
-backend (rama aparte, ver su PR).
+**Tests de contrato:** 🔵 este PR. Los mocks de los e2e se arman con
+respuestas reales del backend (`frontend/e2e/contrato/`): un test del backend
+guarda la forma de cada respuesta y falla si cambia; los specs no pueden
+inventar campos. Al migrar 16 specs aparecieron 8 mocks que mandaban cosas
+que el backend no manda (un 409 que es 400, `status: "activo"` que es
+`"active"`, un tipo de aviso con otro nombre, entre otros).
 
 ### Criterio de Julieta para decidir (2026-11-13)
 

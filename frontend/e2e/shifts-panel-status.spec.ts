@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { deContrato, fulfillContrato } from "./contrato";
 import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./mocks";
 
 /**
@@ -21,49 +22,10 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./moc
  * componentes.
  */
 
-const EMPLOYER_SESSION = {
-  id: "user-1",
-  email: "demo.comercio@staffya.com",
-  full_name: "Comercio Demo",
-  role: "employer",
-  status: "activo",
-  is_active: true,
-  is_verified: true,
-};
-
+// Turno de `GET /shifts/me` (el real manda un turno = una persona: `quantity` es
+// siempre 1) y sesión: respuestas reales del backend (e2e/contrato).
 function shift(overrides: Partial<Record<string, unknown>>) {
-  return {
-    id: "shift-base",
-    company_id: "company-1",
-    position: "mozo",
-    quantity: 2,
-    start_at: "2026-07-20T20:00:00-03:00",
-    end_at: "2026-07-20T23:00:00-03:00",
-    pay_amount: "15000",
-    currency: "ARS",
-    tips: false,
-    dress_code: null,
-    urgent: false,
-    address: null,
-    city: "Palermo, CABA",
-    latitude: null,
-    longitude: null,
-    title: null,
-    description: null,
-    status: "publicado",
-    worker_profile_id: null,
-    check_in_latitude: null,
-    check_in_longitude: null,
-    check_in_at: null,
-    check_out_latitude: null,
-    check_out_longitude: null,
-    check_out_at: null,
-    paid_at: null,
-    created_at: "2026-07-01T12:00:00-03:00",
-    company_name: null,
-    company_logo_url: null,
-    ...overrides,
-  };
+  return deContrato("turnos_del_comercio", [{ id: "shift-base", ...overrides }])[0];
 }
 
 const SHIFTS = [
@@ -75,7 +37,7 @@ const SHIFTS = [
 
 async function mockEmployerShifts(page: Page) {
   await page.route("**/api/v1/auth/me", (route) =>
-    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(EMPLOYER_SESSION) })
+    fulfillContrato(route, "auth_me_employer")
   );
   await page.route("**/api/v1/shifts/me", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(SHIFTS) })

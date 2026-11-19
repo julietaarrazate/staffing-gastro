@@ -91,6 +91,17 @@ sólo los archivos del área, y la completa una vez antes del push. No uses
   `main` quedó en rojo: un test de una marcaba la salida antes del inicio, que
   la otra pasó a rechazar (#555). Tras cada merge, a la rama que sigue se le
   trae `main` y se espera su CI, aunque el merge sea limpio.
+- **Los mocks de los e2e se arman con respuestas reales del backend**
+  (`frontend/e2e/contrato.ts`, `deContrato` / `fulfillContrato`), no con
+  objetos escritos a mano: `frontend/e2e/contrato/respuestas.json` lo escribe
+  `backend/tests/test_contrato_frontend.py`. Si un spec nuevo mockea la
+  sesión, un turno o un error del backend, usá eso (README en
+  `frontend/e2e/contrato/`). Si cambiás un schema o un texto de error del
+  backend, ese test falla: regenerá con `ACTUALIZAR_CONTRATO=1` desde
+  `backend/` y revisá el diff del JSON, que es lo que cambia para el frontend.
+  Al migrar los primeros 16 specs (2026-11-19) aparecieron mocks que mandaban
+  un 409 donde el backend manda 400, `quantity: 2`, tipos de aviso
+  inexistentes y un campo (`limite_exigido`) que el backend siempre manda.
 - `npm run lint` da **0 errores y unos mil warnings**. Es lo normal; CI
   falla sólo con errores.
 - Si el build falla bajando Google Fonts por el proxy, probá
