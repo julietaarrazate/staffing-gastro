@@ -1,4 +1,4 @@
-# El CV del trabajador pasa a privado, con link que vence (PRI-03)
+# El CV del trabajador pasa a privado, con link que vence (PRI-03) (#669)
 
 **Pedido:** la pasada de privacidad del 2026-11-19 encontró (grave,
 verificado) que el CV —teléfono, email, domicilio— se subía a Cloudinary
