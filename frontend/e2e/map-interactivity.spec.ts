@@ -9,8 +9,9 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./moc
  * `@vis.gl/react-maplibre`, que recicla el `mapboxgl.Map` (WebGL/canvas)
  * subyacente entre montajes vía un pool ESTÁTICO compartido por TODA la app
  * (`Maplibre.savedMaps`), sin distinguir para qué mapa era cada instancia.
- * `MiniMap` (thumbnail en `ShiftCard`, dentro de /my-shifts) monta un
- * `MapView interactive={false}` — maplibre-gl construye ese mapa con todos
+ * `MiniMap` (thumbnail en `ShiftCard`, dentro de /my-shifts) montaba un
+ * `MapView interactive={false}` (hasta el 2026-11-19; hoy el que queda es
+ * `EnRouteMap`, el de «va en camino») — maplibre-gl construye ese mapa con todos
  * los handlers de gesto (dragPan, scrollZoom, etc.) deshabilitados. Si el
  * usuario navega (SPA, sin recargar) de una pantalla con ese mini-mapa a
  * `/map` (mapa interactivo), el mapa reciclado conserva los handlers
@@ -110,29 +111,77 @@ test("el mapa de /map tiene el arrastre habilitado en una carga directa", async 
   expect(await dragPanEnabled(page)).toBe(true);
 });
 
-test("el mapa de /map sigue con el arrastre habilitado tras visitar un MiniMap no interactivo (SPA nav, reuseMaps)", async ({
+test("Mis turnos ya no monta MapLibre para el mapa chico, y /map sigue arrastrable al llegar desde ahí (SPA)", async ({
   page,
 }) => {
+  // Desde el 2026-11-19 el mapa chico de la tarjeta (`MiniMap`) es un dibujo
+  // en SVG (lib/map/mapa-chico.ts), no un `MapView`: Mis turnos no monta
+  // ningún mapa de MapLibre y no puede dejarle uno no interactivo al pool de
+  // `reuseMaps`. El caso que sigue vivo (el mapa de «va en camino») está en
+  // el test de abajo.
   await injectSession(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
   await mockWorkerRoutes(page);
 
-  // 1) /my-shifts renderiza un ShiftCard con MiniMap (interactive: false):
-  // monta y recicla un mapboxgl.Map con dragPan/touchZoomRotate/etc.
-  // deshabilitados desde su construcción.
   await page.goto("/my-shifts");
-  await expect(page.getByText("Bar Demo Palermo")).toBeVisible();
-  await page.waitForSelector(".maplibregl-marker", { timeout: 10_000 });
-  expect(await dragPanEnabled(page)).toBe(false); // el MiniMap NUNCA debe ser arrastrable.
+  const mapaChico = page.locator(".mapa-chico").first();
+  await expect(mapaChico).toBeVisible();
+  await expect(mapaChico).toContainText("Bar Demo Palermo"); // el nombre del local, junto al cuadradito
+  await expect(page.locator(".maplibregl-map")).toHaveCount(0);
 
-  // 2) Navegación SPA (sin refresh) a /map: si el pool de reuseMaps recicla
-  // el Map no-interactivo del MiniMap sin resincronizar sus handlers, el
-  // mapa de /map queda visualmente normal pero con dragPan deshabilitado.
   await page.getByRole("link", { name: /Mapa/i }).click();
   await page.waitForURL("**/map");
   await page.waitForSelector(".maplibregl-marker", { timeout: 10_000 });
+  expect(await dragPanEnabled(page)).toBe(true);
+});
 
+const EMPLOYER_SESSION = { ...WORKER_SESSION, email: "demo.comercio@staffya.com", full_name: "Comercio Demo", role: "employer" };
+
+test("el mapa de /search sigue arrastrable tras visitar el mapa no interactivo de «va en camino» (SPA nav, reuseMaps)", async ({
+  page,
+}) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  const json = (body: unknown) => ({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
+  await page.route("**/api/v1/**", (route) => (route.request().method() === "GET" ? route.fulfill(json([])) : route.continue()));
+  await page.route("**/api/v1/auth/me", (route) => route.fulfill(json(EMPLOYER_SESSION)));
+  await page.route("**/api/v1/shifts/me", (route) =>
+    route.fulfill(
+      json([
+        {
+          ...SHIFT_WITH_LOCATION,
+          id: "shift-camino",
+          status: "confirmado",
+          start_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+          end_at: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
+          worker_name: "Juana Pérez",
+          en_route_latitude: -34.6,
+          en_route_longitude: -58.43,
+          en_route_at: new Date().toISOString(),
+        },
+      ])
+    )
+  );
+  await page.route("**/api/v1/companies/me/profile", (route) =>
+    route.fulfill(json({ id: "company-1", user_id: "user-1", name: "Bar Demo Palermo", logo_url: null, category: null, description: null, address: null, city: "Palermo, CABA", latitude: -34.5875, longitude: -58.4257, capacity: null, opening_hours: null, rating: 4.5, events_published: 1, on_time_payment_rate: 1, late_cancellations: 0 }))
+  );
+  await page.route("**/api/v1/matching/search**", (route) =>
+    route.fulfill(json([{ profile_id: "w1", user_id: "u-w1", full_name: "Sofía Ramírez", photo_url: null, rating: 4.6, distance_km: 1.2, latitude: -34.585, longitude: -58.43, skills: ["mozo"], is_available: true }]))
+  );
+
+  // 1) El panel monta el mapa de «va en camino» (`EnRouteMap`, interactive: false).
+  await page.goto("/shifts");
+  await expect(page.getByText("Juana Pérez va en camino")).toBeVisible({ timeout: 15_000 });
+  await page.waitForSelector('[data-shift-id="shift-camino"] .maplibregl-map', { timeout: 10_000 });
+  expect(await dragPanEnabled(page)).toBe(false); // ese mapa NUNCA debe ser arrastrable.
+
+  // 2) Navegación SPA a /search: si el pool de reuseMaps recicla ese Map sin
+  // resincronizar sus handlers, el mapa de búsqueda queda sin arrastre.
+  await page.locator('a[href="/search"]:visible').first().click();
+  await page.waitForURL("**/search**");
+  await page.waitForSelector(".maplibregl-marker", { timeout: 10_000 });
   expect(await dragPanEnabled(page)).toBe(true);
 });
 

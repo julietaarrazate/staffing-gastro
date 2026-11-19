@@ -411,7 +411,7 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
           <section className="mt-7">
             <h2 className="text-h3 font-semibold text-ink">Ubicación</h2>
             <div className="mt-2.5 overflow-hidden rounded-2xl ring-1 ring-line">
-              <MiniMap latitude={shift.latitude!} longitude={shift.longitude!} className="h-40 w-full" />
+              <MiniMap latitude={shift.latitude!} longitude={shift.longitude!} className="h-40 w-full" nombre={shift.company_name} />
             </div>
             <a
               href={`https://www.google.com/maps/dir/?api=1&destination=${shift.latitude},${shift.longitude}`}
