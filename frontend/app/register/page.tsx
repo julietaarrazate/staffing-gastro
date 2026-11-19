@@ -8,7 +8,7 @@ import { destinoTrasIngreso } from "@/lib/perfil-faltante";
 import { ApiError } from "@/lib/api";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
 import { Button, SegmentedControl, TextField } from "@/components/ui";
-import TurnstileWidget from "@/components/TurnstileWidget";
+import TurnstileWidget, { TurnstileTemprano } from "@/components/TurnstileWidget";
 import { TURNSTILE_SITE_KEY } from "@/lib/turnstile";
 import { loginHref, bienvenidaHref, safeNext } from "@/lib/safe-next";
 import { guardarPlanElegido, planValido } from "@/lib/plan-elegido";
@@ -257,8 +257,11 @@ function RegisterForm() {
 
 export default function RegisterPage() {
   return (
-    <Suspense>
-      <RegisterForm />
-    </Suspense>
+    <>
+      <TurnstileTemprano />
+      <Suspense>
+        <RegisterForm />
+      </Suspense>
+    </>
   );
 }

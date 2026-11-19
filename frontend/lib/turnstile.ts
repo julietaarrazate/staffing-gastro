@@ -23,3 +23,51 @@ export function turnstileHeaders(path: string): Record<string, string> {
     ? { "X-Turnstile-Token": currentToken }
     : {};
 }
+
+export type TurnstileApi = {
+  render: (el: HTMLElement, options: Record<string, unknown>) => string;
+  reset: (id: string) => void;
+  remove: (id: string) => void;
+};
+
+declare global {
+  interface Window {
+    turnstile?: TurnstileApi;
+  }
+}
+
+export const TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
+export const TURNSTILE_SCRIPT_SRC = `${TURNSTILE_ORIGIN}/turnstile/v0/api.js?render=explicit`;
+let scriptPromise: Promise<TurnstileApi> | null = null;
+
+/** Baja el script de Turnstile una sola vez (lo comparten la precarga y el widget). */
+export function cargarTurnstile(): Promise<TurnstileApi> {
+  if (window.turnstile) return Promise.resolve(window.turnstile);
+  scriptPromise ??= new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = TURNSTILE_SCRIPT_SRC;
+    script.async = true;
+    script.onload = () =>
+      window.turnstile ? resolve(window.turnstile) : reject(new Error("turnstile"));
+    script.onerror = () => {
+      scriptPromise = null;
+      reject(new Error("turnstile"));
+    };
+    document.head.appendChild(script);
+  });
+  return scriptPromise;
+}
+
+/**
+ * Adelanta la descarga del script para que el tilde salga antes al entrar o
+ * registrarse (medido el 2026-11-19: el botón «Ingresar» espera el token, y
+ * el script empezaba a bajar recién con el formulario a la vista; ver
+ * docs/reference/RENDIMIENTO.md). Sólo baja `api.js`: sin `render` no corre
+ * ninguna verificación ni deja cookies. Sin clave, no hace nada.
+ */
+export function precargarTurnstile() {
+  if (!TURNSTILE_SITE_KEY || typeof window === "undefined") return;
+  cargarTurnstile().catch(() => {
+    // El widget lo vuelve a intentar al montarse.
+  });
+}

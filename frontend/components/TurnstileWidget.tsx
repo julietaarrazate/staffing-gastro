@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { TURNSTILE_SITE_KEY, setTurnstileToken } from "@/lib/turnstile";
+import { preconnect, preload } from "react-dom";
+import {
+  TURNSTILE_ORIGIN,
+  TURNSTILE_SCRIPT_SRC,
+  TURNSTILE_SITE_KEY,
+  cargarTurnstile,
+  setTurnstileToken,
+} from "@/lib/turnstile";
 
 /**
  * Widget de Cloudflare Turnstile para login y registro (ver `lib/turnstile.ts`).
@@ -11,38 +18,6 @@ import { TURNSTILE_SITE_KEY, setTurnstileToken } from "@/lib/turnstile";
  * `resetKey`: cambiarlo pide un token nuevo (cada token sirve una vez; la
  * pantalla lo cambia después de un intento fallido).
  */
-
-type TurnstileApi = {
-  render: (el: HTMLElement, options: Record<string, unknown>) => string;
-  reset: (id: string) => void;
-  remove: (id: string) => void;
-};
-
-declare global {
-  interface Window {
-    turnstile?: TurnstileApi;
-  }
-}
-
-const SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
-let scriptPromise: Promise<TurnstileApi> | null = null;
-
-function loadTurnstile(): Promise<TurnstileApi> {
-  if (window.turnstile) return Promise.resolve(window.turnstile);
-  scriptPromise ??= new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = SCRIPT_SRC;
-    script.async = true;
-    script.onload = () =>
-      window.turnstile ? resolve(window.turnstile) : reject(new Error("turnstile"));
-    script.onerror = () => {
-      scriptPromise = null;
-      reject(new Error("turnstile"));
-    };
-    document.head.appendChild(script);
-  });
-  return scriptPromise;
-}
 
 export default function TurnstileWidget({
   resetKey = 0,
@@ -65,7 +40,7 @@ export default function TurnstileWidget({
       setTurnstileToken(token);
       onChange.current?.(token);
     };
-    loadTurnstile()
+    cargarTurnstile()
       .then((api) => {
         if (cancelled || !containerRef.current) return;
         widgetId.current = api.render(containerRef.current, {
@@ -97,4 +72,17 @@ export default function TurnstileWidget({
 
   if (!TURNSTILE_SITE_KEY) return null;
   return <div ref={containerRef} className="min-h-[65px]" />;
+}
+
+/**
+ * Pide el script de Turnstile en cuanto se dibuja la pantalla, antes de que
+ * el formulario (que va dentro de un `Suspense`) se monte y lo cargue. En una
+ * visita directa sale en el HTML del servidor; al llegar navegando, al
+ * dibujar la ruta. Va en `/login` y `/register`, fuera del `Suspense`.
+ */
+export function TurnstileTemprano() {
+  if (!TURNSTILE_SITE_KEY) return null;
+  preconnect(TURNSTILE_ORIGIN);
+  preload(TURNSTILE_SCRIPT_SRC, { as: "script" });
+  return null;
 }
