@@ -16,6 +16,7 @@ import {
   NO_CONNECTION_MESSAGE,
   TIMEOUT_MESSAGE,
 } from "@/lib/api";
+import { conCandadoDeRenovacion } from "@/lib/candado-renovacion";
 import { emitLiveRefresh } from "@/lib/live-refresh";
 import {
   claimPushForAccount,
@@ -372,10 +373,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // La renovación en vuelo, si hay una, y de qué sesión es. Es una sola a la
   // vez y **no se corta a los pocos segundos**: el servidor rota la cookie
   // al contestar, y un pedido cortado del lado del navegador puede haberse
-  // procesado igual. El próximo saldría con la cookie vieja y el servidor lo
-  // toma por un robo: cierra todas las sesiones de la cuenta. Quien no puede
-  // esperar deja de esperar (`timeoutMs`), pero el pedido sigue (hasta
-  // `REFRESH_HARD_TIMEOUT_MS`) y el siguiente intento lo reusa.
+  // procesado igual. El próximo saldría con la cookie vieja, y pasados 30
+  // segundos el servidor lo toma por un robo: cierra todas las sesiones de
+  // la cuenta. Quien no puede esperar deja de esperar (`timeoutMs`), pero el
+  // pedido sigue (hasta `REFRESH_HARD_TIMEOUT_MS`) y el siguiente intento lo
+  // reusa. Entre pestañas coordina el candado de `conCandadoDeRenovacion`.
   const refreshInFlight = useRef<{ epoch: number; promise: Promise<string | null> } | null>(
     null
   );
@@ -412,8 +414,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // ahora no dice nada.
       const epoch = sessionEpoch.current;
       const staleSession = () => new NetworkError(NO_CONNECTION_MESSAGE);
-      const attempt: Promise<string | null> = api
-        .post<{ access_token: string }>("/auth/refresh", undefined, null, REFRESH_HARD_TIMEOUT_MS)
+      // De a una pestaña por vez (CON-02): la que espera el candado sale
+      // después de que la otra recibió su respuesta, con la cookie ya rotada.
+      const attempt: Promise<string | null> = conCandadoDeRenovacion(() => {
+        // Mientras esperaba, otra pestaña cerró la sesión o entró otra cuenta.
+        if (sessionEpoch.current !== epoch || !localStorage.getItem(HAS_SESSION_KEY)) {
+          return Promise.reject(staleSession());
+        }
+        return api.post<{ access_token: string }>(
+          "/auth/refresh",
+          undefined,
+          null,
+          REFRESH_HARD_TIMEOUT_MS
+        );
+      }, REFRESH_HARD_TIMEOUT_MS)
         .then(
           (tokens) => {
             if (sessionEpoch.current !== epoch) throw staleSession();

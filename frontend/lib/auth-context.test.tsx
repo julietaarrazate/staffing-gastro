@@ -9,6 +9,8 @@ import {
   renewSessionToken,
   resolveToken,
 } from "@/lib/api";
+import { CANDADO_RENOVACION } from "@/lib/candado-renovacion";
+import { instalarCandadoDeMentira, type CandadoDeMentira } from "@/lib/testing/candado-de-mentira";
 import type { User } from "@/lib/types";
 
 // Las notificaciones de un dispositivo son de la cuenta que tiene la sesión
@@ -1108,6 +1110,65 @@ describe("AuthProvider: la app siempre sabe si hay sesión", () => {
       expect(result.current.user?.id).toBe(TRABAJADORA.id);
       expect(result.current.token).toBe("token-renovado");
       expect(result.current.reconnecting).toBe(false);
+    });
+  });
+
+  // CON-02: la cookie de renovación es una sola para todo el navegador. Si
+  // otra pestaña está renovando, ésta espera a que reciba su respuesta y
+  // recién ahí sale, con la cookie que la otra ya rotó.
+  describe("otra pestaña está renovando", () => {
+    let candado: CandadoDeMentira;
+    const refreshes = () => requestsSent().filter((r) => r === "POST /auth/refresh").length;
+
+    beforeEach(() => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      candado = instalarCandadoDeMentira();
+    });
+
+    afterEach(() => {
+      candado.quitar();
+    });
+
+    it("la renovación de esta pestaña sale recién cuando la otra suelta el candado", async () => {
+      const otra = candado.tomarComoOtraPestana(CANDADO_RENOVACION);
+      localStorage.setItem("staffya_has_session", "1");
+      backend["POST /auth/refresh"] = [200, { access_token: "token-renovado" }];
+      backend["GET /auth/me"] = [200, TRABAJADORA];
+      const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5_000);
+      });
+      expect(refreshes()).toBe(0);
+
+      await act(async () => {
+        otra.soltar();
+        await vi.advanceTimersByTimeAsync(100);
+      });
+      expect(refreshes()).toBe(1);
+      expect(candado.pedidos.filter((n) => n === CANDADO_RENOVACION)).toHaveLength(2);
+      await waitFor(() => expect(result.current.user?.id).toBe(TRABAJADORA.id));
+      expect(result.current.token).toBe("token-renovado");
+      expect(result.current.sessionEnded).toBeNull();
+    });
+
+    it("si mientras esperaba otra pestaña cerró la sesión, no renueva", async () => {
+      const otra = candado.tomarComoOtraPestana(CANDADO_RENOVACION);
+      localStorage.setItem("staffya_has_session", "1");
+      backend["POST /auth/refresh"] = [200, { access_token: "token-de-otra-sesion" }];
+      backend["GET /auth/me"] = [200, TRABAJADORA];
+      const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1_000);
+      });
+
+      await act(async () => {
+        localStorage.removeItem("staffya_has_session");
+        otra.soltar();
+        await vi.advanceTimersByTimeAsync(100);
+      });
+      expect(refreshes()).toBe(0);
+      expect(result.current.token).toBeNull();
     });
   });
 
