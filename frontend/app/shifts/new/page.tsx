@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, memo, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError, isTransientFailure } from "@/lib/api";
@@ -448,6 +448,22 @@ function NewShiftWizard() {
     }
   }
 
+  // Elegir el puesto avanza solo: el botón Continuar quedaba debajo de la
+  // grilla, fuera de pantalla en celulares (auditoría de interfaz 2026-10-11,
+  // U02). La grilla es `memo`: recibe un callback estable que lee siempre la
+  // versión más nueva de esta lógica, así tipear en «Describí tu turno» no la
+  // vuelve a dibujar entera.
+  const elegirPuestoRef = useRef<(skill: WorkerSkill) => void>(() => {});
+  useEffect(() => {
+    elegirPuestoRef.current = (skill) =>
+      void tapGuard.run(() => {
+        tocar("position");
+        setPosition(skill);
+        go(1);
+      });
+  });
+  const elegirPuesto = useCallback((skill: WorkerSkill) => elegirPuestoRef.current(skill), []);
+
   function goGuarded(next: number) {
     void tapGuard.run(() => go(next));
   }
@@ -760,37 +776,7 @@ function NewShiftWizard() {
                   </div>
                 </div>
 
-                <div className="mt-5 grid grid-cols-2 gap-3">
-                  {WORKER_SKILLS.map((skill) => {
-                    const { Icon, bg, fg } = SKILL_ACCENT[skill];
-                    const active = position === skill;
-                    return (
-                      <motion.button
-                        key={skill}
-                        whileTap={{ scale: 0.95 }}
-                        disabled={tapGuard.locked}
-                        // Elegir el puesto avanza solo: el botón Continuar
-                        // quedaba debajo de la grilla, fuera de pantalla en
-                        // celulares (auditoría de interfaz 2026-10-11, U02).
-                        onClick={() =>
-                          void tapGuard.run(() => {
-                            tocar("position");
-                            setPosition(skill);
-                            go(1);
-                          })
-                        }
-                        className={`flex flex-col items-center gap-2 rounded-3xl p-4 ring-1 transition disabled:opacity-60 ${
-                          active ? "bg-primary-tint ring-primary" : "bg-card ring-line"
-                        }`}
-                      >
-                        <span className={`flex h-12 w-12 items-center justify-center rounded-[var(--radius-chip)] ${bg} ${fg}`}>
-                          <Icon size={22} />
-                        </span>
-                        <span className="text-sm font-semibold text-ink/80">{SKILL_LABELS[skill]}</span>
-                      </motion.button>
-                    );
-                  })}
-                </div>
+                <RejillaPuestos position={position} locked={tapGuard.locked} onPick={elegirPuesto} />
               </div>
             )}
 
@@ -1076,6 +1062,41 @@ function NewShiftWizard() {
 
 /** Fila de la vista previa: ícono + label + valor, o el placeholder si el
  * paso correspondiente todavía no se completó. */
+const RejillaPuestos = memo(function RejillaPuestos({
+  position,
+  locked,
+  onPick,
+}: {
+  position: WorkerSkill | null;
+  locked: boolean;
+  onPick: (skill: WorkerSkill) => void;
+}) {
+  return (
+    <div className="mt-5 grid grid-cols-2 gap-3">
+      {WORKER_SKILLS.map((skill) => {
+        const { Icon, bg, fg } = SKILL_ACCENT[skill];
+        const active = position === skill;
+        return (
+          <motion.button
+            key={skill}
+            whileTap={{ scale: 0.95 }}
+            disabled={locked}
+            onClick={() => onPick(skill)}
+            className={`flex flex-col items-center gap-2 rounded-3xl p-4 ring-1 transition disabled:opacity-60 ${
+              active ? "bg-primary-tint ring-primary" : "bg-card ring-line"
+            }`}
+          >
+            <span className={`flex h-12 w-12 items-center justify-center rounded-[var(--radius-chip)] ${bg} ${fg}`}>
+              <Icon size={22} />
+            </span>
+            <span className="text-sm font-semibold text-ink/80">{SKILL_LABELS[skill]}</span>
+          </motion.button>
+        );
+      })}
+    </div>
+  );
+});
+
 function PreviewRow({
   icon,
   tone,
