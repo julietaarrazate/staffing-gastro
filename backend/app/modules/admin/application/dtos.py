@@ -300,7 +300,7 @@ class PeriodSummary:
 @dataclass(frozen=True)
 class SignupsByOrigin:
     """Altas de un origen en el período, por rol. `origin` es `None` para
-    las cuentas creadas antes de que se guardara (migración 0056)."""
+    las cuentas creadas antes de que se guardara (migración 0057)."""
 
     origin: str | None
     workers: int
