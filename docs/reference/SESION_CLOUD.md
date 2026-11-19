@@ -13,7 +13,7 @@ y la deja **checkouteada en el directorio principal**. Por eso el
 named … already exists"*. Lo que anduvo en todas las sesiones:
 
 ```bash
-cd /home/claude/staffing-gastro
+cd /home/user/staffing-gastro            # o /home/claude/…, según el entorno
 git fetch origin main
 git checkout -q --detach                 # libera la rama
 git worktree add ../staffya-<tema> <rama-de-la-sesión>
@@ -170,6 +170,22 @@ cd frontend && npm run build && npx playwright test e2e/zz-captura.spec.ts
   archivo (`test_cadena_migraciones.py` exige que el nombre coincida con la
   revisión y una sola cabeza). Mientras tanto, cada prueba en la app usa su
   propia base (`E1_DB=oido_<tema>`) para no mover la compartida.
+- **Dos sesiones en paralelo también chocan en el número** (visto el
+  2026-11-18: dos sesiones agregaron 0054, 0055 y 0056 a la vez). La
+  `STATUS.md` dice cuál es «la próxima libre», pero otra sesión puede
+  haberla tomado mientras tanto. **Antes de pushear y antes de cada merge**,
+  mirá la cabeza real y renumerá encima:
+
+  ```bash
+  git fetch -q origin main
+  git ls-tree --name-only origin/main backend/alembic/versions/ | sort | tail -3
+  ```
+
+  Si tu número ya está tomado: renombrá el archivo, cambiá `revision` y
+  `down_revision` (a la última de `origin/main`), y corré
+  `pytest -q tests/test_cadena_migraciones.py`, que detecta dos cabezas o un
+  nombre que no coincide con la revisión. Actualizá «la próxima migración
+  libre» en `STATUS.md` en el mismo PR.
 - **Dos ramas que tocan el mismo método chocan aunque el resto se mezcle
   solo.** Al pasar una rama encima de otra, el `rebase` frena commit por
   commit en el mismo lugar; resolver cada vez quedándose con lo de las dos y
@@ -208,8 +224,29 @@ cd frontend && npm run build && npx playwright test e2e/zz-captura.spec.ts
   culpa:** salen advisories nuevos (pasó con pyjwt, undici y Next). Se sube
   la dependencia en el mismo PR. Antes fijate si hay un PR de Dependabot que
   ya lo hace.
-- El MCP de Render suele no conectar desde la sesión, así que no se puede
-  verificar un deploy de backend desde acá. Decilo, no lo des por hecho.
+- **Los logs y los deploys del backend se leen con el conector
+  `mcp__Render__…` (con R mayúscula)** (visto el 2026-11-18). El de
+  minúscula (`mcp__render__…`) responde *«unauthorized»*: no es falta de
+  permiso, es el conector equivocado. Workspace «My Workspace», servicio
+  `staffya-backend` (`srv-d9jq42qd0e5s7396omvg`). Cargalo con
+  `ToolSearch` (`select:mcp__Render__list_logs,mcp__Render__list_deploys`);
+  si ni ese conecta, decilo y no des el deploy por verificado.
+- **Los registros de la app en Render no muestran los campos `extra`** de
+  `logger.info("…", extra={…})`. Salen en el formato de texto (el de
+  `log_json=False`, el valor por defecto de `backend/app/core/config.py`;
+  ver `observability.py`), que imprime sólo el mensaje: el `extra` se
+  pierde. Lo que tenga que leerse en un log
+  va **en el mensaje** (`logger.info("evento x: shift_id=%s", shift.id)`);
+  el `extra` sirve sólo como dato adicional para el formato JSON.
+- **Dependabot: cada merge deja atrás a los demás PRs suyos** (visto el
+  2026-11-18, con 8 PRs seguidos). Mergealos de a uno: después de cada
+  merge, `mcp__github__update_pull_request_branch` pone al día el siguiente
+  (trae `main` y dispara CI de nuevo) y se espera esa corrida antes de
+  mergearlo. Si hay conflicto (dos PRs que tocan el mismo lockfile), esa
+  herramienta no puede; Dependabot lo rebasea solo, pero **sólo los PRs que
+  nadie tocó**. Uno que ya recibió un commit ajeno (incluido el merge que
+  deja `update_pull_request_branch`) se queda esperando: hay que pedirle a
+  Julieta que comente `@dependabot recreate` en el PR.
 
 ## 6. Al retomar un hilo después de horas
 
