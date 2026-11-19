@@ -298,15 +298,23 @@ class SubscriptionService:
         )
 
     async def _withdrawal_until(self, company_id: UUID) -> date | None:
-        """Último día para arrepentirse, o `None` si ya no corresponde."""
+        """Último día para arrepentirse, o `None` si ya no corresponde.
+
+        Un arrepentimiento que quedó a medias (se devolvió todo lo pagado
+        pero el plan no llegó a cortarse, porque la suscripción perdió la
+        carrera de guardado las tres veces) sigue disponible aunque ya haya
+        un pago reembolsado: el reintento termina la baja sin volver a
+        reembolsar (CON-08)."""
         assert self._payments is not None
         paid = await self._payments.list_approved_by_company(company_id)
-        if not paid or any(p.status == PaymentStatus.REEMBOLSADO for p in paid):
+        if not paid or paid[0].approved_at is None:
             return None
-        first = paid[0]
-        if first.approved_at is None:
+        deadline = withdrawal_deadline(paid[0].approved_at)
+        if all(p.status == PaymentStatus.REEMBOLSADO for p in paid):
+            subscription = await self.get_my_subscription(company_id)
+            return deadline if subscription.status == SubscriptionStatus.ACTIVA else None
+        if any(p.status == PaymentStatus.REEMBOLSADO for p in paid):
             return None
-        deadline = withdrawal_deadline(first.approved_at)
         return deadline if hoy_art() <= deadline else None
 
     async def withdraw(self, company_id: UUID) -> Subscription:

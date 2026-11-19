@@ -276,3 +276,36 @@ async def test_si_pierde_todas_las_veces_responde_409_sin_guardar(
     monkeypatch.undo()
     assert (await _sub(client, headers))["renews"] is True
 
+
+async def test_un_arrepentimiento_a_medias_se_termina_al_reintentar(
+    client: AsyncClient, billing_on, monkeypatch
+):
+    """El reembolso salió pero el plan no llegó a cortarse (la suscripción
+    perdió la carrera de guardado las tres veces): al reintentar se termina
+    la baja, sin reembolsar dos veces, en vez de «no disponible»."""
+    headers = await _employer(client, "con08_arrep@oido.com.ar")
+    first = await _checkout(client, headers, billing_on)
+    _mp_payment(billing_on, first, "arrep-mes-1")
+    await _notify(client, "arrep-mes-1")
+
+    async def siempre_cambio(self, subscription):
+        raise SubscriptionChangedError(str(subscription.id))
+
+    monkeypatch.setattr(SqlAlchemySubscriptionRepository, "update", siempre_cambio)
+    primero = await client.post("/api/v1/subscription/withdraw", headers=headers)
+    assert primero.status_code == 409
+    monkeypatch.undo()
+    assert billing_on.refunds == ["arrep-mes-1"]
+    a_medias = await _sub(client, headers)
+    assert a_medias["status"] == "activa"
+    # La pantalla sigue ofreciendo «Arrepentirme» para terminarlo.
+    assert a_medias["withdrawal_until"] is not None
+
+    reintento = await client.post("/api/v1/subscription/withdraw", headers=headers)
+    assert reintento.status_code == 200, reintento.text
+    assert reintento.json()["status"] == "cancelada"
+    assert billing_on.refunds == ["arrep-mes-1"]  # no se devolvió dos veces
+    final = await _sub(client, headers)
+    assert final["withdrawal_until"] is None
+    assert (await client.post("/api/v1/subscription/withdraw", headers=headers)).status_code == 409
+
