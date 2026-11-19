@@ -328,6 +328,15 @@ export interface FavoriteWorker {
   favorited_at: string | null;
 }
 
+/** Referencia al CV subido (privado): lo que devuelve Cloudinary al subirlo.
+ * No es una URL; para verlo se pide un link que vence (`lib/cv.ts`). */
+export interface CvFileRef {
+  public_id: string;
+  resource_type: string;
+  format: string;
+  type: "private";
+}
+
 export interface WorkerProfile {
   id: string;
   user_id: string;
@@ -343,8 +352,17 @@ export interface WorkerProfile {
   years_experience: number;
   languages: string[];
   certifications: string[];
+  /** Link pegado a mano (Drive, LinkedIn) o un CV viejo todavía público.
+   * Sólo lo recibe el dueño: los demás piden un link que vence (`lib/cv.ts`). */
   cv_url: string | null;
   cv_filename: string | null;
+  /** El CV subido, privado (ADR-0021, actualización 2026-11-19). Sólo lo
+   * recibe el dueño, para mandarlo de vuelta al guardar: no abre el archivo.
+   * Opcional porque una respuesta vieja (o un mock) puede no traerlo. */
+  cv_file?: CvFileRef | null;
+  /** Qué CV hay, para quien lo puede ver: «file» (subido) o «link» (pegado).
+   * `null` si no hay o si quien mira no lo puede ver. */
+  cv_kind?: "file" | "link" | null;
   is_available: boolean;
   rating: number;
   events_completed: number;

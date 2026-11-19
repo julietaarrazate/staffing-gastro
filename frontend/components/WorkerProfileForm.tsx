@@ -6,7 +6,8 @@ import { getErrorMessage, isNotFound } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { SKILL_LABELS, WORKER_SKILLS, WorkerProfile, WorkerSkill } from "@/lib/types";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
-import CvUpload from "@/components/CvUpload";
+import CvUpload, { CvValue, NO_CV } from "@/components/CvUpload";
+import { openCv } from "@/lib/cv";
 import { saveProfilePart, WorkerProfileInput } from "@/lib/worker-profile";
 import { Button, ErrorBanner, Skeleton, TextField, Toggle } from "@/components/ui";
 import { CheckCircleIcon, MapPinIcon } from "@/components/icons";
@@ -59,6 +60,12 @@ function parseList(text: string): string[] {
     .filter(Boolean);
 }
 
+/** ¿Lo que se ve del CV es lo que está guardado? (Sólo ése tiene link.) */
+function cvIsSaved(cv: CvValue, saved: CvValue): boolean {
+  if (cv.file || saved.file) return cv.file?.public_id === saved.file?.public_id;
+  return Boolean(cv.url) && cv.url === saved.url;
+}
+
 export default function WorkerProfileForm() {
   const { token } = useAuth();
   const [exists, setExists] = useState(false);
@@ -72,8 +79,11 @@ export default function WorkerProfileForm() {
   // guardan como lista (el modelo/API ya los soporta; el form no los exponía).
   const [languagesText, setLanguagesText] = useState("");
   const [certificationsText, setCertificationsText] = useState("");
-  const [cvUrl, setCvUrl] = useState("");
-  const [cvFilename, setCvFilename] = useState<string | null>(null);
+  const [cv, setCv] = useState<CvValue>(NO_CV);
+  // El CV tal como está guardado, y de qué perfil: sólo ése se puede abrir
+  // (con un link que vence, ADR-0021). Uno recién subido, después de guardar.
+  const [savedCv, setSavedCv] = useState<CvValue>(NO_CV);
+  const [profileId, setProfileId] = useState<string | null>(null);
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [isAvailable, setIsAvailable] = useState(true);
@@ -82,6 +92,17 @@ export default function WorkerProfileForm() {
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  const rememberSaved = useCallback((p: WorkerProfile) => {
+    const stored: CvValue = {
+      file: p.cv_file ?? null,
+      url: p.cv_url ?? "",
+      fileName: p.cv_filename ?? null,
+    };
+    setCv(stored);
+    setSavedCv(stored);
+    setProfileId(p.id);
+  }, []);
 
   const load = useCallback(() => {
     if (!token) return;
@@ -97,8 +118,7 @@ export default function WorkerProfileForm() {
         setBio(p.bio ?? "");
         setLanguagesText((p.languages ?? []).join(", "));
         setCertificationsText((p.certifications ?? []).join(", "));
-        setCvUrl(p.cv_url ?? "");
-        setCvFilename(p.cv_filename ?? null);
+        rememberSaved(p);
         setLatitude(p.latitude ?? null);
         setLongitude(p.longitude ?? null);
         setIsAvailable(p.is_available);
@@ -114,7 +134,7 @@ export default function WorkerProfileForm() {
         }
       })
       .finally(() => setLoading(false));
-  }, [token]);
+  }, [token, rememberSaved]);
 
   useEffect(() => {
     load();
@@ -137,8 +157,10 @@ export default function WorkerProfileForm() {
       years_experience: parseYears(yearsExperience),
       languages: parseList(languagesText),
       certifications: parseList(certificationsText),
-      cv_url: normalizeUserLink(cvUrl),
-      cv_filename: cvUrl.trim() ? cvFilename : null,
+      // El archivo subido va como referencia (privado); el link pegado, aparte.
+      cv_file: cv.file,
+      cv_url: cv.file ? null : normalizeUserLink(cv.url),
+      cv_filename: cv.file || cv.url.trim() ? cv.fileName : null,
       latitude,
       longitude,
       is_available: isAvailable,
@@ -151,7 +173,7 @@ export default function WorkerProfileForm() {
         // perfil justo antes de guardar y pone los cambios del formulario
         // encima: así guardar el formulario no revierte una foto cambiada
         // después de abrirlo.
-        await saveProfilePart(token, changes);
+        rememberSaved(await saveProfilePart(token, changes));
       } else {
         // Todavía no hay perfil: no hay nada que preservar.
         const payload: WorkerProfileInput = {
@@ -159,7 +181,7 @@ export default function WorkerProfileForm() {
           photo_url: null,
           birth_date: null,
         };
-        await api.post<WorkerProfile>("/workers/me/profile", payload, token);
+        rememberSaved(await api.post<WorkerProfile>("/workers/me/profile", payload, token));
       }
       setExists(true);
       // Lo guardado es lo que se muestra: un campo vaciado queda en «0».
@@ -301,13 +323,14 @@ export default function WorkerProfileForm() {
       />
 
       <CvUpload
-        value={cvUrl}
-        fileName={cvFilename}
+        value={cv}
         token={token}
-        onChange={(url, name) => {
-          setCvUrl(url);
-          setCvFilename(name);
-        }}
+        onChange={setCv}
+        onOpen={
+          profileId && cvIsSaved(cv, savedCv)
+            ? () => openCv(profileId, token)
+            : undefined
+        }
       />
 
       <Toggle

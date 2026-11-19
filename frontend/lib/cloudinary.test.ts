@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  cldAttachment,
   uploadBusinessDocument,
+  uploadCv,
   uploadIdentityImage,
   uploadImage,
 } from "./cloudinary";
@@ -10,30 +10,6 @@ const apiPost = vi.fn();
 vi.mock("@/lib/api", () => ({
   api: { post: (...args: unknown[]) => apiPost(...args) },
 }));
-
-describe("cldAttachment", () => {
-  it("inserta fl_attachment después de /upload/ en una URL de Cloudinary", () => {
-    expect(cldAttachment("https://res.cloudinary.com/demo/image/upload/v123/cv.pdf")).toBe(
-      "https://res.cloudinary.com/demo/image/upload/fl_attachment/v123/cv.pdf"
-    );
-  });
-
-  it("funciona también con recursos raw", () => {
-    expect(cldAttachment("https://res.cloudinary.com/demo/raw/upload/v123/cv.pdf")).toBe(
-      "https://res.cloudinary.com/demo/raw/upload/fl_attachment/v123/cv.pdf"
-    );
-  });
-
-  it("no duplica la transformación si ya está presente", () => {
-    const url = "https://res.cloudinary.com/demo/image/upload/fl_attachment/v123/cv.pdf";
-    expect(cldAttachment(url)).toBe(url);
-  });
-
-  it("devuelve tal cual una URL que no es de Cloudinary (link pegado a mano)", () => {
-    const url = "https://drive.google.com/file/d/abc123/view";
-    expect(cldAttachment(url)).toBe(url);
-  });
-});
 
 describe("subidas privadas (ADR-0021)", () => {
   const signed = {
@@ -91,6 +67,28 @@ describe("subidas privadas (ADR-0021)", () => {
     await expect(uploadBusinessDocument(new File(["x"], "c.pdf"), "tok")).rejects.toThrow(
       /privada/
     );
+  });
+
+  it("el CV también sube privado y vuelve como referencia (PRI-03)", async () => {
+    apiPost.mockResolvedValue({ ...signed, folder: "oido/cv", allowed_formats: "pdf" });
+    const fetchMock = stubCloudinary({
+      secure_url: "https://res.cloudinary.com/oido-test/image/private/v1/cv.pdf",
+      public_id: `oido/cv/${"b".repeat(64)}`,
+      resource_type: "image",
+      format: "pdf",
+      type: "private",
+    });
+
+    const ref = await uploadCv(new File(["x"], "cv.pdf"), "tok");
+
+    expect(apiPost).toHaveBeenCalledWith("/uploads/sign-cv", undefined, "tok");
+    expect((fetchMock.mock.calls[0][1].body as FormData).get("type")).toBe("private");
+    expect(ref).toEqual({
+      public_id: `oido/cv/${"b".repeat(64)}`,
+      resource_type: "image",
+      format: "pdf",
+      type: "private",
+    });
   });
 
   it("la foto de perfil no manda type (sigue pública)", async () => {
