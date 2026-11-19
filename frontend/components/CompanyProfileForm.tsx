@@ -93,6 +93,20 @@ export default function CompanyProfileForm() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  // Llena el formulario y lo «cargado» con lo que tiene el servidor: al abrir y
+  // después de guardar, así la pantalla muestra lo que quedó y el próximo
+  // guardado compara contra esa verdad.
+  const applyProfile = useCallback((p: CompanyProfile) => {
+    setName(p.name);
+    setLogoUrl(p.logo_url ?? null);
+    setCoverUrl(p.cover_photo_url ?? null);
+    setAddress(p.address ?? "");
+    setCity(p.city ?? "");
+    setLatitude(p.latitude ?? null);
+    setLongitude(p.longitude ?? null);
+    setLoadedFields(fieldsOf(p));
+  }, []);
+
   const load = useCallback(() => {
     if (!token) return;
     setLoading(true);
@@ -101,14 +115,7 @@ export default function CompanyProfileForm() {
       .get<CompanyProfile>("/companies/me/profile", token)
       .then((p) => {
         setExists(true);
-        setName(p.name);
-        setLogoUrl(p.logo_url);
-        setCoverUrl(p.cover_photo_url ?? null);
-        setAddress(p.address ?? "");
-        setCity(p.city ?? "");
-        setLatitude(p.latitude ?? null);
-        setLongitude(p.longitude ?? null);
-        setLoadedFields(fieldsOf(p));
+        applyProfile(p);
       })
       .catch((err) => {
         // Sólo un 404 real significa "todavía no hay perfil". Cualquier otro
@@ -121,7 +128,7 @@ export default function CompanyProfileForm() {
         }
       })
       .finally(() => setLoading(false));
-  }, [token]);
+  }, [token, applyProfile]);
 
   useEffect(() => {
     load();
@@ -135,7 +142,7 @@ export default function CompanyProfileForm() {
     // el backend trata lo que no vino como «no tocar» (actualización parcial).
     const current: CompanyFields = {
       name,
-      logo_url: logoUrl,
+      logo_url: logoUrl ?? null,
       cover_photo_url: coverUrl,
       address: address || null,
       city: city || null,
@@ -145,16 +152,17 @@ export default function CompanyProfileForm() {
     setSubmitting(true);
     try {
       if (exists) {
-        await saveCompanyProfilePart(
-          token,
-          loadedFields ? changedCompanyFields(current, loadedFields) : current
+        applyProfile(
+          await saveCompanyProfilePart(
+            token,
+            loadedFields ? changedCompanyFields(current, loadedFields) : current
+          )
         );
       } else {
         // Todavía no hay perfil: no hay nada que preservar.
-        await api.post<CompanyProfile>("/companies/me/profile", current, token);
+        applyProfile(await api.post<CompanyProfile>("/companies/me/profile", current, token));
       }
       setExists(true);
-      setLoadedFields(current);
       setSaved(true);
     } catch (err) {
       setError(getErrorMessage(err, "No se pudo guardar el perfil"));

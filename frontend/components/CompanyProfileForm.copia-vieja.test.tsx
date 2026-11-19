@@ -69,6 +69,9 @@ describe("CompanyProfileForm: sólo manda lo que la persona tocó", () => {
     expect(body.latitude).toBe(-34.59);
     // La portada no se tocó: no viaja (el backend no la modifica).
     expect("cover_photo_url" in body).toBe(false);
+    // Después de guardar, la pantalla muestra lo que quedó en el servidor.
+    await screen.findByText("Perfil guardado");
+    expect(screen.getByText("Palermo, CABA")).toBeInTheDocument();
   });
 });
 

@@ -70,11 +70,15 @@ describe("WorkerProfileForm: sólo manda lo que la persona tocó", () => {
     expect(body.city).toBe("Rosario, Santa Fe");
     expect(body.latitude).toBe(-32.95);
     expect(body.longitude).toBe(-60.64);
+    // Después de guardar, la pantalla muestra lo que quedó en el servidor.
+    await screen.findByText("Perfil guardado");
+    expect(screen.getByRole("switch", { name: /Disponible para tomar turnos/ })).not.toBeChecked();
+    expect(screen.getByText("Rosario, Santa Fe")).toBeInTheDocument();
   });
 
   it("lo que la persona sí toca se manda aunque el servidor tenga otro valor", async () => {
     get.mockResolvedValueOnce(perfil()).mockResolvedValue(perfil({ is_available: false }));
-    put.mockImplementation(async (_p, body) => body);
+    put.mockImplementation(async (_p, body) => ({ ...perfil(), ...(body as object) }));
 
     render(<WorkerProfileForm />);
     fireEvent.click(await screen.findByRole("switch", { name: /Disponible para tomar turnos/ }));

@@ -171,6 +171,26 @@ export default function WorkerProfileForm() {
     setProfileId(p.id);
   }, []);
 
+  // Llena el formulario y lo «cargado» con lo que tiene el servidor: al abrir y
+  // después de guardar, así la pantalla muestra lo que quedó (p. ej. una zona
+  // cambiada en otro lado) y el próximo guardado compara contra esa verdad.
+  const applyProfile = useCallback(
+    (p: WorkerProfile) => {
+      setCity(p.city ?? "");
+      setSkills(p.skills);
+      setYearsExperience(String(p.years_experience));
+      setBio(p.bio ?? "");
+      setLanguagesText((p.languages ?? []).join(", "));
+      setCertificationsText((p.certifications ?? []).join(", "));
+      rememberSaved(p);
+      setLatitude(p.latitude ?? null);
+      setLongitude(p.longitude ?? null);
+      setIsAvailable(p.is_available);
+      setLoadedFields(fieldsOf(p));
+    },
+    [rememberSaved]
+  );
+
   const load = useCallback(() => {
     if (!token) return;
     setLoading(true);
@@ -179,17 +199,7 @@ export default function WorkerProfileForm() {
       .get<WorkerProfile>("/workers/me/profile", token)
       .then((p) => {
         setExists(true);
-        setCity(p.city ?? "");
-        setSkills(p.skills);
-        setYearsExperience(String(p.years_experience));
-        setBio(p.bio ?? "");
-        setLanguagesText((p.languages ?? []).join(", "));
-        setCertificationsText((p.certifications ?? []).join(", "));
-        rememberSaved(p);
-        setLatitude(p.latitude ?? null);
-        setLongitude(p.longitude ?? null);
-        setIsAvailable(p.is_available);
-        setLoadedFields(fieldsOf(p));
+        applyProfile(p);
       })
       .catch((err) => {
         // Sólo un 404 real significa "todavía no hay perfil". Cualquier otro
@@ -202,7 +212,7 @@ export default function WorkerProfileForm() {
         }
       })
       .finally(() => setLoading(false));
-  }, [token, rememberSaved]);
+  }, [token, applyProfile]);
 
   useEffect(() => {
     load();
@@ -249,7 +259,7 @@ export default function WorkerProfileForm() {
         // perfil justo antes de guardar y pone los cambios del formulario
         // encima: así guardar el formulario no revierte una foto cambiada
         // después de abrirlo.
-        rememberSaved(await saveProfilePart(token, changes));
+        applyProfile(await saveProfilePart(token, changes));
       } else {
         // Todavía no hay perfil: no hay nada que preservar.
         const payload: WorkerProfileInput = {
@@ -258,12 +268,9 @@ export default function WorkerProfileForm() {
           photo_url: null,
           birth_date: null,
         };
-        rememberSaved(await api.post<WorkerProfile>("/workers/me/profile", payload, token));
+        applyProfile(await api.post<WorkerProfile>("/workers/me/profile", payload, token));
       }
       setExists(true);
-      setLoadedFields(current);
-      // Lo guardado es lo que se muestra: un campo vaciado queda en «0».
-      setYearsExperience(String(parseYears(yearsExperience)));
       setSaved(true);
     } catch (err) {
       setError(getErrorMessage(err, "No se pudo guardar el perfil"));
