@@ -65,6 +65,12 @@ px, claro y oscuro): aprobada con arreglos, hechos acá.
   `--color-danger-strong` `#c22f2f`, que da 5,0 y 5,6 (`color-system.md`).
   El aviso de error (`Toast`) sigue con el rojo de base: no es un botón.
 
+En la segunda mirada (aprobada) confirmó los arreglos: rectos, 40 px lado a
+lado, la fila que se parte bien a 320, 390 y 1280, y el verde y el rojo a 5,0
+y 5,6. Marcó que «Elegir a alguien» medía 36 px al lado de «Más» (ahora 40) y
+que «Agregar a favoritos» se parte en dos renglones a 320 y 390 px (ya pasaba
+con la píldora; queda anotado).
+
 Anotó además que el filete de los secundarios contra el fondo da 1,1 a 1,2:
 el botón se reconoce por el relleno blanco y por la letra, como en la prueba.
 No cubrió «Comparar», «Cómo llegar» ni el recorte de fotos.
