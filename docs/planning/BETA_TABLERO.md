@@ -356,7 +356,7 @@ releen el turno; el dominio impide que la acción caiga sobre otra persona),
 FEC-01 (fechas fijas en tests: un fixture congela el reloj del horario) y
 FEC-03 («ausencias de hoy» cuenta las marcadas hoy, a propósito).
 
-**Tests de contrato:** 🔵 este PR. Los mocks de los e2e se arman con
+**Tests de contrato:** ✅ #666. Los mocks de los e2e se arman con
 respuestas reales del backend (`frontend/e2e/contrato/`): un test del backend
 guarda la forma de cada respuesta y falla si cambia; los specs no pueden
 inventar campos. Al migrar 16 specs aparecieron 8 mocks que mandaban cosas
