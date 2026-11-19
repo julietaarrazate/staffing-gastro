@@ -35,6 +35,15 @@ from app.modules.worker.domain.value_objects import GamificationLevel, WorkerBad
 from app.modules.worker.infrastructure.models import WorkerProfileModel
 
 
+def _es_postulacion_repetida(exc: IntegrityError) -> bool:
+    """La violación es la de la fila única (turno, trabajador): Postgres
+    nombra la restricción; SQLite, las columnas."""
+    texto = str(exc.orig)
+    return "uq_shift_applications_shift_worker" in texto or (
+        "shift_applications.shift_id" in texto and "worker_profile_id" in texto
+    )
+
+
 def _to_entity(model: ShiftApplicationModel) -> ShiftApplication:
     return ShiftApplication(
         id=model.id,
@@ -80,16 +89,14 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
         self._session.add(model)
         try:
             await self._commit_or_reset()
-        except IntegrityError:
+        except IntegrityError as exc:
             # Dos pedidos a la vez (otra pantalla, otro dispositivo) leyeron
             # «no hay postulación» y los dos insertaron: la fila única por
             # turno y trabajador frenó al segundo. Para la persona es lo mismo
-            # que postularse de nuevo: «ya te postulaste», no un 500. Si la
-            # fila no está, el error era otro y se propaga. `_commit_or_reset`
-            # ya hizo el `rollback`, así que la sesión sirve para releer.
-            if await self.get_by_shift_and_worker(
-                application.shift_id, application.worker_profile_id
-            ):
+            # que postularse de nuevo: «ya te postulaste», no un 500. Cualquier
+            # otra violación (una clave foránea) se propaga. `_commit_or_reset`
+            # ya hizo el `rollback`: la sesión queda usable.
+            if _es_postulacion_repetida(exc):
                 raise AlreadyAppliedError(str(application.shift_id)) from None
             raise
         await self._session.refresh(model)

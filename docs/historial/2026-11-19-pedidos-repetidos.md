@@ -23,16 +23,19 @@ no «Error del servidor»; un «Confirmar» nuevo ya no repite una respuesta vie
   comercio. El almacenamiento con `persistKey` ahora guarda `{k, t, p}` y lee
   el formato viejo.
 - CON-05: los repositorios de postulaciones y de reseñas atrapan el
-  `IntegrityError` del insert (la sesión ya hizo `rollback`), releen y, si la
-  fila existe, lanzan `AlreadyAppliedError` / `DuplicateReviewError`.
+  `IntegrityError` del insert (la sesión queda usable tras el `rollback`) y, si
+  es la fila única (turno y trabajador, turno y calificador), lanzan
+  `AlreadyAppliedError` / `DuplicateReviewError`; otra violación se propaga.
 
 **Por qué así:** CON-12 se podía arreglar sólo «al terminar», pero el caso
 real es una respuesta perdida (error de red: no se sabe si terminó), así que
 se sumó el vencimiento. En el servidor no se cambió la repetición de la
 respuesta guardada: es correcta para el mismo intento. CON-05 se resuelve en
 el repositorio (capa de infraestructura, el caso de uso no conoce SQLAlchemy)
-y relee la fila en vez de mirar el nombre de la restricción, que cambia entre
-SQLite y Postgres.
+y reconoce la restricción por su nombre (Postgres) o por sus columnas
+(SQLite). Una primera versión releía la fila para confirmar; se descartó
+porque la lectura de más rompía `test_postulacion_desasignada` (que cuenta las
+lecturas de `_mark_unassigned`), y lo encontró la suite completa.
 
 **Queda abierto:** las demás pantallas (Inicio, Mapa, Buscar) no usan
 `clearSiTermino`; ahí la key es por turno y se suelta al éxito o al error
