@@ -364,48 +364,67 @@ class IdentityService:
     async def refresh(self, refresh_token: str) -> TokenPair:
         """Emite un nuevo par de tokens a partir de un refresh token válido.
 
-        Rotación (ADR-0002): el refresh usado queda revocado y se emite uno
-        nuevo. La rotación es un UPDATE condicional: de dos pedidos con el
-        mismo token, uno solo la hace (CON-03); el otro se trata como reuso.
+        Rotación (ADR-0002): el refresh usado queda revocado, con su sucesora
+        anotada (`replaced_by`), y se emite uno nuevo. La rotación es un UPDATE
+        condicional: de dos pedidos con el mismo token, uno solo la hace
+        (CON-03); el otro se trata como reuso.
 
         Reuso: si el `jti` recibido ya estaba revocado, se interpreta como un
         token viejo que circuló fuera de control (posible robo): se revocan
         **todas** las sesiones del usuario y se rechaza la operación. Salvo
-        que se haya rotado hace `REFRESH_ROTATION_GRACE` o menos (actualización
-        2026-11-19): eso es la segunda pestaña que salió con la misma cookie
-        (CON-02) o el reintento de quien no recibió la respuesta (SES-01), y
-        recibe un par nuevo sin tocar las demás sesiones.
+        (actualización 2026-11-19) que se haya rotado hace
+        `REFRESH_ROTATION_GRACE` o menos, que la ventana siga sin usar y que la
+        sucesora siga viva: eso es la segunda pestaña que salió con la misma
+        cookie (CON-02) o el reintento de quien no recibió la respuesta
+        (SES-01). Recibe un par nuevo una sola vez, y la sucesora que no le
+        llegó se revoca; las demás sesiones no se tocan.
         """
         payload = self._decode_refresh(refresh_token)
         jti = payload["jti"]
+        two_factor_verified = payload.get(TWO_FACTOR_CLAIM) is True
 
         session = await self._sessions.get_by_jti(jti)
         if session is None:
             raise InvalidTokenError()
-        if session.is_revoked and not session.rotated_within_grace(datetime.now(timezone.utc)):
-            await self._reject_reused_refresh(session)
+        if session.is_revoked:
+            return await self._refresh_within_grace(session, two_factor_verified)
 
+        user = await self._active_session_owner(session)
+        successor = self._new_refresh_session(user)
+        if await self._sessions.rotate(jti, datetime.now(timezone.utc), successor):
+            return self._token_pair(user, successor, two_factor_verified=two_factor_verified)
+        # Otro pedido con el mismo token la rotó (o la revocó) entre la lectura
+        # y acá: es un reuso, con las mismas reglas.
+        session = await self._sessions.get_by_jti(jti)
+        if session is None:
+            raise InvalidTokenError()
+        return await self._refresh_within_grace(session, two_factor_verified)
+
+    async def _refresh_within_grace(
+        self, session: RefreshSession, two_factor_verified: bool
+    ) -> TokenPair:
+        """Un refresh ya revocado: par nuevo por la ventana de gracia si
+        corresponde (una vez, con la sucesora todavía viva), o robo."""
+        now = datetime.now(timezone.utc)
+        if not session.rotated_within_grace(now):
+            await self._reject_reused_refresh(session)
+        user = await self._active_session_owner(session)
+        successor = self._new_refresh_session(user)
+        if not await self._sessions.use_rotation_grace(session, now, successor):
+            await self._reject_reused_refresh(session)
+        logger.info(
+            "refresh con un token recién rotado: par nuevo por la ventana de gracia user_id=%s",
+            user.id,
+        )
+        return self._token_pair(user, successor, two_factor_verified=two_factor_verified)
+
+    async def _active_session_owner(self, session: RefreshSession) -> User:
         user = await self._users.get_by_id(session.user_id)
         if user is None:
             raise UserNotFoundError()
         if not user.is_active:
             raise InactiveUserError()
-
-        if not session.is_revoked and not await self._sessions.rotate(
-            jti, datetime.now(timezone.utc)
-        ):
-            # Otro pedido con el mismo token la rotó (o la revocó) entre la
-            # lectura y acá: es un reuso, con las mismas reglas que arriba.
-            session = await self._sessions.get_by_jti(jti)
-            if session is None:
-                raise InvalidTokenError()
-            if not session.rotated_within_grace(datetime.now(timezone.utc)):
-                await self._reject_reused_refresh(session)
-        if session.is_revoked:
-            logger.info("refresh con un token recién rotado: par nuevo por la ventana de gracia")
-        return await self._issue_tokens(
-            user, two_factor_verified=payload.get(TWO_FACTOR_CLAIM) is True
-        )
+        return user
 
     async def _reject_reused_refresh(self, session: RefreshSession) -> NoReturn:
         """Reuso de un refresh revocado fuera de la ventana de gracia: posible
@@ -706,13 +725,26 @@ class IdentityService:
 
     async def _issue_tokens(self, user: User, *, two_factor_verified: bool = False) -> TokenPair:
         """Emite un par de tokens y persiste la sesión del refresh (ADR-0002)."""
-        jti = str(uuid4())
-        expires_at = datetime.now(timezone.utc) + timedelta(
-            days=settings.refresh_token_expire_days
+        session = self._new_refresh_session(user)
+        await self._sessions.add(session)
+        return self._token_pair(user, session, two_factor_verified=two_factor_verified)
+
+    @staticmethod
+    def _new_refresh_session(user: User) -> RefreshSession:
+        """Sesión de refresh nueva, todavía sin guardar."""
+        return RefreshSession(
+            user_id=user.id,
+            jti=str(uuid4()),
+            expires_at=datetime.now(timezone.utc)
+            + timedelta(days=settings.refresh_token_expire_days),
         )
-        await self._sessions.add(
-            RefreshSession(user_id=user.id, jti=jti, expires_at=expires_at)
-        )
+
+    @staticmethod
+    def _token_pair(
+        user: User, session: RefreshSession, *, two_factor_verified: bool
+    ) -> TokenPair:
+        """El par de tokens de una sesión de refresh ya guardada."""
+        jti = session.jti
         claims: dict[str, object] = {"role": user.role.value}
         refresh_claims: dict[str, object] = {}
         if two_factor_verified:

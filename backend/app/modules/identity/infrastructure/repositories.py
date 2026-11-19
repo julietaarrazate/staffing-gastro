@@ -8,6 +8,7 @@ from sqlalchemy import and_, case, delete, desc, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.identity.domain.entities import (
+    REFRESH_ROTATION_GRACE,
     EmailVerificationToken,
     PasswordResetToken,
     RefreshSession,
@@ -212,6 +213,18 @@ def _session_to_entity(model: RefreshSessionModel) -> RefreshSession:
         revoked_at=model.revoked_at,
         created_at=model.created_at,
         rotated_at=model.rotated_at,
+        replaced_by=model.replaced_by,
+    )
+
+
+def _session_to_model(session: RefreshSession) -> RefreshSessionModel:
+    """Fila nueva para una sesión de refresh recién emitida."""
+    return RefreshSessionModel(
+        id=session.id,
+        user_id=session.user_id,
+        jti=session.jti,
+        expires_at=session.expires_at,
+        revoked_at=session.revoked_at,
     )
 
 
@@ -222,13 +235,7 @@ class SqlAlchemyRefreshSessionRepository(RefreshSessionRepository):
         self._session = session
 
     async def add(self, session: RefreshSession) -> RefreshSession:
-        model = RefreshSessionModel(
-            id=session.id,
-            user_id=session.user_id,
-            jti=session.jti,
-            expires_at=session.expires_at,
-            revoked_at=session.revoked_at,
-        )
+        model = _session_to_model(session)
         self._session.add(model)
         await self._session.commit()
         await self._session.refresh(model)
@@ -256,17 +263,60 @@ class SqlAlchemyRefreshSessionRepository(RefreshSessionRepository):
         )
         await self._session.commit()
 
-    async def rotate(self, jti: str, now: datetime) -> bool:
+    async def rotate(self, jti: str, now: datetime, successor: RefreshSession) -> bool:
         # Leer y después escribir dejaba ganar a los dos pedidos (CON-03): la
         # condición va en el mismo UPDATE y la base decide quién llegó primero.
+        # La sucesora se guarda en la misma transacción: quien vea la rotación
+        # ve también la fila de `replaced_by`.
         result = await self._session.execute(
             update(RefreshSessionModel)
             .where(RefreshSessionModel.jti == jti, RefreshSessionModel.revoked_at.is_(None))
-            .values(revoked_at=now, rotated_at=now)
+            .values(revoked_at=now, rotated_at=now, replaced_by=successor.jti)
             .execution_options(synchronize_session=False)
         )
+        if (result.rowcount or 0) != 1:
+            await self._session.rollback()
+            return False
+        self._session.add(_session_to_model(successor))
         await self._session.commit()
-        return (result.rowcount or 0) == 1
+        return True
+
+    async def use_rotation_grace(
+        self, rotated: RefreshSession, now: datetime, successor: RefreshSession
+    ) -> bool:
+        # Una sola vez: la ventana se marca usada borrando `rotated_at`, con la
+        # condición en el mismo UPDATE (de dos pedidos con el token viejo, uno
+        # solo la usa).
+        claimed = await self._session.execute(
+            update(RefreshSessionModel)
+            .where(
+                RefreshSessionModel.jti == rotated.jti,
+                RefreshSessionModel.replaced_by == rotated.replaced_by,
+                RefreshSessionModel.rotated_at >= now - REFRESH_ROTATION_GRACE,
+            )
+            .values(rotated_at=None, replaced_by=successor.jti)
+            .execution_options(synchronize_session=False)
+        )
+        # La sucesora que el cliente no recibió deja de servir. Si ya no
+        # estaba viva (salió con ella, contraseña nueva, la rotó), no hay
+        # gracia.
+        revoked = None
+        if (claimed.rowcount or 0) == 1:
+            revoked = await self._session.execute(
+                update(RefreshSessionModel)
+                .where(
+                    RefreshSessionModel.jti == rotated.replaced_by,
+                    RefreshSessionModel.revoked_at.is_(None),
+                )
+                .values(revoked_at=now)
+                .execution_options(synchronize_session=False)
+            )
+        if revoked is None or (revoked.rowcount or 0) != 1:
+            await self._session.rollback()
+            return False
+        self._session.add(_session_to_model(successor))
+        await self._session.commit()
+        return True
 
     async def revoke_all_for_user(self, user_id: UUID) -> None:
         now = datetime.now(timezone.utc)
@@ -279,13 +329,14 @@ class SqlAlchemyRefreshSessionRepository(RefreshSessionRepository):
             .values(revoked_at=now)
             .execution_options(synchronize_session=False)
         )
-        # Las recién rotadas pierden la gracia: tras una contraseña nueva, una
-        # suspensión o un robo, el token de hace unos segundos tampoco sirve.
+        # Las rotadas dentro del plazo pierden la gracia: tras una contraseña
+        # nueva, una suspensión o un robo, el token de hace unos segundos
+        # tampoco sirve. Las más viejas ya no la tienen; quedan como están.
         await self._session.execute(
             update(RefreshSessionModel)
             .where(
                 RefreshSessionModel.user_id == user_id,
-                RefreshSessionModel.rotated_at.is_not(None),
+                RefreshSessionModel.rotated_at >= now - REFRESH_ROTATION_GRACE,
             )
             .values(rotated_at=None)
             .execution_options(synchronize_session=False)

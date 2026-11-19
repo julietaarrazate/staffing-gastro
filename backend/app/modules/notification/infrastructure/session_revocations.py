@@ -12,14 +12,15 @@ from app.modules.notification.application.ports import SessionRevocations
 class RefreshSessionRevocations(SessionRevocations):
     """Mira las sesiones de refresh de cada cuenta. Todos los ingresos crean
     una (contraseña, Google, invitado, código de dos pasos:
-    `IdentityService._issue_tokens`), y se revocan al cerrar sesión, al
+    `IdentityService._issue_tokens`; la renovación la guarda en la misma
+    transacción que rota la anterior), y se revocan al cerrar sesión, al
     restablecer la contraseña, al suspender y cuando se reutiliza un refresh.
 
     Una revocada hace menos de lo que dura un access token todavía cuenta
-    como viva: renovar (y el alta de dos pasos, y reclamar una cuenta con
-    Google) revoca primero y guarda la sesión nueva después, así que por un
-    instante la cuenta no tiene ninguna fila viva con la sesión abierta. Sin
-    el margen, un barrido que cayera justo ahí le borraría el dispositivo."""
+    como viva: el alta de dos pasos y reclamar una cuenta con Google revocan
+    primero y guardan la sesión nueva después, así que por un instante la
+    cuenta no tiene ninguna fila viva con la sesión abierta. Sin el margen,
+    un barrido que cayera justo ahí le borraría el dispositivo."""
 
     def __init__(self, sessions: RefreshSessionRepository) -> None:
         self._sessions = sessions

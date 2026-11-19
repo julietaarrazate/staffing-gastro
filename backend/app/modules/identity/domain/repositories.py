@@ -138,11 +138,23 @@ class RefreshSessionRepository(ABC):
         """Revoca la sesión identificada por `jti` (no-op si no existe o ya lo está)."""
 
     @abstractmethod
-    async def rotate(self, jti: str, now: datetime) -> bool:
-        """Revoca por rotación la sesión `jti` sólo si sigue viva, en un solo
-        paso (UPDATE condicional): de dos pedidos con el mismo token gana uno.
-        Devuelve True si la rotó este pedido; False si otro ya la había
-        rotado o revocado."""
+    async def rotate(self, jti: str, now: datetime, successor: RefreshSession) -> bool:
+        """Revoca por rotación la sesión `jti` sólo si sigue viva y guarda
+        `successor` como su reemplazo, todo en una transacción (UPDATE
+        condicional): de dos pedidos con el mismo token gana uno. Devuelve
+        True si la rotó este pedido; False si otro ya la había rotado o
+        revocado (y entonces no guarda nada)."""
+
+    @abstractmethod
+    async def use_rotation_grace(
+        self, rotated: RefreshSession, now: datetime, successor: RefreshSession
+    ) -> bool:
+        """Usa la ventana de gracia de `rotated`, una sola vez y en una
+        transacción: la marca usada sólo si sigue sin usar y dentro del plazo,
+        revoca la sucesora que el cliente no recibió (`rotated.replaced_by`)
+        sólo si seguía viva, y guarda `successor`. Devuelve False sin cambiar
+        nada si alguna de las condiciones falla (ventana usada o vencida,
+        sucesora ya revocada): es reuso."""
 
     @abstractmethod
     async def revoke_all_for_user(self, user_id: UUID) -> None:
@@ -165,8 +177,9 @@ class RefreshSessionRepository(ABC):
 
         1. No tienen ninguna sesión viva (sin vencer y sin revocar). Una
            revocada hace menos de `revoked_grace` también cuenta como viva:
-           renovar revoca la sesión usada y recién después guarda la nueva, y
-           el access token que salió con ella sigue sirviendo unos minutos.
+           el alta de dos pasos y reclamar una cuenta con Google revocan y
+           recién después guardan la sesión nueva, y el access token que
+           salió con la revocada sigue sirviendo unos minutos.
         2. Tienen al menos una fila (la retención borra las vencidas hace
            más de una semana: sin filas no se sabe cómo terminó).
         3. Su fila más reciente (`created_at`) está revocada. Si la última
