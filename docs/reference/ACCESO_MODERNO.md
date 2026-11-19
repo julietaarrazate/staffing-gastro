@@ -341,16 +341,21 @@ inactividad**: ver el primer límite, más abajo.
   3. su fila más reciente (`created_at`) está revocada.
 
   Entran: quien cerró sesión en todos lados, la contraseña restablecida, el
-  refresh reutilizado y la suspendida (todas revocan), **mientras la cuenta
+  refresh reutilizado fuera de la ventana de gracia (ADR-0002, actualización
+  2026-11-19: dentro de los 30 s, y una sola vez, se revoca sólo la sucesora
+  que no llegó, así que tampoco quedan sesiones huérfanas que le escondan la
+  cuenta al barrido) y la suspendida (todas revocan), **mientras la cuenta
   no vuelva a entrar en ningún lado**. No entran: la rotación normal (la anterior revocada, la nueva
   viva), la cuenta inactiva (la última fila venció sin revocar, aunque haya
   revocadas más viejas de las renovaciones) y la que ya no tiene filas.
-  Todos los ingresos crean su fila (contraseña, Google, invitado, código de
-  dos pasos y cada renovación pasan por `IdentityService._issue_tokens`).
+  Todos los ingresos crean su fila (contraseña, Google, invitado y código de
+  dos pasos pasan por `IdentityService._issue_tokens`; cada renovación la
+  guarda en la misma transacción que rota la anterior, desde el 2026-11-19).
   Una revocada hace menos de lo que dura un access token (15 minutos)
-  todavía cuenta como viva: renovar revoca la sesión usada y recién después
-  guarda la nueva, y sin ese margen un barrido que cayera justo ahí le
-  borraría el dispositivo a alguien con la sesión abierta. "Ver como" de la
+  todavía cuenta como viva: el alta de dos pasos y reclamar una cuenta con
+  Google revocan y recién después guardan la sesión nueva, y sin ese margen
+  un barrido que cayera justo ahí le borraría el dispositivo a alguien con
+  la sesión abierta. "Ver como" de la
   admin da un access token sin sesión de refresh, pero el frontend no
   registra nada mientras se impersona, así que no hay dispositivo en juego.
   El barrido corre **antes** de que la misma pasada borre las sesiones
