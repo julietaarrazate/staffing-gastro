@@ -10,6 +10,7 @@ import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { AdminHeading } from "@/components/admin/AdminStats";
 import EncuestaPanel from "@/components/admin/EncuestaPanel";
+import ComerciosImprimir from "@/components/admin/ComerciosImprimir";
 import type { Lead, LeadImportResult, LeadStatus, LeadSummary } from "@/lib/types";
 import {
   LEAD_KIND_LABELS,
@@ -35,6 +36,7 @@ import {
   BuildingIcon,
   DownloadIcon,
   MapPinIcon,
+  PrinterIcon,
 } from "@/components/icons";
 import { plural } from "@/lib/format";
 
@@ -51,6 +53,7 @@ export default function AdminLeadsPage() {
   const [seccion, setSeccion] = useState<Seccion>("comercios");
   return (
     <div>
+      <div className="print:hidden">
       <AdminHeading
         title={seccion === "comercios" ? "Comercios a captar" : "Encuesta para locales"}
         subtitle={
@@ -68,6 +71,7 @@ export default function AdminLeadsPage() {
           { value: "encuesta", label: "Encuesta" },
         ]}
       />
+      </div>
       {seccion === "comercios" ? <ComerciosACaptar /> : <EncuestaPanel />}
     </div>
   );
@@ -175,7 +179,10 @@ function ComerciosACaptar() {
   };
 
   return (
-    <div>
+    <>
+    {/* Lo interactivo no sale en papel: al imprimir sólo queda la lista
+        de `ComerciosImprimir`, la misma que está en pantalla. */}
+    <div className="print:hidden">
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <select
           aria-label="Barrio"
@@ -200,6 +207,14 @@ function ComerciosACaptar() {
           disabled={leads.length === 0}
         >
           <DownloadIcon size={16} /> CSV
+        </Button>
+        <Button
+          size="sm"
+          variant="surface"
+          onClick={() => window.print()}
+          disabled={leads.length === 0}
+        >
+          <PrinterIcon size={16} /> Imprimir
         </Button>
       </div>
       {importing && (
@@ -272,6 +287,12 @@ function ComerciosACaptar() {
         (ODbL). Usalos para contactar comercios, no para enviar publicidad masiva.
       </p>
     </div>
+    <ComerciosImprimir
+      leads={leads}
+      barrio={barrio}
+      filtro={filter === "todos" ? "Todos" : LEAD_STATUS_LABELS[filter]}
+    />
+    </>
   );
 }
 
