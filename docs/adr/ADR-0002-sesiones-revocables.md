@@ -179,8 +179,8 @@ el punto 3 cerraba sesiones legítimas o dejaba pasar un reuso:
   guardar el sucesor (descartado por ahora).
 - Tests: `backend/tests/test_renovacion_de_sesion.py` (la ventana, la
   respuesta perdida, las dos pestañas, el cierre de sesión y la contraseña
-  nueva que no tienen gracia, y la rotación concurrente con dos sesiones de
-  base), `test_refresh_reuse_revokes_all_sessions` en
+  nueva que no tienen gracia, el claim `mfa` que se conserva, y la rotación
+  concurrente con dos sesiones de base), `test_refresh_reuse_revokes_all_sessions` en
   `backend/tests/test_identity.py` (fuera de la ventana sigue revocando
   todo), `frontend/lib/candado-renovacion.test.ts` y «otra pestaña está
   renovando» en `frontend/lib/auth-context.test.tsx`.
