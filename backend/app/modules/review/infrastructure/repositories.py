@@ -3,9 +3,11 @@
 from uuid import UUID
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.review.domain.entities import Review
+from app.modules.review.domain.exceptions import DuplicateReviewError
 from app.modules.review.domain.repositories import ReviewRepository
 from app.modules.review.infrastructure.models import ReviewModel
 
@@ -36,7 +38,17 @@ class SqlAlchemyReviewRepository(ReviewRepository):
             comment=review.comment,
         )
         self._session.add(model)
-        await self._session.commit()
+        try:
+            await self._session.commit()
+        except IntegrityError:
+            # La sesión queda inválida hasta el `rollback`.
+            await self._session.rollback()
+            # Dos envíos a la vez (dos dispositivos) pasaron el chequeo de
+            # «ya calificó» y la fila única por turno y calificador frenó al
+            # segundo: es el mismo caso que calificar de nuevo, no un 500.
+            if await self.get_by_shift_and_reviewer(review.shift_id, review.reviewer_user_id):
+                raise DuplicateReviewError(str(review.shift_id)) from None
+            raise
         await self._session.refresh(model)
         return _to_entity(model)
 

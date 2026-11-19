@@ -10,6 +10,7 @@ from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import case, func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.application.domain.entities import (
@@ -17,6 +18,7 @@ from app.modules.application.domain.entities import (
     EnrichedApplicant,
     ShiftApplication,
 )
+from app.modules.application.domain.exceptions import AlreadyAppliedError
 from app.modules.application.domain.repositories import (
     ApplicationStats,
     ShiftApplicationRepository,
@@ -76,7 +78,20 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
             se_postulo=application.se_postulo,
         )
         self._session.add(model)
-        await self._commit_or_reset()
+        try:
+            await self._commit_or_reset()
+        except IntegrityError:
+            # Dos pedidos a la vez (otra pantalla, otro dispositivo) leyeron
+            # «no hay postulación» y los dos insertaron: la fila única por
+            # turno y trabajador frenó al segundo. Para la persona es lo mismo
+            # que postularse de nuevo: «ya te postulaste», no un 500. Si la
+            # fila no está, el error era otro y se propaga. `_commit_or_reset`
+            # ya hizo el `rollback`, así que la sesión sirve para releer.
+            if await self.get_by_shift_and_worker(
+                application.shift_id, application.worker_profile_id
+            ):
+                raise AlreadyAppliedError(str(application.shift_id)) from None
+            raise
         await self._session.refresh(model)
         return _to_entity(model)
 
