@@ -468,3 +468,29 @@ Falta: probarla con dos dueños y tres personas que trabajan; celular chico
 (360 px) y letra grande; el vidrio esmerilado en Android de gama baja; y las
 pantallas que no entraron (ingreso y alta, Favoritos, Mi plan, y Buscar,
 Chats y Perfil del comercio).
+
+### Tercera vuelta: el cielo (2026-11-19, misma prueba)
+
+Julieta mandó más referencias (nubes con volumen, cielos más limpios) y
+dijo que el cielo «no termina de ser muy cool como pusiste las nubes»: eran
+manchas blancas desenfocadas, cortadas por los bordes. Cambió esto:
+
+- **Nubes modeladas, no manchas:** una masa blanda con luz de arriba a la
+  izquierda y sombra celeste abajo, como de arcilla. Son tres formas (cúmulo,
+  chica y banco largo) guardadas como imagen con transparencia (unos 10 KB
+  cada una en WebP), dibujadas por nosotros con un mapa de altura; no son de
+  banco ni generadas con IA.
+- **Pocas y con intención:** una grande que asoma arriba a la derecha, detrás
+  de los botones de vidrio, y a lo sumo una chica y más tenue «de lejos».
+  Nunca detrás de un texto. En las pantallas «¡Oído!», un banco de nubes
+  abajo, como el cierre de la landing.
+- **Sobre el cielo hondo y de noche** van al 30 % y al 16 %: se leen como
+  nubes en penumbra y no compiten con la letra blanca.
+- **El cielo, un poco más vivo:** `#5BA8E0` → `#84C0EC` → `#BFE1F6` (antes
+  `#6FB0DF` → `#8CC2E7` → `#B4D8EF`), con una luz suave arriba a la derecha.
+  La tinta `#0F3A5B` da 4,6 sobre el tono más oscuro. Es un cambio de valores
+  de la marca: si queda, hay que llevarlo a `globals.css` y a
+  `color-system.md` en el PR de la primera pantalla.
+
+Para el código: las nubes van como imagen (`<img>` decorativo, `alt=""`),
+no como filtro ni `backdrop-filter`, así no pesan en Android de gama baja.
