@@ -278,9 +278,9 @@ el modelo del dominio, un ADR vigente o un texto legal:
   - ✅ **U081** en `main` (#632, ADR-0007 actualizado).
   - ✅ **U072** en `main` (#633; migración 0052, ADR-0014 actualizado,
     versión legal `2026-11-18-1`; Julieta aprobó el texto, decisión 20).
-  - ✅ **U080** escrito y revisado (rama `claude/u080-reofrecer`, ADR-0015
-    y ADR-0008 actualizados, migración 0053; tras la revisión, un turno
-    común confirmado tarde vuelve a medirse desde el inicio). El diseño: marca
+  - ✅ **U080** en `main` (#647; ADR-0015 y ADR-0008 actualizados,
+    migración 0053; se reofrece con más de 2 horas y 15 minutos de horario;
+    un turno común confirmado tarde se sigue midiendo desde el inicio). El diseño: marca
     `reoffered_at` en el turno; el Inicio, la página pública y postularse lo
     aceptan mientras le queden 2 horas de horario (decisión 19, subida a 2
     horas el mismo día); «no cubierto» pasa a cuando le quedan menos de 2
@@ -289,17 +289,22 @@ el modelo del dominio, un ADR vigente o un texto legal:
     ausencia y puntualidad se miden desde que confirmó, no desde el inicio;
     el pago se prorratea desde la llegada (valor por hora en el aviso, monto
     fijo al llegar, y las ganancias del trabajador usan ese monto). Cambia
-    el ADR-0008 y el ADR-0015. La próxima migración libre es la 0053.
+    el ADR-0008 y el ADR-0015. La próxima migración libre es la 0059.
 - **Decisiones 21, 22 y 24** (2026-11-18): tres reglas nuevas, un PR cada
   una, con su ADR.
-  - ⚪ **21** (cerrar turno desde el admin): sin escribir.
+  - ✅ **21** (cerrar turno desde el admin): hecho el 2026-11-18 (ADR-0024
+    actualizado, migración 0058). La ficha de la cuenta suspendida muestra
+    «Cerrar turno» en sus turnos empezados; a la cuenta suspendida el aviso
+    le queda guardado en la app, sin push, como el resto.
   - ✅ **22** (los turnos ocultos vencen sin aviso y fuera de las métricas de
-    cobertura): hecho el 2026-11-18 (ADR-0024 y ADR-0015 actualizados).
+    cobertura): en `main` (#649; ADR-0024 y ADR-0015 actualizados).
     Para que lo sepa Julieta: la marca toma el estado de la cuenta **cuando
     el turno vence**; un turno que estuvo a la vista sin cubrirse y cuyo
     comercio se suspende ya empezado también sale de las métricas (caso raro).
-  - ⚪ **24** (recordatorio a las 24 h y cierre automático a las 72): sin
-    escribir.
+  - ✅ **24** (recordatorio a las 24 h y cierre automático a las 72): #651
+    (ADR-0008 actualizado, migración 0056). Marcar pagado después del cierre
+    automático sigue contando como pago tardío, y los avisos lo dicen antes
+    (Julieta, 2026-11-18).
 - **P1 a P5**, las mejoras de producto aprobadas. Sin empezar: van en una
   sesión nueva, en el orden del tablero.
 - ✅ **Una segunda mirada a G6** (cuentas suspendidas, ADR-0024), hecha el
@@ -309,9 +314,8 @@ el modelo del dominio, un ADR vigente o un texto legal:
   suspendido; el socket de avisos y los push seguían saliendo; «Mis
   postulaciones» mostraba el turno oculto; el asistente de IA encontraba al
   postulante suspendido; se le podía escribir por chat, decisión 23) y uno
-  en #629 (el aviso «N postulantes» contaba a los suspendidos). **Quedan sin
-  escribir** las decisiones 21 y 22 (cerrar un turno empezado de una cuenta
-  suspendida; los turnos ocultos que vencen sin aviso).
+  en #629 (el aviso «N postulantes» contaba a los suspendidos). La decisión
+  21 quedó hecha el 2026-11-18; la 22, en su PR.
 - **Pasada por clase de error** (propuesta del 2026-11-14; sin empezar, va
   en una sesión nueva junto con los tests de contrato). Lo que dejó la tanda
   del 2026-11-18 para tener en cuenta: en tres de cuatro cambios la revisión

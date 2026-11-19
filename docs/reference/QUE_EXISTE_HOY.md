@@ -194,7 +194,10 @@ listados más abajo.
   MRR y **cuentas de prueba** (trabajador/comercio) creables desde ahí. Las
   cuentas sintéticas se excluyen de las métricas a propósito, y de las de
   cobertura también los turnos que vencieron con la cuenta del comercio
-  suspendida (ADR-0024, actualización 2026-11-18).
+  suspendida (ADR-0024, actualización 2026-11-18). En la ficha de
+  una cuenta suspendida, **«Cerrar turno»** marca la salida o cierra un turno
+  ya empezado en nombre de esa cuenta, con registro; el push sale sólo a la
+  parte activa (decisión 21, ADR-0024).
 - **Design system con tema explícito** (#317/#318): `lib/theme.tsx` es la
   única fuente de verdad y siempre escribe `data-theme="dark"|"light"`. **La
   app no se oscurece sola**: "Sistema" resuelve a claro, por decisión de

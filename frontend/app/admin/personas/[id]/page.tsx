@@ -17,6 +17,7 @@ import type { AdminUserDetail, ShiftStatus, SuspensionPreview, WorkerSkill } fro
 import { formatAmountDue } from "@/lib/pay";
 import { formatShiftDate } from "@/lib/datetime";
 import { formatPunctuality, formatRateOrNone, formatRatingOrNone, hasPaymentRate, levelLabel } from "@/lib/reputation";
+import { useTapGuard } from "@/lib/use-tap-guard";
 import {
   Avatar,
   Badge,
@@ -30,10 +31,12 @@ import {
 import { CheckCircleIcon, ChevronLeftIcon, EyeIcon, UsersIcon } from "@/components/icons";
 import { SectionLabel } from "@/components/admin/AdminStats";
 import PlanCompromiso from "@/components/admin/PlanCompromiso";
+import CerrarTurnoDialog, { type CerrarTurnoTarget } from "@/components/admin/CerrarTurnoDialog";
 import {
   ROLE_LABELS,
   STATUS_LABELS,
   TICKET_STATUS_LABELS,
+  adminCloseHint,
   suspensionImpactLines,
 } from "@/components/admin/people";
 
@@ -65,6 +68,11 @@ export default function AdminPersonPage() {
   // diálogo, para que la admin lo vea antes de confirmar.
   const [preview, setPreview] = useState<SuspensionPreview | null>(null);
   const [previewFailed, setPreviewFailed] = useState(false);
+  // «Cerrar turno» de una cuenta suspendida (decisión 21): el turno elegido,
+  // con lo que haría según el backend.
+  const [closing, setClosing] = useState<CerrarTurnoTarget | null>(null);
+  // El doble toque sobre «Cerrar turno» no confirma el diálogo que abre.
+  const tapGuard = useTapGuard();
 
   const load = useCallback(() => {
     if (!token) return;
@@ -286,7 +294,9 @@ export default function AdminPersonPage() {
             Volver
           </Button>
           <Button
-            variant={confirm === "suspend" ? "danger" : "dark"}
+            // «Hacer admin» con la acción principal (ámbar): `dark` daba 1,1:1
+            // contra el diálogo en oscuro.
+            variant={confirm === "suspend" ? "danger" : "primary"}
             size="sm"
             // Primero se ve qué toca: mientras se cuenta, no se confirma.
             disabled={confirm === "suspend" && preview === null && !previewFailed}
@@ -363,26 +373,64 @@ export default function AdminPersonPage() {
             <p className="mt-2 px-1 text-sm text-ink/50">Todavía no tiene turnos.</p>
           ) : (
             <ul className="mt-2 divide-y divide-line overflow-hidden rounded-[var(--radius-card)] bg-card ring-1 ring-line">
-              {detail.recent_shifts.map((s) => (
-                <li key={s.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                  <div className="min-w-0">
-                    <p className="truncate font-medium text-ink">{s.title || skillLabel(s.position)}</p>
-                    <p className="text-xs text-ink/50">
-                      {formatShiftDate(s.start_at)} · {formatAmountDue(s)}
-                    </p>
-                  </div>
-                  {s.absent ? (
-                    <Badge tone="danger">No se presentó</Badge>
-                  ) : (
-                    <Badge tone="neutral">
-                      {SHIFT_STATUS_LABELS[s.status as ShiftStatus] ?? s.status}
-                    </Badge>
-                  )}
-                </li>
-              ))}
+              {detail.recent_shifts.map((s) => {
+                const name = s.title || skillLabel(s.position);
+                const closeAction = s.admin_close;
+                return (
+                  <li key={s.id} className="px-4 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-ink">{name}</p>
+                        <p className="text-xs text-ink/50">
+                          {formatShiftDate(s.start_at)} · {formatAmountDue(s)}
+                        </p>
+                      </div>
+                      {/* Sin achicarse: un título largo cortaba el estado en dos
+                          renglones («Check-» / «in») a 390 px. */}
+                      <div className="shrink-0 whitespace-nowrap">
+                        {s.absent ? (
+                          <Badge tone="danger">No se presentó</Badge>
+                        ) : (
+                          <Badge tone="neutral">
+                            {SHIFT_STATUS_LABELS[s.status as ShiftStatus] ?? s.status}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    {closeAction && (
+                      <div className="mt-2.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                        <p className="text-xs text-ink/60">{adminCloseHint(closeAction)}</p>
+                        <Button
+                          size="sm"
+                          variant="surface"
+                          disabled={tapGuard.locked || busy !== null}
+                          onClick={() =>
+                            void tapGuard.run(() =>
+                              setClosing({ id: s.id, name, action: closeAction })
+                            )
+                          }
+                        >
+                          Cerrar turno
+                        </Button>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
+      )}
+
+      {closing && token && (
+        <CerrarTurnoDialog
+          key={closing.id}
+          target={closing}
+          token={token}
+          tapGuard={tapGuard}
+          onClose={() => setClosing(null)}
+          onChanged={load}
+        />
       )}
 
       <div className="mt-8">
