@@ -344,9 +344,9 @@ horaria.
 | Postulación con el estado viejo | VIE-01, CON-04, CON-11 | menor | ✅ #671 |
 | Socket y lista de avisos | PRI-04, VIE-04, CON-10, ESC-04 | menor | ✅ #670 |
 | Pantallas sin reloj ni relectura | VIE-02, VIE-03, VIE-05 | menor | ✅ #673 |
-| Escrituras enteras sin versión (backend) | ESC-01, CON-13, CON-08 | menor | 🔵 este PR |
-| Formularios que mandan la copia de cuando se abrieron | ESC-02, ESC-03 | menor | ⚪ |
-| Cobro con Mercado Pago (latente: está apagado) | CON-06, CON-07, CON-09 | menor | ⚪ |
+| Escrituras enteras sin versión (backend) | ESC-01, CON-13, CON-08 | menor | ✅ #674 |
+| Formularios que mandan la copia de cuando se abrieron | ESC-02, ESC-03 | menor | 🔵 este PR |
+| Cobro con Mercado Pago (latente: está apagado) | CON-06, CON-07, CON-09 | menor | ⚪ próxima sesión, antes de prender el cobro |
 | Borradores y datos al cambiar de sesión | SES-02, SES-03, SES-04 | menor | ✅ #672 |
 | Hora sin zona leída en la zona del celular (borrador de la IA) | FEC-02 | menor | ✅ #673 |
 | Esperan una decisión de Julieta | PRI-06 (el registro dice qué emails tienen cuenta), PRI-07 (`/privacidad` dice «nunca la exacta» y «va en camino» manda la exacta), PRI-09 («Ver como» de la admin escribe en nombre de la persona) | menor | ⏸️ |
@@ -363,6 +363,31 @@ guarda la forma de cada respuesta y falla si cambia; los specs no pueden
 inventar campos. Al migrar 16 specs aparecieron 8 mocks que mandaban cosas
 que el backend no manda (un 409 que es 400, `status: "activo"` que es
 `"active"`, un tipo de aviso con otro nombre, entre otros).
+
+**Para la próxima sesión** (anotado el 2026-11-19, al cerrar la pasada):
+
+- El cobro latente (CON-06, CON-07, CON-09), antes de prender el cobro: el
+  reclamo y la acreditación de un pago en transacciones separadas, un pago
+  rechazado y otro aprobado del mismo checkout a la vez, y el arrepentimiento
+  que no se reanuda si falla a mitad (el #674 ya cubre el caso de la
+  suscripción que pierde la carrera).
+- Seguimientos que dejaron las revisiones, ninguno bloqueante:
+  - un access token sigue valiendo hasta 15 minutos después de una
+    revocación (también reconecta el socket); atarlo a la sesión es un ADR;
+  - un candado por cuenta en la rotación, la ventana de gracia y
+    `revoke_all_for_user` cerraría el límite conocido del ADR-0002;
+  - el candado de confirmar (CON-11) no cubre asignar ni la reasignación;
+  - `workers/[id]`, `companies/[id]`, favoritos y admin siguen sin
+    `useLiveRefresh`; el auto-retiro de U123 no refresca la lista del
+    comercio;
+  - el texto de «Arrepentirme» cuando quedó a medias (caso latente y raro);
+  - el PUT del comercio en `/bienvenida` no se revisó contra la copia vieja.
+- El e2e `admin-grupo-m.spec.ts:121` («Ver como») falló bajo carga en
+  corridas locales de cuatro ramas distintas (timeout de 5 s buscando
+  «Hoy»); pasa solo y en CI. Mirarlo si aparece en CI.
+- `/privacidad`: el texto sobre el CV (quién lo ve, cuánto se guarda) está
+  propuesto en el ADR-0021; va junto con PRI-07, con una sola subida de la
+  versión legal.
 
 ### Criterio de Julieta para decidir (2026-11-13)
 
@@ -462,8 +487,21 @@ implemente.
 
 ### Decisiones que esperan a Julieta
 
-Ninguna al 2026-11-18 (las de la segunda mirada a G6, U081, U080 y U072 se
-tomaron ese día: ver «Decisiones tomadas el 2026-11-18»). El ingreso de invitado (decisión 5) se apaga al abrir
+Del 2026-11-19 (pasada por clase de error), con opciones y recomendación en
+la conversación de ese día:
+
+- **PRI-06:** el registro dice qué emails ya tienen cuenta. Recomendado:
+  dejarlo así en la beta (Turnstile y el límite de intentos ya frenan la
+  consulta masiva) y revisarlo con las passkeys.
+- **PRI-07:** `/privacidad` dice que el comercio nunca ve la ubicación
+  exacta, y «va en camino» se la muestra en vivo (a propósito). Recomendado:
+  corregir el texto (sube la versión legal), junto con el texto del CV.
+- **PRI-09:** «Ver como» de la admin entrega una sesión común (marca chats
+  como vistos, puede escribir). Recomendado: que sea sólo para mirar, con
+  registro de cada uso.
+
+Las de antes (la segunda mirada a G6, U081, U080 y U072) se tomaron el
+2026-11-18: ver «Decisiones tomadas el 2026-11-18». El ingreso de invitado (decisión 5) se apaga al abrir
 la beta, en la lista de salida (etapa 5): hasta entonces sirve para mostrar y
 probar la app.
 

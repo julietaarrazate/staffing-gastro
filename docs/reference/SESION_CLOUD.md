@@ -287,6 +287,30 @@ chicos (lo commiteado sobrevive al corte) y retomarlos con un mensaje
 sesión pasa a otro, los agentes nuevos se lanzan con el modelo nuevo; los
 que se retoman siguen con el suyo.
 
+El 2026-11-19 (la pasada por clase de error, doce PRs en una sesión) anduvo
+así, sin un solo corte de cupo:
+
+- **Una línea de montaje con tres agentes:** auditor → verificador → quien
+  arregla → revisor, cada uno distinto; quien coordina integra, prueba en la
+  app y mergea de a un PR. Las revisiones encontraron algo serio en la mitad
+  de los arreglos (una ventana de gracia reusable, archivos `private` de
+  Cloudinary con versiones transformadas públicas, un pin que delataba su
+  celda por los decimales): **no se saltea la revisión aunque el arreglo
+  «se vea bien»**.
+- **Devolver el trabajo con `SendMessage` al mismo agente** que lo escribió
+  (o al mismo revisor para la segunda vuelta) ahorra releer todo.
+- **Un agente que «espera su trabajo en segundo plano» reenvía su informe**
+  cada vez que algo suyo termina. Si ya se leyó el informe, `TaskStop`.
+- **Ramas que se tocan:** al integrar, un árbol aparte con todas mergeadas
+  para la prueba en la app (`tools/e2e-local` sobre ese árbol); el choque
+  conocido se resuelve con un script en el scratchpad y se reusa en cada
+  rebase. El contrato (#666) avisó solo cuando una rama nacida antes cambió
+  la forma del perfil.
+- **`main` se mueve cada 20 minutos** cuando otra sesión trabaja a la vez:
+  antes de cada merge, traer `main` y mirar su CI (`actions_list` con
+  `branch: main`); si el PR quedó atrás y toca lo mismo, mergear `main` en la
+  rama y esperar el CI otra vez.
+
 Pasó tres veces el 2026-11-11, en una prueba de 16 recorridos en paralelo:
 
 - **El límite de uso de la cuenta corta a todos los subagentes a la vez**
