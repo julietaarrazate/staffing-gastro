@@ -43,6 +43,7 @@ _FECHA = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}")
 # Campos de fecha que dependen del reloj del momento de correr el test.
 _FECHA_FIJA = "2026-11-01T12:00:00+00:00"
 # Campos que dependen del reloj o del azar de cada corrida.
+_AL_AZAR = {"distance_km": 0.3, "score": 0.4}
 _VOLATIL_OTROS = {"slug", "share_token"}
 # Horario fijo del turno en el archivo (el real se calcula desde hoy, porque el
 # feed y la página pública sólo muestran turnos que todavía no empezaron).
@@ -90,7 +91,14 @@ class Normalizador:
             self._por_forma(v)
             return {k: self.valor(x, k) for k, x in v.items()}
         if isinstance(v, list):
+            if v and all(isinstance(x, dict) for x in v):
+                # Mismo `created_at` en cada fila: el orden entre corridas no es
+                # estable. Se ordena ANTES de nombrar los UUID (los ids salen en
+                # orden de aparición), por los textos propios de cada fila.
+                v = sorted(v, key=_clave_de_orden)
             return [self.valor(x, clave) for x in v]
+        if isinstance(v, float) and clave in _AL_AZAR:
+            return _AL_AZAR[clave]  # la posición del perfil se difumina al azar
         if isinstance(v, str):
             if clave in ("access_token", "token", "refresh_token"):
                 return "token-de-prueba"
@@ -104,6 +112,15 @@ class Normalizador:
                 return _FECHA_FIJA
             return self.texto(v)
         return v
+
+
+def _clave_de_orden(fila: dict) -> str:
+    textos = [
+        f"{k}={x}"
+        for k, x in sorted(fila.items())
+        if isinstance(x, str) and not _UUID.fullmatch(x) and not _FECHA.match(x)
+    ]
+    return "|".join(textos)
 
 
 def forma(v):
@@ -165,6 +182,15 @@ class Captura:
         return cuerpo
 
 
+_PERFIL_TRABAJADOR = {
+    "skills": ["mozo"],
+    "years_experience": 2,
+    "is_available": True,
+    "latitude": -34.58,
+    "longitude": -58.43,
+}
+
+
 def _horario(dias: int, horas: int = 7) -> dict:
     """Turno de `horas` que empieza a las 20 de dentro de `dias` días."""
     inicio = (now_art() + timedelta(days=dias)).replace(
@@ -185,6 +211,8 @@ def _payload(**o) -> dict:
         "tips": True,
         "city": "Palermo",
         "address": "Thames 1234",
+        "latitude": -34.58,
+        "longitude": -58.43,
     }
     p.update(o)
     return p
@@ -232,11 +260,11 @@ async def test_contrato_frontend(client: AsyncClient, session_factory):
         json={"name": "Otro Bar", "city": "Palermo"},
     )
     perfil_w = await client.post(
-        "/api/v1/workers/me/profile", headers=wk, json={"skills": ["mozo"]}
+        "/api/v1/workers/me/profile", headers=wk, json=_PERFIL_TRABAJADOR
     )
     cap.norm.nombrar(perfil_w.json()["id"], "worker-profile")
     perfil_w2 = await client.post(
-        "/api/v1/workers/me/profile", headers=wk2, json={"skills": ["mozo"]}
+        "/api/v1/workers/me/profile", headers=wk2, json=_PERFIL_TRABAJADOR
     )
     cap.norm.nombrar(perfil_w2.json()["id"], "worker-profile")
 
@@ -273,6 +301,11 @@ async def test_contrato_frontend(client: AsyncClient, session_factory):
     cap.guardar("postulantes_de_turno_ajeno", await client.get(
         f"/api/v1/applications/shifts/{shift_id}", headers=otro_emp))
     cap.guardar("avisos_comercio", await client.get("/api/v1/notifications", headers=emp))
+
+    cap.guardar("candidatos_recomendados", await client.get(
+        f"/api/v1/shifts/{shift_id}/candidates", headers=emp))
+    cap.guardar("candidatos_turno_ajeno", await client.get(
+        f"/api/v1/shifts/{shift_id}/candidates", headers=otro_emp))
 
     cap.guardar("turno_asignar", await client.post(
         f"/api/v1/shifts/{shift_id}/assign", headers=emp,
@@ -375,7 +408,7 @@ async def test_contrato_frontend(client: AsyncClient, session_factory):
         client, cap, "contrato_w3@staffya.com", "worker", "Trabajador Tres", "user-worker"
     )
     perfil_w3 = await client.post(
-        "/api/v1/workers/me/profile", headers=_wk3, json={"skills": ["mozo"]}
+        "/api/v1/workers/me/profile", headers=_wk3, json=_PERFIL_TRABAJADOR
     )
     cap.norm.nombrar(perfil_w3.json()["id"], "worker-profile")
     suspendido = await client.post(

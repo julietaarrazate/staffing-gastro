@@ -4,6 +4,7 @@ import { deContrato, fulfillContrato, respuesta, statusDe } from "../e2e/contrat
 import {
   STATUS_LABELS,
   type Applicant,
+  type CandidateMatch,
   type Notification,
   type Shift,
   type ShiftApplication,
@@ -60,6 +61,7 @@ describe("los tipos del frontend calzan con lo que manda el backend", () => {
       contrato.turno_cancelar.body,
       ...contrato.feed.body,
       ...contrato.turnos_del_comercio.body,
+      ...contrato.turnos_del_comercio_con_asignado.body,
       ...contrato.turnos_asignados_trabajador.body,
     ];
     expect(turnos.length).toBeGreaterThan(12);
@@ -78,6 +80,11 @@ describe("los tipos del frontend calzan con lo que manda el backend", () => {
     expect(mias.length).toBeGreaterThan(0);
     expect(postulantes.length).toBe(2);
     expect(nueva.status).toBe("pendiente");
+  });
+
+  it("candidatos recomendados", () => {
+    const candidatos: Ensanchar<CandidateMatch>[] = contrato.candidatos_recomendados.body;
+    expect(candidatos.length).toBe(2);
   });
 
   it("avisos", () => {
