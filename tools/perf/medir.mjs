@@ -25,6 +25,8 @@
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 // Playwright del frontend (lo trae @playwright/test); si no está, el global.
 let chromium;
@@ -295,7 +297,7 @@ async function runScenario(browser, sc) {
   if (sc.interact) {
     await page.evaluate(() => { window.__perf.phase = "inter"; });
     page.setDefaultTimeout(4000);
-    await sc.interact(page).catch(async (e) => { interError = e.message.split("\n")[0]; await page.screenshot({ path: `/tmp/claude-0/perf-render/err-${sc.name}.png` }).catch(() => {}); });
+    await sc.interact(page).catch(async (e) => { interError = e.message.split("\n")[0]; await page.screenshot({ path: join(tmpdir(), `medir-error-${sc.name}.png`) }).catch(() => {}); });
     await page.evaluate(() => { window.__perf.phase = "idle"; });
   }
 
