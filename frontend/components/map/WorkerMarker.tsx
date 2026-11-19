@@ -73,12 +73,12 @@ function WorkerMarker({
             e.stopPropagation();
             onClick(id);
           }}
-          className={`relative flex h-[38px] w-[38px] items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-primary to-primary-strong shadow-[0_4px_10px_rgba(17,17,20,0.22)] transition-transform duration-300 ease-out ${
+          className={`relative flex h-[38px] w-[38px] items-center justify-center rounded-full border-2 border-white bg-primary-text shadow-[0_4px_10px_rgba(17,17,20,0.22)] transition-transform duration-300 ease-out ${
             active ? "scale-[1.25]" : "scale-100"
           }`}
         >
           {active && (
-            <span className="absolute -inset-2 rounded-full border-2 border-primary [animation:markerHalo_1.6s_ease-out_infinite]" />
+            <span className="absolute -inset-2 rounded-full border-2 border-primary-text [animation:markerHalo_1.6s_ease-out_infinite]" />
           )}
           {isLive && (
             <span
@@ -97,7 +97,7 @@ function WorkerMarker({
               className="h-full w-full rounded-full object-cover"
             />
           ) : (
-            <span className="text-sm font-bold text-night">{initial}</span>
+            <span className="text-sm font-bold text-card">{initial}</span>
           )}
           {hasRating(rating) && (
             <span className="absolute -bottom-1 -right-1 flex items-center gap-0.5 rounded-full border border-white bg-night px-1 py-[1px] text-[9px] font-bold leading-tight text-white shadow-sm">

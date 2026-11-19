@@ -13,14 +13,14 @@ import Link from "next/link";
 import { SKILL_LABELS, WORKER_SKILLS, WorkerMapResult, WorkerSkill } from "@/lib/types";
 import { EmptyState, ErrorBanner, Skeleton } from "@/components/ui";
 import { MapPinIcon, SearchIcon, UsersIcon } from "@/components/icons";
-import { SKILL_ACCENT, SKILL_RAIL_BORDER, heroTile } from "@/lib/skill-style";
+import { SKILL_ACCENT, heroTile } from "@/lib/skill-style";
 import RatingOrNew from "@/components/RatingOrNew";
 import BottomSheet from "@/components/BottomSheet";
 
 function WorkerRowSkeleton() {
   return (
-    <div className="flex gap-3 rounded-[var(--radius-card)] bg-surface p-4 shadow-[var(--shadow-soft)] ring-1 ring-line" aria-hidden>
-      <Skeleton className="h-16 w-16 shrink-0 rounded-[var(--radius-chip)]" />
+    <div className="flex gap-3 rounded-[var(--radius-card)] bg-card p-4 ring-1 ring-line" aria-hidden>
+      <Skeleton className="h-14 w-14 shrink-0 rounded-[var(--radius-btn)]" />
       <div className="flex-1 space-y-2">
         <Skeleton className="h-4 w-2/3" />
         <Skeleton className="h-3.5 w-1/3" />
@@ -208,11 +208,13 @@ function SearchPageContent() {
   }, [token, center, origin, filtersRestored]);
 
   const filterControls = (
-    <div className="flex items-center gap-2 rounded-full bg-card/95 px-2 py-2 shadow-lg ring-1 ring-line backdrop-blur md:bg-card md:shadow-none md:ring-line">
+    <div className="flex items-center gap-2 rounded-[var(--radius-relieve)] bg-card px-2 py-2 ring-1 ring-line">
       <select
         value={skill}
         onChange={(e) => setSkill(e.target.value as WorkerSkill | "")}
-        className="flex-1 rounded-full bg-surface px-3 py-2 text-sm font-medium text-ink/75 ring-1 ring-line transition focus:bg-card"
+        // `min-w-0`: sin esto el select no se achica y a 320 px la lupa quedaba
+        // fuera de la pantalla (revisión del 2026-11-19).
+        className="min-w-0 flex-1 rounded-[var(--radius-btn)] bg-surface px-3 py-2 text-sm font-medium text-ink ring-1 ring-line transition focus:bg-card"
       >
         <option value="">Todos los roles</option>
         {WORKER_SKILLS.map((s) => (
@@ -229,16 +231,16 @@ function SearchPageContent() {
         onChange={(e) => setRadiusKm(Number(e.target.value))}
         title="Radio en km"
         aria-label="Radio en kilómetros"
-        className="w-12 rounded-full bg-surface px-1 py-2 text-center text-sm font-medium text-ink/75 ring-1 ring-line transition focus:bg-card"
+        className="w-12 rounded-[var(--radius-btn)] bg-surface px-1 py-2 text-center text-sm font-medium text-ink ring-1 ring-line transition focus:bg-card"
       />
-      <span className="-ml-1 text-sm font-medium text-ink/60" aria-hidden>
+      <span className="-ml-1 text-sm font-medium text-ink-soft" aria-hidden>
         km
       </span>
       <button
         onClick={search}
         disabled={loading}
         aria-label="Buscar"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-strong text-night shadow-[var(--shadow-primary)] transition active:scale-95 disabled:opacity-60"
+        className="boton-relieve flex h-9 w-9 shrink-0 items-center justify-center bg-primary text-night disabled:opacity-60"
       >
         <SearchIcon size={16} className={loading ? "animate-pulse" : ""} />
       </button>
@@ -300,6 +302,11 @@ function SearchPageContent() {
           subtitle="Ampliá el radio de búsqueda o probá otro rubro para encontrar candidatos cerca."
         />
       ) : (
+        // Cada trabajador en su ficha blanca con filete, como en Candidatos
+        // (Julieta, 2026-11-19, entre fichas y renglones). Quien está
+        // «Disponible ahora» lleva el borde y el relieve del filete. Antes:
+        // tarjetas en superficie gris con una banda de color del rubro al
+        // costado y sombra difusa.
         <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-1">
           {loading ? (
             <>
@@ -312,77 +319,42 @@ function SearchPageContent() {
               <Link
                 key={worker.profile_id}
                 href={`/workers/${worker.profile_id}`}
-                // Riel de color a la izquierda, del OFICIO PRINCIPAL del
-                // trabajador (Julieta, captura 2026-08-17: "la foto donde
-                // están los trabajadores reales no me gusta todo blanco,
-                // ponele colores — naranja no"). La lista era íntegramente
-                // blanca y todas las filas se leían iguales; el riel las
-                // diferencia de un vistazo sin cambiar el fondo blanco que
-                // hace legible el texto. El verde bosque sólo le toca a quien
-                // efectivamente es mozo: el resto de los oficios
-                // trae su propio color de `SKILL_HERO_TONE` (bartender
-                // petróleo, barista espresso, cajero azul noche...), la misma tabla
-                // que ya usan la landing, el mazo y las listas de turnos.
-                className={`flex gap-3 overflow-hidden rounded-[var(--radius-card)] border-l-[6px] bg-surface p-4 pl-3.5 shadow-[var(--shadow-soft)] ring-1 ring-line transition active:scale-[0.99] hover:shadow-lg ${
-                  worker.skills.length > 0
-                    ? SKILL_RAIL_BORDER[worker.skills[0]]
-                    : "border-l-line"
-                }`}
+                className={`flex gap-3 rounded-[var(--radius-card)] p-4 transition active:scale-[0.99] ${worker.is_live ? "tarjeta-relieve" : "bg-card ring-1 ring-line"}`}
               >
                 {worker.photo_url ? (
                   <img
                     src={worker.photo_url}
                     alt={worker.full_name}
-                    width={64}
-                    height={64}
+                    width={56}
+                    height={56}
                     loading="lazy"
                     decoding="async"
-                    className="h-16 w-16 rounded-[var(--radius-chip)] object-cover ring-1 ring-line"
+                    className="h-14 w-14 rounded-[var(--radius-btn)] object-cover"
                   />
                 ) : (
-                  <div
-                    className={`flex h-16 w-16 items-center justify-center rounded-[var(--radius-chip)] text-xl font-bold ${
-                      worker.skills.length > 0
-                        ? heroTile(worker.skills[0])
-                        : "bg-gradient-to-br from-primary to-primary-strong text-night"
-                    }`}
-                  >
+                  <span aria-hidden className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-[var(--radius-btn)] text-xl font-bold ${worker.skills.length > 0 ? heroTile(worker.skills[0]) : "bg-surface text-ink"}`}>
                     {worker.full_name.charAt(0).toUpperCase()}
-                  </div>
+                  </span>
                 )}
-                <div className="flex-1">
+                <div className="min-w-0 flex-1">
                   <p className="font-semibold text-ink">{worker.full_name}</p>
                   <div className="mt-0.5 flex items-center gap-1.5">
-                    <RatingOrNew rating={worker.rating} size={13} numberClassName="text-xs text-ink/50" />
-                    {worker.distance_km != null && (
-                      <span className="text-xs text-ink/40">
-                        · {formatDistance(worker.distance_km)}
-                      </span>
-                    )}
+                    <RatingOrNew rating={worker.rating} size={13} numberClassName="text-xs text-ink-soft" />
+                    {worker.distance_km != null && <span className="text-xs text-ink-soft">· {formatDistance(worker.distance_km)}</span>}
                   </div>
-                  {/* ADR-0014: "Disponible ahora" — sólo cuando está vigente,
-                      nunca "zona del perfil" a modo de badge (ésa es la
-                      ausencia de esto, no otro estado que mostrar). */}
                   {worker.is_live && (
                     <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-success-text">
                       <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden />
                       Disponible ahora
-                      {worker.position_updated_at && (
-                        <span className="font-normal text-ink/40">
-                          · {formatAgo(worker.position_updated_at)}
-                        </span>
-                      )}
+                      {worker.position_updated_at && <span className="font-normal text-ink-soft">· {formatAgo(worker.position_updated_at)}</span>}
                     </p>
                   )}
                   <div className="mt-2 flex flex-wrap gap-1.5">
-                    {worker.skills.map((s) => {
-                      const { Icon, bg, fg } = SKILL_ACCENT[s];
+                    {worker.skills.map((sk) => {
+                      const { Icon } = SKILL_ACCENT[sk];
                       return (
-                        <span
-                          key={s}
-                          className={`inline-flex items-center gap-1 rounded-full ${bg} ${fg} px-2 py-0.5 text-xs font-semibold`}
-                        >
-                          <Icon size={11} /> {SKILL_LABELS[s]}
+                        <span key={sk} className="inline-flex items-center gap-1 rounded-[var(--radius-chip)] bg-surface px-2 py-0.5 text-xs font-semibold text-ink-soft">
+                          <Icon size={11} /> {SKILL_LABELS[sk]}
                         </span>
                       );
                     })}
