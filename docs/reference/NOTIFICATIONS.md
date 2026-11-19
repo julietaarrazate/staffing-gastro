@@ -36,6 +36,15 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
 
 ## Reglas de negocio
 
+- **Cuadro de refresco (`live_refresh`), no es un aviso (VIE-01, 2026-11-19).**
+  Cuando una persona retira su postulación, al comercio le llega por el socket
+  de avisos `{"type": "live_refresh"}` (`NotificationRepository.request_live_refresh`):
+  sin id ni texto, no se guarda, no suma a la campanita y no sale push. La
+  campanita lo reconoce por no tener `id` y sólo llama a `emitLiveRefresh()`,
+  así que la lista de candidatos abierta se recarga sola. Sólo llega a quien
+  tiene la app abierta; el resto se pone al día al entrar o al volver a la
+  pestaña. Si el socket falla, el retiro igual se hace.
+
 - **Ausencia (`shift_no_show`), textos (U082/U089).** Mismo destinatario en los dos
   casos; cambia lo que se cuenta. El aviso tiene un solo destino, el perfil
   (`/profile`, donde se ve la ausencia); «Soporte» queda como texto, no como link.

@@ -209,6 +209,9 @@ function ShiftCandidatesContent() {
     } catch (err) {
       toast(getErrorMessage(err, "No se pudo asignar"), "error");
       setAssigning(null);
+      // Si falló, lo que se ve pudo haberse quedado viejo (la persona retiró su
+      // postulación, el turno ya cambió): se vuelve a pedir, en silencio (VIE-01).
+      load({ silent: true });
     }
   }
 
