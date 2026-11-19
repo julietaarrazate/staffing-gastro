@@ -1,10 +1,25 @@
 """Entidades del dominio de notificaciones."""
 
+import hmac
 from dataclasses import dataclass, field
 from datetime import datetime
 from uuid import UUID, uuid4
 
 from app.modules.notification.domain.value_objects import NotificationType
+
+
+# Topes de las columnas `title` (255) y `message` (500) de `notifications`.
+# Viven acá, en un solo lugar: un nombre o título largo (de comercio, de turno,
+# de quien escribe en el chat) no debe romper el aviso DESPUÉS de que la
+# acción de fondo ya se guardó.
+TITLE_MAX = 255
+MESSAGE_MAX = 500
+
+
+def clip_text(text: str, limit: int) -> str:
+    """Recorta a `limit` caracteres, con «…» al final si hubo que cortar.
+    Un valor ausente (None) pasa tal cual: lo rechaza la base, no se disfraza."""
+    return text if text is None or len(text) <= limit else text[: limit - 1].rstrip() + "…"
 
 
 @dataclass
@@ -25,6 +40,15 @@ class Notification:
     id: UUID = field(default_factory=uuid4)
     created_at: datetime | None = None
 
+    def __post_init__(self) -> None:
+        self.title = clip_text(self.title, TITLE_MAX)
+        self.message = clip_text(self.message, MESSAGE_MAX)
+
+
+def _same_key(one: str, other: str) -> bool:
+    # En tiempo constante: `auth` es un secreto compartido con el navegador.
+    return hmac.compare_digest(one.encode(), other.encode())
+
 
 @dataclass
 class PushSubscription:
@@ -43,3 +67,22 @@ class PushSubscription:
 
     id: UUID = field(default_factory=uuid4)
     created_at: datetime | None = None
+
+    def is_same_browser_as(self, other: "PushSubscription") -> bool:
+        """¿Las dos salieron del mismo navegador? Las claves son de la
+        suscripción, no de la sesión: un navegador manda siempre las mismas
+        para su `endpoint`, entre quien entre. Por eso sólo quien las presenta
+        puede quedarse con una suscripción que ya existe; conocer el
+        `endpoint` de otra persona no alcanza."""
+        same_p256dh = _same_key(self.p256dh_key, other.p256dh_key)
+        same_auth = _same_key(self.auth_key, other.auth_key)
+        return self.endpoint == other.endpoint and same_p256dh and same_auth
+
+    def is_released_by(self, *, user_id: UUID, auth_key: str) -> bool:
+        """¿Esta baja sin sesión puede borrar la suscripción? Sólo si trae la
+        clave `auth` (el secreto que comparten el navegador y el servidor: es
+        la prueba de que la manda ese navegador) y la fila sigue siendo de la
+        cuenta que salió. `user_id` no prueba nada: está para que una baja
+        vieja no borre el registro de otra cuenta que ya entró ahí."""
+        same_auth = _same_key(self.auth_key, auth_key)
+        return self.user_id == user_id and same_auth

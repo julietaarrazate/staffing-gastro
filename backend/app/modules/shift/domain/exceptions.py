@@ -13,6 +13,11 @@ class AssigneeNotFoundError(ShiftError):
     """El perfil de trabajador a asignar no existe."""
 
 
+class AssigneeUnavailableError(ShiftError):
+    """La persona a asignar tiene la cuenta suspendida (ADR-0024): no podría
+    entrar a confirmar, y el turno quedaría esperando para siempre."""
+
+
 class InvalidShiftTransitionError(ShiftError):
     """La transición de estado solicitada no es válida desde el estado actual."""
 
@@ -42,3 +47,10 @@ class OverlappingShiftError(ShiftError):
 class ShiftConcurrentModificationError(ShiftError):
     """Otro pedido modificó el turno entre que se leyó y se quiso guardar
     (ADR-0016). Nada se guardó: hay que volver a leerlo y decidir de nuevo."""
+
+
+class AdminCloseNotAllowedError(ShiftError):
+    """«Cerrar turno» de la admin no aplica a este turno (decisión 21,
+    ADR-0024): ninguna parte suspendida, el turno no empezó o ya terminó, o
+    el paso que falta le toca a la parte con la cuenta activa. El mensaje es
+    para la admin."""

@@ -11,6 +11,7 @@ from app.modules.notification.infrastructure.repositories import (
 )
 from app.modules.support.application.services import SupportService
 from app.modules.support.infrastructure.repositories import (
+    SqlAlchemyReferenceLookup,
     SqlAlchemySupportMessageRepository,
     SqlAlchemySupportTicketRepository,
 )
@@ -23,4 +24,5 @@ def get_support_service(
         tickets=SqlAlchemySupportTicketRepository(session),
         messages=SqlAlchemySupportMessageRepository(session),
         notifications=SqlAlchemyNotificationRepository(session),
+        references=SqlAlchemyReferenceLookup(session),
     )

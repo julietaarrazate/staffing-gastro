@@ -78,7 +78,8 @@ al recorrer el flujo (ver `STATUS.md`/reporte del batch).
 ### 3. Cancelación tardía del comercio (efecto simétrico)
 
 - **Sin transición nueva:** `Shift.cancel()` ya es terminal desde cualquier
-  estado no terminal, incluido con el trabajador confirmado. Lo que faltaba
+  estado no terminal, incluido con el trabajador confirmado (desde el
+  2026-11-18, salvo con la salida marcada: ver la actualización al final). Lo que faltaba
   no era la transición — es lo que pasa alrededor de ella.
 - **"Tardía" se define en `ShiftService.cancel_shift`:** si al momento de
   cancelar el turno estaba en `COMMITTED_STATUSES` (el mismo conjunto que ya
@@ -149,3 +150,38 @@ al recorrer el flujo (ver `STATUS.md`/reporte del batch).
 - ⚠️ Mismo aviso que ADR-0004: código que asuma que `CONFIRMADO`/`EN_CAMINO`
   sólo avanzan hacia adelante debe considerar también el retroceso a
   `BUSCANDO_PERSONAL` por no-show (además de por `worker_cancel`/`reject`).
+
+## Actualización 2026-11-18 (U081, decisión 2 del tablero de la beta)
+
+**Un turno ya trabajado no se cancela.** El punto 3 decía que `Shift.cancel()`
+es terminal «desde cualquier estado no terminal», y la cancelación tardía
+incluía `CHECK_OUT`. Eso dejaba al comercio cancelar un turno cuyo trabajador
+ya había marcado la salida: el turno quedaba «cancelado», sin pago, y a la
+persona le llegaba «cancelaron tu turno» después de haberlo hecho entero
+(hallazgo U081 de la prueba de punta a punta).
+
+Desde ahora, con la salida marcada (`CHECK_OUT`) cancelar responde 400: «Este
+turno ya se trabajó, no se puede cancelar. Finalizalo y pagalo; si hubo un
+problema, escribinos desde Soporte.» El comercio **finaliza y paga**; un
+desacuerdo (se fue antes, no hizo el trabajo) va por soporte, no por una
+cancelación unilateral.
+
+- La regla vive en el dominio: `NOT_CANCELLABLE_STATUSES` (los terminales más
+  `CHECK_OUT`) y `Shift.is_cancellable`
+  (`backend/app/modules/shift/domain/`). `cancel_event` saltea esos puestos.
+  El frontend la espeja en `isCancellable` (`frontend/lib/cancelar-turno.ts`):
+  el menú no ofrece «Cancelar turno» y, si la salida se marcó con el panel
+  abierto, el diálogo se cierra con el aviso.
+- La cancelación tardía sigue siendo la del punto 3 para `CONFIRMADO`,
+  `EN_CAMINO`, `CHECK_IN` y `TRABAJANDO`: en pleno turno el comercio todavía
+  puede cancelar, y le cuesta. `CHECK_OUT` sigue en `COMMITTED_STATUSES`
+  porque ese conjunto también es el de la regla de doble turno.
+- Descartado: impedir la cancelación desde la llegada (`CHECK_IN`). Hay casos
+  reales (el local cierra por un corte de luz) y ya tienen su costo; lo que
+  no tiene vuelta es cancelar un trabajo que ya se hizo.
+- La suspensión de un comercio no cambia: los turnos que ya empezaron no se
+  tocan (ADR-0024).
+
+## Actualización 2026-11-13 (#550)
+
+El no-show manual sólo se puede marcar desde 15 minutos después del inicio del turno (`Shift.no_show()`); antes responde 400 con la hora en que se habilita. La ausencia automática (ADR-0008) no cambia. Consecuencia: un turno reabierto por ausencia siempre ya empezó. Desde el 2026-11-18 (U080) se reofrece como urgente si le quedan al menos 2 horas (y se ofrece hasta que le quedan menos de 2), y con menos pasa a «no cubierto» ([ADR-0015](./ADR-0015-turno-no-cubierto.md), actualización de ese día).

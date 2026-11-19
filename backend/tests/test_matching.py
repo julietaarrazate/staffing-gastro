@@ -5,8 +5,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.geo import haversine_km
-from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
-from tests.conftest import TEST_GUEST_PIN, auth_headers, login
+from tests.conftest import TEST_GUEST_PIN, auth_headers, make_admin
 
 pytestmark = pytest.mark.asyncio
 
@@ -78,8 +77,10 @@ async def test_ranking_orders_by_score_desc(client: AsyncClient):
     shift_id = await _publish_shift(client, employer_headers)
 
     await _worker_profile(client, "near@staffya.com", years_experience=10)
+    # Más lejos pero DENTRO del radio (~15 km): fuera del radio ya no sale
+    # como recomendado (tests/test_cerca_es_cerca.py).
     await _worker_profile(
-        client, "far@staffya.com", years_experience=0, latitude=-31.4, longitude=-64.2
+        client, "far@staffya.com", years_experience=0, latitude=-34.70, longitude=-58.50
     )
 
     response = await client.get(
@@ -211,14 +212,7 @@ async def test_admin_can_search_map_read_only(
     de PR #165 no alcanzaba para esto)."""
     await _worker_profile(client, "any3@staffya.com", skills=["mozo"])
 
-    await auth_headers(client, "employer", "admin_search@staffya.com")
-    async with session_factory() as session:
-        repo = SqlAlchemyUserRepository(session)
-        user = await repo.get_by_email("admin_search@staffya.com")
-        user.promote_to_admin()
-        await repo.update(user)
-    tokens = await login(client, "admin_search@staffya.com")
-    admin_headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+    admin_headers = await make_admin(client, session_factory, "admin_search@staffya.com")
 
     response = await client.get("/api/v1/matching/search", headers=admin_headers)
     assert response.status_code == 200
@@ -303,10 +297,18 @@ async def test_top_candidates_score_does_not_leak_the_real_distance():
     company_id = uuid4()
     shifts = {
         "near": SimpleNamespace(
-            company_id=company_id, position=WorkerSkill.MOZO, latitude=near[0], longitude=near[1]
+            company_id=company_id,
+            position=WorkerSkill.MOZO,
+            latitude=near[0],
+            longitude=near[1],
+            city=None,
         ),
         "far": SimpleNamespace(
-            company_id=company_id, position=WorkerSkill.MOZO, latitude=far[0], longitude=far[1]
+            company_id=company_id,
+            position=WorkerSkill.MOZO,
+            latitude=far[0],
+            longitude=far[1],
+            city=None,
         ),
     }
 
@@ -327,3 +329,78 @@ async def test_top_candidates_score_does_not_leak_the_real_distance():
     assert abs(real_a - real_b) > 0.25  # de verdad están a distinta distancia
     assert a.distance_km == b.distance_km == 2.0  # misma banda pública
     assert a.score == b.score  # el score no despeja la distancia real
+
+
+async def _notifications_of(session_factory, email: str) -> list[str]:
+    """Tipos de los avisos guardados para esa cuenta (directo de la base:
+    un admin necesita la verificación en dos pasos para pedirlos por API)."""
+    from sqlalchemy import select
+
+    from app.modules.identity.infrastructure.models import UserModel
+    from app.modules.notification.infrastructure.models import NotificationModel
+
+    async with session_factory() as session:
+        result = await session.execute(
+            select(NotificationModel.type)
+            .join(UserModel, UserModel.id == NotificationModel.user_id)
+            .where(UserModel.email == email)
+        )
+        return list(result.scalars().all())
+
+
+async def test_admin_with_worker_profile_is_not_a_candidate_nor_notified(
+    client: AsyncClient, session_factory: async_sessionmaker[AsyncSession]
+):
+    """Pedido de Julieta (2026-10-30): su cuenta es admin pero tiene un
+    `worker_profile` viejo de pruebas, y le llegaban todos los avisos de
+    "turno cerca tuyo" (86 sin leer). Un admin no es candidato: ni aviso, ni
+    lista de candidatos del comercio, ni mapa de búsqueda."""
+    from tests.conftest import promote_to_admin
+
+    await _worker_profile(client, "admin_con_perfil@staffya.com")
+    await promote_to_admin(session_factory, "admin_con_perfil@staffya.com")
+    worker_headers = await _worker_profile(client, "real_cerca@staffya.com")
+
+    employer_headers = await _employer_with_company(client, "emp_admin_perfil@staffya.com")
+    shift_id = await _publish_shift(client, employer_headers)
+
+    assert await _notifications_of(session_factory, "admin_con_perfil@staffya.com") == []
+    assert await _notifications_of(session_factory, "real_cerca@staffya.com") == [
+        "new_shift_nearby"
+    ]
+
+    me = await client.get("/api/v1/workers/me/profile", headers=worker_headers)
+    candidates = await client.get(
+        f"/api/v1/shifts/{shift_id}/candidates", headers=employer_headers
+    )
+    assert candidates.status_code == 200
+    assert [c["profile_id"] for c in candidates.json()] == [me.json()["id"]]
+
+    search = await client.get("/api/v1/matching/search", headers=employer_headers)
+    assert search.status_code == 200
+    assert [w["profile_id"] for w in search.json()] == [me.json()["id"]]
+
+
+async def test_suspended_worker_is_not_a_candidate_nor_notified(
+    client: AsyncClient, session_factory: async_sessionmaker[AsyncSession]
+):
+    """Un suspendido no puede entrar (`User.is_active`): avisarle un turno o
+    recomendárselo al comercio no sirve de nada."""
+    from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
+
+    await _worker_profile(client, "suspendido@staffya.com")
+    async with session_factory() as session:
+        repo = SqlAlchemyUserRepository(session)
+        user = await repo.get_by_email("suspendido@staffya.com")
+        user.suspend()
+        await repo.update(user)
+
+    employer_headers = await _employer_with_company(client, "emp_suspendido@staffya.com")
+    shift_id = await _publish_shift(client, employer_headers)
+
+    assert await _notifications_of(session_factory, "suspendido@staffya.com") == []
+    candidates = await client.get(
+        f"/api/v1/shifts/{shift_id}/candidates", headers=employer_headers
+    )
+    assert candidates.status_code == 200
+    assert candidates.json() == []

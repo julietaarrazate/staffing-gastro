@@ -26,24 +26,19 @@
   --foreground: #111111; /* Tinta primaria */
   --line: #ece7dd; /* borde 1px, hairline cálido que se lee sobre el blanco */
 
-  /* Radios — alineados a la maqueta aprobada (2026-09).
-   *
-   * Los cuatro valores estaban 4-6px POR ENCIMA de la dirección Híbrido
-   * (`docs/design/mockups/09-hibrido-app.html`, la referencia que Julieta fijó
-   * como fuente de verdad). Medido clase por clase contra esa maqueta:
-   * `.card`/`.nav`/`.d-hero` = 20px (acá había 24), `.btn-primary`/`.pub` =
-   * 15px (acá 20), `.sheet` = 22px (acá 28). Toda la app venía sistemáticamente
-   * más redondeada que su propia maqueta — el motivo de fondo de que las
-   * pantallas "no terminaran de parecerse" aunque el color ya estuviera bien.
-   *
-   * `--radius-chip` es el peldaño que faltaba: la maqueta da 12px a toda
-   * miniatura (`.thumb`, `.t-thumb`, `.rc-thumb`, `.park`), un rol que en el
-   * código caía en `rounded-2xl` (16px de Tailwind) — un valor de fuera del
-   * sistema, elegido por defecto y no por diseño.
-   *
-   * `--radius-input` se deja en 18px: la maqueta no muestra un campo de
-   * formulario del que sacar el número (18px es lo que usan `.id-card` y
-   * `.biz-header`), y bajarlo por simetría sería inventar. */
+  /* Radios — escala del 2026-11-16: chip 4 / botón 6 / input 6 / card 8 /
+   * sheet 14. El medidor de diseño marcó que todo estaba redondeado igual
+   * (16-32px) y que todo era una tarjeta; la escala anterior (card 16, botón
+   * 12, input 12, sheet 18) venía del board v5.0. Ahora las esquinas son
+   * chicas y se leen como filete, no como burbuja. Sólo es círculo
+   * (`rounded-full`) lo que de verdad lo es: avatares, puntos, insignias
+   * redondas. Chips, botones y cajas usan estos tokens, no `rounded-2xl`. */
+  --radius-chip: 0.25rem; /* 4px — miniaturas, íconos cuadrados, chips y etiquetas */
+  --radius-btn: 0.375rem; /* 6px */
+  --radius-input: 0.375rem; /* 6px */
+  --radius-card: 0.5rem; /* 8px */
+  --radius-sheet: 0.875rem; /* 14px */
+
   /* Anchos de contenedor (fase K). `--app-frame` es el ancho del header, y
    * por lo tanto EL MARCO de la app: ninguna pantalla lo excede, porque
    * contenido más ancho que el chrome que lo enmarca se lee como roto.
@@ -51,15 +46,6 @@
    * mitad de las pantallas. Ver `.app-container` más abajo. */
   --app-frame: 64rem; /* 1024px — el marco: header y contenido comparten ancho */
   --app-reading: 42rem; /* 672px — lectura larga (legales), medida de línea */
-
-  /* Radios — board v5.0 (Formas y radios): card 16 / botón 12 / input 12 /
-   * badge 99 (pill). El sheet sube apenas sobre la card (18) y el chip toma el
-   * radio de botón (12). Antes card20/btn15/input18. */
-  --radius-card: 1rem; /* 16px */
-  --radius-btn: 0.75rem; /* 12px */
-  --radius-input: 0.75rem; /* 12px */
-  --radius-sheet: 1.125rem; /* 18px */
-  --radius-chip: 0.75rem; /* 12px — miniaturas, íconos cuadrados, chips chicos */
 
   /* Sombras suaves: las cards flotan, nunca sombras pesadas. Con el lienzo
    * blanco (pivot 2026-09-20) la tarjeta ya no contrasta por color contra el
@@ -69,6 +55,21 @@
    * más definido que la sombra de una sola capa que alcanzaba sobre crema. */
   --shadow-soft: 0 1px 2px rgba(31, 31, 28, 0.04), 0 6px 18px rgba(31, 31, 28, 0.07);
   --shadow-float: 0 2px 6px rgba(31, 31, 28, 0.06), 0 16px 40px rgba(31, 31, 28, 0.12);
+
+  /* Relieve (ADR-0027, dirección «con relieve»): la sombra dura del «oído»
+   * fileteado, corrida abajo a la derecha, como profundidad de la interfaz.
+   * No es otra sombra para todo: va en UN objeto por pantalla (el botón
+   * principal y la tarjeta que importa); lo demás sigue plano, con hairline.
+   * El botón con relieve se aprieta al tocarlo: se corre lo que mide la
+   * sombra y la sombra queda en cero. El color (`--relieve`) y las tres
+   * sombras se declaran con la paleta, más abajo, porque cambian con el tema. */
+  --radius-relieve: 0.625rem; /* 10px — botón recto con relieve */
+  --relieve-btn: 3px; /* cuánto se corre el botón al apretarlo */
+  /* El papel de la comanda (`components/ui/Comanda.tsx`): blanco, y un punto
+   * más bajo sobre la noche. Va acá y no con la paleta a propósito: adentro
+   * la comanda se fuerza a claro, y este color tiene que seguir al tema de
+   * afuera. */
+  --comanda-papel: #ffffff;
 
   /* Glows semánticos de acción (2026-09). Un botón de acción no proyecta una
    * sombra neutra: proyecta su PROPIO color, apenas, para despegarse del
@@ -178,8 +179,10 @@
   /* Tinte pálido de éxito (green-50). */
   --color-success-tint: #f0fdf4;
   --color-danger: #ef4444;
-  /* Rojo como TEXTO sobre claro: el de superficie da 3.76, insuficiente. */
-  --color-danger-text: #d73d3d;
+  /* Rojo como TEXTO sobre claro: #ef4444 da 3.76 y #d73d3d daba 3.86 sobre la
+     superficie celeste; #c22f2f da 5.61 sobre la tarjeta, 5.40 sobre el lienzo,
+     4.77 sobre la superficie y 4.64 sobre el tinte celeste (2026-11-17). */
+  --color-danger-text: #c22f2f;
   /* Tinte pálido para chips/banners de error — mismo patrón que manteca/
      cielo: NO cambia entre modos, se lee bien tanto sobre tarjeta clara
      como oscura. Reemplaza el `bg-red-50` suelto de SubscriptionStatusCard. */
@@ -367,14 +370,32 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  /* Tipografía (todas libres): Schibsted Grotesk para títulos de pantalla
-     (font-display, desde el 2026-10-18); Fraunces sólo para el wordmark
-     (font-serif); Inter para texto y encabezados de sección; DM Mono cargada
-     para datos (los precios no la usan, decisión de Julieta). */
+  /* Tipografía (todas libres): Young Serif para títulos de pantalla
+     (font-display, desde el 2026-11-16; un solo peso); Shrikhand sólo para la
+     palabra «oído» (font-oido, desde el 2026-11-17; hasta ahí el wordmark iba
+     en Fraunces, que ya no se carga); Inter para texto y encabezados de
+     sección; DM Mono cargada para datos (los precios no la usan, decisión de
+     Julieta). */
   --font-sans: var(--font-inter);
-  --font-display: var(--font-schibsted);
-  --font-serif: var(--font-fraunces);
+  --font-display: var(--font-young-serif), ui-serif, Georgia, serif;
+  --font-oido: var(--font-shrikhand), Georgia, serif;
   --font-mono: var(--font-dm-mono);
+}
+
+/* Young Serif tiene un solo peso (400). Sin esto, `font-semibold`/`font-bold`
+ * sobre `font-display` (y el 500-700 de las reglas de la landing) harían que
+ * el navegador fabrique una negrita falsa. Va sin capa para ganarle a las
+ * utilidades de Tailwind; `font-synthesis-weight` se hereda a los hijos. */
+.font-display {
+  font-weight: 400;
+  font-synthesis-weight: none;
+  /* Cifras de caja alta. Young Serif trae las cifras old-style por defecto
+   * («$45.000» se ve con el 4 y el 5 colgando bajo la línea) y la fuente sí
+   * incluye la feature `lnum`. Va como font-feature-settings y no como
+   * font-variant-numeric para no pisar `tabular-nums` de Tailwind, que usa
+   * ese mismo shorthand. Las reglas de la landing que setean
+   * `var(--font-display)` a mano repiten la línea. */
+  font-feature-settings: "lnum" 1;
 }
 
 /* ===========================================================================
@@ -467,6 +488,20 @@
  * funciona suelta sobre el lienzo, sin depender de dónde se use. */
 :root[data-theme="dark"] {
   color-scheme: dark;
+  /* Relieve sobre la noche azul: un azul más claro que el lienzo, para que
+     la sombra dura se despegue (el #1c5478 de claro se perdía). */
+  --relieve: #2e6e99;
+  --comanda-papel: #eef3f6;
+  /* De noche el cielo es azul noche, con las nubes apenas insinuadas. */
+  --app-cielo-0: #0b1a28;
+  --app-cielo-1: #0f2233;
+  --app-cielo-2: #12283b;
+  --app-cielo-nube: 0.08;
+  --app-cielo-tinta: #eef3f6;
+  --color-cartel: #eef3f6;
+  --app-banda: #0f3a5b;
+  --app-banda-tinta: #eef3f6;
+  --app-banda-relieve: #2e6e99;
 
   /* MODO OSCURO REAL (board v5.0). A diferencia del híbrido anterior (lienzo
      claro que no invertía, sólo las tarjetas), acá el LIENZO también se
@@ -609,7 +644,7 @@
   --color-secondary-text: #1b3a31;
   --color-accent-text: #6d47d9;
   --color-success-text: #15803d;
-  --color-danger-text: #d73d3d;
+  --color-danger-text: #c22f2f;
   --color-warning-text: #92660a;
   --color-info-text: #1d4ed8;
   --color-trust: #1e4a47;
@@ -695,6 +730,25 @@
   --color-on-brand-icon: #1c5478;
   --color-brand-veil: transparent;
   --color-accent: #9ac9e7;
+  /* Relieve: azul hondo, el del borde del filete. Las sombras se declaran
+     acá, junto al color, para que un subárbol forzado a claro (la landing)
+     las recalcule con su azul y no herede las del tema oscuro. */
+  --relieve: #1c5478;
+  --shadow-relieve: var(--relieve-btn) var(--relieve-btn) 0 var(--relieve);
+  --shadow-relieve-md: 5px 5px 0 var(--relieve);
+  --shadow-relieve-lg: 8px 8px 0 var(--relieve);
+  /* El cielo de arriba de una pantalla de la app (`.app-cielo`) y la tinta
+     que se lee encima; el azul de los títulos en brocha (`.letra-cartel`). */
+  --app-cielo-0: #6fb0df;
+  --app-cielo-1: #8cc2e7;
+  --app-cielo-2: #b4d8ef;
+  --app-cielo-nube: 0.85;
+  --app-cielo-tinta: #0f3a5b;
+  --color-cartel: #0f3a5b;
+  /* La banda azul hondo (`.app-banda`): el fondo del riel del comercio. */
+  --app-banda: #1c5478;
+  --app-banda-tinta: #ffffff;
+  --app-banda-relieve: #0f3a5b;
   /* PROTOTIPO esmerilado (2026-10-09). */
   --color-chrome: rgba(255, 255, 255, 0.92);
   /* El cielo de la landing arriba de cada pantalla (2026-10-19); antes era
@@ -797,6 +851,17 @@ textarea,
   user-select: text;
 }
 
+/* iOS Safari hace zoom solo al enfocar un campo con letra menor a 16px. Como
+ * el viewport ya deja hacer zoom (U044), en celular los campos de texto van en
+ * 16px; sólo cambia la letra, no el alto ni el padding. */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
 /* Foco visible, por sistema y no por componente (2026-09).
  *
  * Antes el anillo de foco se declaraba a mano en cada componente: sólo tres
@@ -814,6 +879,28 @@ textarea,
 :where(a, button, [role="button"], [tabindex]:not([tabindex="-1"]), input, select, textarea, summary):focus-visible {
   outline: 2px solid var(--focus-ring, var(--color-primary));
   outline-offset: 2px;
+}
+
+/* Campos cuyo contenedor ya dibuja el anillo de foco (focus-within): sin esto
+ * el piso de arriba suma un segundo anillo (el layer de utilities de Tailwind
+ * pierde contra una regla sin layer, así que `outline-none` no alcanza). */
+input[data-foco-contenedor]:focus-visible {
+  outline: none;
+}
+/* El contenedor dibuja ese único contorno, el mismo de la marca. Sólo cuando
+ * el foco está en SU campo: otro control adentro (la «X» de borrar del buscador
+ * de direcciones) lleva su propio contorno global, y si el contenedor también
+ * se encendiera serían dos (revisión de #627). */
+.foco-contenedor:has([data-foco-contenedor]:focus-visible) {
+  outline: 2px solid var(--focus-ring, var(--color-primary));
+  outline-offset: 2px;
+}
+/* Elementos que dibujan su propio foco por dentro (tarjeta con enlace que la
+ * cubre entera, donde un contorno de afuera se recortaría): ese es el ÚNICO
+ * indicador, así que se apaga el global. `outline-none` de Tailwind no alcanza
+ * porque el global no está en ninguna capa. */
+.foco-propio:focus-visible {
+  outline: none;
 }
 
 /* Oculta scrollbars en carruseles/filas horizontales sin perder el scroll. */
@@ -967,6 +1054,321 @@ body:has([data-landing]) main {
   padding-bottom: 0;
 }
 
+/* ── Dirección «con relieve» en la app (ADR-0027): piezas compartidas ──
+   Las letras llegan por `lib/letras.ts`: cada pantalla migrada pone
+   `LETRAS_APP` en su contenedor. */
+
+/* La brocha: el título de la pantalla y el puesto de la comanda. */
+.letra-cartel {
+  font-family: var(--font-brocha), "Trebuchet MS", sans-serif;
+  font-weight: 400;
+  font-synthesis-weight: none;
+  text-transform: uppercase;
+  line-height: 1.02;
+  letter-spacing: 0;
+  color: var(--color-cartel);
+}
+/* Sus dos tamaños. La brocha es angosta y pide un punto más que la escala
+   de texto (`text-h1` son 28 px): 32 para el título de la pantalla y 30
+   para el puesto de la comanda. Van acá, con nombre, y no como
+   `text-[2rem]` suelto en cada pantalla (lo exige `lib/type-scale.test.ts`). */
+.letra-cartel-pantalla {
+  font-size: 2rem;
+}
+.letra-cartel-puesto {
+  font-size: 1.875rem;
+}
+/* El título en brocha directo sobre la banda azul hondo (Mis turnos): en la
+   tinta de la banda. Va con clase propia y no como `.app-banda
+   .letra-cartel`, que le pegaría también al puesto de las comandas que
+   cuelgan del riel. */
+.letra-cartel-sobre-banda {
+  color: var(--app-banda-tinta);
+}
+/* La barra de «Mozo/a», en la letra de texto (ver `textoCartel`). */
+.letra-cartel .barra {
+  margin-inline: 0.06em;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-weight: 300;
+}
+/* Lo anotado a mano, en azul hondo (celeste sobre la noche). */
+.letra-mano {
+  font-family: var(--font-mano), "Comic Sans MS", cursive;
+  font-weight: 400;
+  font-synthesis-weight: none;
+  line-height: 1.1;
+  color: var(--color-primary-text);
+}
+.apunte {
+  position: relative;
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 1.25rem;
+  white-space: nowrap;
+  transform: rotate(-6deg);
+}
+.apunte svg {
+  position: absolute;
+  inset: -4px -6px;
+  width: calc(100% + 12px);
+  height: calc(100% + 8px);
+  pointer-events: none;
+}
+.apunte path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.flechita {
+  display: inline-block;
+  width: 34px;
+  height: 26px;
+  flex: none;
+}
+.flechita path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* Lo destacado de una lista (el candidato que se recomienda): blanco, con el
+   borde y el relieve del filete. Uno por pantalla. */
+.tarjeta-relieve {
+  background: var(--color-card);
+  box-shadow:
+    inset 0 0 0 1.5px var(--relieve),
+    var(--shadow-relieve-md);
+}
+/* Un estado como sello de goma: borde del color de la letra, apenas torcido. */
+.sello-goma {
+  display: inline-block;
+  padding: 3px 7px;
+  border: 2px solid currentColor;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transform: rotate(-3deg);
+}
+
+/* El cielo de arriba de una pantalla: celeste pleno con dos nubes de día,
+   azul noche de noche. Lo que va encima se lee en `--app-cielo-tinta`. */
+.app-cielo {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--app-cielo-0), var(--app-cielo-1) 45%, var(--app-cielo-2));
+  color: var(--app-cielo-tinta);
+}
+.app-cielo::before,
+.app-cielo::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  border-radius: 50%;
+  background: #ffffff;
+  filter: blur(14px);
+  opacity: var(--app-cielo-nube);
+  pointer-events: none;
+}
+.app-cielo::before {
+  right: -70px;
+  top: 40%;
+  width: 240px;
+  height: 70px;
+}
+.app-cielo::after {
+  left: -90px;
+  bottom: -40px;
+  width: 300px;
+  height: 90px;
+}
+
+/* La banda azul hondo: donde cuelgan las comandas en curso del comercio.
+   A todo el ancho en el celular; con esquinas en pantallas anchas. El foco
+   de lo que va directo sobre la banda es claro (el de siempre es este azul). */
+.app-banda {
+  --focus-ring: #ffffff;
+  /* Sobre la banda, el relieve de la comanda va un tono más hondo (más
+     claro de noche): el azul de siempre es el de la banda y no se vería. */
+  --relieve: var(--app-banda-relieve);
+  background: var(--app-banda);
+  color: var(--app-banda-tinta);
+}
+@media (min-width: 768px) {
+  .app-banda {
+    border-radius: var(--radius-card);
+  }
+}
+/* El riel de la cocina: la barra de donde cuelgan las comandas, con sus
+   remaches. Va arriba de la banda, sobresaliendo un poco a los costados. */
+.riel {
+  position: relative;
+  z-index: 1;
+  height: 18px;
+  margin: 0 -6px;
+  border: 1.5px solid #0f3a5b;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #ffffff, #dcedf7);
+  box-shadow: 0 4px 0 #0f3a5b;
+}
+.riel i {
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin-top: -4px;
+  border: 1.5px solid #1c5478;
+  border-radius: 50%;
+  background: #9ac9e7;
+}
+
+/* El botón con relieve de una pantalla de la app (uno por pantalla): recto,
+   con borde azul hondo y la sombra dura del filete; al tocarlo se corre lo
+   que mide la sombra. El color de fondo y de letra los pone quien lo usa. */
+.boton-relieve {
+  /* El borde va como sombra hacia adentro y no como `border`: un borde de
+     verdad agranda el botón y lo dejaba 2 px más alto que el secundario de
+     al lado (lo midió la revisión del 2026-11-18). */
+  --relieve-borde: inset 0 0 0 1.5px var(--relieve);
+  border-radius: var(--radius-relieve);
+  box-shadow: var(--relieve-borde), var(--shadow-relieve);
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease,
+    filter 0.15s ease,
+    background-color 0.15s ease;
+}
+.boton-relieve:active {
+  transform: translate(var(--relieve-btn), var(--relieve-btn));
+  box-shadow: var(--relieve-borde), 0 0 0 var(--relieve);
+}
+/* El anillo de foco, separado del botón: pegado se confundía con el borde y
+   con el relieve, que en claro son del mismo azul. */
+.boton-relieve:focus-visible {
+  outline-offset: 4px;
+}
+/* Desactivado: sin borde de color ni relieve, con un filete. No se aprieta. */
+.boton-relieve:disabled {
+  box-shadow: 0 0 0 1px var(--color-line);
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .boton-relieve {
+    transition: none;
+  }
+}
+
+/* La comanda: papel de cocina con el relieve del filete. */
+.comanda {
+  position: relative;
+  border-radius: 2px;
+  background: var(--comanda-papel);
+  box-shadow: 4px 4px 0 var(--relieve);
+}
+.comanda-papel {
+  /* El foco de adentro va siempre en el azul hondo de claro: sobre la banda
+     (`.app-banda`) heredaba el blanco de la banda y no se veía en el papel. */
+  --focus-ring: #1c5478;
+  border-radius: inherit;
+  color: var(--color-ink);
+}
+/* Una comanda que ya no tiene nada pendiente (pagada, cancelada, no
+   cubierta) pierde el relieve y queda apoyada, con un filete: se la ve
+   apagada sin bajarle la opacidad, que dejaba el sello y la letra chica por
+   debajo de contraste (2,7 a 3,2). */
+.comanda-apagada {
+  box-shadow: 0 0 0 1px var(--color-line);
+  filter: saturate(0.8);
+}
+/* El foco de un link de la comanda va por dentro del papel. Por fuera caía
+   sobre el cielo o el lienzo con el azul de claro (adentro la comanda está
+   forzada a claro), y de noche no llegaba a 3:1. */
+.comanda a:focus-visible {
+  outline-offset: -4px;
+}
+.comanda-fila {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--color-line);
+  font-size: 14px;
+  color: var(--color-ink-soft);
+}
+.comanda-fila dd {
+  font-weight: 600;
+  color: var(--color-ink);
+  text-align: right;
+}
+
+/* «Disponible» como el cartelito de la puerta: cuelga de su hilo y se da
+   vuelta al tocarlo. Verde como el de «abierto»; blanco cuando no. */
+.cartelito {
+  position: relative;
+  flex: none;
+  padding-top: 14px;
+  perspective: 400px;
+}
+/* El hilo y el clavo de donde cuelga. */
+.cartelito-hilo {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 60px;
+  height: 14px;
+  margin-left: -30px;
+}
+.cartelito-hilo path {
+  fill: none;
+  stroke: var(--app-cielo-tinta);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+.cartelito-hilo circle {
+  fill: var(--app-cielo-tinta);
+}
+.cartelito > span {
+  display: block;
+  min-width: 112px;
+  padding: 9px 12px;
+  border: 1.5px solid #0b5d2b;
+  border-radius: 5px;
+  background: #15803d;
+  color: #ffffff;
+  box-shadow: 2px 2px 0 var(--relieve);
+  font-family: var(--font-brocha), "Trebuchet MS", sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+  font-synthesis-weight: none;
+  line-height: 1;
+  text-align: center;
+  text-transform: uppercase;
+}
+.cartelito-no > span {
+  border-color: #4b5563;
+  background: #ffffff;
+  color: #4b5563;
+}
+.cartelito-gira > span {
+  animation: cartelitoGira 0.35s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+@keyframes cartelitoGira {
+  from {
+    transform: rotateY(90deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cartelito-gira > span {
+    animation: none;
+  }
+}
+
 /* `--lh` es el alto del encabezado propio de la landing y `--lht` le suma
    el notch. */
 [data-landing] {
@@ -1041,8 +1443,28 @@ body:has([data-landing]) main {
   /* Aire entre el título de una sección y lo que muestra. */
   --aire: clamp(28px, 4vw, 48px);
   /* Las tarjetas de producto (mapa, oferta) comparten radio y sombra. */
-  --l-radio: 20px;
-  --l-sombra: 0 0 0 1px var(--color-line), 0 1px 2px rgb(20 50 70 / 0.06), 0 28px 56px -32px rgb(28 84 120 / 0.38);
+  --l-radio: 12px;
+  --l-sombra: 0 0 0 1px var(--color-line), 0 1px 2px rgb(20 50 70 / 0.06), 0 50px 70px -50px rgb(15 58 91 / 0.55);
+  /* Tres superficies con borde claro, sin degradés que se lavan
+     (2026-11-13): cielo pleno para abrir y cerrar, un celeste plano para
+     el panel de la comanda y el plan del medio, y la noche azul de la app
+     para quien trabaja. */
+  --l-cielo-1: #6fb0df;
+  --l-cielo-2: #8cc2e7;
+  --l-cielo-3: #b4d8ef;
+  --l-cielo-4: #dcedf7;
+  --l-tinte: #e2eef6;
+  --l-noche: #0d131a;
+  --l-hondo: #0f3a5b;
+  /* Los paneles van con margen y esquinas redondas. */
+  --l-margen: 12px;
+  --l-panel: 12px;
+}
+@media (max-width: 640px) {
+  [data-landing] {
+    --l-margen: 8px;
+    --l-panel: 10px;
+  }
 }
 .landing-tarjeta {
   border-radius: var(--l-radio);
@@ -1053,24 +1475,56 @@ body:has([data-landing]) main {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding-block: clamp(52px, 7vw, 96px);
+  padding-block: clamp(64px, 9vw, 128px);
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
+/* Letra mixta (Julieta, 2026-11-18; components/landing/letras.ts). Los
+   títulos de sección van en Abril Fatface, la hermana derecha de la Shrikhand
+   del «oído». Un solo peso: sin negrita sintética. */
 .landing-h2 {
   max-width: 16ch;
   margin-inline: auto;
-  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-  font-weight: 500;
-  font-size: clamp(2rem, 3.6vw, 3.25rem);
-  line-height: 1.02;
-  letter-spacing: -0.03em;
+  font-family: var(--font-abril), Georgia, serif;
+  font-weight: 400;
+  font-synthesis-weight: none;
+  font-size: clamp(2.3rem, 4.8vw, 3.9rem);
+  line-height: 1.04;
+  letter-spacing: -0.01em;
   color: var(--color-ink);
   text-wrap: balance;
 }
-.landing-h2-grande {
+/* La brocha, sólo donde habría un cartel pintado: el título del inicio, el
+   cierre y los nombres de la carta. En mayúsculas y en el azul de la marca. */
+.landing-cartel {
+  font-family: var(--font-brocha), "Trebuchet MS", sans-serif;
+  font-weight: 400;
+  font-synthesis-weight: none;
+  text-transform: uppercase;
+  line-height: 1.02;
+  letter-spacing: 0;
+  color: var(--l-hondo);
+  text-wrap: balance;
+}
+.landing-cartel-inicio {
+  font-size: clamp(3.25rem, 6.4vw, 6rem);
+}
+/* A 320 px «ENCONTRÁ TU» no entraba en un renglón y «TU» quedaba solo. */
+@media (max-width: 359px) {
+  .landing-cartel-inicio {
+    font-size: 2.75rem;
+  }
+}
+.landing-cartel-cierre {
   max-width: 15ch;
-  font-size: clamp(2.5rem, 4.8vw, 4.25rem);
+  margin-inline: auto;
+  font-size: clamp(2.8rem, 6.4vw, 5.4rem);
+}
+/* Lo anotado a mano, siempre en azul hondo. */
+.landing-mano {
+  font-family: var(--font-mano), "Comic Sans MS", cursive;
+  font-weight: 400;
+  font-synthesis-weight: none;
 }
 .landing-sec-cosa {
   margin-top: var(--aire);
@@ -1115,36 +1569,55 @@ body:has([data-landing]) main {
 
 /* El cierre se apoya en el cielo del final: menos aire abajo. */
 .landing-cierre {
-  padding-bottom: 0;
+  /* El cierre y la firma forman un solo panel de cielo (2026-11-13): acá la
+     mitad de arriba, `.landing-firma` la de abajo. */
+  margin: 0 var(--l-margen);
+  border-radius: var(--l-panel) var(--l-panel) 0 0;
+  background: linear-gradient(180deg, var(--l-cielo-1) 0%, var(--l-cielo-2) 100%);
+  padding-bottom: clamp(20px, 3vw, 40px);
 }
 
-/* Botones de la landing: píldora con flecha en un círculo. */
+/* Botones de la landing, con la flecha en un círculo. Desde el 2026-11-18
+   llevan el relieve del filete (ADR-0027) en lugar de la sombra difusa: una
+   sombra dura azul hondo que se aprieta al tocar. Ya no se levantan al pasar
+   el mouse: con sombra dura, un botón que flota se despega de su sombra. */
 .landing-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
-  height: 50px;
-  padding: 0 22px;
-  border-radius: 999px;
+  height: 54px;
+  padding: 0 24px;
+  border-radius: var(--radius-relieve);
+  box-shadow: var(--shadow-relieve);
   font-weight: 600;
   font-size: 15px;
   white-space: nowrap;
-  transition: transform 0.15s;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
 }
-.landing-btn:active {
-  transform: translateY(1px);
+@media (hover: hover) {
+  .landing-btn:hover .landing-btn-flecha {
+    transform: translateX(3px);
+  }
+}
+.landing-btn:active,
+.landing-btn.landing-apretado {
+  transform: translate(var(--relieve-btn), var(--relieve-btn));
+  box-shadow: 0 0 0 var(--relieve);
 }
 .landing-btn-flecha {
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
-  margin-right: -12px;
+  width: 34px;
+  height: 34px;
+  margin-right: -14px;
   border-radius: 50%;
-  font-size: 14px;
+  font-size: 15px;
   background: var(--color-ink);
   color: var(--color-card);
+  transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 /* El principal va en tinta: el ámbar queda sólo en la palabra que cambia
    (un solo acento por pantalla). */
@@ -1157,9 +1630,16 @@ body:has([data-landing]) main {
   color: var(--color-ink);
 }
 .landing-btn-borde {
-  background: rgb(255 255 255 / 0.6);
+  background: var(--color-card);
   color: var(--color-ink);
-  box-shadow: inset 0 0 0 1px rgb(17 17 17 / 0.16);
+  box-shadow:
+    inset 0 0 0 1px rgb(15 58 91 / 0.14),
+    var(--shadow-relieve);
+}
+.landing-btn-borde:active {
+  box-shadow:
+    inset 0 0 0 1px rgb(15 58 91 / 0.14),
+    0 0 0 var(--relieve);
 }
 .landing-btn-tinta {
   background: var(--color-ink);
@@ -1175,15 +1655,74 @@ body:has([data-landing]) main {
 .landing-hero {
   --cw: 104px;
   --ch: 135px;
-  /* Sube debajo del encabezado transparente: el cielo llega hasta arriba. */
-  margin-top: calc(-1 * var(--lht));
+  /* Sube debajo del encabezado transparente: el cielo llega casi hasta
+     arriba. Desde el 2026-11-13 es un panel con margen y esquinas redondas,
+     de un celeste decidido que no se lava hacia el blanco; las nubes son
+     piezas aparte (HeroRueda.tsx, `Nubes`). */
+  margin: calc(var(--l-margen) - var(--lht)) var(--l-margen) 0;
+  border-radius: var(--l-panel);
+  isolation: isolate;
   padding-top: calc(var(--ch) + 96px + var(--lht));
-  padding-bottom: clamp(40px, 6vw, 96px);
-  background:
-    radial-gradient(18% 10% at 18% 14%, rgb(255 255 255 / 0.9), transparent 70%),
-    radial-gradient(22% 9% at 80% 9%, rgb(255 255 255 / 0.85), transparent 70%),
-    radial-gradient(14% 7% at 62% 24%, rgb(255 255 255 / 0.7), transparent 70%),
-    linear-gradient(180deg, var(--color-secondary-strong) 0%, var(--color-secondary) 26%, #eef6f9 46%, var(--color-card) 60%);
+  padding-bottom: clamp(56px, 7vw, 104px);
+  background: linear-gradient(180deg, var(--l-cielo-1) 0%, var(--l-cielo-2) 36%, var(--l-cielo-3) 66%, var(--l-cielo-4) 100%);
+}
+/* Nubes del inicio: un banco abajo, quieto, y dos cirros arriba que derivan
+   muy despacio. Son SVG sueltos para que el navegador los mueva como capas
+   sin volver a calcular el filtro. */
+.landing-nubes-banco {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  width: 100%;
+  height: 46%;
+  /* De 1920 px para arriba la cima de las nubes de los costados quedaba
+     cortada en una línea recta por el borde del dibujo (lo encontró la
+     revisión del 2026-11-18): se funde con el cielo. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 12%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 12%);
+  pointer-events: none;
+}
+.landing-cirro {
+  position: absolute;
+  z-index: 0;
+  width: min(44%, 520px);
+  height: 120px;
+  pointer-events: none;
+}
+.landing-cirro-a {
+  left: 4%;
+  top: calc(var(--lht) + 2%);
+  animation: landingDerivaA 44s ease-in-out infinite alternate;
+}
+.landing-cirro-b {
+  right: 3%;
+  top: calc(var(--lht) + 5%);
+  animation: landingDerivaB 52s ease-in-out infinite alternate;
+}
+@keyframes landingDerivaA {
+  from {
+    transform: translateX(-30px);
+  }
+  to {
+    transform: translateX(70px);
+  }
+}
+@keyframes landingDerivaB {
+  from {
+    transform: translateX(40px);
+  }
+  to {
+    transform: translateX(-60px);
+  }
+}
+/* El título y los botones del inicio suben al cargar. */
+.landing-entra {
+  animation: landingRise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both;
+}
+.landing-entra-2 {
+  animation-delay: 0.35s;
 }
 @media (min-width: 600px) {
   .landing-hero {
@@ -1200,8 +1739,10 @@ body:has([data-landing]) main {
 .landing-rueda-marco {
   position: absolute;
   inset: 0;
-  -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 180px), transparent);
-  mask-image: linear-gradient(180deg, #000 calc(100% - 180px), transparent);
+  /* Las fichas de abajo se pierden entre las nubes antes de quedar de
+     cabeza. */
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 62%, transparent 92%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 62%, transparent 92%);
 }
 .landing-rueda {
   position: absolute;
@@ -1227,46 +1768,54 @@ body:has([data-landing]) main {
   width: var(--cw);
   height: var(--ch);
   overflow: hidden;
-  border-radius: 16px;
-  box-shadow: 0 24px 40px -26px rgb(22 25 26 / 0.5);
+  border-radius: var(--radius-card);
+  box-shadow:
+    0 34px 50px -26px rgb(11 45 72 / 0.6),
+    0 0 0 1px rgb(255 255 255 / 0.35);
   will-change: transform;
 }
-/* Las fotos de prueba vienen de fuentes distintas: un mismo tratamiento
-   apagado las hace parecer de una misma sesión (2026-10-23, prueba sobria). */
+/* Las fotos de prueba vienen de fuentes distintas: un mismo tratamiento las
+   hace parecer de una misma sesión (2026-10-23). Desde el 2026-11-13 es
+   apenas un toque: sobre el cielo pleno, muy apagadas se veían grises. */
 .landing-ficha img,
 .landing-foto {
-  filter: saturate(0.5) contrast(1.06);
+  filter: saturate(0.88) contrast(1.04);
 }
 .landing-palabra {
   position: relative;
-  height: 1em;
+  height: 1.02em;
   /* El recorte deja ver la "j" de cajera. */
   clip-path: inset(-0.1em -1em -0.24em);
 }
 /* La que sale se va primero; la nueva entra apenas después, así no se pisan. */
 .landing-palabra b {
   display: block;
-  animation: landingPalabraEntra 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s both;
+  animation: landingPalabraEntra 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.18s both;
 }
 .landing-palabra b.landing-palabra-sale {
   position: absolute;
   inset: 0 0 auto;
-  animation: landingPalabraSale 0.26s cubic-bezier(0.4, 0, 0.6, 1) both;
+  animation: landingPalabraSale 0.4s cubic-bezier(0.4, 0, 0.6, 1) both;
 }
+/* Un cruce: la que sale sube y se desenfoca mientras la nueva entra desde
+   abajo enfocándose (2026-11-13; antes era un salto de una línea entera). */
 @keyframes landingPalabraEntra {
   from {
     opacity: 0;
-    transform: translateY(1em);
+    transform: translateY(0.42em);
+    filter: blur(12px);
   }
   to {
     opacity: 1;
     transform: none;
+    filter: blur(0);
   }
 }
 @keyframes landingPalabraSale {
   to {
     opacity: 0;
-    transform: translateY(-1em);
+    transform: translateY(-0.42em);
+    filter: blur(12px);
   }
 }
 /* Los dos caminos (inicio y cierre): en el celular, uno arriba del otro y
@@ -1289,8 +1838,11 @@ body:has([data-landing]) main {
 
 /* La comanda: banda de cielo, impresora, ticket con filete y cinta. */
 .landing-cielo {
-  /* Vuelve al blanco abajo: antes cortaba en seco contra el mapa. */
-  background: linear-gradient(180deg, var(--color-card) 0%, var(--color-surface) 16%, var(--color-secondary) 50%, var(--color-secondary) 72%, var(--color-card) 100%);
+  /* Un panel de celeste plano con esquinas redondas (2026-11-13); antes era
+     un degradé que iba y volvía del blanco. */
+  margin: var(--l-margen) var(--l-margen) 0;
+  border-radius: var(--l-panel);
+  background: var(--l-tinte);
   padding-bottom: clamp(40px, 6vw, 88px);
 }
 .landing-campo {
@@ -1298,7 +1850,7 @@ body:has([data-landing]) main {
   align-items: center;
   gap: 10px;
   padding: 8px 8px 8px 24px;
-  border-radius: 30px;
+  border-radius: var(--radius-card);
   background: var(--color-card);
   box-shadow: 0 0 0 1.5px rgb(17 17 17 / 0.85), 0 1px 2px rgb(20 50 70 / 0.06), 0 28px 56px -32px rgb(28 84 120 / 0.38);
   text-align: left;
@@ -1327,16 +1879,13 @@ body:has([data-landing]) main {
   flex: none;
   height: 48px;
 }
-.landing-apretado {
-  transform: scale(0.94);
-}
 /* En el celular, el campo es como un mensaje de chat: el texto y un botón
    redondo con la flecha (el nombre "Pedir" queda para lectores de pantalla). */
 @media (max-width: 640px) {
   .landing-campo {
     align-items: flex-end;
     padding: 10px 8px 10px 18px;
-    border-radius: 26px;
+    border-radius: var(--radius-card);
   }
   .landing-campo .landing-btn {
     width: 44px;
@@ -1367,9 +1916,9 @@ body:has([data-landing]) main {
   width: min(420px, 92%);
   height: 58px;
   margin-top: var(--aire);
-  border-radius: 18px 18px 10px 10px;
+  border-radius: var(--radius-card) var(--radius-card) var(--radius-chip) var(--radius-chip);
   background: linear-gradient(180deg, #26303a, #12171c);
-  box-shadow: 0 22px 34px -18px rgb(18 23 28 / 0.6), inset 0 1px 0 rgb(255 255 255 / 0.12);
+  box-shadow: var(--shadow-relieve-md), inset 0 1px 0 rgb(255 255 255 / 0.12);
 }
 .landing-impresora-luz {
   position: absolute;
@@ -1387,7 +1936,7 @@ body:has([data-landing]) main {
   right: 10%;
   bottom: 9px;
   height: 7px;
-  border-radius: 4px;
+  border-radius: var(--radius-chip);
   background: #05080a;
   box-shadow: inset 0 2px 3px rgb(0 0 0 / 0.8);
 }
@@ -1403,14 +1952,13 @@ body:has([data-landing]) main {
   padding: 34px 22px 30px;
   background: var(--color-card);
   color: #141c24;
-  font-family: var(--font-dm-mono), ui-monospace, monospace;
+  /* Papel de cocina, no ticket de caja (marca-hoy.md, regla 5): los datos
+     van en Inter, los renglones con filete liso y el corte es recto. */
+  font-family: var(--font-inter), system-ui, sans-serif;
   text-align: left;
-  filter: drop-shadow(0 26px 30px rgb(20 69 106 / 0.28)) drop-shadow(0 0 1px rgb(20 69 106 / 0.3));
-  /* Corte de papel en zigzag abajo. */
-  -webkit-mask: linear-gradient(#000 0 0) top / 100% calc(100% - 9px) no-repeat,
-    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 16px 9px repeat-x;
-  mask: linear-gradient(#000 0 0) top / 100% calc(100% - 9px) no-repeat,
-    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / 16px 9px repeat-x;
+  /* La sombra entra en el margen de `.landing-comanda-marco`, que recorta
+     (antes la tapaba la máscara del zigzag). */
+  box-shadow: 0 14px 18px -10px rgb(20 69 106 / 0.4), 0 0 0 1px rgb(20 69 106 / 0.1);
 }
 .landing-voluta {
   position: absolute;
@@ -1427,8 +1975,9 @@ body:has([data-landing]) main {
 }
 .landing-comanda-tope {
   padding-bottom: 6px;
-  font-size: 11px;
-  letter-spacing: 0.16em;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   text-align: center;
   color: var(--color-secondary-text);
@@ -1470,18 +2019,15 @@ body:has([data-landing]) main {
   align-items: baseline;
   gap: 16px;
   padding: 12px 0;
-  border-bottom: 1px dashed #cfe2ea;
+  border-bottom: 1px solid #dbe7ee;
 }
 .landing-comanda-fila dt {
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: 14px;
   color: var(--color-secondary-text);
 }
 .landing-comanda-fila dd {
   font-size: 17px;
-  font-weight: 500;
+  font-weight: 600;
   text-align: right;
   white-space: nowrap;
 }
@@ -1500,8 +2046,23 @@ body:has([data-landing]) main {
     width: 220px;
   }
 }
+/* En celulares angostos «Sábado 20:00 – 03:00» no entraba en el renglón. */
+@media (max-width: 360px) {
+  .landing-comanda-tope {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+  }
+  .landing-comanda-fila {
+    gap: 10px;
+  }
+  .landing-comanda-fila dt,
+  .landing-comanda-fila dd {
+    font-size: 13px;
+  }
+}
 .landing-falta {
-  color: #9aa6ad;
+  /* `#9aa6ad` daba 2,5:1 sobre el papel; `ink-mute` pasa 4,5:1. */
+  color: var(--color-ink-mute);
   font-weight: 400;
 }
 .landing-cinta {
@@ -1584,14 +2145,34 @@ body:has([data-landing]) main {
   overflow: hidden;
   border-radius: var(--l-radio);
   background: var(--color-card);
-  box-shadow: var(--l-sombra);
+  box-shadow: 0 0 0 1px var(--color-line), var(--shadow-relieve-md);
   text-align: left;
 }
 .landing-mapa-calles {
   position: relative;
   aspect-ratio: 4 / 3;
   overflow: hidden;
-  background: #f6f2ec;
+  background: #cfe3ee;
+  isolation: isolate;
+}
+/* El mapa base es beige. Encima va el celeste del cielo en modo «color»
+   (le pone el tono y deja el dibujo de las calles) y un velo que lo aclara:
+   es el mapa de la prueba híbrida (2026-11-18). Antes se pasaba a gris y se
+   multiplicaba contra un celeste pálido, y quedaba casi sin color. */
+.landing-mapa-calles::before,
+.landing-mapa-calles::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+.landing-mapa-calles::before {
+  background: #8cc2e7;
+  mix-blend-mode: color;
+}
+.landing-mapa-calles::after {
+  background: rgb(196 227 237 / 0.25);
 }
 .landing-mapa-credito {
   position: absolute;
@@ -1599,58 +2180,15 @@ body:has([data-landing]) main {
   bottom: 4px;
   z-index: 4;
   padding: 1px 5px;
-  border-radius: 4px;
+  border-radius: var(--radius-chip);
   background: rgb(255 255 255 / 0.75);
   color: rgb(17 17 17 / 0.6);
   font-size: 9px;
 }
-/* El relojito del turno: la misma hora del ticket, que avanza con la escena. */
-.landing-mapa-reloj {
-  position: absolute;
-  left: 10px;
-  top: 10px;
-  z-index: 4;
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 9px;
-  border-radius: 999px;
-  background: rgb(255 255 255 / 0.92);
-  box-shadow: 0 0 0 1px var(--color-line);
-  color: var(--color-ink);
-  font-family: var(--font-dm-mono), ui-monospace, monospace;
-  font-size: 11px;
-  font-style: normal;
-  letter-spacing: 0.06em;
-  font-variant-numeric: tabular-nums;
-  transition:
-    background-color 0.4s,
-    color 0.4s;
-}
-.landing-mapa-reloj i {
-  font-style: normal;
-}
-.landing-mapa-reloj.landing-cubierto {
-  background: var(--color-secondary);
-  color: var(--color-secondary-text);
-  box-shadow: none;
-}
-.landing-titila {
-  animation: landingTitila 1s steps(2) infinite;
-}
-.landing-tic {
-  display: inline-block;
-  animation: landingTic 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-@keyframes landingTic {
-  from {
-    opacity: 0;
-    transform: translateY(-0.5em);
-  }
-}
 /* La onda que sale de Tu bar: cada punto aparece cuando lo alcanza. */
 .landing-mapa-onda {
   position: absolute;
-  z-index: 1;
+  z-index: 2;
   width: 124%;
   aspect-ratio: 1;
   border: 1.5px solid rgb(28 84 120 / 0.45);
@@ -1669,7 +2207,7 @@ body:has([data-landing]) main {
   }
 }
 .landing-mapa-linea {
-  stroke: var(--color-primary);
+  stroke: var(--l-hondo);
   stroke-width: 2.5;
   stroke-dasharray: 4 4;
   opacity: 0.85;
@@ -1687,13 +2225,13 @@ body:has([data-landing]) main {
   width: 14px;
   height: 14px;
   border: 2px solid #fff;
-  border-radius: 4px;
+  border-radius: var(--radius-chip);
   background: var(--color-night);
   box-shadow: 0 2px 6px rgb(0 0 0 / 0.3);
 }
 .landing-mapa-local span {
   padding: 3px 9px;
-  border-radius: 999px;
+  border-radius: var(--radius-chip);
   background: var(--color-ink);
   color: var(--color-card);
   font-family: var(--font-dm-mono), ui-monospace, monospace;
@@ -1708,6 +2246,7 @@ body:has([data-landing]) main {
   transform: translate(-50%, -50%) scale(0.6);
 }
 .landing-mapa-avisado {
+  z-index: 2;
   width: 9px;
   height: 9px;
   border: 2px solid #fff;
@@ -1718,54 +2257,55 @@ body:has([data-landing]) main {
     opacity 0.4s,
     transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.4);
 }
+/* Quien se postula es una foto en un círculo con borde blanco. */
 .landing-mapa-persona {
   z-index: 3;
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background: var(--color-secondary);
-  color: var(--color-secondary-text);
-  font-weight: 700;
-  font-size: 12px;
+  background: var(--color-secondary-text);
   box-shadow: 0 0 0 2.5px #fff, 0 4px 10px -2px rgb(0 0 0 / 0.35);
   transition:
     opacity 0.4s,
     transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.4),
-    background-color 0.3s,
-    color 0.3s;
+    box-shadow 0.3s;
 }
-/* Antes de postularse, los tres son un avisado más. */
+.landing-mapa-cara {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 50%;
+  transition: opacity 0.3s;
+}
+/* Antes de postularse, los tres son un avisado más: un punto, sin cara. */
 .landing-mapa-persona.landing-punto {
   opacity: 1;
-  transform: translate(-50%, -50%) scale(0.3);
-  background: var(--color-secondary-text);
-  color: transparent;
+  transform: translate(-50%, -50%) scale(0.24);
 }
+.landing-mapa-persona.landing-punto .landing-mapa-cara {
+  opacity: 0;
+}
+/* La elegida lleva un aro azul hondo: el ámbar queda sólo en la palabra del
+   inicio. */
 .landing-mapa-persona.landing-elegida {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong));
-  color: var(--color-night);
+  box-shadow: 0 0 0 2.5px #fff, 0 0 0 5.5px var(--relieve), 0 4px 10px -2px rgb(0 0 0 / 0.35);
 }
+/* La foto de la ficha: cuadrada, con esquinas de tarjeta. */
 .landing-mapa-persona-pie {
-  display: grid;
+  position: relative;
   flex: none;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong));
-  color: var(--color-night);
-  font-weight: 700;
-  font-size: 12px;
-  box-shadow: 0 0 0 2.5px #fff, 0 4px 10px -2px rgb(0 0 0 / 0.35);
+  width: 46px;
+  height: 46px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--l-tinte);
 }
 .landing-mapa-halo {
   position: absolute;
   inset: -8px;
   z-index: -1;
   border-radius: 50%;
-  background: rgb(217 119 6 / 0.3);
+  background: rgb(154 201 231 / 0.6);
   animation: puckHalo 2s ease-out infinite;
 }
 .landing-mapa-halo.landing-quieto {
@@ -1801,15 +2341,6 @@ body:has([data-landing]) main {
   opacity: 1;
   translate: none;
 }
-.landing-mapa-eta {
-  margin-left: auto;
-  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-  font-weight: 700;
-  font-size: 24px;
-  letter-spacing: -0.03em;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
 
 /* Pantalla de bienvenida (SplashScreen): el cielo de la landing en claro y
    la noche azul con brillo celeste en oscuro. */
@@ -1826,42 +2357,412 @@ body:has([data-landing]) main {
   color: #e8920f;
 }
 
-/* El final: "oído" grande y fileteado sobre el cielo y el pie en el mismo celeste. */
+/* El final (2026-11-18, segunda vuelta): la mitad de abajo del panel de
+   cielo que empieza en `.landing-cierre`. La palabra «oído» entera, con sus
+   adornos, apoyada sobre un banco de nubes como el del inicio; y sobre las
+   nubes, lo legal y el © en una línea. Sin panel aparte para el pie. */
 .landing-firma {
+  position: relative;
+  isolation: isolate;
   overflow: hidden;
-  padding: 0 max(16px, env(safe-area-inset-left, 0px));
-  background: linear-gradient(180deg, var(--color-secondary) 0%, var(--color-secondary-strong) 100%);
+  margin: 0 var(--l-margen) max(var(--l-margen), env(safe-area-inset-bottom, 0px));
+  border-radius: 0 0 var(--l-panel) var(--l-panel);
+  padding: clamp(20px, 4vw, 48px) max(16px, env(safe-area-inset-right, 0px)) 22px max(16px, env(safe-area-inset-left, 0px));
+  background: linear-gradient(180deg, var(--l-cielo-2) 0%, var(--l-cielo-3) 50%, var(--l-cielo-4) 100%);
+  text-align: center;
 }
-.landing-firma svg {
+.landing-firma-nubes {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  /* El dibujo se escala para cubrir el ancho; en pantallas muy anchas la
+     cima de las nubes de los costados no entra y quedaba cortada en una
+     línea recta. La máscara funde ese borde con el cielo. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 20%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 20%);
+  pointer-events: none;
+}
+.landing-firma-palabra {
+  position: relative;
+  z-index: 1;
   display: block;
-  width: min(1000px, 100%);
+  width: min(520px, 84%);
   height: auto;
   margin: 0 auto;
 }
+/* Lo legal va sobre las nubes, en el azul de los títulos (de 8 a 12 de
+   contraste sobre el blanco de la nube y el celeste pálido del cielo). */
 .landing-pie-fila {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 28px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px));
-  background: linear-gradient(180deg, var(--color-card) 0%, var(--color-secondary) 100%);
-  color: rgb(17 17 17 / 0.62);
-  text-align: center;
+  gap: 0;
+  margin-top: clamp(22px, 4vw, 44px);
+  color: var(--l-hondo);
+  font-size: 13px;
 }
-.landing-pie-fila a {
-  color: rgb(17 17 17 / 0.78);
+.landing-pie-fila a,
+.landing-pie-fila button {
+  /* Con el relleno, el link mide 33 px de alto: se toca cómodo con el dedo. */
+  display: inline-block;
+  padding-block: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: rgb(15 58 91 / 0.35);
+  text-underline-offset: 3px;
 }
-.landing-pie-fila a:hover {
+.landing-pie-fila a:hover,
+.landing-pie-fila button:hover {
+  text-decoration-color: currentColor;
+}
+/* «Compartir» es un botón con aspecto de link: con el mouse, la manito. */
+.landing-pie-fila button {
+  cursor: pointer;
+}
+
+/* La marca en el encabezado: la misma letra del «oído» fileteado, plana y en
+   azul hondo (2026-11-13; Shrikhand desde el 2026-11-17). El fileteado
+   completo queda una sola vez, al cierre. */
+.landing-marca {
+  display: block;
+  padding-top: 5px;
+  font-family: var(--font-shrikhand), Georgia, serif;
+  font-size: 2rem;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: var(--l-hondo);
+}
+@media (min-width: 640px) {
+  .landing-marca {
+    font-size: 2.375rem;
+  }
+}
+/* Encuesta para locales (`/encuesta`): el cielo de la landing como panel de
+   arriba, con la pregunta adentro. Va siempre en claro (`data-theme="light"`
+   en el elemento): el cielo no se vuelve noche en el modo oscuro, y adentro la
+   tinta es la de claro. */
+.encuesta-cielo {
+  margin: var(--l-margen) var(--l-margen) 0;
+  border-radius: var(--l-panel);
+  padding: max(20px, env(safe-area-inset-top, 0px)) 20px 28px;
+  background: linear-gradient(180deg, var(--l-cielo-1) 0%, var(--l-cielo-2) 55%, var(--l-cielo-3) 100%);
   color: var(--color-ink);
 }
-@media (min-width: 1024px) {
-  .landing-pie-fila {
-    flex-direction: row;
-    justify-content: space-between;
-    padding-inline: 48px;
+@media (min-width: 640px) {
+  .encuesta-cielo {
+    padding: 28px 32px 36px;
+  }
+}
+/* «Para trabajar»: la noche azul de la app, en un panel. */
+.landing-noche {
+  margin: var(--l-margen) var(--l-margen) 0;
+  border-radius: var(--l-panel);
+  background: var(--l-noche);
+}
+.landing-noche .landing-h2 {
+  color: #eef3f6;
+}
+/* Sobre la noche el relieve va en celeste: el azul hondo no se despega. */
+.landing-noche .landing-btn-primario {
+  background: #fff;
+  color: var(--color-ink);
+  box-shadow: var(--relieve-btn) var(--relieve-btn) 0 #9ac9e7;
+}
+.landing-noche .landing-btn-primario:active {
+  box-shadow: 0 0 0 #9ac9e7;
+}
+.landing-noche .landing-btn-primario .landing-btn-flecha {
+  background: var(--color-ink);
+  color: #fff;
+}
+/* ── Los precios como la carta de un bodegón (2026-11-18, Precios.tsx) ──
+   Un panel de celeste plano, como el de la comanda. Adentro, la carta de
+   papel con doble filete azul hondo y el relieve grande; al lado, la pizarra
+   donde la tiza escribe el plan elegido y marca los turnos con palitos. */
+.landing-plano {
+  margin: var(--l-margen) var(--l-margen) 0;
+  border-radius: var(--l-panel);
+  background: var(--l-tinte);
+}
+.landing-carta-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
+  gap: 44px;
+  align-items: start;
+  width: 100%;
+  max-width: 1080px;
+  margin-top: var(--aire);
+}
+@media (max-width: 860px) {
+  .landing-carta-grid {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: 36px;
+  }
+}
+.landing-carta {
+  width: 100%;
+  padding: 12px;
+  background: var(--color-card);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-relieve-lg);
+  text-align: left;
+}
+/* Doble filete: el borde y, 6 px adentro, una raya fina (es un adorno: la
+   carta no recibe foco). */
+.landing-carta-dentro {
+  border: 1.5px solid var(--relieve);
+  outline: 1px solid var(--relieve);
+  outline-offset: -6px;
+  padding: 26px clamp(18px, 4vw, 36px) 24px;
+}
+.landing-carta-cab {
+  margin-bottom: 14px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+.landing-plato {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 16px;
+  align-items: baseline;
+  width: 100%;
+  padding: 18px 6px;
+  border-top: 1px solid var(--color-line);
+  background: transparent;
+  color: var(--color-ink);
+  text-align: left;
+  cursor: pointer;
+}
+.landing-carta li:first-child > .landing-plato {
+  border-top: 1.5px solid var(--relieve);
+}
+/* En pantallas muy angostas el nombre en brocha y el precio no entran en un
+   renglón (a 320 px se encimaban): el precio baja a su propio renglón. */
+@media (max-width: 380px) {
+  .landing-plato {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .landing-plato-precio {
+    justify-self: start;
+    margin-left: -8px;
+  }
+}
+@media (hover: hover) {
+  .landing-plato:hover {
+    background: rgb(28 84 120 / 0.05);
+  }
+}
+.landing-plato-nombre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  font-family: var(--font-brocha), "Trebuchet MS", sans-serif;
+  font-size: clamp(1.7rem, 3.6vw, 2.3rem);
+  font-weight: 400;
+  font-synthesis-weight: none;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--l-hondo);
+}
+.landing-plato-casa {
+  font-family: var(--font-mano), "Comic Sans MS", cursive;
+  font-size: 1.25rem;
+  text-transform: none;
+  white-space: nowrap;
+  color: var(--relieve);
+}
+.landing-plato-precio {
+  position: relative;
+  padding: 4px 8px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.landing-plato-precio small {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-ink-soft);
+}
+.landing-plato-detalle {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+/* El plato elegido: el precio rodeado a mano, en azul hondo. */
+.landing-ovalo {
+  position: absolute;
+  inset: -6px -8px;
+  width: calc(100% + 16px);
+  height: calc(100% + 12px);
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+.landing-ovalo path {
+  fill: none;
+  stroke: var(--relieve);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.landing-plato[aria-pressed="true"] .landing-ovalo {
+  opacity: 1;
+}
+.landing-carta-pie {
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1.5px solid var(--relieve);
+  text-align: center;
+  font-size: 14.5px;
+  color: var(--color-ink-soft);
+}
+.landing-cuenta {
+  display: grid;
+  gap: 30px;
+  width: 100%;
+  max-width: 340px;
+}
+.landing-cuenta .landing-btn {
+  width: 100%;
+}
+/* La pizarra: fondo de noche, marco blanco como el papel de la carta (en
+   celeste pálido se perdía contra el panel) y la tiza en Mansalva. */
+.landing-pizarra {
+  display: grid;
+  align-content: start;
+  gap: 9px;
+  min-height: 300px;
+  padding: 20px 20px 18px;
+  border: 10px solid var(--color-card);
+  border-radius: 6px;
+  background: #16222e;
+  color: #eef3f6;
+  box-shadow: 6px 6px 0 var(--relieve);
+  text-align: left;
+  transform: rotate(1.5deg);
+}
+.landing-tiza {
+  margin: 0;
+  font-family: var(--font-mano), "Comic Sans MS", cursive;
+  font-size: 1.45rem;
+  font-weight: 400;
+  font-synthesis-weight: none;
+  line-height: 1.1;
+}
+.landing-tiza-chica {
+  font-size: 1.2rem;
+  color: #c9d5de;
+}
+.landing-tiza-nombre {
+  font-family: var(--font-brocha), "Trebuchet MS", sans-serif;
+  font-size: 2.7rem;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.landing-tiza-precio {
+  font-size: 2.3rem;
+}
+.landing-tiza-precio small {
+  font-size: 1.1rem;
+  color: #c9d5de;
+}
+.landing-palitos {
+  display: block;
+  max-width: 100%;
+  height: 48px;
+  overflow: visible;
+}
+.landing-palitos path {
+  fill: none;
+  stroke: #eef3f6;
+  stroke-width: 3.4;
+  stroke-linecap: round;
+}
+.landing-palitos circle {
+  fill: #eef3f6;
+}
+/* La tiza escribe de izquierda a derecha, renglón por renglón (`--t`), y los
+   palitos se trazan de a uno (`--k`). */
+.landing-escribe .landing-tiza {
+  animation: landingTiza 0.5s cubic-bezier(0.3, 0.1, 0.3, 1) both;
+  animation-delay: var(--t);
+}
+/* El recorte deja aire arriba y abajo: con interlineado 1, el acento de
+   «Básico» queda fuera de la caja del renglón y se cortaba. */
+@keyframes landingTiza {
+  from {
+    clip-path: inset(-0.35em 100% -0.25em 0);
+  }
+  to {
+    clip-path: inset(-0.35em -6% -0.25em 0);
+  }
+}
+.landing-escribe .landing-palitos path {
+  stroke-dasharray: 70;
+  stroke-dashoffset: 70;
+  animation: landingTraza 0.16s ease-out forwards;
+  animation-delay: calc(0.7s + var(--k) * 0.07s);
+}
+.landing-escribe .landing-palitos circle {
+  opacity: 0;
+  animation: landingAsoma 0.2s forwards;
+  animation-delay: calc(0.7s + var(--k) * 0.07s);
+}
+@keyframes landingTraza {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes landingAsoma {
+  to {
+    opacity: 1;
   }
 }
 
+/* La oferta, apoyada y apenas torcida, con el relieve del filete. Antes
+   flotaba con una sombra difusa: con sombra dura, lo que flota se despega. */
+.landing-noche .landing-tarjeta {
+  box-shadow: 6px 6px 0 #1c5478;
+  transform: rotate(1.5deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-cirro,
+  .landing-entra,
+  .landing-escribe .landing-tiza,
+  .landing-escribe .landing-palitos path,
+  .landing-escribe .landing-palitos circle {
+    animation: none;
+  }
+  /* Sin la animación, los palitos quedarían sin trazar: se ven enteros. */
+  .landing-escribe .landing-palitos path {
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+  }
+  .landing-escribe .landing-palitos circle {
+    opacity: 1;
+  }
+  .landing-btn,
+  .landing-btn-flecha {
+    transition: none;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .landing-palabra b,
   .landing-imprime .landing-comanda,
@@ -1870,8 +2771,6 @@ body:has([data-landing]) main {
     animation: none;
   }
   .landing-palabra b.landing-palabra-sale,
-  .landing-titila,
-  .landing-tic,
   .landing-mapa-halo {
     animation: none;
   }
@@ -1906,21 +2805,6 @@ body:has([data-landing]) main {
 }
 .landing-sacudida {
   animation: landingSacudida 0.45s ease-in-out 1;
-}
-/* La hora grande del hero cambia de 20:46 a 20:54: entra de abajo, como un
-   reloj de tablero. */
-@keyframes landingTic {
-  0% {
-    opacity: 0;
-    translate: 0 0.35em;
-  }
-  100% {
-    opacity: 1;
-    translate: 0;
-  }
-}
-.landing-tic {
-  animation: landingTic 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 1 both;
 }
 
 /* Animaciones de las piezas DENTRO de un bloque que entra (`Reveal`): mientras
@@ -1986,14 +2870,6 @@ body:has([data-landing]) main {
     transform: none;
   }
 }
-@keyframes landingBar {
-  0% {
-    transform: scaleX(0);
-  }
-  100% {
-    transform: none;
-  }
-}
 [data-reveal="pending"] :is(.anim-pop, .anim-ring, .anim-rise, .anim-drop, .anim-shout) {
   opacity: 0;
 }
@@ -2035,12 +2911,6 @@ body:has([data-landing]) main {
 [data-reveal="shown"] .anim-reveal {
   animation: landingReveal 1.6s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
-[data-reveal="pending"] .anim-fill {
-  opacity: 0.15;
-}
-[data-reveal="pending"] .anim-bar {
-  transform: scaleX(0);
-}
 [data-reveal="shown"] .anim-pop {
   animation: landingPop 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0s) both;
 }
@@ -2055,12 +2925,6 @@ body:has([data-landing]) main {
 }
 [data-reveal="shown"] .anim-shout {
   animation: landingShout 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0.2s) both;
-}
-[data-reveal="shown"] .anim-fill {
-  transition: opacity 0.3s ease var(--d, 0s);
-}
-[data-reveal="shown"] .anim-bar {
-  animation: landingBar 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0.3s) both;
 }
 
 /* ── La historia de un turno (/historia, components/landing/story/) ──
@@ -2118,4 +2982,16 @@ body:has([data-landing]) main {
   border-bottom: 2px dotted currentColor;
   opacity: 0.35;
   transform: translateY(-0.3em);
+}
+
+/* IMPRESIÓN (lista de comercios a captar, `ComerciosImprimir`): el tema claro
+ * lo fuerza el componente con `beforeprint`/`afterprint`, sin duplicar tokens. */
+@page {
+  margin: 12mm;
+}
+@media print {
+  /* Sin el cielo celeste ni el lienzo tintado: papel blanco. */
+  body {
+    background: #ffffff;
+  }
 }

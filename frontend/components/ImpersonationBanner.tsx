@@ -23,18 +23,20 @@ export default function ImpersonationBanner() {
     <div
       role="status"
       aria-live="polite"
-      className="flex items-center justify-between gap-3 bg-night px-4 py-2 text-sm text-white"
+      className="flex items-start justify-between gap-3 border-b-2 border-on-brand-label bg-secondary px-4 py-2 text-sm text-on-brand"
     >
-      <span className="inline-flex min-w-0 items-center gap-1.5 truncate">
-        <EyeIcon size={15} className="shrink-0" />
-        Viendo como <strong className="truncate">{user.full_name}</strong>
+      {/* Texto corrido que parte línea: antes `truncate` en el <strong>
+          lo dejaba sin ancho y en el celular el nombre desaparecía (U131). */}
+      <span className="min-w-0 flex-1 break-words">
+        <EyeIcon size={15} className="mr-1.5 inline-block shrink-0 align-[-2px]" />
+        Viendo como <strong className="break-words">{user.full_name}</strong>
         {" "}({ROLE_LABELS[user.role] ?? user.role}) — sesión de{" "}
         {impersonating.adminUser.full_name}
       </span>
       <button
         type="button"
         onClick={stopImpersonating}
-        className="shrink-0 rounded-full bg-white/15 px-3 py-1 font-semibold transition hover:bg-white/25 active:scale-95"
+        className="shrink-0 self-center rounded-full bg-on-brand/15 px-3 py-1 font-semibold transition hover:bg-on-brand/25 active:scale-95"
       >
         Volver a admin
       </button>

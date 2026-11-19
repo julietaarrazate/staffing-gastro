@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from httpx import AsyncClient
 
+from tests._turno_empezado import correr_reloj_del_turno
 from tests.conftest import auth_headers
 
 pytestmark = pytest.mark.asyncio
@@ -261,7 +262,7 @@ async def _run_full_flow_to_finish(
 
 
 async def test_finish_with_punctual_checkin_updates_worker_metrics(client: AsyncClient):
-    """R2.4: check-in dentro de la tolerancia (±15 min) del horario pactado
+    """R2.4: check-in puntual (hasta 15 min después del horario pactado)
     suma un evento completado y deja punctuality_rate en 1.0 (primer evento)."""
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     shift_id, employer_headers, worker_headers = await _confirmed_shift(
@@ -276,6 +277,46 @@ async def test_finish_with_punctual_checkin_updates_worker_metrics(client: Async
 
     profile = await client.get("/api/v1/workers/me/profile", headers=worker_headers)
     assert profile.status_code == 200
+    body = profile.json()
+    assert body["events_completed"] == 1
+    assert body["punctuality_rate"] == pytest.approx(1.0)
+
+
+async def test_finish_with_early_checkin_counts_as_punctual(client: AsyncClient):
+    """U019: llegar ~24 min antes (dentro de EARLY_CHECKIN_WINDOW) es puntual."""
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    start = now + timedelta(minutes=24)
+    shift_id, employer_headers, worker_headers = await _confirmed_shift(
+        client,
+        "att_emp5b@staffya.com",
+        "att_w5b@staffya.com",
+        start_at=start.isoformat(),
+        end_at=(start + timedelta(hours=5)).isoformat(),
+    )
+
+    await client.post(f"/api/v1/shifts/{shift_id}/depart", headers=worker_headers)
+    checked_in = await client.post(
+        f"/api/v1/shifts/{shift_id}/check-in",
+        headers=worker_headers,
+        json={"latitude": -34.58, "longitude": -58.43},
+    )
+    assert checked_in.status_code == 200
+
+    # La salida sólo se marca con el turno empezado: pasan 25 minutos. La
+    # llegada sigue quedando 24 minutos antes del inicio.
+    await correr_reloj_del_turno(shift_id, 25)
+
+    await client.post(f"/api/v1/shifts/{shift_id}/start-working", headers=worker_headers)
+    checked_out = await client.post(
+        f"/api/v1/shifts/{shift_id}/check-out",
+        headers=worker_headers,
+        json={"latitude": -34.59, "longitude": -58.44},
+    )
+    assert checked_out.status_code == 200
+    finished = await client.post(f"/api/v1/shifts/{shift_id}/finish", headers=employer_headers)
+    assert finished.status_code == 200
+
+    profile = await client.get("/api/v1/workers/me/profile", headers=worker_headers)
     body = profile.json()
     assert body["events_completed"] == 1
     assert body["punctuality_rate"] == pytest.approx(1.0)
@@ -320,6 +361,14 @@ async def test_mark_paid_on_time_and_late_updates_company_rate(client: AsyncClie
 
     profile = await client.get("/api/v1/companies/me/profile", headers=employer_headers)
     assert profile.json()["on_time_payment_rate"] == pytest.approx(1.0)
+    # La API expone cuántos pagos hay detrás de la tasa: el front oculta «Pago
+    # a tiempo» con 0 (sin pagos, 0.0 no significa «paga tarde»).
+    assert profile.json()["payments_recorded"] == 1
+    public = await client.get(
+        f"/api/v1/companies/{profile.json()['id']}", headers=employer_headers
+    )
+    assert public.status_code == 200
+    assert public.json()["payments_recorded"] == 1
 
     # Turno 2 (mismo comercio): se paga "ahora", su fin fue hace 50hs (fuera
     # de la tolerancia de 48hs) → tarde. Promedio: (1.0 + 0.0) / 2 = 0.5.
@@ -338,6 +387,15 @@ async def test_mark_paid_on_time_and_late_updates_company_rate(client: AsyncClie
 
     profile = await client.get("/api/v1/companies/me/profile", headers=employer_headers)
     assert profile.json()["on_time_payment_rate"] == pytest.approx(0.5)
+    assert profile.json()["payments_recorded"] == 2
+
+
+async def test_company_without_payments_reports_zero_payments_recorded(client: AsyncClient):
+    employer_headers = await _employer_with_company(client, "att_emp_nopay@staffya.com")
+    profile = await client.get("/api/v1/companies/me/profile", headers=employer_headers)
+    assert profile.status_code == 200
+    assert profile.json()["payments_recorded"] == 0
+    assert profile.json()["on_time_payment_rate"] == 0.0
 
 
 async def test_badges_and_level_recompute_after_finish_and_worker_cancel(

@@ -41,7 +41,7 @@ export default function RelojDelTurno({
   return (
     <div
       className={cn(
-        "inline-flex max-w-full items-center gap-2 whitespace-nowrap rounded-full py-1.5 pl-2.5 pr-3.5 font-mono text-label font-medium uppercase tracking-[0.14em] shadow-[var(--shadow-soft)] transition-colors duration-667",
+        "inline-flex max-w-full items-center gap-2 whitespace-nowrap rounded-[var(--radius-chip)] py-1.5 pl-2.5 pr-3.5 font-mono text-label font-medium uppercase tracking-[0.14em] shadow-[var(--shadow-soft)] transition-colors duration-667",
         covered ? "bg-secondary text-on-brand" : "bg-night text-white",
         surface === "dark" && "ring-1 ring-white/12",
         className

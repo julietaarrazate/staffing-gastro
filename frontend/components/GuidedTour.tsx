@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useFocusTrap } from "@/lib/use-focus-trap";
+import { useEscapeLayer } from "@/lib/use-escape-layer";
 import { Button } from "@/components/ui";
 import { CloseIcon } from "@/components/icons";
 import { MOTION_UI } from "@/lib/motion";
@@ -43,8 +44,15 @@ export default function GuidedTour({ steps, storageKey }: GuidedTourProps) {
   const [activeSteps, setActiveSteps] = useState<TourStep[] | null>(null);
   const [index, setIndex] = useState(0);
   const [rect, setRect] = useState<DOMRect | null>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
-  useFocusTrap(cardRef, activeSteps !== null);
+  const capaRef = useRef<HTMLDivElement>(null);
+  // Sólo cuando la capa ya está dibujada (`rect`): antes `capaRef` es null y la
+  // trampa no tomaba el foco, que quedaba en la capa de abajo (p. ej. un pedido tapado).
+  // Se ata a la capa exterior, que dura todo el recorrido, y no a la tarjeta: ésta se
+  // recrea en cada paso (`key={index}`) y la trampa quedaba atada a la del paso anterior.
+  useFocusTrap(capaRef, activeSteps !== null && rect !== null);
+  // Capa por encima de todas (z-[70]): Escape = «Saltar recorrido». Sin esto, el
+  // Escape pasaba de largo y cerraba el pedido de notificaciones tapado debajo.
+  useEscapeLayer(activeSteps !== null, finish, 70);
 
   // Se decide una sola vez, al montar, qué pasos tienen un target real en
   // el DOM (algunos, como el filtro de urgentes, sólo existen si hay
@@ -110,7 +118,7 @@ export default function GuidedTour({ steps, storageKey }: GuidedTourProps) {
   );
 
   const content = (
-    <div className="fixed inset-0 z-[70]">
+    <div ref={capaRef} className="fixed inset-0 z-[70]">
       <div
         className="pointer-events-none absolute rounded-2xl transition-all duration-300"
         style={{
@@ -124,7 +132,6 @@ export default function GuidedTour({ steps, storageKey }: GuidedTourProps) {
       <AnimatePresence mode="wait">
         <motion.div
           key={index}
-          ref={cardRef}
           role="dialog"
           aria-modal="true"
           aria-label={step.title}

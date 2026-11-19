@@ -80,6 +80,10 @@ const json = (body: unknown) => ({
   body: JSON.stringify(body),
 });
 
+// Ana está asignada o confirmada en dos turnos que no empezaron: si se la
+// suspende, vuelven a buscar personal (ADR-0024).
+const ANA_PREVIEW = { hidden: 0, cancelled: 0, reopened: 2 };
+
 async function setup(page: Page, queries: string[] = [], actions: string[] = []) {
   await injectSession(page);
   await skipSplash(page);
@@ -106,7 +110,10 @@ async function setup(page: Page, queries: string[] = [], actions: string[] = [])
   });
   await page.route("**/api/v1/admin/users/u-ana", (route) => route.fulfill(json(ANA_DETAIL)));
   await page.route("**/api/v1/admin/users/u-ana/*", (route) => {
-    actions.push(new URL(route.request().url()).pathname.split("/").pop() ?? "");
+    const action = new URL(route.request().url()).pathname.split("/").pop() ?? "";
+    // Mirar la vista previa no es una acción: no cambia nada.
+    if (action === "suspension-preview") return route.fulfill(json(ANA_PREVIEW));
+    actions.push(action);
     return route.fulfill(json({ ...ANA, is_verified: true }));
   });
 }
@@ -120,11 +127,11 @@ test("busca por nombre, filtra por rol y abre la ficha", async ({ page }) => {
   await expect(page.getByText("Pepe Bodegón")).toBeVisible();
   await expect(page.getByText("Suspendido", { exact: true })).toBeVisible();
 
-  await page.getByLabel("Buscar por nombre o email").fill("ana");
+  await page.getByLabel("Buscar por nombre, email o nombre del local").fill("ana");
   await expect(page.getByText("Pepe Bodegón")).toHaveCount(0);
   await expect.poll(() => queries.some((q) => q.includes("q=ana"))).toBe(true);
 
-  await page.getByLabel("Buscar por nombre o email").fill("");
+  await page.getByLabel("Buscar por nombre, email o nombre del local").fill("");
   await page.getByRole("button", { name: "Comercios" }).click();
   await expect(page.getByText("Ana Mozo")).toHaveCount(0);
   await expect.poll(() => queries.some((q) => q.includes("role=employer"))).toBe(true);
@@ -161,6 +168,12 @@ test("suspender pide confirmación antes de actuar", async ({ page }) => {
   await page.goto("/admin/personas/u-ana");
   await page.getByRole("button", { name: "Suspender", exact: true }).click();
   await expect(page.getByText("¿Suspender a Ana Mozo?")).toBeVisible();
+  // Antes de confirmar se ve qué les pasa a sus turnos.
+  await expect(
+    page.getByText(
+      "2 turnos suyos vuelven a buscar personal. Le avisamos a cada comercio, sin sumarle una cancelación."
+    )
+  ).toBeVisible();
   await page.getByRole("button", { name: "Volver" }).click();
   expect(actions).toEqual([]);
 
@@ -169,7 +182,44 @@ test("suspender pide confirmación antes de actuar", async ({ page }) => {
   await expect.poll(() => actions).toEqual(["suspend"]);
 });
 
+test("mientras cuenta los turnos no se puede confirmar, y si no puede contarlos lo dice", async ({
+  page,
+}) => {
+  await setup(page);
+  let release: () => void = () => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route("**/api/v1/admin/users/u-ana/suspension-preview", async (route) => {
+    await held;
+    return route.fulfill({ status: 500, contentType: "application/json", body: "{}" });
+  });
+  await page.goto("/admin/personas/u-ana");
+  await page.getByRole("button", { name: "Suspender", exact: true }).click();
+  await expect(page.getByText("Contando sus turnos…")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sí, suspender" })).toBeDisabled();
+  release();
+  await expect(page.getByText("No pudimos contar sus turnos.", { exact: false })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sí, suspender" })).toBeEnabled();
+});
+
 for (const theme of ["light", "dark"] as const) {
+  test(`captura del diálogo de suspender con sus turnos en ${theme}`, async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await setTheme(page, theme);
+    await setup(page);
+    await page.route("**/api/v1/admin/users/u-ana/suspension-preview", (route) =>
+      route.fulfill(json({ hidden: 3, cancelled: 1, reopened: 0 }))
+    );
+    await page.goto("/admin/personas/u-ana");
+    await page.getByRole("button", { name: "Suspender", exact: true }).click();
+    await expect(page.getByText("Se ocultan 3 turnos abiertos", { exact: false })).toBeVisible();
+    // La foto, con el diálogo ya entrado (no a mitad de la animación).
+    await page.waitForFunction(() =>
+      document.getAnimations().every((a) => a.playState !== "running")
+    );
+    await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+    await page.screenshot({ path: `test-results/admin-suspender-${theme}.png` });
+  });
+
   test(`capturas de Personas y la ficha en ${theme}`, async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await setTheme(page, theme);
@@ -183,3 +233,149 @@ for (const theme of ["light", "dark"] as const) {
     await page.screenshot({ path: `test-results/admin-ficha-${theme}.png`, fullPage: true });
   });
 }
+
+// Un solo indicador de foco (#627): el buscador dibuja el contorno en su
+// contenedor (`.foco-contenedor`) y el input no suma otro encima.
+test("el buscador de personas enfocado tiene un solo contorno, en el contenedor", async ({ page }) => {
+  await setup(page);
+  await page.goto("/admin/personas");
+  const campo = page.getByLabel("Buscar por nombre, email o nombre del local");
+  await campo.click();
+  const contenedor = campo.locator("xpath=ancestor::label[1]");
+  await expect.poll(() => contenedor.evaluate((n) => getComputedStyle(n).outlineWidth)).toBe("2px");
+  expect(await campo.evaluate((n) => getComputedStyle(n).outlineStyle)).toBe("none");
+});
+
+// «Cerrar turno» (decisión 21, ADR-0024): un turno empezado de una cuenta
+// suspendida. Qué aplica lo dice el backend (`admin_close`); la ficha lo
+// ofrece, lo explica antes de confirmar y muestra el resultado.
+const LEO = {
+  id: "u-leo",
+  email: "leo@mail.com",
+  full_name: "Leo Barra",
+  role: "worker",
+  status: "suspended",
+  is_verified: true,
+  created_at: "2026-09-10T12:00:00Z",
+  photo_url: null,
+};
+
+const LEO_SHIFT = {
+  id: "s-leo",
+  title: "Barra del viernes",
+  position: "bartender",
+  start_at: "2026-11-18T22:00:00Z",
+  status: "check_in",
+  pay_amount: "30000.00",
+};
+
+function leoDetail(closed: boolean) {
+  return {
+    ...ANA_DETAIL,
+    user: LEO,
+    recent_shifts: [
+      closed
+        ? { ...LEO_SHIFT, status: "check_out", admin_close: null }
+        : {
+            ...LEO_SHIFT,
+            admin_close: { check_out: true, finish: false, notifies: "company" },
+          },
+      // Ya terminado: la acción no aplica.
+      { ...ANA_DETAIL.recent_shifts[0], id: "s-viejo", admin_close: null },
+    ],
+    tickets: [],
+  };
+}
+
+async function setupLeo(page: Page, closes: string[]) {
+  await setup(page);
+  let closed = false;
+  await page.route("**/api/v1/admin/users/u-leo", (route) =>
+    route.fulfill(json(leoDetail(closed)))
+  );
+  await page.route("**/api/v1/admin/shifts/*/close", (route) => {
+    closes.push(
+      `${new URL(route.request().url()).pathname} ${route.request().postData() ?? ""}`
+    );
+    closed = true;
+    return route.fulfill(
+      json({
+        shift_id: "s-leo",
+        status: "check_out",
+        check_out: true,
+        finish: false,
+        notifies: "company",
+        checked_out_at: new Date().toISOString(),
+      })
+    );
+  });
+}
+
+test("cerrar el turno empezado de una cuenta suspendida: explica, confirma y muestra el resultado", async ({
+  page,
+}) => {
+  const closes: string[] = [];
+  await setupLeo(page, closes);
+  await page.goto("/admin/personas/u-leo");
+
+  await expect(page.getByText("Barra del viernes")).toBeVisible();
+  // Sólo en el turno donde aplica.
+  await expect(page.getByRole("button", { name: "Cerrar turno" })).toHaveCount(1);
+  await expect(page.getByText("No puede entrar a marcar la salida.")).toBeVisible();
+
+  await page.getByRole("button", { name: "Cerrar turno" }).click();
+  const dialog = page.getByRole("dialog", { name: "¿Cerrar «Barra del viernes»?" });
+  await expect(dialog).toBeVisible();
+  await expect(
+    dialog.getByText(/^Marcamos la salida de la persona a las \d\d:\d\d, en su nombre\.$/)
+  ).toBeVisible();
+  await expect(
+    dialog.getByText("Le avisamos al comercio para que cierre el turno, como siempre.")
+  ).toBeVisible();
+  await dialog.getByRole("button", { name: "Volver" }).click();
+  expect(closes).toEqual([]);
+
+  await page.getByRole("button", { name: "Cerrar turno" }).click();
+  await page.getByRole("button", { name: "Sí, cerrar turno" }).click();
+  await expect(
+    page.getByText(/^Marcamos la salida a las \d\d:\d\d\. Le avisamos al comercio para que lo cierre\.$/)
+  ).toBeVisible();
+  // Manda lo que mostró el diálogo: si el backend haría otra cosa, responde 409.
+  expect(closes).toEqual(['/api/v1/admin/shifts/s-leo/close {"check_out":true,"finish":false}']);
+  await page.getByRole("button", { name: "Entendido" }).click();
+  // La ficha se recargó: el turno quedó con la salida marcada y sin la acción.
+  await expect(page.getByRole("button", { name: "Cerrar turno" })).toHaveCount(0);
+  await expect(page.getByText("No puede entrar a marcar la salida.")).toHaveCount(0);
+});
+
+test("una cuenta activa no ofrece «Cerrar turno»", async ({ page }) => {
+  await setup(page);
+  await page.goto("/admin/personas/u-ana");
+  await expect(page.getByText("Mozo para cena")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Cerrar turno" })).toHaveCount(0);
+});
+
+test("si el turno cambió, el diálogo muestra el motivo y la ficha se recarga", async ({ page }) => {
+  await setupLeo(page, []);
+  let loads = 0;
+  page.on("request", (req) => {
+    if (req.url().endsWith("/api/v1/admin/users/u-leo")) loads += 1;
+  });
+  await page.route("**/api/v1/admin/shifts/*/close", (route) =>
+    route.fulfill({
+      status: 409,
+      contentType: "application/json",
+      body: JSON.stringify({
+        detail: "El turno cambió: volvé a abrir la ficha.",
+      }),
+    })
+  );
+  await page.goto("/admin/personas/u-leo");
+  await page.getByRole("button", { name: "Cerrar turno" }).click();
+  await expect.poll(() => loads).toBe(1);
+  await page.getByRole("button", { name: "Sí, cerrar turno" }).click();
+  await expect(page.getByRole("dialog").getByRole("alert")).toHaveText(
+    "El turno cambió: volvé a abrir la ficha."
+  );
+  await expect.poll(() => loads).toBe(2);
+});

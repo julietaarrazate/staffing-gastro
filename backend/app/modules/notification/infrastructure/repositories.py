@@ -5,13 +5,16 @@ import logging
 from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.config import settings as app_settings
 from app.core.database import sessions_like
 from app.core.ws_manager import ws_manager
+from app.modules.identity.domain.value_objects import UserStatus
+from app.modules.identity.infrastructure.models import UserModel
 from app.modules.notification.domain.entities import Notification, PushSubscription
+from app.modules.notification.domain.push_policy import push_policy_for
 from app.modules.notification.domain.push_sender import PushSender, PushSendResult
 from app.modules.notification.domain.repositories import (
     NotificationRepository,
@@ -58,6 +61,31 @@ class SqlAlchemyNotificationRepository(NotificationRepository):
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
+    async def _commit_or_reset(self) -> None:
+        """Guarda el aviso; si la base lo rechaza, deja la sesión usable y
+        propaga el error.
+
+        Un INSERT rechazado (fila inválida, usuario borrado) deja la sesión
+        con la transacción rota: todo lo que venga después por esa misma
+        sesión falla con `PendingRollbackError`. Y esa sesión es la del
+        pedido: la usan el resto del caso de uso y la idempotencia al guardar
+        la respuesta. Quien avisa sin dejar que el aviso rompa su acción
+        (cancelar un turno, publicar) atrapaba el error y terminaba igual en
+        500, con la acción ya hecha (revisión del 2026-11-13).
+
+        El `rollback` no deshace nada de quien llama: la base ya descartó esa
+        transacción al fallar, y lo anterior está confirmado (cada repositorio
+        confirma su propia escritura). Sólo devuelve la sesión a un estado en
+        el que se puede seguir trabajando."""
+        try:
+            await self._session.commit()
+        except Exception:
+            try:
+                await self._session.rollback()
+            except Exception:
+                logger.exception("Aviso: no se pudo recuperar la sesión tras el fallo")
+            raise
+
     async def add(self, notification: Notification) -> Notification:
         model = NotificationModel(
             id=notification.id,
@@ -69,7 +97,7 @@ class SqlAlchemyNotificationRepository(NotificationRepository):
             link=notification.link,
         )
         self._session.add(model)
-        await self._session.commit()
+        await self._commit_or_reset()
         await self._session.refresh(model)
         entity = _to_entity(model)
         await ws_manager.broadcast_notification(entity.user_id, _serialize(entity))
@@ -109,7 +137,7 @@ class SqlAlchemyNotificationRepository(NotificationRepository):
             for n in notifications
         ]
         self._session.add_all(models)
-        await self._session.commit()
+        await self._commit_or_reset()
         entities = [_to_entity(m) for m in models]
         for entity in entities:
             await ws_manager.broadcast_notification(entity.user_id, _serialize(entity))
@@ -140,6 +168,20 @@ class SqlAlchemyNotificationRepository(NotificationRepository):
         await self._session.commit()
         await self._session.refresh(model)
         return _to_entity(model)
+
+    async def mark_all_read(self, user_id: UUID) -> int:
+        # Un solo UPDATE: la campanita quedaba en "9+" para siempre porque
+        # cada aviso se marcaba de a uno (había cuentas con 86 sin leer).
+        result = await self._session.execute(
+            update(NotificationModel)
+            .where(
+                NotificationModel.user_id == user_id,
+                NotificationModel.read.is_(False),
+            )
+            .values(read=True)
+        )
+        await self._session.commit()
+        return result.rowcount or 0
 
     async def delete_read_before(self, cutoff: datetime) -> int:
         result = await self._session.execute(
@@ -174,10 +216,23 @@ class SqlAlchemyPushSubscriptionRepository(PushSubscriptionRepository):
         result = await self._session.execute(stmt)
         existing = result.scalar_one_or_none()
         if existing is not None:
-            # Idempotente: el mismo endpoint ya está suscripto (p. ej. el
-            # usuario tocó "Activar" dos veces, o reinstaló la PWA con el
-            # mismo service worker todavía registrado).
-            return _push_to_entity(existing)
+            # Un endpoint es un navegador, no una persona: queda a nombre de
+            # quien lo suscribe ahora. Para la misma cuenta es idempotente
+            # (tocó "Activar" dos veces, o el frontend lo registró solo al
+            # iniciar sesión); si era de otra cuenta (navegador compartido,
+            # dos cuentas en un dispositivo), deja de recibir los avisos de la
+            # anterior. Sólo si es el mismo navegador, que manda las claves
+            # que ya estaban guardadas: con otras no se toca nada.
+            current = _push_to_entity(existing)
+            if (
+                current.is_same_browser_as(subscription)
+                and existing.user_id != subscription.user_id
+            ):
+                existing.user_id = subscription.user_id
+                await self._session.commit()
+                await self._session.refresh(existing)
+                current = _push_to_entity(existing)
+            return current
 
         model = PushSubscriptionModel(
             id=subscription.id,
@@ -201,6 +256,24 @@ class SqlAlchemyPushSubscriptionRepository(PushSubscriptionRepository):
         if model is not None:
             await self._session.delete(model)
             await self._session.commit()
+
+    async def get_by_endpoint(self, endpoint: str) -> PushSubscription | None:
+        stmt = select(PushSubscriptionModel).where(PushSubscriptionModel.endpoint == endpoint)
+        model = (await self._session.execute(stmt)).scalar_one_or_none()
+        return _push_to_entity(model) if model is not None else None
+
+    async def remove_all_for_users(self, user_ids: list[UUID]) -> int:
+        if not user_ids:
+            return 0
+        result = await self._session.execute(
+            delete(PushSubscriptionModel).where(PushSubscriptionModel.user_id.in_(user_ids))
+        )
+        await self._session.commit()
+        return result.rowcount or 0
+
+    async def list_user_ids(self) -> list[UUID]:
+        stmt = select(PushSubscriptionModel.user_id).distinct()
+        return list((await self._session.execute(stmt)).scalars().all())
 
     async def list_by_user(self, user_id: UUID) -> list[PushSubscription]:
         stmt = select(PushSubscriptionModel).where(PushSubscriptionModel.user_id == user_id)
@@ -246,6 +319,19 @@ async def _schedule_pushes(session: AsyncSession, notifications: list[Notificati
     el request ya no espera los POST al servicio de push, que pueden tardar
     hasta 10 s cada uno. Un solo aviso (`add`) o muchos (`add_many`), igual."""
     by_user = {n.user_id: n for n in notifications}
+    # Una cuenta que no está activa (suspendida, ADR-0024) no recibe push. El
+    # aviso dentro de la app se guardó igual.
+    active = (
+        await session.execute(
+            select(UserModel.id).where(
+                UserModel.id.in_(list(by_user)),
+                UserModel.status == UserStatus.ACTIVE.value,
+            )
+        )
+    ).scalars().all()
+    by_user = {user_id: n for user_id, n in by_user.items() if user_id in set(active)}
+    if not by_user:
+        return
     subscriptions = await SqlAlchemyPushSubscriptionRepository(session).list_by_users(list(by_user))
     if not subscriptions:
         return
@@ -280,6 +366,10 @@ async def _deliver_pushes(
                     # los candidatos de ese turno) y, si no lo tiene, la
                     # pantalla genérica del tipo.
                     url=notification.link or deep_link_for(notification.type),
+                    # Vigencia y urgencia según el tipo (`push_policy`): sin
+                    # esto el servicio push descarta el aviso si el celular
+                    # no está conectado en ese instante.
+                    policy=push_policy_for(notification.type),
                 )
                 for subscription, notification in deliveries
             ),

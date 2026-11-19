@@ -1,6 +1,6 @@
 """Scheduler en proceso del ciclo de vida del turno.
 
-Seis chequeos independientes (más los que entran de afuera), un solo loop:
+Siete chequeos independientes (más los que entran de afuera), un solo loop:
 
 1. **Asistencia (ADR-0008):** turnos CONFIRMADO/EN_CAMINO sin check-in —
    antes del inicio, le recuerda al trabajador que avise al salir ("va en
@@ -15,22 +15,28 @@ Seis chequeos independientes (más los que entran de afuera), un solo loop:
    pasó — se resuelven solos a NO_CUBIERTO. La ventana depende de `urgent`
    (30 min si el turno era urgente, 2 h si no) para que uno inmediato no
    quede colgado como si siguiera activo mucho después de su hora.
-4. **"Disponible ahora" (ADR-0014):** perfiles de trabajador con esa posición
+4. **Cierre (ADR-0008, decisión 24):** turnos CHECK_OUT que el comercio no
+   cerró — a las 24 h de la salida se le recuerda una vez; a las 72 h Oído
+   lo cierra solo (`run_finish_check`).
+5. **"Disponible ahora" (ADR-0014):** perfiles de trabajador con esa posición
    prendida cuyo TTL ya venció — se apaga sola (`WorkerProfile.stop_available_now`).
    No es una regla de negocio, es minimización de datos: `is_available_now`
    ya la trata como vencida en cuanto pasa el TTL (el matching/mapa nunca la
    usan de más), este chequeo sólo borra la posición de la base en vez de
    dejarla ahí sin uso indefinidamente.
-5. **Retención (2026-10-23):** borra las sesiones de refresh vencidas hace
+6. **Retención (2026-10-23):** borra las sesiones de refresh vencidas hace
    más de `REFRESH_SESSION_RETENTION` y las notificaciones **leídas** de más
    de `READ_NOTIFICATION_RETENTION`. Como mucho una vez cada
    `RETENTION_INTERVAL`; no agrega despertares propios (va colgada de las
-   pasadas que ya ocurren, al menos cada `MAX_SLEEP`).
-6. **Vencimiento del plan pago (ADR-0022):** sólo con el cobro de Mercado
+   pasadas que ya ocurren, al menos cada `MAX_SLEEP`). En la misma pasada
+   corren los pasos que entran de afuera (`retention_steps`); hoy uno: el
+   barrido de dispositivos push de las cuentas con las sesiones revocadas
+   (`notification/infrastructure/device_sweep_job.py`, 2026-11-18).
+7. **Vencimiento del plan pago (ADR-0022):** sólo con el cobro de Mercado
    Pago prendido — avisa 3 días antes y el día que vence, y marca `vencida`
    después de los 3 días de gracia (`run_subscription_expiry_check`, vive en
    `subscription/infrastructure/expiry_job.py`).
-7. **Chequeos que entran de afuera (`extra_checks`):** `app/main.py` los
+8. **Chequeos que entran de afuera (`extra_checks`):** `app/main.py` los
    pasa a `start_scheduler` para que este archivo no importe la
    infraestructura de otro módulo (candado de capas). Hoy uno: el borrado de
    los documentos de verificación que Cloudinary no pudo borrar al decidir
@@ -94,11 +100,12 @@ from app.modules.notification.infrastructure.repositories import (
     SqlAlchemyNotificationRepository,
 )
 from app.modules.shift.application.services import (
+    AUTO_FINISH_DELAY,
     CHECKIN_REMINDER_DELAY,
     DEPARTURE_REMINDER_LEAD,
+    FINISH_REMINDER_DELAY,
     ESCALATION_DELAY,
-    NOT_COVERED_GRACE_NORMAL,
-    NOT_COVERED_GRACE_URGENT,
+    coverage_deadline,
     NO_SHOW_GRACE_PERIOD,
     ShiftService,
 )
@@ -212,15 +219,28 @@ async def run_attendance_check() -> datetime | None:
         next_deadline: datetime | None = None
         for shift in shifts:
             start = _naive(shift.start_at)
-            reminder_at = start + CHECKIN_REMINDER_DELAY
-            no_show_at = start + NO_SHOW_GRACE_PERIOD
-            elapsed = now - start
+            # Desde cuándo se espera a la persona: el inicio o, si confirmó
+            # con el turno ya empezado (el reemplazo de un turno reofrecido,
+            # U080), el momento en que confirmó. A quien lo toma a las 21:10
+            # no se le cuenta la ausencia desde las 20:00.
+            expected = _naive(shift.expected_from)
+            reminder_at = expected + CHECKIN_REMINDER_DELAY
+            no_show_at = expected + NO_SHOW_GRACE_PERIOD
+            elapsed = now - expected
             if elapsed < timedelta(0):
                 # Todavía no empezó: lo único que puede tocarle es el
                 # recordatorio de salida ("va en camino"), y sólo si no lo
                 # recibió y no salió ya (si ya comparte ubicación, recordarle
                 # que avise sería ruido).
-                if shift.departure_reminder_sent_at is None and shift.en_route_at is None:
+                # «Ya salió» es estar compartiendo ahora o haberle avisado ya
+                # al comercio (`en_route_announced_at`): quien salió y dejó de
+                # compartir (U072) borró su posición, pero no hay que
+                # recordarle que avise.
+                if (
+                    shift.departure_reminder_sent_at is None
+                    and shift.en_route_at is None
+                    and shift.en_route_announced_at is None
+                ):
                     departure_at = start - DEPARTURE_REMINDER_LEAD
                     if now >= departure_at:
                         await _act(service.send_departure_reminder, shift.id)
@@ -256,14 +276,29 @@ async def run_escalation_check() -> datetime | None:
         now = _naive(datetime.now(timezone.utc))
         shifts = await service.list_shifts_awaiting_escalation()
         next_deadline: datetime | None = None
+        event_shifts: list[Shift] = []
         for shift in shifts:
             if shift.published_at is None:
                 continue
             escalate_at = _naive(shift.published_at) + ESCALATION_DELAY
             if now >= escalate_at:
-                await _act(service.escalate_urgency, shift.id)
+                if shift.event_id is None:
+                    await _act(service.escalate_urgency, shift.id)
+                else:
+                    # Cada puesto sube a urgente, pero el aviso sale una sola
+                    # vez por evento y por persona (U086), al terminar la pasada.
+                    try:
+                        event_shifts.append(
+                            await service.escalate_urgency(shift.id, notify=False)
+                        )
+                    except (ShiftConcurrentModificationError, InvalidShiftTransitionError) as exc:
+                        logger.info(
+                            "scheduler.skipped",
+                            extra={"shift_id": str(shift.id), "reason": type(exc).__name__},
+                        )
             else:
                 next_deadline = _earlier(next_deadline, escalate_at)
+        await service.notify_event_escalation(event_shifts)
         return next_deadline
 
 
@@ -277,19 +312,56 @@ async def run_coverage_check() -> datetime | None:
     (`NOT_COVERED_GRACE_URGENT`) si el turno era urgente —el comercio
     necesita saber rápido si quedó sin cubrir—, normal
     (`NOT_COVERED_GRACE_NORMAL`, mismo valor que `NO_SHOW_GRACE_PERIOD`) si
-    no."""
+    no. Un turno reofrecido (U080) se espera mientras le queden 2 horas de
+    horario (`offered_until`, ver `coverage_deadline`)."""
     async with AsyncSessionLocal() as session:
         service = _build_service(session)
         now = _naive(datetime.now(timezone.utc))
         shifts = await service.list_shifts_awaiting_coverage_check()
         next_deadline: datetime | None = None
         for shift in shifts:
-            grace = NOT_COVERED_GRACE_URGENT if shift.urgent else NOT_COVERED_GRACE_NORMAL
-            deadline = _naive(shift.start_at) + grace
+            deadline = coverage_deadline(shift)
             if now >= deadline:
                 await _act(service.mark_not_covered, shift.id)
             else:
                 next_deadline = _earlier(next_deadline, deadline)
+        return next_deadline
+
+
+async def run_finish_check() -> datetime | None:
+    """Una pasada del chequeo de cierre (ADR-0008, decisión 24). Público para
+    poder testearlo sin el loop.
+
+    Turnos CHECK_OUT que el comercio no cerró: a `FINISH_REMINDER_DELAY` de
+    `check_out_at` se le recuerda una sola vez; a `AUTO_FINISH_DELAY` Oído lo
+    cierra solo. Devuelve la próxima deadline FUTURA (el recordatorio o el
+    cierre pendiente más temprano), o `None`.
+
+    No hace falta despertar el loop al marcar la salida: el primer umbral
+    está a un día y el loop nunca duerme más de `MAX_SLEEP` (6 h), así que la
+    pasada siguiente ya lo ve a tiempo."""
+    async with AsyncSessionLocal() as session:
+        service = _build_service(session)
+        now = _naive(datetime.now(timezone.utc))
+        shifts = await service.list_shifts_awaiting_finish()
+        next_deadline: datetime | None = None
+        for shift in shifts:
+            if shift.check_out_at is None:
+                continue
+            checked_out = _naive(shift.check_out_at)
+            reminder_at = checked_out + FINISH_REMINDER_DELAY
+            finish_at = checked_out + AUTO_FINISH_DELAY
+            if now >= finish_at:
+                await _act(service.auto_finish, shift.id)
+                # Se cerró (o lo cerró el comercio): no aporta deadline.
+                continue
+            if shift.finish_reminder_sent_at is None:
+                if now < reminder_at:
+                    next_deadline = _earlier(next_deadline, reminder_at)
+                    continue
+                await _act(service.send_finish_reminder, shift.id)
+            # Ya recordado: su próxima (y última) deadline es el cierre.
+            next_deadline = _earlier(next_deadline, finish_at)
         return next_deadline
 
 
@@ -332,12 +404,23 @@ RETENTION_INTERVAL = timedelta(hours=24)
 _last_retention_run: datetime | None = None
 
 
-async def run_retention_cleanup(*, force: bool = False) -> datetime | None:
+# Un paso de retención que entra de afuera (`retention_steps`): borra lo suyo
+# y devuelve cuánto borró.
+RetentionStep = Callable[[], Awaitable[int]]
+
+
+async def run_retention_cleanup(
+    *, force: bool = False, extra_steps: Sequence[RetentionStep] = ()
+) -> datetime | None:
     """Una pasada de retención. Público para poder testearlo sin el loop.
 
     Corre como mucho una vez cada `RETENTION_INTERVAL` (`force` lo saltea, para
     tests). Devuelve siempre `None`: no es una deadline que justifique
-    despertar la base, se aprovecha la próxima pasada del loop."""
+    despertar la base, se aprovecha la próxima pasada del loop.
+
+    `extra_steps` son los borrados de otros módulos (los pasa `app/main.py`).
+    Si uno falla se registra y la pasada se da por hecha igual: lo reintenta
+    la de mañana, no cada pocos minutos (cuota de Neon)."""
     global _last_retention_run
     now = datetime.now(UTC)
     if (
@@ -346,6 +429,16 @@ async def run_retention_cleanup(*, force: bool = False) -> datetime | None:
         and now - _last_retention_run < RETENTION_INTERVAL
     ):
         return None
+    # Los pasos de afuera van ANTES de borrar las sesiones vencidas: el
+    # barrido de dispositivos decide mirando esas filas, y una sesión revocada
+    # que esta misma pasada va a borrar tiene que alcanzar a verla.
+    extra_deleted: dict[str, int] = {}
+    for step in extra_steps:
+        name = getattr(step, "__name__", "paso")
+        try:
+            extra_deleted[name] = await step()
+        except Exception:
+            logger.exception("Error en el paso de retención %s", name)
     async with AsyncSessionLocal() as session:
         sessions_deleted = await SqlAlchemyRefreshSessionRepository(
             session
@@ -359,6 +452,7 @@ async def run_retention_cleanup(*, force: bool = False) -> datetime | None:
         extra={
             "refresh_sessions_deleted": sessions_deleted,
             "notifications_deleted": notifications_deleted,
+            "extra_steps_deleted": extra_deleted,
         },
     )
     return None
@@ -369,7 +463,9 @@ async def run_retention_cleanup(*, force: bool = False) -> datetime | None:
 Check = Callable[[], Awaitable[datetime | None]]
 
 
-async def scheduler_loop(extra_checks: Sequence[Check] = ()) -> None:
+async def scheduler_loop(
+    extra_checks: Sequence[Check] = (), retention_steps: Sequence[RetentionStep] = ()
+) -> None:
     """Loop infinito: corre los chequeos y duerme hasta la próxima deadline.
 
     En vez de un intervalo fijo, cada pasada calcula la deadline más temprana
@@ -400,6 +496,11 @@ async def scheduler_loop(extra_checks: Sequence[Check] = ()) -> None:
             had_error = True
             logger.exception("Error en el chequeo de cobertura")
         try:
+            next_deadline = _earlier(next_deadline, await run_finish_check())
+        except Exception:
+            had_error = True
+            logger.exception("Error en el chequeo de cierre de turnos")
+        try:
             next_deadline = _earlier(next_deadline, await run_available_now_cleanup())
         except Exception:
             had_error = True
@@ -410,7 +511,7 @@ async def scheduler_loop(extra_checks: Sequence[Check] = ()) -> None:
             had_error = True
             logger.exception("Error en el chequeo de vencimiento de planes")
         try:
-            await run_retention_cleanup()
+            await run_retention_cleanup(extra_steps=retention_steps)
         except Exception:
             had_error = True
             logger.exception("Error en la limpieza de retención")
@@ -423,7 +524,9 @@ async def scheduler_loop(extra_checks: Sequence[Check] = ()) -> None:
         await wait_for_wakeup(_seconds_until(next_deadline, had_error=had_error))
 
 
-def start_scheduler(extra_checks: Sequence[Check] = ()) -> asyncio.Task | None:
+def start_scheduler(
+    extra_checks: Sequence[Check] = (), retention_steps: Sequence[RetentionStep] = ()
+) -> asyncio.Task | None:
     """Arranca el loop como task de fondo, sólo en producción.
 
     En desarrollo/tests (`settings.is_production` False) es un no-op, mismo
@@ -431,4 +534,4 @@ def start_scheduler(extra_checks: Sequence[Check] = ()) -> asyncio.Task | None:
     Resend) — nunca corre en `pytest` ni en un entorno local sin querer."""
     if not settings.is_production:
         return None
-    return asyncio.create_task(scheduler_loop(extra_checks))
+    return asyncio.create_task(scheduler_loop(extra_checks, retention_steps))

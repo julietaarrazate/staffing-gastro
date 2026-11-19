@@ -2,8 +2,9 @@
 
 - `/subscription/plans/public`: configuración igual para todos, sin base de
   datos → cacheable 5 minutos.
-- `/shifts/{id}/public`: un turno se cubre en minutos y desde ahí da 404 → sin
-  caché (la página compartida ya tiene su caché corta en el borde).
+- `/shifts/{id}/public`: un turno se cubre en minutos y desde ahí da 410 («ya
+  no disponible») → sin caché (la página compartida ya tiene su caché corta en
+  el borde).
 """
 
 from httpx import AsyncClient
@@ -35,8 +36,10 @@ async def test_turno_publico_no_se_cachea(client: AsyncClient):
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-cache"
 
-    # Cubierto/cancelado deja de existir para el público: 404 sin caché pública.
+    # Cubierto/cancelado: «ya no disponible» (410), también sin caché. Un 410
+    # se puede guardar por defecto en cachés intermedias, y un turno asignado
+    # puede volver a abrirse: la copia vieja lo mostraría cerrado.
     await client.post(f"/api/v1/shifts/{shift_id}/cancel", headers=headers)
     gone = await client.get(f"/api/v1/shifts/{shift_id}/public")
-    assert gone.status_code == 404
-    assert "public" not in gone.headers.get("cache-control", "")
+    assert gone.status_code == 410
+    assert gone.headers["cache-control"] == "no-cache"

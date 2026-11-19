@@ -13,12 +13,17 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.core.log_privacy import mask_email
 from app.modules.admin.api.dependencies import get_admin_service
 from app.modules.admin.api.schemas import (
+    AdminShiftCloseRequest,
+    AdminShiftClosureResponse,
+    AdminSubscriptionSummaryResponse,
     AdminUserDetailResponse,
     AdminUserResponse,
     ImpersonateResponse,
     LiveShiftsResponse,
+    PaymentCommitmentRequest,
     PeriodMetricsResponse,
     PlatformStatsResponse,
+    SuspensionPreviewResponse,
     SubscriptionStatsResponse,
     TestAccountResponse,
     TodayCountsResponse,
@@ -26,6 +31,7 @@ from app.modules.admin.api.schemas import (
 from app.modules.admin.application.exceptions import (
     CannotImpersonateAdminError,
     CannotModifySelfError,
+    TargetCompanyNotFoundError,
     TargetUserNotFoundError,
 )
 from app.modules.admin.application.periods import METRICS_PERIODS
@@ -33,6 +39,8 @@ from app.modules.admin.application.services import AdminService
 from app.modules.identity.api.dependencies import require_roles
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.value_objects import UserRole, UserStatus
+from app.modules.shift.domain.exceptions import AdminCloseNotAllowedError, ShiftNotFoundError
+from app.modules.subscription.domain.exceptions import UnknownPlanError
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 logger = logging.getLogger(__name__)
@@ -67,8 +75,11 @@ async def live_shifts(
     service: ServiceDep,
     urgent: bool = False,
     escalated: bool = False,
+    no_shows: bool = False,
 ):
-    return await service.list_live_shifts(urgent_only=urgent, escalated_only=escalated)
+    return await service.list_live_shifts(
+        urgent_only=urgent, escalated_only=escalated, no_shows_only=no_shows
+    )
 
 
 @router.get(
@@ -142,6 +153,40 @@ async def get_user_detail(user_id: UUID, _: AdminDep, service: ServiceDep):
         ) from exc
 
 
+@router.put(
+    "/users/{user_id}/payment-commitment",
+    response_model=AdminSubscriptionSummaryResponse,
+    summary="Registrar el compromiso de pago («precio fundador») de un comercio",
+)
+async def set_payment_commitment(
+    user_id: UUID, payload: PaymentCommitmentRequest, _: AdminDep, service: ServiceDep
+):
+    try:
+        return await service.set_payment_commitment(user_id, payload.plan_code, payload.price_ars)
+    except TargetCompanyNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Comercio no encontrado"
+        ) from exc
+    except UnknownPlanError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
+
+
+@router.delete(
+    "/users/{user_id}/payment-commitment",
+    response_model=AdminSubscriptionSummaryResponse,
+    summary="Borrar el compromiso de pago de un comercio",
+)
+async def clear_payment_commitment(user_id: UUID, _: AdminDep, service: ServiceDep):
+    try:
+        return await service.clear_payment_commitment(user_id)
+    except TargetCompanyNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Comercio no encontrado"
+        ) from exc
+
+
 @router.post(
     "/users/{user_id}/suspend",
     response_model=AdminUserResponse,
@@ -160,6 +205,54 @@ async def suspend_user(user_id: UUID, current: AdminDep, service: ServiceDep):
             status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado"
         ) from exc
     logger.warning("admin suspend_user: admin=%s target=%s", current.id, user_id)
+    return result
+
+
+@router.get(
+    "/users/{user_id}/suspension-preview",
+    response_model=SuspensionPreviewResponse,
+    summary="Cuántos turnos toca suspender a un usuario (sin cambiar nada)",
+)
+async def suspension_preview(user_id: UUID, current: AdminDep, service: ServiceDep):
+    try:
+        return await service.suspension_preview(user_id)
+    except TargetUserNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado"
+        ) from exc
+
+
+@router.post(
+    "/shifts/{shift_id}/close",
+    response_model=AdminShiftClosureResponse,
+    summary="Cerrar un turno empezado en nombre de una cuenta suspendida",
+)
+async def close_shift_for_suspended_account(
+    shift_id: UUID, body: AdminShiftCloseRequest, current: AdminDep, service: ServiceDep
+):
+    """Decisión 21 (ADR-0024): marca la salida (trabajador suspendido) y/o
+    cierra el turno (comercio suspendido). 404 si el turno no existe; 409 si
+    no aplica, con el motivo para la admin, si se haría otra cosa que lo
+    confirmado (`body`), o si el turno cambió en el medio (manejador global de
+    `ShiftConcurrentModificationError`)."""
+    try:
+        result = await service.close_shift_for_suspended_account(
+            current, shift_id, check_out=body.check_out, finish=body.finish
+        )
+    except ShiftNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Turno no encontrado"
+        ) from exc
+    except AdminCloseNotAllowedError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    logger.warning(
+        "admin close_shift: admin=%s shift=%s check_out=%s finish=%s notifies=%s",
+        current.id,
+        shift_id,
+        result.check_out,
+        result.finish,
+        result.notifies,
+    )
     return result
 
 

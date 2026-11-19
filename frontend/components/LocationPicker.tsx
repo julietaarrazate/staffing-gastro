@@ -9,6 +9,7 @@
 import { useId, useState } from "react";
 import { PROVINCES } from "@/lib/locations";
 import { getCurrentPosition } from "@/lib/geolocation";
+import { haversineKm } from "@/lib/map/geo";
 import { MapPinIcon } from "@/components/icons";
 
 export type LocationSelection = {
@@ -23,22 +24,83 @@ function shortProvince(name: string): string {
   return name;
 }
 
+/** Radio máximo para ponerle nombre de barrio/ciudad a la ubicación del GPS. */
+const MAX_NAME_DISTANCE_KM = 50;
+
+/** Interpreta una zona guardada («Palermo, CABA») como índices de provincia y localidad. */
+export function parseSavedCity(
+  city: string | null | undefined
+): { provinceIdx: number; localityName: string } | null {
+  if (!city) return null;
+  const cut = city.lastIndexOf(", ");
+  if (cut < 0) return null;
+  const name = city.slice(0, cut).trim();
+  const prov = city.slice(cut + 2).trim();
+  const provinceIdx = PROVINCES.findIndex((p) => shortProvince(p.name) === prov || p.name === prov);
+  if (provinceIdx < 0) return null;
+  return PROVINCES[provinceIdx].localities.some((l) => l.name === name)
+    ? { provinceIdx, localityName: name }
+    : null;
+}
+
+/** Barrio/ciudad más cercano a un punto, dentro de un radio razonable. */
+export function nearestLocality(
+  lat: number,
+  lng: number
+): { provinceIdx: number; localityName: string } | null {
+  let best: { provinceIdx: number; localityName: string; km: number } | null = null;
+  PROVINCES.forEach((p, provinceIdx) => {
+    for (const l of p.localities) {
+      const km = haversineKm([lat, lng], [l.lat, l.lng]);
+      if (!best || km < best.km) best = { provinceIdx, localityName: l.name, km };
+    }
+  });
+  const found = best as { provinceIdx: number; localityName: string; km: number } | null;
+  return found && found.km <= MAX_NAME_DISTANCE_KM
+    ? { provinceIdx: found.provinceIdx, localityName: found.localityName }
+    : null;
+}
+
+/** Nombre de zona para un punto de GPS: el barrio elegido si el GPS queda a ≤50 km de él; si no, el más cercano. */
+export function resolveGpsLocality(
+  provinceIdx: number,
+  localityName: string,
+  lat: number,
+  lng: number
+): { provinceIdx: number; localityName: string } | null {
+  const chosen = localityName
+    ? PROVINCES[provinceIdx]?.localities.find((l) => l.name === localityName)
+    : undefined;
+  if (chosen && haversineKm([lat, lng], [chosen.lat, chosen.lng]) <= MAX_NAME_DISTANCE_KM) {
+    return { provinceIdx, localityName };
+  }
+  return nearestLocality(lat, lng);
+}
+
 // Mismo tratamiento que `TextField` del design system (alto de toque 48px,
 // radio y anillo por token): antes usaba grises/naranjas crudos y quedaba
 // visiblemente distinto a los demás campos de la app.
 const selectClass =
-  "mt-1 min-h-[48px] w-full rounded-[var(--radius-input)] bg-surface px-4 text-body text-ink outline-none ring-1 ring-line transition focus:ring-2 focus:ring-primary/40";
+  "mt-1 min-h-[48px] w-full rounded-[var(--radius-input)] bg-surface px-4 text-body text-ink outline-none ring-1 ring-line transition";
 
 export default function LocationPicker({
   onSelect,
+  initialCity,
 }: {
   onSelect: (selection: LocationSelection) => void;
+  /** Zona ya guardada («Palermo, CABA»): los selectores arrancan mostrándola. */
+  initialCity?: string | null;
 }) {
   // Id único por instancia (no hardcodeado): el picker se usa en varios
   // formularios y un id fijo colisionaría si dos llegaran a montarse juntos.
   const idPrefix = useId();
-  const [provinceIdx, setProvinceIdx] = useState(0);
-  const [localityName, setLocalityName] = useState("");
+  // Hasta que la persona toca un selector, se muestra la zona guardada (que
+  // puede llegar después de montar, cuando termina de cargar el perfil).
+  const [picked, setPicked] = useState<{ provinceIdx: number; localityName: string } | null>(null);
+  const saved = parseSavedCity(initialCity);
+  const { provinceIdx, localityName } = picked ?? saved ?? { provinceIdx: 0, localityName: "" };
+  const setProvinceIdx = (idx: number) => setPicked({ provinceIdx: idx, localityName: "" });
+  const setLocalityName = (name: string) => setPicked({ provinceIdx, localityName: name });
   const [geoStatus, setGeoStatus] = useState<"idle" | "loading" | "done" | "error">(
     "idle"
   );
@@ -48,7 +110,6 @@ export default function LocationPicker({
 
   function changeProvince(idx: number) {
     setProvinceIdx(idx);
-    setLocalityName("");
     setGeoStatus("idle");
     setGeoMsg(null);
   }
@@ -71,9 +132,18 @@ export default function LocationPicker({
     setGeoMsg(null);
     try {
       const { latitude, longitude } = await getCurrentPosition();
-      const city = localityName
-        ? `${localityName}, ${shortProvince(province.name)}`
-        : "Mi ubicación actual";
+      // Nunca se guarda «Mi ubicación actual» como nombre de zona: se usa el
+      // barrio/ciudad elegido o, si no hay, el más cercano al GPS.
+      // El barrio elegido/guardado sólo vale si el GPS está cerca de él: con
+      // «Palermo» guardado y el GPS en Rosario se nombra por cercanía.
+      const named = resolveGpsLocality(provinceIdx, localityName, latitude, longitude);
+      if (!named) {
+        setGeoStatus("error");
+        setGeoMsg("No pudimos ponerle nombre a tu zona: elegí tu provincia y barrio o ciudad.");
+        return;
+      }
+      setPicked(named);
+      const city = `${named.localityName}, ${shortProvince(PROVINCES[named.provinceIdx].name)}`;
       onSelect({ city, latitude, longitude });
       setGeoStatus("done");
       setGeoMsg("Listo: usamos las coordenadas exactas de tu ubicación.");

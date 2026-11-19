@@ -3,6 +3,9 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { homeDelRol } from "@/lib/home-del-rol";
+import { loginHref } from "@/lib/safe-next";
+import type { UserRole } from "@/lib/types";
 
 /**
  * Guard de sesión para pantallas protegidas. Mientras `AuthProvider` restaura
@@ -14,17 +17,43 @@ import { useAuth } from "@/lib/auth-context";
  * directa sin login previo, quedaban con el skeleton girando para siempre,
  * sin ningún camino de salida (docs/TECH_DEBT.md, hallazgo D1 de la
  * auditoría de producto 2026-08-09).
+ *
+ * Con `roles`, además es guarda de rol (U098): una persona logueada que entra
+ * por URL a la pantalla de otro rol iba a ver la pantalla vacía con
+ * «Permisos insuficientes». Ya con la sesión resuelta, si su rol no está en
+ * la lista se la manda a la home de su rol y mientras tanto se devuelve
+ * `token: null`, para que la pantalla no dispare sus pedidos. Sin `roles`
+ * se comporta como siempre. Los roles son los que el backend exige en los
+ * endpoints de la pantalla.
  */
-export function useRequireAuth() {
-  const { user, token, loading, justLoggedOut } = useAuth();
+export function useRequireAuth({ roles }: { roles?: readonly UserRole[] } = {}) {
+  const { user, token, loading, justLoggedOut, sessionEnded, reconnecting } = useAuth();
   const router = useRouter();
 
   // Recién salida de la cuenta, va a la landing como el propio `logout`
   // (2026-10-13): si mandara a "/login", este redirect de la pantalla que se
   // estaba viendo le ganaba al de la salida.
+  //
+  // Si la sesión terminó sola (venció, o la cuenta quedó suspendida), el
+  // ingreso lo dice y guarda la ruta para volver (`next`). Con el servidor
+  // sin contestar (`reconnecting`) no se manda a nadie a ningún lado: la
+  // sesión sigue guardada y se está reintentando.
   useEffect(() => {
-    if (!loading && !token) router.replace(justLoggedOut ? "/" : "/login");
-  }, [loading, token, justLoggedOut, router]);
+    if (loading || token || reconnecting) return;
+    if (justLoggedOut) {
+      router.replace("/");
+      return;
+    }
+    const here = `${window.location.pathname}${window.location.search}`;
+    router.replace(loginHref({ motivo: sessionEnded, next: here }));
+  }, [loading, token, reconnecting, justLoggedOut, sessionEnded, router]);
 
-  return { user, token, loading };
+  // El `user` queda en "Ver como" con el de la cuenta que se mira, así que
+  // la guarda juzga ese rol (el mismo que ve el backend con su token).
+  const wrongRole = !loading && !!user && !!token && !!roles && !roles.includes(user.role);
+  useEffect(() => {
+    if (wrongRole && user) router.replace(homeDelRol(user.role));
+  }, [wrongRole, user, router]);
+
+  return { user, token: wrongRole ? null : token, loading, allowed: !wrongRole };
 }

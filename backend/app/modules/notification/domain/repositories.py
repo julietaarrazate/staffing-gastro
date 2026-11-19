@@ -34,6 +34,11 @@ class NotificationRepository(ABC):
         """
 
     @abstractmethod
+    async def mark_all_read(self, user_id: UUID) -> int:
+        """Marca como leídas TODAS las notificaciones no leídas del usuario,
+        en una sola operación, y devuelve cuántas marcó (0 si no había)."""
+
+    @abstractmethod
     async def delete_read_before(self, cutoff: datetime) -> int:
         """Borra las notificaciones YA LEÍDAS creadas antes de `cutoff` y
         devuelve cuántas borró (retención). Las no leídas nunca se borran."""
@@ -44,16 +49,32 @@ class PushSubscriptionRepository(ABC):
 
     @abstractmethod
     async def add(self, subscription: PushSubscription) -> PushSubscription:
-        """Persiste una suscripción nueva y la devuelve.
+        """Persiste la suscripción y la devuelve. Un `endpoint`, una fila.
 
-        Idempotente por `endpoint` (ver `PushService.subscribe`): si ya existe
-        una suscripción con ese endpoint, la implementación la devuelve tal
-        cual en vez de duplicarla."""
+        Si ya existe una con ese endpoint no se duplica. Cuando la que llega
+        es del mismo navegador (`PushSubscription.is_same_browser_as`: mismas
+        claves) queda a nombre de `subscription.user_id`: para la misma cuenta
+        es idempotente; si era de otra, se reasigna. Cuando las claves no
+        coinciden no se toca nada y se devuelve la que ya estaba (ver
+        `PushService.subscribe`)."""
 
     @abstractmethod
     async def remove_by_endpoint(self, endpoint: str, *, user_id: UUID) -> None:
         """Elimina la suscripción de ese endpoint SI es de `user_id` (no-op si
         no existe o es de otra persona)."""
+
+    @abstractmethod
+    async def get_by_endpoint(self, endpoint: str) -> PushSubscription | None:
+        """La suscripción de ese endpoint (hay una sola), o `None`."""
+
+    @abstractmethod
+    async def remove_all_for_users(self, user_ids: list[UUID]) -> int:
+        """Elimina todas las suscripciones de esas cuentas (todos sus
+        dispositivos) y devuelve cuántas eran."""
+
+    @abstractmethod
+    async def list_user_ids(self) -> list[UUID]:
+        """Las cuentas que tienen al menos un dispositivo registrado."""
 
     @abstractmethod
     async def list_by_user(self, user_id: UUID) -> list[PushSubscription]:

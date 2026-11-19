@@ -8,6 +8,7 @@
  */
 import { SKILL_LABELS, WorkerSkill } from "@/lib/types";
 import { formatShiftDate, formatShiftTime } from "@/lib/datetime";
+import { formatArs } from "@/lib/format";
 
 export interface ShareableShift {
   position: WorkerSkill;
@@ -16,6 +17,8 @@ export interface ShareableShift {
   city: string | null;
   pay_amount: string | number;
   company_name?: string | null;
+  /** Turno reofrecido (U080): ya empezó y se muestra el valor por hora. */
+  hourly_pay_amount?: string | null;
 }
 
 /** Resumen del turno sin link: "Buscamos {puesto} para el {fecha} de {hora}
@@ -25,12 +28,22 @@ export function buildShiftSummary(shift: ShareableShift): string {
   const date = formatShiftDate(shift.start_at);
   const start = formatShiftTime(shift.start_at);
   const end = formatShiftTime(shift.end_at);
-  const amount = Number(shift.pay_amount).toLocaleString("es-AR");
   const lugar = [shift.company_name, shift.city].filter(Boolean).join(", ");
+  if (shift.hourly_pay_amount != null) {
+    // Reofrecido: decir «para el sábado de 20 a 23» invitaría a algo que ya
+    // empezó, y el total depende de cuándo llegue quien lo tome.
+    return (
+      `Buscamos ${SKILL_LABELS[shift.position]} para ahora, hasta las ${end}` +
+      `${lugar ? ` en ${lugar}` : ""}. Pago: ${formatArs(Number(shift.hourly_pay_amount))} por hora, ` +
+      "desde que llegás."
+    );
+  }
+  const monto = Number(shift.pay_amount);
+  const pago = shift.pay_amount !== "" && Number.isFinite(monto) ? ` Pago: ${formatArs(monto)}.` : "";
 
   return (
     `Buscamos ${SKILL_LABELS[shift.position]} para el ${date} de ${start} a ${end}` +
-    `${lugar ? ` en ${lugar}` : ""}. Pago: $${amount}.`
+    `${lugar ? ` en ${lugar}` : ""}.${pago}`
   );
 }
 

@@ -2,13 +2,28 @@
 
 from datetime import datetime
 from decimal import Decimal
+from enum import Enum
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic_core import PydanticCustomError
 
 from app.modules.shift.domain.pay_benchmark import PayBand
 from app.modules.shift.domain.value_objects import ShiftStatus
 from app.modules.worker.domain.value_objects import WorkerSkill
+
+
+class FeedScope(str, Enum):
+    """Alcance de `GET /shifts/feed`.
+
+    - `nearby` (por defecto): sólo lo que queda cerca. Es el feed del Inicio
+      y del Mapa.
+    - `all`: todo el mercado, ordenado por distancia cuando hay desde dónde
+      medir. Es Buscar, la pantalla para mirar otras zonas.
+    """
+
+    NEARBY = "nearby"
+    ALL = "all"
 
 
 class ShiftInput(BaseModel):
@@ -97,6 +112,21 @@ class ShiftResponse(BaseModel):
     published_at: datetime | None = None
     first_assigned_at: datetime | None = None
     created_at: datetime | None = None
+    # Turno reofrecido (U080): se reabrió con el horario ya empezado y se
+    # ofrece como urgente hasta `offered_until`. Mientras nadie marcó la llegada, lo
+    # que se muestra es el valor por hora (`hourly_pay_amount`, calculado en
+    # el dominio; `None` en cualquier otro turno), porque el total depende de
+    # cuándo llegue quien lo tome. Son datos del turno: los ve cualquiera.
+    reoffered_at: datetime | None = None
+    hourly_pay_amount: Decimal | None = None
+    # Lo que se paga por un turno reofrecido, fijado cuando el reemplazo marca
+    # la llegada. Es de las partes (el comercio dueño y la persona asignada):
+    # `without_worker_data` lo borra, porque de él se deduce a qué hora llegó.
+    prorated_pay_amount: Decimal | None = None
+    # Cuándo confirmó quien tiene el turno ahora. De las partes: el panel lo
+    # usa para saber desde cuándo se puede marcar «No se presentó» a quien
+    # tomó un turno ya empezado.
+    confirmed_at: datetime | None = None
     company_name: str | None = None
     company_logo_url: str | None = None
     company_cover_url: str | None = None
@@ -112,6 +142,10 @@ class ShiftResponse(BaseModel):
     # quién tomó cada turno. Hoy lo usa "va en camino" para decir "Juan va en
     # camino" en vez del genérico.
     worker_name: str | None = None
+    # Postulaciones PENDIENTES del turno. Como `worker_name`: se completa SÓLO
+    # en `/shifts/me` (el comercio dueño) y es `None` en el feed, el turno
+    # público y `/shifts/mine`; `without_worker_data` también lo borra.
+    pending_applicants_count: int | None = None
     # ADR-0011: claim `negocio_verificado` del dueño del comercio
     # (`CompanyProfile.user_id`) — no hay flujo de envío/revisión de
     # evidencias de negocio todavía, así que hoy siempre da `False`; el
@@ -124,6 +158,7 @@ class ShiftResponse(BaseModel):
 WORKER_DATA_FIELDS = (
     "worker_profile_id",
     "worker_name",
+    "pending_applicants_count",
     "en_route_latitude",
     "en_route_longitude",
     "en_route_at",
@@ -135,6 +170,8 @@ WORKER_DATA_FIELDS = (
     "check_out_at",
     "no_show_at",
     "last_no_show_worker_profile_id",
+    "prorated_pay_amount",
+    "confirmed_at",
 )
 
 
@@ -176,6 +213,34 @@ class EventInput(BaseModel):
     longitude: float | None = Field(default=None, ge=-180, le=180)
     description: str | None = Field(default=None, max_length=1000)
 
+    @model_validator(mode="after")
+    def _exigir_zona(self) -> "EventInput":
+        """Un evento no se publica sin zona: sin ciudad el panel y las tarjetas
+        dicen «Ubicación a confirmar», y sin coordenadas no se avisa a nadie
+        cerca (el aviso mide la distancia con ellas; la ciudad sola no entra).
+        Se piden las dos. Vive acá y no sólo en el formulario para que no
+        dependa del cliente (app, asistente, scripts)."""
+        tiene_ciudad = bool(self.city and self.city.strip())
+        tiene_coordenadas = self.latitude is not None and self.longitude is not None
+        if not (tiene_ciudad and tiene_coordenadas):
+            # PydanticCustomError y no ValueError: este último antepone
+            # «Value error, » al mensaje.
+            raise PydanticCustomError(
+                "zona_requerida",
+                "Elegí la zona del evento (provincia y barrio, o tu local con "
+                "ubicación): sin eso no podemos avisar a la gente que está cerca.",
+            )
+        return self
+
+
+class EventCancelResponse(BaseModel):
+    """Resultado de cancelar un evento entero (U084): los puestos que se
+    cancelaron ahora. Los que ya habían terminado o estaban cancelados no
+    vienen."""
+
+    event_id: UUID
+    cancelled: list[ShiftResponse]
+
 
 class EventResponse(BaseModel):
     """Resultado de publicar un evento: `requested` vs. la cantidad real de
@@ -201,6 +266,10 @@ class ShiftPublicResponse(BaseModel):
     city: str | None
     pay_amount: Decimal
     currency: str
+    # Turno reofrecido (U080): ya empezó y se ofrece hasta `offered_until`; se
+    # muestra el valor por hora. Ver `ShiftResponse`.
+    reoffered_at: datetime | None = None
+    hourly_pay_amount: Decimal | None = None
     company_name: str | None = None
     # Las condiciones del turno, que es con lo que alguien decide si le
     # conviene registrarse (Julieta, 2026-09-22). Son del turno, no de una

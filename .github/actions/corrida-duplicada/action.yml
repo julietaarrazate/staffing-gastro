@@ -23,7 +23,7 @@ outputs:
 #     igual está roto—. Por eso es LA corrida que decide si se mergea.
 #
 #   · `push` corre la rama tal cual. Hace falta igual en dos casos: en `main`
-#     (que deploya solo a Render y Vercel, así que se verifica lo que quedó,
+#     (que deploya solo a Render y Cloudflare, así que se verifica lo que quedó,
 #     no lo que se predijo) y en una rama de trabajo TODAVÍA SIN PR — porque
 #     un PR abierto con el token de una GitHub App no dispara `pull_request`
 #     (GitHub lo evita para que un workflow no se encadene a sí mismo).

@@ -21,7 +21,6 @@ from sqlalchemy import select
 from app.core.cloudinary import CloudinaryDestroyError
 from app.core.config import settings
 from app.core.dt import naive
-from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
 from app.modules.shift.application import scheduler
 from app.modules.verification.domain.entities import (
     FILE_DELETION_MAX_RETRY,
@@ -45,7 +44,7 @@ from app.modules.verification.infrastructure.models import (
     EvidenceFileDeletionModel,
     IdentityEvidenceModel,
 )
-from tests.conftest import auth_headers, login
+from tests.conftest import auth_headers, make_admin
 
 
 def _file(folder: str = "oido/identidad", fmt: str = "jpg") -> dict:
@@ -58,14 +57,7 @@ def _file(folder: str = "oido/identidad", fmt: str = "jpg") -> dict:
 
 
 async def _admin(client, session_factory, email: str) -> dict:
-    await auth_headers(client, "employer", email)
-    async with session_factory() as session:
-        repo = SqlAlchemyUserRepository(session)
-        user = await repo.get_by_email(email)
-        user.promote_to_admin()
-        await repo.update(user)
-    tokens = await login(client, email)
-    return {"Authorization": f"Bearer {tokens['access_token']}"}
+    return await make_admin(client, session_factory, email)
 
 
 async def _pending_claim_id(client, admin: dict, claim_type: str) -> str:
@@ -149,6 +141,38 @@ def test_reenviar_estando_pendiente_manda_a_borrar_lo_reemplazado():
         "oido/identidad/b",
     ]
     assert claim.evidences[0].file.public_id == "oido/identidad/c"
+
+
+def test_reenviar_con_el_mismo_archivo_no_lo_manda_a_borrar():
+    """El pedido pendiente sigue usando ese archivo: borrarlo del storage
+    dejaría al admin con un link a algo que ya no existe."""
+    claim = _pending_claim()
+    claim.submit(
+        [
+            _ev(EvidenceType.DNI_FRENTE, "oido/identidad/a"),
+            _ev(EvidenceType.SELFIE, "oido/identidad/b"),
+        ],
+        VerificationMethod.ADMIN_MANUAL,
+        datetime.now(UTC),
+    )
+    assert claim.files_to_delete == []
+    assert [e.file.public_id for e in claim.evidences] == [
+        "oido/identidad/a",
+        "oido/identidad/b",
+    ]
+
+
+def test_reenviar_cambiando_solo_un_archivo_borra_solo_el_reemplazado():
+    claim = _pending_claim()
+    claim.submit(
+        [
+            _ev(EvidenceType.DNI_FRENTE, "oido/identidad/a"),
+            _ev(EvidenceType.SELFIE, "oido/identidad/nueva"),
+        ],
+        VerificationMethod.ADMIN_MANUAL,
+        datetime.now(UTC),
+    )
+    assert [d.file.public_id for d in claim.files_to_delete] == ["oido/identidad/b"]
 
 
 def test_los_reintentos_se_espacian_hasta_una_vez_por_dia():
@@ -308,6 +332,7 @@ async def test_el_scheduler_corre_los_chequeos_inyectados_y_duerme_hasta_su_dead
         "run_attendance_check",
         "run_escalation_check",
         "run_coverage_check",
+        "run_finish_check",
         "run_available_now_cleanup",
         "run_subscription_expiry_check",
         "run_retention_cleanup",

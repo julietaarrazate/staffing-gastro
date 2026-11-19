@@ -80,6 +80,9 @@ export interface User {
   role: UserRole;
   status: string;
   is_verified: boolean;
+  /** Sólo en `/auth/me`: admin sin la verificación en dos pasos activada
+   * (ADR-0023). Con eso la sesión sólo puede ir al alta. */
+  two_factor_setup_required?: boolean;
 }
 
 export interface Shift {
@@ -127,6 +130,16 @@ export interface Shift {
   event_id: string | null;
   event_name: string | null;
   created_at: string | null;
+  // Turno reofrecido (U080): se reabrió con el horario ya empezado y se
+  // ofrece como urgente hasta `end_at`. Mientras nadie marcó la llegada, el
+  // backend manda el valor por hora (`hourly_pay_amount`); al marcarla queda
+  // fijo `prorated_pay_amount` (sólo lo reciben el comercio dueño y la
+  // persona asignada). Qué mostrar lo decide `payView` (`lib/pay.ts`).
+  reoffered_at?: string | null;
+  hourly_pay_amount?: string | null;
+  prorated_pay_amount?: string | null;
+  /** Cuándo confirmó quien tiene el turno ahora (sólo para las partes). */
+  confirmed_at?: string | null;
   company_name: string | null;
   company_logo_url: string | null;
   /** Foto del local (fachada/salón). Opcional: mocks y respuestas viejas no la traen. */
@@ -134,6 +147,10 @@ export interface Shift {
   /** Sólo llega en `/shifts/me` (el panel del propio comercio): el backend no
    *  lo manda en el feed ni en `/shifts/mine`, que los leen trabajadores. */
   worker_name?: string | null;
+  /** Postulaciones PENDIENTES del turno. Como `worker_name`: sólo llega en
+   *  `/shifts/me` (el comercio dueño); el feed, el turno público y las rutas
+   *  del trabajador no la mandan. Sin dato (`null`/ausente) no se muestra. */
+  pending_applicants_count?: number | null;
   /** Pago de referencia (ADR-0012): dónde cae el pago por hora de este turno
    *  respecto de lo típico para ese puesto en esa ciudad. `null` cuando no
    *  hay con qué comparar (muestra insuficiente, sin ciudad) — ahí no se
@@ -246,6 +263,9 @@ export interface ShiftPublic {
   city: string | null;
   pay_amount: string;
   currency: string;
+  /** Turno reofrecido (U080): ver `Shift`. */
+  reoffered_at?: string | null;
+  hourly_pay_amount?: string | null;
   company_name: string | null;
   // Condiciones del turno (van también sin sesión desde 2026-09-22). La
   // dirección exacta, la descripción y el logo siguen fuera.
@@ -353,12 +373,18 @@ export type NotificationType =
   | "shift_rejected"
   | "shift_checked_out"
   | "shift_paid"
+  | "shift_finished"
+  | "shift_auto_finished"
+  | "shift_finish_reminder"
   | "shift_reopened"
   | "chat_message"
   | "review_received"
   | "new_applicant"
   | "shift_no_show"
   | "shift_cancelled_late"
+  | "shift_cancelled"
+  | "applied_shift_cancelled"
+  | "applications_withdrawn"
   | "shift_not_covered"
   | "checkin_reminder"
   | "departure_reminder"
@@ -372,13 +398,24 @@ export type NotificationType =
   | "subscription_expired"
   | "subscription_refunded";
 
-export type ApplicationStatus = "pendiente" | "aceptada" | "rechazada" | "retirada";
+export type ApplicationStatus =
+  | "pendiente"
+  | "aceptada"
+  | "rechazada"
+  | "retirada"
+  // Tuvo el turno asignado y lo dejó: lleva su `motivo` (G4).
+  | "desasignada";
+
+/** Por qué dejó el turno quien lo tenía asignado (`status: "desasignada"`). */
+export type UnassignedReason = "rechazo" | "cancelacion" | "ausencia";
 
 export interface ShiftApplication {
   id: string;
   shift_id: string;
   worker_profile_id: string;
   status: ApplicationStatus;
+  /** Sólo con `status: "desasignada"`. */
+  motivo?: UnassignedReason | null;
   created_at: string | null;
   // Turno embebido en GET /applications/mine para pintar la tarjeta sin un
   // GET /shifts/{id} por postulación (ver backend ApplicationResponse.shift).
@@ -393,12 +430,16 @@ export interface Applicant {
   rating: number;
   is_available: boolean;
   status: ApplicationStatus;
+  /** Sólo con `status: "desasignada"`: va al final de la lista, con su marca. */
+  motivo?: UnassignedReason | null;
   created_at: string | null;
   events_completed: number;
   punctuality_rate: number;
   years_experience: number;
   badges: string[];
   level: string;
+  /** Documento aprobado por un admin (mismo sello que en los recomendados). */
+  identidad_verificada: boolean;
 }
 
 export interface Review {
@@ -474,6 +515,8 @@ export interface AdminCompanySummary {
   rating: number;
   events_published: number;
   on_time_payment_rate: number;
+  /** Pagos registrados detrás de la tasa; 0 = «Pago a tiempo» sin datos. Falta en respuestas viejas/cacheadas. */
+  payments_recorded?: number;
   late_cancellations: number;
 }
 
@@ -488,8 +531,63 @@ export interface AdminUserDetail {
     start_at: string;
     status: string;
     pay_amount: string;
+    /** Lo que se cobra (`Shift.amount_due`): difiere de `pay_amount` en un
+     *  turno reofrecido con la llegada marcada (U080). */
+    amount_due?: string;
+    /** La persona de la ficha faltó a este turno (ya no figura asignada). */
+    absent?: boolean;
+    /** «Cerrar turno» (decisión 21): sólo en la ficha de una cuenta
+     * suspendida y en los turnos donde aplica; lo decide el backend. */
+    admin_close?: AdminCloseAction | null;
   }[];
   tickets: { id: string; subject: string; status: string; created_at: string | null }[];
+  /** Sólo en la ficha de un comercio (medición de la beta, M6). */
+  subscription?: AdminSubscriptionSummary | null;
+}
+
+/** Bloque «Plan» de la ficha de un comercio. */
+export interface AdminSubscriptionSummary {
+  plan_code: string;
+  plan_name: string;
+  /** El plan que eligió en los precios de la landing al darse de alta. */
+  chosen_plan_code: string | null;
+  chosen_plan_name: string | null;
+  chosen_plan_at: string | null;
+  /** Compromiso de pago («precio fundador») que registró la admin. */
+  commitment: {
+    at: string;
+    plan_code: string;
+    plan_name: string;
+    price_ars: number | string;
+  } | null;
+}
+
+/** Qué haría «Cerrar turno» de la admin en un turno empezado de una cuenta
+ * suspendida (decisión 21, ADR-0024). */
+export interface AdminCloseAction {
+  /** Marca la salida en nombre del trabajador suspendido. */
+  check_out: boolean;
+  /** Cierra el turno en nombre del comercio suspendido. */
+  finish: boolean;
+  /** A quién se le avisa: sólo a la parte con la cuenta activa. */
+  notifies: "company" | "worker" | null;
+}
+
+/** Respuesta de `POST /admin/shifts/{id}/close`. */
+export interface AdminShiftClosure extends AdminCloseAction {
+  shift_id: string;
+  status: string;
+  checked_out_at: string | null;
+}
+
+/** Cuántos turnos toca suspender una cuenta (ADR-0024), antes de confirmar. */
+export interface SuspensionPreview {
+  /** Turnos abiertos del comercio que dejan de verse (vuelven si se reactiva). */
+  hidden: number;
+  /** Turnos del comercio con alguien asignado o confirmado: se cancelan con aviso. */
+  cancelled: number;
+  /** Turnos del trabajador que vuelven a buscar personal, con aviso al comercio. */
+  reopened: number;
 }
 
 export interface TestAccount {
@@ -531,8 +629,9 @@ export interface PlatformStats {
   worker_completion_repeat_sample_size: number;
   worker_completion_repeat_rate_pct: number | null;
 
-  employer_repeat_sample_size: number;
-  employer_repeat_rate_pct: number | null;
+  /** Comercios con un turno cubierto que publicaron otro dentro de los 30 días. */
+  employer_return_30d_sample_size: number;
+  employer_return_30d_rate_pct: number | null;
 }
 
 /** Un turno de "Turnos en vivo" (`GET /admin/live-shifts`): publicado y
@@ -556,6 +655,8 @@ export interface LiveShift {
   minutes_open: number;
   /** Postulaciones no retiradas. */
   applications: number;
+  /** Cuándo se marcó la ausencia (sólo si el turno tuvo una). */
+  no_show_at?: string | null;
 }
 
 export interface LiveShiftsBoard {
@@ -564,6 +665,12 @@ export interface LiveShiftsBoard {
   total: number;
   urgent: number;
   escalated: number;
+  /** Ausencias del día argentino de hoy. */
+  no_shows?: number;
+  /** Cuántos turnos en vivo entraron en la lista (tope del servidor): si es
+   *  menor que `total`, faltan los más viejos. */
+  shown_live?: number;
+  limit?: number;
   shifts: LiveShift[];
 }
 
@@ -582,13 +689,35 @@ export interface PeriodSummary {
   covered_under_10_min_pct: number | null;
   avg_minutes_to_cover: number | null;
   applications: number;
+  /** Cubierto = la persona confirmó. */
+  median_minutes_to_cover: number | null;
+  /** Cubiertos de un turno que empezaba dentro de las 24 h de publicado. */
+  short_notice_covered: number;
+  short_notice_under_10_min_pct: number | null;
+  /** Cubiertos con check-in en el local. */
+  fulfilled: number;
+  fulfilled_pct: number | null;
+  /** Comercios distintos que publicaron en el período. */
+  active_companies: number;
+  companies_with_covered: number;
 }
 
 /** "Métricas" con período (`GET /admin/period-metrics?period=7|30`). */
+/** Altas del período que llegaron por un origen (`?ref=`, `utm_*` o
+ *  «directo»). `origin: null` = cuentas de antes de que se guardara. */
+export interface SignupsByOrigin {
+  origin: string | null;
+  workers: number;
+  companies: number;
+  total: number;
+}
+
 export interface PeriodMetrics {
   days: number;
   current: PeriodSummary;
   previous: PeriodSummary;
+  /** Fase 0 del plan de crecimiento; falta en un backend anterior. */
+  signups_by_origin?: SignupsByOrigin[];
 }
 
 export interface SubscriptionStats {
@@ -598,6 +727,11 @@ export interface SubscriptionStats {
    * tienen fila en `subscriptions`, contados en el plan por defecto, `inicial`). */
   companies_by_plan: Record<string, number>;
   companies_at_plan_limit: number;
+  /** Comercios por plan elegido al darse de alta (sin cuentas de prueba). */
+  companies_with_chosen_plan?: Record<string, number>;
+  /** Comercios con compromiso de pago y suma de sus precios mensuales. */
+  committed_companies?: number;
+  committed_mrr_ars?: number | string;
   /** False mientras no haya credenciales de Mercado Pago: `mrr_ars` es
    * entonces un monto POTENCIAL (lo que se cobraría), nunca ingreso real —
    * el panel lo tiene que mostrar distinguible (auditoría 2026-08-15, F1). */
@@ -625,6 +759,9 @@ export interface Subscription {
   renews?: boolean;
   /** Si hoy puede publicar turnos por el plan (pago y vigente). */
   can_publish?: boolean;
+  /** ¿El tope de turnos se hace cumplir? En la beta es false: el uso se
+   * cuenta pero no hay tope (G11). Ausente = como si se exigiera. */
+  limite_exigido?: boolean;
   /** Último día (AAAA-MM-DD, hora argentina) para arrepentirse; null si no aplica. */
   withdrawal_until?: string | null;
 }
@@ -656,10 +793,19 @@ export interface CompanyProfile {
   rating: number;
   events_published: number;
   on_time_payment_rate: number;
+  /** Pagos registrados detrás de la tasa; 0 = «Pago a tiempo» sin datos. Falta en respuestas viejas/cacheadas. */
+  payments_recorded?: number;
   late_cancellations: number;
 }
 
-export type TicketCategory = "general" | "cv_documentos" | "pagos" | "cuenta" | "otro";
+export type TicketCategory =
+  | "general"
+  | "cv_documentos"
+  | "pagos"
+  | "cuenta"
+  | "turno"
+  | "comercio"
+  | "otro";
 export type TicketStatus = "abierto" | "cerrado";
 
 export const TICKET_CATEGORY_LABELS: Record<TicketCategory, string> = {
@@ -667,6 +813,8 @@ export const TICKET_CATEGORY_LABELS: Record<TicketCategory, string> = {
   cv_documentos: "CV / Documentos",
   pagos: "Pagos",
   cuenta: "Mi cuenta",
+  turno: "Un turno",
+  comercio: "Un comercio",
   otro: "Otro",
 };
 
@@ -684,12 +832,29 @@ export interface SupportTicket {
   category: TicketCategory;
   subject: string;
   status: TicketStatus;
+  /** U110: turno y/o comercio al que se refiere el ticket (opcionales). */
+  shift_id?: string | null;
+  company_id?: string | null;
   created_at: string | null;
   updated_at: string | null;
 }
 
+/** Lo que un ticket tiene atado, para mostrarlo (`GET /support/reference` y el detalle). */
+export interface SupportReferences {
+  shift: { id: string; title: string; start_at: string; company_name: string | null } | null;
+  company: {
+    id: string;
+    name: string;
+    /** Cuenta dueña del comercio: sólo la ve el admin (su ficha). */
+    user_id: string | null;
+  } | null;
+}
+
 export interface SupportTicketDetail extends SupportTicket {
   messages: SupportMessage[];
+  references?: SupportReferences | null;
+  /** Quién abrió el ticket: sólo viene para el admin (no-disclosure). */
+  opened_by?: { user_id: string; full_name: string; role: string } | null;
 }
 
 /** Sugerencia interna de IA para un ticket (sólo admin) — nunca se le manda
@@ -711,6 +876,11 @@ export interface AdminSupportTicket {
   message_count: number;
   last_message_at: string | null;
   created_at: string | null;
+  shift_id?: string | null;
+  shift_title?: string | null;
+  shift_start_at?: string | null;
+  company_id?: string | null;
+  company_name?: string | null;
 }
 
 // Comercios a captar para la beta (`/admin/leads`, ADR-0019).

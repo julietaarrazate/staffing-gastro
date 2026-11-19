@@ -1,5 +1,6 @@
 """Objetos de valor del dominio de turnos."""
 
+from dataclasses import dataclass
 from enum import Enum
 
 
@@ -17,7 +18,8 @@ class ShiftStatus(str, Enum):
     `check_out()` directo desde CHECK_IN.
 
     CANCELADO es alcanzable desde cualquier estado no terminal (acción del
-    comercio o del trabajador).
+    comercio), salvo CHECK_OUT: con la salida marcada el turno ya se trabajó
+    y se finaliza y se paga (U081, `NOT_CANCELLABLE_STATUSES`).
 
     NO_CUBIERTO (ADR-0015) es distinto: automático, del sistema, nunca de una
     persona. Se llega desde PUBLICADO/BUSCANDO_PERSONAL/ASIGNADO cuando pasa
@@ -52,6 +54,11 @@ TERMINAL_STATUSES: frozenset[ShiftStatus] = frozenset(
         ShiftStatus.NO_CUBIERTO,
     }
 )
+
+# Estados desde los que el comercio ya no puede cancelar: los terminales y,
+# desde U081 (ADR-0007, actualización 2026-11-18), el turno con la salida
+# marcada. Ese turno ya se trabajó: se finaliza y se paga.
+NOT_CANCELLABLE_STATUSES: frozenset[ShiftStatus] = TERMINAL_STATUSES | {ShiftStatus.CHECK_OUT}
 
 # Estados en los que el turno todavía puede editarse por el comercio.
 EDITABLE_STATUSES: frozenset[ShiftStatus] = frozenset(
@@ -90,3 +97,51 @@ UNCOVERED_ELIGIBLE_STATUSES: frozenset[ShiftStatus] = frozenset(
         ShiftStatus.ASIGNADO,
     }
 )
+
+# Turnos con alguien asignado o confirmado que todavía no empezaron (nadie
+# marcó la llegada). Son los que toca la suspensión de una cuenta (ADR-0024):
+# si se suspende el comercio, se cancelan; si se suspende el trabajador, se
+# reabren. EN_CAMINO («salí») cuenta como no empezado: la llegada no está
+# marcada. CHECK_IN en adelante ya empezó y no se toca.
+TAKEN_NOT_STARTED_STATUSES: frozenset[ShiftStatus] = frozenset(
+    {
+        ShiftStatus.ASIGNADO,
+        ShiftStatus.CONFIRMADO,
+        ShiftStatus.EN_CAMINO,
+    }
+)
+
+
+# Estados de un turno empezado que la admin puede cerrar en nombre de una
+# cuenta suspendida (decisión 21, ADR-0024): con la llegada marcada falta la
+# salida; con la salida marcada falta cerrarlo.
+ADMIN_CHECK_OUT_STATUSES: frozenset[ShiftStatus] = frozenset(
+    {ShiftStatus.CHECK_IN, ShiftStatus.TRABAJANDO}
+)
+
+
+@dataclass(frozen=True)
+class AdminClosePlan:
+    """Qué hace «Cerrar turno» de la admin sobre un turno empezado de una
+    cuenta suspendida (decisión 21, ADR-0024). Lo decide
+    `Shift.admin_close_plan`; lo lee la ficha de la admin antes de confirmar.
+
+    - `check_out`: marca la salida en nombre del trabajador suspendido.
+    - `finish`: cierra el turno en nombre del comercio suspendido.
+    - `worker_active` / `company_active`: cómo estaban las cuentas al decidir.
+      `notifies` es a quién le llega el aviso al celular (la parte activa);
+      a una cuenta suspendida el aviso le queda guardado, sin push."""
+
+    check_out: bool
+    finish: bool
+    worker_active: bool
+    company_active: bool
+
+    @property
+    def notifies(self) -> str | None:
+        """A quién se le avisa: `"company"` si se marcó la salida y el
+        comercio tiene que cerrar, `"worker"` si se cerró y el trabajador
+        puede calificar, `None` si las dos cuentas están suspendidas."""
+        if self.finish:
+            return "worker" if self.worker_active else None
+        return "company" if self.company_active else None

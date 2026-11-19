@@ -43,8 +43,8 @@ const STATS = {
   no_show_rate_pct: 12.5,
   worker_completion_repeat_sample_size: 6,
   worker_completion_repeat_rate_pct: 33,
-  employer_repeat_sample_size: 4,
-  employer_repeat_rate_pct: 50,
+  employer_return_30d_sample_size: 4,
+  employer_return_30d_rate_pct: 50,
 };
 
 const json = (body: unknown) => ({
@@ -107,11 +107,29 @@ const SHIFTS = [
   }),
 ];
 
+const AUSENTE = liveShift({
+  id: "s4",
+  title: "Mozo para el almuerzo",
+  company_name: "Bodegón Don Pepe",
+  minutes_open: 95,
+  no_show_at: agoMinutes(30),
+});
+
 function board(filter: string | null) {
-  const shifts = SHIFTS.filter((s) =>
-    filter === "urgent" ? s.urgent : filter === "escalated" ? s.escalated : true
-  );
-  return { generated_at: new Date().toISOString(), total: 3, urgent: 2, escalated: 1, shifts };
+  const shifts =
+    filter === "no_shows"
+      ? [AUSENTE]
+      : SHIFTS.filter((s) =>
+          filter === "urgent" ? s.urgent : filter === "escalated" ? s.escalated : true
+        );
+  return {
+    generated_at: new Date().toISOString(),
+    total: 3,
+    urgent: 2,
+    escalated: 1,
+    no_shows: 1,
+    shifts,
+  };
 }
 
 function period(days: number) {
@@ -121,6 +139,17 @@ function period(days: number) {
   const prevStart = start - days * 86_400_000;
   return {
     days,
+    // Altas por origen (fase 0 del plan de crecimiento): sólo en 7 días; en
+    // 30 llega vacío, como un período sin cuentas nuevas.
+    signups_by_origin:
+      days === 7
+        ? [
+            { origin: "grupo-palermo", workers: 3, companies: 1, total: 4 },
+            { origin: "ig/fundadores", workers: 0, companies: 2, total: 2 },
+            { origin: "directo", workers: 1, companies: 0, total: 1 },
+            { origin: null, workers: 2, companies: 0, total: 2 },
+          ]
+        : [],
     current: {
       start: iso(start),
       end: iso(end),
@@ -128,8 +157,15 @@ function period(days: number) {
       shifts_covered: days === 7 ? 9 : 30,
       covered_pct: 75,
       covered_under_10_min_pct: 67,
-      avg_minutes_to_cover: 9,
+      avg_minutes_to_cover: 11,
       applications: days === 7 ? 30 : 95,
+      median_minutes_to_cover: 9,
+      short_notice_covered: days === 7 ? 6 : 20,
+      short_notice_under_10_min_pct: 67,
+      fulfilled: days === 7 ? 8 : 27,
+      fulfilled_pct: 89,
+      active_companies: days === 7 ? 5 : 12,
+      companies_with_covered: days === 7 ? 4 : 10,
     },
     previous: {
       start: iso(prevStart),
@@ -138,8 +174,15 @@ function period(days: number) {
       shifts_covered: days === 7 ? 6 : 28,
       covered_pct: 75,
       covered_under_10_min_pct: 50,
-      avg_minutes_to_cover: 12,
+      avg_minutes_to_cover: 14,
       applications: days === 7 ? 40 : 0,
+      median_minutes_to_cover: 12,
+      short_notice_covered: days === 7 ? 4 : 18,
+      short_notice_under_10_min_pct: 50,
+      fulfilled: days === 7 ? 5 : 25,
+      fulfilled_pct: 83,
+      active_companies: days === 7 ? 4 : 12,
+      companies_with_covered: days === 7 ? 3 : 10,
     },
   };
 }
@@ -185,7 +228,9 @@ async function mockLive(page: Page): Promise<string[]> {
       ? "urgent"
       : url.searchParams.has("escalated")
         ? "escalated"
-        : null;
+        : url.searchParams.has("no_shows")
+          ? "no_shows"
+          : null;
     return route.fulfill(json(board(filter)));
   });
   return calls;
@@ -262,6 +307,40 @@ test("Hoy suma urgentes sin cubrir y ausencias del día", async ({ page }) => {
   await expect(page.getByRole("list", { name: "Turnos sin cubrir" }).getByRole("listitem")).toHaveCount(2);
 });
 
+test("Ausencias de hoy lleva a su lista, con la hora de la ausencia", async ({ page }) => {
+  await mockAdmin(page);
+  const calls = await mockLive(page);
+  await page.goto("/admin");
+
+  await page.getByRole("link", { name: /Ausencias de hoy/ }).click();
+  await expect(page).toHaveURL("/admin/en-vivo?filtro=ausencias");
+  await expect(page.getByRole("button", { name: "Ausencias (1)" })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+  const list = page.getByRole("list", { name: "Turnos sin cubrir" });
+  await expect(list.getByRole("listitem")).toHaveCount(1);
+  await expect(list.getByRole("listitem").first()).toContainText("Mozo para el almuerzo");
+  await expect(list.getByRole("listitem").first()).toContainText("ausencia");
+  expect(calls.at(-1)).toBe("?no_shows=true");
+});
+
+test("Métricas muestra las altas del período por origen y por rol", async ({ page }) => {
+  await mockAdmin(page);
+  await page.goto("/admin/metricas");
+
+  const tabla = page.getByTestId("altas-por-origen");
+  const fila = (origen: string) => tabla.getByRole("row", { name: new RegExp(`^${origen}`) });
+  await expect(fila("grupo-palermo")).toHaveText(/grupo-palermo\s*3\s*1\s*4/);
+  await expect(fila("ig/fundadores")).toHaveText(/ig\/fundadores\s*0\s*2\s*2/);
+  await expect(fila("Sin dato")).toBeVisible();
+  await expect(fila("Total")).toHaveText(/Total\s*6\s*3\s*9/);
+  await expect(tabla).toContainText("«Sin dato»: cuentas creadas antes de que se guardara el origen.");
+
+  await page.getByRole("button", { name: "Últimos 30 días" }).click();
+  await expect(tabla).toContainText("Ninguna cuenta nueva en el período.");
+});
+
 test("Métricas compara el período con el anterior y cambia a 30 días", async ({ page }) => {
   await mockAdmin(page);
   await page.goto("/admin/metricas");
@@ -270,8 +349,10 @@ test("Métricas compara el período con el anterior y cambia a 30 días", async 
   await expect(card("Turnos publicados")).toContainText("12");
   await expect(card("Turnos publicados")).toContainText("↑ 50 %");
   await expect(card("Turnos publicados")).toContainText("antes 8");
-  // Tiempo hasta cubrir: bajar de 12 a 9 min es bueno (verde).
-  await expect(card("Tiempo hasta cubrir").getByText("↓ 25 %")).toHaveClass(/text-success-text/);
+  // Mediana hasta confirmar: bajar de 12 a 9 min es bueno (verde).
+  await expect(card("Mediana hasta confirmar").getByText("↓ 25 %")).toHaveClass(/text-success-text/);
+  await expect(card("Locales activos")).toContainText("5");
+  await expect(card("Locales activos")).toContainText("4 con un turno cubierto");
   // Postulaciones: bajar de 40 a 30 es malo (rojo).
   await expect(card("Postulaciones").getByText("↓ 25 %")).toHaveClass(/text-danger-text/);
   await expect(page.getByText("Período: 17/10 al 23/10")).toBeVisible();

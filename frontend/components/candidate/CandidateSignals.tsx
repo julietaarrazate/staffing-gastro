@@ -8,8 +8,8 @@ import {
   StarIcon,
   type IconProps,
 } from "@/components/icons";
-import { BADGE_ICONS, badgeLabel, formatPunctuality, levelLabel } from "@/lib/reputation";
-import { formatKm } from "@/lib/format";
+import { BADGE_ICONS, badgeLabel, formatPunctuality, hasRate, hasRating, levelLabel, NEW_LABEL } from "@/lib/reputation";
+import { formatDistance, plural } from "@/lib/format";
 
 /**
  * Señales legibles de un candidato/postulante, para que el comercio vea *por
@@ -42,13 +42,13 @@ interface Reason {
 export function topReasons(s: CandidateSignals, max = 3): Reason[] {
   const reasons: Reason[] = [];
   if (s.distance_km != null && s.distance_km <= 3) {
-    reasons.push({ Icon: MapPinIcon, label: `A ${formatKm(s.distance_km)} del local` });
+    reasons.push({ Icon: MapPinIcon, label: `A ${formatDistance(s.distance_km)} del local` });
   }
   if (s.events_completed >= 3 && s.punctuality_rate >= 0.9) {
     reasons.push({ Icon: ClockIcon, label: `Muy puntual (${formatPunctuality(s.punctuality_rate)})` });
   }
   if (s.events_completed >= 10) {
-    reasons.push({ Icon: CheckCircleIcon, label: `${s.events_completed} turnos en Oído` });
+    reasons.push({ Icon: CheckCircleIcon, label: `${plural(s.events_completed, "turno", "turnos")} en Oído` });
   }
   if (s.rating >= 4.5 && s.events_completed >= 1) {
     reasons.push({ Icon: StarIcon, label: "Muy bien calificado" });
@@ -89,16 +89,16 @@ export function CandidateStatChips({
       {/* Sin turnos hechos en Oído no hay calificación: "★ 0.0" se leía como
           una MALA nota, cuando es alguien que todavía no tuvo su primer
           turno. Se dice lo que es. */}
-      {hasHistory || signals.rating > 0 ? (
+      {hasRating(signals.rating) ? (
         <Rating value={signals.rating} className={onDark ? "text-on-brand/85" : undefined} />
       ) : (
-        <StatChip onDark={onDark}>Nuevo en Oído</StatChip>
+        !hasHistory && <StatChip onDark={onDark}>{NEW_LABEL}</StatChip>
       )}
       {signals.distance_km != null && (
-        <StatChip onDark={onDark}>{formatKm(signals.distance_km)}</StatChip>
+        <StatChip onDark={onDark}>{formatDistance(signals.distance_km)}</StatChip>
       )}
-      {hasHistory && <StatChip onDark={onDark}>{signals.events_completed} turnos</StatChip>}
-      {hasHistory && signals.punctuality_rate > 0 && (
+      {hasHistory && <StatChip onDark={onDark}>{plural(signals.events_completed, "turno", "turnos")}</StatChip>}
+      {hasRate(signals.events_completed) && (
         <StatChip onDark={onDark}>{formatPunctuality(signals.punctuality_rate)} puntual</StatChip>
       )}
       {signals.years_experience > 0 && (

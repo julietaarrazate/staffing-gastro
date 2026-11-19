@@ -1,16 +1,24 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
-import Link from "next/link";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, isTransientFailure } from "@/lib/api";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { usePushPrompt } from "@/lib/push-prompt-context";
 import { useIdempotencyKeys } from "@/lib/idempotency";
+import { pasoAlcanzable, pasoDeUrl, urlDePaso } from "@/lib/paso-url";
+import {
+  CLAVE_KEYS_TURNO,
+  borrarBorradorTurno,
+  guardarBorradorTurno,
+  leerBorradorTurno,
+  mezclarConIA,
+  type BorradorTurno,
+  type CampoTurno,
+} from "@/lib/borrador-turno";
 import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
 import {
-  CompanyProfile,
   ParsedShiftDraft,
   SKILL_LABELS,
   Shift,
@@ -23,15 +31,18 @@ import {
   formatDuration,
   formatShiftRange,
   localInputToArgentinaISO,
-  shiftDurationMinutes,
+  formatShiftRangeLong,
 } from "@/lib/datetime";
+import { diasParaDuplicar, resolverHorario } from "@/lib/turno-horario";
 import { useVoiceDictation } from "@/lib/use-voice-dictation";
 import { AI_SHIFT_DRAFT_STORAGE_KEY } from "@/lib/use-ai-assistant";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
+import { useCompanyPlace } from "@/lib/company-place";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import ShiftPublishedNextSteps from "@/components/ShiftPublishedNextSteps";
 import ShiftDayHint from "@/components/ShiftDayHint";
-import { Button, OidoLoader, TextField, Toggle, useToast } from "@/components/ui";
+import { Button, OidoLoader, PesosInput, TextField, Toggle, useToast } from "@/components/ui";
+import { pesosDesdeApi } from "@/lib/pesos";
 import { LogoGlyph } from "@/components/Logo";
 import {
   CalendarIcon,
@@ -45,19 +56,21 @@ import {
   UtensilsIcon,
   WalletIcon,
 } from "@/components/icons";
+import { useTapGuard } from "@/lib/use-tap-guard";
 import IconChip, { type IconChipTone } from "@/components/ui/IconChip";
+import { LIMITES } from "@/lib/limites";
+import { formatArs } from "@/lib/format";
 
 // Sin paso "Personas": un turno = una persona (ADR-0003), así que esa
 // pantalla mostraba siempre un 1 fijo y costaba un toque más en cada
 // publicación (auditoría de interfaz 2026-10-11, U01).
 const STEPS = ["Puesto", "Cuándo", "Pago", "Publicar"];
-
-type CompanyPlace = { label: string; city: string; latitude: number; longitude: number };
+const STEP_CUANDO = 1;
+const BASE_URL = "/shifts/new";
 
 // Duplicar un turno (frontend puro, ver spec de crecimiento): movemos el
-// horario +7 días manteniendo la misma hora de pared en Argentina.
-const DUPLICATE_SHIFT_OFFSET_DAYS = 7;
-
+// horario +7 días (o más, si el original es viejo: `diasParaDuplicar`)
+// manteniendo la misma hora de pared en Argentina.
 function shiftDateBy(iso: string, days: number): string {
   const date = new Date(iso);
   date.setUTCDate(date.getUTCDate() + days);
@@ -74,14 +87,20 @@ export default function NewShiftPage() {
 }
 
 function NewShiftWizard() {
-  const { token } = useRequireAuth();
+  const { token, user } = useRequireAuth({ roles: ["employer"] });
+  const owner = user?.id ?? null;
   const { requestOptIn } = usePushPrompt();
   const router = useRouter();
   const toast = useToast();
   const searchParams = useSearchParams();
   const duplicateId = searchParams.get("duplicate");
+  // El paso va en la dirección: «Atrás» del navegador vuelve al paso anterior.
+  const pasoUrl = pasoDeUrl(searchParams.get("paso"), STEPS.length - 1);
 
   const [step, setStep] = useState(0);
+  // Campos que la persona tocó a mano: la IA no los pisa (G15, U057/U135).
+  const tocados = useRef<Set<CampoTurno>>(new Set());
+  const [hidratado, setHidratado] = useState(false);
   const [dir, setDir] = useState(1);
   const [position, setPosition] = useState<WorkerSkill | null>(null);
   // Por ahora, un turno = una persona (R1.4): la cantidad queda fija.
@@ -99,7 +118,7 @@ function NewShiftWizard() {
   // Dirección del local, para no pedirle la zona en cada turno (auditoría de
   // interfaz 2026-10-11, U04/B03). `changingPlace` muestra el selector para
   // publicar en otra zona.
-  const [companyPlace, setCompanyPlace] = useState<CompanyPlace | null>(null);
+  const { place: companyPlace } = useCompanyPlace(token);
   const [changingPlace, setChangingPlace] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [planLimitMessage, setPlanLimitMessage] = useState<string | null>(null);
@@ -121,8 +140,39 @@ function NewShiftWizard() {
   // interactúa con la pantalla (no de inmediato), a diferencia del
   // `router.push` automático que había antes.
   const [publishedShiftId, setPublishedShiftId] = useState<string | null>(null);
+  // Una vez publicado, este montaje no vuelve a guardar el borrador: cerrar la
+  // confirmación pone `publishedShiftId` en null antes de desmontar, y sin esto
+  // el formulario del turno ya publicado se reescribiría en sessionStorage.
+  const yaPublicado = useRef(false);
+
+  // Primera acción significativa del comercio, no al aterrizar (ver
+  // docs/reference/ACCESO_MODERNO.md): al salir de la confirmación «Turno publicado»
+  // se pregunta si quiere enterarse por push apenas alguien se postule. Va en la
+  // limpieza del efecto para cubrir los tres caminos (Cerrar/Escape, «Ver mi turno»
+  // y Atrás, que desmonta la pantalla sin pasar por ningún botón) y recién al
+  // cerrar: con las dos capas abiertas a la vez las trampas de foco se pisan.
+  useEffect(() => {
+    if (!publishedShiftId) return;
+    return () => requestOptIn();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [publishedShiftId]);
   const reducedMotion = useReducedMotion();
-  const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
+  const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys(CLAVE_KEYS_TURNO);
+  // Un intento del asistente crea UN solo turno (2026-11-12). Publicar son
+  // dos pedidos (crear el borrador y publicarlo) y cualquiera puede fallar o
+  // perder la respuesta. Antes el asistente se olvidaba del borrador apenas
+  // lo creaba, así que reintentar creaba otro: dos turnos iguales publicados,
+  // o uno publicado y un borrador suelto en el panel. Ahora, mientras la
+  // persona siga acá, el reintento retoma donde quedó:
+  //  - `draft`: el borrador ya creado y los datos que tiene guardados
+  //    (`saved`; `null` si una edición quedó sin respuesta y no se sabe).
+  //  - `pendingCreate`: el pedido de crear que quedó sin respuesta. Se repite
+  //    TAL CUAL (misma key, mismo cuerpo) para que el servidor devuelva el
+  //    borrador si lo había creado; con el cuerpo cambiado respondería 422
+  //    ("misma clave, pedido distinto"). Lo que cambió en el formulario va
+  //    después, como edición del borrador.
+  const draft = useRef<{ id: string; saved: string | null } | null>(null);
+  const pendingCreate = useRef<Record<string, unknown> | null>(null);
 
   // Duplicar: precarga el wizard con los datos del turno original (fechas
   // +7 días, misma hora) y lo deja listo en el último paso para revisar y
@@ -135,13 +185,10 @@ function NewShiftWizard() {
         const original = await api.get<Shift>(`/shifts/${duplicateId}`, token);
         if (cancelled) return;
         setPosition(original.position);
-        setStartAt(
-          argentinaISOToLocalInput(shiftDateBy(original.start_at, DUPLICATE_SHIFT_OFFSET_DAYS))
-        );
-        setEndAt(
-          argentinaISOToLocalInput(shiftDateBy(original.end_at, DUPLICATE_SHIFT_OFFSET_DAYS))
-        );
-        setPayAmount(String(original.pay_amount));
+        const dias = diasParaDuplicar(original.start_at);
+        setStartAt(argentinaISOToLocalInput(shiftDateBy(original.start_at, dias)));
+        setEndAt(argentinaISOToLocalInput(shiftDateBy(original.end_at, dias)));
+        setPayAmount(pesosDesdeApi(original.pay_amount));
         setTips(original.tips);
         setMeal(original.meal);
         setUrgent(original.urgent);
@@ -149,8 +196,11 @@ function NewShiftWizard() {
         setCity(original.city ?? "");
         setLatitude(original.latitude);
         setLongitude(original.longitude);
-        setStep(STEPS.length - 1);
-        toast("Turno duplicado: revisá los datos antes de publicar");
+        // Abre en «Cuándo»: la fecha es lo único que casi seguro hay que
+        // cambiar de un turno duplicado (G14, U060); el resto ya viene cargado.
+        setStep(STEP_CUANDO);
+        router.replace(urlDePaso(BASE_URL, STEP_CUANDO), { scroll: false });
+        toast("Turno duplicado: elegí la fecha y revisá los datos");
       } catch (err) {
         toast(getErrorMessage(err, "No se pudo duplicar el turno"), "error");
       }
@@ -165,29 +215,6 @@ function NewShiftWizard() {
   // (duplicar un turno trae la suya). Si el local no tiene coordenadas, el
   // último paso pide elegir la zona.
   useEffect(() => {
-    if (!token) return;
-    let cancelled = false;
-    api
-      .get<CompanyProfile>("/companies/me/profile", token)
-      .then((company) => {
-        if (cancelled || company.latitude == null || company.longitude == null) return;
-        const place: CompanyPlace = {
-          label: company.address || company.city || company.name,
-          city: company.city ?? "",
-          latitude: company.latitude,
-          longitude: company.longitude,
-        };
-        setCompanyPlace(place);
-      })
-      .catch(() => {
-        // Sin perfil o sin red: el comercio elige la zona a mano.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
-
-  useEffect(() => {
     if (!companyPlace || latitude != null) return;
     setCity(companyPlace.city);
     setLatitude(companyPlace.latitude);
@@ -196,38 +223,99 @@ function NewShiftWizard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [companyPlace]);
 
-  function applyParsedDraft(draft: ParsedShiftDraft) {
-    if (draft.position) setPosition(draft.position);
-    if (draft.start_at) setStartAt(argentinaISOToLocalInput(draft.start_at));
-    if (draft.end_at) setEndAt(argentinaISOToLocalInput(draft.end_at));
-    if (draft.pay_amount) setPayAmount(draft.pay_amount);
-    setTips(draft.tips);
-    setMeal(draft.meal);
-    setUrgent(draft.urgent);
-    if (draft.dress_code) setDressCode(draft.dress_code);
+  function tocar(campo: CampoTurno) {
+    tocados.current.add(campo);
+  }
 
-    // Salta directo al primer paso que la IA NO pudo resolver, en vez de
+  // Lo último que se ve en pantalla, para leerlo cuando vuelve una respuesta
+  // lenta (la IA puede tardar y la persona seguir cargando mientras tanto).
+  const ultimo = useRef({
+    step: 0,
+    valores: { position, startAt, endAt, payAmount, tips, meal, urgent, dressCode },
+  });
+  useEffect(() => {
+    ultimo.current = {
+      step,
+      valores: { position, startAt, endAt, payAmount, tips, meal, urgent, dressCode },
+    };
+  });
+
+  // Borrador en sessionStorage (se borra al publicar y al cerrar sesión).
+  function instantanea(): BorradorTurno {
+    return {
+      owner,
+      position,
+      startAt,
+      endAt,
+      payAmount,
+      tips,
+      meal,
+      urgent,
+      dressCode,
+      city,
+      latitude,
+      longitude,
+      describeText,
+      tocados: Array.from(tocados.current),
+      servidor: draft.current,
+      pendingCreate: pendingCreate.current,
+    };
+  }
+  useEffect(() => {
+    if (!hidratado || publishedShiftId || yaPublicado.current) return;
+    guardarBorradorTurno(instantanea());
+    // `instantanea` lee estos mismos valores.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hidratado, publishedShiftId, owner, position, startAt, endAt, payAmount, tips, meal, urgent, dressCode, city, latitude, longitude, describeText]);
+
+  // La IA completa SÓLO lo que la persona no tocó, y sólo salta de paso si
+  // sigue donde estaba al pedir: una respuesta lenta no pisa lo cargado a mano
+  // ni la arrastra a otra pantalla (G15, U057/U135).
+  function applyParsedDraft(parsed: ParsedShiftDraft, pasoAlPedir: number, reemplazar = false) {
+    const actual = ultimo.current;
+    const v = mezclarConIA(
+      actual.valores,
+      {
+        position: parsed.position,
+        startAt: parsed.start_at ? argentinaISOToLocalInput(parsed.start_at) : "",
+        endAt: parsed.end_at ? argentinaISOToLocalInput(parsed.end_at) : "",
+        payAmount: pesosDesdeApi(parsed.pay_amount),
+        tips: parsed.tips,
+        meal: parsed.meal,
+        urgent: parsed.urgent,
+        dressCode: parsed.dress_code,
+      },
+      tocados.current
+    );
+    setPosition(v.position);
+    setStartAt(v.startAt);
+    setEndAt(v.endAt);
+    setPayAmount(v.payAmount);
+    setTips(v.tips);
+    setMeal(v.meal);
+    setUrgent(v.urgent);
+    setDressCode(v.dressCode);
+
+    // Salta directo al primer paso que todavía no está resuelto, en vez de
     // dejar el wizard en el paso 1 con todo ya completo (reporte real de
-    // Julieta: "no tiene sentido, en el paso uno ya se bloquea" — si le
-    // pedís por lenguaje natural, tiene que presetear todo y sólo frenar
-    // en lo que falta, no hacer repetir "Continuar" sobre campos que ya
-    // están). Mismo criterio que "Duplicar turno" arriba, que ya salta
-    // directo al último paso — acá la diferencia es que un draft de la IA
-    // puede venir incompleto (ej. sin fecha), así que el destino depende
-    // de qué faltó, no siempre es el final.
-    const startInput = draft.start_at ? argentinaISOToLocalInput(draft.start_at) : "";
-    const endInput = draft.end_at ? argentinaISOToLocalInput(draft.end_at) : "";
-    const hasWhen = startInput !== "" && endInput !== "" && endInput > startInput;
-    const hasPay = draft.pay_amount != null && Number(draft.pay_amount) > 0;
-    if (!draft.position) setStep(0);
-    else if (!hasWhen) setStep(1);
-    else if (!hasPay) setStep(2);
-    else setStep(STEPS.length - 1);
+    // Julieta: "no tiene sentido, en el paso uno ya se bloquea"). Mismo
+    // criterio que "Duplicar turno": el destino depende de qué falta.
+    const hasWhen = resolverHorario(v.startAt, v.endAt).valido;
+    const hasPay = Number(v.payAmount) > 0;
+    const todo = v.position !== null && hasWhen && hasPay;
+    const sigueAhi = actual.step === pasoAlPedir;
+    if (sigueAhi) {
+      const destino =
+        v.position === null ? 0 : !hasWhen ? STEP_CUANDO : !hasPay ? 2 : STEPS.length - 1;
+      if (destino !== actual.step) go(destino, reemplazar);
+    }
 
     toast(
-      draft.position && hasWhen && hasPay
-        ? "Completamos todo — revisá la zona y publicá"
-        : "Completamos lo que pudimos — seguí desde donde quedó"
+      !sigueAhi
+        ? "Completamos lo que no habías cargado — revisá los datos"
+        : todo
+          ? "Completamos todo — revisá la zona y publicá"
+          : "Completamos lo que pudimos — seguí desde donde quedó"
     );
   }
 
@@ -236,13 +324,14 @@ function NewShiftWizard() {
     setParseError(null);
     setMissingFields([]);
     setParsingText(true);
+    const pasoAlPedir = ultimo.current.step;
     try {
       const draft = await api.post<ParsedShiftDraft>(
         "/shifts/parse-text",
         { text: describeText.trim() },
         token
       );
-      applyParsedDraft(draft);
+      applyParsedDraft(draft, pasoAlPedir);
       // Preguntar lo que falta en vez de dejar al comercio adivinar por qué
       // el wizard frenó donde frenó (Julieta, 2026-08-17: "si algo no se
       // dijo, que pregunte qué falta para poder completar"). El backend
@@ -255,27 +344,112 @@ function NewShiftWizard() {
     }
   }
 
-  // Handoff del asistente (AIAssistantBar, fuera del wizard): ya
-  // parseó el texto con IA en otra pantalla y nos manda acá con el draft
-  // guardado — lo aplicamos una sola vez al montar y limpiamos el rastro
-  // (storage + querystring) para que un refresh no lo reaplique.
+  // Al montar (cuando ya se sabe quién es la persona), una sola vez:
+  //  - Handoff del asistente (AIAssistantBar, fuera del wizard): ya parseó el
+  //    texto con IA en otra pantalla y manda el draft guardado; se aplica y se
+  //    limpia el rastro (storage + querystring) para que un refresh no lo
+  //    reaplique.
+  //  - Duplicar: manda sobre cualquier borrador viejo.
+  //  - Si no, se retoma el borrador de esta pestaña (BK-7DCC7E4AB945): el
+  //    formulario, el turno ya creado en el servidor y el pedido pendiente, con
+  //    las mismas keys de idempotencia. El paso sale de `?paso=`, sin saltear
+  //    pasos incompletos.
   useEffect(() => {
-    if (searchParams.get("ai") !== "1") return;
-    const raw = sessionStorage.getItem(AI_SHIFT_DRAFT_STORAGE_KEY);
-    sessionStorage.removeItem(AI_SHIFT_DRAFT_STORAGE_KEY);
-    router.replace("/shifts/new");
-    if (!raw) return;
-    try {
-      applyParsedDraft(JSON.parse(raw) as ParsedShiftDraft);
-    } catch {
-      // Draft corrupto/inesperado: no rompe el wizard, el comercio completa a mano.
+    if (hidratado || !user) return;
+    setHidratado(true);
+    if (searchParams.get("ai") === "1") {
+      borrarBorradorTurno();
+      let raw: string | null = null;
+      try {
+        raw = sessionStorage.getItem(AI_SHIFT_DRAFT_STORAGE_KEY);
+        sessionStorage.removeItem(AI_SHIFT_DRAFT_STORAGE_KEY);
+      } catch {
+        // Sin almacenamiento no hay draft que aplicar.
+      }
+      router.replace(BASE_URL, { scroll: false });
+      if (!raw) return;
+      try {
+        applyParsedDraft(JSON.parse(raw) as ParsedShiftDraft, 0, true);
+      } catch {
+        // Draft corrupto/inesperado: no rompe el wizard, el comercio completa a mano.
+      }
+      return;
     }
+    if (duplicateId) {
+      borrarBorradorTurno();
+      return;
+    }
+    const b = leerBorradorTurno(owner);
+    if (!b) {
+      if (pasoUrl > 0) router.replace(BASE_URL, { scroll: false });
+      return;
+    }
+    setPosition(b.position);
+    setStartAt(b.startAt);
+    setEndAt(b.endAt);
+    setPayAmount(pesosDesdeApi(b.payAmount));
+    setTips(b.tips);
+    setMeal(b.meal);
+    setUrgent(b.urgent);
+    setDressCode(b.dressCode);
+    setCity(b.city);
+    setLatitude(b.latitude);
+    setLongitude(b.longitude);
+    setDescribeText(b.describeText);
+    tocados.current = new Set(b.tocados);
+    draft.current = b.servidor;
+    pendingCreate.current = b.pendingCreate;
+    const paso = pasoAlcanzable(pasoUrl, [
+      b.position !== null,
+      resolverHorario(b.startAt, b.endAt).valido,
+      Number(b.payAmount) > 0,
+    ]);
+    setStep(paso);
+    if (paso !== pasoUrl) router.replace(urlDePaso(BASE_URL, paso), { scroll: false });
+    // Una sola vez: el resto de las dependencias se lee en ese momento.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user]);
 
-  function go(next: number) {
+  // El navegador cambió el paso (Atrás/Adelante): la pantalla lo sigue.
+  useEffect(() => {
+    if (!hidratado || pasoUrl === step) return;
+    // Con el turno ya publicado «Atrás» no vuelve a un paso del asistente: se
+    // va al panel (adonde lleva «Ver mi turno»), sin depender del largo del
+    // historial. Al desmontar se ofrece el aviso de notificaciones.
+    if (publishedShiftId) {
+      router.replace("/shifts");
+      return;
+    }
+    const paso = pasoAlcanzable(pasoUrl, [
+      position !== null,
+      horario.valido,
+      Number(payAmount) > 0,
+    ]);
+    setDir(paso > step ? 1 : -1);
+    setStep(paso);
+    if (paso !== pasoUrl) router.replace(urlDePaso(BASE_URL, paso), { scroll: false });
+    // Sólo reacciona a un cambio de la dirección.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pasoUrl, hidratado]);
+
+  // Cambiar de paso pasa por la guarda (U006): el botón de acción ocupa
+  // siempre el mismo lugar, y el segundo toque de un doble toque sobre
+  // «Continuar» caería sobre «Publicar turno» y publicaría sin revisar.
+  const tapGuard = useTapGuard();
+
+  function go(next: number, reemplazar = false) {
     setDir(next > step ? 1 : -1);
     setStep(next);
+    const url = urlDePaso(BASE_URL, next);
+    if (reemplazar) {
+      router.replace(url, { scroll: false });
+    } else {
+      router.push(url, { scroll: false });
+    }
+  }
+
+  function goGuarded(next: number) {
+    void tapGuard.run(() => go(next));
   }
 
   // Sin ubicación el turno no aparece en el mapa ni se puede avisar a gente
@@ -286,28 +460,57 @@ function NewShiftWizard() {
     companyPlace != null &&
     latitude === companyPlace.latitude &&
     longitude === companyPlace.longitude;
+  // El horario con la regla del servidor (inicio no pasado, 1 a 16 h) y el fin
+  // de «21:00 a 02:00» resuelto al día siguiente (G14).
+  const horario = resolverHorario(startAt, endAt);
   const canNext =
     (step === 0 && position !== null) ||
-    (step === 1 && startAt !== "" && endAt !== "" && endAt > startAt) ||
+    (step === STEP_CUANDO && horario.valido) ||
     (step === 2 && Number(payAmount) > 0) ||
     (step === 3 && hasPlace);
+
+  // «Me falta saber…» se dice donde la persona está: el wizard salta de paso
+  // al completar con IA, y en el paso 0 el aviso quedaba fuera de vista (U061).
+  // En el paso 0 lo muestra el recuadro de «Describí tu turno».
+  // Se apaga cuando la persona completa a mano lo que este paso pedía.
+  const resueltoAca =
+    (step === STEP_CUANDO && horario.valido) ||
+    (step === 2 && Number(payAmount) > 0) ||
+    (step === 3 && hasPlace);
+  const avisoFalta =
+    step > 0 && missingFields.length > 0 && !resueltoAca ? (
+      <p role="status" className="mt-2 rounded-xl bg-warning-tint px-3 py-2 text-sm font-medium text-warning-text">
+        Me falta saber {missingFields.join(", ")}. Completalo acá.
+      </p>
+    ) : null;
 
   // Duración del turno, derivada de inicio/fin (feedback de Julieta 2026-08-06:
   // "no se entiende si es 1 día o más"). Se muestra en vivo en el paso "Cuándo"
   // y habilita el equivalente por hora del paso "Pago" ("¿es por hora o por
   // turno?"). Null mientras falte un extremo o el rango sea inválido.
-  const durationMinutes =
-    startAt !== "" && endAt !== ""
-      ? shiftDurationMinutes(localInputToArgentinaISO(startAt), localInputToArgentinaISO(endAt))
-      : null;
-  // Un turno es UNA sola jornada de trabajo: un rango de más de un día es un
-  // error real (umbral 24 h), y ahí conviene publicar un evento.
+  const durationMinutes = horario.minutos;
+  // Un turno es UNA sola jornada de trabajo: de 1 a 16 horas (G14), y fuera de
+  // ese rango el mensaje aparece al lado del campo (`horario.errorFin`).
   //
   // El rango en texto ya NO se arma acá: cada campo muestra su propio día en
   // palabras (`ShiftDayHint`), que es donde se comete el error y donde hay que
   // avisarlo. `formatShiftRange` sigue usándose más abajo, en la vista previa
   // de escritorio, donde sí hace falta el rango completo en una línea.
-  const spansMultipleDays = durationMinutes != null && durationMinutes > 24 * 60;
+  // Por qué «Continuar» está gris, en una línea sobre el botón: nunca queda
+  // gris sin decir qué falta (G14, U060). Los errores del horario además salen
+  // al lado de su campo.
+  const motivoBloqueo =
+    step === 0 && position === null
+      ? "Elegí un puesto para seguir."
+      : step === STEP_CUANDO && !horario.valido
+        ? startAt === ""
+          ? "Elegí cuándo empieza el turno para seguir."
+          : endAt === ""
+            ? "Elegí cuándo termina el turno para seguir."
+            : "Corregí el horario para seguir."
+        : step === 2 && !(Number(payAmount) > 0)
+          ? "Escribí cuánto pagás para seguir."
+          : null;
   const payPerHour =
     durationMinutes != null && durationMinutes > 0 && Number(payAmount) > 0
       ? Math.round(Number(payAmount) / (durationMinutes / 60))
@@ -315,65 +518,125 @@ function NewShiftWizard() {
 
   async function publish() {
     if (!token || position === null) return;
+    // El horario se pudo volver inválido después de pasar por «Cuándo» (pasó
+    // el tiempo, o se tocó desde otro lado): se vuelve a ese paso.
+    if (!horario.valido) {
+      go(STEP_CUANDO);
+      return;
+    }
     setSubmitting(true);
+    const payload = {
+      position,
+      quantity,
+      start_at: localInputToArgentinaISO(startAt),
+      end_at: localInputToArgentinaISO(horario.fin),
+      pay_amount: payAmount,
+      currency: "ARS",
+      tips,
+      meal,
+      urgent,
+      dress_code: dressCode || null,
+      city: city || null,
+      latitude,
+      longitude,
+    };
     try {
-      // Idempotencia (D3, auditoría de producto/UI 2026-08-09): antes sólo
-      // el POST de publicación estaba protegido — un reintento tras un
-      // timeout/corte de red que sí llegó a crear el turno duplicaba el
-      // turno al reintentar desde cero. Key estable por intento del wizard
-      // (no por-turno: el turno todavía no existe en el primer intento).
-      const created = await api.post<{ id: string }>(
-        "/shifts",
-        {
-          position,
-          quantity,
-          start_at: localInputToArgentinaISO(startAt),
-          end_at: localInputToArgentinaISO(endAt),
-          pay_amount: payAmount,
-          currency: "ARS",
-          tips,
-          meal,
-          urgent,
-          dress_code: dressCode || null,
-          city: city || null,
-          latitude,
-          longitude,
-        },
+      let current = draft.current;
+      if (!current) {
+        // Idempotencia (D3, auditoría de producto/UI 2026-08-09): key estable
+        // por intento del asistente (no por-turno: el turno todavía no existe
+        // en el primer intento). Un reintento tras un corte que sí llegó a
+        // crear el turno recibe el mismo borrador, no uno nuevo.
+        const createBody = pendingCreate.current ?? payload;
+        pendingCreate.current = createBody;
+        // Se guarda ANTES de mandar: si la respuesta se pierde y la página se
+        // recarga, el reintento repite este mismo pedido con la misma key.
+        const keyCrear = keyFor("create-shift");
+        guardarBorradorTurno(instantanea());
+        let created: { id: string };
+        try {
+          created = await api.post<{ id: string }>(
+            "/shifts",
+            createBody,
+            token,
+            undefined,
+            keyCrear
+          );
+        } catch (err) {
+          // Sin respuesta (o 409 "en curso") no se sabe si el borrador se
+          // creó: el pedido queda pendiente para repetirlo igual. Un rechazo
+          // del servidor (datos inválidos) sí es definitivo: no creó nada, y
+          // el próximo intento tiene que salir con el formulario corregido.
+          const unresolved =
+            isTransientFailure(err) || (err instanceof ApiError && err.status === 409);
+          if (!unresolved) {
+            pendingCreate.current = null;
+            clearIdempotencyKey("create-shift");
+            guardarBorradorTurno(instantanea());
+          }
+          throw err;
+        }
+        current = { id: created.id, saved: JSON.stringify(createBody) };
+        draft.current = current;
+        pendingCreate.current = null;
+        guardarBorradorTurno(instantanea());
+      }
+      // Si la persona cambió algo después de un intento que no terminó, el
+      // borrador se pone al día antes de publicar: se publica lo que está
+      // viendo en el resumen, no lo que había cuando se creó.
+      const wanted = JSON.stringify(payload);
+      if (current.saved !== wanted) {
+        // Hasta que el servidor confirme no se sabe qué quedó guardado: si la
+        // respuesta se pierde, el próximo intento vuelve a guardar.
+        current.saved = null;
+        guardarBorradorTurno(instantanea());
+        await api.put(`/shifts/${current.id}`, payload, token);
+        current.saved = wanted;
+        guardarBorradorTurno(instantanea());
+      }
+      // Idempotencia (product/IDEMPOTENCIA_SPEC.md): protege el POST de
+      // publicación en sí (el borrador ya tiene un id propio, así que la key
+      // es por-turno). Si el primer publicar llegó y se perdió la respuesta,
+      // el servidor devuelve la que ya dio en vez de publicar de nuevo.
+      await api.post(
+        `/shifts/${current.id}/publish`,
+        undefined,
         token,
         undefined,
-        keyFor("create-shift")
+        keyFor(current.id)
       );
+      // Recién acá terminó el intento: las keys y el borrador se sueltan
+      // cuando todo el paso salió bien, no entre un pedido y el otro.
       clearIdempotencyKey("create-shift");
-      try {
-        // Idempotencia (product/IDEMPOTENCIA_SPEC.md): protege el POST de
-        // publicación en sí (el turno recién creado ya tiene un id propio,
-        // así que la key es por-turno).
-        await api.post(
-          `/shifts/${created.id}/publish`,
-          undefined,
-          token,
-          undefined,
-          keyFor(created.id)
-        );
-        clearIdempotencyKey(created.id);
-        // Primera acción significativa del comercio, no al aterrizar (ver
-        // docs/reference/ACCESO_MODERNO.md): acá tiene sentido preguntar si quiere
-        // enterarse por push apenas alguien se postule.
-        requestOptIn();
-        // Reemplaza el toast + redirect inmediato por la pantalla "esto es lo
-        // que sigue" (Fix 2): el `router.push` queda a cargo de esa pantalla.
-        setPublishedShiftId(created.id);
-      } catch (err) {
-        // El turno ya quedó creado como borrador: se puede publicar más tarde
-        // desde el panel una vez que se mejore el plan (ver /shifts).
-        if (isPlanLimitError(err)) {
-          setPlanLimitMessage(getErrorMessage(err));
-        } else {
-          toast(getErrorMessage(err, "No se pudo publicar"), "error");
-        }
-      }
+      clearIdempotencyKey(current.id);
+      draft.current = null;
+      borrarBorradorTurno();
+      // El pedido de notificaciones no se hace acá sino al cerrar la confirmación
+      // (efecto de `publishedShiftId`, más arriba).
+      // Reemplaza el toast + redirect inmediato por la pantalla "esto es lo
+      // que sigue" (Fix 2): el `router.push` queda a cargo de esa pantalla.
+      yaPublicado.current = true;
+      setPublishedShiftId(current.id);
     } catch (err) {
-      toast(err instanceof ApiError ? err.message : "No se pudo publicar", "error");
+      // El borrador que se retomó tras una recarga ya no existe en el servidor
+      // (se borró o se publicó desde otro lado): el próximo intento crea uno.
+      if (err instanceof ApiError && err.status === 404 && draft.current) {
+        clearIdempotencyKey(draft.current.id);
+        // También la key y el pedido de crear: con la misma key el servidor
+        // devolvería la respuesta guardada, con el id muerto, y daría 404 sin fin.
+        clearIdempotencyKey("create-shift");
+        pendingCreate.current = null;
+        draft.current = null;
+        guardarBorradorTurno(instantanea());
+      }
+      // El 402 sólo lo da publicar (tope o plan sin pagar): el turno ya quedó
+      // creado como borrador y se puede publicar más tarde desde el panel una
+      // vez que se mejore el plan (ver /shifts).
+      if (isPlanLimitError(err)) {
+        setPlanLimitMessage(getErrorMessage(err));
+      } else {
+        toast(getErrorMessage(err, "No se pudo publicar"), "error");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -386,9 +649,10 @@ function NewShiftWizard() {
       <div className="flex items-center gap-3">
         {step > 0 ? (
           <button
-            onClick={() => go(step - 1)}
+            onClick={() => goGuarded(step - 1)}
+            disabled={tapGuard.locked}
             aria-label="Atrás"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-ink/60 ring-1 ring-line"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-ink/60 ring-1 ring-line disabled:opacity-50"
           >
             <ChevronLeftIcon size={18} />
           </button>
@@ -396,7 +660,7 @@ function NewShiftWizard() {
           <button
             onClick={() => router.push("/shifts")}
             aria-label="Cerrar"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-ink/60 ring-1 ring-line"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-ink/60 ring-1 ring-line disabled:opacity-50"
           >
             <ChevronLeftIcon size={18} />
           </button>
@@ -443,9 +707,9 @@ function NewShiftWizard() {
                       value={describeText}
                       onChange={(e) => setDescribeText(e.target.value)}
                       rows={2}
-                      maxLength={500}
+                      maxLength={LIMITES.pedidoAsistente}
                       placeholder="Ej: necesito un mozo el sábado a la noche, se paga 45000"
-                      className={`w-full resize-none rounded-2xl bg-card px-3.5 py-2.5 text-sm text-ink outline-none ring-1 ring-line focus:ring-2 focus:ring-primary/40 ${
+                      className={`w-full resize-none rounded-2xl bg-card px-3.5 py-2.5 text-sm text-ink outline-none ring-1 ring-line ${
                         speechSupported ? "pr-10" : ""
                       }`}
                     />
@@ -504,14 +768,18 @@ function NewShiftWizard() {
                       <motion.button
                         key={skill}
                         whileTap={{ scale: 0.95 }}
+                        disabled={tapGuard.locked}
                         // Elegir el puesto avanza solo: el botón Continuar
                         // quedaba debajo de la grilla, fuera de pantalla en
                         // celulares (auditoría de interfaz 2026-10-11, U02).
-                        onClick={() => {
-                          setPosition(skill);
-                          go(1);
-                        }}
-                        className={`flex flex-col items-center gap-2 rounded-3xl p-4 ring-1 transition ${
+                        onClick={() =>
+                          void tapGuard.run(() => {
+                            tocar("position");
+                            setPosition(skill);
+                            go(1);
+                          })
+                        }
+                        className={`flex flex-col items-center gap-2 rounded-3xl p-4 ring-1 transition disabled:opacity-60 ${
                           active ? "bg-primary-tint ring-primary" : "bg-card ring-line"
                         }`}
                       >
@@ -529,6 +797,7 @@ function NewShiftWizard() {
             {step === 1 && (
               <div>
                 <h1 className="font-display text-h1 font-semibold text-ink">¿Cuándo?</h1>
+                {avisoFalta}
                 <p className="mt-1 text-sm text-ink/50">Inicio y fin de la jornada.</p>
                 {/* `text-ink` NO es decorativo: sin él, el input hereda la
                     tinta del lienzo (oscura en los dos temas) y adentro de una
@@ -543,9 +812,19 @@ function NewShiftWizard() {
                     <input
                       type="datetime-local"
                       value={startAt}
-                      onChange={(e) => setStartAt(e.target.value)}
-                      className="min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 ring-line focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      onChange={(e) => {
+                        tocar("startAt");
+                        setStartAt(e.target.value);
+                      }}
+                      aria-invalid={horario.errorInicio ? true : undefined}
+                      aria-describedby={horario.errorInicio ? "error-inicio" : undefined}
+                      className={`min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 focus:bg-card ${horario.errorInicio ? "ring-danger/60" : "ring-line"}`}
                     />
+                    {horario.errorInicio && (
+                      <p id="error-inicio" role="alert" className="text-sm font-semibold text-danger-text">
+                        {horario.errorInicio}
+                      </p>
+                    )}
                     <ShiftDayHint value={startAt} />
                   </label>
                   <label className="flex flex-col gap-1.5">
@@ -553,10 +832,21 @@ function NewShiftWizard() {
                     <input
                       type="datetime-local"
                       value={endAt}
-                      onChange={(e) => setEndAt(e.target.value)}
-                      className="min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 ring-line focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      onChange={(e) => {
+                        tocar("endAt");
+                        setEndAt(e.target.value);
+                      }}
+                      aria-invalid={horario.errorFin ? true : undefined}
+                      aria-describedby={horario.errorFin ? "error-fin" : undefined}
+                      className={`min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 focus:bg-card ${horario.errorFin ? "ring-danger/60" : "ring-line"}`}
                     />
-                    <ShiftDayHint value={endAt} />
+                    {horario.errorFin ? (
+                      <p id="error-fin" role="alert" className="text-sm font-semibold text-danger-text">
+                        {horario.errorFin}
+                      </p>
+                    ) : (
+                      <ShiftDayHint value={horario.fin} alDiaSiguiente={horario.alDiaSiguiente} />
+                    )}
                   </label>
                 </div>
                 {/* Antes este bloque repetía el rango completo en dd/mm. Ahora
@@ -570,55 +860,57 @@ function NewShiftWizard() {
                     Jornada de {formatDuration(durationMinutes)}
                   </div>
                 )}
-                {spansMultipleDays && (
-                  <div className="mt-4 rounded-2xl bg-primary-tint p-3.5 text-sm text-ink/75 ring-1 ring-primary/15">
-                    Un turno es una sola jornada, no dura varios días. Si querés
-                    cubrir <strong>varios días o varias jornadas</strong>, conviene{" "}
-                    <Link href="/shifts/new-event" className="font-bold text-primary-text underline">
-                      publicar un evento
-                    </Link>{" "}
-                    (crea varias de una).
-                  </div>
-                )}
               </div>
             )}
 
             {step === 2 && (
               <div>
                 <h1 className="font-display text-h1 font-semibold text-ink">¿Cuánto pagás?</h1>
+                {avisoFalta}
                 <p className="mt-1 text-sm text-ink/50">
                   Pago por la jornada completa, por persona (no por hora).
                 </p>
-                <div className="mt-6 flex items-center gap-2 rounded-2xl bg-surface px-4 ring-1 ring-line focus-within:bg-card focus-within:ring-2 focus-within:ring-primary/40">
+                <div className="foco-contenedor mt-6 flex items-center gap-2 rounded-2xl bg-surface px-4 ring-1 ring-line focus-within:bg-card">
                   <span className="text-2xl font-bold text-ink/40">$</span>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
+                  <PesosInput
+                    aria-label="Pago por la jornada, en pesos"
                     value={payAmount}
-                    onChange={(e) => setPayAmount(e.target.value)}
-                    placeholder="48000"
+                    onChange={(monto) => {
+                      tocar("payAmount");
+                      setPayAmount(monto);
+                    }}
+                    placeholder="48.000"
+                    focoContenedor
                     className="min-h-[56px] w-full bg-transparent text-2xl font-extrabold text-ink outline-none"
                   />
                 </div>
                 {payPerHour != null && durationMinutes != null && (
                   <p className="mt-2 text-sm text-ink/55">
-                    ≈ ${payPerHour.toLocaleString("es-AR")} por hora
+                    ≈ {formatArs(payPerHour)} por hora
                     <span className="text-ink/40"> · jornada de {formatDuration(durationMinutes)}</span>
                   </p>
                 )}
                 <div className="mt-5 flex flex-col gap-3">
-                  <Toggle label="Acepta propinas" checked={tips} onChange={setTips} />
+                  <Toggle label="Acepta propinas" checked={tips} onChange={(v) => {
+                      tocar("tips");
+                      setTips(v);
+                    }} />
                   <Toggle
                     label="Incluye comida (perso)"
                     checked={meal}
-                    onChange={setMeal}
+                    onChange={(v) => {
+                      tocar("meal");
+                      setMeal(v);
+                    }}
                     icon={<UtensilsIcon size={16} className="text-ink/50" />}
                   />
                   <Toggle
                     label="Urgente"
                     checked={urgent}
-                    onChange={setUrgent}
+                    onChange={(v) => {
+                      tocar("urgent");
+                      setUrgent(v);
+                    }}
                     icon={<FlameIcon size={16} className="text-danger-text" />}
                   />
                 </div>
@@ -626,9 +918,12 @@ function NewShiftWizard() {
                   <TextField
                     label="Dress code (opcional)"
                     value={dressCode}
-                    onChange={setDressCode}
+                    onChange={(v) => {
+                      tocar("dressCode");
+                      setDressCode(v);
+                    }}
                     placeholder="Ej: camisa negra"
-                    maxLength={255}
+                    maxLength={LIMITES.codigoVestimenta}
                   />
                 </div>
               </div>
@@ -637,6 +932,7 @@ function NewShiftWizard() {
             {step === 3 && (
               <div>
                 <h1 className="font-display text-h1 font-semibold text-ink">¿Dónde es?</h1>
+                {avisoFalta}
                 {usingCompanyPlace && companyPlace ? (
                   <>
                     <p className="mt-1 text-sm text-ink/50">
@@ -663,7 +959,9 @@ function NewShiftWizard() {
                     </p>
                     <div className="mt-5">
                       <LocationPicker
+                        initialCity={city}
                         onSelect={(loc: LocationSelection) => {
+                          tocar("place");
                           setCity(loc.city);
                           setLatitude(loc.latitude);
                           setLongitude(loc.longitude);
@@ -685,9 +983,19 @@ function NewShiftWizard() {
                 {/* Resumen */}
                 <div className="mt-6 rounded-3xl bg-surface p-4 text-sm text-ink/70">
                   <p className="font-bold text-ink">{position && SKILL_LABELS[position]}</p>
+                  {/* Siempre cuándo es, también en el celular (donde la vista
+                      previa lateral no se ve): G14, U060. */}
+                  {horario.valido && (
+                    <p className="mt-1 flex items-start gap-1.5 font-semibold text-ink/80">
+                      <CalendarIcon size={15} className="mt-0.5 shrink-0 text-ink/40" />
+                      {formatShiftRangeLong(
+                        localInputToArgentinaISO(startAt),
+                        localInputToArgentinaISO(horario.fin)
+                      )}
+                    </p>
+                  )}
                   <p className="mt-1 text-ink/50">
-                    {quantity} {quantity === 1 ? "persona" : "personas"} · ARS{" "}
-                    {Number(payAmount || 0).toLocaleString("es-AR")}
+                    {quantity} {quantity === 1 ? "persona" : "personas"} · {formatArs(Number(payAmount || 0))}
                     {meal && " · con comida"}
                     {urgent && " · Urgente"}
                   </p>
@@ -700,12 +1008,17 @@ function NewShiftWizard() {
 
       {/* Acción */}
       <div className="pt-3">
+        {step < STEPS.length - 1 && motivoBloqueo && (
+          <p className="mb-2 text-center text-sm text-ink/60" data-testid="motivo-continuar">
+            {motivoBloqueo}
+          </p>
+        )}
         {step < STEPS.length - 1 ? (
-          <Button fullWidth size="lg" disabled={!canNext} onClick={() => go(step + 1)}>
+          <Button fullWidth size="lg" disabled={!canNext || tapGuard.locked} onClick={() => goGuarded(step + 1)}>
             Continuar
           </Button>
         ) : (
-          <Button fullWidth size="lg" loading={submitting} disabled={!hasPlace} onClick={publish}>
+          <Button fullWidth size="lg" loading={submitting} disabled={!hasPlace || tapGuard.locked} onClick={publish}>
             Publicar turno
           </Button>
         )}
@@ -724,7 +1037,7 @@ function NewShiftWizard() {
         position={position}
         quantity={quantity}
         startAt={startAt}
-        endAt={endAt}
+        endAt={horario.valido ? horario.fin : endAt}
         payAmount={payAmount}
         tips={tips}
         meal={meal}
@@ -821,7 +1134,7 @@ function WizardPreview({
     startAt && endAt
       ? formatShiftRange(localInputToArgentinaISO(startAt), localInputToArgentinaISO(endAt))
       : null;
-  const pay = Number(payAmount) > 0 ? `ARS ${Number(payAmount).toLocaleString("es-AR")}` : null;
+  const pay = Number(payAmount) > 0 ? formatArs(Number(payAmount)) : null;
 
   return (
     <div className={className}>

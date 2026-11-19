@@ -53,28 +53,32 @@ export default function LocationBar({
     // diagnóstico de sobrecarga): arriba del primer turno había buscador,
     // barra de ubicación y chips, tres maneras de decir qué y dónde. La zona
     // sigue a la vista y se cambia desde acá mismo, sin ocupar una fila.
-    <div className="mt-0.5">
-      <p className="flex min-w-0 flex-wrap items-center gap-x-1.5 text-sm text-ink/55">
-        <MapPinIcon size={14} className="shrink-0 text-ink/40" />
+    // Desde el 2026-11-18 va sobre el cielo del Inicio (`.app-cielo`): la
+    // letra hereda la tinta del cielo, y lo que se toca va subrayado en vez
+    // de en el azul de los links, que sobre el celeste no llega a contraste.
+    <div className="mt-1">
+      <p className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-0.5 text-sm">
+        <MapPinIcon size={14} className="shrink-0 opacity-70" />
         <span className="min-w-0 truncate">
           {current ? (
             <>
-              Turnos cerca de <span className="font-semibold text-ink">donde estás ahora</span>
+              Turnos cerca de <span className="font-semibold">donde estás ahora</span>
             </>
           ) : profileCity ? (
             <>
-              Turnos cerca de <span className="font-semibold text-ink">{profileCity}</span>
+              Turnos cerca de <span className="font-semibold">{profileCity}</span>
             </>
           ) : (
             "Ordená los turnos por cercanía"
           )}
         </span>
-        <span aria-hidden className="text-ink/30">·</span>
+        {/* Sin punto entre la zona y la acción: a 320 px la acción baja de
+            renglón y el punto quedaba colgando. La separa el subrayado. */}
         {current ? (
           <button
             type="button"
             onClick={backToProfile}
-            className="shrink-0 font-semibold text-primary-text"
+            className="shrink-0 font-semibold underline underline-offset-2"
           >
             Volver a mi zona
           </button>
@@ -83,13 +87,15 @@ export default function LocationBar({
             type="button"
             onClick={useHere}
             disabled={loading}
-            className="shrink-0 font-semibold text-primary-text disabled:opacity-60"
+            className="shrink-0 font-semibold underline underline-offset-2 disabled:opacity-60"
           >
             {loading ? "Ubicando…" : "Estoy acá"}
           </button>
         )}
       </p>
-      {error && <p className="mt-1 text-xs text-danger-text">{error}</p>}
+      {error && (
+        <p className="mt-1.5 inline-block rounded-[var(--radius-chip)] bg-card px-2 py-1 text-xs text-danger-text">{error}</p>
+      )}
     </div>
   );
 }

@@ -10,11 +10,12 @@ import IdentityVerifiedBadge from "@/components/IdentityVerifiedBadge";
 import { SKILL_ACCENT } from "@/lib/skill-style";
 import { cldAttachment, cldThumb } from "@/lib/cloudinary";
 import { safeHttpsUrl } from "@/lib/safe-url";
-import { BADGE_ICONS, BADGE_LABELS, formatPunctuality, levelLabel } from "@/lib/reputation";
+import { BADGE_ICONS, BADGE_LABELS, formatPunctuality, hasRate, hasRating, levelLabel } from "@/lib/reputation";
 import { ErrorBanner, Skeleton } from "@/components/ui";
-import StarRating from "@/components/StarRating";
+import RatingOrNew from "@/components/RatingOrNew";
 import WorkerReviews from "@/components/WorkerReviews";
-import { BriefcaseIcon, ClipboardIcon, DownloadIcon, HeartIcon, MapPinIcon } from "@/components/icons";
+import { BriefcaseIcon, ChevronLeftIcon, ClipboardIcon, DownloadIcon, HeartIcon, MapPinIcon } from "@/components/icons";
+import { plural } from "@/lib/format";
 
 /** Botón "Favorito" (comercio → trabajador), sólo visible para empleadores
  * (el propio trabajador no ve ni sabe quién lo favoriteó — bookmark privado
@@ -104,6 +105,12 @@ export default function PublicWorkerProfilePage() {
   const [profile, setProfile] = useState<WorkerProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // Sin historial (entrada directa, notificación, pestaña nueva) `back()` no
+  // hace nada: se cae a Buscar, el origen razonable del comercio.
+  const goBack = () => {
+    if (window.history.length > 1) router.back();
+    else router.push("/search");
+  };
 
   const load = useCallback(() => {
     if (!token) return;
@@ -129,7 +136,7 @@ export default function PublicWorkerProfilePage() {
         <ErrorBanner message={error} onRetry={load} />
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={goBack}
           className="mt-3 text-sm font-semibold text-ink/50 underline underline-offset-2 hover:text-ink"
         >
           Volver
@@ -144,6 +151,15 @@ export default function PublicWorkerProfilePage() {
 
   return (
     <div className="app-container px-4 py-8">
+      {/* Se llega desde Candidatos, Buscar, Favoritos o un chat: «volver»
+          retrocede a donde estaba la persona. */}
+      <button
+        type="button"
+        onClick={goBack}
+        className="mb-3 inline-flex min-h-[44px] items-center gap-1 text-sm font-semibold text-ink/60 transition hover:text-ink"
+      >
+        <ChevronLeftIcon size={16} /> Volver
+      </button>
       {/* En lg+ las reseñas pasan a una columna secundaria al lado (mismo
           criterio que /profile, docs/STATUS.md): es contenido de largo
           variable que antes quedaba apilado debajo de la tarjeta principal,
@@ -175,9 +191,13 @@ export default function PublicWorkerProfilePage() {
         <div className="px-5 py-5">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <StarRating value={Math.round(profile.rating)} size={18} />
-              <span className="text-sm font-semibold text-ink/75">{profile.rating.toFixed(1)}</span>
-              <span className="text-sm text-ink/40">· {profile.events_completed} eventos</span>
+              <RatingOrNew rating={profile.rating} completed={profile.events_completed} />
+              {profile.events_completed > 0 && (
+                <span className="text-sm text-ink/40">
+                  {hasRating(profile.rating) ? "· " : ""}
+                  {plural(profile.events_completed, "evento", "eventos")}
+                </span>
+              )}
             </div>
             {user?.role === "employer" && token && (
               <FavoriteToggle workerProfileId={params.id} token={token} />
@@ -210,7 +230,9 @@ export default function PublicWorkerProfilePage() {
 
           <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
             <Metric label="Experiencia" value={`${profile.years_experience} años`} />
-            <Metric label="Puntualidad" value={formatPunctuality(profile.punctuality_rate)} />
+            {hasRate(profile.events_completed) && (
+              <Metric label="Puntualidad" value={formatPunctuality(profile.punctuality_rate)} />
+            )}
             <Metric label="Nivel" value={levelLabel(profile.level)} />
             <Metric
               label="Disponibilidad"

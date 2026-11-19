@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./mocks";
+import { blockExternalHosts, injectSession, mockEmptyNotifications, enDias, isoEnDias } from "./mocks";
 
 /**
  * Turno por texto libre (P2, auditoría de producto 2026-08-10): el comercio
@@ -38,8 +38,8 @@ test("describir el turno con texto precarga el wizard, sin publicar nada solo", 
       contentType: "application/json",
       body: JSON.stringify({
         position: "mozo",
-        start_at: "2026-08-15T20:00:00-03:00",
-        end_at: "2026-08-16T02:00:00-03:00",
+        start_at: isoEnDias(30, "20:00"),
+        end_at: isoEnDias(31, "02:00"),
         pay_amount: "45000",
         urgent: false,
         meal: false,
@@ -105,7 +105,7 @@ test("describir el turno con texto precarga el wizard, sin publicar nada solo", 
   await expect(page.getByRole("heading", { name: "¿Dónde es?" })).toBeVisible();
   await expect(page.getByText("Calle Falsa 123, Palermo")).toBeVisible();
   await expect(page.getByText("Mozo/a").first()).toBeVisible();
-  await expect(page.getByText("ARS 45.000", { exact: false }).first()).toBeVisible();
+  await expect(page.getByText("$45.000", { exact: false }).first()).toBeVisible();
 
   let publishedBody: Record<string, unknown> | null = null;
   await page.route("**/api/v1/shifts", (route) => {
@@ -145,8 +145,8 @@ test("describir el turno con texto precarga el wizard, sin publicar nada solo", 
   };
   expect(body.latitude).toBe(-34.5889);
   expect(body.longitude).toBe(-58.4306);
-  expect(body.start_at).toContain("2026-08-15T20:00");
-  expect(body.end_at).toContain("2026-08-16T02:00");
+  expect(body.start_at).toContain(enDias(30, "20:00"));
+  expect(body.end_at).toContain(enDias(31, "02:00"));
   expect(body.pay_amount).toBe("45000");
 });
 
@@ -190,4 +190,53 @@ test("el botón de dictado por voz aparece junto al textarea de descripción", a
   await page
     .getByPlaceholder("Ej: necesito un mozo el sábado a la noche, se paga 45000")
     .fill("mozo el sábado");
+});
+
+// U061: el wizard salta de paso al completar con IA, y «Me falta saber…» se
+// quedaba en el paso 0, fuera de vista. Ahora se muestra en el paso donde cae.
+test("«Me falta saber…» se ve en el paso al que salta el asistente", async ({ page }) => {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await page.route("**/api/v1/auth/me", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: "user-2",
+        email: "demo.palermo@staffya.com",
+        full_name: "Comercio Demo",
+        role: "employer",
+        status: "activo",
+        is_active: true,
+        is_verified: true,
+      }),
+    })
+  );
+  await page.route("**/api/v1/shifts/parse-text", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        position: "mozo",
+        start_at: null,
+        end_at: null,
+        pay_amount: null,
+        urgent: false,
+        meal: false,
+        tips: false,
+        dress_code: null,
+        missing: ["el horario", "cuánto se paga"],
+      }),
+    })
+  );
+  await page.goto("/shifts/new");
+  await page.getByPlaceholder("Ej: necesito un mozo el sábado a la noche, se paga 45000").fill("necesito un mozo");
+  await page.getByRole("button", { name: "Completar" }).click();
+  await expect(page.getByRole("heading", { name: "¿Cuándo?" })).toBeVisible();
+  await expect(page.getByText("Me falta saber el horario, cuánto se paga.")).toBeVisible();
+  // Al completar a mano el horario, el aviso de este paso se apaga.
+  await page.locator('input[type="datetime-local"]').first().fill(enDias(30, "20:00"));
+  await page.locator('input[type="datetime-local"]').nth(1).fill(enDias(31, "02:00"));
+  await expect(page.getByText("Me falta saber el horario, cuánto se paga.")).toHaveCount(0);
 });

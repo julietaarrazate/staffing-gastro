@@ -1,9 +1,10 @@
 """Adaptador de persistencia: implementación SQLAlchemy de los repos de identity."""
 
-from datetime import datetime, timezone
+from collections.abc import Sequence
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
-from sqlalchemy import case, delete, desc, func, or_, select
+from sqlalchemy import and_, case, delete, desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.identity.domain.entities import (
@@ -17,6 +18,7 @@ from app.modules.identity.domain.repositories import (
     EmailVerificationTokenRepository,
     PasswordResetTokenRepository,
     RefreshSessionRepository,
+    SignupOriginCount,
     TermsAcceptanceRepository,
     UserCounts,
     UserRepository,
@@ -45,6 +47,8 @@ def _to_entity(model: UserModel) -> User:
         role=UserRole(model.role),
         status=UserStatus(model.status),
         is_verified=model.is_verified,
+        birth_date=model.birth_date,
+        signup_origin=model.signup_origin,
         created_at=model.created_at,
         updated_at=model.updated_at,
     )
@@ -65,6 +69,8 @@ class SqlAlchemyUserRepository(UserRepository):
             role=user.role.value,
             status=user.status.value,
             is_verified=user.is_verified,
+            birth_date=user.birth_date,
+            signup_origin=user.signup_origin,
         )
         self._session.add(model)
         await self._session.commit()
@@ -111,18 +117,20 @@ class SqlAlchemyUserRepository(UserRepository):
         role: UserRole | None = None,
         status: UserStatus | None = None,
         verified: bool | None = None,
+        also_user_ids: Sequence[UUID] = (),
     ) -> list[User]:
         stmt = select(UserModel).order_by(desc(UserModel.created_at)).offset(offset)
         if search:
             # `%` y `_` del texto se escapan: son comodines de LIKE.
             escaped = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
             pattern = f"%{escaped.lower()}%"
-            stmt = stmt.where(
-                or_(
-                    func.lower(UserModel.full_name).like(pattern, escape="\\"),
-                    func.lower(UserModel.email).like(pattern, escape="\\"),
-                )
-            )
+            matches = [
+                func.lower(UserModel.full_name).like(pattern, escape="\\"),
+                func.lower(UserModel.email).like(pattern, escape="\\"),
+            ]
+            if also_user_ids:
+                matches.append(UserModel.id.in_(list(also_user_ids)))
+            stmt = stmt.where(or_(*matches))
         if role is not None:
             stmt = stmt.where(UserModel.role == role.value)
         if status is not None:
@@ -133,6 +141,30 @@ class SqlAlchemyUserRepository(UserRepository):
             stmt = stmt.limit(limit)
         result = await self._session.execute(stmt)
         return [_to_entity(model) for model in result.scalars().all()]
+
+    async def count_signups_by_origin(
+        self,
+        *,
+        start: datetime,
+        end: datetime,
+        exclude_emails: frozenset[str] = frozenset(),
+    ) -> list[SignupOriginCount]:
+        stmt = (
+            select(UserModel.signup_origin, UserModel.role, func.count())
+            .where(
+                UserModel.created_at >= start,
+                UserModel.created_at < end,
+                UserModel.role.in_((UserRole.WORKER.value, UserRole.EMPLOYER.value)),
+            )
+            .group_by(UserModel.signup_origin, UserModel.role)
+        )
+        if exclude_emails:
+            stmt = stmt.where(UserModel.email.notin_(exclude_emails))
+        rows = (await self._session.execute(stmt)).all()
+        return [
+            SignupOriginCount(origin=origin, role=UserRole(role), count=count)
+            for origin, role, count in rows
+        ]
 
     async def count_stats(self, *, exclude_emails: frozenset[str] = frozenset()) -> UserCounts:
         # Una sola query con SUM/CASE en vez de traer toda la tabla y contar
@@ -232,6 +264,44 @@ class SqlAlchemyRefreshSessionRepository(RefreshSessionRepository):
         )
         await self._session.commit()
         return result.rowcount or 0
+
+    async def user_ids_ended_by_revocation(
+        self, user_ids: list[UUID], *, now: datetime, revoked_grace: timedelta
+    ) -> set[UUID]:
+        if not user_ids:
+            return set()
+        alive = and_(
+            RefreshSessionModel.expires_at > now,
+            or_(
+                RefreshSessionModel.revoked_at.is_(None),
+                RefreshSessionModel.revoked_at > now - revoked_grace,
+            ),
+        )
+        # Una fila por cuenta que tenga sesiones: si le queda alguna viva,
+        # cuándo se creó la última, y cuándo la última sin revocar.
+        stmt = (
+            select(
+                RefreshSessionModel.user_id,
+                func.max(case((alive, 1), else_=0)),
+                func.max(RefreshSessionModel.created_at),
+                func.max(
+                    case(
+                        (RefreshSessionModel.revoked_at.is_(None), RefreshSessionModel.created_at)
+                    )
+                ),
+            )
+            .where(RefreshSessionModel.user_id.in_(user_ids))
+            .group_by(RefreshSessionModel.user_id)
+        )
+        ended: set[UUID] = set()
+        for user_id, has_alive, latest, latest_unrevoked in await self._session.execute(stmt):
+            if has_alive:
+                continue
+            # La más reciente está revocada: no hay ninguna sin revocar, o
+            # todas las que quedan sin revocar son anteriores a la última.
+            if latest_unrevoked is None or latest_unrevoked < latest:
+                ended.add(user_id)
+        return ended
 
 
 def _reset_token_to_entity(model: PasswordResetTokenModel) -> PasswordResetToken:

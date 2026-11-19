@@ -7,3 +7,8 @@ export const OG_SQUARE = { width: 1200, height: 1200 };
 export const OG_WIDE = { width: 1200, height: 630 };
 /** La versión cuadrada en JPEG (`app/og/oido.jpg/route.ts`). */
 export const OG_IMAGE_URL = "/og/oido.jpg";
+/**
+ * Medidas del PNG del filete que va adentro de la miniatura
+ * (`assets/og/filete-oido.png`, lo escribe `scripts/build-filete.mjs`).
+ */
+export const OG_FILETE = { width: 1200, height: 676 };

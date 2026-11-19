@@ -4,8 +4,11 @@ Separan los comandos/resultados de los casos de uso de los esquemas HTTP (API).
 """
 
 from dataclasses import dataclass
+from datetime import date
 
 from app.modules.identity.domain.entities import User
+from app.modules.identity.domain.origen_alta import OrigenAlta
+from app.modules.identity.domain.two_factor import AdminGate, admin_gate
 from app.modules.identity.domain.value_objects import UserRole
 
 
@@ -19,6 +22,12 @@ class RegisterCommand:
     # exige que sea True; los scripts internos (seed de demo) no lo pasan, y
     # entonces no queda constancia, porque nadie aceptó nada.
     accepted_terms: bool = False
+    # Fecha de nacimiento (U101). Obligatoria y de un mayor de 18 cuando el
+    # alta es pública (`accepted_terms`); los scripts internos no la pasan.
+    birth_date: date | None = None
+    # El enlace con el que llegó la persona (`?ref=`, `utm_*`). Sólo cuenta
+    # en el alta pública; sin él queda «directo».
+    origen: OrigenAlta | None = None
 
 
 @dataclass(frozen=True)
@@ -37,6 +46,10 @@ class TokenPair:
     # remoto en cada login y en cada arranque de la app (ver auth-context).
     user: User
     token_type: str = "bearer"
+    # Admin que entra sin la verificación en dos pasos activada: la sesión sólo
+    # le deja activarla (ADR-0023). Va en la respuesta para que el frontend lo
+    # sepa al abrir la sesión, sin esperar al primer 403.
+    two_factor_setup_required: bool = False
 
 
 @dataclass(frozen=True)
@@ -48,6 +61,8 @@ class GoogleLoginCommand:
     role: UserRole | None = None
     # Igual que en `RegisterCommand`: sólo cuenta si se crea una cuenta nueva.
     accepted_terms: bool = False
+    birth_date: date | None = None
+    origen: OrigenAlta | None = None
 
 
 @dataclass(frozen=True)
@@ -62,3 +77,23 @@ class GoogleRoleRequired:
 
 
 GoogleLoginResult = TokenPair | GoogleRoleRequired
+
+
+@dataclass(frozen=True)
+class AuthenticatedSession:
+    """Quién hace el pedido y qué tan verificada está su sesión (ADR-0023).
+
+    `two_factor_verified`: el access token lo emitió un login que pasó por
+    el código (o el alta de la verificación). Sólo importa para admin."""
+
+    user: User
+    two_factor_enabled: bool = False
+    two_factor_verified: bool = False
+
+    @property
+    def gate(self) -> AdminGate:
+        return admin_gate(
+            self.user,
+            enabled=self.two_factor_enabled,
+            session_verified=self.two_factor_verified,
+        )

@@ -6,22 +6,39 @@ ciclo de vida del turno. La validación de horario y las transiciones viven en e
 
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
+from enum import Enum
 from uuid import UUID, uuid4
 
 from app.core.dt import naive as _naive
 from app.core.geo import haversine_km
+from app.core.tz import format_desde_art, format_duracion, format_inicio_art
 from app.modules.shift.domain.exceptions import (
+    AdminCloseNotAllowedError,
     InvalidShiftScheduleError,
     InvalidShiftTransitionError,
     OverlappingShiftError,
     ShiftNotEditableError,
     WorkerTooFarFromShiftError,
 )
+from app.modules.shift.domain.mensajes import (
+    CIERRE_ADMIN_CAMBIO,
+    CIERRE_ADMIN_CIERRE_DEL_COMERCIO,
+    CIERRE_ADMIN_NINGUNA_SUSPENDIDA,
+    CIERRE_ADMIN_SALIDA_DEL_TRABAJADOR,
+    cierre_admin_antes_del_inicio,
+    cierre_admin_por_estado,
+    no_se_puede,
+)
 from app.modules.shift.domain.value_objects import (
+    ADMIN_CHECK_OUT_STATUSES,
     EDITABLE_STATUSES,
+    NOT_CANCELLABLE_STATUSES,
+    OPEN_STATUSES,
+    TAKEN_NOT_STARTED_STATUSES,
     TERMINAL_STATUSES,
     UNCOVERED_ELIGIBLE_STATUSES,
+    AdminClosePlan,
     ShiftStatus,
 )
 from app.modules.worker.domain.value_objects import WorkerSkill
@@ -52,6 +69,42 @@ CHECK_RADIUS_KM = 0.3
 # dominio, y no en la UI: que la única forma de compartir posición pase por
 # esta regla es lo que hace auditable la promesa.
 EN_ROUTE_WINDOW = timedelta(hours=2)
+
+# «No se presentó» sólo se puede marcar cuando el turno ya empezó (hallazgo
+# U079): desde `start_at` + esta tolerancia, la misma tolerancia que la
+# puntualidad. Antes se aplicaba sobre un turno confirmado que empezaba mañana y penalizaba sin vuelta atrás. La
+# ausencia automática del scheduler (a las 2 h) siempre cae después.
+NO_SHOW_EARLIEST_AFTER_START = timedelta(minutes=15)
+
+# Turno reofrecido (U080, ADR-0015 actualizado el 2026-11-18): un turno que
+# se reabre cuando ya empezó se vuelve a ofrecer como urgente sólo si le queda
+# al menos esto de horario, y sale de la oferta cuando le queda menos
+# (decisión 19 de Julieta, subida de 1 a 2 horas el mismo día: nadie toma un
+# turno reabierto por una sola hora). Al reabrir con menos, pasa directo a
+# «no cubierto»; ya reofrecido, deja de ofrecerse y la pasada de cobertura
+# lo cierra si nadie confirmó. Es la única constante de esta regla.
+REOFFER_MIN_REMAINING = timedelta(hours=2)
+
+# Cuánto tiene que quedar a la vista, como mínimo, un turno que se reofrece.
+# Sin esto, una reapertura con 2 h 00 min 30 s de horario mandaba avisos
+# urgentes por un turno que dejaba de ofrecerse a los 30 segundos, y el
+# comercio recibía casi juntos «lo reofrecimos» y «quedó sin cubrir»
+# (revisión independiente de U080). Se reofrece sólo si le quedan más de
+# `REOFFER_MIN_REMAINING + REOFFER_MIN_OFFER_WINDOW`.
+REOFFER_MIN_OFFER_WINDOW = timedelta(minutes=15)
+
+
+class Reapertura(str, Enum):
+    """Cómo quedó un turno después de que la persona que lo tenía lo dejó
+    (rechazo, cancelación, ausencia, suspensión). Lo devuelven las
+    transiciones que reabren, para que el caso de uso sepa qué avisar."""
+
+    # Todavía no empezó: vuelve a buscar personal, como siempre.
+    ABIERTO = "abierto"
+    # Ya empezó y le queda horario: se reofrece como urgente hasta el final.
+    REOFRECIDO = "reofrecido"
+    # Ya empezó y le queda menos de `REOFFER_MIN_REMAINING`: «no cubierto».
+    SIN_CUBRIR = "sin_cubrir"
 
 
 @dataclass
@@ -91,6 +144,11 @@ class Shift:
     en_route_latitude: float | None = None
     en_route_longitude: float | None = None
     en_route_at: datetime | None = None
+    # Cuándo se le avisó al comercio «salió para tu local» en este viaje. No
+    # es la posición: sobrevive a que la persona deje de compartir (U072),
+    # para que apagar y volver a prender no le mande otro aviso al comercio.
+    # Se borra con el viaje (`_clear_en_route`).
+    en_route_announced_at: datetime | None = None
 
     check_in_latitude: float | None = None
     check_in_longitude: float | None = None
@@ -107,6 +165,13 @@ class Shift:
     no_show_at: datetime | None = None
     last_no_show_worker_profile_id: UUID | None = None
 
+    # «Cerrar turno» de la admin (decisión 21, ADR-0024): cuándo y quién
+    # marcó la salida o cerró el turno en nombre de una cuenta suspendida.
+    # Registro en el propio turno, como `no_show_at`: la marca de salida
+    # (`check_out_at`) no dice quién la hizo.
+    closed_by_admin_at: datetime | None = None
+    closed_by_admin_user_id: UUID | None = None
+
     # Scheduler de asistencia (ADR-0008): cuándo se le mandó al trabajador el
     # recordatorio push de "marcá tu llegada". Sin este campo el scheduler
     # reenviaría el mismo push en cada tick mientras el turno siga sin
@@ -118,6 +183,15 @@ class Shift:
     # (`DEPARTURE_REMINDER_LEAD` antes del inicio). Mismo motivo que el campo
     # de arriba: sin él, el scheduler lo reenviaría en cada pasada.
     departure_reminder_sent_at: datetime | None = None
+
+    # Cierre automático (ADR-0008, decisión 24): un turno con la salida
+    # marcada que el comercio no cierra. `finish_reminder_sent_at` es cuándo
+    # se le recordó al comercio que lo cierre (`FINISH_REMINDER_DELAY` desde
+    # `check_out_at`); marca de sistema, la escribe el repositorio sin subir
+    # la versión, como la de arriba. `auto_finished_at` es cuándo lo cerró
+    # Oído solo (`AUTO_FINISH_DELAY`); `None` si lo cerró el comercio.
+    finish_reminder_sent_at: datetime | None = None
+    auto_finished_at: datetime | None = None
 
     # Publicación masiva para un evento (ej. una boda que necesita 3 mozos +
     # 2 bartenders): cada rol sigue siendo un turno propio con quantity=1
@@ -131,9 +205,17 @@ class Shift:
     # `first_assigned_at` cuándo se encontró el primer candidato — sólo la
     # PRIMERA vez (`assign()` no lo pisa en reasignaciones tras rechazo/
     # no-show, para no mezclar "cuánto tardó el matching" con "cuántas veces
-    # se tuvo que reintentar"). Panel admin: `AdminService.get_stats`.
+    # se tuvo que reintentar"). Dato interno del embudo: desde 2026-11-17 la
+    # promesa se mide hasta `first_confirmed_at` (ver abajo). Panel admin:
+    # `AdminService.get_stats`.
     published_at: datetime | None = None
     first_assigned_at: datetime | None = None
+    # Cuándo confirmó la persona por primera vez (`confirm()`, sólo la primera
+    # vez, igual que `first_assigned_at`). Define «cubierto» en las métricas de
+    # la beta (Julieta, 2026-11-17): un turno está cubierto cuando alguien
+    # confirmó, no cuando el comercio eligió. Sin backfill: los turnos
+    # confirmados antes de la migración 0046 no la tienen.
+    first_confirmed_at: datetime | None = None
 
     # Escalada automática de urgencia: si un turno abierto (PUBLICADO/
     # BUSCANDO_PERSONAL) no se cubre rápido, el scheduler lo marca `urgent`
@@ -141,6 +223,29 @@ class Shift:
     # un círculo más amplio de candidatos. `escalated_at` marca cuándo pasó,
     # para que sólo ocurra una vez por turno (`ShiftService.escalate_urgency`).
     escalated_at: datetime | None = None
+
+    # Turno reofrecido (U080): cuándo se volvió a ofrecer un turno que se
+    # reabrió con el horario ya empezado. Mientras esté, el turno se ofrece
+    # hasta `offered_until` (no hasta `start_at`) y quien lo tome cobra lo que resta
+    # desde que llega. No se borra: queda como marca del turno. Si se reabre
+    # otra vez, se pisa con la hora del ciclo nuevo.
+    reoffered_at: datetime | None = None
+    # Cuándo confirmó la persona que tiene el turno AHORA (a diferencia de
+    # `first_confirmed_at`, que es de la primera y no se pisa). Se borra al
+    # reabrir. Para quien confirma un turno ya empezado, el recordatorio de
+    # llegada y la ausencia se cuentan desde acá (`expected_from`).
+    confirmed_at: datetime | None = None
+    # Lo que se paga por un turno reofrecido: la parte de `pay_amount` que
+    # corresponde al horario que resta desde la llegada del reemplazo
+    # (decisiones 16 y 18). Queda fijo al marcar la llegada; `None` en todo
+    # turno que no se reofreció (se paga `pay_amount`). Ver `amount_due`.
+    prorated_pay_amount: Decimal | None = None
+    # El turno venció («no cubierto») con la cuenta del comercio suspendida
+    # (ADR-0024, actualización 2026-11-18): estaba oculto, nadie pudo
+    # postularse, así que queda fuera de las métricas de cobertura. Se guarda
+    # en el turno, y no se mira el estado de la cuenta al calcular, porque la
+    # cuenta puede reactivarse después y el turno no tiene que volver a contar.
+    not_covered_while_suspended: bool = False
 
     id: UUID = field(default_factory=uuid4)
     created_at: datetime | None = None
@@ -158,7 +263,7 @@ class Shift:
     def _validate_schedule(self) -> None:
         if self.end_at <= self.start_at:
             raise InvalidShiftScheduleError(
-                "El horario de fin debe ser posterior al de inicio"
+                "El turno tiene que terminar después de empezar."
             )
 
     @property
@@ -171,7 +276,105 @@ class Shift:
 
     def ensure_editable(self) -> None:
         if not self.is_editable:
-            raise ShiftNotEditableError(self.status.value)
+            raise ShiftNotEditableError("Este turno ya no se puede editar.")
+
+    @property
+    def was_published(self) -> bool:
+        """¿Estuvo alguna vez a la vista de quien no es parte?
+
+        Decide qué responde la página pública cuando el turno ya no está
+        abierto: «ya no disponible» si fue público, «no existe» si nunca lo
+        fue. A todo estado que no sea BORRADOR se llega pasando por PUBLICADO,
+        menos a CANCELADO, que también se alcanza desde el borrador: ahí
+        decide `published_at`. (Los turnos anteriores a ese campo no lo
+        tienen; un cancelado de esos queda como «no existe», que es lo que
+        menos revela.)"""
+        if self.published_at is not None:
+            return True
+        return self.status not in (ShiftStatus.BORRADOR, ShiftStatus.CANCELADO)
+
+    def is_open_for_applications(self, now: datetime) -> bool:
+        """¿Se puede ofrecer para postularse en `now`? Es la regla del Inicio
+        (`ShiftRepository.list_open`): estado abierto y hora de inicio todavía
+        por delante. Un turno que ya empezó sigue en PUBLICADO o
+        BUSCANDO_PERSONAL hasta que el scheduler lo resuelve como «no
+        cubierto» (ADR-0015), pero nadie puede llegar a tiempo.
+
+        La excepción es el turno reofrecido (U080): se reabrió con el horario
+        ya empezado, así que se ofrece hasta `offered_until` (mientras le
+        quede al menos `REOFFER_MIN_REMAINING` de horario)."""
+        if self.status not in OPEN_STATUSES:
+            return False
+        if _naive(self.start_at) > _naive(now):
+            return True
+        return self.is_reoffered and _naive(self.offered_until) > _naive(now)
+
+    @property
+    def is_reoffered(self) -> bool:
+        """¿Se volvió a ofrecer con el horario ya empezado (U080)?"""
+        return self.reoffered_at is not None
+
+    @property
+    def offered_until(self) -> datetime:
+        """Hasta cuándo se ofrece un turno reofrecido (U080): mientras le
+        quede al menos `REOFFER_MIN_REMAINING` de horario. Desde ahí deja de
+        verse y de aceptar postulaciones, y si nadie confirmó la pasada de
+        cobertura lo cierra (`coverage_deadline`)."""
+        return self.end_at - REOFFER_MIN_REMAINING
+
+    @property
+    def taken_after_start(self) -> bool:
+        """¿Quien lo tiene ahora es el reemplazo de un turno reofrecido, que
+        confirmó con el turno ya empezado?
+
+        Sólo en un turno **reofrecido** (U080). En un turno común, confirmar
+        después del inicio (lo asignaron antes de empezar o durante la gracia
+        de «no cubierto» y confirmó tarde) no cambia nada: se lo espera desde
+        el inicio, su puntualidad se mide contra el inicio y la ausencia corre
+        desde ahí, como antes de U080."""
+        return (
+            self.is_reoffered
+            and self.confirmed_at is not None
+            and _naive(self.confirmed_at) > _naive(self.start_at)
+        )
+
+    @property
+    def expected_from(self) -> datetime:
+        """Desde cuándo se espera a la persona: el inicio del turno o, si es
+        el reemplazo de un turno reofrecido (`taken_after_start`), el momento
+        en que confirmó. Es la
+        referencia del recordatorio de llegada y de la ausencia (ADR-0008,
+        actualización 2026-11-18): a quien toma un turno a las 21:10 no se le
+        puede contar la ausencia desde las 20:00."""
+        if self.taken_after_start:
+            assert self.confirmed_at is not None
+            return self.confirmed_at
+        return self.start_at
+
+    @property
+    def amount_due(self) -> Decimal:
+        """Lo que se paga por este turno: el monto prorrateado si es un
+        turno reofrecido con la llegada marcada, si no el publicado. Es la
+        referencia: la ficha del admin lo lee directo, y tiene dos espejos
+        que repiten la regla y hay que cambiar con ella: el `COALESCE` de
+        `sum_worker_earnings` (ganancias, en SQL) y `payView` en
+        `frontend/lib/pay.ts` (pantallas, con los campos de la API)."""
+        if self.prorated_pay_amount is not None:
+            return self.prorated_pay_amount
+        return self.pay_amount
+
+    @property
+    def hourly_pay_amount(self) -> Decimal | None:
+        """Valor por hora de un turno reofrecido que todavía no tiene el
+        monto fijado (nadie marcó la llegada): es lo que se le muestra a quien
+        lo va a tomar, porque el total depende de cuándo llegue. `None` en
+        cualquier otro turno: ahí se muestra el monto."""
+        if not self.is_reoffered or self.prorated_pay_amount is not None or self.is_terminal:
+            return None
+        hours = Decimal(
+            (_naive(self.end_at) - _naive(self.start_at)).total_seconds()
+        ) / Decimal(3600)
+        return (self.pay_amount / hours).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
 
     def overlaps(self, other: "Shift") -> bool:
         """True si el horario de este turno se solapa con el de `other`.
@@ -185,12 +388,21 @@ class Shift:
     def publish(self) -> None:
         """BORRADOR → PUBLICADO. Arranca el reloj de la métrica de cobertura
         (`published_at`, ver arriba)."""
-        self._transition(ShiftStatus.BORRADOR, ShiftStatus.PUBLICADO)
+        self._transition(ShiftStatus.BORRADOR, ShiftStatus.PUBLICADO, "publicar")
         self.published_at = datetime.now(timezone.utc)
 
     def start_searching(self) -> None:
         """PUBLICADO → BUSCANDO_PERSONAL."""
-        self._transition(ShiftStatus.PUBLICADO, ShiftStatus.BUSCANDO_PERSONAL)
+        self._transition(
+            ShiftStatus.PUBLICADO, ShiftStatus.BUSCANDO_PERSONAL, "buscar"
+        )
+
+    @property
+    def admits_assignment(self) -> bool:
+        """¿El turno está en un estado desde el que se puede asignar a alguien?
+        Es la misma condición que exige `assign` (sólo lectura, para que los
+        casos de uso la consulten sin duplicarla)."""
+        return self.status in (ShiftStatus.PUBLICADO, ShiftStatus.BUSCANDO_PERSONAL)
 
     def assign(self, worker_profile_id: UUID) -> None:
         """PUBLICADO/BUSCANDO_PERSONAL → ASIGNADO: el comercio elige un candidato.
@@ -199,9 +411,9 @@ class Shift:
         PRIMERA vez (no se pisa en una reasignación posterior a un
         rechazo/no-show) — mide cuánto tardó el matching en encontrar UN
         candidato, no cuántas veces hizo falta reintentar."""
-        if self.status not in (ShiftStatus.PUBLICADO, ShiftStatus.BUSCANDO_PERSONAL):
+        if not self.admits_assignment:
             raise InvalidShiftTransitionError(
-                f"No se puede asignar un turno en estado {self.status.value}"
+                no_se_puede("asignar", self.status)
             )
         self.worker_profile_id = worker_profile_id
         self.status = ShiftStatus.ASIGNADO
@@ -222,28 +434,82 @@ class Shift:
                 raise OverlappingShiftError(
                     "Ya tenés un turno confirmado que se superpone con este horario."
                 )
-        self._transition(ShiftStatus.ASIGNADO, ShiftStatus.CONFIRMADO)
+        self._transition(ShiftStatus.ASIGNADO, ShiftStatus.CONFIRMADO, "confirmar")
+        now = datetime.now(timezone.utc)
+        # De quien lo tiene ahora (se borra al reabrir): la referencia de su
+        # asistencia si confirmó con el turno ya empezado (`expected_from`).
+        self.confirmed_at = now
+        # Sólo la primera confirmación: si después la persona cancela y otra
+        # confirma, el tiempo hasta cubrir sigue siendo el de la primera vez.
+        if self.first_confirmed_at is None:
+            self.first_confirmed_at = now
 
-    def reject(self) -> None:
-        """ASIGNADO → BUSCANDO_PERSONAL: el trabajador asignado rechaza el turno."""
-        if self.status != ShiftStatus.ASIGNADO:
-            raise InvalidShiftTransitionError(
-                f"No se puede rechazar un turno en estado {self.status.value}"
-            )
+    def _reopen(self, now: datetime | None = None) -> Reapertura:
+        """El paso común de toda transición en la que la persona que tenía
+        el turno lo deja (`reject`, `worker_cancel`, `release_worker`,
+        `no_show`): libera el puesto y decide cómo sigue según la hora (U080).
+
+        - Todavía no empezó: vuelve a BUSCANDO_PERSONAL, como siempre.
+        - Ya empezó y le queda al menos `REOFFER_MIN_REMAINING` de horario:
+          vuelve a BUSCANDO_PERSONAL **reofrecido como urgente**. Se ofrece
+          hasta `offered_until` (`is_open_for_applications`). `escalated_at` se marca
+          si no lo estaba: el aviso urgente sale con la reapertura, y la
+          escalada no tiene que mandarlo otra vez.
+        - Ya empezó y le queda menos: NO_CUBIERTO en la misma operación
+          (decisión 19), guardando quién lo tenía igual que
+          `mark_not_covered`.
+
+        Las marcas de la persona que se va se borran con ella: su
+        confirmación y el recordatorio de llegada, para que al reemplazo
+        también le llegue el suyo."""
+        now = now or datetime.now(timezone.utc)
+        leaving = self.worker_profile_id
         self.worker_profile_id = None
         self.status = ShiftStatus.BUSCANDO_PERSONAL
+        self.confirmed_at = None
+        self.checkin_reminder_sent_at = None
         self._clear_en_route()
+        if _naive(now) < _naive(self.start_at):
+            return Reapertura.ABIERTO
+        if _naive(self.end_at) - _naive(now) > REOFFER_MIN_REMAINING + REOFFER_MIN_OFFER_WINDOW:
+            self.reoffered_at = now
+            self.urgent = True
+            if self.escalated_at is None:
+                self.escalated_at = now
+            return Reapertura.REOFRECIDO
+        if leaving is not None:
+            self.last_no_show_worker_profile_id = leaving
+        self.status = ShiftStatus.NO_CUBIERTO
+        return Reapertura.SIN_CUBRIR
+
+    def reject(self, now: datetime | None = None) -> Reapertura:
+        """ASIGNADO → BUSCANDO_PERSONAL: el trabajador asignado rechaza el
+        turno. Si ya había empezado, ver `_reopen`."""
+        if self.status != ShiftStatus.ASIGNADO:
+            raise InvalidShiftTransitionError(
+                no_se_puede("rechazar", self.status)
+            )
+        return self._reopen(now)
+
+    @property
+    def is_cancellable(self) -> bool:
+        """¿El comercio todavía puede cancelarlo? No si es terminal ni si el
+        trabajador ya marcó la salida (U081): ese turno se trabajó entero."""
+        return self.status not in NOT_CANCELLABLE_STATUSES
 
     def cancel(self) -> None:
-        """Cancela el turno desde cualquier estado no terminal (comercio, terminal)."""
-        if self.is_terminal:
+        """Cancela el turno (comercio, terminal). Desde cualquier estado no
+        terminal salvo CHECK_OUT: con la salida marcada el turno ya se
+        trabajó, así que el comercio lo finaliza y lo paga; un problema va
+        por soporte (U081, ADR-0007, actualización 2026-11-18)."""
+        if not self.is_cancellable:
             raise InvalidShiftTransitionError(
-                f"No se puede cancelar un turno en estado {self.status.value}"
+                no_se_puede("cancelar", self.status)
             )
         self.status = ShiftStatus.CANCELADO
         self._clear_en_route()
 
-    def worker_cancel(self) -> None:
+    def worker_cancel(self, now: datetime | None = None) -> Reapertura:
         """CONFIRMADO → BUSCANDO_PERSONAL: el trabajador cancela su asignación ya
         confirmada (ADR-0004).
 
@@ -253,16 +519,28 @@ class Shift:
         trabajador asignado. Sólo alcanzable desde `CONFIRMADO` — antes de
         confirmar, el trabajador ya puede `reject()`; después de hacer
         check-in, cancelar sería abandono (fuera de alcance, ver TECH_DEBT.md).
+        Si el turno ya había empezado, ver `_reopen` (U080).
         """
         if self.status != ShiftStatus.CONFIRMADO:
             raise InvalidShiftTransitionError(
-                f"No se puede cancelar la asignación desde el estado {self.status.value}"
+                no_se_puede("cancelar_asistencia", self.status)
             )
-        self.worker_profile_id = None
-        self.status = ShiftStatus.BUSCANDO_PERSONAL
-        self._clear_en_route()
+        return self._reopen(now)
 
-    def no_show(self) -> None:
+    def release_worker(self, now: datetime | None = None) -> Reapertura:
+        """ASIGNADO/CONFIRMADO/EN_CAMINO → BUSCANDO_PERSONAL: la persona
+        asignada ya no puede tomar el turno porque su cuenta se suspendió
+        (ADR-0024, punto 5).
+
+        Reabre igual que `worker_cancel()`, pero no lo decidió nadie del
+        turno: el caso de uso no le suma una cancelación a nadie. Sólo antes
+        de la llegada (`TAKEN_NOT_STARTED_STATUSES`): un turno que ya empezó
+        no se toca."""
+        if self.status not in TAKEN_NOT_STARTED_STATUSES:
+            raise InvalidShiftTransitionError(no_se_puede("liberar", self.status))
+        return self._reopen(now)
+
+    def no_show(self, now: datetime | None = None) -> Reapertura:
         """CONFIRMADO/EN_CAMINO → BUSCANDO_PERSONAL: el comercio marca que el
         trabajador asignado no se presentó (ADR-0007).
 
@@ -274,18 +552,38 @@ class Shift:
         cubrir el puesto. Conserva quién fue el ausente en
         `last_no_show_worker_profile_id` antes de limpiar `worker_profile_id`
         (que se libera para poder reasignar), para dejar rastro auditable en
-        el propio turno."""
+        el propio turno.
+
+        Sólo desde `NO_SHOW_EARLIEST_AFTER_START` después del inicio: antes,
+        el trabajador todavía puede llegar. Si la persona confirmó con el
+        turno ya empezado (un reemplazo, U080), la tolerancia se cuenta desde
+        que confirmó (`expected_from`).
+
+        Una ausencia siempre cae con el turno empezado: cómo sigue (se
+        reofrece o queda sin cubrir) lo decide `_reopen`."""
         if self.status not in (ShiftStatus.CONFIRMADO, ShiftStatus.EN_CAMINO):
             raise InvalidShiftTransitionError(
-                f"No se puede marcar no-show desde el estado {self.status.value}"
+                no_se_puede("no_se_presento", self.status)
             )
-        self.no_show_at = datetime.now(timezone.utc)
+        now = now or datetime.now(timezone.utc)
+        habilitado = _naive(self.expected_from) + NO_SHOW_EARLIEST_AFTER_START
+        if _naive(now) < habilitado:
+            desde = (
+                "que confirmó el reemplazo"
+                if self.taken_after_start
+                else "que empieza el turno"
+            )
+            raise InvalidShiftTransitionError(
+                "Todavía no podés marcar que no se presentó: se habilita "
+                f"{format_desde_art(habilitado, now)}, "
+                f"{format_duracion(NO_SHOW_EARLIEST_AFTER_START)} después de "
+                f"{desde}."
+            )
+        self.no_show_at = now
         self.last_no_show_worker_profile_id = self.worker_profile_id
-        self.worker_profile_id = None
-        self.status = ShiftStatus.BUSCANDO_PERSONAL
-        self._clear_en_route()
+        return self._reopen(now)
 
-    def mark_not_covered(self) -> None:
+    def mark_not_covered(self, *, company_suspended: bool = False) -> None:
         """PUBLICADO/BUSCANDO_PERSONAL/ASIGNADO → NO_CUBIERTO (ADR-0015):
         el sistema resuelve solo un turno cuyo período de gracia después de
         `start_at` se agotó sin llegar a CONFIRMADO.
@@ -301,15 +599,21 @@ class Shift:
         Conserva quién estaba asignado (si lo había) en
         `last_no_show_worker_profile_id`, mismo campo que usa `no_show()` para
         dejar rastro de quién no llegó a confirmar — aunque acá, otra vez, sin
-        que eso cuente en contra de nadie."""
+        que eso cuente en contra de nadie.
+
+        `company_suspended`: la cuenta del comercio estaba suspendida cuando
+        venció (el turno estaba oculto, ADR-0024). Queda anotado en
+        `not_covered_while_suspended` para dejarlo fuera de las métricas de
+        cobertura, también si la cuenta se reactiva después."""
         if self.status not in UNCOVERED_ELIGIBLE_STATUSES:
             raise InvalidShiftTransitionError(
-                f"No se puede marcar como no cubierto desde el estado {self.status.value}"
+                no_se_puede("no_cubierto", self.status)
             )
         if self.worker_profile_id is not None:
             self.last_no_show_worker_profile_id = self.worker_profile_id
         self.worker_profile_id = None
         self.status = ShiftStatus.NO_CUBIERTO
+        self.not_covered_while_suspended = company_suspended
         self._clear_en_route()
 
     def depart(self) -> None:
@@ -319,7 +623,7 @@ class Shift:
         CHECK_IN sin pasar por acá. Se conserva sólo por compatibilidad con
         turnos que ya estaban en EN_CAMINO al desplegar el cambio — la UI
         actual no ofrece este botón."""
-        self._transition(ShiftStatus.CONFIRMADO, ShiftStatus.EN_CAMINO)
+        self._transition(ShiftStatus.CONFIRMADO, ShiftStatus.EN_CAMINO, "salir")
 
     def report_en_route_location(self, latitude: float, longitude: float) -> None:
         """El trabajador asignado comparte dónde está mientras viaja al turno.
@@ -339,18 +643,40 @@ class Shift:
         """
         if self.status not in (ShiftStatus.CONFIRMADO, ShiftStatus.EN_CAMINO):
             raise InvalidShiftTransitionError(
-                "Sólo se puede compartir la ubicación de camino a un turno "
-                f"confirmado, no en estado {self.status.value}"
+                no_se_puede("compartir_ubicacion", self.status)
             )
         now = datetime.now(timezone.utc)
-        if _naive(now) < _naive(self.start_at) - EN_ROUTE_WINDOW:
+        habilitado = _naive(self.start_at) - EN_ROUTE_WINDOW
+        if _naive(now) < habilitado:
             raise InvalidShiftTransitionError(
-                "Todavía falta para el turno: la ubicación se comparte recién "
-                f"desde {EN_ROUTE_WINDOW} antes del inicio."
+                "Todavía falta para el turno: podés compartir tu ubicación "
+                f"{format_desde_art(habilitado, now)} "
+                f"({format_duracion(EN_ROUTE_WINDOW)} antes de que empiece)."
             )
         self.en_route_latitude = latitude
         self.en_route_longitude = longitude
         self.en_route_at = now
+
+    def stop_en_route(self) -> bool:
+        """El trabajador deja de compartir su ubicación (U072, ADR-0014
+        actualizado el 2026-11-18): la última posición se borra **en el
+        momento**, también para el comercio, que vuelve a ver «Confirmado».
+
+        Antes «Dejar de compartir» sólo dejaba de mandar posiciones nuevas: la
+        última seguía guardada y a la vista del comercio hasta la llegada.
+        Apagar es apagar: el dato deja de existir cuando la persona lo decide.
+
+        Un turno que estaba en EN_CAMINO (el paso viejo `depart`, ADR-0008)
+        vuelve a CONFIRMADO. El recordatorio de salida y el aviso ya mandado
+        al comercio no se tocan: el viaje no terminó, sólo dejó de verse.
+        Devuelve si había algo que apagar (apagar dos veces no es un error)."""
+        was_sharing = self.en_route_at is not None or self.status == ShiftStatus.EN_CAMINO
+        if self.status == ShiftStatus.EN_CAMINO:
+            self.status = ShiftStatus.CONFIRMADO
+        self.en_route_latitude = None
+        self.en_route_longitude = None
+        self.en_route_at = None
+        return was_sharing
 
     def _clear_en_route(self) -> None:
         """Borra la última posición compartida.
@@ -365,6 +691,7 @@ class Shift:
         self.en_route_latitude = None
         self.en_route_longitude = None
         self.en_route_at = None
+        self.en_route_announced_at = None
         self.departure_reminder_sent_at = None
 
     def _ensure_at_venue(self, latitude: float, longitude: float, action: str) -> None:
@@ -375,7 +702,7 @@ class Shift:
             return
         meters = round(distance_km * 1000)
         raise WorkerTooFarFromShiftError(
-            f"Tenés que estar en el local para marcar {action} (estás a {meters} m)."
+            f"Tenés que estar en el local para marcar {action} (estás a {meters} metros)."
         )
 
     def check_in(self, latitude: float, longitude: float) -> None:
@@ -390,27 +717,50 @@ class Shift:
         ya estaban a mitad de camino."""
         if self.status not in (ShiftStatus.CONFIRMADO, ShiftStatus.EN_CAMINO):
             raise InvalidShiftTransitionError(
-                f"No se puede marcar llegada desde el estado {self.status.value}"
+                no_se_puede("llegada", self.status)
             )
         now = datetime.now(timezone.utc)
-        if _naive(now) < _naive(self.start_at) - EARLY_CHECKIN_WINDOW:
+        habilitado = _naive(self.start_at) - EARLY_CHECKIN_WINDOW
+        if _naive(now) < habilitado:
             raise InvalidShiftTransitionError(
-                "Todavía no se puede marcar llegada: el turno empieza el "
-                f"{self.start_at.isoformat()}."
+                "Todavía no podés marcar tu llegada: se habilita "
+                f"{format_desde_art(habilitado, now)} "
+                f"({format_duracion(EARLY_CHECKIN_WINDOW)} antes de que "
+                "empiece el turno)."
+            )
+        if self.is_reoffered and _naive(now) >= _naive(self.end_at):
+            # Reofrecido (U080): se paga lo que resta desde la llegada, y ya
+            # no resta nada.
+            raise InvalidShiftTransitionError(
+                "Este turno ya terminó: no se puede marcar la llegada."
             )
         self._ensure_at_venue(latitude, longitude, "la llegada")
         self.status = ShiftStatus.CHECK_IN
         self.check_in_latitude = latitude
         self.check_in_longitude = longitude
         self.check_in_at = now
+        if self.is_reoffered:
+            self.prorated_pay_amount = self._prorated_from(now)
         self._clear_en_route()
+
+    def _prorated_from(self, arrival: datetime) -> Decimal:
+        """La parte de `pay_amount` que corresponde al horario que resta
+        desde `arrival` (decisión 18: se cuenta desde que el reemplazo marca
+        la llegada). Al peso entero, nunca más que lo publicado ni negativo."""
+        start, end = _naive(self.start_at), _naive(self.end_at)
+        total = Decimal((end - start).total_seconds())
+        remaining = Decimal((end - max(_naive(arrival), start)).total_seconds())
+        amount = (self.pay_amount * remaining / total).quantize(
+            Decimal("1"), rounding=ROUND_HALF_UP
+        )
+        return max(Decimal(0), min(amount, self.pay_amount))
 
     def start_working(self) -> None:
         """CHECK_IN → TRABAJANDO: el trabajador empieza su turno.
 
         Paso opcional (ADR-0008): mismo criterio que `depart()`, se conserva
         sólo por compatibilidad — la UI actual no ofrece este botón."""
-        self._transition(ShiftStatus.CHECK_IN, ShiftStatus.TRABAJANDO)
+        self._transition(ShiftStatus.CHECK_IN, ShiftStatus.TRABAJANDO, "empezar")
 
     def check_out(self, latitude: float, longitude: float) -> None:
         """CHECK_IN/TRABAJANDO → CHECK_OUT: el trabajador termina y marca su
@@ -419,26 +769,132 @@ class Shift:
         por compatibilidad."""
         if self.status not in (ShiftStatus.CHECK_IN, ShiftStatus.TRABAJANDO):
             raise InvalidShiftTransitionError(
-                f"No se puede marcar salida desde el estado {self.status.value}"
+                no_se_puede("salida", self.status)
+            )
+        now = datetime.now(timezone.utc)
+        if _naive(now) < _naive(self.start_at):
+            raise InvalidShiftTransitionError(
+                "Todavía no podés marcar la salida: el turno empieza "
+                f"{format_inicio_art(self.start_at, now)}."
             )
         self._ensure_at_venue(latitude, longitude, "la salida")
         self.status = ShiftStatus.CHECK_OUT
         self.check_out_latitude = latitude
         self.check_out_longitude = longitude
-        self.check_out_at = datetime.now(timezone.utc)
+        self.check_out_at = now
+
+    def admin_check_out(self, now: datetime | None = None) -> None:
+        """CHECK_IN/TRABAJANDO → CHECK_OUT marcado por la admin en nombre de
+        un trabajador suspendido, que ya no puede entrar a marcarlo (decisión
+        21, ADR-0024). Como `check_out()`, pero sin ubicación (nadie está en
+        el local para informarla) y por lo tanto sin el control de distancia.
+        Sí exige que el turno haya empezado: la salida no se marca antes del
+        inicio. La hora es la de ahora. Quién decide si corresponde es
+        `admin_close_plan`."""
+        if self.status not in ADMIN_CHECK_OUT_STATUSES:
+            raise InvalidShiftTransitionError(no_se_puede("salida", self.status))
+        now = now or datetime.now(timezone.utc)
+        if _naive(now) < _naive(self.start_at):
+            raise InvalidShiftTransitionError(
+                cierre_admin_antes_del_inicio(format_inicio_art(self.start_at, now))
+            )
+        self.status = ShiftStatus.CHECK_OUT
+        self.check_out_latitude = None
+        self.check_out_longitude = None
+        self.check_out_at = now
+
+    def admin_close_plan(
+        self, *, worker_active: bool, company_active: bool, now: datetime
+    ) -> AdminClosePlan:
+        """Qué haría «Cerrar turno» de la admin (decisión 21, ADR-0024), sin
+        cambiar nada. Sólo actúa en nombre de la parte suspendida y sólo en un
+        turno empezado (llegada marcada en adelante):
+
+        - trabajador suspendido, llegada marcada: marca la salida;
+        - comercio suspendido, salida marcada: cierra el turno;
+        - los dos suspendidos, llegada marcada: las dos cosas.
+
+        Si no aplica, `AdminCloseNotAllowedError` con el motivo para la
+        admin: ninguna suspendida, el turno no empezó o ya terminó, la salida
+        todavía no se puede marcar (antes del inicio) o el paso que falta le
+        toca a la parte activa. Lo usa la ficha de la admin para mostrar el
+        botón, y el caso de uso para hacerlo: la regla está una sola vez."""
+        if self.status not in ADMIN_CHECK_OUT_STATUSES | {ShiftStatus.CHECK_OUT}:
+            raise AdminCloseNotAllowedError(cierre_admin_por_estado(self.status))
+        if worker_active and company_active:
+            raise AdminCloseNotAllowedError(CIERRE_ADMIN_NINGUNA_SUSPENDIDA)
+        if self.status == ShiftStatus.CHECK_OUT:
+            if company_active:
+                raise AdminCloseNotAllowedError(CIERRE_ADMIN_CIERRE_DEL_COMERCIO)
+            return AdminClosePlan(
+                check_out=False,
+                finish=True,
+                worker_active=worker_active,
+                company_active=company_active,
+            )
+        if worker_active:
+            raise AdminCloseNotAllowedError(CIERRE_ADMIN_SALIDA_DEL_TRABAJADOR)
+        if _naive(now) < _naive(self.start_at):
+            raise AdminCloseNotAllowedError(
+                cierre_admin_antes_del_inicio(format_inicio_art(self.start_at, now))
+            )
+        return AdminClosePlan(
+            check_out=True,
+            finish=not company_active,
+            worker_active=worker_active,
+            company_active=company_active,
+        )
+
+    def close_for_suspended_account(
+        self,
+        admin_user_id: UUID,
+        *,
+        worker_active: bool,
+        company_active: bool,
+        expected: tuple[bool, bool] | None = None,
+        now: datetime | None = None,
+    ) -> AdminClosePlan:
+        """Hace lo que dice `admin_close_plan` y deja el registro de quién y
+        cuándo (`closed_by_admin_*`). Devuelve el plan, para que el caso de
+        uso sepa qué efectos correr y a quién avisar.
+
+        `expected` es lo que la admin vio y confirmó en el diálogo
+        (`(check_out, finish)`): si el plan de ahora es otro (el turno o una
+        cuenta cambió desde que abrió la ficha), no hace nada y responde
+        `CIERRE_ADMIN_CAMBIO`. Nunca se ejecuta más de lo confirmado."""
+        now = now or datetime.now(timezone.utc)
+        plan = self.admin_close_plan(
+            worker_active=worker_active, company_active=company_active, now=now
+        )
+        if expected is not None and expected != (plan.check_out, plan.finish):
+            raise AdminCloseNotAllowedError(CIERRE_ADMIN_CAMBIO)
+        if plan.check_out:
+            self.admin_check_out(now)
+        if plan.finish:
+            self.finish()
+        self.closed_by_admin_at = now
+        self.closed_by_admin_user_id = admin_user_id
+        return plan
 
     def finish(self) -> None:
         """CHECK_OUT → FINALIZADO: cierra el turno trabajado."""
-        self._transition(ShiftStatus.CHECK_OUT, ShiftStatus.FINALIZADO)
+        self._transition(ShiftStatus.CHECK_OUT, ShiftStatus.FINALIZADO, "cerrar")
+
+    def auto_finish(self) -> None:
+        """CHECK_OUT → FINALIZADO sin el comercio (decisión 24): el turno
+        quedó con la salida marcada y nadie lo cerró. Misma transición que
+        `finish`; además deja registrado que lo cerró el sistema."""
+        self.finish()
+        self.auto_finished_at = datetime.now(timezone.utc)
 
     def mark_paid(self) -> None:
         """FINALIZADO → PAGADO: el comercio confirma que pagó el turno."""
-        self._transition(ShiftStatus.FINALIZADO, ShiftStatus.PAGADO)
+        self._transition(ShiftStatus.FINALIZADO, ShiftStatus.PAGADO, "pagar")
         self.paid_at = datetime.now(timezone.utc)
 
-    def _transition(self, expected: ShiftStatus, target: ShiftStatus) -> None:
+    def _transition(
+        self, expected: ShiftStatus, target: ShiftStatus, accion: str
+    ) -> None:
         if self.status != expected:
-            raise InvalidShiftTransitionError(
-                f"Transición inválida: {self.status.value} → {target.value}"
-            )
+            raise InvalidShiftTransitionError(no_se_puede(accion, self.status))
         self.status = target

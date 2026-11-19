@@ -73,3 +73,57 @@ class GoogleTokenInvalidError(IdentityError):
 class GoogleEmailNotVerifiedError(IdentityError):
     """Google no verificó el email asociado a la cuenta (`email_verified`
     en falso): no alcanza como prueba de identidad."""
+
+
+# --- Edad mínima en el alta (U101) -----------------------------------------
+
+
+class BirthDateRequiredError(IdentityError):
+    """El alta pública llegó sin fecha de nacimiento."""
+
+
+class BirthDateInvalidError(IdentityError):
+    """La fecha de nacimiento es futura o de hace más de cien años."""
+
+
+class UnderageError(IdentityError):
+    """La persona tiene menos de 18 años: Oído no le crea la cuenta."""
+
+
+# --- Verificación en dos pasos (ADR-0023) ---------------------------------
+
+
+class TwoFactorNotConfiguredError(IdentityError):
+    """Falta `TWO_FACTOR_ENCRYPTION_KEY` (o no sirve para descifrar el
+    secreto guardado): no se puede dar de alta ni verificar códigos."""
+
+
+class TwoFactorNotAllowedError(IdentityError):
+    """La verificación en dos pasos es sólo para cuentas admin."""
+
+
+class TwoFactorNotEnabledError(IdentityError):
+    """La acción necesita la verificación activa y no lo está."""
+
+
+class TwoFactorEnrollmentNotStartedError(IdentityError):
+    """Se quiso confirmar sin un alta pendiente (o la pisó otra en paralelo)."""
+
+
+class TwoFactorReauthRequiredError(IdentityError):
+    """La verificación está activa pero esta sesión no pasó por el código:
+    hay que volver a ingresar (sesión de antes de activarla)."""
+
+
+class TwoFactorCodeInvalidError(IdentityError):
+    """El código (de la app o de recuperación) no es válido o ya se usó."""
+
+
+class TwoFactorChallengeInvalidError(IdentityError):
+    """El desafío del login no existe, venció, ya se usó o se quemó por
+    errores. Genérico a propósito (no-disclosure): siempre "volvé a
+    ingresar"."""
+
+
+class TwoFactorTooManyAttemptsError(IdentityError):
+    """Demasiados códigos equivocados para esta cuenta en la ventana."""

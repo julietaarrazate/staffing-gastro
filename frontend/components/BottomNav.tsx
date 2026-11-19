@@ -43,16 +43,22 @@ const TABS_BY_ROLE: Record<string, typeof WORKER_TABS> = {
 };
 
 export default function BottomNav() {
-  const { user, loading } = useAuth();
+  const { user, loading, twoFactorSetupPending } = useAuth();
   const pathname = usePathname();
 
   if (loading || !user) return null;
+  // Admin con el alta de la verificación en dos pasos pendiente (ADR-0023): el
+  // backend le rechaza todo lo demás, así que la barra sólo llevaría a pantallas
+  // con error (U133). Mismo criterio que el menú de `admin/layout.tsx`.
+  if (twoFactorSetupPending) return null;
   // El onboarding es una pantalla de configuración inicial a pantalla completa:
   // la barra tapaba su botón principal, y navegar a otra sección antes de
   // terminar deja el perfil a medias (sin zona ni oficio el feed no sirve).
   if (pathname === "/bienvenida") return null;
   // /historia es la landing anterior, para grabar reels: sin barra de la app.
   if (pathname === "/historia") return null;
+  // La encuesta para locales es una pantalla propia, con su cielo y sin barras.
+  if (pathname === "/encuesta") return null;
 
   const tabs = TABS_BY_ROLE[user.role] ?? EMPLOYER_TABS;
 
@@ -62,7 +68,7 @@ export default function BottomNav() {
     // forma de distinguirlas (auditoría de navegación, fase H).
     <nav
       aria-label="Secciones"
-      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-chrome backdrop-blur-xl backdrop-saturate-150 pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-chrome backdrop-blur-xl backdrop-saturate-150 pb-[env(safe-area-inset-bottom)] md:hidden print:hidden"
     >
       {tabs.map(({ href, label, Icon }) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
@@ -83,7 +89,7 @@ export default function BottomNav() {
             // de pantalla no tenía forma de saber en qué sección está (fase H,
             // mismo criterio que F4/jsx-a11y).
             aria-current={active ? "page" : undefined}
-            className={`flex flex-1 flex-col items-center gap-1 py-2 text-xs font-medium transition-colors ${
+            className={`flex min-w-0 flex-1 flex-col items-center gap-1 py-2 text-xs font-medium transition-colors ${
               active ? "text-primary-text" : "text-ink/40"
             }`}
           >
@@ -95,9 +101,13 @@ export default function BottomNav() {
                 ámbar queda para la acción principal de cada pantalla.
                 El `aria-current` de arriba sigue siendo lo que anuncia el
                 lector de pantalla — el pill es refuerzo visual, no el único
-                indicador. */}
+                indicador. El ancho del pill es el de la pestaña, con tope: con
+                seis pestañas (el trabajador) a 360 px, un relleno fijo de 20 px
+                a cada lado hacía que la barra pidiera 372 px y «Perfil» saliera
+                cortada; así el pill se achica y las pestañas se reparten el
+                ancho (a 320 px, 53 px cada una). */}
             <span
-              className={`flex items-center justify-center rounded-full px-5 py-1 transition-colors ${
+              className={`flex w-full max-w-[3.875rem] items-center justify-center rounded-full py-1 transition-colors ${
                 active ? "bg-primary-tint" : "bg-transparent"
               }`}
             >

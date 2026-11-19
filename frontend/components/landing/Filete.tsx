@@ -1,31 +1,51 @@
 import { useId, type ReactNode } from "react";
+import { ADORNOS_CAJA, ADORNOS_SVG } from "./filete-adornos";
 
 /**
- * El «oído» fileteado (2026-10-23): letra de cartel antiguo (Sancreek, con
- * espolones, como los alfabetos "lettres fantaisie" y los carteles de
- * fileteado) en crema, con filete interior de luz, borde y relieve azul hondo
- * y canto dorado. En el tamaño grande, adornos finos dorados: arco con doble
- * filete y flor de tres hojas arriba, filete cortado con eses y rombo abajo,
- * rulos y perlitas.
+ * El «oído» fileteado: letra gorda e inclinada (Shrikhand desde el
+ * 2026-11-17, como la letra fantasía de los carteles fileteados; antes
+ * Sancreek) en crema, con filete interior de luz, borde y relieve azul hondo
+ * y canto dorado. Los mismos dibujos en vector, con la letra convertida a
+ * trazos, están en docs/design-system/marca/.
  *
- * Tres tamaños: `firma` (con adornos: pantalla de inicio), `marca` (sólo la
- * palabra: encabezado) y `cinta` («¡Oído!» en la comanda). El final de la
- * landing usa `Sol` y `Letras` sueltos (LandingFooter.tsx): el Sol de Mayo
- * saliendo detrás de la palabra. Los colores son del cartel, no tokens: se
- * ve igual en cualquier tema.
+ * En el tamaño grande, los adornos (desde el 2026-11-18, con cuerpo: hasta
+ * ahí eran líneas doradas de 1 a 2 px que en el celular no se veían): cuatro
+ * volutas celestes con relieve y alas de hojas, filete dorado por dentro, una
+ * flor roja arriba y una rosa abajo. El dibujo no se escribe acá: lo genera
+ * `scripts/build-filete.mjs` en `filete-adornos.ts` (nivel «medio»; el
+ * «cargado», con cinta y más flores, es sólo para la miniatura al compartir).
+ * El rojo y el rosa viven sólo adentro del filete, igual que el crema.
+ *
+ * Tres tamaños: `firma` (con adornos: pantalla de inicio y final de la
+ * landing, LandingFooter.tsx), `marca` (sólo la palabra) y `cinta` («¡Oído!»
+ * en la comanda). El `Sol` quedó sin uso en la landing desde el 2026-11-18.
+ * Los colores son del cartel, no tokens: se ve igual en cualquier tema.
  */
-const ORO = "#b8801f";
-const ORO_CLARO = "#e2b04a";
 const RAYO = "#9a6410";
 const HONDO = "#14456a";
 const HONDO_CLARO = "#1c5478";
 const CANTO = "#c98a1a";
-const FUENTE = "var(--font-sancreek), Georgia, serif";
+const FUENTE = "var(--font-shrikhand), Georgia, serif";
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
 
 /** El sol, a la manera del Sol de Mayo: rayos rectos y ondulados alternados y disco con relieve. */
-export function Sol({ cx, cy, r, id, rayos = 32 }: { cx: number; cy: number; r: number; id: string; rayos?: number }) {
+export function Sol({
+  cx,
+  cy,
+  r,
+  id,
+  rayos = 32,
+  claseRayos,
+}: {
+  cx: number;
+  cy: number;
+  r: number;
+  id: string;
+  rayos?: number;
+  /** Clase para el grupo de los rayos solos (el disco y su relieve no giran). */
+  claseRayos?: string;
+}) {
   const piezas: ReactNode[] = [];
   const R1 = r * 1.08;
   const R2 = r * 1.72;
@@ -58,7 +78,7 @@ export function Sol({ cx, cy, r, id, rayos = 32 }: { cx: number; cy: number; r: 
   const relieve = Array.from({ length: 10 }, (_, i) => 10 - i);
   return (
     <g>
-      {piezas}
+      <g className={claseRayos}>{piezas}</g>
       {relieve.map((k) => (
         <circle key={k} cx={cx + k} cy={cy + k} r={r} fill={k > 5 ? HONDO : HONDO_CLARO} />
       ))}
@@ -69,7 +89,7 @@ export function Sol({ cx, cy, r, id, rayos = 32 }: { cx: number; cy: number; r: 
 }
 
 /** La letra: sombra, relieve azul, canto dorado, borde, cara crema y filete interior de luz. */
-export function Letras({ x, y, tam, texto, id, anchor = "start", e = 1 }: { x: number; y: number; tam: number; texto: string; id: string; anchor?: "start" | "middle"; e?: number }) {
+export function Letras({ x, y, tam, texto, id, anchor = "start", e = 1, sombra = true }: { x: number; y: number; tam: number; texto: string; id: string; anchor?: "start" | "middle"; e?: number; sombra?: boolean }) {
   const t = `${id}-texto`;
   const pasos = Array.from({ length: 14 }, (_, i) => 14 - i);
   return (
@@ -86,7 +106,7 @@ export function Letras({ x, y, tam, texto, id, anchor = "start", e = 1 }: { x: n
           <use href={`#${t}`} />
         </clipPath>
       </defs>
-      <use href={`#${t}`} x={20 * e} y={20 * e} fill={CANTO} opacity={0.5} />
+      {sombra && <use href={`#${t}`} x={20 * e} y={20 * e} fill={CANTO} opacity={0.5} />}
       {pasos.map((k) => {
         const c = k > 6 ? HONDO : HONDO_CLARO;
         return <use key={k} href={`#${t}`} x={k * e} y={k * e} fill={c} stroke={c} strokeWidth={2 * e} />;
@@ -97,58 +117,6 @@ export function Letras({ x, y, tam, texto, id, anchor = "start", e = 1 }: { x: n
         <use href={`#${t}`} fill="none" stroke="#ffffff" strokeWidth={16 * e} />
         <use href={`#${t}`} fill="none" stroke={`url(#${id}-cara)`} strokeWidth={10 * e} />
       </g>
-    </g>
-  );
-}
-
-function Hoja({ x, y, rot, s = 1 }: { x: number; y: number; rot: number; s?: number }) {
-  const tr = `translate(${x} ${y}) rotate(${rot}) scale(${s})`;
-  return (
-    <g transform={tr}>
-      <path d="M0 0c7-9 7-19 0-27c-7 8-7 18 0 27z" fill={ORO_CLARO} stroke={ORO} strokeWidth={1.4} />
-      <path d="M0-4v-18" stroke="#fff6cf" strokeWidth={1.2} strokeLinecap="round" />
-    </g>
-  );
-}
-
-function Rulo({ x, y, lado }: { x: number; y: number; lado: 1 | -1 }) {
-  return (
-    <g transform={`translate(${x} ${y}) scale(${lado} 1)`}>
-      <path d="M0 0c22 0 36-10 36-24 0-12-10-18-18-14-7 4-6 13 1 14" fill="none" stroke={ORO} strokeWidth={2.2} strokeLinecap="round" />
-      <circle cx={19} cy={-24} r={2.6} fill={ORO} />
-      <Hoja x={10} y={-3} rot={-70} s={0.7} />
-    </g>
-  );
-}
-
-/** Los adornos finos de la firma, como los de los carteles de "Argentina". */
-function Adornos({ x0, yt, yb, hw }: { x0: number; yt: number; yb: number; hw: number }) {
-  return (
-    <g>
-      <g fill="none" stroke={ORO} strokeLinecap="round">
-        <path d={`M${x0 - hw} ${yt + 26}Q${x0} ${yt - 26} ${x0 + hw} ${yt + 26}`} strokeWidth={2.4} />
-        <path d={`M${x0 - hw + 30} ${yt + 30}Q${x0} ${yt - 14} ${x0 + hw - 30} ${yt + 30}`} strokeWidth={1.1} />
-        <path d={`M${x0 - hw} ${yb}H${x0 - 58}M${x0 + 58} ${yb}H${x0 + hw}`} strokeWidth={2.4} />
-        <path d={`M${x0 - hw + 40} ${yb + 8}H${x0 - 70}M${x0 + 70} ${yb + 8}H${x0 + hw - 40}`} strokeWidth={1.1} />
-        {[1, -1].map((e) => (
-          <path key={e} transform={`translate(${x0} ${yb}) scale(${e} 1)`} d="M12 0c10 0 18 8 28 8s16-10 10-16c-5-5-12 0-8 5" strokeWidth={2} />
-        ))}
-        <path d={`M${x0 - hw} ${yt + 26}c-14 2-24-8-18-17 4-6 12-3 10 3`} strokeWidth={2.2} />
-        <path d={`M${x0 + hw} ${yt + 26}c14 2 24-8 18-17-4-6-12-3-10 3`} strokeWidth={2.2} />
-      </g>
-      <path d={`M${x0} ${yb - 9}l8 9-8 9-8-9z`} fill={ORO_CLARO} stroke={ORO} strokeWidth={1.4} />
-      <Hoja x={x0} y={yt - 2} rot={0} s={1.1} />
-      <Hoja x={x0} y={yt - 2} rot={-48} s={0.8} />
-      <Hoja x={x0} y={yt - 2} rot={48} s={0.8} />
-      <circle cx={x0} cy={yt + 2} r={3.2} fill={ORO} />
-      <Rulo x={x0 + hw} y={yb} lado={1} />
-      <Rulo x={x0 - hw} y={yb} lado={-1} />
-      {[-1, 1].map((e) => (
-        <g key={e} fill={ORO}>
-          <circle cx={x0 + e * hw * 0.62} cy={yt + 4} r={2.4} />
-          <circle cx={x0 + e * hw * 0.69} cy={yt + 12} r={1.6} />
-        </g>
-      ))}
     </g>
   );
 }
@@ -189,8 +157,10 @@ export default function Filete({ palabra, tam, className }: { palabra: string; t
   }
 
   return (
-    <svg aria-hidden viewBox="70 20 680 345" className={className}>
-      <Adornos x0={410} yt={58} yb={330} hw={300} />
+    <svg aria-hidden viewBox={ADORNOS_CAJA} className={className}>
+      {/* Dibujo estático generado por scripts/build-filete.mjs (no hay datos
+          de nadie acá adentro); el id distingue degradés y filtros por copia. */}
+      <g dangerouslySetInnerHTML={{ __html: ADORNOS_SVG.replace(/__ID__/g, id) }} />
       <Letras x={410} y={253} tam={175} texto={palabra} id={id} anchor="middle" />
     </svg>
   );

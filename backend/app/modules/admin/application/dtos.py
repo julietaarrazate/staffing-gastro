@@ -1,6 +1,6 @@
 """DTOs del módulo de administración."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
@@ -52,8 +52,9 @@ class PlatformStats:
     verified: int
 
     # Promesa central del negocio ("cubrir un puesto en menos de 10
-    # minutos", PRODUCT.md): tiempo entre publicar un turno y encontrar el
-    # primer candidato. `None` si todavía no hay muestra (sin backfill,
+    # minutos", PRODUCT.md): tiempo entre publicar un turno y la primera
+    # CONFIRMACIÓN de la persona (`Shift.first_confirmed_at`, Julieta
+    # 2026-11-17; antes se medía hasta que el comercio eligió). `None` si todavía no hay muestra (sin backfill,
     # sólo cuenta turnos publicados después de la migración 0020).
     coverage_sample_size: int
     avg_time_to_fill_minutes: float | None
@@ -96,12 +97,12 @@ class PlatformStats:
     worker_completion_repeat_sample_size: int
     worker_completion_repeat_rate_pct: float | None
 
-    # Más cercana a "recurrencia de uso" que la de arriba: `events_published`
-    # se incrementa en CADA publicación (no requiere que el turno se cubra),
-    # así que el denominador es "comercios que publicaron >=1 vez" — más
-    # inclusivo que el de trabajadores. Igual sin ventana temporal (all-time).
-    employer_repeat_sample_size: int
-    employer_repeat_rate_pct: float | None
+    # «Comercios que vuelven a publicar»: de los comercios con al menos un
+    # turno cubierto (la persona confirmó), cuántos publicaron otro dentro de
+    # los 30 días de su primera confirmación. Reemplaza al viejo
+    # `employer_repeat_*` (2+ turnos publicados, sin importar si se cubrió).
+    employer_return_30d_sample_size: int
+    employer_return_30d_rate_pct: float | None
 
 
 @dataclass
@@ -115,6 +116,12 @@ class SubscriptionStats:
     total_companies: int
     companies_by_plan: dict[str, int]
     companies_at_plan_limit: int
+    # Medición de la beta (M6), sin cuentas de prueba ni invitadas.
+    # Comercios por plan elegido al darse de alta (`chosen_plan_code`).
+    companies_with_chosen_plan: dict[str, int]
+    committed_companies: int
+    # Suma de los precios mensuales comprometidos, en pesos.
+    committed_mrr_ars: Decimal
     # False mientras no haya credenciales de Mercado Pago
     # (`BillingGateway.enabled`): `mrr_ars` es entonces un monto POTENCIAL
     # (lo que se cobraría si el cobro estuviera activo), nunca ingreso real
@@ -153,6 +160,18 @@ class AdminCompanySummary:
     events_published: int
     on_time_payment_rate: float
     late_cancellations: int
+    payments_recorded: int = 0
+
+
+@dataclass
+class AdminCloseAction:
+    """Qué haría «Cerrar turno» de la admin en un turno empezado de una
+    cuenta suspendida (decisión 21, ADR-0024): marcar la salida, cerrarlo o
+    las dos cosas, y a quién se le avisa (`"company"`, `"worker"` o nadie)."""
+
+    check_out: bool
+    finish: bool
+    notifies: str | None
 
 
 @dataclass
@@ -164,7 +183,27 @@ class AdminShiftRow:
     position: str
     start_at: datetime
     status: str
+    # El monto publicado y lo que se cobra (`Shift.amount_due`): difieren en
+    # un turno reofrecido con la llegada del reemplazo marcada (U080).
     pay_amount: Decimal
+    amount_due: Decimal
+    # La persona de la ficha faltó a este turno (ya no figura como asignada).
+    absent: bool = False
+    # «Cerrar turno» (decisión 21): sólo en la ficha de una cuenta suspendida
+    # y sólo en los turnos donde aplica; si no, `None`.
+    admin_close: AdminCloseAction | None = None
+
+
+@dataclass
+class AdminShiftClosure:
+    """Resultado de «Cerrar turno»: cómo quedó el turno y qué se hizo."""
+
+    shift_id: UUID
+    status: str
+    check_out: bool
+    finish: bool
+    notifies: str | None
+    checked_out_at: datetime | None
 
 
 @dataclass
@@ -178,6 +217,28 @@ class AdminTicketRow:
 
 
 @dataclass
+class AdminCommitmentSummary:
+    """Compromiso de pago («precio fundador») registrado por la admin."""
+
+    at: datetime
+    plan_code: str
+    plan_name: str
+    price_ars: Decimal
+
+
+@dataclass
+class AdminSubscriptionSummary:
+    """Bloque «Plan» de la ficha de un comercio."""
+
+    plan_code: str
+    plan_name: str
+    chosen_plan_code: str | None = None
+    chosen_plan_name: str | None = None
+    chosen_plan_at: datetime | None = None
+    commitment: AdminCommitmentSummary | None = None
+
+
+@dataclass
 class AdminUserDetail:
     """Ficha de una persona en el panel de admin (`/admin/personas/{id}`):
     datos de la cuenta, su perfil según el rol, turnos y tickets recientes."""
@@ -187,6 +248,7 @@ class AdminUserDetail:
     company: AdminCompanySummary | None
     recent_shifts: list[AdminShiftRow]
     tickets: list[AdminTicketRow]
+    subscription: AdminSubscriptionSummary | None = None
 
 
 @dataclass
@@ -208,6 +270,7 @@ class LiveShiftRow:
     published_at: datetime
     minutes_open: int
     applications: int
+    no_show_at: datetime | None = None
 
 
 @dataclass
@@ -220,6 +283,11 @@ class LiveShiftsBoard:
     urgent: int
     escalated: int
     shifts: list[LiveShiftRow]
+    no_shows: int = 0
+    # Cuántos turnos en vivo hay en total (sin filtros) y cuántos entran en
+    # la lista: si `total_live > shown_live`, la pantalla avisa que faltan.
+    shown_live: int = 0
+    limit: int = 0
 
 
 @dataclass
@@ -243,6 +311,30 @@ class PeriodSummary:
     covered_under_10_min_pct: float | None
     avg_minutes_to_cover: float | None
     applications: int
+    # Medición de la beta (M2-M4): ver `ShiftPeriodStats`. «Cubierto» = la
+    # persona confirmó; «cumplido» = cubierto y con check-in; «aviso corto» =
+    # el turno empieza dentro de las 24 h de publicado.
+    median_minutes_to_cover: float | None = None
+    short_notice_covered: int = 0
+    short_notice_under_10_min_pct: float | None = None
+    fulfilled: int = 0
+    fulfilled_pct: float | None = None
+    active_companies: int = 0
+    companies_with_covered: int = 0
+
+
+@dataclass(frozen=True)
+class SignupsByOrigin:
+    """Altas de un origen en el período, por rol. `origin` es `None` para
+    las cuentas creadas antes de que se guardara (migración 0057)."""
+
+    origin: str | None
+    workers: int
+    companies: int
+
+    @property
+    def total(self) -> int:
+        return self.workers + self.companies
 
 
 @dataclass
@@ -252,3 +344,6 @@ class PeriodMetrics:
     days: int
     current: PeriodSummary
     previous: PeriodSummary
+    # Altas del período actual por origen y rol (fase 0 del plan de
+    # crecimiento): las que más traen primero, «sin dato» al final.
+    signups_by_origin: list[SignupsByOrigin] = field(default_factory=list)

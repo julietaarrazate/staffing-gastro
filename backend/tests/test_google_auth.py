@@ -76,7 +76,7 @@ async def test_google_login_new_user_with_role_creates_account(client: AsyncClie
         )
     )
     response = await client.post(
-        "/api/v1/auth/google", json={"id_token": "tok", "role": "worker", "accepted_terms": True}
+        "/api/v1/auth/google", json={"id_token": "tok", "role": "worker", "accepted_terms": True, "birth_date": "1995-05-20"}
     )
     assert response.status_code == 200
     tokens = response.json()
@@ -108,7 +108,7 @@ async def test_google_login_existing_user_logs_in(client: AsyncClient):
     )
     # Se manda `role` para probar que se ignora cuando el email ya existe.
     response = await client.post(
-        "/api/v1/auth/google", json={"id_token": "tok", "role": "employer", "accepted_terms": True}
+        "/api/v1/auth/google", json={"id_token": "tok", "role": "employer", "accepted_terms": True, "birth_date": "1995-05-20"}
     )
     assert response.status_code == 200
     tokens = response.json()
@@ -220,7 +220,7 @@ async def test_google_account_has_no_usable_local_password(client: AsyncClient):
         )
     )
     created = await client.post(
-        "/api/v1/auth/google", json={"id_token": "tok", "role": "worker", "accepted_terms": True}
+        "/api/v1/auth/google", json={"id_token": "tok", "role": "worker", "accepted_terms": True, "birth_date": "1995-05-20"}
     )
     assert created.status_code == 200
 
@@ -242,12 +242,86 @@ async def test_la_cuenta_nueva_con_google_recibe_la_bienvenida(client: AsyncClie
                 GoogleIdentity(email="bienve@gmail.com", email_verified=True, full_name="Bien Venida")
             )
         )
-        await client.post("/api/v1/auth/google", json={"id_token": "tok", "role": "worker", "accepted_terms": True})
+        await client.post("/api/v1/auth/google", json={"id_token": "tok", "role": "worker", "accepted_terms": True, "birth_date": "1995-05-20"})
         assert [e.to for e in fake.sent] == ["bienve@gmail.com"]
         assert "Bienvenido" in fake.sent[0].subject
 
         # Volver a entrar no la repite.
         await client.post("/api/v1/auth/google", json={"id_token": "tok"})
         assert len(fake.sent) == 1
+    finally:
+        app.dependency_overrides.pop(get_email_sender, None)
+
+
+async def _registrar_sin_confirmar(client: AsyncClient, email: str) -> None:
+    await register_user(client, email=email, password="clave-del-otro-123")
+
+
+async def test_reclamar_una_cuenta_sin_confirmar_avisa_por_mail(client: AsyncClient):
+    """U039: Google reclama la cuenta sin confirmar y se le avisa, una vez, al
+    mail de la cuenta."""
+    await _registrar_sin_confirmar(client, "reclamada@gmail.com")
+    fake = FakeEmailSender()
+    app.dependency_overrides[get_email_sender] = lambda: fake
+    try:
+        _override_verifier(
+            _FakeGoogleVerifier(
+                GoogleIdentity(email="reclamada@gmail.com", email_verified=True, full_name="Dueña")
+            )
+        )
+        response = await client.post("/api/v1/auth/google", json={"id_token": "tok"})
+        assert response.status_code == 200
+        assert [e.to for e in fake.sent] == ["reclamada@gmail.com"]
+        assert fake.sent[0].subject == "Se entró a tu cuenta de Oído con Google"
+        assert "/recuperar" in fake.sent[0].html
+        assert "hola@oido.com.ar" in fake.sent[0].html
+
+        # Ya verificada: entrar de nuevo con Google no repite el aviso.
+        await client.post("/api/v1/auth/google", json={"id_token": "tok"})
+        assert len(fake.sent) == 1
+    finally:
+        app.dependency_overrides.pop(get_email_sender, None)
+
+
+async def test_si_falla_el_aviso_de_reclamo_el_ingreso_sigue(client: AsyncClient):
+    await _registrar_sin_confirmar(client, "falla@gmail.com")
+    fake = FakeEmailSender(raise_on_send=True)
+    app.dependency_overrides[get_email_sender] = lambda: fake
+    try:
+        _override_verifier(
+            _FakeGoogleVerifier(
+                GoogleIdentity(email="falla@gmail.com", email_verified=True, full_name="Dueña")
+            )
+        )
+        response = await client.post("/api/v1/auth/google", json={"id_token": "tok"})
+        assert response.status_code == 200
+        assert response.json()["access_token"]
+    finally:
+        app.dependency_overrides.pop(get_email_sender, None)
+
+
+async def test_google_en_una_cuenta_ya_verificada_no_manda_el_aviso(
+    client: AsyncClient, session_factory
+):
+    from sqlalchemy import update
+
+    from app.modules.identity.infrastructure.models import UserModel
+
+    await _registrar_sin_confirmar(client, "yaverif@gmail.com")
+    async with session_factory() as session:
+        await session.execute(
+            update(UserModel).where(UserModel.email == "yaverif@gmail.com").values(is_verified=True)
+        )
+        await session.commit()
+    fake = FakeEmailSender()
+    app.dependency_overrides[get_email_sender] = lambda: fake
+    try:
+        _override_verifier(
+            _FakeGoogleVerifier(
+                GoogleIdentity(email="yaverif@gmail.com", email_verified=True, full_name="Ella")
+            )
+        )
+        assert (await client.post("/api/v1/auth/google", json={"id_token": "tok"})).status_code == 200
+        assert fake.sent == []
     finally:
         app.dependency_overrides.pop(get_email_sender, None)

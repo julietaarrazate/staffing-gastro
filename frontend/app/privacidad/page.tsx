@@ -87,8 +87,7 @@ export default function PrivacidadPage() {
                 contraseña de Google.
               </li>
               <li>
-                <strong>Perfil:</strong> foto, fecha de nacimiento (para
-                confirmar que sos mayor de edad), ciudad, domicilio
+                <strong>Perfil:</strong> foto, ciudad, domicilio
                 aproximado, presentación, posiciones en las que trabajás, años
                 de experiencia, idiomas, certificaciones y, si lo subís, tu
                 CV.
@@ -140,10 +139,23 @@ export default function PrivacidadPage() {
             <p className="font-semibold text-ink">Para todos</p>
             <ul className="ml-5 list-disc space-y-1.5">
               <li>
+                <strong>Fecha de nacimiento:</strong> te la pedimos al crear
+                la cuenta, sólo para confirmar que sos mayor de 18 años. No
+                aparece en tu perfil ni la ve nadie más.
+              </li>
+              <li>
                 <strong>Constancia de aceptación:</strong> cuándo aceptaste
                 estos términos y esta política, qué versión y si fue con tu
                 email o con Google, para poder mostrarlo si alguna vez hace
                 falta.
+              </li>
+              <li>
+                <strong>Cómo llegaste:</strong> si entraste a Oído por un
+                enlace con un código (por ejemplo, el de nuestra cuenta de
+                Instagram o uno que compartimos en un grupo de WhatsApp),
+                guardamos ese código con tu cuenta, sólo para saber qué
+                canales funcionan. No aparece en tu perfil ni lo ve nadie
+                fuera del equipo, y sólo como conteo.
               </li>
               <li>
                 <strong>Mensajes:</strong> el chat entre comercio y trabajador
@@ -154,10 +166,12 @@ export default function PrivacidadPage() {
                 un turno ya confirmado, para verificar que estuviste ahí; y
                 mientras vos elijas avisar que vas en camino, para que el
                 comercio vea que estás llegando. Esto último lo prendés y lo
-                apagás vos, sólo funciona hasta dos horas antes del turno, se
-                corta solo cuando marcás tu llegada, y guardamos únicamente tu
-                última posición, nunca el recorrido. Fuera de esas ventanas no
-                te seguimos, ni en segundo plano.
+                apagás vos: cuando lo apagás, borramos esa posición y el
+                comercio deja de ver dónde estás. Sólo funciona desde dos
+                horas antes del turno, se corta solo cuando marcás tu
+                llegada, y guardamos únicamente tu última posición, nunca el
+                recorrido. Fuera de esas ventanas no te seguimos, ni en
+                segundo plano.
                 <br />
                 Si activás &quot;Disponible ahora&quot; para que el comercio
                 busque cerca de dónde estás en vez de tu domicilio, es el
@@ -177,7 +191,7 @@ export default function PrivacidadPage() {
               <li>
                 <strong>Notificaciones:</strong> si las activás, guardamos el
                 identificador que tu navegador nos da para mandarte avisos. Se
-                borra al desactivarlas.
+                borra al desactivarlas y al cerrar sesión en ese dispositivo.
               </li>
               <li>
                 <strong>Datos técnicos:</strong> cuando algo falla,
@@ -192,6 +206,29 @@ export default function PrivacidadPage() {
               pero con menos. Por ejemplo, sin la verificación no tenés el
               sello de &quot;verificado&quot;, y sin ubicación no podemos
               mostrarte turnos cerca.
+            </p>
+          </Section>
+
+          <Section title="Encuesta para locales">
+            <p>
+              Si completás la encuesta para locales sin tener cuenta en Oído,
+              guardamos tus respuestas sobre cómo trabaja tu local: tu
+              rol, el nombre del
+              local, el tipo de local, el barrio, cuántas veces sumás
+              personal eventual, para qué puestos, cómo lo conseguís, cuánto
+              pagás por jornada y cómo preferirías pagar. Sólo si nos los
+              dejás, guardamos también tu nombre y un teléfono o email. Usamos las
+              respuestas para entender el sector y definir el producto y sus
+              precios, y el contacto únicamente para invitarte a la beta y
+              escribirte sobre Oído. No compartimos estos datos ni los usamos
+              para publicidad de terceros. Guardamos el contacto mientras dure la
+              beta y el lanzamiento de Oído, y lo borramos antes si nos lo
+              pedís escribiendo a{" "}
+              <a href={`mailto:${LEGAL_OWNER.email}`} className={LINK}>
+                {LEGAL_OWNER.email}
+              </a>
+              ; las respuestas sin contacto pueden quedar como estadística
+              anónima.
             </p>
           </Section>
 
@@ -300,8 +337,9 @@ export default function PrivacidadPage() {
                 decide la verificación. Después se borran.
               </li>
               <li>
-                <strong>&quot;Va en camino&quot;:</strong> hasta que marcás la
-                llegada o el turno deja de estar asignado a vos.
+                <strong>&quot;Va en camino&quot;:</strong> hasta que lo
+                apagás, marcás la llegada o el turno deja de estar asignado a
+                vos.
               </li>
               <li>
                 <strong>&quot;Disponible ahora&quot;:</strong> hasta 4 horas, o
@@ -318,6 +356,12 @@ export default function PrivacidadPage() {
                 tu dispositivo) se borra 7 días después de que vence. Si
                 cerrás sesión antes, queda marcada como cerrada hasta entonces,
                 para darnos cuenta si alguien intenta volver a usarla.
+              </li>
+              <li>
+                <strong>Encuesta para locales:</strong> las respuestas, sin
+                plazo. El nombre, teléfono y email que hayas dejado, mientras
+                dure la beta y el lanzamiento de Oído, o hasta que nos pidas
+                borrarlos.
               </li>
               <li>
                 <strong>Cuenta, perfil, turnos, chats y reseñas:</strong>{" "}
@@ -388,8 +432,10 @@ export default function PrivacidadPage() {
               Usamos una <strong>cookie propia</strong> para mantener tu
               sesión iniciada de forma segura (el navegador no deja que ningún
               script la lea), y el almacenamiento local del navegador para
-              recordar tu sesión y tu preferencia de tema claro u oscuro. No
-              usamos cookies de terceros, ni de publicidad, ni de seguimiento.
+              recordar tu sesión, tu preferencia de tema claro u oscuro y, si
+              llegaste por un enlace con código, ese código hasta que crees tu
+              cuenta (como máximo 30 días). No usamos cookies de terceros, ni
+              de publicidad, ni de seguimiento.
             </p>
           </Section>
 
@@ -408,8 +454,10 @@ export default function PrivacidadPage() {
 
           <Section title="Menores de edad">
             <p>
-              Oído es sólo para mayores de 18 años. Si detectamos una cuenta
-              de un menor, la damos de baja y borramos sus datos.
+              Oído es sólo para mayores de 18 años. Al crear la cuenta te
+              pedimos tu fecha de nacimiento, y si sos menor no la creamos.
+              Si igual detectamos una cuenta de un menor, la damos de baja y
+              borramos sus datos.
             </p>
           </Section>
 

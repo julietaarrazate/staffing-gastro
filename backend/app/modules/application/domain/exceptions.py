@@ -14,7 +14,15 @@ class ShiftNotApplicableError(ApplicationError):
 
 
 class AlreadyAppliedError(ApplicationError):
-    """El trabajador ya se postuló a ese turno."""
+    """El trabajador ya tiene una postulación a ese turno que no puede volver
+    a presentar: está activa (PENDIENTE o ACEPTADA) o la rechazó el comercio.
+    Una RETIRADA no cae acá: se reactiva."""
+
+
+class AlreadyUnassignedError(AlreadyAppliedError):
+    """El trabajador tuvo ese turno asignado y lo dejó (rechazó, canceló o no
+    se presentó): su postulación está DESASIGNADA. Sigue en la lista del
+    comercio, que decide si lo vuelve a elegir; no se postula otra vez."""
 
 
 class ApplicationNotFoundError(ApplicationError):

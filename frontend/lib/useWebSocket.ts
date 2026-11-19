@@ -8,6 +8,10 @@ const HTTP_API_URL =
 const WS_BASE_URL = HTTP_API_URL.replace(/^http/, "ws");
 
 const MAX_RETRY_DELAY_MS = 15_000;
+/** Una conexión que vivió menos que esto no cuenta como «estable»: si el
+ *  servidor acepta y cierra enseguida (tope de conexiones por usuario, límite
+ *  de frames), el backoff sigue creciendo en vez de volver a ~1 s. */
+export const WS_STABLE_AFTER_MS = 5_000;
 
 export type WebSocketStatus = "connecting" | "open" | "closed";
 
@@ -54,6 +58,7 @@ export function useWebSocket<T>(
     let retryTimeout: ReturnType<typeof setTimeout> | null = null;
     let closedByCleanup = false;
     let attempt = 0;
+    let openedAt: number | null = null;
 
     function connect() {
       setStatus("connecting");
@@ -64,7 +69,9 @@ export function useWebSocket<T>(
       socket = new WebSocket(`${WS_BASE_URL}${path}?token=${encodeURIComponent(current)}`);
 
       socket.onopen = () => {
-        attempt = 0;
+        // El backoff NO se reinicia acá sino al cerrarse, y sólo si la
+        // conexión duró (ver `WS_STABLE_AFTER_MS`).
+        openedAt = Date.now();
         setStatus("open");
         onOpenRef.current?.();
       };
@@ -80,6 +87,8 @@ export function useWebSocket<T>(
       socket.onclose = () => {
         if (closedByCleanup) return;
         setStatus("closed");
+        if (openedAt !== null && Date.now() - openedAt >= WS_STABLE_AFTER_MS) attempt = 0;
+        openedAt = null;
         const delay = Math.min(1000 * 2 ** attempt, MAX_RETRY_DELAY_MS);
         attempt += 1;
         retryTimeout = setTimeout(connect, delay);

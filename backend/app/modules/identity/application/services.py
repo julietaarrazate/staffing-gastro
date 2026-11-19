@@ -7,12 +7,14 @@ No conoce detalles de HTTP ni de SQLAlchemy.
 import hashlib
 import logging
 import secrets
-from datetime import datetime, timedelta, timezone
+from dataclasses import replace
+from datetime import date, datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 import jwt
 
 from app.core.config import settings
+from app.core.tz import hoy_art
 from app.core.security import (
     ACCESS_TOKEN,
     REFRESH_TOKEN,
@@ -24,6 +26,7 @@ from app.core.security import (
     verify_password_async,
 )
 from app.modules.identity.application.dtos import (
+    AuthenticatedSession,
     GoogleLoginCommand,
     GoogleLoginResult,
     GoogleRoleRequired,
@@ -31,6 +34,12 @@ from app.modules.identity.application.dtos import (
     RegisterCommand,
     TokenPair,
 )
+from app.modules.identity.application.two_factor import (
+    TwoFactorChallengeIssued,
+    TwoFactorLoginVerified,
+    TwoFactorService,
+)
+from app.modules.identity.domain.edad import validar_fecha_nacimiento
 from app.modules.identity.domain.entities import (
     EmailVerificationToken,
     PasswordResetToken,
@@ -49,9 +58,11 @@ from app.modules.identity.domain.exceptions import (
     InvalidTokenError,
     PasswordResetTokenInvalidError,
     RefreshTokenRevokedError,
+    TwoFactorNotEnabledError,
     UserNotFoundError,
 )
 from app.modules.identity.domain.google_verifier import GoogleTokenVerifier
+from app.modules.identity.domain.origen_alta import OrigenAlta, origen_de_alta_publica
 from app.modules.identity.domain.repositories import (
     EmailVerificationTokenRepository,
     PasswordResetTokenRepository,
@@ -59,6 +70,7 @@ from app.modules.identity.domain.repositories import (
     TermsAcceptanceRepository,
     UserRepository,
 )
+from app.modules.identity.domain.two_factor import AdminGate, admin_gate
 from app.modules.identity.domain.value_objects import (
     LEGAL_TERMS_VERSION,
     TermsAcceptanceChannel,
@@ -67,6 +79,7 @@ from app.modules.identity.domain.value_objects import (
 from app.modules.notification.domain.email_sender import EmailSender
 from app.modules.notification.domain.email_templates import (
     render_confirm_email_html,
+    render_google_claimed_account_email_html,
     render_password_reset_email_html,
     render_welcome_employer_email_html,
     render_welcome_worker_email_html,
@@ -125,6 +138,12 @@ PASSWORD_RESET_RESEND_WINDOW = timedelta(minutes=5)
 EMAIL_VERIFICATION_TOKEN_TTL = timedelta(hours=48)
 EMAIL_VERIFICATION_RESEND_WINDOW = timedelta(minutes=5)
 
+# Claim de los tokens emitidos por un login que pasó por la verificación en
+# dos pasos (o por su alta). Va en el access y en el refresh, así sobrevive a
+# la rotación: una sesión verificada sigue verificada al renovarse, y una de
+# antes de activar la verificación no se vuelve verificada sola (ADR-0023).
+TWO_FACTOR_CLAIM = "mfa"
+
 
 class IdentityService:
     """Servicio de aplicación que agrupa los casos de uso de autenticación."""
@@ -138,6 +157,7 @@ class IdentityService:
         google_verifier: GoogleTokenVerifier,
         email_verification_tokens: EmailVerificationTokenRepository | None = None,
         terms_acceptances: TermsAcceptanceRepository | None = None,
+        two_factor: TwoFactorService | None = None,
     ) -> None:
         self._users = users
         self._sessions = sessions
@@ -146,6 +166,10 @@ class IdentityService:
         self._google_verifier = google_verifier
         self._verification_tokens = email_verification_tokens
         self._terms_acceptances = terms_acceptances
+        # Verificación en dos pasos de las cuentas admin (ADR-0023). Sin ella
+        # (scripts que sólo registran usuarios) no se emiten desafíos, y un
+        # admin queda sin acceso a lo de admin: falla cerrado.
+        self._two_factor = two_factor
 
     async def register(self, command: RegisterCommand) -> User:
         """Registra un nuevo usuario. Falla si el email ya existe.
@@ -153,6 +177,7 @@ class IdentityService:
         Best-effort: si se cablearon `email_verification_tokens`, dispara el
         email de verificación (nunca bloquea el registro si el envío falla,
         mismo contrato que el resto de los emails transaccionales)."""
+        birth_date = self._alta_birth_date(command.accepted_terms, command.birth_date)
         if await self._users.exists_by_email(command.email):
             raise EmailAlreadyExistsError(command.email)
 
@@ -161,6 +186,8 @@ class IdentityService:
             hashed_password=await hash_password_async(command.password),
             full_name=command.full_name,
             role=command.role,
+            birth_date=birth_date,
+            signup_origin=self._alta_origin(command.accepted_terms, command.origen),
         )
         created = await self._users.add(user)
         if command.accepted_terms:
@@ -169,8 +196,9 @@ class IdentityService:
             await self._send_verification_email(created)
         return created
 
-    async def authenticate(self, command: LoginCommand) -> TokenPair:
-        """Valida credenciales y devuelve un par de tokens."""
+    async def authenticate(self, command: LoginCommand) -> TokenPair | TwoFactorChallengeIssued:
+        """Valida credenciales y devuelve un par de tokens, o un desafío si
+        la cuenta es admin con la verificación en dos pasos activa."""
         user = await self._users.get_by_email(command.email)
         if user is None:
             # Mismo trabajo de bcrypt que con un email existente: si no, la
@@ -182,7 +210,7 @@ class IdentityService:
             raise InvalidCredentialsError()
         if not user.is_active:
             raise InactiveUserError()
-        return await self._issue_tokens(user)
+        return await self._issue_tokens_or_challenge(user)
 
     async def guest_login(self, pin: str, role: UserRole) -> TokenPair:
         """Acceso de invitado (beta): valida el PIN de `GUEST_ACCESS_PIN` y
@@ -213,11 +241,14 @@ class IdentityService:
             raise InactiveUserError()
         return await self._issue_tokens(user)
 
-    async def authenticate_google(self, command: GoogleLoginCommand) -> GoogleLoginResult:
+    async def authenticate_google(
+        self, command: GoogleLoginCommand
+    ) -> GoogleLoginResult | TwoFactorChallengeIssued:
         """Ingresa o registra un usuario a partir de un ID token de Google
         (Google Identity Services, ver docs/reference/ACCESO_MODERNO.md).
 
-        - Email ya registrado -> sesión normal (mismos tokens JWT propios).
+        - Email ya registrado -> sesión normal (mismos tokens JWT propios), o
+          un desafío si es admin con la verificación en dos pasos activa.
         - Email nuevo y `command.role` ausente -> `GoogleRoleRequired`: el
           frontend debe preguntar "¿Buscás trabajo o buscás personal?" y
           reintentar con el rol elegido.
@@ -236,16 +267,19 @@ class IdentityService:
                 raise InactiveUserError()
             if not user.is_verified:
                 await self._claim_unverified_account(user)
-            return await self._issue_tokens(user)
+            return await self._issue_tokens_or_challenge(user)
 
         if command.role is None:
             return GoogleRoleRequired(email=email, full_name=identity.full_name)
 
+        birth_date = self._alta_birth_date(command.accepted_terms, command.birth_date)
         user = User(
             email=email,
             hashed_password=await _google_local_password(),
             full_name=identity.full_name,
             role=command.role,
+            birth_date=birth_date,
+            signup_origin=self._alta_origin(command.accepted_terms, command.origen),
             # Google ya verificó la propiedad del email: no hace falta el
             # flujo de verificación propio para estas cuentas.
             is_verified=True,
@@ -259,6 +293,21 @@ class IdentityService:
         await self._send_welcome_email(user)
         return await self._issue_tokens(user)
 
+    @staticmethod
+    def _alta_origin(accepted_terms: bool, origen: OrigenAlta | None) -> str | None:
+        """Toda alta pública guarda de qué enlace llegó («directo» si no
+        traía nada); las internas (seed, scripts) no llegaron por ninguno."""
+        return origen_de_alta_publica(origen) if accepted_terms else None
+
+    @staticmethod
+    def _alta_birth_date(accepted_terms: bool, birth_date: date | None) -> date | None:
+        """Toda alta pública (la que acepta términos, por email o por Google)
+        trae una fecha de nacimiento de alguien mayor de 18 (U101). Las altas
+        internas (seed, scripts) no aceptan nada y no la piden."""
+        if not accepted_terms:
+            return birth_date
+        return validar_fecha_nacimiento(birth_date, hoy_art())
+
     async def _claim_unverified_account(self, user: User) -> None:
         """Google acaba de probar que quien entra es dueño del email; la cuenta
         que ya existía con ese email nunca lo probó (se registró con
@@ -271,12 +320,33 @@ class IdentityService:
         Ahora la cuenta queda de quien probó el email: se marca verificada, la
         contraseña anterior deja de servir y se cierran todas las sesiones
         abiertas. Si era la misma persona, pierde la contraseña que nunca
-        confirmó y la recupera con "Olvidé mi contraseña"."""
+        confirmó y la recupera con "¿Olvidaste tu contraseña?". Desde 2026-11-17
+        se avisa además por mail a la dirección de la cuenta (U039)."""
         user.verify()
         user.hashed_password = await _google_local_password()
         await self._users.update(user)
         await self._sessions.revoke_all_for_user(user.id)
         logger.info("google.claimed_unverified_account", extra={"user_id": str(user.id)})
+        await self._send_claimed_account_email(user)
+
+    async def _send_claimed_account_email(self, user: User) -> None:
+        """Avisa al mail de la cuenta que se la reclamó con Google (la
+        contraseña dejó de servir y las sesiones se cerraron). Best-effort,
+        mismo contrato que el resto: si el envío falla, el ingreso sigue. El
+        mail no va a los logs, sólo el id."""
+        html = render_google_claimed_account_email_html(
+            user.full_name, f"{settings.frontend_url}/recuperar"
+        )
+        try:
+            await self._email_sender.send(
+                to=user.email,
+                subject="Se entró a tu cuenta de Oído con Google",
+                html=html,
+            )
+        except Exception:
+            logger.exception(
+                "No se pudo enviar el aviso de cuenta reclamada a %s", user.id
+            )
 
     async def _record_terms_acceptance(
         self, user: User, channel: TermsAcceptanceChannel
@@ -298,13 +368,21 @@ class IdentityService:
         reuso de un token viejo (posible robo): se revocan **todas** las
         sesiones del usuario y se rechaza la operación.
         """
-        jti = self._decode_refresh(refresh_token)
+        payload = self._decode_refresh(refresh_token)
+        jti = payload["jti"]
 
         session = await self._sessions.get_by_jti(jti)
         if session is None:
             raise InvalidTokenError()
         if session.is_revoked:
             await self._sessions.revoke_all_for_user(session.user_id)
+            # Suspender revoca todas las sesiones (`AdminService.suspend_user`):
+            # quien vuelve con la suya tiene que enterarse de que la cuenta está
+            # suspendida, no de que la sesión venció (ADR-0024, punto 8). La
+            # sesión ya era de esta persona: no se le revela nada nuevo.
+            owner = await self._users.get_by_id(session.user_id)
+            if owner is not None and not owner.is_active:
+                raise InactiveUserError()
             raise RefreshTokenRevokedError()
 
         user = await self._users.get_by_id(session.user_id)
@@ -314,11 +392,13 @@ class IdentityService:
             raise InactiveUserError()
 
         await self._sessions.revoke(jti)
-        return await self._issue_tokens(user)
+        return await self._issue_tokens(
+            user, two_factor_verified=payload.get(TWO_FACTOR_CLAIM) is True
+        )
 
     async def logout(self, refresh_token: str) -> None:
         """Revoca la sesión asociada al refresh token dado (cierre de sesión)."""
-        jti = self._decode_refresh(refresh_token)
+        jti = self._decode_refresh(refresh_token)["jti"]
         session = await self._sessions.get_by_jti(jti)
         if session is None:
             raise InvalidTokenError()
@@ -326,6 +406,12 @@ class IdentityService:
 
     async def get_current_user(self, access_token: str) -> User:
         """Resuelve el usuario a partir de un access token (para dependencias)."""
+        return (await self.resolve_session(access_token)).user
+
+    async def resolve_session(self, access_token: str) -> AuthenticatedSession:
+        """Usuario del access token y el estado de su verificación en dos
+        pasos. La API decide con `AuthenticatedSession.gate` qué puede hacer
+        una sesión admin (ADR-0023)."""
         try:
             payload = decode_token(access_token)
         except jwt.PyJWTError as exc:
@@ -339,7 +425,49 @@ class IdentityService:
             raise UserNotFoundError()
         if not user.is_active:
             raise InactiveUserError()
-        return user
+        if not TwoFactorService.applies_to(user) or self._two_factor is None:
+            return AuthenticatedSession(user=user)
+        # Se mira en cada pedido de un admin (una consulta por clave
+        # primaria; hay un admin): si soporte desactiva la verificación, sus
+        # tokens verificados dejan de servir para lo de admin en el acto.
+        return AuthenticatedSession(
+            user=user,
+            two_factor_enabled=await self._two_factor.is_enabled(user.id),
+            two_factor_verified=payload.get(TWO_FACTOR_CLAIM) is True,
+        )
+
+    async def complete_two_factor_login(
+        self, challenge_token: str, code: str
+    ) -> tuple[TokenPair, TwoFactorLoginVerified]:
+        """Segundo paso del login: canjea el desafío y el código por una
+        sesión verificada."""
+        if self._two_factor is None:
+            raise TwoFactorNotEnabledError()
+        verified = await self._two_factor.verify_challenge(challenge_token, code)
+        user = await self._users.get_by_id(verified.user_id)
+        if user is None:
+            raise UserNotFoundError()
+        if not user.is_active:
+            raise InactiveUserError()
+        return await self._issue_tokens(user, two_factor_verified=True), verified
+
+    async def confirm_two_factor_enrollment(
+        self, session: AuthenticatedSession, code: str
+    ) -> tuple[TokenPair, list[str]]:
+        """Confirma el alta (o el cambio de celular) y devuelve una sesión
+        verificada más los códigos de recuperación nuevos.
+
+        Cierra todas las demás sesiones de la cuenta: las abiertas antes de
+        activar la verificación nunca pasaron por un código (incluida una que
+        alguien pudiera tener con la contraseña robada)."""
+        if self._two_factor is None:
+            raise TwoFactorNotEnabledError()
+        codes = await self._two_factor.confirm_enrollment(
+            session.user, code, session_verified=session.two_factor_verified
+        )
+        await self._sessions.revoke_all_for_user(session.user.id)
+        tokens = await self._issue_tokens(session.user, two_factor_verified=True)
+        return tokens, codes
 
     async def update_full_name(self, user_id: UUID, full_name: str) -> User:
         """Cambia el nombre del usuario autenticado.
@@ -526,7 +654,33 @@ class IdentityService:
             await self._send_welcome_email(user)
         await self._verification_tokens.mark_used(verification_token.id)
 
-    async def _issue_tokens(self, user: User) -> TokenPair:
+    async def _issue_tokens_or_challenge(
+        self, user: User
+    ) -> TokenPair | TwoFactorChallengeIssued:
+        """Login ya validado (contraseña o Google): un admin con la
+        verificación activa recibe un desafío en vez de la sesión. Un admin
+        sin activarla entra igual, con una sesión que sólo le deja activarla
+        (ver `resolve_session`): así nadie queda afuera al prenderla."""
+        enabled = (
+            self._two_factor is not None
+            and TwoFactorService.applies_to(user)
+            and await self._two_factor.is_enabled(user.id)
+        )
+        if enabled and self._two_factor is not None:
+            return await self._two_factor.issue_challenge(user)
+        pair = await self._issue_tokens(user)
+        # La regla de qué puede hacer una sesión admin vive en `admin_gate`: un
+        # admin sin la verificación activada recibe una sesión que sólo sirve
+        # para activarla, y el frontend lo sabe desde el login.
+        if (
+            self._two_factor is not None
+            and admin_gate(user, enabled=enabled, session_verified=False)
+            is AdminGate.SETUP_REQUIRED
+        ):
+            return replace(pair, two_factor_setup_required=True)
+        return pair
+
+    async def _issue_tokens(self, user: User, *, two_factor_verified: bool = False) -> TokenPair:
         """Emite un par de tokens y persiste la sesión del refresh (ADR-0002)."""
         jti = str(uuid4())
         expires_at = datetime.now(timezone.utc) + timedelta(
@@ -535,16 +689,23 @@ class IdentityService:
         await self._sessions.add(
             RefreshSession(user_id=user.id, jti=jti, expires_at=expires_at)
         )
-        claims = {"role": user.role.value}
+        claims: dict[str, object] = {"role": user.role.value}
+        refresh_claims: dict[str, object] = {}
+        if two_factor_verified:
+            claims[TWO_FACTOR_CLAIM] = True
+            refresh_claims[TWO_FACTOR_CLAIM] = True
         return TokenPair(
             access_token=create_access_token(str(user.id), extra_claims=claims),
-            refresh_token=create_refresh_token(str(user.id), jti=jti),
+            refresh_token=create_refresh_token(
+                str(user.id), jti=jti, extra_claims=refresh_claims
+            ),
             user=user,
         )
 
     @staticmethod
-    def _decode_refresh(refresh_token: str) -> str:
-        """Decodifica un refresh token y devuelve su `jti`, o lanza InvalidTokenError."""
+    def _decode_refresh(refresh_token: str) -> dict:
+        """Decodifica un refresh token y devuelve su payload (con `jti`), o
+        lanza InvalidTokenError."""
         try:
             payload = decode_token(refresh_token)
         except jwt.PyJWTError as exc:
@@ -553,10 +714,9 @@ class IdentityService:
         if payload.get("type") != REFRESH_TOKEN:
             raise InvalidTokenError()
 
-        jti = payload.get("jti")
-        if not jti:
+        if not payload.get("jti"):
             raise InvalidTokenError()
-        return jti
+        return payload
 
 
 def _hash_token(raw_token: str) -> str:
@@ -576,7 +736,7 @@ async def _google_local_password() -> str:
     un secreto aleatorio de 32 bytes que nunca se persiste ni se revela.
     Nadie puede loguearse con contraseña porque nadie conoce el secreto —
     el efecto es el mismo que "sin contraseña", sin tocar el esquema.
-    El usuario puede pedir "Olvidé mi contraseña" más adelante y setear una
+    El usuario puede pedir "¿Olvidaste tu contraseña?" más adelante y setear una
     propia sin cambios adicionales (el flujo de reset ya no le importa el
     hash anterior). Ver docs/reference/ACCESO_MODERNO.md.
     """

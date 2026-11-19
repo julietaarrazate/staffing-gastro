@@ -2,11 +2,13 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Suspense } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import NotificationBell from "@/components/NotificationBell";
 import Logo from "@/components/Logo";
 import { cn } from "@/lib/cn";
+import { loginHref, nextDeCabecera, registerHref, safeNext } from "@/lib/safe-next";
 
 /**
  * Link del header de escritorio, con estado activo.
@@ -45,8 +47,38 @@ function NavLink({
   );
 }
 
+/** «Ingresar» y «Crear cuenta» de la cabecera: vuelven a la pantalla en la que
+ * estaba la persona, pero sólo en las pantallas que sí vuelven
+ * (`nextDeCabecera`). Entre `/login` y `/register` se pasa el `next` que ya
+ * traían (validado: viene de la dirección). `Suspense` porque lee la query. */
+function AuthLinks({ next }: { next: string | null }) {
+  const pathname = usePathname();
+  return (
+    <>
+      <AuthLink href={loginHref({ next })} active={pathname === "/login"}>
+        Ingresar
+      </AuthLink>
+      <AuthLink href={registerHref({ next })} active={pathname === "/register"} outlined>
+        Crear cuenta
+      </AuthLink>
+    </>
+  );
+}
+
+function AuthLinksConVuelta() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  let next: string | null;
+  if (pathname === "/login" || pathname === "/register") {
+    next = safeNext(searchParams.get("next"));
+  } else {
+    next = nextDeCabecera(pathname, searchParams.toString());
+  }
+  return <AuthLinks next={next} />;
+}
+
 export default function Navbar() {
-  const { user, logout, loading } = useAuth();
+  const { user, logout, loading, reconnecting, twoFactorSetupPending } = useAuth();
   const pathname = usePathname();
 
   // El onboarding es una pantalla de fondo ink con su propio logo: el header
@@ -54,17 +86,21 @@ export default function Navbar() {
   if (pathname === "/bienvenida") return null;
   // La landing (visitante sin sesión) lleva su propio encabezado
   // (components/landing/LandingHeader.tsx). Con sesión, "/" redirige a la home del rol y este header sigue apareciendo.
-  if (pathname === "/" && !user) return null;
+  // Con una sesión guardada que todavía no se pudo confirmar tampoco va la de
+  // visitante: se ve este header, en su estado neutro.
+  if (pathname === "/" && !user && !reconnecting) return null;
   // /historia (la landing anterior, guardada para grabar reels) trae su
   // propio encabezado, con o sin sesión.
   if (pathname === "/historia") return null;
+  // La encuesta para locales es una pantalla propia, con su cielo y sin barras.
+  if (pathname === "/encuesta") return null;
 
   return (
     // `safe-top`: con `viewport-fit=cover` (layout raíz) la página usa el alto
     // real de la pantalla, así que en PWA instalada el header arrancaría
     // DEBAJO de la barra de estado / notch. El padding del inset lo baja a la
     // zona visible, como cualquier app nativa.
-    <header className="safe-top sticky top-0 z-40 border-b border-line bg-chrome backdrop-blur-xl backdrop-saturate-150">
+    <header className="safe-top sticky top-0 z-40 border-b border-line bg-chrome backdrop-blur-xl backdrop-saturate-150 print:hidden">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <Link href="/" aria-label="Inicio">
           <Logo />
@@ -73,15 +109,16 @@ export default function Navbar() {
           {!loading && user?.role === "worker" && (
             <>
               <NavLink href="/feed">Turnos</NavLink>
+              <NavLink href="/buscar">Buscar</NavLink>
               <NavLink href="/map">Mapa</NavLink>
-              <NavLink href="/my-shifts">Mis turnos</NavLink>
+              <NavLink href="/my-shifts">Matches</NavLink>
               <NavLink href="/chats">Mensajes</NavLink>
               <NavLink href="/profile">Mi perfil</NavLink>
             </>
           )}
           {!loading && user?.role === "employer" && (
             <>
-              <NavLink href="/shifts">Mis turnos</NavLink>
+              <NavLink href="/shifts">Panel</NavLink>
               <NavLink href="/search">Buscar</NavLink>
               <NavLink href="/favorites">Favoritos</NavLink>
               <NavLink href="/chats">Mensajes</NavLink>
@@ -89,7 +126,7 @@ export default function Navbar() {
               <NavLink href="/profile">Mi comercio</NavLink>
             </>
           )}
-          {!loading && user?.role === "admin" && (
+          {!loading && user?.role === "admin" && !twoFactorSetupPending && (
             <>
               {/* `replace` como todos: era el ÚNICO link de sección sin él,
                   aunque la barra inferior sí navega a `/admin` con replace.
@@ -101,7 +138,7 @@ export default function Navbar() {
               <NavLink href="/search">Buscar</NavLink>
             </>
           )}
-          {!loading && user && <NotificationBell />}
+          {!loading && user && !twoFactorSetupPending && <NotificationBell />}
           {/* Sólo "Salir", sin el nombre: con el nombre completo del comercio
               ("Salir (Parrilla y Vermutería Don Julián)") el header no entraba
               en una tablet y los links pasaban a dos líneas hasta los ~1000px.
@@ -117,19 +154,24 @@ export default function Navbar() {
               Salir
             </button>
           )}
-          {!loading && !user && (
+          {/* Hay una sesión guardada y el servidor todavía no contestó (U114):
+              ni los links de la cuenta ni «Ingresar», que haría creer que la
+              sesión se perdió. `AuthProvider` reintenta solo. */}
+          {!loading && !user && reconnecting && (
+            <span role="status" className="whitespace-nowrap text-ink/60">
+              Reconectando…
+            </span>
+          )}
+          {!loading && !user && !reconnecting && (
             <>
               {/* El de la pantalla en la que estás queda marcado (celeste de
                   marca), el otro en contorno. Antes "Crear cuenta" iba
                   siempre en ámbar: en /login parecía el elegido e "Ingresar"
                   quedaba en blanco (Julieta, 2026-10-13). Sin ámbar acá: el
                   ámbar de la pantalla es su botón principal. */}
-              <AuthLink href="/login" active={pathname === "/login"}>
-                Ingresar
-              </AuthLink>
-              <AuthLink href="/register" active={pathname === "/register"} outlined>
-                Crear cuenta
-              </AuthLink>
+              <Suspense fallback={<AuthLinks next={null} />}>
+                <AuthLinksConVuelta />
+              </Suspense>
             </>
           )}
         </nav>

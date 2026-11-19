@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { circlePolygonCoordinates, haversineKm } from "./geo";
+import { boundsOf, circlePolygonCoordinates, haversineKm } from "./geo";
 
 describe("haversineKm", () => {
   it("es 0 para el mismo punto", () => {
@@ -34,5 +34,25 @@ describe("circlePolygonCoordinates", () => {
     const [firstLng, firstLat] = coords[0];
     expect(firstLat).toBeCloseTo(lat, 10);
     expect(firstLng).toBeGreaterThan(lng);
+  });
+});
+
+describe("boundsOf", () => {
+  it("abarca los dos puntos en [lng, lat]", () => {
+    expect(
+      boundsOf([
+        [-34.6, -58.4],
+        [-34.7, -58.3],
+      ])
+    ).toEqual([
+      [-58.4, -34.7],
+      [-58.3, -34.6],
+    ]);
+  });
+  it("con un solo punto la caja es ese punto", () => {
+    expect(boundsOf([[-34.6, -58.4]])).toEqual([
+      [-58.4, -34.6],
+      [-58.4, -34.6],
+    ]);
   });
 });
