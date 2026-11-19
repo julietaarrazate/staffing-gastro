@@ -81,11 +81,19 @@ class EvidenceFileDeletionRepository(ABC):
 
     @abstractmethod
     async def next_attempt_at(self) -> datetime | None:
-        """El `next_attempt_at` más temprano de la cola, o None si está vacía."""
+        """El `next_attempt_at` más temprano de los pendientes, o None si no
+        queda ninguno."""
 
     @abstractmethod
-    async def remove(self, deletion_id: UUID) -> None:
-        """El storage confirmó el borrado: se olvida la referencia."""
+    async def mark_deleted(self, deletion_id: UUID, now: datetime) -> None:
+        """El storage confirmó el borrado: el pedido sale de la cola, pero la
+        fila queda como constancia (`deleted_at`). Así se sabe que ese
+        archivo ya se mandó a borrar y nadie lo puede volver a poner (un
+        formulario viejo con un CV que la persona ya cambió, 2026-11-19)."""
+
+    @abstractmethod
+    async def was_requested(self, public_id: str) -> bool:
+        """¿Ese archivo ya se mandó a borrar (pendiente o ya borrado)?"""
 
     @abstractmethod
     async def save_failure(self, deletion: EvidenceFileDeletion) -> None:

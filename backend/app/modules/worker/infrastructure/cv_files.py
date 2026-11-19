@@ -18,7 +18,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.cloudinary import is_cv_upload_of, parse_cloudinary_url, private_download_url
 from app.modules.verification.domain.value_objects import EvidenceFile
-from app.modules.verification.infrastructure.file_cleanup_job import queue_file_deletions
+from app.modules.verification.infrastructure.file_cleanup_job import (
+    file_deletion_requested,
+    queue_file_deletions,
+)
 from app.modules.worker.domain.repositories import CvFileDeletionQueue, CvFileStorage
 from app.modules.worker.domain.value_objects import CvFile
 
@@ -73,3 +76,6 @@ class QueuedCvFileDeletion(CvFileDeletionQueue):
             ],
         )
         self._after_response(ids)
+
+    async def was_released(self, file: CvFile) -> bool:
+        return await file_deletion_requested(self._session, file.public_id)

@@ -31,6 +31,7 @@ from app.modules.worker.application.services import WorkerProfileService
 from app.modules.worker.domain.entities import WorkerProfile
 from app.modules.worker.domain.exceptions import (
     CvFileNotAcceptedError,
+    CvFileReleasedError,
     CvNotFoundError,
     WorkerProfileAlreadyExistsError,
     WorkerProfileNotFoundError,
@@ -58,6 +59,13 @@ def _to_data(payload: WorkerProfileInput) -> WorkerProfileData:
 _CV_NOT_ACCEPTED = HTTPException(
     status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
     detail="No pudimos guardar ese CV. Subilo de nuevo.",
+)
+_CV_RELEASED = HTTPException(
+    status_code=status.HTTP_409_CONFLICT,
+    detail=(
+        "Ese CV ya lo cambiaste o lo sacaste desde otro lado. "
+        "Volvé a abrir tu perfil para ver el que quedó."
+    ),
 )
 
 
@@ -91,6 +99,8 @@ async def create_my_profile(
         ) from exc
     except CvFileNotAcceptedError as exc:
         raise _CV_NOT_ACCEPTED from exc
+    except CvFileReleasedError as exc:
+        raise _CV_RELEASED from exc
     return await _to_response(profile, users, verification)
 
 
@@ -132,6 +142,8 @@ async def update_my_profile(
         ) from exc
     except CvFileNotAcceptedError as exc:
         raise _CV_NOT_ACCEPTED from exc
+    except CvFileReleasedError as exc:
+        raise _CV_RELEASED from exc
     return await _to_response(profile, users, verification)
 
 

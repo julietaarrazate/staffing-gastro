@@ -8,7 +8,7 @@ manda a borrar a `identity_evidence_file_deletions` (ADR-0021).
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -253,7 +253,10 @@ class SqlAlchemyEvidenceFileDeletionRepository(EvidenceFileDeletionRepository):
     ) -> list[EvidenceFileDeletion]:
         if ids is not None and not ids:
             return []
-        conditions = [EvidenceFileDeletionModel.next_attempt_at <= now]
+        conditions = [
+            EvidenceFileDeletionModel.deleted_at.is_(None),
+            EvidenceFileDeletionModel.next_attempt_at <= now,
+        ]
         if ids is not None:
             conditions.append(EvidenceFileDeletionModel.id.in_(ids))
         stmt = (
@@ -267,17 +270,25 @@ class SqlAlchemyEvidenceFileDeletionRepository(EvidenceFileDeletionRepository):
 
     async def next_attempt_at(self) -> datetime | None:
         result = await self._session.execute(
-            select(func.min(EvidenceFileDeletionModel.next_attempt_at))
+            select(func.min(EvidenceFileDeletionModel.next_attempt_at)).where(
+                EvidenceFileDeletionModel.deleted_at.is_(None)
+            )
         )
         return result.scalar_one_or_none()
 
-    async def remove(self, deletion_id: UUID) -> None:
+    async def mark_deleted(self, deletion_id: UUID, now: datetime) -> None:
         await self._session.execute(
-            delete(EvidenceFileDeletionModel).where(
-                EvidenceFileDeletionModel.id == deletion_id
-            )
+            update(EvidenceFileDeletionModel)
+            .where(EvidenceFileDeletionModel.id == deletion_id)
+            .values(deleted_at=now, last_error=None)
         )
         await self._session.commit()
+
+    async def was_requested(self, public_id: str) -> bool:
+        stmt = select(EvidenceFileDeletionModel.id).where(
+            EvidenceFileDeletionModel.public_id == public_id
+        )
+        return (await self._session.execute(stmt.limit(1))).first() is not None
 
     async def save_failure(self, deletion: EvidenceFileDeletion) -> None:
         model = await self._session.get(EvidenceFileDeletionModel, deletion.id)

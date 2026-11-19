@@ -111,7 +111,11 @@ class WorkerProfile:
         saca, y devuelve el archivo subido que dejó de usar, para que se
         borre del storage (ADR-0021, actualización 2026-11-19). Si el archivo
         sigue siendo el mismo, no devuelve nada."""
-        released = self.cv_file if self.cv_file not in (None, file) else None
+        released = (
+            self.cv_file
+            if self.cv_file is not None and not self.cv_file.same_file(file)
+            else None
+        )
         self.cv_file = file
         self.cv_url = None if file is not None else (url or None)
         self.cv_filename = filename if self.has_cv else None

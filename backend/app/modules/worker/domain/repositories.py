@@ -161,3 +161,8 @@ class CvFileDeletionQueue(ABC):
         """El pedido entra en la misma transacción que el perfil: se confirma
         con el próximo commit del repositorio (si el perfil no se guarda, el
         archivo no se borra) y el borrado corre después de responder."""
+
+    @abstractmethod
+    async def was_released(self, file: CvFile) -> bool:
+        """¿Ese archivo ya se mandó a borrar (pendiente o ya borrado)? Un
+        archivo así no vuelve a entrar a un perfil."""

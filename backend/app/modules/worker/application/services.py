@@ -12,6 +12,7 @@ from app.modules.worker.application.dtos import WorkerProfileData
 from app.modules.worker.domain.entities import WorkerProfile
 from app.modules.worker.domain.exceptions import (
     CvFileNotAcceptedError,
+    CvFileReleasedError,
     CvNotFoundError,
     WorkerProfileAlreadyExistsError,
     WorkerProfileNotFoundError,
@@ -21,7 +22,7 @@ from app.modules.worker.domain.repositories import (
     CvFileStorage,
     WorkerProfileRepository,
 )
-from app.modules.worker.domain.value_objects import CV_PRIVATE_DELIVERY, CvFile
+from app.modules.worker.domain.value_objects import CV_PROTECTED_DELIVERY, CvFile
 
 # Un turno "ganado" es uno ya trabajado, cuente o no todavía como "cobrado"
 # en el sistema — mismo criterio que `shifts_together` en
@@ -83,7 +84,7 @@ class WorkerProfileService:
 
         profile = WorkerProfile(user_id=user_id)
         _apply(profile, data)
-        self._set_cv(profile, data)
+        await self._set_cv(profile, data)
         return await self._profiles.add(profile)
 
     async def update_profile(
@@ -95,12 +96,14 @@ class WorkerProfileService:
         if profile is None:
             raise WorkerProfileNotFoundError(str(user_id))
         _apply(profile, data)
-        released = self._set_cv(profile, data)
+        released = await self._set_cv(profile, data)
         if released is not None and self._cv_deletions is not None:
             await self._cv_deletions.enqueue([released])
         return await self._profiles.update(profile)
 
-    def _set_cv(self, profile: WorkerProfile, data: WorkerProfileData) -> CvFile | None:
+    async def _set_cv(
+        self, profile: WorkerProfile, data: WorkerProfileData
+    ) -> CvFile | None:
         """Pone el CV pedido y devuelve el archivo subido que dejó de usar.
 
         Un CV viejo todavía público (`cv_url` de Cloudinary, de antes del
@@ -108,10 +111,10 @@ class WorkerProfileService:
         saber con certeza que sea un CV (podría ser una foto pegada como
         link). Lo borra `scripts/privatize_worker_cvs.py`, que mira la
         carpeta."""
-        file, url, filename = self._resolve_cv(profile, data)
+        file, url, filename = await self._resolve_cv(profile, data)
         return profile.change_cv(file, url, filename)
 
-    def _resolve_cv(
+    async def _resolve_cv(
         self, profile: WorkerProfile, data: WorkerProfileData
     ) -> tuple[CvFile | None, str | None, str | None]:
         file, url, filename = data.cv_file, data.cv_url or None, data.cv_filename
@@ -119,24 +122,34 @@ class WorkerProfileService:
             stored = self._cv_files.file_from_url(url) if self._cv_files else None
             if stored is not None:
                 # Un archivo de Cloudinary no se guarda como link pegado.
-                # Privado es lo que manda una versión vieja de la app después
+                # Protegido es lo que manda una versión vieja de la app después
                 # de subir el CV: se toma como archivo. Público ya no se acepta.
-                if stored.delivery_type != CV_PRIVATE_DELIVERY:
+                if stored.delivery_type != CV_PROTECTED_DELIVERY:
                     raise CvFileNotAcceptedError(url)
                 file, url = stored, None
         if file is None and not url and data.keep_cv_file:
             file = profile.cv_file
             filename = filename or profile.cv_filename
-        if file is not None and file != profile.cv_file:
-            # Uno nuevo: tiene que ser privado y de esta cuenta. Si no, quien
+        if file is not None and file.same_file(profile.cv_file):
+            # El mismo archivo: queda la referencia guardada (el formato que
+            # mande el pedido no cambia qué archivo es).
+            file = profile.cv_file
+        elif file is not None:
+            # Uno nuevo: tiene que ser protegido y de esta cuenta. Si no, quien
             # vio el link de otro (y con él el nombre del archivo) se lo podía
             # poner en su perfil y pedir links para siempre, o hacerlo borrar.
             if (
-                file.delivery_type != CV_PRIVATE_DELIVERY
+                file.delivery_type != CV_PROTECTED_DELIVERY
                 or self._cv_files is None
                 or not self._cv_files.was_uploaded_by(file, profile.user_id)
             ):
                 raise CvFileNotAcceptedError(file.public_id)
+            # Y no uno que ya se mandó a borrar: es un formulario abierto
+            # desde antes de que la persona lo cambiara o lo sacara. Ponerlo
+            # dejaría el perfil apuntando a un archivo borrado (y mandaría a
+            # borrar el CV que está).
+            if self._cv_deletions is not None and await self._cv_deletions.was_released(file):
+                raise CvFileReleasedError(file.public_id)
         return file, url, filename
 
     def cv_link(

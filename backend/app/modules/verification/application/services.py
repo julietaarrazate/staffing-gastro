@@ -281,8 +281,8 @@ class VerificationService:
 
 class EvidenceFileCleaner:
     """Vacía la cola de borrado: borra cada archivo del storage y, recién
-    cuando el storage confirma (o dice que ya no existe), olvida la
-    referencia (ADR-0021 «Borrado al decidir»).
+    cuando el storage confirma (o dice que ya no existe), lo marca como
+    borrado (ADR-0021 «Borrado al decidir»; la fila queda como constancia).
 
     Corre después de responder la decisión (sólo los ids que dejó esa
     decisión) y en el scheduler (todos los que ya toca reintentar). Que dos
@@ -320,7 +320,7 @@ class EvidenceFileCleaner:
                     deletion.last_error,
                 )
                 continue
-            await self._deletions.remove(deletion.id)
+            await self._deletions.mark_deleted(deletion.id, now)
             deleted += 1
         return FileCleanupReport(
             deleted=deleted,

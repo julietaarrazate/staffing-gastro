@@ -17,16 +17,16 @@ from app.modules.worker.domain.value_objects import (
 
 
 class CvFileInput(BaseModel):
-    """El CV subido: lo que devuelve Cloudinary al subir un archivo privado
-    (ADR-0021, actualización 2026-11-19). No es una URL. Que el archivo sea
-    de quien lo pone lo decide el caso de uso (la marca del nombre), no este
-    patrón: acá sólo se acota la forma, y entra también la referencia de un
-    CV viejo que el script ya pasó a privado."""
+    """El CV subido: lo que devuelve Cloudinary al subir un archivo protegido
+    (`authenticated`; ADR-0021, actualización 2026-11-19). No es una URL.
+    Que el archivo sea de quien lo pone lo decide el caso de uso (la marca
+    del nombre), no este patrón: acá sólo se acota la forma, y entra también
+    la referencia de un CV viejo que el script ya pasó a protegido."""
 
     public_id: str = Field(pattern=r"^[A-Za-z0-9_./-]{1,255}$", max_length=255)
     resource_type: Literal["image", "raw"] = "image"
     format: str = Field(default="", pattern=r"^[a-z0-9]{0,10}$")
-    type: Literal["private"] = "private"
+    type: Literal["authenticated"] = "authenticated"
 
     def to_domain(self) -> CvFile:
         return CvFile(

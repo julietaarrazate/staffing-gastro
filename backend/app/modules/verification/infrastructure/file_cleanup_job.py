@@ -54,6 +54,13 @@ def queue_file_deletions(
     return [deletion.id for deletion in deletions]
 
 
+async def file_deletion_requested(session: AsyncSession, public_id: str) -> bool:
+    """¿Ese archivo ya se mandó a borrar, esté pendiente o ya borrado? Lo usa
+    el perfil del trabajador para no volver a aceptar un CV que la persona
+    ya cambió o sacó (un formulario abierto desde antes)."""
+    return await SqlAlchemyEvidenceFileDeletionRepository(session).was_requested(public_id)
+
+
 async def _run(
     sessions: async_sessionmaker[AsyncSession],
     storage: EvidenceFileStorage,

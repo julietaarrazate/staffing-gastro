@@ -10,6 +10,7 @@ from app.modules.worker.domain.entities import WorkerProfile
 from app.modules.worker.domain.repositories import WorkerEngagementStats, WorkerProfileRepository
 from app.modules.worker.domain.rules import compute_badges, compute_level
 from app.modules.worker.domain.value_objects import (
+    CV_PROTECTED_DELIVERY,
     CvFile,
     GamificationLevel,
     WorkerBadge,
@@ -25,7 +26,7 @@ def _cv_file(model: WorkerProfileModel) -> CvFile | None:
         public_id=model.cv_public_id,
         resource_type=model.cv_resource_type or "image",
         format=model.cv_format or "",
-        delivery_type=model.cv_delivery_type or "private",
+        delivery_type=model.cv_delivery_type or CV_PROTECTED_DELIVERY,
     )
 
 
