@@ -551,6 +551,9 @@ async def test_rechazar_una_asignacion_directa_no_le_abre_el_cv_al_comercio(clie
 
     assert seen.status_code == 200, seen.text
     assert seen.json()["cv_url"] is None
+    assert seen.json()["cv_kind"] is None
+    link = await client.get(f"/api/v1/workers/{ana_id}/cv-link", headers=employer)
+    assert link.status_code == 404
 
 
 @pytest.mark.asyncio

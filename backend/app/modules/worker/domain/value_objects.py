@@ -1,5 +1,6 @@
 """Objetos de valor del dominio de perfil del trabajador."""
 
+from dataclasses import dataclass
 from enum import Enum
 
 
@@ -56,3 +57,25 @@ class GamificationLevel(str, Enum):
     PLATA = "plata"
     ORO = "oro"
     PLATINO = "platino"
+
+
+# Tipo de entrega del CV subido desde el 2026-11-19 (ADR-0021): el original
+# sólo se baja con un link firmado que vence.
+CV_PRIVATE_DELIVERY = "private"
+
+
+@dataclass(frozen=True)
+class CvFile:
+    """Dónde está guardado el CV que subió el trabajador (ADR-0021,
+    actualización 2026-11-19: el CV también).
+
+    No es una URL: es la referencia al archivo **privado** en el storage
+    (`public_id`, tipo de recurso, formato y tipo de entrega). El CV trae
+    teléfono, email y domicilio: para verlo hay que pedir un link que vence
+    (`CvFileStorage.link_for`), y sólo quien hoy puede verlo lo consigue. Un
+    link visto una vez deja de servir a los pocos minutos."""
+
+    public_id: str
+    resource_type: str
+    format: str
+    delivery_type: str = CV_PRIVATE_DELIVERY

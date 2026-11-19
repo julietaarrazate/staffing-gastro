@@ -117,18 +117,15 @@ async def test_cv_only_for_employers_linked_to_the_worker(client: AsyncClient):
     other_worker, _ = await _worker_with_profile(client, "priv_cv_otro@staffya.com")
 
     for headers in (linked, stranger, other_worker):
-        body = (await client.get(f"/api/v1/workers/{profile_id}", headers=headers)).json()
-        assert body["cv_url"] is None
+        assert await _cv_seen_by(client, profile_id, headers) is None
 
     shift_id = await _published_shift_near_start(client, linked)
     applied = await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
     assert applied.status_code in (200, 201)
 
-    seen = (await client.get(f"/api/v1/workers/{profile_id}", headers=linked)).json()
-    assert seen["cv_url"] == cv
+    assert await _cv_seen_by(client, profile_id, linked) == cv
     for headers in (stranger, other_worker):
-        body = (await client.get(f"/api/v1/workers/{profile_id}", headers=headers)).json()
-        assert body["cv_url"] is None
+        assert await _cv_seen_by(client, profile_id, headers) is None
     mine = (await client.get(f"/api/v1/workers/{profile_id}", headers=worker)).json()
     assert mine["cv_url"] == cv
 
@@ -146,9 +143,18 @@ async def _worker_with_cv(client: AsyncClient, email: str) -> tuple[dict, str, s
 
 
 async def _cv_seen_by(client: AsyncClient, profile_id: str, headers: dict) -> str | None:
+    """Lo que esa sesión puede abrir del CV. Desde el 2026-11-19 (ADR-0021)
+    el perfil ajeno no trae una URL: dice qué CV hay (`cv_kind`) y el link
+    sale de `cv-link`, que da 404 a quien no lo puede ver."""
     response = await client.get(f"/api/v1/workers/{profile_id}", headers=headers)
     assert response.status_code == 200
-    return response.json()["cv_url"]
+    link = await client.get(f"/api/v1/workers/{profile_id}/cv-link", headers=headers)
+    if link.status_code == 404:
+        assert response.json()["cv_kind"] is None
+        return None
+    assert link.status_code == 200
+    assert response.json()["cv_kind"] == "link"
+    return link.json()["url"]
 
 
 async def test_direct_assignment_without_confirmation_does_not_unlock_cv(

@@ -242,6 +242,12 @@ class SqlAlchemyEvidenceFileDeletionRepository(EvidenceFileDeletionRepository):
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
+    def add_pending(self, deletions: list[EvidenceFileDeletion]) -> None:
+        """Suma pedidos a la cola SIN commitear: entran con el próximo commit
+        de la sesión, el de quien los pidió (el CV del trabajador, ADR-0021
+        actualización 2026-11-19). Si eso no se guarda, no se borra nada."""
+        self._session.add_all(_deletion_to_model(d) for d in deletions)
+
     async def list_due(
         self, now: datetime, ids: list[UUID] | None = None, limit: int = 100
     ) -> list[EvidenceFileDeletion]:

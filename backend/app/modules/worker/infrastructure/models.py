@@ -40,8 +40,16 @@ class WorkerProfileModel(Base):
     years_experience: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     languages: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
     certifications: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    # Link pegado a mano, o la URL pública de un CV de antes del 2026-11-19
+    # (hasta correr `scripts/privatize_worker_cvs.py`).
     cv_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     cv_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # El CV subido, privado (ADR-0021, actualización 2026-11-19; migración
+    # 0060): la referencia al archivo, no una URL. Se ve con un link que vence.
+    cv_public_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    cv_resource_type: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    cv_format: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    cv_delivery_type: Mapped[str | None] = mapped_column(String(20), nullable=True)
     is_available: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     # --- "Disponible ahora" (ADR-0014) ---

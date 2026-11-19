@@ -11,3 +11,14 @@ class WorkerProfileAlreadyExistsError(WorkerError):
 
 class WorkerProfileNotFoundError(WorkerError):
     """No se encontró el perfil de trabajador solicitado."""
+
+
+class CvNotFoundError(WorkerError):
+    """El perfil no tiene CV (o quien pregunta no lo puede ver: se responde
+    igual, para no revelar qué existe)."""
+
+
+class CvFileNotAcceptedError(WorkerError):
+    """El archivo que se quiere poner como CV no lo subió esta cuenta con la
+    firma del CV, o es un link público de un archivo de Cloudinary (ADR-0021,
+    actualización 2026-11-19)."""

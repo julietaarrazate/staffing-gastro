@@ -2,16 +2,59 @@
 
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 from app.core.url import HttpsUrl
 from app.modules.worker.domain.value_objects import (
+    CvFile,
     GamificationLevel,
     WorkerBadge,
     WorkerSkill,
 )
+
+
+class CvFileInput(BaseModel):
+    """El CV subido: lo que devuelve Cloudinary al subir un archivo privado
+    (ADR-0021, actualización 2026-11-19). No es una URL. Que el archivo sea
+    de quien lo pone lo decide el caso de uso (la marca del nombre), no este
+    patrón: acá sólo se acota la forma, y entra también la referencia de un
+    CV viejo que el script ya pasó a privado."""
+
+    public_id: str = Field(pattern=r"^[A-Za-z0-9_./-]{1,255}$", max_length=255)
+    resource_type: Literal["image", "raw"] = "image"
+    format: str = Field(default="", pattern=r"^[a-z0-9]{0,10}$")
+    type: Literal["private"] = "private"
+
+    def to_domain(self) -> CvFile:
+        return CvFile(
+            public_id=self.public_id,
+            resource_type=self.resource_type,
+            format=self.format,
+            delivery_type=self.type,
+        )
+
+
+class CvFileResponse(BaseModel):
+    """La referencia del CV subido. Sólo la ve el dueño, para mandarla de
+    vuelta al guardar el perfil: no abre el archivo por sí sola."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    public_id: str
+    resource_type: str
+    format: str
+    type: str = Field(validation_alias=AliasChoices("delivery_type", "type"))
+
+
+class CvLinkResponse(BaseModel):
+    """Link para ver el CV. Vence en `expires_at` (5 minutos); `null` sólo
+    para un link pegado a mano o un CV viejo todavía público."""
+
+    url: str
+    expires_at: datetime | None = None
 
 
 class WorkerProfileInput(BaseModel):
@@ -27,6 +70,11 @@ class WorkerProfileInput(BaseModel):
     years_experience: int = Field(default=0, ge=0, le=80)
     languages: list[str] = Field(default_factory=list)
     certifications: list[str] = Field(default_factory=list)
+    # El CV subido (privado). Si el pedido trae `cv_url` y no este campo
+    # (una versión vieja de la app), el archivo que ya estaba se conserva.
+    cv_file: CvFileInput | None = None
+    # Un link pegado a mano (Drive, LinkedIn). Un link de un archivo de
+    # Cloudinary ya no entra como link: el CV se sube.
     cv_url: HttpsUrl | None = None
     cv_filename: str | None = Field(default=None, max_length=255)
     is_available: bool = True
@@ -49,8 +97,14 @@ class WorkerProfileResponse(BaseModel):
     years_experience: int
     languages: list[str]
     certifications: list[str]
-    cv_url: str | None
+    # El CV (ADR-0021, actualización 2026-11-19): ninguno de estos campos
+    # abre el archivo. `cv_file` y `cv_url` los ve sólo el dueño; los demás
+    # ven `cv_kind` («file»: subido, «link»: pegado a mano) y piden
+    # `GET /workers/{id}/cv-link`, que da un link que vence.
+    cv_file: CvFileResponse | None = None
+    cv_url: str | None = None
     cv_filename: str | None = None
+    cv_kind: Literal["file", "link"] | None = None
     is_available: bool
     # métricas
     rating: float
