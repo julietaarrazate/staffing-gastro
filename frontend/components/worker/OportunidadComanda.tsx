@@ -49,7 +49,7 @@ export default function OportunidadComanda({
   const hasDirections = shift.latitude != null && shift.longitude != null;
 
   return (
-    <Comanda as="article" data-testid="buscar-card" className="h-full">
+    <Comanda as="article" data-testid="buscar-card" className="comanda-oportunidad h-full">
       <Link
         href={`/turno/${shift.id}`}
         data-testid="opportunity-card-link"
@@ -57,8 +57,9 @@ export default function OportunidadComanda({
         className="absolute inset-0 z-[1] rounded-[inherit]"
       />
       <div className="pointer-events-none relative z-[2] flex h-full flex-col px-4 pb-4 pt-4">
-        {/* Foto de 48 px y 10 de aire en el celular: a 320 px «Recepcionista»
-            en brocha (181 px) no entraba al lado de una foto de 56. */}
+        {/* Foto de 48 px y 10 de aire en el celular; el puesto achica la letra
+            con el ancho de la comanda (`.comanda-oportunidad`): a 320 px y en
+            la grilla de tres columnas «Recepcionista» se partía. */}
         <div className="flex items-start gap-2.5 sm:gap-3">
           {hasPhoto ? (
             // eslint-disable-next-line @next/next/no-img-element -- la optimización la hace Cloudinary (cldThumb)
@@ -82,7 +83,9 @@ export default function OportunidadComanda({
           )}
           <div className="min-w-0 flex-1">
             <h2 className="letra-cartel letra-cartel-puesto break-words">{textoCartel(label)}</h2>
-            {where && <p className="mt-1 text-sm text-ink-soft">{where}</p>}
+            {/* `break-words`: un nombre de comercio sin espacios se salía del
+                papel y ensanchaba la página a 320 px (revisión del 2026-11-19). */}
+            {where && <p className="mt-1 break-words text-sm text-ink-soft">{where}</p>}
           </div>
           <span className="pointer-events-auto shrink-0">
             <SaveShiftButton shiftId={shift.id} />

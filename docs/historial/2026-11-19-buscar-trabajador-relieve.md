@@ -47,8 +47,21 @@ comanda nueva.
 
 - **La comanda y no la lista:** el turno es el mismo objeto en todas las
   pantallas, y se puede postular sin entrar al detalle, como antes.
-- **A 320 px la foto baja a 48 px:** «Recepcionista» en brocha mide 181 px y
-  no entraba al lado de una de 56 (se partía la palabra).
+- **El puesto achica la letra con el ancho de la comanda** (el 8 % del ancho,
+  entre 22 y 30 px; la comanda es contenedor de su propio ancho) y a 320 px la
+  foto baja a 48: «Recepcionista» en brocha no entraba ni a 320 ni en la
+  grilla de tres columnas, y se partía la palabra.
+
+**Revisión independiente** (otro agente; 320, 360, 390 y 1280, claro y
+oscuro, todos los puestos, nombres largos, con y sin foto y coordenadas,
+cargando, error, vacío, postularse con 200 y 409, «No, gracias», guardar,
+compartir y teclado): aprobada con tres arreglos, hechos acá y cubiertos por
+`buscar-relieve.spec.ts`. «Recepcionista» se partía a 320 y en la grilla de
+tres columnas (ahora la letra sigue al ancho de la comanda); un nombre de
+comercio sin espacios se salía del papel y ensanchaba la página a 320
+(`break-words`); y en la grilla las acciones no quedaban todas abajo (el papel
+ahora ocupa todo el alto de la celda). Anotó, de antes, que el subtítulo del
+estado vacío (`EmptyState`, `ink/50`) da unos 3,5 de contraste en claro.
 
 **Queda abierto:** las demás pantallas, en el orden del ítem 0 de `STATUS.md`
 (sigue Buscar del comercio).

@@ -89,3 +89,67 @@ test("a 320 px nada se sale de la pantalla", async ({ page }) => {
   await expect(page.getByTestId("buscar-card")).toHaveCount(2);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
 });
+
+// Arreglos de la revisión del 2026-11-19: «Recepcionista» no se parte (a 320
+// ni en la grilla de tres columnas), un nombre de comercio sin espacios no
+// ensancha la página, y en la grilla las acciones quedan todas abajo.
+async function conTurnos(page: Page, turnos: unknown[]) {
+  await injectSession(page);
+  await skipSplash(page);
+  await blockExternalHosts(page);
+  await page.route("**/api/v1/**", (r) => (r.request().method() === "GET" ? r.fulfill(json([])) : r.continue()));
+  await mockEmptyNotifications(page);
+  await page.route("**/api/v1/auth/me", (r) => r.fulfill(json(WORKER)));
+  await page.route("**/api/v1/shifts/feed*", (r) => r.fulfill(json(turnos)));
+  await page.goto("/buscar");
+  await expect(page.getByTestId("buscar-card").first()).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+}
+
+for (const ancho of [320, 1280]) {
+  test(`a ${ancho} px ningún puesto se parte y nada se sale de la comanda`, async ({ page }) => {
+    await page.setViewportSize({ width: ancho, height: 900 });
+    await conTurnos(page, [
+      turno("r1", "recepcionista", "Hotel Palermo", { company_cover_url: "/landing/bar3.webp" }),
+      turno("r2", "personal_eventos", "Supercalifragilisticoespialidosocomercio", { urgent: true }),
+      turno("r3", "ayudante_cocina", "Bodegón Sur", { latitude: null, longitude: null }),
+    ]);
+    const medidas = await page.getByTestId("buscar-card").evaluateAll((cards) =>
+      cards.map((card) => {
+        const h2 = card.querySelector("h2") as HTMLElement;
+        const r = document.createRange();
+        r.selectNodeContents(h2);
+        const c = card.getBoundingClientRect();
+        return {
+          puesto: (h2.textContent ?? "").trim(),
+          // Un rectángulo por renglón: una palabra partida suma uno de más.
+          renglones: r.getClientRects().length,
+          palabras: (h2.textContent ?? "").trim().split(/\s+/).length,
+          fuera: [...card.querySelectorAll("p, h2, dd, button")].some((el) => el.getBoundingClientRect().right > c.right + 1),
+        };
+      }),
+    );
+    for (const m of medidas) {
+      expect(m.fuera, m.puesto).toBe(false);
+      expect(m.renglones, m.puesto).toBeLessThanOrEqual(m.palabras);
+    }
+    expect(medidas.find((m) => m.puesto === "Recepcionista")?.renglones).toBe(1);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(ancho);
+  });
+}
+
+test("en la grilla de compu, las acciones de una fila quedan a la misma altura", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await conTurnos(page, [
+    turno("g1", "bartender", "Bar Lavalle", { urgent: true, company_verified: true }),
+    turno("g2", "mozo", "Café", { latitude: null, longitude: null }),
+    turno("g3", "personal_eventos", "Salón de Fiestas Los Hermanos del Puerto de Palermo"),
+  ]);
+  const bajos = await page.getByTestId("buscar-card").evaluateAll((cards) =>
+    cards.map((card) => {
+      const boton = [...card.querySelectorAll("button")].find((b) => b.textContent?.includes("Postularme")) as HTMLElement;
+      return Math.round(card.getBoundingClientRect().bottom - boton.getBoundingClientRect().bottom);
+    }),
+  );
+  expect(new Set(bajos).size).toBe(1);
+});
