@@ -1,4 +1,4 @@
-# Identidad por pantalla en la dirección suave: prueba en un lienzo
+# Identidad por pantalla en la dirección suave: prueba en un lienzo (#696)
 
 **Pedido:** Julieta (2026-11-19) volvió a mandar las cuatro referencias del
 cielo y pidió retomar la identidad de cada pantalla: verlas, que no parezcan
