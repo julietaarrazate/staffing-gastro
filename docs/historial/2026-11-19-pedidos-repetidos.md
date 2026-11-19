@@ -1,4 +1,4 @@
-# Pedidos repetidos: reintentos y toques dobles sin errores técnicos
+# Pedidos repetidos: reintentos y toques dobles sin errores técnicos (#667)
 
 **Pedido:** Julieta, a partir de la pasada por clase de error del 2026-11-19
 (CON-01, CON-05, CON-12, CON-14): que reintentar una acción cuya respuesta se
