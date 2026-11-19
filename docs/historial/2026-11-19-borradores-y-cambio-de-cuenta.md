@@ -1,4 +1,4 @@
-# Lo guardado en el navegador va atado a la cuenta, no a la sesión
+# Lo guardado en el navegador va atado a la cuenta, no a la sesión (#672)
 
 **Pedido:** pasada por clase de error del 2026-11-19 (SES-02, SES-03, SES-04, todos menores). Decisión de quien coordina: el borrador de la misma cuenta se conserva cuando la sesión vence o se revoca; lo de la cuenta anterior se limpia cuando entra otra cuenta.
 
