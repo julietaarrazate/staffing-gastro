@@ -173,7 +173,7 @@ Index(
     ShiftModel.created_at,
 )
 
-# Índices parciales (0057): sólo las filas que tienen el dato (unos pocos turnos
+# Índices parciales (0058): sólo las filas que tienen el dato (unos pocos turnos
 # de miles), así que casi no cuestan en cada escritura.
 # - `last_no_show_worker_profile_id`: la ficha de la persona en el admin
 #   (`list_history_by_worker`, un `OR` con `worker_profile_id`) y el

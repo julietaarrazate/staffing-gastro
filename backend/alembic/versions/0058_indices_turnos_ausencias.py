@@ -13,8 +13,8 @@ Los dos índices son parciales (`... IS NOT NULL`): sólo indexan los turnos con
 ausencia, una fracción mínima, así que no encarecen las escrituras comunes.
 Tabla chica hoy: no hace falta `CONCURRENTLY`.
 
-Revision ID: 0057
-Revises: 0056 (cierre automático)
+Revision ID: 0058
+Revises: 0057 (origen del alta)
 """
 
 from collections.abc import Sequence
@@ -23,8 +23,8 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision: str = "0057"
-down_revision: str | None = "0056"
+revision: str = "0058"
+down_revision: str | None = "0057"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
