@@ -1,4 +1,4 @@
-# Pantallas con estado que vence o se cierra: reloj local y relectura (VIE-02, VIE-03, VIE-05, FEC-02)
+# Pantallas con estado que vence o se cierra: reloj local y relectura (VIE-02, VIE-03, VIE-05, FEC-02) (#673)
 
 **Pedido:** pasada por clase de error del 2026-11-19 (estado viejo y fechas). Cuatro hallazgos menores con una misma causa: una pantalla copia un estado del servidor que vence o se cierra y no lo apaga ni lo vuelve a pedir.
 
