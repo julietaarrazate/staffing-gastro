@@ -3,6 +3,7 @@
  * etiquetas, links y exportación a CSV.
  */
 import type { Lead, LeadKind, LeadStatus } from "./types";
+import { toCsv } from "./csv";
 import { normalizeUserLink, safeHttpsUrl } from "./safe-url";
 
 export const LEAD_STATUSES: LeadStatus[] = [
@@ -77,18 +78,10 @@ const CSV_COLUMNS: { header: string; value: (lead: Lead) => string }[] = [
   { header: "Notas", value: (l) => l.notes },
 ];
 
-function csvCell(value: string): string {
-  // Una celda que empieza con = + - @ la ejecuta Excel como fórmula: se
-  // neutraliza con una comilla simple (los datos vienen de un mapa público).
-  const safe = /^[=+\-@]/.test(value) ? `'${value}` : value;
-  return /[",\n;]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
-}
-
-/** CSV con BOM para que Excel abra bien los acentos. */
+/** La lista de comercios en CSV (con BOM: ver `toCsv`). */
 export function leadsToCsv(leads: Lead[]): string {
-  const lines = [
-    CSV_COLUMNS.map((c) => csvCell(c.header)).join(","),
-    ...leads.map((lead) => CSV_COLUMNS.map((c) => csvCell(c.value(lead))).join(",")),
-  ];
-  return `﻿${lines.join("\n")}`;
+  return toCsv(
+    CSV_COLUMNS.map((c) => c.header),
+    leads.map((lead) => CSV_COLUMNS.map((c) => c.value(lead)))
+  );
 }

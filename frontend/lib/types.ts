@@ -738,6 +738,34 @@ export interface PeriodMetrics {
   signups_by_origin?: SignupsByOrigin[];
 }
 
+/** Una semana de la serie M7 (`GET /admin/weekly-metrics`): de lunes a
+ *  domingo en hora argentina, con las mismas definiciones que el período y
+ *  cada turno en la semana en que se publicó. */
+export interface WeekSummary {
+  start: string;
+  end: string;
+  /** Es la semana de hoy: todavía no terminó. */
+  in_progress: boolean;
+  shifts_published: number;
+  shifts_covered: number;
+  covered_pct: number | null;
+  fulfilled: number;
+  fulfilled_pct: number | null;
+  median_minutes_to_cover: number | null;
+  short_notice_covered: number;
+  short_notice_under_10_min_pct: number | null;
+  active_companies: number;
+  companies_with_covered: number;
+  signups_workers: number;
+  signups_companies: number;
+  signups_by_origin: SignupsByOrigin[];
+}
+
+/** Serie semanal M7: de la semana más vieja a la de hoy. */
+export interface WeeklyMetrics {
+  weeks: WeekSummary[];
+}
+
 export interface SubscriptionStats {
   mrr_ars: number | string;
   total_companies: number;

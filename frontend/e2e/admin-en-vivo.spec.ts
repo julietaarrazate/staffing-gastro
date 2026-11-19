@@ -6,6 +6,7 @@ import {
   setTheme,
   skipSplash,
 } from "./mocks";
+import { deContrato } from "./contrato";
 
 /**
  * Pasos 3 y 4 del panel de admin ordenado (2026-10-20): "Turnos en vivo",
@@ -187,6 +188,51 @@ function period(days: number) {
   };
 }
 
+/** Serie semanal M7: cuatro semanas de lunes a lunes (03:00 UTC = 00:00 en
+ *  Argentina), de la más vieja a la de hoy, como la manda la API. Armadas
+ *  sobre la respuesta real del backend (`e2e/contrato`). */
+function weekly() {
+  const lunes = (dia: number) => `2026-10-${String(dia).padStart(2, "0")}T03:00:00.000Z`;
+  const semana = (
+    dia: number,
+    numeros: [number, number, number],
+    altas: { origin: string | null; workers: number; companies: number }[],
+    extra: Record<string, unknown> = {}
+  ) => ({
+    start: lunes(dia),
+    end: lunes(dia + 7),
+    in_progress: false,
+    shifts_published: numeros[0],
+    shifts_covered: numeros[1],
+    covered_pct: numeros[0] ? (numeros[1] / numeros[0]) * 100 : null,
+    fulfilled: numeros[2],
+    fulfilled_pct: numeros[1] ? (numeros[2] / numeros[1]) * 100 : null,
+    median_minutes_to_cover: numeros[1] ? 9 : null,
+    short_notice_covered: 0,
+    short_notice_under_10_min_pct: null,
+    active_companies: numeros[0] ? 3 : 0,
+    companies_with_covered: numeros[1] ? 2 : 0,
+    signups_workers: altas.reduce((n, a) => n + a.workers, 0),
+    signups_companies: altas.reduce((n, a) => n + a.companies, 0),
+    signups_by_origin: altas.map((a) => ({ ...a, total: a.workers + a.companies })),
+    ...extra,
+  });
+  return deContrato("metricas_semanales", {
+    weeks: [
+      semana(5, [0, 0, 0], []),
+      semana(12, [6, 4, 3], [{ origin: "grupo-palermo", workers: 2, companies: 1 }]),
+      semana(19, [8, 6, 6], [
+        { origin: "ig/fundadores", workers: 0, companies: 2 },
+        { origin: "grupo-palermo", workers: 1, companies: 0 },
+      ]),
+      semana(26, [3, 1, 0], [{ origin: "directo", workers: 1, companies: 0 }], {
+        in_progress: true,
+        end: "2026-11-02T03:00:00.000Z",
+      }),
+    ],
+  });
+}
+
 async function mockAdmin(page: Page) {
   await injectSession(page);
   await skipSplash(page);
@@ -213,6 +259,7 @@ async function mockAdmin(page: Page) {
       })
     )
   );
+  await page.route("**/api/v1/admin/weekly-metrics?**", (route) => route.fulfill(json(weekly())));
   await page.route("**/api/v1/admin/period-metrics?**", (route) => {
     const days = Number(new URL(route.request().url()).searchParams.get("period"));
     return route.fulfill(json(period(days)));
@@ -345,7 +392,9 @@ test("Métricas compara el período con el anterior y cambia a 30 días", async 
   await mockAdmin(page);
   await page.goto("/admin/metricas");
 
-  const card = (label: string) => page.getByText(label, { exact: true }).locator("..");
+  // `.first()`: la tarjeta del período; la serie semanal, más abajo, repite
+  // algunos rótulos como encabezado de columna.
+  const card = (label: string) => page.getByText(label, { exact: true }).first().locator("..");
   await expect(card("Turnos publicados")).toContainText("12");
   await expect(card("Turnos publicados")).toContainText("↑ 50 %");
   await expect(card("Turnos publicados")).toContainText("antes 8");
@@ -362,6 +411,48 @@ test("Métricas compara el período con el anterior y cambia a 30 días", async 
   await expect(card("Postulaciones")).toContainText("↑ desde 0");
   await expect(card("Turnos publicados")).toContainText("= igual");
   await expect(page.getByText("Hoy, sin comparación por período.")).toBeVisible();
+});
+
+test("Métricas muestra la serie semana por semana y la baja en CSV", async ({ page }) => {
+  await mockAdmin(page);
+  const pedidos: string[] = [];
+  page.on("request", (r) => {
+    if (r.url().includes("/admin/weekly-metrics")) pedidos.push(new URL(r.url()).search);
+  });
+  await page.goto("/admin/metricas");
+
+  const serie = page.getByTestId("serie-semanal");
+  const tablas = serie.getByRole("table");
+  const semanas = tablas.first();
+  // La más nueva primero, marcada «en curso».
+  await expect(semanas.getByRole("row").nth(1)).toHaveText(/^26\/10\s*en curso\s*3\s*1\s*33%\s*0\s*0%/);
+  await expect(semanas.getByRole("row", { name: /^19\/10/ })).toHaveText(
+    /19\/10\s*8\s*6\s*75%\s*6\s*100%\s*9 min\s*3\s*1\s*2/
+  );
+  await expect(semanas.getByRole("row", { name: /^5\/10/ })).toContainText("—");
+
+  const origenes = tablas.nth(1);
+  await expect(origenes.getByRole("row").first()).toHaveText(/Origen\s*26\/10\s*19\/10\s*12\/10\s*5\/10/);
+  await expect(origenes.getByRole("row", { name: /^grupo-palermo/ })).toHaveText(
+    /grupo-palermo\s*—\s*1 · 0\s*2 · 1\s*—/
+  );
+  await expect(origenes.getByRole("row", { name: /^ig\/fundadores/ })).toHaveText(
+    /ig\/fundadores\s*—\s*0 · 2\s*—\s*—/
+  );
+
+  const descarga = page.waitForEvent("download");
+  await serie.getByRole("button", { name: "CSV" }).click();
+  const archivo = await descarga;
+  expect(archivo.suggestedFilename()).toBe("oido-semanas-desde-2026-10-05.csv");
+  const texto = await (await archivo.createReadStream()).toArray();
+  const csv = Buffer.concat(texto).toString("utf-8").replace(/^\uFEFF/, "").split("\n");
+  expect(csv[0]).toContain("semana,en curso,publicados,cubiertos");
+  expect(csv[0]).toContain("altas grupo-palermo trabajadores,altas grupo-palermo comercios");
+  expect(csv[1].startsWith("2026-10-05,no,0,0,")).toBe(true);
+  expect(csv[4].startsWith("2026-10-26,sí,3,1,33.3,0,0,9,")).toBe(true);
+
+  await serie.getByRole("button", { name: "26 semanas" }).click();
+  await expect.poll(() => pedidos).toEqual(["?weeks=12", "?weeks=26"]);
 });
 
 for (const theme of ["light", "dark"] as const) {

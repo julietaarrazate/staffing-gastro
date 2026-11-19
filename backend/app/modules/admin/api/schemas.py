@@ -317,3 +317,34 @@ class PeriodMetricsResponse(BaseModel):
     current: PeriodSummaryResponse
     previous: PeriodSummaryResponse
     signups_by_origin: list[SignupsByOriginResponse] = []
+
+
+class WeekSummaryResponse(BaseModel):
+    """Una semana de la serie M7: ver `WeekSummary`."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    start: datetime
+    end: datetime
+    in_progress: bool
+    shifts_published: int
+    shifts_covered: int
+    covered_pct: float | None = None
+    fulfilled: int
+    fulfilled_pct: float | None = None
+    median_minutes_to_cover: float | None = None
+    short_notice_covered: int
+    short_notice_under_10_min_pct: float | None = None
+    active_companies: int
+    companies_with_covered: int
+    signups_workers: int
+    signups_companies: int
+    signups_by_origin: list[SignupsByOriginResponse] = []
+
+
+class WeeklyMetricsResponse(BaseModel):
+    """Ver `AdminService.get_weekly_metrics`."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    weeks: list[WeekSummaryResponse]

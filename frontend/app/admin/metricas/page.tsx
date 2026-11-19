@@ -18,6 +18,7 @@ import { Badge, Card, ErrorBanner, SegmentedControl } from "@/components/ui";
 import { WalletIcon } from "@/components/icons";
 import { periodDelta } from "@/components/admin/live";
 import AltasPorOrigen from "@/components/admin/AltasPorOrigen";
+import SerieSemanal from "@/components/admin/SerieSemanal";
 import { formatArs, plural } from "@/lib/format";
 import {
   AdminHeading,
@@ -214,6 +215,7 @@ export default function AdminMetricsPage() {
       )}
 
       <PeriodSection token={token} />
+      <SerieSemanal token={token} />
 
       <div className="mt-8">
         <SectionLabel>Usuarios</SectionLabel>

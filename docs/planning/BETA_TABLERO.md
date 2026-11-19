@@ -657,7 +657,7 @@ Los KRs del trimestre (objetivo 1: «demostrar que Oído funciona con locales
 reales») alimentan la lámina de tracción del deck. Se revisó qué registra hoy
 la app y qué muestra `/admin/metricas`. Son ítems para hacer antes de abrir la
 beta, porque lo que no se mide desde el primer turno no se recupera después.
-**M1 a M6 están hechos (2026-11-17); M7 sigue abierto.** La columna
+**M1 a M6 están hechos (2026-11-17); M7, el 2026-11-19.** La columna
 «Qué hay hoy» describe cómo estaba antes de este cambio.
 
 | KR | Qué hay hoy | Qué falta | Estado |
@@ -668,7 +668,20 @@ beta, porque lo que no se mide desde el primer turno no se recupera después.
 | Tiempo de publicar a cubrir | Promedio y % en menos de 10 min por 7/30 días, medido de `published_at` a `first_assigned_at` | M4 · (a) medirlo de `published_at` a la **primera confirmación** (depende de M3); (b) separar los turnos para hoy o urgentes de los publicados con días de anticipación: uno publicado el lunes para el sábado no puede «cubrirse en 10 minutos» y mezclarlos ensucia la promesa; (c) mostrar la mediana además del promedio, que un solo turno lento mueve mucho | ✅ |
 | Locales que repiten | «Comercios que repiten» = 2 o más turnos **publicados** / 1 o más, sin período (`events_published`) | M5 · Repetir después de que funcionó: de los comercios con un turno cubierto, cuántos publican otro dentro de los 30 días. Por período | ✅ |
 | Locales que pagan o se comprometen | «Ingreso mensual recurrente» muestra 0 con el cobro apagado y aparte «Potencial si se cobrara». Con el cobro apagado toda suscripción se crea `activa` (`SubscriptionService`, línea 115), así que el potencial cuenta a todos los comercios | M6 · (a) El plan que el comercio elige en la landing vive sólo en el navegador (`lib/plan-elegido.ts`) y se borra al llegar a «Mi plan»: guardarlo en el servidor al darse de alta. (b) El compromiso de pago («precio fundador») no se registra en ningún lado: sumar un estado en Crecimiento (`lead`, hoy nuevo → … → alta) o un campo en la suscripción. (c) Al prender Mercado Pago, contar como «pagan» sólo los comercios con un pago aprobado | ✅ #619 |
-| Para el deck | `period-metrics` sólo compara 7/30 días contra el período anterior; el ingreso es una foto sin historia | M7 · Una serie semanal desde el día 1 de la beta (o un CSV desde el admin) para la lámina de tracción. Puede esperar a después de M1-M6 | ⚪ |
+| Para el deck | `period-metrics` sólo compara 7/30 días contra el período anterior; el ingreso es una foto sin historia | M7 · Una serie semanal desde el día 1 de la beta (o un CSV desde el admin) para la lámina de tracción. Puede esperar a después de M1-M6 | ✅ |
+
+**Hecho (2026-11-19), M7.** Métricas → «Semana por semana»: las últimas 8,
+12 o 26 semanas (lunes a domingo, hora argentina; la de hoy marcada «en
+curso») con publicados, cubiertos, cumplidos, mediana hasta confirmar,
+locales activos y altas por rol, y debajo las altas de cada semana por
+origen (trabajadores · comercios). «CSV» baja la serie de la más vieja a la
+más nueva, con una columna por origen y rol, para el gráfico del deck y el
+reporte de los lunes. Mismas definiciones que el período (cada turno en la
+semana en que se publicó; sin cuentas de prueba ni invitadas):
+`GET /admin/weekly-metrics?weeks=1..52`, `AdminService.get_weekly_metrics`,
+`ShiftRepository.count_window_stats` (una consulta para todas las semanas;
+`period-metrics` usa la misma).
+[Historial](../historial/2026-11-19-serie-semanal-m7.md).
 
 **Hecho (2026-11-17), M1 a M5.**
 [Historial](../historial/2026-11-17-medicion-beta-confirmado.md).

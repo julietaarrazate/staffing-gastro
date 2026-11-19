@@ -12,6 +12,7 @@ import {
   type ShiftPublic,
   type Subscription,
   type User,
+  type WeeklyMetrics,
   type WorkerProfile,
 } from "./types";
 
@@ -107,6 +108,11 @@ describe("los tipos del frontend calzan con lo que manda el backend", () => {
   it("plan del comercio", () => {
     const plan: Ensanchar<Subscription> = contrato.suscripcion_comercio.body;
     expect(plan.plan_code).toBeTruthy();
+  });
+
+  it("métricas: la serie semanal M7", () => {
+    const serie: Ensanchar<WeeklyMetrics> = contrato.metricas_semanales.body;
+    expect(serie.weeks[0].signups_by_origin.length).toBeGreaterThan(0);
   });
 });
 
