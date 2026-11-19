@@ -166,6 +166,15 @@ for (const theme of ["light", "dark"] as const) {
       expect(p.raya).toBe("3px");
       if (p.activa) expect(p.rayaContraste).toBeGreaterThanOrEqual(3);
     }
+    // El foco de teclado va por dentro de la pestaña: por fuera lo cortaba el
+    // borde de la pantalla y arriba se fundía con la raya.
+    const inicio = barra.getByRole("link", { name: "Inicio" });
+    await inicio.focus();
+    const foco = await inicio.evaluate((a) => ({
+      visible: a.matches(":focus-visible"),
+      offset: getComputedStyle(a).outlineOffset,
+    }));
+    expect(foco).toEqual({ visible: true, offset: "-7px" });
   });
 }
 

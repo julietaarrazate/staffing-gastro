@@ -72,7 +72,7 @@ export default function BottomNav() {
       // borde, lisa (sin vidrio: `bg-card`, sin desenfoque) y con un filete
       // arriba. Lo activo es una raya azul hondo sobre la pestaña, el mismo
       // gesto que las pestañas de las pantallas; la píldora celeste se fue.
-      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-card pb-[env(safe-area-inset-bottom)] md:hidden print:hidden"
+      className="barra-secciones fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-card pb-[env(safe-area-inset-bottom)] md:hidden print:hidden"
     >
       {tabs.map(({ href, label, Icon }) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);

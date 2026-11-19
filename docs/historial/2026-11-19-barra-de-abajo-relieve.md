@@ -41,6 +41,17 @@ raya a 3 o más).
 - **Todas en negrita.** Cambiar el peso sólo en la activa movía el ancho del
   nombre al tocar.
 
+**Revisión independiente** (otro agente; los tres roles, de 320 a 430 px,
+claro y oscuro, con teclado y con contenido pasando por debajo): aprobada con
+un arreglo, hecho acá. El contorno de foco iba por fuera de la pestaña: abajo
+y en las puntas lo cortaba el borde de la pantalla, y arriba se fundía con la
+raya de la activa, que es del mismo azul. Ahora va por dentro (`outline-offset:
+-7px` en `.barra-secciones`, en `globals.css`: el piso global de
+`:focus-visible` no tiene capa y le gana a una utilidad de Tailwind), entero y
+separado de la raya; lo cubre el mismo test. Anotó también que la barra mide
+61 px (antes unos 67) y el contenido sigue reservando 80 (`--chrome-bottom`):
+quedan 19 px de aire al final de cada pantalla, como antes quedaban 13.
+
 **Decisiones del día:** antes de escribir las seis piezas, Julieta eligió cómo
 van las que la prueba no dibujaba: las pestañas con raya azul hondo (vio las
 tres opciones puestas sobre el Panel, Mis turnos y Candidatos), los pasos
