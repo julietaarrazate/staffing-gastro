@@ -11,6 +11,7 @@ import SplashScreen from "@/components/SplashScreen";
 import Navbar from "@/components/Navbar";
 import BottomNav from "@/components/BottomNav";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
+import CapturaOrigen from "@/components/CapturaOrigen";
 import { SITE_URL } from "@/lib/site";
 import { OG_ALT, OG_IMAGE_URL, OG_SQUARE } from "@/lib/og";
 
@@ -136,6 +137,7 @@ export default function RootLayout({
             <ToastProvider>
               <PushPromptProvider>
                 <SplashScreen />
+                <CapturaOrigen />
                 <ImpersonationBanner />
                 <Navbar />
                 {/* Sin botones flotantes globales (Julieta, 2026-08-16: "no
@@ -152,7 +154,7 @@ export default function RootLayout({
                     parcialmente detrás de la barra. Donde el inset vale 0 (todo
                     dispositivo sin notch, y cualquier entorno de test) el
                     cálculo da exactamente 5rem = 80px, igual que antes. */}
-                <main className="flex-1 pb-[var(--chrome-bottom)] md:pb-0">{children}</main>
+                <main className="flex-1 pb-[var(--chrome-bottom)] md:pb-0 print:pb-0">{children}</main>
                 <BottomNav />
               </PushPromptProvider>
             </ToastProvider>

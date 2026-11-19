@@ -264,6 +264,16 @@ class PeriodSummaryResponse(BaseModel):
     companies_with_covered: int = 0
 
 
+class SignupsByOriginResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    # `None` = cuentas anteriores a que se guardara el origen.
+    origin: str | None
+    workers: int
+    companies: int
+    total: int
+
+
 class PeriodMetricsResponse(BaseModel):
     """Ver `AdminService.get_period_metrics`."""
 
@@ -272,3 +282,4 @@ class PeriodMetricsResponse(BaseModel):
     days: int
     current: PeriodSummaryResponse
     previous: PeriodSummaryResponse
+    signups_by_origin: list[SignupsByOriginResponse] = []

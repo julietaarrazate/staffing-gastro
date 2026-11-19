@@ -28,6 +28,7 @@ from app.modules.admin.application.dtos import (
     PeriodMetrics,
     PeriodSummary,
     PlatformStats,
+    SignupsByOrigin,
     SubscriptionStats,
     TestAccount,
     TodayCounts,
@@ -43,7 +44,11 @@ from app.modules.application.domain.repositories import ShiftApplicationReposito
 from app.modules.company.domain.repositories import CompanyProfileRepository
 from app.modules.identity.application.services import GUEST_ACCOUNT_EMAILS
 from app.modules.identity.domain.entities import User
-from app.modules.identity.domain.repositories import RefreshSessionRepository, UserRepository
+from app.modules.identity.domain.repositories import (
+    RefreshSessionRepository,
+    SignupOriginCount,
+    UserRepository,
+)
 from app.modules.identity.domain.value_objects import UserRole, UserStatus
 from app.modules.shift.domain.value_objects import ShiftStatus
 from app.modules.shift.domain.repositories import ShiftPeriodStats, ShiftRepository
@@ -86,6 +91,24 @@ async def _local_password() -> str:
     """Contraseña local irrecuperable: nadie puede iniciar sesión en la
     cuenta de prueba con email+contraseña, sólo vía "Ver como" (admin)."""
     return await hash_password_async(secrets.token_urlsafe(32))
+
+
+def _signups_by_origin(rows: list[SignupOriginCount]) -> list[SignupsByOrigin]:
+    """Una fila por origen con las altas de cada rol: las que más traen
+    primero (a igual cantidad, por nombre) y «sin dato» al final."""
+    by_origin: dict[str | None, dict[UserRole, int]] = {}
+    for row in rows:
+        counts = by_origin.setdefault(row.origin, {})
+        counts[row.role] = counts.get(row.role, 0) + row.count
+    result = [
+        SignupsByOrigin(
+            origin=origin,
+            workers=counts.get(UserRole.WORKER, 0),
+            companies=counts.get(UserRole.EMPLOYER, 0),
+        )
+        for origin, counts in by_origin.items()
+    ]
+    return sorted(result, key=lambda s: (s.origin is None, -s.total, s.origin or ""))
 
 
 def _rate_pct(numerator: int, denominator: int) -> float | None:
@@ -504,6 +527,11 @@ class AdminService:
             **window, exclude_company_emails=GUEST_ACCOUNT_EMAILS | TEST_ACCOUNT_EMAILS
         )
         apps_current, apps_previous = await self._applications.count_created_by_period(**window)
+        signup_rows = await self._users.count_signups_by_origin(
+            start=bounds.current_start,
+            end=bounds.end,
+            exclude_emails=GUEST_ACCOUNT_EMAILS | TEST_ACCOUNT_EMAILS,
+        )
 
         def _summary(
             start: datetime, end: datetime, s: ShiftPeriodStats, apps: int
@@ -532,6 +560,7 @@ class AdminService:
             days=days,
             current=_summary(bounds.current_start, bounds.end, current, apps_current),
             previous=_summary(bounds.previous_start, bounds.current_start, previous, apps_previous),
+            signups_by_origin=_signups_by_origin(signup_rows),
         )
 
     async def get_or_create_test_accounts(self) -> list[TestAccount]:

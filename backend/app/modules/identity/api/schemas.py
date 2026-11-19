@@ -11,6 +11,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
+from app.modules.identity.domain.origen_alta import OrigenAlta
 from app.modules.identity.domain.value_objects import UserRole, UserStatus
 
 
@@ -36,6 +37,31 @@ def _reject_repeated_char(value: str) -> str:
     return value
 
 
+class OrigenAltaRequest(BaseModel):
+    """Los parámetros del enlace con el que llegó la persona (`?ref=`,
+    `utm_source`, `utm_campaign`), tal como los guardó el navegador. Nunca
+    frena un alta: lo que no es texto se ignora y lo largo se recorta; la
+    etiqueta que se guarda la arma `domain/origen_alta.py`."""
+
+    ref: str | None = None
+    utm_source: str | None = None
+    utm_campaign: str | None = None
+
+    @field_validator("ref", "utm_source", "utm_campaign", mode="before")
+    @classmethod
+    def _solo_texto_corto(cls, value: object) -> str | None:
+        return value[:200] if isinstance(value, str) else None
+
+    def to_domain(self) -> OrigenAlta:
+        return OrigenAlta(ref=self.ref, utm_source=self.utm_source, utm_campaign=self.utm_campaign)
+
+
+def _origen_tolerante(value: object) -> object:
+    """Un `origen` que no es un objeto (un string, una lista) se ignora en
+    vez de rechazar el alta con un 422."""
+    return value if isinstance(value, dict | OrigenAltaRequest) else None
+
+
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
@@ -48,6 +74,10 @@ class RegisterRequest(BaseModel):
     # la persona es menor de 18). Opcional en el esquema para que el mensaje
     # sea ése y no el genérico de Pydantic.
     birth_date: date | None = None
+    # De qué enlace llegó (fase 0 del plan de crecimiento). Opcional.
+    origen: OrigenAltaRequest | None = None
+
+    _origen = field_validator("origen", mode="before")(_origen_tolerante)
 
     @field_validator("full_name")
     @classmethod
@@ -146,6 +176,10 @@ class GoogleAuthRequest(BaseModel):
     accepted_terms: bool = False
     # Igual que en el registro con email: obligatoria al crear la cuenta (U101).
     birth_date: date | None = None
+    # Igual que en el registro con email; sólo cuenta al crear la cuenta.
+    origen: OrigenAltaRequest | None = None
+
+    _origen = field_validator("origen", mode="before")(_origen_tolerante)
 
 
 class GoogleRoleRequiredResponse(BaseModel):

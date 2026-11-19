@@ -48,6 +48,7 @@ import {
   Pencil,
   Settings,
   Plus,
+  Printer,
   Route,
   Scale,
   Search,
@@ -153,6 +154,7 @@ export const FileTextIcon = make(FileText);
 export const FlaskIcon = make(FlaskConical);
 export const UploadIcon = make(Upload);
 export const DownloadIcon = make(Download);
+export const PrinterIcon = make(Printer);
 export const PencilIcon = make(Pencil);
 export const HeartIcon = make(Heart);
 export const SettingsIcon = make(Settings);

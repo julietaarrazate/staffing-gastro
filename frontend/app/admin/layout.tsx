@@ -55,7 +55,7 @@ function isActive(pathname: string, href: string): boolean {
 function AdminNav({ pathname }: { pathname: string }) {
   const { inbox } = useAdminInbox();
   return (
-    <nav aria-label="Secciones del panel" className="md:w-52 md:shrink-0">
+    <nav aria-label="Secciones del panel" className="md:w-52 md:shrink-0 print:hidden">
       <ul className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 md:sticky md:top-24 md:mx-0 md:flex-col md:overflow-visible md:px-0">
         {NAV.map((item) => {
           const active = isActive(pathname, item.href);
@@ -117,7 +117,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <AdminInboxProvider token={twoFactorSetupPending ? null : token} refreshKey={pathname}>
       <div className="app-container px-4 pb-10 pt-6">
-        <p className="flex items-center gap-1.5 text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">
+        <p className="flex items-center gap-1.5 text-xs font-semibold font-mono uppercase tracking-wide text-ink/40 print:hidden">
           <ShieldIcon size={14} /> Administración
         </p>
         <div className="mt-3 md:flex md:gap-8">

@@ -139,6 +139,17 @@ function period(days: number) {
   const prevStart = start - days * 86_400_000;
   return {
     days,
+    // Altas por origen (fase 0 del plan de crecimiento): sólo en 7 días; en
+    // 30 llega vacío, como un período sin cuentas nuevas.
+    signups_by_origin:
+      days === 7
+        ? [
+            { origin: "grupo-palermo", workers: 3, companies: 1, total: 4 },
+            { origin: "ig/fundadores", workers: 0, companies: 2, total: 2 },
+            { origin: "directo", workers: 1, companies: 0, total: 1 },
+            { origin: null, workers: 2, companies: 0, total: 2 },
+          ]
+        : [],
     current: {
       start: iso(start),
       end: iso(end),
@@ -312,6 +323,22 @@ test("Ausencias de hoy lleva a su lista, con la hora de la ausencia", async ({ p
   await expect(list.getByRole("listitem").first()).toContainText("Mozo para el almuerzo");
   await expect(list.getByRole("listitem").first()).toContainText("ausencia");
   expect(calls.at(-1)).toBe("?no_shows=true");
+});
+
+test("Métricas muestra las altas del período por origen y por rol", async ({ page }) => {
+  await mockAdmin(page);
+  await page.goto("/admin/metricas");
+
+  const tabla = page.getByTestId("altas-por-origen");
+  const fila = (origen: string) => tabla.getByRole("row", { name: new RegExp(`^${origen}`) });
+  await expect(fila("grupo-palermo")).toHaveText(/grupo-palermo\s*3\s*1\s*4/);
+  await expect(fila("ig/fundadores")).toHaveText(/ig\/fundadores\s*0\s*2\s*2/);
+  await expect(fila("Sin dato")).toBeVisible();
+  await expect(fila("Total")).toHaveText(/Total\s*6\s*3\s*9/);
+  await expect(tabla).toContainText("«Sin dato»: cuentas creadas antes de que se guardara el origen.");
+
+  await page.getByRole("button", { name: "Últimos 30 días" }).click();
+  await expect(tabla).toContainText("Ninguna cuenta nueva en el período.");
 });
 
 test("Métricas compara el período con el anterior y cambia a 30 días", async ({ page }) => {

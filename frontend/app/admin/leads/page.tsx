@@ -10,6 +10,7 @@ import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { AdminHeading } from "@/components/admin/AdminStats";
 import EncuestaPanel from "@/components/admin/EncuestaPanel";
+import ComerciosImprimir from "@/components/admin/ComerciosImprimir";
 import type { Lead, LeadImportResult, LeadStatus, LeadSummary } from "@/lib/types";
 import {
   LEAD_KIND_LABELS,
@@ -35,6 +36,7 @@ import {
   BuildingIcon,
   DownloadIcon,
   MapPinIcon,
+  PrinterIcon,
 } from "@/components/icons";
 import { plural } from "@/lib/format";
 
@@ -51,23 +53,25 @@ export default function AdminLeadsPage() {
   const [seccion, setSeccion] = useState<Seccion>("comercios");
   return (
     <div>
-      <AdminHeading
-        title={seccion === "comercios" ? "Comercios a captar" : "Encuesta para locales"}
-        subtitle={
-          seccion === "comercios"
-            ? "Bares, restaurantes y cafés del barrio, para salir a sumarlos a la beta."
-            : "Cómo usan personal eventual los locales y quiénes quieren la beta."
-        }
-      />
-      <SegmentedControl
-        className="mt-4 max-w-sm"
-        value={seccion}
-        onChange={setSeccion}
-        options={[
-          { value: "comercios", label: "Comercios" },
-          { value: "encuesta", label: "Encuesta" },
-        ]}
-      />
+      <div className="print:hidden">
+        <AdminHeading
+          title={seccion === "comercios" ? "Comercios a captar" : "Encuesta para locales"}
+          subtitle={
+            seccion === "comercios"
+              ? "Bares, restaurantes y cafés del barrio, para salir a sumarlos a la beta."
+              : "Cómo usan personal eventual los locales y quiénes quieren la beta."
+          }
+        />
+        <SegmentedControl
+          className="mt-4 max-w-sm"
+          value={seccion}
+          onChange={setSeccion}
+          options={[
+            { value: "comercios", label: "Comercios" },
+            { value: "encuesta", label: "Encuesta" },
+          ]}
+        />
+      </div>
       {seccion === "comercios" ? <ComerciosACaptar /> : <EncuestaPanel />}
     </div>
   );
@@ -175,98 +179,120 @@ function ComerciosACaptar() {
   };
 
   return (
-    <div>
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <select
-          aria-label="Barrio"
-          value={barrio}
-          onChange={(e) => setBarrio(e.target.value)}
-          className={SELECT_CLASS}
-        >
-          {(barrios.length > 0 ? barrios : ["Palermo"]).map((b) => (
-            <option key={b} value={b}>
-              {b}
-            </option>
-          ))}
-        </select>
-        <Button size="sm" onClick={importBarrio} disabled={importing}>
-          <MapPinIcon size={16} />
-          {importing ? "Buscando comercios…" : "Traer comercios del barrio"}
-        </Button>
-        <Button
-          size="sm"
-          variant="surface"
-          onClick={exportCsv}
-          disabled={leads.length === 0}
-        >
-          <DownloadIcon size={16} /> CSV
-        </Button>
-      </div>
+    <>
+      {/* Lo interactivo no sale en papel: al imprimir sólo queda la lista
+          de `ComerciosImprimir`, la misma que está en pantalla. */}
+      <div className="print:hidden">
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <select
+            aria-label="Barrio"
+            value={barrio}
+            onChange={(e) => setBarrio(e.target.value)}
+            className={SELECT_CLASS}
+          >
+            {(barrios.length > 0 ? barrios : ["Palermo"]).map((b) => (
+              <option key={b} value={b}>
+                {b}
+              </option>
+            ))}
+          </select>
+          <Button size="sm" onClick={importBarrio} disabled={importing}>
+            <MapPinIcon size={16} />
+            {importing ? "Buscando comercios…" : "Traer comercios del barrio"}
+          </Button>
+          <Button
+            size="sm"
+            variant="surface"
+            onClick={exportCsv}
+            disabled={leads.length === 0}
+          >
+            <DownloadIcon size={16} /> CSV
+          </Button>
+          <Button
+            size="sm"
+            variant="surface"
+            onClick={() => window.print()}
+            disabled={leads.length === 0}
+          >
+            <PrinterIcon size={16} /> Imprimir
+          </Button>
+        </div>
+        {importing && (
+          <p className="mt-2 text-sm text-ink/50" role="status">
+            Buscando… puede tardar hasta un minuto y medio. No cierres esta pantalla.
+          </p>
+        )}
 
-      {summary && summary.total > 0 && (
-        <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Filtrar por estado">
-          <FilterChip
-            active={filter === "todos"}
-            onClick={() => setFilter("todos")}
-            label={`Todos · ${summary.total}`}
-          />
-          {LEAD_STATUSES.map((s) => (
+        {summary && summary.total > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Filtrar por estado">
             <FilterChip
-              key={s}
-              active={filter === s}
-              onClick={() => setFilter(s)}
-              label={`${LEAD_STATUS_LABELS[s]} · ${summary.counts[s] ?? 0}`}
+              active={filter === "todos"}
+              onClick={() => setFilter("todos")}
+              label={`Todos · ${summary.total}`}
             />
-          ))}
-        </div>
-      )}
+            {LEAD_STATUSES.map((s) => (
+              <FilterChip
+                key={s}
+                active={filter === s}
+                onClick={() => setFilter(s)}
+                label={`${LEAD_STATUS_LABELS[s]} · ${summary.counts[s] ?? 0}`}
+              />
+            ))}
+          </div>
+        )}
 
-      {error && (
-        <div className="mt-5">
-          <ErrorBanner message={error} onRetry={load} />
-        </div>
-      )}
-      {listLoading && (
-        <div className="mt-5">
-          <CardSkeletons />
-        </div>
-      )}
+        {error && (
+          <div className="mt-5">
+            <ErrorBanner message={error} onRetry={load} />
+          </div>
+        )}
+        {listLoading && (
+          <div className="mt-5">
+            <CardSkeletons />
+          </div>
+        )}
 
-      {!listLoading && !error && leads.length === 0 && (
-        <div className="mt-5">
-          <EmptyState
-            icon={<BuildingIcon size={28} />}
-            title={filter === "todos" ? `Todavía no hay comercios de ${barrio}` : "Ninguno en este estado"}
-            subtitle={
-              filter === "todos"
-                ? "Tocá \"Traer comercios del barrio\" para armar la lista desde OpenStreetMap."
-                : "Probá con otro estado o con \"Todos\"."
-            }
-          />
-        </div>
-      )}
+        {!listLoading && !error && leads.length === 0 && (
+          <div className="mt-5">
+            <EmptyState
+              icon={<BuildingIcon size={28} />}
+              title={filter === "todos" ? `Todavía no hay comercios de ${barrio}` : "Ninguno en este estado"}
+              subtitle={
+                filter === "todos"
+                  ? "Tocá \"Traer comercios del barrio\" para armar la lista desde OpenStreetMap."
+                  : "Probá con otro estado o con \"Todos\"."
+              }
+            />
+          </div>
+        )}
 
-      {!listLoading && !error && leads.length > 0 && (
-        <ul className="mt-5 grid gap-3 md:grid-cols-2">
-          {leads.map((lead) => (
-            <LeadCard key={lead.id} lead={lead} onPatch={patchLead} />
-          ))}
-        </ul>
-      )}
+        {!listLoading && !error && leads.length > 0 && (
+          <ul className="mt-5 grid gap-3 md:grid-cols-2">
+            {leads.map((lead) => (
+              <LeadCard key={lead.id} lead={lead} onPatch={patchLead} />
+            ))}
+          </ul>
+        )}
 
-      <p className="mt-8 text-xs text-ink/40">
-        Datos de comercios ©{" "}
-        <a
-          href="https://www.openstreetmap.org/copyright"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline"
-        >
-          colaboradores de OpenStreetMap
-        </a>{" "}
-        (ODbL). Usalos para contactar comercios, no para enviar publicidad masiva.
-      </p>
-    </div>
+        <p className="mt-8 text-xs text-ink/40">
+          Datos de comercios ©{" "}
+          <a
+            href="https://www.openstreetmap.org/copyright"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline"
+          >
+            colaboradores de OpenStreetMap
+          </a>{" "}
+          (ODbL). Usalos para contactar comercios, no para enviar publicidad masiva.
+        </p>
+      </div>
+      <ComerciosImprimir
+        leads={leads}
+        barrio={barrio}
+        filtro={filter === "todos" ? "Todos" : LEAD_STATUS_LABELS[filter]}
+      />
+    </>
   );
 }
 
