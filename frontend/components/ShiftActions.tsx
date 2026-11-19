@@ -3,7 +3,7 @@
 import { puedeMarcarAusencia } from "@/lib/turno-reofrecido";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Button, Sheet } from "@/components/ui";
+import { BOTON_LISO, Button, Sheet } from "@/components/ui";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import { AlertTriangleIcon, CheckCircleIcon, CopyIcon, MessageIcon } from "@/components/icons";
 import { isCancellable } from "@/lib/cancelar-turno";
@@ -115,7 +115,7 @@ export default function ShiftActions({
           <Link
             href={`/chats/${shift.id}`}
             aria-label="Abrir chat con el trabajador"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-surface px-3 py-2 text-sm font-semibold text-ink/70 ring-1 ring-line transition active:scale-95"
+            className={`${BOTON_LISO} shrink-0 px-3 py-2 text-sm`}
           >
             <MessageIcon size={16} /> Chat
           </Link>
@@ -126,7 +126,7 @@ export default function ShiftActions({
           aria-label="Más acciones"
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen(true)}
-          className="shrink-0 rounded-full bg-surface px-3 py-2 text-sm font-semibold text-ink/70 ring-1 ring-line transition active:scale-95"
+          className={`${BOTON_LISO} shrink-0 px-3 py-2 text-sm`}
         >
           Más
         </button>

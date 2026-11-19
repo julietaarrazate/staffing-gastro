@@ -7,7 +7,7 @@ export type SalidaDeAviso = { label: string; href: string };
 const SALIDA_PRINCIPAL =
   "flex min-h-[56px] w-full items-center justify-center boton-relieve bg-primary px-6 text-base font-bold text-night";
 const SALIDA_SECUNDARIA =
-  "flex min-h-[48px] w-full items-center justify-center rounded-[var(--radius-btn)] bg-card px-6 text-sm font-semibold text-ink ring-1 ring-line transition active:scale-[0.98]";
+  "flex min-h-[48px] w-full items-center justify-center rounded-[var(--radius-relieve)] bg-card px-6 text-sm font-semibold text-ink ring-1 ring-line transition active:scale-[0.98]";
 
 /**
  * Pantalla entera para cuando no hay nada que mostrar en esa dirección: la

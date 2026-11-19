@@ -11,6 +11,7 @@ import { PROVINCES } from "@/lib/locations";
 import { getCurrentPosition } from "@/lib/geolocation";
 import { haversineKm } from "@/lib/map/geo";
 import { MapPinIcon } from "@/components/icons";
+import { BOTON_LISO } from "@/components/ui/Button";
 
 export type LocationSelection = {
   city: string;
@@ -201,7 +202,7 @@ export default function LocationPicker({
         type="button"
         onClick={useMyLocation}
         disabled={geoStatus === "loading"}
-        className="inline-flex w-fit items-center gap-1.5 rounded-full bg-surface px-3.5 py-2 text-sm font-semibold text-ink/70 ring-1 ring-line transition active:scale-95 disabled:opacity-60"
+        className={`${BOTON_LISO} w-fit px-3.5 py-2 text-sm disabled:opacity-60`}
       >
         <MapPinIcon size={16} />
         {geoStatus === "loading" ? "Obteniendo ubicación…" : "Usar mi ubicación actual"}

@@ -11,7 +11,7 @@ import { SKILL_ACCENT } from "@/lib/skill-style";
 import { cldAttachment, cldThumb } from "@/lib/cloudinary";
 import { safeHttpsUrl } from "@/lib/safe-url";
 import { BADGE_ICONS, BADGE_LABELS, formatPunctuality, hasRate, hasRating, levelLabel } from "@/lib/reputation";
-import { ErrorBanner, Skeleton } from "@/components/ui";
+import { BOTON_LISO, ErrorBanner, Skeleton } from "@/components/ui";
 import RatingOrNew from "@/components/RatingOrNew";
 import WorkerReviews from "@/components/WorkerReviews";
 import { BriefcaseIcon, ChevronLeftIcon, ClipboardIcon, DownloadIcon, HeartIcon, MapPinIcon } from "@/components/icons";
@@ -262,14 +262,14 @@ export default function PublicWorkerProfilePage() {
                 href={cvUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full bg-surface px-4 py-2 text-sm font-semibold text-ink/80 ring-1 ring-line transition hover:bg-line active:scale-95"
+                className={`${BOTON_LISO} gap-2 px-4 py-2 text-sm`}
               >
                 <ClipboardIcon size={16} /> Ver CV
               </a>
               {cvUrl.includes("res.cloudinary.com") && (
                 <a
                   href={cldAttachment(cvUrl)}
-                  className="inline-flex items-center gap-2 rounded-full bg-surface px-4 py-2 text-sm font-semibold text-ink/80 ring-1 ring-line transition hover:bg-line active:scale-95"
+                  className={`${BOTON_LISO} gap-2 px-4 py-2 text-sm`}
                 >
                   <DownloadIcon size={16} /> Descargar
                 </a>
