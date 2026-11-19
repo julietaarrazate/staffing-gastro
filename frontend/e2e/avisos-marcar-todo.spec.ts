@@ -35,11 +35,7 @@ async function setup(page: Page) {
   });
   await page.route("**/api/v1/notifications/read-all", (route) => {
     pedidos.push(route.request().postDataJSON());
-    return route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ marked: 2 }),
-    });
+    return fulfillContrato(route, "avisos_leer_todo");
   });
   return { sockets, pedidos };
 }
