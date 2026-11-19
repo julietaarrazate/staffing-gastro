@@ -162,3 +162,117 @@ sigue siendo "futuro" para `list_open` y cabe cómodo en cualquier ventana de
 Los otros 10 archivos quedan documentados como deuda técnica (`TECH_DEBT.md`,
 T-DATE) — misma bomba, todavía sin estallar porque nada más los mira por
 fecha.
+
+## Actualización 2026-11-18 (U080): un turno reabierto que ya empezó se reofrece
+
+Decisiones de Julieta 4, 16, 18 y 19 del
+[tablero de la beta](../planning/BETA_TABLERO.md). Cambia el punto 1 («para
+cuando se dispara no hay más ventana en la que alguien pueda cubrirlo») y el
+punto 4 (el feed no ofrece nada que ya empezó) **para un caso**: el turno que
+alguien tenía y dejó con el horario ya corriendo.
+
+**El problema (hallazgo U080).** Una ausencia siempre cae con el turno
+empezado (se marca desde los 15 minutos, [ADR-0007](./ADR-0007-no-show-y-cancelacion-tardia.md)).
+El turno volvía a «Buscando personal», pero el feed no lo mostraba (ya había
+empezado), nadie recibía un aviso y la pasada de cobertura lo cerraba. El
+comercio se quedaba sin la persona y sin ninguna chance de reemplazo, con
+horas de turno por delante.
+
+### Qué se decidió
+
+1. **Reofrecer.** Toda transición en la que la persona que tenía el turno lo
+   deja (`no_show`, `worker_cancel`, `reject`, `release_worker`) pasa por un
+   único paso de dominio, `Shift._reopen`, que mira la hora:
+   - todavía no empezó: vuelve a `BUSCANDO_PERSONAL`, como siempre;
+   - ya empezó y le quedan **al menos 2 horas** de horario
+     (`REOFFER_MIN_REMAINING`, decisión 19; Julieta lo subió de 1 a 2 horas
+     el mismo día: nadie toma un turno reabierto por una sola hora), **más 15
+     minutos** (`REOFFER_MIN_OFFER_WINDOW`: que quede a la vista al menos ese
+     rato; sin el margen, una reapertura con 2 h 00 min 30 s mandaba avisos
+     urgentes por un turno que dejaba de ofrecerse a los 30 segundos): vuelve a `BUSCANDO_PERSONAL`
+     **reofrecido como urgente** (`reoffered_at`, `urgent`; `escalated_at` se
+     marca si no lo estaba, para que la escalada no avise otra vez);
+   - ya empezó y le queda menos: pasa **directo a `NO_CUBIERTO`** en la misma
+     operación, guardando quién lo tenía como hace `mark_not_covered`. No
+     queda un rato en «Buscando personal» esperando a la pasada de cobertura.
+
+   Un turno reofrecido que se vuelve a reabrir repite la regla (ciclo nuevo).
+   Un turno publicado que nadie tomó **no** se reofrece: sigue el punto 3 de
+   este ADR.
+2. **Se ofrece mientras le queden 2 horas.** `Shift.is_open_for_applications`
+   y el `WHERE` de `list_open` aceptan un turno reofrecido mientras
+   `end_at - REOFFER_MIN_REMAINING > ahora` (`Shift.offered_until`; Inicio,
+   Buscar, Mapa, página pública, postularse, soporte). La misma constante
+   decide si se reofrece y hasta cuándo se ofrece. Las tarjetas dicen «Ya
+   empezó · hasta las HH:MM» (el fin del horario, que es hasta cuando se
+   trabaja); el panel del comercio, «Reofrecido como urgente hasta las HH:MM»
+   (`offered_until`).
+3. **«No cubierto» cuando le quedan menos de 2 horas.** Para un turno
+   reofrecido el plazo de la pasada de cobertura es `offered_until`, no
+   `start_at` más la gracia (`coverage_deadline`): si nadie confirmó para
+   entonces (también si hay alguien asignado sin confirmar), pasa a «no
+   cubierto». Quien ya confirmó sigue su curso: llegada, o ausencia
+   automática desde que confirmó (como confirmó con 2 horas o más por
+   delante, cae antes del fin). El aviso al comercio dice lo que pasó: «lo
+   reofrecimos como urgente y no se consiguió reemplazo a tiempo».
+4. **Se paga lo que resta, desde que el reemplazo marca la llegada**
+   (decisiones 16 y 18). Mientras nadie llegó, el aviso y las pantallas
+   muestran el **valor por hora** (`pay_amount` dividido por las horas del
+   turno, `Shift.hourly_pay_amount`). Al marcar la llegada queda fijo
+   `prorated_pay_amount` = `pay_amount` × (lo que resta desde la llegada) /
+   (duración del turno), al peso entero (mitad para arriba), nunca más que lo
+   publicado. `Shift.amount_due` es el único lugar que decide qué se paga, y
+   lo usan las ganancias del trabajador. No se puede marcar la llegada a un
+   turno reofrecido cuyo horario ya terminó. **Sólo en reofrecidos:** quien
+   llega tarde a un turno común cobra lo publicado, como hasta hoy. La
+   referencia de pago ([ADR-0012](./ADR-0012-pago-de-referencia.md)) sigue
+   usando el valor publicado. El monto prorrateado lo ven el comercio dueño y
+   la persona asignada.
+5. **Avisos.** A quienes están cerca (el círculo de la escalada y los
+   favoritos, sin quien ya tuvo ese turno y lo dejó), un aviso urgente por
+   reapertura con el valor por hora. Al comercio, **uno** que dice qué pasó y
+   qué sigue. Detalle en `docs/reference/NOTIFICATIONS.md`.
+6. **Quien lo toma ya empezado:** su recordatorio y su ausencia se cuentan
+   desde que confirmó, y su puntualidad no se mueve. Sólo en un turno
+   reofrecido: en un turno común confirmado tarde todo se sigue contando
+   desde el inicio
+   ([ADR-0008](./ADR-0008-asistencia-simplificada-y-no-show-automatico.md),
+   actualización del mismo día).
+
+7. **Suspender al reemplazo no reofrece el turno.** Suspender una cuenta sólo
+   reabre los turnos que todavía no empezaron
+   ([ADR-0024](./ADR-0024-efectos-de-una-suspension.md), punto 3: lo empezado no se
+   toca), y un turno reofrecido ya empezó. Si se suspende a quien lo tomó, el
+   turno sigue su curso hasta la ausencia automática, contada desde que
+   confirmó (punto 6), y ahí se reofrece si le quedan al menos 2 horas (o pasa
+   a «no cubierto»). Por si eso cambia, la reapertura por suspensión ya usa
+   lo que devuelve `release_worker` y el mismo aviso que el resto
+   (`_announce_reopen`): reofrecido, con el aviso urgente a quienes están
+   cerca; sin cubrir, sin devolver a la carrera a los rechazados.
+
+Migración `0053`: `shifts.reoffered_at`, `confirmed_at` y
+`prorated_pay_amount`, las tres nullable y sin datos que copiar.
+
+### Descartado
+
+- **Reofrecer también los turnos que nadie tomó.** La decisión 4 es sobre el
+  turno reabierto: ahí el comercio contaba con alguien y lo perdió. Un turno
+  sin postulantes a su hora sigue la gracia de este ADR.
+- **Pagar el turno entero al reemplazo.** El comercio pagaría horas que nadie
+  trabajó; con el valor por hora a la vista, quien lo toma sabe qué cobra.
+- **Contar el pago desde que confirma o desde que lo asignan.** La llegada es
+  el único momento que las dos partes pueden verificar (se marca en el local).
+- **Un tope a la ausencia automática del reemplazo en `end_at`.** Dejaría
+  ausente a quien confirmó sobre el final sin tiempo de llegar.
+
+### Queda abierto
+
+- `ApplicationService.apply` nunca miró la hora de inicio de un turno común
+  (sólo el estado): por la API se puede postular a un turno abierto que ya
+  empezó y todavía no se cerró. No lo ofrece ninguna pantalla. No se tocó
+  acá para no cambiar otra regla en el mismo PR; para el turno reofrecido sí
+  se rechaza la postulación pasado `end_at`.
+
+## Actualización 2026-11-18 (decisión 22)
+
+El punto 2 dice que `mark_not_covered()` le avisa al comercio. Hay una excepción: si la cuenta del comercio está suspendida cuando el turno vence (estaba oculto, [ADR-0024](./ADR-0024-efectos-de-una-suspension.md)), el turno pasa igual a `NO_CUBIERTO` pero **no sale ningún aviso** y queda marcado (`shifts.not_covered_while_suspended`) para dejarlo **fuera de las métricas de cobertura**, del numerador y del denominador. La marca va en el turno, y no se mira la cuenta al calcular, porque la cuenta puede reactivarse después. El detalle de qué métricas, en la actualización del mismo día del ADR-0024.

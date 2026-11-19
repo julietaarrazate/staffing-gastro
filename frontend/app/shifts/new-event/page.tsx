@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
@@ -10,9 +11,14 @@ import { EventResult, SKILL_LABELS, WORKER_SKILLS, WorkerSkill } from "@/lib/typ
 import { argentinaISOToLocalInput, localInputToArgentinaISO } from "@/lib/datetime";
 import { AI_EVENT_DRAFT_STORAGE_KEY, AssistantEventDraft } from "@/lib/use-ai-assistant";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
+import { useCompanyPlace } from "@/lib/company-place";
 import ShiftDayHint from "@/components/ShiftDayHint";
-import { Button, TextField, Toggle, useToast } from "@/components/ui";
+import { resolverHorario } from "@/lib/turno-horario";
+import { Button, PesosInput, TextField, Toggle, useToast } from "@/components/ui";
+import { pesosDesdeApi } from "@/lib/pesos";
 import { ChevronLeftIcon, FlameIcon, MapPinIcon, PlusIcon, TrashIcon, UtensilsIcon } from "@/components/icons";
+import { LIMITES } from "@/lib/limites";
+import { plural } from "@/lib/format";
 
 interface RoleRow {
   key: string;
@@ -43,7 +49,7 @@ export default function NewEventPage() {
 }
 
 function NewEventForm() {
-  const { token } = useRequireAuth();
+  const { token } = useRequireAuth({ roles: ["employer"] });
   const router = useRouter();
   const toast = useToast();
   const searchParams = useSearchParams();
@@ -51,9 +57,15 @@ function NewEventForm() {
   const [name, setName] = useState("");
   const [startAt, setStartAt] = useState("");
   const [endAt, setEndAt] = useState("");
-  const [city, setCity] = useState("");
-  const [latitude, setLatitude] = useState<number | null>(null);
-  const [longitude, setLongitude] = useState<number | null>(null);
+  // Zona del local: el evento arranca ahí y se puede cambiar (igual que el
+  // asistente de turno). Sin zona no se publica: los turnos saldrían con
+  // «Ubicación a confirmar» y no se avisaría a nadie cerca (U058). No se copia
+  // a un estado: la zona vigente se deriva al renderizar (el local mientras no
+  // se toque «Cambiar», si no la elegida), así no hay un cuadro con el perfil
+  // cargado y la zona todavía vacía.
+  const { place: profilePlace, loaded: placeLoaded } = useCompanyPlace(token);
+  const [pickedPlace, setPickedPlace] = useState<LocationSelection | null>(null);
+  const [changingPlace, setChangingPlace] = useState(false);
   const [dressCode, setDressCode] = useState("");
   const [urgent, setUrgent] = useState(false);
   const [tips, setTips] = useState(true);
@@ -82,7 +94,7 @@ function NewEventForm() {
             newRole({
               position: role.position as WorkerSkill,
               count: String(role.quantity),
-              payAmount: draft.pay_amount ?? "",
+              payAmount: pesosDesdeApi(draft.pay_amount),
             })
           )
         );
@@ -108,13 +120,44 @@ function NewEventForm() {
     setRoles((prev) => (prev.length > 1 ? prev.filter((r) => r.key !== key) : prev));
   }
 
+  // Un local con el punto en el mapa pero sin ciudad escrita no es una zona
+  // completa: la ciudad es lo que se muestra y las coordenadas lo que mide la
+  // cercanía, y el servidor pide las dos.
+  const companyPlace = profilePlace && profilePlace.city.trim() !== "" ? profilePlace : null;
+  const usingCompanyPlace = companyPlace != null && !changingPlace;
+  const place = usingCompanyPlace ? companyPlace : pickedPlace;
+  const city = place?.city ?? "";
+  const latitude = place?.latitude ?? null;
+  const longitude = place?.longitude ?? null;
+  const hasPlace = place != null && city.trim() !== "";
   const totalRequested = roles.reduce((sum, r) => sum + (Number(r.count) || 0), 0);
+  // Misma regla que /shifts/new y que el servidor (G14): cada puesto del
+  // evento es un turno, así que el inicio no puede haber pasado y la jornada
+  // dura de 1 a 16 horas; «de 21:00 a 02:00» termina al día siguiente.
+  const horario = resolverHorario(startAt, endAt);
   const canSubmit =
     name.trim() !== "" &&
-    startAt !== "" &&
-    endAt !== "" &&
-    endAt > startAt &&
+    horario.valido &&
+    hasPlace &&
     roles.every((r) => Number(r.count) >= 1 && Number(r.payAmount) > 0);
+
+  // Por qué «Publicar evento» está gris, en una línea sobre el botón (G14).
+  const motivoBloqueo =
+    name.trim() === ""
+      ? "Escribí el nombre del evento para publicar."
+      : startAt === ""
+        ? "Elegí cuándo empieza el evento para publicar."
+        : endAt === ""
+          ? "Elegí cuándo termina el evento para publicar."
+          : !horario.valido
+            ? "Corregí el horario para publicar."
+            : !hasPlace
+              ? "Elegí la zona del evento para publicar."
+              : !roles.every((r) => Number(r.count) >= 1)
+                ? "Cada puesto necesita al menos una persona para publicar."
+                : !roles.every((r) => Number(r.payAmount) > 0)
+                  ? "Escribí cuánto se paga en cada puesto para publicar."
+                  : null;
 
   async function submit() {
     if (!token || !canSubmit) return;
@@ -129,7 +172,7 @@ function NewEventForm() {
         {
           name,
           start_at: localInputToArgentinaISO(startAt),
-          end_at: localInputToArgentinaISO(endAt),
+          end_at: localInputToArgentinaISO(horario.fin),
           city: city || null,
           latitude,
           longitude,
@@ -165,11 +208,11 @@ function NewEventForm() {
             {missing === 0 ? "¡Evento publicado!" : "Evento publicado (parcial)"}
           </h1>
           <p className="mt-2 text-ink/60">
-            Se publicaron {result.shifts.length} de {result.requested} turnos.
+            {result.shifts.length === 1 ? "Se publicó" : "Se publicaron"} {result.shifts.length} de {plural(result.requested, "turno", "turnos")}.
           </p>
           {missing > 0 && (
             <p className="mt-3 max-w-xs rounded-2xl bg-primary-tint p-3 text-sm text-primary-text">
-              Tu plan no alcanza para los {missing} turnos restantes.{" "}
+              {missing === 1 ? "Tu plan no alcanza para el turno que falta." : `Tu plan no alcanza para los ${missing} turnos restantes.`}{" "}
               <button
                 type="button"
                 onClick={() => router.push("/subscription")}
@@ -210,7 +253,7 @@ function NewEventForm() {
           value={name}
           onChange={setName}
           placeholder="Ej: Boda Martínez"
-          maxLength={200}
+          maxLength={LIMITES.nombreEvento}
         />
 
         {/* Mismo eco que en /shifts/new (ShiftDayHint): el input nativo
@@ -225,8 +268,15 @@ function NewEventForm() {
               type="datetime-local"
               value={startAt}
               onChange={(e) => setStartAt(e.target.value)}
-              className="min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 ring-line focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40"
+              aria-invalid={horario.errorInicio ? true : undefined}
+              aria-describedby={horario.errorInicio ? "error-inicio" : undefined}
+              className={`min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 focus:bg-card ${horario.errorInicio ? "ring-danger/60" : "ring-line"}`}
             />
+            {horario.errorInicio && (
+              <p id="error-inicio" role="alert" className="text-sm font-semibold text-danger-text">
+                {horario.errorInicio}
+              </p>
+            )}
             <ShiftDayHint value={startAt} />
           </label>
           <label className="flex flex-1 flex-col gap-1.5">
@@ -235,24 +285,69 @@ function NewEventForm() {
               type="datetime-local"
               value={endAt}
               onChange={(e) => setEndAt(e.target.value)}
-              className="min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 ring-line focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/40"
+              aria-invalid={horario.errorFin ? true : undefined}
+              aria-describedby={horario.errorFin ? "error-fin" : undefined}
+              className={`min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 focus:bg-card ${horario.errorFin ? "ring-danger/60" : "ring-line"}`}
             />
-            <ShiftDayHint value={endAt} />
+            {horario.errorFin ? (
+              <p id="error-fin" role="alert" className="text-sm font-semibold text-danger-text">
+                {horario.errorFin}
+              </p>
+            ) : (
+              <ShiftDayHint value={horario.fin} alDiaSiguiente={horario.alDiaSiguiente} />
+            )}
           </label>
         </div>
 
         <div>
-          <LocationPicker
-            onSelect={(loc: LocationSelection) => {
-              setCity(loc.city);
-              setLatitude(loc.latitude);
-              setLongitude(loc.longitude);
-            }}
-          />
-          {city && (
-            <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary-tint px-3 py-1.5 text-sm font-semibold text-primary-text">
-              <MapPinIcon size={15} /> {city}
-            </p>
+          {!placeLoaded ? (
+            // Reserva el lugar de la tarjeta del local para que lo de abajo no
+            // salte cuando llega el perfil.
+            <div className="min-h-[132px]" aria-hidden />
+          ) : usingCompanyPlace && companyPlace ? (
+            <>
+              <p className="text-sm font-semibold text-ink/70">¿Dónde es?</p>
+              <p className="mt-1 text-sm text-ink/50">
+                En tu local. Avisamos a la gente que está cerca.
+              </p>
+              <div className="mt-3 flex items-center gap-3 rounded-2xl bg-primary-tint px-4 py-3 ring-1 ring-primary/15">
+                <MapPinIcon size={18} className="shrink-0 text-primary-text" />
+                <span className="min-w-0 flex-1 text-sm font-semibold text-ink">
+                  {companyPlace.label}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setChangingPlace(true)}
+                  className="min-h-[44px] shrink-0 px-2 text-sm font-semibold text-primary-text underline"
+                >
+                  Cambiar
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <LocationPicker
+                onSelect={(loc: LocationSelection) => setPickedPlace(loc)}
+              />
+              {hasPlace ? (
+                <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary-tint px-3 py-1.5 text-sm font-semibold text-primary-text">
+                  <MapPinIcon size={15} /> {city}
+                </p>
+              ) : (
+                <p className="mt-3 text-sm text-ink/60">
+                  Elegí la zona del evento para poder publicar.
+                  {!companyPlace && (
+                    <>
+                      {" "}
+                      <Link href="/profile/edit" className="font-semibold text-primary-text underline">
+                        Cargar mi local
+                      </Link>{" "}
+                      para que la tome sola la próxima vez.
+                    </>
+                  )}
+                </p>
+              )}
+            </>
           )}
         </div>
 
@@ -261,7 +356,7 @@ function NewEventForm() {
           value={dressCode}
           onChange={setDressCode}
           placeholder="Ej: camisa negra"
-          maxLength={255}
+          maxLength={LIMITES.codigoVestimenta}
         />
 
         <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:gap-x-6 lg:gap-y-3">
@@ -287,7 +382,7 @@ function NewEventForm() {
                   <select
                     value={role.position}
                     onChange={(e) => updateRole(role.key, { position: e.target.value as WorkerSkill })}
-                    className="min-h-[44px] flex-1 rounded-xl bg-card px-3 text-body text-ink ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    className="min-h-[44px] flex-1 rounded-xl bg-card px-3 text-body text-ink ring-1 ring-line"
                   >
                     {WORKER_SKILLS.map((skill) => (
                       <option key={skill} value={skill}>
@@ -307,7 +402,7 @@ function NewEventForm() {
                   )}
                 </div>
                 <div className="mt-2 flex gap-2">
-                  {/* min-w-0: sin esto, dos <input type="number"> flex-1 no se
+                  {/* min-w-0: sin esto, los dos campos flex-1 (Cantidad y Pago c/u) no se
                       achican por debajo de su ancho intrínseco (con spinner
                       nativo, ~170px+) y desbordan el contenedor en viewports
                       angostos (confirmado con Playwright, hallazgo E1 de la
@@ -317,22 +412,21 @@ function NewEventForm() {
                     <input
                       type="number"
                       inputMode="numeric"
-                      min={1}
+                      min={LIMITES.cantidadRolMin}
+                      max={LIMITES.cantidadRolMax}
+                      step={1}
                       value={role.count}
                       onChange={(e) => updateRole(role.key, { count: e.target.value })}
-                      className="min-h-[44px] min-w-0 rounded-xl bg-card px-3 text-body text-ink ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      className="min-h-[44px] min-w-0 rounded-xl bg-card px-3 text-body text-ink ring-1 ring-line"
                     />
                   </label>
                   <label className="flex min-w-0 flex-1 flex-col gap-1">
                     <span className="text-xs font-semibold text-ink/50">Pago c/u</span>
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      min={0}
-                      placeholder="15000"
+                    <PesosInput
+                      placeholder="15.000"
                       value={role.payAmount}
-                      onChange={(e) => updateRole(role.key, { payAmount: e.target.value })}
-                      className="min-h-[44px] min-w-0 rounded-xl bg-card px-3 text-body text-ink ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      onChange={(monto) => updateRole(role.key, { payAmount: monto })}
+                      className="min-h-[44px] min-w-0 rounded-xl bg-card px-3 text-body text-ink ring-1 ring-line"
                     />
                   </label>
                 </div>
@@ -356,6 +450,11 @@ function NewEventForm() {
         )}
       </div>
 
+      {!canSubmit && motivoBloqueo && (
+        <p className="mb-2 text-center text-sm text-ink/60" data-testid="motivo-publicar">
+          {motivoBloqueo}
+        </p>
+      )}
       <Button fullWidth size="lg" disabled={!canSubmit} loading={submitting} onClick={submit}>
         Publicar evento
       </Button>

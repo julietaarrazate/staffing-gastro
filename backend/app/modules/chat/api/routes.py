@@ -13,6 +13,7 @@ from fastapi import (
     status,
 )
 
+from app.core.idempotency import IdempotencyRecorder, idempotent
 from app.core.rate_limit import RateLimiter
 from app.core.ws_manager import ws_manager
 from app.modules.chat.api.dependencies import get_chat_service
@@ -33,6 +34,7 @@ router = APIRouter(prefix="/chats", tags=["chat"])
 
 ServiceDep = Annotated[ChatService, Depends(get_chat_service)]
 CurrentUserDep = Annotated[User, Depends(get_current_user)]
+RecorderDep = Annotated[IdempotencyRecorder, Depends(idempotent)]
 
 # PRODUCTION_HARDENING.md: antes sin ningún límite — es un endpoint
 # autenticado (no anónimo como login/register), así que se limita por
@@ -88,10 +90,11 @@ async def send_message(
     payload: SendMessageRequest,
     current_user: CurrentUserDep,
     service: ServiceDep,
+    recorder: RecorderDep,
 ):
     _send_message_rate_limit.check(str(current_user.id))
     try:
-        return await service.send_message(current_user.id, shift_id, payload.body)
+        message = await service.send_message(current_user.id, shift_id, payload.body)
     except ConversationNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -102,6 +105,11 @@ async def send_message(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="El mensaje no puede estar vacío",
         ) from exc
+    # Un reintento con la misma Idempotency-Key devuelve este mensaje sin
+    # crear otro ni volver a avisarle a la otra parte (U012).
+    response = MessageResponse.model_validate(message, from_attributes=True)
+    await recorder.save(status.HTTP_201_CREATED, response.model_dump(mode="json"))
+    return response
 
 
 @router.websocket("/{shift_id}/ws")
@@ -113,12 +121,15 @@ async def chat_stream(
 ):
     """Push en tiempo real de mensajes nuevos para la conversación de un turno."""
     try:
-        await service.assert_participant(current_user.id, shift_id)
+        thread = await service.assert_participant(current_user.id, shift_id)
     except ConversationNotFoundError as exc:
         raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION) from exc
 
     await websocket.accept()
-    if not ws_manager.connect_chat(shift_id, websocket):
+    # La conexión queda sobre el hilo vigente (el del comercio con la persona
+    # asignada ahora): si el turno se reasigna, `ws_manager` deja de
+    # entregarle y la corta.
+    if not ws_manager.connect_chat(shift_id, thread.worker_user_id, websocket):
         # Tope de conexiones concurrentes por turno (PRODUCTION_HARDENING.md).
         await websocket.close(code=status.WS_1013_TRY_AGAIN_LATER)
         return

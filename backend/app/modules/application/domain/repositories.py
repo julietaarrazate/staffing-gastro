@@ -30,7 +30,7 @@ class ShiftApplicationRepository(ABC):
 
     @abstractmethod
     async def update(self, application: ShiftApplication) -> ShiftApplication:
-        """Actualiza una postulación existente y la devuelve."""
+        """Actualiza una postulación existente (estado y fecha) y la devuelve."""
 
     @abstractmethod
     async def get_by_id(self, application_id: UUID) -> ShiftApplication | None:
@@ -55,7 +55,8 @@ class ShiftApplicationRepository(ABC):
     @abstractmethod
     async def list_by_shift_enriched(self, shift_id: UUID) -> list[EnrichedApplicant]:
         """Postulantes de un turno con datos del trabajador (perfil + usuario),
-        en pocas consultas (JOIN) en vez de 2 por postulante."""
+        en pocas consultas (JOIN) en vez de 2 por postulante. Sin las cuentas
+        suspendidas (ADR-0024)."""
 
     @abstractmethod
     async def find_applicant_by_name(
@@ -77,14 +78,22 @@ class ShiftApplicationRepository(ABC):
         de doble turno)."""
 
     @abstractmethod
+    async def count_pending_by_shift_ids(self, shift_ids: list[UUID]) -> dict[UUID, int]:
+        """Postulaciones PENDIENTE de cada turno, en UNA consulta agrupada.
+        Los turnos sin pendientes no aparecen en el resultado (equivalen a 0).
+        No cuenta retiradas, rechazadas ni la aceptada, ni las de cuentas
+        suspendidas (ADR-0024): el número coincide con la lista de postulantes."""
+
+    @abstractmethod
     async def count_application_stats(self) -> ApplicationStats:
         """Cuenta postulaciones totales y aceptadas (`application_to_acceptance_rate`,
         panel de admin) — agregado en SQL, no una lista de filas."""
 
     @abstractmethod
     async def count_active_by_shift_ids(self, shift_ids: list[UUID]) -> dict[UUID, int]:
-        """Postulaciones no retiradas por turno, para una lista de turnos en
-        UNA consulta (GROUP BY). Los turnos sin postulaciones no aparecen."""
+        """Postulaciones en pie por turno (ni retiradas ni desasignadas), para
+        una lista de turnos en UNA consulta (GROUP BY). Los turnos sin
+        postulaciones no aparecen."""
 
     @abstractmethod
     async def count_created_by_period(

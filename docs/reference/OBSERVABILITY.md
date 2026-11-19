@@ -39,7 +39,8 @@
 silencio. Sobre esa base, `shift/application/services.py` y
 `application/application/services.py` instrumentan los hitos del dominio:
 `shift.published`, `shift.escalated`, `shift.cancelled`, `shift.assigned`,
-`worker.no_show` (con `trigger=manual|automatic`), `application.submitted`,
+`worker.no_show` (con `trigger=manual|automatic`), `application.submitted`
+(con `reapplied=true` cuando reactiva una postulación retirada),
 `application.accepted`, `application.rejected`, `application.withdrawn`.
 Cada uno loguea `shift_id`/`worker_profile_id`/`company_id` según
 corresponda. Ver el detalle completo (fuente, señales, y las 5 métricas de
@@ -60,10 +61,13 @@ producto que se construyeron encima) en
 >    `docs/audits/2026-08-oido/03_SECURITY.md §10` de la auditoría OÍDO.
 > 2. **Métricas de negocio agregadas — resuelto en parte (2026-08-13).**
 >    `GET /admin/stats` ya expone `avg_time_to_fill_minutes`/
->    `pct_filled_under_10_min` (tiempo a cubrir, meta < 10 min) y, desde esta
+>    `pct_filled_under_10_min` (tiempo a cubrir, meta < 10 min; desde 2026-11-17
+>    se mide hasta la **confirmación** de la persona, `first_confirmed_at`, y
+>    sin cuentas de prueba ni invitadas) y, desde esta
 >    fecha, `shift_assignment_rate_pct`, `shift_completion_rate_pct`,
 >    `application_to_acceptance_rate_pct`, `no_show_rate_pct`,
->    `worker_completion_repeat_rate_pct`, `employer_repeat_rate_pct` — todas
+>    `worker_completion_repeat_rate_pct`, `employer_repeat_rate_pct` (desde
+>    2026-11-17 reemplazada por `employer_return_30d_rate_pct`) — todas
 >    derivadas de columnas ya existentes (sin tabla nueva). Ver
 >    [`docs/audits/ETAPA1_QUALITY_REVIEW.md`](../audits/ETAPA1_QUALITY_REVIEW.md)
 >    para la definición exacta de cada una (numerador/denominador/qué queda
@@ -72,6 +76,11 @@ producto que se construyeron encima) en
 >    punta a punta" (`status IN (FINALIZADO, PAGADO)`) — dos métricas
 >    separadas a propósito, después de que la revisión de calidad detectara
 >    que una sola métrica llamada "fill rate" mezclaba ambos conceptos.
+>    Desde 2026-11-18 las métricas de cobertura (tiempo a cubrir, asignación,
+>    finalización y las del período de `GET /admin/period-metrics`) dejan
+>    fuera, del numerador y del denominador, los turnos que vencieron con la
+>    cuenta del comercio suspendida (`shifts.not_covered_while_suspended`,
+>    [ADR-0024](../adr/ADR-0024-efectos-de-una-suspension.md)).
 >    Falta latencia de endpoints y tasa de error (fuera de alcance de esta
 >    ronda: requeriría un middleware de timing, no cubierto todavía).
 > 3. **Alertas propias** sobre el healthcheck y sobre errores capturados por

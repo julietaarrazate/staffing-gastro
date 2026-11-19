@@ -3,31 +3,28 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from app.modules.chat.domain.entities import ChatMessage, InboxCandidate
+from app.modules.chat.domain.entities import ChatMessage, InboxCandidate, Thread
 
 
 class ChatMessageRepository(ABC):
-    """Puerto de persistencia para los mensajes de chat."""
+    """Puerto de persistencia para los mensajes de chat.
+
+    Toda lectura es por hilo (`Thread`: turno + persona asignada), nunca por
+    turno a secas: un turno reasignado tiene un hilo por cada persona que lo
+    tuvo, y cada uno lo ven sólo el comercio y esa persona.
+    """
 
     @abstractmethod
     async def add(self, message: ChatMessage) -> ChatMessage:
         """Persiste un nuevo mensaje y lo devuelve."""
 
     @abstractmethod
-    async def list_by_shift(self, shift_id: UUID) -> list[ChatMessage]:
-        """Lista los mensajes de un turno en orden cronológico ascendente."""
+    async def list_by_thread(self, thread: Thread) -> list[ChatMessage]:
+        """Lista los mensajes de un hilo en orden cronológico ascendente."""
 
     @abstractmethod
-    async def last_message(self, shift_id: UUID) -> ChatMessage | None:
-        """Devuelve el último mensaje del turno, o None si no hay ninguno."""
-
-    @abstractmethod
-    async def count_unread(self, shift_id: UUID, recipient_user_id: UUID) -> int:
-        """Cuenta los mensajes no leídos que recibió el usuario en ese turno."""
-
-    @abstractmethod
-    async def mark_read(self, shift_id: UUID, recipient_user_id: UUID) -> bool:
-        """Marca como leídos los mensajes que el usuario recibió en ese turno.
+    async def mark_read(self, thread: Thread, reader_user_id: UUID) -> bool:
+        """Marca como leídos los mensajes que el usuario recibió en ese hilo.
 
         Devuelve si marcó algo (había mensajes sin leer): con eso el servicio
         decide si vale la pena avisarle a quien los mandó, en vivo, que ya se
@@ -43,11 +40,11 @@ class ChatMessageRepository(ABC):
         """
 
     @abstractmethod
-    async def last_messages(self, shift_ids: list[UUID]) -> dict[UUID, ChatMessage]:
-        """Último mensaje de cada turno en `shift_ids`, en una sola consulta."""
+    async def last_messages(self, threads: list[Thread]) -> dict[Thread, ChatMessage]:
+        """Último mensaje de cada hilo en `threads`, en una sola consulta."""
 
     @abstractmethod
-    async def unread_counts_by_shift(
-        self, shift_ids: list[UUID], recipient_user_id: UUID
-    ) -> dict[UUID, int]:
-        """No leídos por turno para el usuario receptor, en una sola consulta."""
+    async def unread_counts(
+        self, threads: list[Thread], recipient_user_id: UUID
+    ) -> dict[Thread, int]:
+        """No leídos por hilo para el usuario receptor, en una sola consulta."""

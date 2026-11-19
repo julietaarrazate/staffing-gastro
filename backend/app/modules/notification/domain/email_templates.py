@@ -327,6 +327,37 @@ def render_password_reset_email_html(full_name: str, link: str, expires_in_hours
     )
 
 
+def render_google_claimed_account_email_html(full_name: str, recover_link: str) -> str:
+    """Aviso de que alguien entró con Google a una cuenta cuyo mail nunca se
+    había confirmado (`IdentityService._claim_unverified_account`).
+
+    Va al mail de la cuenta y a nadie más. A propósito no lleva IP, dispositivo
+    ni nombre de quien entró: sólo lo que pasó y qué hacer. Dice la
+    consecuencia real (la contraseña anterior dejó de servir y se cerraron las
+    sesiones) y cómo volver a tener contraseña, para que quien creó la cuenta
+    con contraseña no quede sin entender por qué ya no entra."""
+    body = f"""
+    <p style="margin:0 0 4px;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.6;color:{_TINTA};">Hola {escape(full_name)},</p>
+    <p style="margin:0 0 12px;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.6;color:{_TINTA};">Se entró a Oído con la cuenta de Google de este mail, por primera vez.</p>
+    <p style="margin:0 0 12px;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.6;color:{_TINTA};">Como el mail de esta cuenta nunca se había confirmado, la contraseña anterior dejó de servir y se cerraron las sesiones que estaban abiertas.</p>
+    <p style="margin:0 0 4px;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.6;color:{_TINTA};">Desde ahora se entra con Google. Si preferís volver a tener contraseña, pedila desde «¿Olvidaste tu contraseña?» y te mandamos un link para elegir una nueva.</p>
+    {_cta_button("Recuperar mi contraseña", recover_link)}
+    <p style="margin:20px 0 0;font-family:Inter,Arial,sans-serif;font-size:12px;line-height:1.6;color:{_TINTA_APAGADA};text-align:center;">Si el botón no funciona, copiá y pegá este enlace en tu navegador:<br>
+      <a href="{recover_link}" style="color:{_TEXTO_DESTACADO};word-break:break-all;">{recover_link}</a>
+    </p>
+    <hr style="border:none;border-top:1px solid {_LINEA};margin:24px 0;">
+    <p style="margin:0;font-family:Inter,Arial,sans-serif;font-size:13px;line-height:1.6;color:{_TINTA_APAGADA};"><strong style="color:{_TINTA_SUAVE};">¿No fuiste vos?</strong> Escribinos a <a href="mailto:hola@oido.com.ar" style="color:{_TEXTO_DESTACADO};">hola@oido.com.ar</a> y lo revisamos.</p>
+    """
+    return _shell(
+        preheader="Se entró a tu cuenta con Google. La contraseña anterior dejó de servir.",
+        eyebrow="SEGURIDAD DE TU CUENTA",
+        title_html="Se entró a tu cuenta con Google",
+        subtitle_html="",
+        body_html=body,
+        footer_note="Recibís este mail porque se entró con Google a la cuenta de este mail.",
+    )
+
+
 def render_identity_verification_email_html(full_name: str, profile_link: str) -> str:
     """Invitación a verificar identidad (DNI + selfie). Lo que es confianza
     (el sello, "¿Para qué te sirve?") se marca con celeste y azul hondo; hasta

@@ -10,7 +10,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
-import { AR_TIMEZONE, formatAgo, formatShiftWhen } from "@/lib/datetime";
+import { formatAgo, formatShiftTime, formatShiftWhen } from "@/lib/datetime";
 import { SKILL_LABELS } from "@/lib/types";
 import type { LiveShift, LiveShiftsBoard } from "@/lib/types";
 import {
@@ -25,13 +25,15 @@ import {
 import { CheckCircleIcon, ClockIcon, FlameIcon, UsersIcon } from "@/components/icons";
 import { AdminHeading } from "@/components/admin/AdminStats";
 import { LIVE_REFRESH_MS, PROMISE_MINUTES, formatMinutesOpen } from "@/components/admin/live";
+import { plural } from "@/lib/format";
 
-type Filter = "todos" | "urgentes" | "escalados";
+type Filter = "todos" | "urgentes" | "escalados" | "ausencias";
 
 const QUERY: Record<Filter, string> = {
   todos: "",
   urgentes: "?urgent=true",
   escalados: "?escalated=true",
+  ausencias: "?no_shows=true",
 };
 
 const EMPTY_TEXT: Record<Filter, { title: string; subtitle: string }> = {
@@ -39,38 +41,36 @@ const EMPTY_TEXT: Record<Filter, { title: string; subtitle: string }> = {
     title: "Nada esperando",
     subtitle: "Todos los turnos publicados tienen a alguien confirmado.",
   },
-  urgentes: { title: "Sin urgentes ahora", subtitle: "Ningún turno urgente está sin cubrir." },
+  urgentes: {
+    title: "Sin urgentes ahora",
+    subtitle: "Ningún turno urgente está sin cubrir.",
+  },
   escalados: {
     title: "Sin escalados ahora",
     subtitle: "El sistema no tuvo que escalar ningún turno abierto.",
+  },
+  ausencias: {
+    title: "Sin ausencias hoy",
+    subtitle: "Nadie faltó a un turno hoy.",
   },
 };
 
 function filterFromUrl(): Filter {
   if (typeof window === "undefined") return "todos";
   const value = new URLSearchParams(window.location.search).get("filtro");
-  return value === "urgentes" || value === "escalados" ? value : "todos";
+  return value === "urgentes" || value === "escalados" || value === "ausencias" ? value : "todos";
 }
 
-function formatClock(iso: string): string {
-  return new Date(iso).toLocaleTimeString("es-AR", {
-    timeZone: AR_TIMEZONE,
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  });
-}
-
-function LiveShiftCard({ shift }: { shift: LiveShift }) {
+function LiveShiftCard({ shift, showAbsence }: { shift: LiveShift; showAbsence: boolean }) {
   const assigned = shift.status === "asignado";
   const late = !assigned && shift.minutes_open > PROMISE_MINUTES;
   const where = [SKILL_LABELS[shift.position] ?? shift.position, shift.company_name, shift.city]
     .filter(Boolean)
     .join(" · ");
   return (
-    <Card className="p-4 sm:p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
+    <Card className="min-w-0 p-4 sm:p-5">
+      <div className="flex min-w-0 items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
           <p className="truncate font-semibold text-ink">
             {shift.title || SKILL_LABELS[shift.position] || "Turno"}
           </p>
@@ -81,14 +81,25 @@ function LiveShiftCard({ shift }: { shift: LiveShift }) {
           </p>
         </div>
         <div className="shrink-0 text-right">
-          <p
-            className={`text-2xl font-extrabold tabular-nums ${late ? "text-danger-text" : "text-ink"}`}
-          >
-            {formatMinutesOpen(shift.minutes_open)}
-          </p>
-          <p className="text-xs font-medium text-ink/50">
-            {assigned ? "publicado" : "sin cubrir"}
-          </p>
+          {showAbsence ? (
+            <>
+              <p className="text-2xl font-extrabold tabular-nums text-danger-text">
+                {formatShiftTime(shift.no_show_at as string)}
+              </p>
+              <p className="text-xs font-medium text-ink/50">ausencia</p>
+            </>
+          ) : (
+            <>
+              <p
+                className={`text-2xl font-extrabold tabular-nums ${late ? "text-danger-text" : "text-ink"}`}
+              >
+                {formatMinutesOpen(shift.minutes_open)}
+              </p>
+              <p className="text-xs font-medium text-ink/50">
+                {assigned ? "publicado" : "sin cubrir"}
+              </p>
+            </>
+          )}
         </div>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-1.5">
@@ -102,7 +113,7 @@ function LiveShiftCard({ shift }: { shift: LiveShift }) {
         )}
         <Badge tone="neutral">{assigned ? "Asignado, falta que confirme" : "Buscando"}</Badge>
         <Badge tone="neutral" icon={<UsersIcon size={12} />}>
-          {shift.applications === 1 ? "1 postulación" : `${shift.applications} postulaciones`}
+          {plural(shift.applications, "postulación", "postulaciones")}
         </Badge>
       </div>
     </Card>
@@ -113,15 +124,30 @@ export default function AdminLiveShiftsPage() {
   const { token } = useAuth();
   const [filter, setFilter] = useState<Filter>("todos");
   const [board, setBoard] = useState<LiveShiftsBoard | null>(null);
+  const loaded = board !== null;
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const filterRef = useRef<Filter>(filter);
+  const filtersRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fromUrl = filterFromUrl();
     filterRef.current = fromUrl;
     setFilter(fromUrl);
   }, []);
+
+  // En un celular el filtro elegido puede quedar fuera de la tira (y las cuentas de
+  // las etiquetas la ensanchan al cargar): se lo trae a la vista.
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      const button = filtersRef.current?.querySelector<HTMLElement>('[aria-pressed="true"]');
+      const track = button?.parentElement;
+      if (!button || !track) return;
+      const overflow = button.getBoundingClientRect().right - track.getBoundingClientRect().right;
+      if (overflow > 0) track.scrollLeft += overflow + 4;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [filter, loaded]);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -165,7 +191,7 @@ export default function AdminLiveShiftsPage() {
     window.history.replaceState(null, "", url);
   };
 
-  const counts = board ?? { total: 0, urgent: 0, escalated: 0 };
+  const counts = board ?? { total: 0, urgent: 0, escalated: 0, no_shows: 0 };
   const label = (text: string, n: number) => (board ? `${text} (${n})` : text);
 
   return (
@@ -176,19 +202,28 @@ export default function AdminLiveShiftsPage() {
       />
 
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <SegmentedControl<Filter>
-          className="sm:w-[26rem]"
-          value={filter}
-          onChange={changeFilter}
-          options={[
-            { value: "todos", label: label("Todos", counts.total) },
-            { value: "urgentes", label: label("Urgentes", counts.urgent) },
-            { value: "escalados", label: label("Escalados", counts.escalated) },
-          ]}
-        />
+        <div ref={filtersRef} className="min-w-0">
+          <SegmentedControl<Filter>
+            className="no-scrollbar overflow-x-auto sm:w-[34rem]"
+            value={filter}
+            onChange={changeFilter}
+            options={[
+              { value: "todos", label: label("Todos", counts.total) },
+              { value: "urgentes", label: label("Urgentes", counts.urgent) },
+              {
+                value: "escalados",
+                label: label("Escalados", counts.escalated),
+              },
+              {
+                value: "ausencias",
+                label: label("Ausencias", counts.no_shows ?? 0),
+              },
+            ]}
+          />
+        </div>
         <div className="flex items-center justify-between gap-3 sm:justify-end">
           <p className="text-xs text-ink/50" aria-live="polite">
-            {board ? `Actualizado ${formatClock(board.generated_at)} · cada 30 s` : "Cargando…"}
+            {board ? `Actualizado ${formatShiftTime(board.generated_at)} · cada 30 s` : "Cargando…"}
           </p>
           <Button variant="surface" size="sm" onClick={() => void load()} disabled={refreshing}>
             Actualizar
@@ -202,6 +237,16 @@ export default function AdminLiveShiftsPage() {
         </div>
       )}
 
+      {board && filter !== "ausencias" && board.limit != null && board.limit > 0 && (board.shown_live ?? 0) >= board.limit && (board.shown_live ?? 0) < board.total && (
+        <p
+          role="status"
+          className="mt-4 rounded-xl bg-warning-tint px-4 py-3 text-sm font-medium text-warning-text ring-1 ring-warning/20"
+        >
+          Mostrando {board.shown_live} de {plural(board.total, "turno", "turnos")} en vivo: faltan los más viejos.
+          Los totales de arriba cuentan todos.
+        </p>
+      )}
+
       <div className="mt-4">
         {!board ? (
           !error && <CardSkeletons count={3} />
@@ -212,10 +257,13 @@ export default function AdminLiveShiftsPage() {
             subtitle={EMPTY_TEXT[filter].subtitle}
           />
         ) : (
-          <ul className="grid gap-3" aria-label="Turnos sin cubrir">
+          <ul className="grid grid-cols-1 gap-3" aria-label="Turnos sin cubrir">
             {board.shifts.map((shift) => (
-              <li key={shift.id}>
-                <LiveShiftCard shift={shift} />
+              <li key={shift.id} className="min-w-0">
+                <LiveShiftCard
+                  shift={shift}
+                  showAbsence={filter === "ausencias" && Boolean(shift.no_show_at)}
+                />
               </li>
             ))}
           </ul>

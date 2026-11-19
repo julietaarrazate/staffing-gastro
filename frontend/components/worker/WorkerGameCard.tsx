@@ -1,15 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import ImageUpload from "@/components/ImageUpload";
-import { toWorkerProfileInput } from "@/lib/worker-profile";
+import { saveProfilePart } from "@/lib/worker-profile";
 import { useAuth } from "@/lib/auth-context";
 import { SKILL_LABELS, WorkerEarnings, WorkerProfile } from "@/lib/types";
 import {
   BADGE_ICONS,
   BADGE_LABELS,
   formatRating,
+  hasRating,
   levelLabel,
   levelMeta,
 } from "@/lib/reputation";
@@ -20,12 +22,14 @@ import {
   AwardIcon,
   BriefcaseIcon,
   CheckCircleIcon,
+  ClockIcon,
   StarIcon,
   WalletIcon,
   XCircleIcon,
 } from "@/components/icons";
 import CountUp from "@/components/ui/CountUp";
 import IconChip, { type IconChipTone } from "@/components/ui/IconChip";
+import { formatArs } from "@/lib/format";
 
 // `accent` sigue el criterio que tenía la landing anterior (StatsStrip/bento): un color
 // por tile, y los tres distintos — es el juego que pidió Julieta ("un ícono en
@@ -81,6 +85,7 @@ export default function WorkerGameCard() {
   const [earnings, setEarnings] = useState<WorkerEarnings | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -100,17 +105,20 @@ export default function WorkerGameCard() {
   }, [token]);
 
   async function savePhoto(url: string) {
-    if (!token || !profile) return;
-    // Payload COMPLETO con la foto nueva: el endpoint reemplaza el perfil, no
-    // lo parchea, así que mandar sólo `photo_url` borraría skills, bio, CV y
-    // disponibilidad. `toWorkerProfileInput` es el único lugar donde vive ese
-    // mapeo, compartido con el formulario.
-    const saved = await api.put<WorkerProfile>(
-      "/workers/me/profile",
-      toWorkerProfileInput(profile, { photo_url: url }),
-      token
-    );
-    setProfile(saved);
+    if (!token) return;
+    // El endpoint reemplaza el perfil, no lo parchea. `saveProfilePart` lee el
+    // perfil del servidor justo antes de escribir (la copia de esta pantalla
+    // puede estar vieja si la persona guardó otra cosa en otra pestaña) y
+    // manda todo con la foto nueva encima.
+    setPhotoError(null);
+    try {
+      const saved = await saveProfilePart(token, { photo_url: url });
+      setProfile(saved);
+    } catch {
+      // `ImageUpload` no espera este guardado: sin aviso, la foto subida
+      // quedaba sin guardar y la persona no se enteraba.
+      setPhotoError("No pudimos guardar tu foto. Probá de nuevo.");
+    }
   }
 
   if (loading) return <Skeleton className="h-72 w-full rounded-[var(--radius-card)]" />;
@@ -124,6 +132,39 @@ export default function WorkerGameCard() {
   // puntualidad "Sin datos", 0 turnos, 0 cancelaciones y "todavía no tenés
   // insignias": una pantalla entera diciéndole lo que no tiene.
   const hasHistory = profile.events_completed > 0;
+  // Las cancelaciones y las ausencias no esperan al primer turno hecho: son
+  // parte de la reputación desde que existen, y esconderlas le hace creer a la
+  // persona que no cuentan (U082/U089). Sólo se ven acá, en el perfil propio:
+  // lo que ve un comercio sale de otra pantalla y no cambia.
+  const hasStrikes = profile.cancellations > 0 || profile.no_shows > 0;
+  // Si una no corresponde, el camino es Soporte: un toque, no «buscalo en Ajustes».
+  const supportLine = (
+    <p className="px-4 pb-4 text-center text-xs text-ink/60">
+      ¿Alguna no corresponde? Escribinos a{" "}
+      <Link
+        href="/support"
+        className="font-semibold text-primary-text underline underline-offset-2"
+      >
+        Soporte
+      </Link>
+    </p>
+  );
+  const absenceTile = (
+    <StatTile
+      icon={<ClockIcon size={16} />}
+      value={String(profile.no_shows)}
+      label="Ausencias"
+      tone="trust"
+    />
+  );
+  const cancellationTile = (
+    <StatTile
+      icon={<XCircleIcon size={16} />}
+      value={String(profile.cancellations)}
+      label="Cancelaciones"
+      tone="trust"
+    />
+  );
 
   return (
     <div className="overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line">
@@ -153,14 +194,21 @@ export default function WorkerGameCard() {
           onChange={savePhoto}
           fallbackLabel={user?.full_name ?? "Vos"}
         />
+        {photoError && (
+          <p role="alert" className="mt-2 text-xs font-semibold text-danger-text">
+            {photoError}
+          </p>
+        )}
         <EditableName className="mt-3 justify-center text-xl font-extrabold" />
         <span className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-on-brand/10 px-3 py-0.5 text-xs font-bold font-mono uppercase tracking-wide">
           <span className={`h-2 w-2 rounded-full ${meta.dot}`} /> Nivel {levelLabel(level)}
         </span>
-        <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1 text-sm font-extrabold text-ink">
-          <StarIcon size={16} filled className="text-rating" />
-          {formatRating(profile.rating)}
-        </div>
+        {hasRating(profile.rating) && (
+          <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1 text-sm font-extrabold text-ink">
+            <StarIcon size={16} filled className="text-rating" />
+            {formatRating(profile.rating)}
+          </div>
+        )}
       </div>
 
       {/* Ganancias (pedido de Julieta: "un resumen de ganancias acumuladas
@@ -192,7 +240,7 @@ export default function WorkerGameCard() {
               </p>
             </div>
             <p className="shrink-0 text-right text-xs font-bold text-ink/70">
-              ${Number(earnings.total_earned).toLocaleString("es-AR")}
+              {formatArs(Number(earnings.total_earned))}
               <span className="block text-label font-medium text-ink/45">total</span>
             </p>
           </div>
@@ -213,19 +261,21 @@ export default function WorkerGameCard() {
         {/* Stats, un acento por tile y los tres distintos: manteca en el dato
             operativo (turnos), petróleo en el de fiabilidad (cancelaciones),
             celeste en lo que acumula confianza (experiencia). */}
-        <div className="grid grid-cols-3 gap-2.5 p-4">
+        {/* Con ausencias, cuatro tiles en 2x2: en 390 px cuatro columnas no
+            entran con el rótulo «Cancelaciones». */}
+        <div
+          className={`grid gap-2.5 p-4 ${
+            profile.no_shows > 0 ? "grid-cols-2" : "grid-cols-3"
+          }`}
+        >
           <StatTile
             icon={<BriefcaseIcon size={16} />}
             value={String(profile.events_completed)}
             label="Turnos"
             tone="manteca"
           />
-          <StatTile
-            icon={<XCircleIcon size={16} />}
-            value={String(profile.cancellations)}
-            label="Cancelaciones"
-            tone="trust"
-          />
+          {cancellationTile}
+          {profile.no_shows > 0 && absenceTile}
           <StatTile
             icon={<CheckCircleIcon size={16} />}
             value={String(profile.years_experience)}
@@ -233,6 +283,7 @@ export default function WorkerGameCard() {
             tone="cielo"
           />
         </div>
+        {hasStrikes && <div className="-mt-2">{supportLine}</div>}
 
         {/* Insignias */}
         <div className="px-4 pb-3">
@@ -259,9 +310,18 @@ export default function WorkerGameCard() {
         </div>
         </>
       ) : (
-        <p className="px-5 py-4 text-center text-sm text-ink/55">
-          Tu reputación arranca con tu primer turno.
-        </p>
+        <>
+          <p className="px-5 py-4 text-center text-sm text-ink/55">
+            Tu reputación arranca con tu primer turno.
+          </p>
+          {hasStrikes && (
+            <div className="grid grid-cols-2 gap-2.5 px-4 pb-3">
+              {cancellationTile}
+              {absenceTile}
+            </div>
+          )}
+          {hasStrikes && supportLine}
+        </>
       )}
 
       {/* Rubros */}

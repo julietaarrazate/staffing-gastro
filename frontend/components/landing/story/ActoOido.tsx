@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 import CandidateCard from "@/components/CandidateCard";
 import ShiftCard from "@/components/ShiftCard";
 import { Avatar, ConfirmOverlay, Rating } from "@/components/ui";
-import { formatKm } from "@/lib/format";
+import { formatDistance } from "@/lib/format";
 import { CANDIDATES, MAP_LOCAL, MAP_WORKERS, type RelojKey } from "./fixtures";
 import RelojDelTurno from "./RelojDelTurno";
 import { PhoneFrame, PricePin, PushNotice, StreetGrid, ToastLine, WorkerPin } from "./replicas";
@@ -289,7 +289,7 @@ export function ActoOido() {
         {/* El mismo mapa del pedido, con los tres postulantes en ámbar */}
         <motion.div style={{ opacity: mapOpacity }} className="absolute inset-0" aria-hidden>
           <div
-            className={cn("absolute overflow-hidden bg-[var(--mapa)]", !L.map.bleed && "rounded-[1.75rem]")}
+            className={cn("absolute overflow-hidden bg-[var(--mapa)]", !L.map.bleed && "rounded-[var(--radius-card)]")}
             style={{ left: L.map.x, top: L.map.y, width: L.map.w, height: L.map.h }}
           >
             <StreetGrid />
@@ -443,7 +443,7 @@ export function ActoOido() {
                 // Mismo rebote, 4/3 más lento: la rigidez baja con el cuadrado
                 // (520 × 0,5625) y la amortiguación con la raíz (20 × 0,75).
                 transition={{ type: "spring", stiffness: 292.5, damping: 15 }}
-                className="absolute bottom-6 left-0 block -translate-x-1/2 whitespace-nowrap rounded-[18px_18px_18px_5px] bg-night px-4 py-2 font-display text-2xl font-semibold text-white shadow-[0_14px_30px_rgba(20,17,24,0.35)]"
+                className="absolute bottom-6 left-0 block -translate-x-1/2 whitespace-nowrap rounded-[var(--radius-card)_var(--radius-card)_var(--radius-card)_var(--radius-chip)] bg-night px-4 py-2 font-display text-2xl font-semibold text-white shadow-[0_14px_30px_rgba(20,17,24,0.35)]"
               >
                 ¡Oído!
               </motion.span>
@@ -567,7 +567,7 @@ function CandidateRow({ candidateIndex }: { candidateIndex: number }) {
         <p className="truncate text-body-strong font-bold text-ink">{c.full_name}</p>
         <div className="mt-0.5 flex items-center gap-2 text-xs font-semibold text-ink/60">
           {nuevo ? <span>Nuevo en Oído</span> : <Rating value={c.rating} />}
-          {c.distance_km != null && <span>· {formatKm(c.distance_km)}</span>}
+          {c.distance_km != null && <span>· {formatDistance(c.distance_km)}</span>}
           {!nuevo && <span>· {c.events_completed} turnos</span>}
         </div>
       </div>

@@ -107,8 +107,16 @@ async def test_open_shift_detail_for_a_worker_has_company_and_no_worker_data(
 async def test_reopened_shift_hides_who_did_not_show_up(client: AsyncClient):
     """Un no-show reabre el turno: vuelve a estar abierto, pero la marca de
     quién faltó es de esa persona, no del turno."""
+    # Empezó hace 20 minutos y le quedan horas: tras la ausencia se reofrece
+    # (U080) y vuelve a estar abierto. Con el horario ya terminado pasaría a
+    # «no cubierto» y para quien no es parte dejaría de existir.
+    started = (datetime.now(timezone.utc) - timedelta(minutes=20)).replace(tzinfo=None)
     shift_id, employer, _worker = await _confirmed_shift(
-        client, "vis6_emp@staffya.com", "vis6_w@staffya.com"
+        client,
+        "vis6_emp@staffya.com",
+        "vis6_w@staffya.com",
+        start_at=started.isoformat(),
+        end_at=(started + timedelta(hours=6)).isoformat(),
     )
     marked = await client.post(f"/api/v1/shifts/{shift_id}/no-show", headers=employer)
     assert marked.status_code == 200

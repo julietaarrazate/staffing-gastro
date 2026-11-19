@@ -33,9 +33,11 @@ EN_CAMINO → CHECK_IN → TRABAJANDO → CHECK_OUT → FINALIZADO → PAGADO
                          │              └── (cancelación del trabajador,      │
                          │                   ADR-0004) ──────┐                │
                          └──── (rechazo del trabajador) ─────┴────────────────┘
-CANCELADO: alcanzable desde cualquier estado no terminal (comercio). Si el
-trabajador ya estaba CONFIRMADO o más adelante, es cancelación tardía
-(ADR-0007): notifica al trabajador y le cuesta reputación al comercio.
+CANCELADO: alcanzable desde cualquier estado no terminal (comercio), salvo
+CHECK_OUT: con la salida marcada el turno ya se trabajó, se finaliza y se
+paga (U081, ADR-0007 act. 2026-11-18). Si el trabajador ya estaba CONFIRMADO
+o más adelante, es cancelación tardía (ADR-0007): notifica al trabajador y
+le cuesta reputación al comercio.
 ```
 
 - **BORRADOR:** creado por el comercio; editable; no visible.
@@ -79,7 +81,10 @@ trabajador ya estaba CONFIRMADO o más adelante, es cancelación tardía
   `CompanyProfile.late_cancellations` — efecto simétrico al `no_shows`/
   `cancellations` del trabajador. Cancelar sin que nadie llegó a
   comprometerse (borrador, publicado, buscando personal, o asignado sin
-  confirmar) no tiene este efecto.
+  confirmar) no tiene este efecto, pero igual avisa (2026-11-13): al asignado
+  sin confirmar (`shift_cancelled`) y a cada postulación pendiente
+  (`applied_shift_cancelled`), que pasa a `rechazada`. Tabla completa en
+  [NOTIFICATIONS.md](./NOTIFICATIONS.md).
 
 **Estados terminales:** `finalizado`, `pagado`, `cancelado` (no admiten más
 transiciones). **Editables:** `borrador`, `publicado`. **Abiertos (feed):**
@@ -88,7 +93,12 @@ transiciones). **Editables:** `borrador`, `publicado`. **Abiertos (feed):**
 ## Reglas de negocio
 
 - **Horario válido:** `start_at < end_at`.
-- **Visibilidad:** un turno aparece en el feed **sólo** en estados abiertos.
+- **Visibilidad:** un turno aparece en el feed **sólo** en estados abiertos
+  y con la hora de inicio por delante. Excepción: el **turno reofrecido**
+  (U080, se reabrió ya empezado) se ofrece mientras le queden 2 horas de
+  horario (`offered_until`), y se
+  paga lo que resta desde la llegada ([ADR-0015](../adr/ADR-0015-turno-no-cubierto.md),
+  actualización 2026-11-18).
 - **Propiedad:** las acciones del lado comercio (publicar, editar, cancelar,
   asignar, finalizar, pagar) sólo las hace el **comercio dueño**; ajeno = 404.
 - **Acciones del trabajador** (confirmar, rechazar, cancelar, salir,
@@ -99,6 +109,10 @@ transiciones). **Editables:** `borrador`, `publicado`. **Abiertos (feed):**
   descartados salvo su postulación registrada.
 - **Cierre → reputación:** al llegar a `finalizado`/`pagado` se habilita la
   **calificación bidireccional** (ver [REPUTATION.md](./REPUTATION.md)).
+- **Cierre automático** (decisión 24, [ADR-0008](../adr/ADR-0008-asistencia-simplificada-y-no-show-automatico.md)
+  act. 2026-11-18): un `CHECK_OUT` que el comercio no cierra recibe un
+  recordatorio a las 24 h de la salida y pasa a `FINALIZADO` solo a las 72 h
+  (`auto_finished_at`), con los mismos efectos que el cierre del comercio.
 
 ## Invariantes
 
@@ -106,7 +120,12 @@ transiciones). **Editables:** `borrador`, `publicado`. **Abiertos (feed):**
   trabajador (`worker_profile_id`).
 - Los estados terminales no cambian.
 - check-out no puede ocurrir sin check-in previo; las transiciones de asistencia
-  respetan el orden del ciclo.
+  respetan el orden del ciclo. Tampoco antes de `start_at`: se rechaza con
+  "Todavía no podés marcar la salida: el turno empieza hoy a las 20:00." (hora
+  de Argentina). Con la llegada marcada tampoco se puede cancelar la asignación
+  (`worker-cancel` es sólo desde `confirmado`). En «Mis turnos», «Me fui» no se ofrece hasta que el turno empezó.
+- Rechazar, cancelar la asignación y marcar la salida piden confirmación en la
+  pantalla del trabajador (mismo diálogo que retirar una postulación).
 - La cantidad (`quantity`) representa cuántas personas se necesitan para el
   puesto. **Decisión de producto (R1.4):** por ahora **un turno = una
   persona** — `quantity` queda capado a `1` en la API (`ShiftInput`) y en el

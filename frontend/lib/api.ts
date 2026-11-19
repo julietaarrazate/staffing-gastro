@@ -1,4 +1,6 @@
+import { RANGOS_NUMERICOS } from "@/lib/limites";
 import { turnstileHeaders } from "@/lib/turnstile";
+import { plural } from "@/lib/format";
 
 // El backend siempre es el servicio remoto en Render. NEXT_PUBLIC_API_URL
 // (inyectado en next.config.ts) permite sobrescribirlo si algún día hiciera
@@ -7,17 +9,257 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://staffya-backend.onre
 
 export class ApiError extends Error {
   status: number;
-  constructor(status: number, message: string) {
+  /** Código estable que manda el backend junto al mensaje (`detail.code`),
+   * para los errores que la pantalla tiene que distinguir, como los de la
+   * verificación en dos pasos (ADR-0023). */
+  code?: string;
+  constructor(status: number, message: string, code?: string) {
     super(message);
     this.status = status;
+    this.code = code;
   }
+}
+
+/** Tipos de error de validación (422) que el backend define con mensaje propio
+ * en castellano: se muestran tal cual. */
+const OWN_VALIDATION_TYPES = ["zona_requerida"];
+
+/** Nombre en castellano de los campos que de verdad tiene la API (último
+ * segmento de `loc`). Si el campo no está acá, el mensaje va sin nombre. */
+const FIELD_NAMES: Record<string, string> = {
+  email: "Mail",
+  password: "Contraseña",
+  new_password: "Contraseña",
+  full_name: "Nombre",
+  name: "Nombre",
+  body: "Mensaje",
+  text: "Texto",
+  subject: "Asunto",
+  title: "Título",
+  description: "Descripción",
+  notes: "Notas",
+  comment: "Comentario",
+  reason: "Motivo",
+  bio: "Presentación",
+  city: "Ciudad",
+  address: "Dirección",
+  dress_code: "Código de vestimenta",
+  opening_hours: "Horario",
+  barrio: "Barrio",
+  count: "Cantidad",
+  roles: "Roles",
+  pay_amount: "Pago",
+  years_experience: "Años de experiencia",
+  rating: "Puntaje",
+  capacity: "Capacidad",
+  start_at: "Inicio",
+  end_at: "Fin",
+  birth_date: "Fecha de nacimiento",
+  photo_url: "Foto",
+  cv_url: "CV",
+};
+
+const num = (v: unknown): number | undefined => {
+  const n = typeof v === "string" ? Number(v) : v;
+  return typeof n === "number" && Number.isFinite(n) ? n : undefined;
+};
+
+/** Texto en castellano de un error de validación de Pydantic v2, por su
+ * `type` (y `ctx`, del que el backend sólo deja pasar las cotas numéricas
+ * del esquema: `backend/app/main.py`, `_CTX_PERMITIDO`). Nunca usa el `msg`
+ * en inglés ni el valor que mandó la persona. `null` si no se reconoce el
+ * tipo. */
+function validationText(type: string, field: string | undefined, ctx: Record<string, unknown>): string | null {
+  const rango = field ? RANGOS_NUMERICOS[field] : undefined;
+  const entre = rango && rango.min !== undefined && rango.max !== undefined ? `Entre ${rango.min} y ${rango.max}` : null;
+  switch (type) {
+    case "string_too_long": {
+      const n = num(ctx.max_length);
+      return n === undefined ? "Es demasiado largo" : `Máximo ${plural(n, "caracter", "caracteres")}`;
+    }
+    case "string_too_short": {
+      const n = num(ctx.min_length);
+      if (n === undefined) return "Es demasiado corto";
+      return n <= 1 ? "No puede estar vacío" : `Mínimo ${n} caracteres`;
+    }
+    case "too_long": {
+      const n = num(ctx.max_length);
+      return n === undefined ? "Hay demasiados elementos" : `Máximo ${n} elementos`;
+    }
+    case "too_short": {
+      const n = num(ctx.min_length);
+      return n === undefined || n <= 1 ? "Falta elegir al menos uno" : `Al menos ${n} elementos`;
+    }
+    case "less_than_equal":
+    case "less_than": {
+      if (entre) return entre;
+      const n = num(ctx.le ?? ctx.lt);
+      return n === undefined ? "El número es demasiado grande" : `Máximo ${n}`;
+    }
+    case "greater_than_equal":
+    case "greater_than": {
+      if (entre) return entre;
+      const n = num(ctx.ge ?? ctx.gt);
+      return n === undefined ? "El número es demasiado chico" : `Mínimo ${n}`;
+    }
+    case "missing":
+      return "Falta completarlo";
+    case "value_error":
+      // El texto de un validador nunca viaja (puede repetir lo que se mandó):
+      // sólo se reconoce el del mail, por el campo. El resto, «Revisá los
+      // datos.».
+      if (field === "email") return "Tiene que ser un mail válido";
+      return null;
+    case "int_parsing":
+    case "float_parsing":
+    case "decimal_parsing":
+    case "decimal_type":
+    case "int_type":
+    case "float_type":
+      return "Tiene que ser un número";
+    case "decimal_max_digits":
+    case "decimal_whole_digits":
+      return "El número es demasiado grande";
+    case "decimal_max_places":
+      return "Con menos decimales";
+    case "date_from_datetime_parsing":
+    case "date_parsing":
+    case "date_type":
+    case "datetime_from_date_parsing":
+    case "datetime_parsing":
+    case "datetime_type":
+      return "Tiene que ser una fecha válida";
+    case "string_pattern_mismatch":
+    case "string_type":
+    case "enum":
+    case "literal_error":
+      return "No es un valor válido";
+    default:
+      return null;
+  }
+}
+
+function lowerFirst(s: string) {
+  return s.charAt(0).toLowerCase() + s.slice(1);
+}
+
+/** Traduce el `detail` en forma de lista de un 422 de Pydantic. */
+function validationListMessage(items: unknown[]): string {
+  const partes: string[] = [];
+  for (const item of items) {
+    const { type, msg, loc, ctx } = (item ?? {}) as {
+      type?: unknown;
+      msg?: unknown;
+      loc?: unknown;
+      ctx?: unknown;
+    };
+    if (typeof type !== "string") continue;
+    // Mensaje propio del backend, ya en castellano: tal cual.
+    if (OWN_VALIDATION_TYPES.includes(type) && typeof msg === "string") return msg;
+    const strings = Array.isArray(loc) ? loc.filter((l): l is string => typeof l === "string") : [];
+    const field = strings[strings.length - 1];
+    const texto = validationText(type, field, ctx && typeof ctx === "object" ? (ctx as Record<string, unknown>) : {});
+    if (!texto) continue;
+    const nombre = field ? FIELD_NAMES[field] : undefined;
+    const parte = nombre ? `${nombre}: ${lowerFirst(texto)}` : texto;
+    if (!partes.includes(parte)) partes.push(parte);
+  }
+  return partes.length ? partes.slice(0, 3).join(" · ") : "Revisá los datos.";
+}
+
+/** `detail` del backend: un texto, o `{code, message}` cuando el error trae
+ * un código, o la lista de un 422 de validación (se traduce por tipo). */
+export function parseErrorDetail(detail: unknown): { message: string; code?: string } {
+  if (typeof detail === "string") return { message: detail };
+  if (Array.isArray(detail)) return { message: validationListMessage(detail) };
+  if (detail && typeof detail === "object") {
+    const { message, code } = detail as { message?: unknown; code?: unknown };
+    if (typeof message === "string") {
+      return { message, code: typeof code === "string" ? code : undefined };
+    }
+  }
+  return { message: "Error inesperado" };
+}
+
+// --- Verificación en dos pasos de la admin (ADR-0023) ----------------------
+// Una sesión admin sin la verificación recibe 403 con uno de estos códigos en
+// cualquier endpoint. `AuthProvider` registra qué hacer (llevar al alta, o
+// cerrar la sesión vieja); acá sólo se avisa, venga de la pantalla que venga.
+export const TWO_FACTOR_GATE_CODES = ["two_factor_setup_required", "two_factor_required"] as const;
+export type TwoFactorGateCode = (typeof TWO_FACTOR_GATE_CODES)[number];
+let onTwoFactorGate: ((code: TwoFactorGateCode) => void) | null = null;
+
+export function setTwoFactorGateHandler(handler: ((code: TwoFactorGateCode) => void) | null) {
+  onTwoFactorGate = handler;
+}
+
+function isGateCode(code: string | undefined): code is TwoFactorGateCode {
+  return (TWO_FACTOR_GATE_CODES as readonly string[]).includes(code ?? "");
 }
 
 /** Error de red/timeout: el backend no respondió (dormido, caído, sin
  * conexión) — distinto de un ApiError con status HTTP. Se usa para NO
  * cerrar la sesión cuando el problema es que el server no está, no que el
  * token sea inválido. */
-export class NetworkError extends Error {}
+export class NetworkError extends Error {
+  /** true si fue por el timeout (el server tardó), no por falta de conexión. */
+  timeout: boolean;
+  constructor(message: string, opts?: { timeout?: boolean }) {
+    super(message);
+    this.timeout = opts?.timeout ?? message.includes("tardó");
+  }
+}
+
+/** Los tres avisos de red, UNO solo cada uno: sin conexión, el servidor tardó
+ * y el límite de intentos (429). Las pantallas y `auth-context` los importan
+ * en vez de escribir su propia versión. */
+export const NO_CONNECTION_MESSAGE =
+  "No hay conexión con el servidor. Revisá tu internet e intentá de nuevo.";
+export const TIMEOUT_MESSAGE = "El servidor tardó demasiado en responder.";
+export const RATE_LIMITED_MESSAGE = "Demasiados intentos. Esperá un momento y volvé a probar.";
+
+const ENGLISH_HTTP_TEXT =
+  /^(internal server error|bad gateway|service unavailable|gateway time-?out|server error|bad request|not found|unauthorized|forbidden)\.?$/i;
+
+/** Mensaje para una respuesta con error SIN `detail` propio (o con el
+ * `statusText` en inglés del servidor/proxy: «Bad Gateway»). Nunca se muestra
+ * el statusText crudo. */
+export function statusFallbackMessage(status: number): string {
+  if (status === 502 || status === 503 || status === 504) {
+    return "El servidor no está disponible en este momento. Probá de nuevo en unos minutos.";
+  }
+  if (status >= 500) return "Algo falló de nuestro lado. Probá de nuevo en unos minutos.";
+  if (status === 429) return RATE_LIMITED_MESSAGE;
+  if (status === 408) return `${TIMEOUT_MESSAGE} Probá de nuevo.`;
+  if (status === 401) return "Tu sesión no es válida. Volvé a ingresar.";
+  if (status === 403) return "No tenés permiso para hacer esto.";
+  if (status === 404) return "No encontramos lo que buscás.";
+  return "No pudimos completar la acción. Probá de nuevo.";
+}
+
+/** «30 segundos», «1 minuto», «15 minutos», «2 horas» (redondea para arriba). */
+export function waitText(seconds: number): string {
+  const s = Math.max(1, Math.ceil(seconds));
+  if (s < 60) return plural(s, "segundo", "segundos");
+  const m = Math.ceil(s / 60);
+  if (m < 60) return plural(m, "minuto", "minutos");
+  const h = Math.ceil(m / 60);
+  return plural(h, "hora", "horas");
+}
+
+/** Si el 429 no dice cuánto esperar, lo agrega desde `Retry-After`. */
+export function withRetryAfter(message: string, retryAfter: string | null): string {
+  const secs = retryAfter == null ? NaN : Number(retryAfter);
+  if (!Number.isFinite(secs) || secs <= 0) return message;
+  if (/\d+\s*(segundo|minuto|hora)/i.test(message)) return message;
+  return `${message.replace(/\s*[.]?\s*$/, "")}. Esperá ${waitText(secs)} y volvé a probar.`;
+}
+
+/** El backend frenó el pedido por el límite de intentos (HTTP 429, ver
+ * `core/rate_limit.py`). */
+export function isRateLimited(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 429;
+}
 
 /** El backend no está disponible por un rato: sin conexión, timeout, o un
  * 5xx/408/429 (Render responde 502-504 mientras arranca en frío). Eso no dice
@@ -47,12 +289,39 @@ export function isTransientFailure(err: unknown): boolean {
 let sessionToken: string | null = null;
 let liveToken: string | null = null;
 let renewOnUnauthorized: (() => Promise<string | null>) | null = null;
-let renewing: Promise<string | null> | null = null;
+
+/** Cómo terminó el intento de renovar: con token nuevo; sin poder saberlo
+ * (el servidor no contestó); con un error propio de quien renueva (viendo
+ * como otra persona); o rechazado, que es una sesión que ya no existe. */
+type RenewOutcome =
+  | { kind: "renewed" }
+  | { kind: "transient" }
+  | { kind: "error"; error: ApiError }
+  | { kind: "ended" };
+let renewing: Promise<RenewOutcome> | null = null;
+
+/** Código de un 401 con la sesión terminada: nunca se muestra «No
+ * autorizado» (U112). `AuthProvider` ya dejó el contexto sin sesión y la
+ * pantalla protegida lleva al ingreso; este texto es lo que alcanza a verse
+ * mientras tanto. */
+export const SESSION_EXPIRED_CODE = "session_expired";
+export const SESSION_EXPIRED_MESSAGE = "Tu sesión venció. Volvé a ingresar.";
+/** El backend lo manda en el 403 de una cuenta suspendida, al ingresar (con
+ * la contraseña correcta, o con Google) y al renovar la sesión (ADR-0024). */
+export const ACCOUNT_SUSPENDED_CODE = "account_suspended";
+
+/** ¿El servidor rechazó porque la cuenta está suspendida? */
+export function isAccountSuspended(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 403 && err.code === ACCOUNT_SUSPENDED_CODE;
+}
 
 /** Arranca (o termina, con `null`) una sesión: login, logout, impersonar. */
 export function bindSessionToken(token: string | null) {
   sessionToken = token;
   liveToken = token;
+  // La renovación que estuviera en curso era de la sesión anterior: la
+  // nueva no la comparte (si no, su resultado se leería como propio).
+  renewing = null;
 }
 
 /** Renovación del access token de la sesión en curso: no cambia su identidad. */
@@ -72,21 +341,30 @@ export function resolveToken(token: string | null | undefined): string | null {
 }
 
 /** Cómo renovar ante un 401 (lo registra `AuthProvider`). Devuelve el token
- * nuevo, o `null` si no se puede (refresh vencido, o impersonando). */
+ * nuevo, o `null` si la sesión ya no existe (refresh vencido o revocado).
+ * Si el servidor no contestó, tira ese error (no se sabe nada de la sesión);
+ * si tira un `ApiError`, es el que recibe la pantalla. */
 export function setUnauthorizedHandler(handler: (() => Promise<string | null>) | null) {
   renewOnUnauthorized = handler;
 }
 
 /** Una sola renovación a la vez: diez requests que reciben 401 juntas (la
  * PWA que vuelve de estar suspendida) comparten el mismo refresh. */
-function renewOnce(): Promise<string | null> {
-  if (!renewOnUnauthorized) return Promise.resolve(null);
+function renewOnce(handler: () => Promise<string | null>): Promise<RenewOutcome> {
   if (!renewing) {
-    renewing = renewOnUnauthorized()
-      .catch(() => null)
+    const mine: Promise<RenewOutcome> = handler()
+      .then(
+        (fresh): RenewOutcome => (fresh ? { kind: "renewed" } : { kind: "ended" }),
+        (err): RenewOutcome => {
+          if (isTransientFailure(err)) return { kind: "transient" };
+          if (err instanceof ApiError) return { kind: "error", error: err };
+          return { kind: "ended" };
+        }
+      )
       .finally(() => {
-        renewing = null;
+        if (renewing === mine) renewing = null;
       });
+    renewing = mine;
   }
   return renewing;
 }
@@ -99,9 +377,19 @@ async function request<T>(
     idempotencyKey?: string;
     /** Interno: ya se reintentó una vez tras un 401. */
     retried?: boolean;
+    /** No avisar a `onTwoFactorGate` (ver `backgroundApi`). */
+    skipTwoFactorGate?: boolean;
   } = {}
 ): Promise<T> {
-  const { token: requested, headers, timeoutMs, idempotencyKey, retried, ...rest } = options;
+  const {
+    token: requested,
+    headers,
+    timeoutMs,
+    idempotencyKey,
+    retried,
+    skipTwoFactorGate,
+    ...rest
+  } = options;
   const token = resolveToken(requested);
 
   // Timeout opcional vía AbortController: sin esto, un backend dormido
@@ -136,8 +424,8 @@ async function request<T>(
   } catch (err) {
     throw new NetworkError(
       err instanceof Error && err.name === "AbortError"
-        ? "El servidor tardó demasiado en responder."
-        : "No se pudo conectar con el servidor."
+        ? TIMEOUT_MESSAGE
+        : NO_CONNECTION_MESSAGE
     );
   } finally {
     if (timer != null) clearTimeout(timer);
@@ -147,17 +435,38 @@ async function request<T>(
   // el timer de renovación no llegó a correr): se renueva una vez y se
   // reintenta, en vez de mostrar "Not authenticated" hasta el próximo tick.
   // Sólo para el token de la sesión: uno ajeno no se renueva desde acá.
-  if (res.status === 401 && !retried && requested && requested === sessionToken) {
-    const fresh = await renewOnce();
-    if (fresh) {
+  if (
+    res.status === 401 &&
+    !retried &&
+    requested &&
+    requested === sessionToken &&
+    renewOnUnauthorized
+  ) {
+    const outcome = await renewOnce(renewOnUnauthorized);
+    if (outcome.kind === "renewed") {
       return request<T>(path, { ...options, retried: true });
     }
+    // No se pudo renovar. Lo que nunca sale es el «No autorizado» del
+    // servidor: o no hay conexión (y la sesión sigue), o la sesión terminó.
+    if (outcome.kind === "transient") {
+      throw new NetworkError(NO_CONNECTION_MESSAGE);
+    }
+    if (outcome.kind === "error") throw outcome.error;
+    throw new ApiError(401, SESSION_EXPIRED_MESSAGE, SESSION_EXPIRED_CODE);
   }
 
   if (!res.ok) {
     const body = await res.json().catch(() => null);
-    const detail = body?.detail ?? res.statusText;
-    throw new ApiError(res.status, typeof detail === "string" ? detail : "Error inesperado");
+    const parsed = body?.detail == null ? null : parseErrorDetail(body.detail);
+    let message = parsed?.message ?? statusFallbackMessage(res.status);
+    const code = parsed?.code;
+    // Un 5xx sin JSON propio puede traer el texto en inglés del proxy.
+    if (res.status >= 500 && parsed && !parsed.code && ENGLISH_HTTP_TEXT.test(message.trim())) {
+      message = statusFallbackMessage(res.status);
+    }
+    if (res.status === 429) message = withRetryAfter(message, res.headers?.get?.("Retry-After") ?? null);
+    if (res.status === 403 && isGateCode(code) && !skipTwoFactorGate) onTwoFactorGate?.(code);
+    throw new ApiError(res.status, message, code);
   }
 
   if (res.status === 204) return undefined as T;
@@ -187,4 +496,26 @@ export const api = {
     request<T>(path, { method: "PATCH", body: body ? JSON.stringify(body) : undefined, token }),
   del: <T>(path: string, body?: unknown, token?: string | null) =>
     request<T>(path, { method: "DELETE", body: body ? JSON.stringify(body) : undefined, token }),
+};
+
+/** Pedidos que la app hace por su cuenta, sin que una pantalla los pida. Hoy
+ * son dos: registrar y dar de baja el push al abrir y cerrar la sesión
+ * (`lib/push.ts`). Salen igual que cualquier otro, con una diferencia: si el
+ * backend los frena con el candado de dos pasos de la admin, el error le
+ * llega a quien llamó pero NO se avisa a `onTwoFactorGate`. Un pedido que la
+ * persona no hizo no puede llevarla al alta ni cerrarle la sesión antes de
+ * que una pantalla pida algo, y el de la baja contesta cuando la sesión ya se
+ * cerró (mandaba al alta, o al login, a alguien que acababa de salir).
+ *
+ * `token: null` = sin sesión: la baja del dispositivo (`POST /push/release`)
+ * no lleva token, se prueba con la clave de la suscripción. */
+export const backgroundApi = {
+  post: <T>(path: string, body: unknown, token: string | null, timeoutMs?: number) =>
+    request<T>(path, {
+      method: "POST",
+      body: JSON.stringify(body),
+      token,
+      timeoutMs,
+      skipTwoFactorGate: true,
+    }),
 };

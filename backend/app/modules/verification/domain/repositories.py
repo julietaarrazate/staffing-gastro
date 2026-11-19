@@ -21,7 +21,9 @@ class ClaimRepository(ABC):
     puntero, se guarda el pedido de borrar el archivo (ADR-0021)."""
 
     @abstractmethod
-    async def add(self, claim: Claim) -> Claim: ...
+    async def add(self, claim: Claim) -> Claim:
+        """Crea el claim. Si el sujeto ya tiene uno de ese tipo (carrera entre
+        dos envíos), deja la sesión usable y levanta `ClaimAlreadyExistsError`."""
 
     @abstractmethod
     async def update(self, claim: Claim) -> Claim: ...

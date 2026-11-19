@@ -33,7 +33,7 @@ export function argentinaISOToLocalInput(iso: string): string {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-    hour12: false,
+    hourCycle: "h23",
   }).formatToParts(new Date(iso));
   const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
   return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
@@ -43,11 +43,26 @@ export function formatShiftDate(iso: string): string {
   return new Date(iso).toLocaleDateString("es-AR", { timeZone: AR_TIMEZONE });
 }
 
+/** "17/11": día y mes en hora argentina. */
+export function formatDayMonth(iso: string): string {
+  return new Date(iso).toLocaleDateString("es-AR", {
+    timeZone: AR_TIMEZONE,
+    day: "2-digit",
+    month: "2-digit",
+  });
+}
+
+/**
+ * La hora de un turno, SIEMPRE en 24 h ("20:00", nunca "08:00 p. m."): es la
+ * única función de hora de la app. Con `hourCycle: "h23"` explícito no depende
+ * de lo que prefiera el locale del navegador.
+ */
 export function formatShiftTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("es-AR", {
     timeZone: AR_TIMEZONE,
     hour: "2-digit",
     minute: "2-digit",
+    hourCycle: "h23",
   });
 }
 
@@ -73,6 +88,24 @@ export function formatShiftDayLong(iso: string): string {
     day: "numeric",
     month: "long",
   });
+}
+
+/** Sólo el día de la semana, en palabras: "sábado". */
+export function formatShiftWeekday(iso: string): string {
+  return new Date(iso).toLocaleDateString("es-AR", { timeZone: AR_TIMEZONE, weekday: "long" });
+}
+
+/**
+ * Cuándo es el turno, en palabras, para el resumen de publicar: "sábado 20 de
+ * septiembre · 21:00 a 02:00", y si termina otro día, "sábado 20 de septiembre
+ * 21:00 → domingo 21 de septiembre 02:00".
+ */
+export function formatShiftRangeLong(startIso: string, endIso: string): string {
+  const day = formatShiftDayLong(startIso);
+  if (day === formatShiftDayLong(endIso)) {
+    return `${day} · ${formatShiftTime(startIso)} a ${formatShiftTime(endIso)}`;
+  }
+  return `${day} ${formatShiftTime(startIso)} → ${formatShiftDayLong(endIso)} ${formatShiftTime(endIso)}`;
 }
 
 /**
@@ -126,15 +159,6 @@ function arDateKey(date: Date): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: AR_TIMEZONE }).format(date);
 }
 
-function formatTime24(iso: string): string {
-  return new Date(iso).toLocaleTimeString("es-AR", {
-    timeZone: AR_TIMEZONE,
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  });
-}
-
 /**
  * Versión compacta para tarjetas chicas (home del trabajador): "Hoy · 20:00 –
  * 23:00", "Mañana · 21:00 – 02:00", "sáb 27/9 · 20:00 – 23:00". Horas en 24 h
@@ -159,7 +183,44 @@ export function formatShiftWhen(startIso: string, endIso: string, now: Date = ne
     });
     day = `${weekday} ${dayMonth}`;
   }
-  return `${day} · ${formatTime24(startIso)} – ${formatTime24(endIso)}`;
+  return `${day} · ${formatShiftTime(startIso)} – ${formatShiftTime(endIso)}`;
+}
+
+/**
+ * El horario de una tarjeta, sabiendo si el turno es uno reofrecido que
+ * todavía se puede tomar (U080, lo marca `hourly_pay_amount`): ese ya empezó,
+ * así que "Hoy · 20:00 – 23:00" invita a algo que ya pasó. Dice "Ya empezó ·
+ * hasta las 23:00". Para cualquier otro turno es `formatShiftWhen`.
+ */
+export function formatShiftWhenLive(
+  shift: { start_at: string; end_at: string; hourly_pay_amount?: string | null },
+  now: Date = new Date()
+): string {
+  if (shift.hourly_pay_amount != null) {
+    return `Ya empezó · hasta las ${formatShiftTime(shift.end_at)}`;
+  }
+  return formatShiftWhen(shift.start_at, shift.end_at, now);
+}
+
+/**
+ * Cuándo empieza el turno, para una frase: "hoy a las 20:00", "mañana a las
+ * 20:00" o "el sábado 27/9 a las 20:00". Hora de Argentina, 24 h.
+ */
+export function formatShiftStartPhrase(startIso: string, now: Date = new Date()): string {
+  const key = arDateKey(new Date(startIso));
+  const hora = formatShiftTime(startIso);
+  if (key === arDateKey(now)) return `hoy a las ${hora}`;
+  if (key === arDateKey(new Date(now.getTime() + 86_400_000))) return `mañana a las ${hora}`;
+  const weekday = new Date(startIso).toLocaleDateString("es-AR", {
+    timeZone: AR_TIMEZONE,
+    weekday: "long",
+  });
+  const dayMonth = new Date(startIso).toLocaleDateString("es-AR", {
+    timeZone: AR_TIMEZONE,
+    day: "numeric",
+    month: "numeric",
+  });
+  return `el ${weekday} ${dayMonth} a las ${hora}`;
 }
 
 /** Rango legible: si empieza y termina el mismo día, la fecha aparece una vez. */

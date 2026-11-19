@@ -1,14 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { notificationHref } from "@/lib/notification-link";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { useWebSocket } from "@/lib/useWebSocket";
+import { emitLiveRefresh } from "@/lib/live-refresh";
 import { Notification } from "@/lib/types";
 import { Skeleton } from "@/components/ui";
+
+/** Piso entre dos recargas por reconexión del socket. */
+export const RECONNECT_REFRESH_MIN_GAP_MS = 30_000;
 
 function NotificationRowSkeleton() {
   return (
@@ -22,13 +26,32 @@ function NotificationRowSkeleton() {
 }
 
 export default function NotificationBell() {
-  const { token } = useAuth();
+  const { token: sessionToken, twoFactorSetupPending } = useAuth();
+  // Con el alta de 2FA del admin pendiente (ADR-0023) el backend rechaza los
+  // pedidos de la campanita: sin token no carga ni abre el socket y no se
+  // dibuja (U133).
+  const token = twoFactorSetupPending ? null : sessionToken;
   const router = useRouter();
+  const pathname = usePathname();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
+  // La primera apertura del socket coincide con la carga inicial; desde la
+  // segunda es una reconexión (ver `useWebSocket`).
+  const hasOpenedOnce = useRef(false);
+  // Última vez que una reapertura valió como «reconexión» (recargar y emitir).
+  // Un socket que abre y se cierra enseguida (el backend acepta y cierra con
+  // 1013/1008) reabre cada pocos segundos: sin este piso sería una recarga de
+  // toda pantalla por cada reapertura, o sea una consulta periódica.
+  const lastReconnectAt = useRef(0);
+  useEffect(() => {
+    // Otra sesión (salir y entrar sin desmontar la campanita): vuelve a ser la
+    // primera apertura.
+    hasOpenedOnce.current = false;
+    lastReconnectAt.current = 0;
+  }, [token]);
 
   const load = useCallback(() => {
     if (!token) return;
@@ -44,11 +67,32 @@ export default function NotificationBell() {
     load();
   }, [load]);
 
-  useWebSocket<Notification>(token ? "/notifications/ws" : null, token, (notification) => {
-    setNotifications((prev) =>
-      prev.some((n) => n.id === notification.id) ? prev : [notification, ...prev]
-    );
-  });
+  // La campanita es la única que escucha los avisos (está en el `Navbar` del
+  // layout raíz, o sea en toda pantalla con sesión). Cada aviso nuevo y cada
+  // reconexión le avisan a las pantallas abiertas (`lib/live-refresh.ts`) para
+  // que se pongan al día solas (G1, U013).
+  useWebSocket<Notification>(
+    token ? "/notifications/ws" : null,
+    token,
+    (notification) => {
+      setNotifications((prev) =>
+        prev.some((n) => n.id === notification.id) ? prev : [notification, ...prev]
+      );
+      emitLiveRefresh();
+    },
+    () => {
+      if (!hasOpenedOnce.current) {
+        hasOpenedOnce.current = true;
+        return;
+      }
+      // Reconexión: pudo haber pasado algo mientras el socket estaba caído.
+      const now = Date.now();
+      if (now - lastReconnectAt.current < RECONNECT_REFRESH_MIN_GAP_MS) return;
+      lastReconnectAt.current = now;
+      load();
+      emitLiveRefresh();
+    }
+  );
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -60,6 +104,42 @@ export default function NotificationBell() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // U017: con la conversación abierta, los avisos de mensaje de ESA
+  // conversación (los que ya estaban y los que llegan en vivo) se leen en el
+  // acto: se marcan leídos y no suman a la campanita. Sólo con la pestaña a la
+  // vista (un chat abierto en segundo plano no leyó nada).
+  const markedForChat = useRef(new Set<string>());
+  // Cambia al volver a ver la pestaña: ahí se marcan los avisos que llegaron
+  // mientras estaba oculta.
+  const [visibleTick, setVisibleTick] = useState(0);
+  useEffect(() => {
+    function onVisible() {
+      if (document.visibilityState === "visible") setVisibleTick((t) => t + 1);
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
+  useEffect(() => {
+    if (!token || !pathname.startsWith("/chats/")) return;
+    if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+    const pending = notifications.filter(
+      (n) =>
+        !n.read &&
+        n.type === "chat_message" &&
+        n.link?.split(/[?#]/)[0] === pathname &&
+        !markedForChat.current.has(n.id)
+    );
+    if (pending.length === 0) return;
+    const ids = new Set(pending.map((n) => n.id));
+    pending.forEach((n) => markedForChat.current.add(n.id));
+    setNotifications((prev) => prev.map((n) => (ids.has(n.id) ? { ...n, read: true } : n)));
+    // En silencio, como `markAsRead`: si falla, el aviso sigue sin leer en el
+    // servidor y se muestra así en la próxima carga.
+    pending.forEach((n) => {
+      api.post(`/notifications/${n.id}/read`, undefined, token).catch(() => {});
+    });
+  }, [token, pathname, notifications, visibleTick]);
+
   if (!token) return null;
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -70,7 +150,12 @@ export default function NotificationBell() {
   function openNotification(notification: Notification) {
     setOpen(false);
     void markAsRead(notification);
-    router.push(notificationHref(notification));
+    const href = notificationHref(notification);
+    router.push(href);
+    // Si el aviso lleva a la pantalla en la que ya está, `push` no vuelve a
+    // pedir nada y la pantalla se queda con lo de antes (G1, U013/U014). Si
+    // lleva a otra, esa carga sola al abrirse.
+    if (href.split(/[?#]/)[0] === window.location.pathname) emitLiveRefresh();
   }
 
   async function markAsRead(notification: Notification) {
@@ -86,6 +171,24 @@ export default function NotificationBell() {
       // Silencioso a propósito (baja prioridad): marcar como leída no es
       // crítico, y si falla la notificación simplemente sigue apareciendo
       // como no leída; el usuario puede volver a tocarla.
+    }
+  }
+
+  /** Marca todo como leído de una (2026-10-30): de a uno, una cuenta con
+   *  86 avisos dejaba la campanita en "9+" para siempre. Optimista: se ve
+   *  leído al instante y, si el pedido falla, vuelven a no leídos sólo los
+   *  que se marcaron acá (un aviso que llegó por WebSocket mientras tanto
+   *  queda como está). En silencio, igual que `markAsRead`. */
+  async function markAllAsRead() {
+    const ids = new Set(notifications.filter((n) => !n.read).map((n) => n.id));
+    if (ids.size === 0) return;
+    setNotifications((prev) => prev.map((n) => (ids.has(n.id) ? { ...n, read: true } : n)));
+    try {
+      await api.post<{ marked: number }>("/notifications/read-all", undefined, token);
+    } catch {
+      setNotifications((prev) =>
+        prev.map((n) => (ids.has(n.id) ? { ...n, read: false } : n))
+      );
     }
   }
 
@@ -106,8 +209,17 @@ export default function NotificationBell() {
 
       {open && (
         <div className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-float)] ring-1 ring-line">
-          <div className="border-b border-line px-4 py-2 text-sm font-semibold text-ink/70">
-            Notificaciones
+          <div className="flex min-h-[44px] items-center justify-between gap-2 border-b border-line pl-4 pr-2">
+            <span className="text-sm font-semibold text-ink/70">Notificaciones</span>
+            {!loading && !error && unreadCount > 0 && (
+              <button
+                type="button"
+                onClick={markAllAsRead}
+                className="min-h-[44px] px-2 text-xs font-semibold text-primary-text underline-offset-2 hover:underline"
+              >
+                Marcar todas como leídas
+              </button>
+            )}
           </div>
           <div className="max-h-96 overflow-y-auto">
             {loading && (
@@ -137,8 +249,8 @@ export default function NotificationBell() {
               <button
                 key={n.id}
                 onClick={() => openNotification(n)}
-                className={`block w-full border-b border-line px-4 py-3 text-left text-sm hover:bg-surface ${
-                  n.read ? "bg-card" : "bg-primary-tint"
+                className={`block w-full border-b px-4 py-3 text-left text-sm hover:bg-surface ${
+                  n.read ? "border-line bg-card" : "border-secondary bg-primary-tint"
                 }`}
               >
                 <p className="font-medium text-ink/80">{n.title}</p>

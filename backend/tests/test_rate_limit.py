@@ -41,3 +41,34 @@ def test_disabled_never_exceeds(limiter, monkeypatch):
     limiter.record("k")
     limiter.record("k")
     assert limiter.is_exceeded("k") is False
+
+
+def test_429_dice_cuanto_esperar_y_manda_retry_after(limiter):
+    limiter.check("k")
+    limiter.check("k")
+    with pytest.raises(HTTPException) as exc:
+        limiter.check("k")
+    assert exc.value.status_code == 429
+    retry = int(exc.value.headers["Retry-After"])
+    assert 1 <= retry <= 60
+    assert "Esperá" in exc.value.detail
+    assert "segundo" in exc.value.detail or "minuto" in exc.value.detail
+    assert "un momento" not in exc.value.detail
+
+
+@pytest.mark.parametrize(
+    ("secs", "texto"),
+    [
+        (1, "1 segundo"),
+        (30, "30 segundos"),
+        (60, "1 minuto"),
+        (61, "2 minutos"),
+        (900, "15 minutos"),
+        (3600, "1 hora"),
+        (7200, "2 horas"),
+    ],
+)
+def test_espera_legible(secs, texto):
+    from app.core.rate_limit import espera_legible
+
+    assert espera_legible(secs) == texto

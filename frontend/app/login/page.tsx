@@ -4,21 +4,47 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { ApiError } from "@/lib/api";
+import { destinoTrasIngreso } from "@/lib/perfil-faltante";
+import { ApiError, isAccountSuspended } from "@/lib/api";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
 import { Button, TextField } from "@/components/ui";
 import TurnstileWidget from "@/components/TurnstileWidget";
+import TwoFactorLoginStep from "@/components/TwoFactorLoginStep";
+import {
+  bienvenidaHref,
+  isLoginNotice,
+  isSessionEndReason,
+  LOGIN_NOTICES,
+  registerHref,
+  safeNext,
+  SESSION_END_MESSAGES,
+} from "@/lib/safe-next";
 import { TURNSTILE_SITE_KEY } from "@/lib/turnstile";
 
 function LoginForm() {
-  const { login, loginAsGuest } = useAuth();
+  const { login, loginAsGuest, pendingTwoFactor } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   // Mensaje opcional tras un redirect (p. ej. `/restablecer` al terminar OK).
-  const infoMessage = searchParams.get("message");
+  // Texto fijo por aviso: lo que venga en la dirección y no esté en la lista
+  // no se muestra.
+  const aviso = searchParams.get("aviso");
+  const infoMessage = isLoginNotice(aviso) ? LOGIN_NOTICES[aviso] : null;
+  // La sesión terminó sola (`useRequireAuth` manda acá con el motivo): se
+  // dice por qué, con un texto fijo por motivo, y al ingresar se vuelve a la
+  // ruta en la que estaba la persona, si es una ruta interna.
+  const motivo = searchParams.get("motivo");
+  const endedMessage = isSessionEndReason(motivo) ? SESSION_END_MESSAGES[motivo] : null;
+  const next = safeNext(searchParams.get("next"));
+  const afterLogin = next ?? "/";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // La contraseña era la correcta y la cuenta está suspendida (ADR-0024): se
+  // dice con el mismo aviso que cuando la sesión termina por eso.
+  const [suspended, setSuspended] = useState(false);
+  const notice = suspended ? SESSION_END_MESSAGES.suspendida : endedMessage;
+  const noticeIsSuspension = suspended || motivo === "suspendida";
   const [submitting, setSubmitting] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [turnstileReset, setTurnstileReset] = useState(0);
@@ -29,12 +55,21 @@ function LoginForm() {
   const [pin, setPin] = useState("");
   const [guestLoading, setGuestLoading] = useState<"employer" | "worker" | null>(null);
   const [guestRole, setGuestRole] = useState<"employer" | "worker" | null>(null);
+  // Paso del código (admin con verificación en dos pasos). Queda abierto
+  // aunque el desafío ya se haya canjeado: si entró con un código de
+  // recuperación, el paso le avisa cuántos le quedan antes de seguir.
+  const [twoFactorOpen, setTwoFactorOpen] = useState(false);
+  if (pendingTwoFactor && !twoFactorOpen) setTwoFactorOpen(true);
 
   async function doLogin(emailToUse: string, passwordToUse: string) {
     setError(null);
-    await login(emailToUse, passwordToUse);
+    setSuspended(false);
+    const outcome = await login(emailToUse, passwordToUse);
+    // Admin con la verificación en dos pasos: esta misma pantalla pasa a
+    // pedir el código (`pendingTwoFactor`), sin sesión todavía.
+    if (outcome.twoFactor) return;
     // `replace`: "atrás" tras entrar no debe volver a /login.
-    router.replace("/");
+    router.replace(await destinoTrasIngreso(outcome.sesion, next));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -43,7 +78,8 @@ function LoginForm() {
     try {
       await doLogin(email, password);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo iniciar sesión");
+      if (isAccountSuspended(err)) setSuspended(true);
+      else setError(err instanceof ApiError ? err.message : "No se pudo iniciar sesión");
       // Cada token de Turnstile sirve una vez: tras un error, uno nuevo.
       setTurnstileReset((n) => n + 1);
     } finally {
@@ -66,7 +102,7 @@ function LoginForm() {
       // (`/bienvenida`, C4): el invitado prueba la app desde cero, no
       // arranca ya adentro del panel. Va a la cuenta invitado compartida,
       // consistente con que su exploración ya es de por sí compartida.
-      router.replace("/bienvenida");
+      router.replace(bienvenidaHref(next));
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message : "No se pudo entrar como invitado"
@@ -90,6 +126,34 @@ function LoginForm() {
           </p>
         )}
 
+        {notice && (
+          <p
+            role={suspended ? "alert" : "status"}
+            className={`mt-4 rounded-xl px-3.5 py-2.5 text-center text-sm font-medium ${
+              noticeIsSuspension
+                ? "bg-warning-tint text-warning-text ring-1 ring-warning/20"
+                : "bg-surface text-ink ring-1 ring-line"
+            }`}
+          >
+            {notice}
+          </p>
+        )}
+
+        {twoFactorOpen ? (
+          <div className="mt-6 rounded-[var(--radius-card)] bg-card p-6 shadow-[var(--shadow-soft)] ring-1 ring-line">
+            <TwoFactorLoginStep
+              afterLogin={afterLogin}
+              onCancel={() => setTwoFactorOpen(false)}
+              onExpired={(message) => {
+                setTwoFactorOpen(false);
+                setPassword("");
+                setError(message);
+                setTurnstileReset((n) => n + 1);
+              }}
+            />
+          </div>
+        ) : (
+        <>
         <div className="mt-6 rounded-[var(--radius-card)] bg-card p-6 shadow-[var(--shadow-soft)] ring-1 ring-line">
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <TextField
@@ -130,7 +194,11 @@ function LoginForm() {
             </Link>
           </form>
 
-          <GoogleAuthButton onDone={(isNewAccount) => router.replace(isNewAccount ? "/bienvenida" : "/")} />
+          <GoogleAuthButton
+            onDone={async (isNewAccount, _rol, sesion) =>
+              router.replace(isNewAccount ? bienvenidaHref(next) : await destinoTrasIngreso(sesion, next))
+            }
+          />
         </div>
 
         <div className="mt-5 rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
@@ -213,10 +281,12 @@ function LoginForm() {
 
         <p className="mt-5 text-center text-sm text-ink/70">
           ¿No tenés cuenta?{" "}
-          <Link href="/register" className="font-semibold text-primary-text">
+          <Link href={registerHref({ next })} className="font-semibold text-primary-text">
             Creá una
           </Link>
         </p>
+        </>
+        )}
       </div>
     </div>
   );

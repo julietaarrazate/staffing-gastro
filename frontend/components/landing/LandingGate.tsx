@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { homeDelRol } from "@/lib/home-del-rol";
 import LandingCorta from "@/components/landing/LandingCorta";
 
 // La puerta de "/": la landing para visitantes, la home del rol para quien ya
@@ -11,21 +12,16 @@ import LandingCorta from "@/components/landing/LandingCorta";
 
 // Home de cada rol: a dónde mandamos a un usuario ya logueado. La landing es
 // marketing (para visitantes sin sesión); quien ya entró va directo a su app.
-const HOME_BY_ROLE: Record<string, string> = {
-  worker: "/feed",
-  employer: "/shifts",
-  admin: "/admin",
-};
 
 export default function LandingGate() {
-  const { user, loading } = useAuth();
+  const { user, loading, reconnecting } = useAuth();
   const router = useRouter();
 
   // Si ya hay sesión, no mostramos la landing de marketing: redirigimos a la
   // home del rol. La landing queda sólo para visitantes sin cuenta.
   useEffect(() => {
     if (!loading && user) {
-      router.replace(HOME_BY_ROLE[user.role] ?? "/feed");
+      router.replace(homeDelRol(user.role));
     }
   }, [loading, user, router]);
 
@@ -45,6 +41,20 @@ export default function LandingGate() {
   // usuario logueado igual se va por el `useEffect` de arriba (un parpadeo
   // breve del landing es preferible a un blanco para todos los visitantes).
   if (user) return null;
+
+  // Hay una sesión guardada pero el servidor no contesta (U114): no es un
+  // visitante, así que no va la landing con «Ingresar». Estado neutro hasta
+  // que `AuthProvider` sepa quién es (reintenta solo).
+  if (reconnecting) {
+    return (
+      <main className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
+        <p role="status" className="font-display text-h2 font-semibold tracking-tight text-ink">
+          Abriendo tu cuenta…
+        </p>
+        <p className="mt-2 max-w-xs text-sm text-ink/60">Puede tardar unos segundos.</p>
+      </main>
+    );
+  }
 
   return <LandingCorta />;
 }

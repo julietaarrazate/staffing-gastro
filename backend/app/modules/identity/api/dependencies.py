@@ -15,7 +15,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings as app_settings
 from app.core.database import get_session
 from app.core.edge import client_ip
+from app.modules.identity.application.dtos import AuthenticatedSession
 from app.modules.identity.application.services import GUEST_ACCOUNT_EMAILS, IdentityService
+from app.modules.identity.application.two_factor import TwoFactorService
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.exceptions import (
     InactiveUserError,
@@ -23,7 +25,9 @@ from app.modules.identity.domain.exceptions import (
     UserNotFoundError,
 )
 from app.modules.identity.domain.google_verifier import GoogleTokenVerifier
+from app.modules.identity.domain.two_factor import AdminGate
 from app.modules.identity.domain.value_objects import UserRole
+from app.modules.identity.infrastructure.fernet_secret_cipher import FernetSecretCipher
 from app.modules.identity.infrastructure.google_token_verifier import GoogleTokenInfoVerifier
 from app.modules.identity.infrastructure.repositories import (
     SqlAlchemyEmailVerificationTokenRepository,
@@ -31,6 +35,10 @@ from app.modules.identity.infrastructure.repositories import (
     SqlAlchemyRefreshSessionRepository,
     SqlAlchemyTermsAcceptanceRepository,
     SqlAlchemyUserRepository,
+)
+from app.modules.identity.infrastructure.two_factor_repositories import (
+    SqlAlchemyTwoFactorChallengeRepository,
+    SqlAlchemyTwoFactorRepository,
 )
 from app.modules.notification.api.dependencies import get_email_sender
 from app.modules.notification.domain.email_sender import EmailSender
@@ -43,10 +51,21 @@ def get_google_verifier() -> GoogleTokenVerifier:
     return GoogleTokenInfoVerifier(app_settings)
 
 
+def get_two_factor_service(
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> TwoFactorService:
+    return TwoFactorService(
+        SqlAlchemyTwoFactorRepository(session),
+        SqlAlchemyTwoFactorChallengeRepository(session),
+        FernetSecretCipher(app_settings.two_factor_encryption_key),
+    )
+
+
 def get_identity_service(
     session: Annotated[AsyncSession, Depends(get_session)],
     email_sender: Annotated[EmailSender, Depends(get_email_sender)],
     google_verifier: Annotated[GoogleTokenVerifier, Depends(get_google_verifier)],
+    two_factor: Annotated[TwoFactorService, Depends(get_two_factor_service)],
 ) -> IdentityService:
     users = SqlAlchemyUserRepository(session)
     sessions = SqlAlchemyRefreshSessionRepository(session)
@@ -60,21 +79,70 @@ def get_identity_service(
         google_verifier,
         email_verification_tokens,
         SqlAlchemyTermsAcceptanceRepository(session),
+        two_factor,
     )
 
 
-async def get_current_user(
+async def get_current_session(
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(_bearer_scheme)],
     service: Annotated[IdentityService, Depends(get_identity_service)],
-) -> User:
+) -> AuthenticatedSession:
     try:
-        return await service.get_current_user(credentials.credentials)
+        return await service.resolve_session(credentials.credentials)
     except (InvalidTokenError, UserNotFoundError, InactiveUserError) as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="No autorizado",
             headers={"WWW-Authenticate": "Bearer"},
         ) from exc
+
+
+# Mensajes del 403 de una sesión admin sin la verificación en dos pasos. El
+# `code` es el que mira el frontend (`lib/api.ts`) para llevar a la pantalla
+# de alta o de vuelta al login.
+TWO_FACTOR_GATE_MESSAGES: dict[AdminGate, str] = {
+    AdminGate.SETUP_REQUIRED: "Activá la verificación en dos pasos para usar el panel de admin.",
+    AdminGate.VERIFICATION_REQUIRED: "Volvé a ingresar con el código de tu app autenticadora.",
+}
+
+
+def two_factor_gate_error(gate: AdminGate) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail={"code": gate.value, "message": TWO_FACTOR_GATE_MESSAGES[gate]},
+    )
+
+
+async def get_current_user(
+    session: Annotated[AuthenticatedSession, Depends(get_current_session)],
+) -> User:
+    """Usuario autenticado, para todos los endpoints.
+
+    Una sesión admin sin la verificación en dos pasos (sin activar, o de
+    antes de activarla) recibe 403 con un `code` en TODO endpoint que use
+    esta dependencia, no sólo en `/admin`: el rol admin también abre cosas en
+    endpoints compartidos (tickets ajenos, el CV de un trabajador, el mapa de
+    trabajadores, el WebSocket), y un endpoint nuevo queda cubierto solo
+    (falla cerrado). Las únicas excepciones usan
+    `get_current_user_allow_pending_2fa`: `/auth/me` y el alta (ADR-0023)."""
+    gate = session.gate
+    if gate is not AdminGate.GRANTED:
+        logger.warning(
+            "403 admin sin verificación en dos pasos: user_id=%s code=%s",
+            session.user.id,
+            gate.value,
+        )
+        raise two_factor_gate_error(gate)
+    return session.user
+
+
+async def get_current_user_allow_pending_2fa(
+    session: Annotated[AuthenticatedSession, Depends(get_current_session)],
+) -> User:
+    """Como `get_current_user` pero deja pasar a un admin sin la
+    verificación. Sólo para `/auth/me` y los endpoints del alta: es lo único
+    que tiene que poder hacer esa sesión."""
+    return session.user
 
 
 async def get_current_user_ws(
@@ -105,11 +173,15 @@ async def get_current_user_ws(
         raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
 
     try:
-        return await service.get_current_user(token)
+        auth = await service.resolve_session(token)
     except (InvalidTokenError, UserNotFoundError, InactiveUserError) as exc:
         raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION) from exc
     finally:
         await session.close()
+    # Mismo candado que `get_current_user` (ADR-0023).
+    if auth.gate is not AdminGate.GRANTED:
+        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
+    return auth.user
 
 
 def per_account_quota_key(user: User, request: Request, account_key: str | None = None) -> str:

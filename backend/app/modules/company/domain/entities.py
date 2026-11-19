@@ -40,7 +40,9 @@ class CompanyProfile:
     on_time_payment_rate: float = 0.0
     # Contador interno para ponderar el promedio de `on_time_payment_rate`
     # (no es `events_published`: no todo turno publicado llega a pagarse).
-    # No se expone en la API, sólo lo usa el repositorio.
+    # Se expone en la API (`CompanyProfileResponse`, ficha de admin) para que la
+    # pantalla sepa si «Pago a tiempo» tiene datos: 0 = sin pagos registrados,
+    # y ahí `on_time_payment_rate` (0.0 por default) no significa «paga tarde».
     payments_recorded: int = 0
     # Cancelación tardía (Parte C, PRIMER_TURNO_REAL_SPEC / ADR-0007):
     # cuenta las veces que el comercio canceló un turno con el trabajador ya

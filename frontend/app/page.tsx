@@ -29,6 +29,10 @@ const DATOS = [
     url: SITE_URL,
     logo: `${SITE_URL}/icon-512.png`,
     areaServed: { "@type": "City", name: "Ciudad Autónoma de Buenos Aires" },
+    // Las cuentas oficiales de la marca: con esto un buscador sabe que esa
+    // cuenta y este sitio son lo mismo (Julieta, 2026-11-18). Si se suma otra
+    // red, va acá.
+    sameAs: ["https://www.instagram.com/oidoapp/"],
   },
   {
     "@context": "https://schema.org",

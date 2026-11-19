@@ -1,0 +1,15 @@
+# Landing: Young Serif en los títulos, radios chicos e íconos que informan
+
+**Pedido:** un medidor de diseño marcó tres cosas sobre la landing: letra neutra en los títulos, todo redondeado por igual con aspecto de tarjeta, e íconos decorativos que repiten el texto. Las decisiones las tomó quien coordina; esto las implementa.
+
+**Qué cambió:**
+- **Tipografía.** `--font-display` pasa de Schibsted Grotesk a Young Serif (`next/font/google`, peso 400, `display: swap`) en `frontend/app/layout.tsx` y `frontend/app/globals.css`; se sacó la carga de Schibsted. Young Serif tiene un solo peso: una regla sin capa `.font-display { font-weight: 400; font-synthesis-weight: none }` y las dos reglas de la landing que usan `var(--font-display)` (`.landing-h2`, `.landing-mapa-eta`) evitan la negrita sintética. Inter, DM Mono y Sancreek no cambian. Se midió a 320, 390 y 1280 px: ningún título se desborda ni hace scroll horizontal, así que no hizo falta tocar tamaños.
+- **Radios.** Escala nueva en `@theme`/`:root` de `globals.css`: chip 4 / botón 6 / input 6 / card 8 / sheet 14 (antes 12 / 12 / 12 / 16 / 18). En la landing `--l-radio` 28 → 12 px y `--l-panel` 32 → 12 px (26 → 10 en celular). Botones y etiquetas de texto dejan de ser píldoras (`--radius-btn`, `--radius-chip`); `.landing-ficha`, `.landing-campo` e `.landing-impresora` toman `--radius-card`; en `components/landing/` los `rounded-2xl/3xl/lg` y los radios fijos pasan a tokens. `rounded-full` queda en círculos de verdad (puntos, avatares, ondas, el botón de más/menos de las preguntas, el número de los pasos). Doc: `docs/design-system/shape-language.md`. `Preguntas.tsx` ya era una lista con separadores finos (`divide-line`), sin caja por pregunta: no se tocó.
+- **Íconos.** Sólo en `components/landing/`. Se sacaron los decorativos: calendario, cruz, llama, copa y escudo de `story/Confianza.tsx` (las reglas pasan a renglones con filete a la izquierda, la copa a un `Avatar`), check de `story/Carta.tsx` (lista con separadores), check-círculo del toast de `story/replicas.tsx` y los dos celulares de `InstalarPasos.tsx`. Los que informan se dibujan a mano en `components/landing/iconos.tsx` (trazo 2, `square`/`miter`, geometría recta, `currentColor`, `aria-hidden` salvo con `aria-label`): compartir de iOS, agregar, tres puntos, pin y estrella. La app sigue con Lucide (`components/icons.tsx`).
+
+**Por qué así:** la serif con cuerpo se lleva con el filete y con los números grandes de los precios; esquinas chicas leen como filete y no como burbuja; un ícono que acompaña un texto que ya dice lo mismo es relleno. El teléfono dibujado de `story/replicas.tsx` conserva su radio: es un dispositivo, no una caja de la interfaz.
+
+**Queda abierto:**
+- Young Serif trae números de caja baja (el 4 de «$45.000» baja de la línea). Si molesta en los precios, buscar otra cifra o un `font-feature-settings`.
+- `IdentityVerifiedBadge` y otros componentes de la app que se ven en la landing siguen con íconos de Lucide.
+- `InstalarPasos` sigue siendo una lista de tarjetas iguales (una por paso).

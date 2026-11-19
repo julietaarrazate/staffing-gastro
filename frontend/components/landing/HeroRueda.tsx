@@ -2,6 +2,7 @@
 
 import Image, { getImageProps } from "next/image";
 import Link from "next/link";
+import BancoDeNubes from "./Nubes";
 import { useEffect, useRef, useState } from "react";
 import { preload } from "react-dom";
 
@@ -57,13 +58,13 @@ function PalabraQueCambia() {
     };
   }, []);
   return (
-    <span ref={ref} aria-hidden className="landing-palabra block text-primary">
+    <span ref={ref} aria-hidden className="landing-palabra block text-primary-strong">
       {par.antes !== null && (
-        <b key={`s${par.antes}-${par.i}`} className="landing-palabra-sale font-semibold">
+        <b key={`s${par.antes}-${par.i}`} className="landing-palabra-sale font-normal">
           {PUESTOS[par.antes]}
         </b>
       )}
-      <b key={`e${par.i}`} className="font-semibold">
+      <b key={`e${par.i}`} className="font-normal">
         {PUESTOS[par.i]}
       </b>
     </span>
@@ -183,9 +184,41 @@ function Rueda() {
   );
 }
 
+/** El cielo del inicio (2026-11-13): un banco de nubes abajo, quieto, y dos
+ *  cirros arriba que derivan muy despacio (CSS, `.landing-cirro-*`). Van
+ *  dibujadas con un filtro de ruido para que el borde no sea un óvalo
+ *  borroso; cada una es un SVG aparte, así el navegador las mueve como capas
+ *  sin recalcular el filtro en cada cuadro. Salen en el HTML del servidor. */
+function Nubes() {
+  return (
+    <>
+      <BancoDeNubes id="landing" className="landing-nubes-banco" />
+      {(["a", "b"] as const).map((k) => (
+        <svg key={k} aria-hidden className={`landing-cirro landing-cirro-${k}`} viewBox="0 0 520 120">
+          <defs>
+            <filter id={`landing-cirro-${k}`} x="-30%" y="-80%" width="160%" height="260%">
+              <feTurbulence
+                type="fractalNoise"
+                baseFrequency={k === "a" ? "0.02 0.05" : "0.018 0.05"}
+                numOctaves={3}
+                seed={k === "a" ? 23 : 41}
+                result="ruido"
+              />
+              <feDisplacementMap in="SourceGraphic" in2="ruido" scale={46} xChannelSelector="R" yChannelSelector="G" />
+              <feGaussianBlur stdDeviation={7} />
+            </filter>
+          </defs>
+          <ellipse cx={260} cy={60} rx={k === "a" ? 190 : 170} ry={22} fill="#ffffff" opacity={0.72} filter={`url(#landing-cirro-${k})`} />
+        </svg>
+      ))}
+    </>
+  );
+}
+
 export default function HeroRueda() {
   return (
     <section aria-labelledby="hero-titulo" data-tone="light" className="landing-hero relative overflow-hidden px-4 text-center sm:px-6">
+      <Nubes />
       {/* El marco funde la rueda hacia abajo: sin él, en pantallas anchas las
           fichas de los costados se cortaban en seco contra el borde. */}
       <div aria-hidden className="landing-rueda-marco">
@@ -194,13 +227,13 @@ export default function HeroRueda() {
       <div className="relative z-[2]">
         <h1
           id="hero-titulo"
-          className="font-display text-[clamp(3.25rem,5.6vw,5rem)] font-semibold leading-[0.95] tracking-[-0.035em] text-ink"
+          className="landing-entra landing-cartel landing-cartel-inicio"
         >
           <span className="block">Encontrá tu</span>
           <span className="sr-only">mozo, bartender, bachero o cocinero</span>
           <PalabraQueCambia />
         </h1>
-        <div id={HERO_CTA_ID} className="landing-par mt-9">
+        <div id={HERO_CTA_ID} className="landing-par landing-entra landing-entra-2 mt-9">
           <Link href="/register?rol=comercio" data-cta="hero" className="landing-btn landing-btn-primario">
             Necesito personal <span aria-hidden className="landing-btn-flecha">→</span>
           </Link>

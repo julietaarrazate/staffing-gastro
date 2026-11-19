@@ -57,7 +57,7 @@ async def test_con_secreto_deja_pasar_lo_que_viene_por_cloudflare(client: AsyncC
     headers = {"X-Oido-Edge": VALOR_EDGE}
     res = await client.post(
         "/api/v1/auth/register",
-        json={**LOGIN, "full_name": "Mozo", "role": "worker", "accepted_terms": True},
+        json={**LOGIN, "full_name": "Mozo", "role": "worker", "accepted_terms": True, "birth_date": "1995-05-20"},
         headers=headers,
     )
     assert res.status_code == 201
@@ -118,7 +118,7 @@ async def test_turnstile_registro_y_login_seguidos_con_el_mismo_token(
     headers = {"X-Turnstile-Token": "token-bueno"}
     res = await client.post(
         "/api/v1/auth/register",
-        json={**LOGIN, "full_name": "Mozo", "role": "worker", "accepted_terms": True},
+        json={**LOGIN, "full_name": "Mozo", "role": "worker", "accepted_terms": True, "birth_date": "1995-05-20"},
         headers=headers,
     )
     assert res.status_code == 201

@@ -3,18 +3,24 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { api } from "@/lib/api";
+import { api, isRateLimited, RATE_LIMITED_MESSAGE } from "@/lib/api";
 import { Button, TextField } from "@/components/ui";
+import { useAuth } from "@/lib/auth-context";
+import { homeDelRol } from "@/lib/home-del-rol";
 
 type Status = "verifying" | "success" | "error" | "no-token";
 
 function VerificarEmailContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
+  // Con sesión abierta, "Ingresar" no tiene sentido: va al inicio del rol (U042).
+  const { user } = useAuth();
+  const destino = user ? homeDelRol(user.role) : "/login";
   const [status, setStatus] = useState<Status>(token ? "verifying" : "no-token");
   const [resendEmail, setResendEmail] = useState("");
   const [resendSubmitting, setResendSubmitting] = useState(false);
   const [resendSent, setResendSent] = useState(false);
+  const [limited, setLimited] = useState(false);
   const requested = useRef(false);
 
   useEffect(() => {
@@ -23,19 +29,29 @@ function VerificarEmailContent() {
     api
       .post("/auth/verify-email", { token })
       .then(() => setStatus("success"))
-      .catch(() => setStatus("error"));
+      .catch((err) => {
+        if (isRateLimited(err)) setLimited(true);
+        setStatus("error");
+      });
   }, [token]);
 
   async function handleResend(e: React.FormEvent) {
     e.preventDefault();
     setResendSubmitting(true);
+    setLimited(false);
+    let sentOk = true;
     try {
       await api.post("/auth/resend-verification", { email: resendEmail });
-    } catch {
-      // Anti-enumeración: no distinguimos el resultado, mismo criterio que /recuperar.
+    } catch (err) {
+      // Anti-enumeración: sólo el límite de intentos se distingue (es por
+      // conexión); el resto, mismo criterio que /recuperar.
+      if (isRateLimited(err)) {
+        sentOk = false;
+        setLimited(true);
+      }
     } finally {
       setResendSubmitting(false);
-      setResendSent(true);
+      if (sentOk) setResendSent(true);
     }
   }
 
@@ -56,8 +72,8 @@ function VerificarEmailContent() {
               <p className="text-sm font-medium text-success-text">
                 Listo, tu email quedó confirmado.
               </p>
-              <Link href="/login" className="mt-4 inline-block">
-                <Button type="button">Ingresar</Button>
+              <Link href={destino} className="mt-4 inline-block">
+                <Button type="button">{user ? "Ir al inicio" : "Ingresar"}</Button>
               </Link>
             </div>
           )}
@@ -70,12 +86,14 @@ function VerificarEmailContent() {
 
           {status === "error" && (
             <div>
-              <p className="text-sm text-danger-text">
-                El enlace es inválido o venció. Pedí uno nuevo con tu email.
+              <p role="alert" className="text-sm text-danger-text">
+                {limited
+                  ? RATE_LIMITED_MESSAGE
+                  : "El enlace es inválido o venció. Pedí uno nuevo con tu email."}
               </p>
               {resendSent ? (
                 <p className="mt-4 text-center text-sm font-medium text-success-text">
-                  Si el email existe y todavía no está verificado, te enviamos un enlace.
+                  Si corresponde, te mandamos un enlace. Si pediste uno hace poco, esperá unos minutos y revisá la carpeta de spam.
                 </p>
               ) : (
                 <form onSubmit={handleResend} className="mt-4 flex flex-col gap-3">
@@ -97,8 +115,8 @@ function VerificarEmailContent() {
         </div>
 
         <p className="mt-5 text-center text-sm text-ink/60">
-          <Link href="/login" className="font-semibold text-primary-text">
-            Volver a ingresar
+          <Link href={destino} className="font-semibold text-primary-text">
+            {user ? "Volver al inicio" : "Volver a ingresar"}
           </Link>
         </p>
       </div>

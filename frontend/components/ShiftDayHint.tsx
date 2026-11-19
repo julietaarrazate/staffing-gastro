@@ -1,5 +1,10 @@
 import { CalendarIcon } from "@/components/icons";
-import { formatShiftDayLong, formatShiftTime, localInputToArgentinaISO } from "@/lib/datetime";
+import {
+  formatShiftDayLong,
+  formatShiftTime,
+  formatShiftWeekday,
+  localInputToArgentinaISO,
+} from "@/lib/datetime";
 
 /**
  * El día elegido, en palabras, debajo del campo que lo eligió.
@@ -28,7 +33,16 @@ import { formatShiftDayLong, formatShiftTime, localInputToArgentinaISO } from "@
  *    en palabras lo que la persona acaba de elegir. Por eso es gris y chico:
  *    si compitiera con el campo, sería ruido.
  */
-export default function ShiftDayHint({ value }: { value: string }) {
+export default function ShiftDayHint({
+  value,
+  alDiaSiguiente = false,
+}: {
+  value: string;
+  /** El fin que se escribió cae antes del inicio el mismo día y se tomó como
+   * el día siguiente (G14, U056): se dice con todas las letras, para que quien
+   * trabaja «de 21:00 a 02:00» vea que se entendió lo que quiso. */
+  alDiaSiguiente?: boolean;
+}) {
   if (!value) return null;
 
   const iso = localInputToArgentinaISO(value);
@@ -37,6 +51,15 @@ export default function ShiftDayHint({ value }: { value: string }) {
   // cerró) produce una fecha inválida. Ahí no hay nada que confirmar, y un
   // "Invalid Date" en pantalla es peor que no mostrar nada.
   if (dia.toLowerCase().includes("invalid")) return null;
+
+  if (alDiaSiguiente) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-text">
+        <CalendarIcon size={13} className="shrink-0" />
+        Termina el {formatShiftWeekday(iso)} a las {formatShiftTime(iso)}
+      </span>
+    );
+  }
 
   return (
     <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink/55">

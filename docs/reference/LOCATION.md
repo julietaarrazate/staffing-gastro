@@ -22,7 +22,7 @@ perfil (ciudad/barrio como texto + latitud/longitud opcionales).
 - **Ciudad / barrio:** texto legible (AR/LATAM). En CABA se usa el **barrio**
   (Palermo, Recoleta, etc.) como unidad práctica de cercanía humana.
 - **Coordenadas:** `lat` / `lng` opcionales. Cuando existen, habilitan el cálculo
-  real de distancia; cuando faltan, la distancia puntúa **neutral** (ver abajo).
+  real de distancia; cuando faltan, «cerca» se decide por **ciudad** (ver abajo).
 
 ## Cómo se usa
 
@@ -31,17 +31,47 @@ perfil (ciudad/barrio como texto + latitud/longitud opcionales).
   (0.30)**, con **radio máximo de 25 km**. Ver
   [MATCHING.md](./MATCHING.md#motor-de-recomendación-scoring).
 - **Sin geolocalización en alguna punta:** si al trabajador o al turno le faltan
-  coordenadas, la distancia **no penaliza ni premia**: aporta un valor neutral
-  (0.5). El match sigue funcionando por reputación/experiencia.
+  coordenadas, la distancia **no penaliza ni premia** en el puntaje: aporta un
+  valor neutral (0.5). Pero para entrar hace falta ser de la **misma ciudad**
+  que el turno (comparada sin mayúsculas ni tildes): sin distancia y sin
+  ciudad en común no se avisa ni se muestra.
+- **Turno publicado sin zona** (ni coordenadas ni ciudad; la API lo acepta):
+  se mide desde el **local del comercio**, en el aviso, en los recomendados y
+  en el feed (`shift/domain/nearby.py::zone_of`,
+  `shift/application/zones.py`). Es sólo para medir: el turno sigue sin
+  ubicación propia en la tarjeta y en el mapa. Un turno que sí dice su ciudad
+  se compara por esa ciudad, aunque el local quede en otra. Si el comercio
+  tampoco tiene ubicación, no se le avisa a nadie y el turno sólo se ve en
+  Buscar.
+- **Feed del trabajador (Inicio y Mapa):** `GET /shifts/feed` devuelve sólo
+  los turnos a **40 km** o menos de la **zona del perfil**; con el perfil sin
+  coordenadas, los de su ciudad; sin zona, todos. Buscar (`scope=all`)
+  muestra todo, ordenado por distancia. El filtro grueso es una caja de
+  coordenadas en SQL (`app/core/geo.py::bounding_box`, sin PostGIS) y la
+  distancia exacta se mide en Python (`shift/domain/nearby.py`). La
+  ubicación del momento del dispositivo ("Estoy acá", el GPS del mapa) **no
+  viaja al servidor**: la pantalla hace su propio corte desde ese punto
+  (`frontend/lib/current-location.ts::nearbyOnly`), en el Inicio y en el
+  Mapa. Quien está a más de 40 km de la zona de su perfil ve esas dos
+  pantallas vacías, con el botón a Buscar.
+- **"Disponible ahora" y el feed miran lugares distintos.** Mientras está
+  prendido, el aviso «Turno cerca tuyo» y los recomendados miden desde esa
+  posición (ADR-0014); el feed sigue midiendo desde la zona del perfil. Con
+  "Disponible ahora" prendido lejos de la zona del perfil puede llegar el
+  aviso de un turno que el Inicio no lista (el aviso abre el turno igual), y
+  al revés. Unificarlo es una decisión de producto y de privacidad pendiente.
 - **Búsqueda por mapa (comercio):** el comercio explora trabajadores sobre un
   mapa por rol y radio; el orden es por **cercanía simple** (sin el scoring
   ponderado). Ver [MATCHING.md](./MATCHING.md#búsqueda-por-mapa-comercio).
 
 ## Reglas de negocio
 
-- La cercanía es **preferencia, no barrera dura**: fuera del radio máximo un
-  candidato deja de recomendarse por distancia, pero el producto prioriza cubrir
-  con gente cerca (coherente con la meta de **< 10 minutos**).
+- La cercanía es **barrera dura** (desde el 2026-11-13; antes era sólo
+  preferencia y un turno se le avisaba como «cerca tuyo» a alguien de otra
+  provincia): fuera del radio no se avisa, no se recomienda y no se muestra
+  en el Inicio ni en el Mapa. 25 km para el primer aviso y los recomendados,
+  40 km para la escalada y para el feed. Adentro del radio sigue siendo el
+  factor de mayor peso del puntaje (coherente con la meta de **< 10 minutos**).
 - La ubicación del comercio es la del **turno** (dónde se trabaja), no
   necesariamente el domicilio legal.
 

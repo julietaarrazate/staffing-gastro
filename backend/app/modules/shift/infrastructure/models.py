@@ -14,6 +14,7 @@ from sqlalchemy import (
     Integer,
     Numeric,
     String,
+    false,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column
@@ -82,6 +83,10 @@ class ShiftModel(Base):
     en_route_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # Cuándo se avisó al comercio «salió para tu local» en este viaje (U072).
+    en_route_announced_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     check_in_latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     check_in_longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -104,12 +109,31 @@ class ShiftModel(Base):
     departure_reminder_sent_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    finish_reminder_sent_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    auto_finished_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     first_assigned_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    first_confirmed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     escalated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Venció con la cuenta del comercio suspendida: fuera de las métricas de
+    # cobertura (ADR-0024, actualización 2026-11-18).
+    not_covered_while_suspended: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=false()
+    )
+
+    # Turno reofrecido (U080, migración 0053; ver domain/entities.py).
+    reoffered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    prorated_pay_amount: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
 
     # Publicación masiva para un evento (sin tabla propia ni FK: sólo un UUID
     # compartido entre los turnos de una misma tanda, ver domain/entities.py).

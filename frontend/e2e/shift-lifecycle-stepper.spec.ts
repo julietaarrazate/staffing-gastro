@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./mocks";
+import { blockExternalHosts, injectSession, mockEmptyNotifications, setTheme } from "./mocks";
 
 /**
  * Stepper del ciclo de vida del turno (`components/ShiftLifecycleStepper.tsx`,
@@ -182,14 +182,24 @@ test("turno no cubierto se lee igual en claro y en oscuro", async ({ page }) => 
     const chip = card.getByText("No cubierto");
     await expect(chip).toBeVisible();
 
-    // Contraste real computado del chip de estado, no clases — mismo método
-    // que enseñó el bug de septiembre (tarjetas del color del lienzo).
-    const medida = await chip.evaluate((el) => {
-      const cs = getComputedStyle(el as HTMLElement);
-      return { color: cs.color, fondo: cs.backgroundColor };
+    // Contraste real computado del estado, no clases — mismo método que
+    // enseñó el bug de septiembre (tarjetas del color del lienzo). Desde el
+    // 2026-11-18 el estado es un sello sobre el papel de la comanda: no
+    // tiene fondo propio, así que se mide su letra contra el papel.
+    const contraste = await chip.evaluate((el) => {
+      const rgb = (c: string) => (c.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number);
+      const luz = (c: string) => {
+        const [r, g, b] = rgb(c).map((v) => {
+          const s = v / 255;
+          return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      };
+      const papel = getComputedStyle(el.closest(".comanda") as HTMLElement).backgroundColor;
+      const [a, b] = [luz(getComputedStyle(el as HTMLElement).color), luz(papel)].sort((x, y) => y - x);
+      return (a + 0.05) / (b + 0.05);
     });
-    expect(medida.color, `${tema}: color de texto vacío`).not.toBe("");
-    expect(medida.fondo, `${tema}: chip sin fondo`).not.toBe("rgba(0, 0, 0, 0)");
+    expect(contraste, `${tema}: el sello no se lee sobre el papel`).toBeGreaterThanOrEqual(4.5);
   }
 });
 
@@ -302,3 +312,31 @@ test("el panel se refresca solo mientras alguien puede venir en camino", async (
   await page.clock.runFor(31_000);
   await expect(card.getByText("Juana Pérez va en camino")).toBeVisible({ timeout: 10_000 });
 });
+
+// El paso actual va en azul de marca (no en ámbar, que es del botón de la
+// tarjeta) y el completado en el tinte de marca. Desde el 2026-11-18 el
+// turno del panel es una comanda de papel, forzada a claro por dentro: los
+// colores de los pasos son los de claro también con la app en oscuro (antes,
+// en oscuro, iban en celeste sobre la tarjeta oscura).
+const EN_PAPEL = { actualBg: "rgb(28, 84, 120)", actualInk: "rgb(255, 255, 255)", hechoBg: "rgb(222, 236, 240)", hechoInk: "rgb(28, 84, 120)" };
+const COLORES = { light: EN_PAPEL, dark: EN_PAPEL } as const;
+
+for (const theme of ["light", "dark"] as const) {
+  test(`comercio, ${theme}: paso actual en azul de marca y paso completado con su tinte`, async ({ page }) => {
+    await injectSession(page);
+    await setTheme(page, theme);
+    await blockExternalHosts(page);
+    await mockEmptyNotifications(page);
+    await mockEmployerShifts(page, [shift({ id: "shift-asignado", status: "asignado", worker_profile_id: "wp-1" })]);
+    await page.goto("/shifts");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+    const lista = page.locator('[data-shift-id="shift-asignado"]').getByRole("list", { name: "Paso 2 de 4: Asignado" });
+    const actual = lista.locator('[aria-current="step"]');
+    const hecho = lista.getByRole("listitem").first().locator("span").first();
+    const esperado = COLORES[theme];
+    await expect(actual).toHaveCSS("background-color", esperado.actualBg);
+    await expect(actual).toHaveCSS("color", esperado.actualInk);
+    await expect(hecho).toHaveCSS("background-color", esperado.hechoBg);
+    await expect(hecho).toHaveCSS("color", esperado.hechoInk);
+  });
+}

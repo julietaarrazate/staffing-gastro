@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { formatArs } from "@/lib/format";
-import { CheckIcon } from "@/components/icons";
+import { formatArs, plural } from "@/lib/format";
 import type { SubscriptionPlan } from "@/lib/types";
 
 /**
@@ -38,13 +37,13 @@ const RESPALDO: SubscriptionPlan[] = [
 function Tope({ max, destacado }: { max: number | null; destacado: boolean }) {
   if (max === null) {
     return (
-      <div aria-hidden className="h-2.5 w-full rounded-full bg-gradient-to-r from-primary to-secondary-strong" />
+      <div aria-hidden className="h-2.5 w-full rounded-[var(--radius-chip)] bg-gradient-to-r from-primary to-secondary-strong" />
     );
   }
   return (
     <div aria-hidden className="flex flex-wrap gap-1">
       {Array.from({ length: max }, (_, i) => (
-        <span key={i} className={`h-2.5 w-2.5 rounded-[3px] ${destacado ? "bg-primary" : "bg-ink/80"}`} />
+        <span key={i} className={`h-2.5 w-2.5 rounded-[var(--radius-chip)] ${destacado ? "bg-primary" : "bg-ink/80"}`} />
       ))}
     </div>
   );
@@ -103,7 +102,7 @@ export default function Carta() {
               <div className="flex items-center justify-between gap-3">
                 <span className="font-display text-h2 font-semibold text-ink">{p.name}</span>
                 {destacado && (
-                  <span className="rounded-full bg-night px-2.5 py-1 font-mono text-label font-medium uppercase tracking-[0.1em] text-white">
+                  <span className="rounded-[var(--radius-chip)] bg-night px-2.5 py-1 font-mono text-label font-medium uppercase tracking-[0.1em] text-white">
                     Recomendado
                   </span>
                 )}
@@ -117,15 +116,14 @@ export default function Carta() {
 
               <div className="mt-6">
                 <p className="mb-2 font-mono text-label font-medium uppercase tracking-[0.12em] text-ink-mute">
-                  {p.max_turnos_mes === null ? "Turnos sin tope" : `${p.max_turnos_mes} turnos por mes`}
+                  {p.max_turnos_mes === null ? "Turnos sin tope" : `${plural(p.max_turnos_mes, "turno", "turnos")} por mes`}
                 </p>
                 <Tope max={p.max_turnos_mes} destacado={destacado} />
               </div>
 
-              <ul className="mt-6 space-y-2.5 border-t border-line pt-5">
+              <ul className="mt-6 divide-y divide-line border-t border-line">
                 {p.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2.5 text-body text-ink-soft">
-                    <CheckIcon size={16} className="mt-0.5 shrink-0 text-secondary-text" aria-hidden />
+                  <li key={f} className="py-2.5 text-body text-ink-soft">
                     {f}
                   </li>
                 ))}

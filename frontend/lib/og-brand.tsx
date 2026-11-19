@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
+import { OG_FILETE } from "./og";
 
 /**
  * La imagen que acompaña un link de Oído al compartirlo (WhatsApp, Slack, X).
@@ -8,9 +9,15 @@ import { ImageResponse } from "next/og";
  * se cambia acá (colores y textos de abajo) o el filete de
  * `assets/og/filete-oido.png`.
  *
- * Desde el 2026-10-18 sigue a la landing "cielo": la palabra "oído" fileteada (la misma de `components/landing/Filete.tsx`, guardada
- * como PNG porque satori no dibuja texto dentro de un SVG) y el tagline,
- * sobre el cielo celeste. Sin el isotipo (Julieta): el ícono ya lo muestra la
+ * Desde el 2026-10-18 sigue a la landing "cielo": la palabra "oído" fileteada
+ * (guardada como PNG porque satori no dibuja texto dentro de un SVG) y el
+ * tagline, sobre el cielo celeste. Desde el 2026-11-18 el PNG es el filete
+ * «cargado»: el mismo dibujo con cuerpo del final de la landing
+ * (`components/landing/Filete.tsx`), más la cinta celeste y blanca, el ramo de
+ * tres flores y las flores de los costados. La miniatura va un nivel más
+ * cargada que la landing a propósito (Julieta): se ve chica y de pasada. Para
+ * regenerarlo, `node scripts/build-filete.mjs` (escribe también los vectores
+ * de `docs/design-system/marca/`). Sin el isotipo (Julieta): el ícono ya lo muestra la
  * app y su ámbar competía con el del filete. Todo centrado: hasta el 2026-10-05 era apaisada
  * con el logo a la izquierda y una tarjeta de turno a la derecha, y en
  * WhatsApp se veía como "un pedazo recortado del ticket": WhatsApp la
@@ -28,8 +35,8 @@ const TINTA = "#111111";
 const AMBAR_TEXTO = "#b45309";
 const TAGLINE = "Personal gastronómico,";
 const TAGLINE_ACENTO = "ya.";
-/** Proporción del PNG del filete (1200 × 428). */
-const FILETE_ALTO = 428 / 1200;
+/** Proporción del PNG del filete. */
+const FILETE_ALTO = OG_FILETE.height / OG_FILETE.width;
 
 export { OG_ALT, OG_SQUARE, OG_WIDE } from "./og";
 

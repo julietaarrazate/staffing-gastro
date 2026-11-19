@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { puedeMarcarAusencia } from "@/lib/turno-reofrecido";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button, Sheet } from "@/components/ui";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import { AlertTriangleIcon, CheckCircleIcon, CopyIcon, MessageIcon } from "@/components/icons";
-import { nextStepFor, type PrimaryAction } from "@/lib/shift-next-step";
+import { isCancellable } from "@/lib/cancelar-turno";
+import { autoFinishPhrase, nextStepFor, type PrimaryAction } from "@/lib/shift-next-step";
 import type { Shift } from "@/lib/types";
 
 /**
@@ -15,33 +17,63 @@ import type { Shift } from "@/lib/types";
  * tenía que deducir cuál correspondía a esta altura del ciclo. Acá se muestra
  * en qué anda el turno + LA acción que le toca al comercio ahora (si le toca
  * alguna), y todo lo demás queda detrás de "Más".
+ *
+ * Esa acción ocupa siempre el mismo lugar y cambia con el estado («Cerrar
+ * turno» pasa a ser «Marcar como pagado»). Por eso los botones se apagan con
+ * `locked` (la guarda de `lib/use-tap-guard.ts`: una acción en curso o la
+ * lista recién redibujada) y no sólo mientras carga el propio.
  */
 
 // Sólo tiene sentido marcar no-show mientras el trabajador confirmado
 // todavía no se presentó (antes del check-in) — ADR-0007.
 const NO_SHOW_ELIGIBLE = ["confirmado", "en_camino"];
-const CANCELLABLE_EXCLUDED = ["finalizado", "pagado", "cancelado"];
+// ...y recién desde 15 minutos después del inicio (la tolerancia de la
+// puntualidad): antes, el trabajador todavía puede llegar. A quien tomó el
+// turno ya empezado (U080) se le cuenta desde que confirmó. El servidor
+// aplica la misma regla (`Shift.no_show`); `puedeMarcarAusencia` sólo evita
+// ofrecer la opción antes.
 
 export default function ShiftActions({
   shift,
   busy,
+  locked,
   onRun,
+  onMarkPaid,
   onNoShow,
   onCancel,
 }: {
   shift: Shift;
+  /** Qué botón muestra el indicador de carga (`<id>:<acción>`). */
   busy: string | null;
-  /** `candidates` no pasa por acá: es un Link, no una mutación. */
-  onRun: (id: string, action: Exclude<PrimaryAction, "candidates"> | "cancel") => void;
+  /** Hay una acción en curso o la lista se acaba de redibujar (`useTapGuard`):
+   *  ningún botón de acción de la tarjeta acepta toques. */
+  locked: boolean;
+  /** `candidates` no pasa por acá (es un Link, no una mutación) y `markPaid`
+   *  tampoco: no se puede deshacer, así que primero pide confirmación. */
+  onRun: (id: string, action: Exclude<PrimaryAction, "candidates" | "markPaid"> | "cancel") => void;
+  onMarkPaid: () => void;
   onNoShow: () => void;
   onCancel: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const step = nextStepFor(shift);
 
-  const canCancel = !CANCELLABLE_EXCLUDED.includes(shift.status);
-  const canNoShow = NO_SHOW_ELIGIBLE.includes(shift.status);
+  // La misma regla que el diálogo y el servidor (`isCancellable`): con la
+  // salida marcada ya no se ofrece cancelar, se finaliza y se paga (U081).
+  const canCancel = isCancellable(shift.status);
+  // La hora corre mientras la tarjeta está abierta: se relee cada medio
+  // minuto para que la opción aparezca sola a los 15 minutos del inicio.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  const canNoShow = NO_SHOW_ELIGIBLE.includes(shift.status) && puedeMarcarAusencia(shift, now);
   const hasWorker = Boolean(shift.worker_profile_id) && shift.status !== "cancelado";
+  // Decisión 24: con la salida marcada, cuándo lo cierra Oído si no lo cierra
+  // el comercio. Va en la misma línea del estado, sin color propio.
+  const autoFinish =
+    shift.status === "check_out" ? autoFinishPhrase(shift.check_out_at, new Date(now)) : null;
 
   return (
     <div className="flex flex-col gap-2.5">
@@ -51,6 +83,7 @@ export default function ShiftActions({
             <CheckCircleIcon size={15} className="mr-1 inline-block align-[-2px] text-success-text" />
           )}
           {step.hint}
+          {autoFinish && ` Si no lo cerrás, se cierra solo ${autoFinish}.`}
         </p>
       )}
 
@@ -58,7 +91,7 @@ export default function ShiftActions({
         {step.action === "candidates" ? (
           <Link
             href={`/shifts/${shift.id}/candidates`}
-            className="flex-1 rounded-[var(--radius-btn)] bg-primary px-4 py-2 text-center text-sm font-semibold text-night transition active:scale-95"
+            className="boton-relieve flex-1 bg-primary px-4 py-2 text-center text-sm font-semibold text-night"
           >
             {step.actionLabel}
           </Link>
@@ -67,10 +100,12 @@ export default function ShiftActions({
             size="sm"
             fullWidth
             onClick={() =>
-              onRun(shift.id, step.action as Exclude<PrimaryAction, "candidates">)
+              step.action === "markPaid"
+                ? onMarkPaid()
+                : onRun(shift.id, step.action as Exclude<PrimaryAction, "candidates" | "markPaid">)
             }
             loading={busy === `${shift.id}:${step.action}`}
-            disabled={busy !== null}
+            disabled={locked}
           >
             {step.actionLabel}
           </Button>
@@ -122,6 +157,7 @@ export default function ShiftActions({
           </MenuLink>
           {canNoShow && (
             <MenuButton
+              disabled={locked}
               onClick={() => {
                 setMenuOpen(false);
                 onNoShow();
@@ -133,7 +169,7 @@ export default function ShiftActions({
           {canCancel && (
             <MenuButton
               danger
-              disabled={busy !== null}
+              disabled={locked}
               onClick={() => {
                 setMenuOpen(false);
                 onCancel();

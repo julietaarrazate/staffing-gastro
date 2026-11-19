@@ -84,7 +84,7 @@ async def submit_review(
     except DuplicateReviewError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Ya calificaste este turno",
+            detail="Ya calificaste este turno. La calificación es definitiva: no se puede cambiar ni borrar.",
         ) from exc
     except InvalidRatingError as exc:
         raise HTTPException(
