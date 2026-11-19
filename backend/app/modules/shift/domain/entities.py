@@ -166,6 +166,15 @@ class Shift:
     # de arriba: sin él, el scheduler lo reenviaría en cada pasada.
     departure_reminder_sent_at: datetime | None = None
 
+    # Cierre automático (ADR-0008, decisión 24): un turno con la salida
+    # marcada que el comercio no cierra. `finish_reminder_sent_at` es cuándo
+    # se le recordó al comercio que lo cierre (`FINISH_REMINDER_DELAY` desde
+    # `check_out_at`); marca de sistema, la escribe el repositorio sin subir
+    # la versión, como la de arriba. `auto_finished_at` es cuándo lo cerró
+    # Oído solo (`AUTO_FINISH_DELAY`); `None` si lo cerró el comercio.
+    finish_reminder_sent_at: datetime | None = None
+    auto_finished_at: datetime | None = None
+
     # Publicación masiva para un evento (ej. una boda que necesita 3 mozos +
     # 2 bartenders): cada rol sigue siendo un turno propio con quantity=1
     # (ADR-0003 no se toca), pero comparten `event_id` para poder agruparlos
@@ -213,6 +222,12 @@ class Shift:
     # (decisiones 16 y 18). Queda fijo al marcar la llegada; `None` en todo
     # turno que no se reofreció (se paga `pay_amount`). Ver `amount_due`.
     prorated_pay_amount: Decimal | None = None
+    # El turno venció («no cubierto») con la cuenta del comercio suspendida
+    # (ADR-0024, actualización 2026-11-18): estaba oculto, nadie pudo
+    # postularse, así que queda fuera de las métricas de cobertura. Se guarda
+    # en el turno, y no se mira el estado de la cuenta al calcular, porque la
+    # cuenta puede reactivarse después y el turno no tiene que volver a contar.
+    not_covered_while_suspended: bool = False
 
     id: UUID = field(default_factory=uuid4)
     created_at: datetime | None = None
@@ -550,7 +565,7 @@ class Shift:
         self.last_no_show_worker_profile_id = self.worker_profile_id
         return self._reopen(now)
 
-    def mark_not_covered(self) -> None:
+    def mark_not_covered(self, *, company_suspended: bool = False) -> None:
         """PUBLICADO/BUSCANDO_PERSONAL/ASIGNADO → NO_CUBIERTO (ADR-0015):
         el sistema resuelve solo un turno cuyo período de gracia después de
         `start_at` se agotó sin llegar a CONFIRMADO.
@@ -566,7 +581,12 @@ class Shift:
         Conserva quién estaba asignado (si lo había) en
         `last_no_show_worker_profile_id`, mismo campo que usa `no_show()` para
         dejar rastro de quién no llegó a confirmar — aunque acá, otra vez, sin
-        que eso cuente en contra de nadie."""
+        que eso cuente en contra de nadie.
+
+        `company_suspended`: la cuenta del comercio estaba suspendida cuando
+        venció (el turno estaba oculto, ADR-0024). Queda anotado en
+        `not_covered_while_suspended` para dejarlo fuera de las métricas de
+        cobertura, también si la cuenta se reactiva después."""
         if self.status not in UNCOVERED_ELIGIBLE_STATUSES:
             raise InvalidShiftTransitionError(
                 no_se_puede("no_cubierto", self.status)
@@ -575,6 +595,7 @@ class Shift:
             self.last_no_show_worker_profile_id = self.worker_profile_id
         self.worker_profile_id = None
         self.status = ShiftStatus.NO_CUBIERTO
+        self.not_covered_while_suspended = company_suspended
         self._clear_en_route()
 
     def depart(self) -> None:
@@ -747,6 +768,13 @@ class Shift:
     def finish(self) -> None:
         """CHECK_OUT → FINALIZADO: cierra el turno trabajado."""
         self._transition(ShiftStatus.CHECK_OUT, ShiftStatus.FINALIZADO, "cerrar")
+
+    def auto_finish(self) -> None:
+        """CHECK_OUT → FINALIZADO sin el comercio (decisión 24): el turno
+        quedó con la salida marcada y nadie lo cerró. Misma transición que
+        `finish`; además deja registrado que lo cerró el sistema."""
+        self.finish()
+        self.auto_finished_at = datetime.now(timezone.utc)
 
     def mark_paid(self) -> None:
         """FINALIZADO → PAGADO: el comercio confirma que pagó el turno."""

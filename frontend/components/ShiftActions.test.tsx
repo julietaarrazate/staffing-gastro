@@ -101,4 +101,26 @@ describe("ShiftActions", () => {
       unmount();
     }
   });
+
+  it("con la salida marcada dice cuándo se cierra solo (decisión 24)", () => {
+    const check_out_at = new Date(Date.now() - 60 * MIN).toISOString();
+    render(
+      <ShiftActions
+        shift={{ ...shift("check_out", 400), check_out_at }}
+        busy={null}
+        locked={false}
+        onRun={vi.fn()}
+        onMarkPaid={vi.fn()}
+        onNoShow={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+    expect(screen.getByText(/Si no lo cerrás, se cierra solo .+ a las \d{2}:\d{2}\./)).toBeInTheDocument();
+  });
+
+  it("en otros estados no habla del cierre automático", () => {
+    const { unmount } = setup("finalizado");
+    expect(screen.queryByText(/se cierra solo/)).not.toBeInTheDocument();
+    unmount();
+  });
 });

@@ -11,6 +11,7 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { useTapGuard } from "@/lib/use-tap-guard";
 import { formatShiftStartPhrase } from "@/lib/datetime";
+import { autoFinishWorkerNote } from "@/lib/shift-next-step";
 import { Shift, ShiftApplication, WorkerProfile } from "@/lib/types";
 import { getCurrentPosition } from "@/lib/geolocation";
 import {
@@ -570,7 +571,11 @@ function MatchesContent() {
                   </Button>
                 )}
                 {shift.status === "check_out" && (
-                  <p className="text-sm text-ink/50">Esperando que el comercio cierre el turno.</p>
+                  // ink/60 como la línea de estado del panel: con el plazo es
+                  // información que la persona tiene que poder leer bien.
+                  <p className="text-sm text-ink/60">
+                    {autoFinishWorkerNote(shift.check_out_at, now)}
+                  </p>
                 )}
                 {(shift.status === "finalizado" || shift.status === "pagado") && (
                   <div className="flex flex-col gap-2">

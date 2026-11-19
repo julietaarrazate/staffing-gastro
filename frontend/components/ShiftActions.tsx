@@ -8,7 +8,7 @@ import { Button, Sheet } from "@/components/ui";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import { AlertTriangleIcon, CheckCircleIcon, CopyIcon, MessageIcon } from "@/components/icons";
 import { isCancellable } from "@/lib/cancelar-turno";
-import { nextStepFor, type PrimaryAction } from "@/lib/shift-next-step";
+import { autoFinishPhrase, nextStepFor, type PrimaryAction } from "@/lib/shift-next-step";
 import type { Shift } from "@/lib/types";
 
 /**
@@ -69,6 +69,10 @@ export default function ShiftActions({
   const now = useNow(30_000, NO_SHOW_ELIGIBLE.includes(shift.status));
   const canNoShow = NO_SHOW_ELIGIBLE.includes(shift.status) && puedeMarcarAusencia(shift, now);
   const hasWorker = Boolean(shift.worker_profile_id) && shift.status !== "cancelado";
+  // Decisión 24: con la salida marcada, cuándo lo cierra Oído si no lo cierra
+  // el comercio. Va en la misma línea del estado, sin color propio.
+  const autoFinish =
+    shift.status === "check_out" ? autoFinishPhrase(shift.check_out_at, new Date(now)) : null;
 
   return (
     <div className="flex flex-col gap-2.5">
@@ -78,6 +82,7 @@ export default function ShiftActions({
             <CheckCircleIcon size={15} className="mr-1 inline-block align-[-2px] text-success-text" />
           )}
           {step.hint}
+          {autoFinish && ` Si no lo cerrás, se cierra solo ${autoFinish}.`}
         </p>
       )}
 

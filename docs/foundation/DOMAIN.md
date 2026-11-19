@@ -114,6 +114,13 @@ campos, estados o transiciones. Se documenta la realidad y se marca cada caso.
     finaliza y lo paga, y un problema va por soporte (`Shift.is_cancellable`,
     [ADR-0007](../adr/ADR-0007-no-show-y-cancelacion-tardia.md), actualización
     2026-11-18).
+  - **Cierre automático** ([ADR-0008](../adr/ADR-0008-asistencia-simplificada-y-no-show-automatico.md),
+    actualización 2026-11-18, decisión 24): si el comercio no cierra un turno
+    con la salida marcada, a las 24 h de `check_out_at` se le recuerda una vez
+    (`finish_reminder_sent_at`) y a las 72 h Oído lo cierra solo
+    (`Shift.auto_finish`: `check_out → finalizado`, `auto_finished_at`), con
+    los mismos efectos que el cierre del comercio y la puntualidad ya
+    registrada en la llegada.
   - Aparece en el **feed** sólo si está en estados abiertos
     (`publicado`/`buscando_personal`, `OPEN_STATUSES`) y todavía no empezó; la
     excepción es el turno reofrecido (abajo).
@@ -121,7 +128,7 @@ campos, estados o transiciones. Se documenta la realidad y se marca cada caso.
   - **Turno reofrecido (U080, [ADR-0015](../adr/ADR-0015-turno-no-cubierto.md),
     actualización 2026-11-18):** si quien tenía el turno lo deja (rechaza,
     cancela, falta) con el horario ya empezado, el turno se **reofrece como
-    urgente** cuando le quedan al menos 2 horas (`reoffered_at`); con menos,
+    urgente** cuando le quedan más de 2 horas y 15 minutos (`reoffered_at`); con menos,
     pasa directo a `no_cubierto` (`Shift._reopen`). Mientras está reofrecido
     aparece en el feed aunque haya empezado, hasta que le quedan menos de 2
     horas (`offered_until`); si nadie confirmó para entonces, pasa a
@@ -136,7 +143,11 @@ campos, estados o transiciones. Se documenta la realidad y se marca cada caso.
     verse si se reactiva); los suyos `asignado`/`confirmado`/`en_camino` se
     cancelan sin cancelación tardía. Los de un trabajador suspendido en esos
     estados vuelven a `buscando_personal` (`release_worker`) sin sumarle una
-    cancelación. Desde `check_in` no se toca nada.
+    cancelación. Desde `check_in` no se toca nada. Un turno oculto al que se
+    le pasa el horario vence igual (`no_cubierto`), sin aviso a la cuenta
+    suspendida y con `not_covered_while_suspended` en verdadero: queda fuera
+    de las métricas de cobertura aunque la cuenta se reactive después
+    (decisión 22, 2026-11-18).
   - `cancelado`, `finalizado`, `pagado` son **terminales**.
   - check-in/check-out capturan geolocalización y exigen estar a ≤ 300 m del
     local del turno (`CHECK_RADIUS_KM`); si el turno no tiene coordenadas no se

@@ -106,6 +106,8 @@ def _to_entity(model: ShiftModel) -> Shift:
         last_no_show_worker_profile_id=model.last_no_show_worker_profile_id,
         checkin_reminder_sent_at=model.checkin_reminder_sent_at,
         departure_reminder_sent_at=model.departure_reminder_sent_at,
+        finish_reminder_sent_at=model.finish_reminder_sent_at,
+        auto_finished_at=model.auto_finished_at,
         event_id=model.event_id,
         event_name=model.event_name,
         published_at=model.published_at,
@@ -115,6 +117,7 @@ def _to_entity(model: ShiftModel) -> Shift:
         reoffered_at=model.reoffered_at,
         confirmed_at=model.confirmed_at,
         prorated_pay_amount=model.prorated_pay_amount,
+        not_covered_while_suspended=model.not_covered_while_suspended,
         created_at=model.created_at,
         updated_at=model.updated_at,
         version=model.version,
@@ -156,6 +159,12 @@ def _apply_fields(model: ShiftModel, shift: Shift) -> None:
         and same_worker
     ):
         model.departure_reminder_sent_at = shift.departure_reminder_sent_at
+    # El recordatorio de cierre también es marca de sistema sin versión
+    # (`mark_finish_reminder_sent`) y el dominio nunca la borra: una entidad
+    # leída antes de marcarla llega con None y no la pisa.
+    if shift.finish_reminder_sent_at is not None:
+        model.finish_reminder_sent_at = shift.finish_reminder_sent_at
+    model.auto_finished_at = shift.auto_finished_at
     model.published_at = shift.published_at
     model.first_assigned_at = shift.first_assigned_at
     model.first_confirmed_at = shift.first_confirmed_at
@@ -163,6 +172,7 @@ def _apply_fields(model: ShiftModel, shift: Shift) -> None:
     model.reoffered_at = shift.reoffered_at
     model.confirmed_at = shift.confirmed_at
     model.prorated_pay_amount = shift.prorated_pay_amount
+    model.not_covered_while_suspended = shift.not_covered_while_suspended
 
 
 def _from_active_company():
@@ -212,6 +222,16 @@ def _not_from_companies_of(emails: frozenset[str]):
         .where(UserModel.email.in_(emails))
     )
     return ShiftModel.company_id.not_in(excluded)
+
+
+def _counts_for_coverage():
+    """Condición «el turno entra en las métricas de cobertura»: quedan fuera,
+    del numerador y del denominador, los que vencieron con la cuenta del
+    comercio suspendida (ADR-0024, actualización 2026-11-18). Estaban ocultos:
+    nadie pudo postularse, así que no dicen nada de la promesa de cubrir en
+    10 minutos. Se mira la marca del turno y no el estado de la cuenta, para
+    que una cuenta reactivada después no los devuelva a la cuenta."""
+    return ShiftModel.not_covered_while_suspended.is_(False)
 
 
 def _utc_naive(value: datetime) -> datetime:
@@ -289,6 +309,23 @@ class SqlAlchemyShiftRepository(ShiftRepository):
                 ShiftModel.en_route_announced_at.is_(None),
             )
             .values(departure_reminder_sent_at=sent_at)
+            .execution_options(synchronize_session=False)
+        )
+        await self._session.commit()
+        return result.rowcount == 1
+
+    async def mark_finish_reminder_sent(self, shift_id: UUID, sent_at: datetime) -> bool:
+        # Mismo patrón que `mark_departure_reminder_sent`: UPDATE masivo sin
+        # versión, y el WHERE corta la carrera. Sólo marca si el turno sigue
+        # con la salida marcada (sin cerrar) y sin marca previa.
+        result = await self._session.execute(
+            update(ShiftModel)
+            .where(
+                ShiftModel.id == shift_id,
+                ShiftModel.status == ShiftStatus.CHECK_OUT.value,
+                ShiftModel.finish_reminder_sent_at.is_(None),
+            )
+            .values(finish_reminder_sent_at=sent_at)
             .execution_options(synchronize_session=False)
         )
         await self._session.commit()
@@ -441,6 +478,11 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
 
+    async def list_awaiting_finish(self) -> list[Shift]:
+        stmt = select(ShiftModel).where(ShiftModel.status == ShiftStatus.CHECK_OUT.value)
+        result = await self._session.execute(stmt)
+        return [_to_entity(m) for m in result.scalars().all()]
+
     async def list_recently_filled(
         self, *, exclude_company_emails: frozenset[str] = frozenset(), limit: int = 500
     ) -> list[Shift]:
@@ -450,6 +492,7 @@ class SqlAlchemyShiftRepository(ShiftRepository):
                 ShiftModel.published_at.is_not(None),
                 ShiftModel.first_confirmed_at.is_not(None),
                 _not_from_companies_of(exclude_company_emails),
+                _counts_for_coverage(),
             )
             .order_by(ShiftModel.published_at.desc())
             .limit(limit)
@@ -560,7 +603,7 @@ class SqlAlchemyShiftRepository(ShiftRepository):
                     else_=0,
                 )
             ).label("completed"),
-        ).where(_not_from_companies_of(exclude_company_emails))
+        ).where(_not_from_companies_of(exclude_company_emails), _counts_for_coverage())
         row = (await self._session.execute(stmt)).one()
         return ShiftPublicationStats(
             published=row.published or 0,
@@ -782,10 +825,14 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         }
         columns = []
         for key, in_window in windows.items():
-            covered = in_window & confirmed.is_not(None)
+            # Publicados y cubiertos, sin los que vencieron con la cuenta
+            # suspendida. «Locales activos» (más abajo) sí los mira: es
+            # actividad (el comercio publicó), no cobertura.
+            counted = in_window & _counts_for_coverage()
+            covered = counted & confirmed.is_not(None)
             short_notice = covered & (notice_minutes <= SHORT_NOTICE_MINUTES)
             columns += [
-                func.sum(case((in_window, 1), else_=0)).label(f"{key}_published"),
+                func.sum(case((counted, 1), else_=0)).label(f"{key}_published"),
                 func.sum(case((covered, 1), else_=0)).label(f"{key}_covered"),
                 func.sum(case((covered & (minutes <= 10), 1), else_=0)).label(f"{key}_fast"),
                 # AVG ignora los NULL: sólo promedia los cubiertos del período.
@@ -822,6 +869,7 @@ class SqlAlchemyShiftRepository(ShiftRepository):
                     published < end,
                     confirmed.is_not(None),
                     excluded,
+                    _counts_for_coverage(),
                 )
             )
         ).all()

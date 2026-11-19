@@ -1,3 +1,4 @@
+import { formatShiftStartPhrase } from "@/lib/datetime";
 import type { Shift, ShiftStatus } from "@/lib/types";
 import { reofferedHint } from "@/lib/turno-reofrecido";
 
@@ -147,4 +148,40 @@ export function nextStepFor(shift: Shift): NextStep {
     };
   }
   return hint === null ? base : { ...base, hint };
+}
+
+/**
+ * Cierre automático (ADR-0008, decisión 24): un turno con la salida marcada
+ * que el comercio no cierra lo cierra Oído solo a las 72 horas de la salida.
+ * Espeja `AUTO_FINISH_DELAY` del backend (`shift/application/services.py`).
+ */
+export const AUTO_FINISH_AFTER_MS = 72 * 60 * 60_000;
+
+/**
+ * Cuándo se cierra solo un turno con la salida marcada, para una frase («el
+ * viernes 20/11 a las 14:30»). `null` si no hay salida registrada o la hora ya
+ * pasó (el cierre está por ocurrir: decir una hora pasada confundiría).
+ */
+export function autoFinishPhrase(
+  checkOutIso: string | null | undefined,
+  now: Date = new Date(),
+): string | null {
+  if (!checkOutIso) return null;
+  const at = new Date(new Date(checkOutIso).getTime() + AUTO_FINISH_AFTER_MS);
+  if (Number.isNaN(at.getTime()) || at.getTime() <= now.getTime()) return null;
+  return formatShiftStartPhrase(at.toISOString(), now);
+}
+
+/**
+ * La línea del trabajador mientras espera el cierre: que si el comercio no lo
+ * cierra, lo cierra Oído a las 72 horas de su salida (con cuándo, si se sabe).
+ */
+export function autoFinishWorkerNote(
+  checkOutIso: string | null | undefined,
+  now: Date = new Date(),
+): string {
+  const at = autoFinishPhrase(checkOutIso, now);
+  return at
+    ? `Esperando que el comercio lo cierre. Si no, Oído lo cierra ${at} (72 horas después de tu salida).`
+    : "Esperando que el comercio lo cierre. Si no, Oído lo cierra 72 horas después de tu salida.";
 }
