@@ -154,7 +154,7 @@ export default function ImageUpload({
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
-          className="text-xs font-semibold text-primary disabled:opacity-60"
+          className="text-xs font-semibold text-primary-text disabled:opacity-60"
         >
           {uploading ? "Subiendo..." : value ? "Cambiar foto" : "Subir foto"}
         </button>

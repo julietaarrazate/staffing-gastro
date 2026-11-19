@@ -76,7 +76,7 @@ import ImageUpload from "@/components/ImageUpload";
 import Logo from "@/components/Logo";
 import { Button, TextField } from "@/components/ui";
 import { CheckIcon, MapPinIcon } from "@/components/icons";
-import { WelcomeIllustration } from "@/components/illustrations";
+import { LETRAS_APP } from "@/lib/letras";
 import { LIMITES } from "@/lib/limites";
 import { AVISO_MAIL, tomarAvisoMail } from "@/lib/aviso-mail";
 
@@ -136,9 +136,15 @@ function Shell({ children }: { children: React.ReactNode }) {
     if (tomarAvisoMail()) setAvisoMail(true);
   }, []);
   return (
-    <div className="-mb-20 flex min-h-[100dvh] flex-col bg-paper px-5 pb-8 pt-[calc(env(safe-area-inset-top)+2rem)] text-ink md:mb-0">
-      <div className="mx-auto flex w-full max-w-sm flex-1 flex-col">
-        <Logo size={34} withWordmark={false} />
+    <div className={`${LETRAS_APP} -mb-20 flex min-h-[100dvh] flex-col bg-background text-ink md:mb-0`}>
+      {/* El saludo de entrada: el cielo arriba con el «oído» plano, el mismo
+          del encabezado de la app (Julieta, 2026-11-19: le gustó el cielo
+          pero con el «oído» fileteado lo vio «muy cargado»). Antes, el ícono
+          chico sobre el papel y una cafetera en el primer paso. */}
+      <div className="app-cielo flex justify-center px-5 pb-6 pt-[calc(env(safe-area-inset-top)+1.75rem)]">
+        <Logo size={44} />
+      </div>
+      <div className="mx-auto flex w-full max-w-sm flex-1 flex-col px-5 pb-8 pt-2">
         {avisoMail && (
           <p
             role="status"
@@ -154,18 +160,37 @@ function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function StepDots({ active, total }: { active: number; total: number }) {
+/**
+ * Los pasos de la bienvenida en un renglón, como los pasos de un turno
+ * (`ShiftLifecycleStepper`): lo hecho tachado a mano en azul hondo, lo
+ * actual en negrita, lo que falta en la letra suave. Antes eran barritas en
+ * ámbar, y el ámbar es sólo la acción.
+ */
+function StepDots({ active, labels }: { active: number; labels: readonly string[] }) {
   return (
-    <div className="mt-6 flex items-center gap-2" aria-hidden>
-      {Array.from({ length: total }, (_, i) => (
-        <span
-          key={i}
-          className={`h-1.5 flex-1 rounded-full transition-colors ${
-            i <= active ? "bg-primary" : "bg-line"
-          }`}
-        />
+    // `role="list"` explícito: sin viñetas, Safari le saca a la lista su rol.
+    // eslint-disable-next-line jsx-a11y/no-redundant-roles
+    <ol role="list" aria-label={`Paso ${active + 1} de ${labels.length}: ${labels[active]}`} className="pasos-tachados mt-6 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+      {labels.map((label, i) => (
+        <li
+          key={label}
+          aria-current={i === active ? "step" : undefined}
+          className={`text-sm ${i === active ? "font-bold text-ink" : "font-medium text-ink-soft"}`}
+        >
+          <span className="relative">
+            {label}
+            {i < active && (
+              <>
+                <svg className="tacha" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true">
+                  <path d="M2 6C20 2 40 8 60 4S90 3 98 6" />
+                </svg>
+                <span className="sr-only"> (hecho)</span>
+              </>
+            )}
+          </span>
+        </li>
       ))}
-    </div>
+    </ol>
   );
 }
 
@@ -320,25 +345,19 @@ function WorkerOnboarding({ next }: { next: string | null }) {
 
   return (
     <Shell>
-      <StepDots active={stepIndex} total={3} />
+      <StepDots active={stepIndex} labels={["Zona", "Oficio", "Tus datos"]} />
 
       {step === "zona" ? (
         <section className="mt-8 flex flex-1 flex-col">
-          {/* "El gesto previo a empezar" (ART_DIRECTION.md §10.4) — sólo en
-              el primer paso, como un saludo de bienvenida, no en cada paso
-              del wizard. */}
-          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-[var(--radius-chip)] bg-[var(--color-structure)]">
-            <WelcomeIllustration size={32} color="var(--color-primary)" />
-          </div>
-          <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-tight text-ink">
+          <h1 className="letra-cartel letra-cartel-pantalla break-words">
             ¿Dónde querés trabajar?
           </h1>
-          <p className="mt-2 text-body leading-relaxed text-ink/60">
+          <p className="mt-2 text-body leading-relaxed text-ink-soft">
             Te mostramos primero los turnos más cerca tuyo. Podés cambiarlo cuando
             quieras desde tu perfil.
           </p>
 
-          <div className="mt-6 rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
+          <div className="mt-6 rounded-[var(--radius-card)] bg-card p-5 ring-1 ring-line">
             <LocationPicker onSelect={setLocation} />
           </div>
 
@@ -368,10 +387,10 @@ function WorkerOnboarding({ next }: { next: string | null }) {
         </section>
       ) : step === "oficio" ? (
         <section className="mt-8 flex flex-1 flex-col">
-          <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-tight text-ink">
+          <h1 className="letra-cartel letra-cartel-pantalla break-words">
             ¿Qué sabés hacer?
           </h1>
-          <p className="mt-2 text-body leading-relaxed text-ink/60">
+          <p className="mt-2 text-body leading-relaxed text-ink-soft">
             Elegí todo lo que puedas cubrir. Cuantos más elijas, más turnos vas a ver.
           </p>
 
@@ -384,10 +403,12 @@ function WorkerOnboarding({ next }: { next: string | null }) {
                   type="button"
                   aria-pressed={active}
                   onClick={() => toggleSkill(skill)}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-semibold transition active:scale-95 ${
+                  // Rectos, y el elegido lleno en azul hondo como lo actual de
+                  // un indicador (antes, píldoras con el elegido en ámbar).
+                  className={`inline-flex items-center gap-1.5 rounded-[var(--radius-relieve)] px-4 py-2.5 text-sm font-semibold ring-1 transition active:scale-95 ${
                     active
-                      ? "bg-primary text-night"
-                      : "bg-card text-ink/70 ring-1 ring-line hover:bg-surface"
+                      ? "bg-primary-text text-card ring-primary-text"
+                      : "bg-card text-ink ring-line hover:bg-surface"
                   }`}
                 >
                   {active && <CheckIcon size={15} />}
@@ -412,10 +433,10 @@ function WorkerOnboarding({ next }: { next: string | null }) {
         </section>
       ) : (
         <section className="mt-8 flex flex-1 flex-col">
-          <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-tight text-ink">
+          <h1 className="letra-cartel letra-cartel-pantalla break-words">
             Contanos más de vos
           </h1>
-          <p className="mt-2 text-body leading-relaxed text-ink/60">
+          <p className="mt-2 text-body leading-relaxed text-ink-soft">
             Opcional, pero un perfil completo consigue turnos más rápido. Lo podés
             cargar después si preferís arrancar ya.
           </p>
@@ -428,7 +449,7 @@ function WorkerOnboarding({ next }: { next: string | null }) {
             />
           </div>
 
-          <div className="mt-6 rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
+          <div className="mt-6 rounded-[var(--radius-card)] bg-card p-5 ring-1 ring-line">
             <TextField
               label="Años de experiencia"
               type="number"
@@ -604,19 +625,14 @@ function EmployerOnboarding({ next }: { next: string | null }) {
 
   return (
     <Shell>
-      <StepDots active={step === "nombre" ? 0 : 1} total={2} />
+      <StepDots active={step === "nombre" ? 0 : 1} labels={["Tu comercio", "Ubicación"]} />
 
       {step === "nombre" ? (
         <section className="mt-8 flex flex-1 flex-col">
-          {/* "El gesto previo a empezar" (ART_DIRECTION.md §10.4) — mismo
-              saludo que ve el trabajador en su primer paso. */}
-          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-[var(--radius-chip)] bg-[var(--color-structure)]">
-            <WelcomeIllustration size={32} color="var(--color-primary)" />
-          </div>
-          <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-tight text-ink">
+          <h1 className="letra-cartel letra-cartel-pantalla break-words">
             ¿Cómo se llama tu comercio?
           </h1>
-          <p className="mt-2 text-body leading-relaxed text-ink/60">
+          <p className="mt-2 text-body leading-relaxed text-ink-soft">
             Es lo primero que ven los candidatos cuando les llega tu turno.
           </p>
 
@@ -629,7 +645,7 @@ function EmployerOnboarding({ next }: { next: string | null }) {
             />
           </div>
 
-          <div className="mt-6 rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
+          <div className="mt-6 rounded-[var(--radius-card)] bg-card p-5 ring-1 ring-line">
             <TextField
               label="Nombre del comercio"
               value={name}
@@ -657,15 +673,15 @@ function EmployerOnboarding({ next }: { next: string | null }) {
         </section>
       ) : (
         <section className="mt-8 flex flex-1 flex-col">
-          <h1 className="font-display text-[2rem] font-semibold leading-tight tracking-tight text-ink">
+          <h1 className="letra-cartel letra-cartel-pantalla break-words">
             ¿Dónde está?
           </h1>
-          <p className="mt-2 text-body leading-relaxed text-ink/60">
+          <p className="mt-2 text-body leading-relaxed text-ink-soft">
             Los turnos que publiques van a mostrar esta dirección, y les ordena
             la cercanía a los trabajadores.
           </p>
 
-          <div className="mt-6 rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
+          <div className="mt-6 rounded-[var(--radius-card)] bg-card p-5 ring-1 ring-line">
             {useManualPicker ? (
               <div className="flex flex-col gap-2">
                 <LocationPicker
@@ -679,7 +695,7 @@ function EmployerOnboarding({ next }: { next: string | null }) {
                 <button
                   type="button"
                   onClick={() => setUseManualPicker(false)}
-                  className="w-fit text-xs font-medium text-ink/40 underline decoration-line underline-offset-2 hover:text-ink/60"
+                  className="w-fit text-xs font-medium text-ink-soft underline decoration-line underline-offset-2 hover:text-ink"
                 >
                   Volver a buscar en el mapa
                 </button>

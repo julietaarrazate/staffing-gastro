@@ -343,10 +343,13 @@ export default function MapAddressPicker({
           onClick={useMyLocation}
           disabled={geoBusy}
           className={cn(
-            "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold disabled:opacity-60",
+            // Recto, como los demás secundarios (2026-11-19). Recién elegida
+            // una dirección del buscador se resalta en azul hondo, como lo
+            // actual de un indicador: antes en ámbar, que es sólo la acción.
+            "inline-flex min-h-[36px] shrink-0 items-center gap-1.5 rounded-[var(--radius-relieve)] px-3 py-1.5 text-xs font-semibold ring-1 disabled:opacity-60",
             justPickedFromSearch
-              ? "bg-primary text-night hover:bg-primary/90"
-              : "bg-surface text-ink/70 hover:bg-line"
+              ? "bg-primary-text text-card ring-primary-text"
+              : "bg-card text-ink ring-line hover:bg-surface"
           )}
         >
           <MapPinIcon size={14} />

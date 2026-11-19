@@ -115,7 +115,11 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
    ~~Buscar del trabajador~~ (hecho el 2026-11-19, cada turno como comanda;
    [historial](./historial/2026-11-19-buscar-trabajador-relieve.md)), ~~Buscar
    del comercio~~ (hecho el 2026-11-19, fichas;
-   [historial](./historial/2026-11-19-buscar-comercio-relieve.md)), Publicar turno,
+   [historial](./historial/2026-11-19-buscar-comercio-relieve.md)),
+   ~~la bienvenida~~ (hecha el 2026-11-19, adelantada a pedido de Julieta:
+   «es lo primero que carga el cliente»;
+   [historial](./historial/2026-11-19-bienvenida-relieve.md)), Publicar turno
+   y evento (también adelantado),
    Chats, Perfil (los dos roles), Mapa, las fichas (comercio y trabajador),
    Favoritos, Mi plan, y el ingreso, el alta y la bienvenida.
    Queda, de lo que no entró en estos PRs: el encabezado de la app sigue de
