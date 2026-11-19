@@ -59,10 +59,25 @@ for (const ancho of [320, 360, 390]) {
     expect(medidas).toEqual({ sobra: false, tam: "13px", peso: "600" });
     const bloques = await cuando.locator("> span").all();
     expect(bloques.length).toBe(2);
+    const rc = (await cuando.boundingBox())!;
+    const rf = (await fila.boundingBox())!;
+    const pago = (await fila.locator(".fila-cerca-pago").boundingBox())!;
+    const puesto = (await fila.locator(".fila-cerca-puesto").boundingBox())!;
+    // El renglón del cuándo cruza hasta el borde derecho de la grilla, también debajo del pago…
+    expect(Math.round(rc.x + rc.width)).toBe(Math.round(pago.x + pago.width));
+    // …así que tiene más de 200 px en cualquier celular.
+    expect(rc.width).toBeGreaterThan(200);
+    // El pago queda arriba a la derecha, alineado con el puesto (no más abajo que su renglón).
+    expect(pago.y).toBeLessThan(puesto.y + puesto.height);
     for (const b of bloques) {
       expect(await b.evaluate((el) => getComputedStyle(el).whiteSpace)).toBe("nowrap");
-      expect((await b.evaluate((el) => el.getClientRects().length))).toBe(1);
-      expect((await b.boundingBox())!.height).toBeLessThan(20); // un solo renglón
+      expect(await b.evaluate((el) => el.getClientRects().length)).toBe(1);
+      const rb = (await b.boundingBox())!;
+      expect(rb.height).toBeLessThan(20); // un solo renglón
+      // El bloque entero cabe en el rectángulo del contenedor y en el de la fila (sin tolerancia).
+      expect(rb.x).toBeGreaterThanOrEqual(rc.x);
+      expect(rb.x + rb.width).toBeLessThanOrEqual(rc.x + rc.width);
+      expect(rb.x + rb.width).toBeLessThanOrEqual(rf.x + rf.width);
     }
     // Y la fila entera no se sale de la pantalla.
     const caja = await fila.boundingBox();
@@ -115,3 +130,71 @@ for (const tema of ["light", "dark"] as const) {
     }
   });
 }
+
+test("a 320 px con el texto al 200 % un puesto de una sola palabra larga se parte antes que desbordar", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await inicio(page, [
+    turno("s1", { position: "recepcionista", latitude: -34.5876, pay_amount: "1250000" }),
+    turno("s2", { position: "recepcionista", company_name: "Bar", latitude: -34.598, pay_amount: "1250000" }),
+    turno("s3", { position: "personal_eventos", company_name: "Bar", latitude: -34.6, pay_amount: "1250000" }),
+  ]);
+  await page.goto("/feed");
+  await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
+  await expect(page.getByTestId("feed-hero-card")).toBeVisible();
+  await expect(page.getByTestId("feed-nearby-card").first()).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  const tarjeta = await page.getByTestId("feed-hero-card").boundingBox();
+  const h3 = await page.getByTestId("feed-hero-card").locator("h3").boundingBox();
+  expect(h3!.x + h3!.width).toBeLessThanOrEqual(tarjeta!.x + tarjeta!.width);
+  for (const fila of await page.getByTestId("feed-nearby-card").all()) {
+    const f = await fila.boundingBox();
+    expect(f!.x + f!.width).toBeLessThanOrEqual(320);
+    // Nada de adentro se sale de la fila.
+    const sale = await fila.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      return Array.from(el.querySelectorAll("*")).filter((n) => n.getBoundingClientRect().right > r.right + 0.5).map((n) => `${n.tagName}.${(n as HTMLElement).className}`.slice(0, 80) + `@${Math.round(n.getBoundingClientRect().right - r.right)}`);
+    });
+    expect(sale).toEqual([]);
+  }
+});
+
+test("la nube chica se oculta por debajo de 360 px y aparece desde 360", async ({ page }) => {
+  await inicio(page, [turno("s1", {})]);
+  const lejana = page.locator("img.nube-cielo-lejos");
+  await page.setViewportSize({ width: 359, height: 800 });
+  await page.goto("/feed");
+  await expect(page.getByTestId("feed-hero-card")).toBeVisible();
+  await expect(lejana).toBeHidden();
+  await page.setViewportSize({ width: 360, height: 800 });
+  await expect(lejana).toBeVisible();
+});
+
+test("dentro de la hoja, la regla del esqueleto no pisa otros animate-pulse (el micrófono que escucha)", async ({ page }) => {
+  await setTheme(page, "dark");
+  await inicio(page, [turno("s1", {})]);
+  await page.goto("/feed");
+  await expect(page.getByTestId("feed-hero-card")).toBeVisible();
+  const r = await page.evaluate(() => {
+    const hoja = document.querySelector(".estilo-suave .hoja")!;
+    hoja.insertAdjacentHTML(
+      "beforeend",
+      '<div id="mic" class="animate-pulse bg-danger text-white">m</div><div id="esq" data-skeleton class="animate-pulse bg-surface">e</div>',
+    );
+    const bg = (id: string) => getComputedStyle(document.getElementById(id)!).backgroundColor;
+    const campo = getComputedStyle(document.querySelector(".estilo-suave")!).getPropertyValue("--suave-campo").trim();
+    const probe = document.createElement("div");
+    probe.style.backgroundColor = campo;
+    document.body.appendChild(probe);
+    const campoRgb = getComputedStyle(probe).backgroundColor;
+    probe.remove();
+    const probe2 = document.createElement("div");
+    probe2.style.backgroundColor = "var(--color-danger)";
+    document.body.appendChild(probe2);
+    const dangerRgb = getComputedStyle(probe2).backgroundColor;
+    probe2.remove();
+    return { mic: bg("mic"), esq: bg("esq"), campoRgb, dangerRgb };
+  });
+  expect(r.mic).toBe(r.dangerRgb);
+  expect(r.esq).toBe(r.campoRgb);
+  expect(r.mic).not.toBe(r.esq);
+});

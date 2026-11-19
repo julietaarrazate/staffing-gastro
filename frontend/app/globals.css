@@ -3319,8 +3319,58 @@ body:has([data-landing]) main {
 }
 /* Los esqueletos de carga dentro de la hoja: en oscuro el `surface` no se
    distingue de la hoja, así que usan el tono del campo. */
-.estilo-suave .hoja .animate-pulse {
+.estilo-suave .hoja [data-skeleton] {
   background-color: var(--suave-campo);
+}
+/* Una fila de «Cerca tuyo» (`components/worker/NearbyRow.tsx`): una grilla con
+   áreas. Con lugar (el `li` mide 17 rem o más; en rem, así que con la letra
+   grande se corta antes): miniatura / puesto / pago en el renglón 1,
+   miniatura / local + distancia / pago en el 2, y el cuándo cruzando hasta el
+   borde derecho en el 3. Sin lugar: una sola columna, en el orden del
+   documento (miniatura, puesto, pago, local, cuándo). */
+.fila-cerca-li {
+  container-type: inline-size;
+}
+.fila-cerca {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: 0.25rem;
+}
+.fila-cerca-foto {
+  flex: none;
+}
+.fila-cerca-pago {
+  justify-self: start;
+}
+@container (min-width: 17rem) {
+  .fila-cerca {
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "foto puesto pago"
+      "foto local pago"
+      ". cuando cuando";
+    column-gap: 0.75rem;
+    row-gap: 0.125rem;
+  }
+  .fila-cerca-foto {
+    grid-area: foto;
+    align-self: center;
+  }
+  .fila-cerca-puesto {
+    grid-area: puesto;
+  }
+  .fila-cerca-pago {
+    grid-area: pago;
+    justify-self: end;
+    align-self: start;
+  }
+  .fila-cerca-local {
+    grid-area: local;
+  }
+  .fila-cerca-cuando {
+    grid-area: cuando;
+    margin-top: 0.125rem;
+  }
 }
 /* El buscador sobre el cielo: un campo de vidrio, sin borde. */
 .campo-vidrio {

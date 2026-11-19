@@ -25,15 +25,19 @@ function NearbyItem({ shift, distanceKm }: { shift: Shift; distanceKm: number | 
   const rango = restoCuando.join(" · ");
 
   return (
-    <li>
+    // `.fila-cerca` (globals.css): una grilla con áreas. Con lugar: miniatura /
+    // puesto / pago en el renglón 1, miniatura / local + distancia / pago en el
+    // 2, y el cuándo cruzando hasta el borde derecho en el 3 (más de 200 px en
+    // cualquier celular). Sin lugar (letra muy grande), todo en una columna.
+    <li className="fila-cerca-li">
       {/* Una tecla suave (ADR-0028): blanca, sin filete, con sombra difusa. */}
       <Link
         href={`/turno/${shift.id}`}
         data-testid="feed-nearby-card"
-        className="tecla flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 pl-2.5 pr-4"
+        className="tecla fila-cerca py-2.5 pl-2.5 pr-4"
       >
         {/* Sin foto: la miniatura del cielo con el ícono del rubro. */}
-        <span className="flex h-[48px] w-[48px] shrink-0 items-center justify-center overflow-hidden rounded-xl bg-surface">
+        <span className="fila-cerca-foto flex h-[48px] w-[48px] items-center justify-center overflow-hidden rounded-xl bg-surface">
           {hasPhoto ? (
             // eslint-disable-next-line @next/next/no-img-element -- la optimización la hace Cloudinary (cldThumb), igual que OpportunityCard
             <img
@@ -50,48 +54,48 @@ function NearbyItem({ shift, distanceKm }: { shift: Shift; distanceKm: number | 
             <PortadaCielo id={shift.id} Icon={Icon} mini />
           )}
         </span>
-        <span className="min-w-0 flex-1 basis-[4rem]">
-          {/* El puesto no se corta: es lo primero que se lee. «Urgente» va al
-              lado y, si no entra, baja de renglón en vez de comerse el puesto. */}
-          <span className="flex flex-wrap items-baseline gap-x-2">
-            <span className="text-fila font-bold text-ink">{SKILL_LABELS[shift.position]}</span>
-            {shift.urgent && (
-              <span className="inline-flex shrink-0 items-center gap-0.5 text-caption font-bold text-danger-text">
-                <FlameIcon size={11} /> Urgente
+        {/* El puesto no se corta: es lo primero que se lee. «Urgente» va al
+            lado y, si no entra, baja de renglón en vez de comerse el puesto. */}
+        <span className="fila-cerca-puesto flex min-w-0 flex-wrap items-baseline gap-x-2">
+          <span className="min-w-0 text-fila font-bold text-ink break-words">{SKILL_LABELS[shift.position]}</span>
+          {shift.urgent && (
+            <span className="inline-flex shrink-0 items-center gap-0.5 text-caption font-bold text-danger-text">
+              <FlameIcon size={11} /> Urgente
+            </span>
+          )}
+        </span>
+        <span className="fila-cerca-pago text-[length:min(1.125rem,6vw)] font-extrabold tabular-nums text-ink">
+          {formatPayCompact(shift)}
+        </span>
+        {/* El local (lo único que se corta con «…») y, al lado, la distancia fija. */}
+        {(shift.company_name || shift.company_verified || distancia) && (
+          <span className="fila-cerca-local flex min-w-0 items-center gap-1 text-caption text-ink-soft">
+            {/* Forma compacta: sello de `company_verified` con nombre
+                accesible completo. */}
+            {shift.company_verified && (
+              <span
+                role="img"
+                aria-label="Comercio verificado"
+                title="Comercio verificado"
+                className="inline-flex shrink-0 text-cielo-text"
+              >
+                <ShieldIcon size={13} />
+              </span>
+            )}
+            <span className="min-w-0 truncate">{shift.company_name}</span>
+            {distancia && (
+              <span data-testid="feed-nearby-distancia" className="shrink-0 whitespace-nowrap">
+                {shift.company_name ? "· " : ""}
+                {distancia}
               </span>
             )}
           </span>
-          {/* El local (lo único que se corta con «…») y, al lado, la distancia fija. */}
-          {(shift.company_name || shift.company_verified || distancia) && (
-            <span className="flex items-center gap-1 text-caption text-ink-soft">
-              {/* Forma compacta: sello de `company_verified` con nombre
-                  accesible completo. */}
-              {shift.company_verified && (
-                <span
-                  role="img"
-                  aria-label="Comercio verificado"
-                  title="Comercio verificado"
-                  className="inline-flex shrink-0 text-cielo-text"
-                >
-                  <ShieldIcon size={13} />
-                </span>
-              )}
-              <span className="min-w-0 truncate">{shift.company_name}</span>
-              {distancia && (
-                <span data-testid="feed-nearby-distancia" className="shrink-0 whitespace-nowrap">
-                  {shift.company_name ? "· " : ""}
-                  {distancia}
-                </span>
-              )}
-            </span>
-          )}
-          {/* Sólo cuándo: 13 px/600 en tinta, en dos bloques sin partir. */}
-          <span data-testid="feed-nearby-cuando" className="flex flex-wrap gap-x-1.5 text-caption font-semibold text-ink">
-            <span className="whitespace-nowrap">{rango ? `${dia} ·` : dia}</span>
-            {rango && <span className="whitespace-nowrap">{rango}</span>}
-          </span>
+        )}
+        {/* Sólo cuándo: 13 px/600 en tinta, en dos bloques sin partir. */}
+        <span data-testid="feed-nearby-cuando" className="fila-cerca-cuando flex flex-wrap gap-x-1.5 text-caption font-semibold text-ink">
+          <span className="whitespace-nowrap">{rango ? `${dia} ·` : dia}</span>
+          {rango && <span className="whitespace-nowrap">{rango}</span>}
         </span>
-        <span className="ml-auto shrink-0 text-[length:min(1.125rem,6vw)] font-extrabold tabular-nums text-ink">{formatPayCompact(shift)}</span>
       </Link>
     </li>
   );

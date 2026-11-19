@@ -569,13 +569,13 @@ function WorkerFeedPanel() {
     <div className="estilo-suave mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col md:min-h-[calc(100dvh-var(--chrome-top))] md:max-w-5xl md:px-4 md:pt-4">
       <div className="app-cielo cielo-limpio px-4 pb-11 pt-4 md:rounded-t-[28px] md:px-6 md:pb-12 md:pt-6">
         {/* Una nube grande que asoma arriba a la derecha y una chica «de
-            lejos» a la derecha del título (se oculta por debajo de 360 px).
+            lejos» a la derecha del título (se oculta por debajo de 360 px: `max-[360px]` es «menos de 360»).
             De día una nube puede quedar detrás de un texto en tinta; no
             puede tapar nada ni ir detrás de letra blanca (de noche no hay). */}
         <NubesCielo
           nubes={[
             { forma: "a", ancho: "min(300px, 68vw)", pos: { right: "calc(min(300px, 68vw) * -0.28)", top: -64 } },
-            { forma: "b", ancho: 100, pos: { right: 24, top: 92 }, lejos: true, className: "max-[359px]:hidden" },
+            { forma: "b", ancho: 100, pos: { right: 24, top: 92 }, lejos: true, className: "max-[360px]:hidden" },
           ]}
         />
         {/* El saludo ocupa lo que deja el chip y se parte entre palabras; si
