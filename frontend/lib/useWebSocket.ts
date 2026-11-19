@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { api, resolveToken } from "@/lib/api";
+import { api, ApiError, resolveToken } from "@/lib/api";
 
 const HTTP_API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "https://staffya-backend.onrender.com/api/v1";
@@ -70,6 +70,10 @@ export function useWebSocket<T>(
     let closedByCleanup = false;
     let attempt = 0;
     let openedAt: number | null = null;
+    // La conexión anterior cerró sin llegar a abrir o sin durar: puede ser un
+    // token vencido que el reloj del cliente no ve (reloj atrasado). El próximo
+    // intento renueva igual.
+    let renewNext = false;
 
     async function connect() {
       setStatus("connecting");
@@ -77,7 +81,8 @@ export function useWebSocket<T>(
       // no con el que había al montar (el contexto ya no cambia al renovarlo,
       // ver `lib/api.ts`); sin esto, reconectar después de 15 min fallaba.
       let current = resolveToken(token) ?? token!;
-      if (tokenVencido(current)) {
+      if (renewNext || tokenVencido(current)) {
+        renewNext = false;
         // El servidor corta el socket (1008) cuando vence el token con el que
         // se conectó (PRI-04), y el access token sólo se renueva con un pedido
         // HTTP: sin esto, reconectar con el vencido sería rechazado en cada
@@ -85,8 +90,15 @@ export function useWebSocket<T>(
         // dispara la renovación; si falla, se intenta igual y el backoff sigue.
         try {
           await api.get("/auth/me", token);
-        } catch {
-          // La sesión terminó o no hay red: el cierre/reintento lo maneja el resto.
+        } catch (err) {
+          if (closedByCleanup) return;
+          if (err instanceof ApiError && err.status === 401) {
+            // La sesión terminó de verdad (el refresh también falló): no hay
+            // token con el que reconectar, y seguir pidiendo no sirve.
+            setStatus("closed");
+            return;
+          }
+          // Sin red u otro error: se intenta igual y el backoff sigue.
         }
         if (closedByCleanup) return;
         current = resolveToken(token) ?? token!;
@@ -112,7 +124,9 @@ export function useWebSocket<T>(
       socket.onclose = () => {
         if (closedByCleanup) return;
         setStatus("closed");
-        if (openedAt !== null && Date.now() - openedAt >= WS_STABLE_AFTER_MS) attempt = 0;
+        const estable = openedAt !== null && Date.now() - openedAt >= WS_STABLE_AFTER_MS;
+        if (estable) attempt = 0;
+        renewNext = !estable;
         openedAt = null;
         const delay = Math.min(1000 * 2 ** attempt, MAX_RETRY_DELAY_MS);
         attempt += 1;
