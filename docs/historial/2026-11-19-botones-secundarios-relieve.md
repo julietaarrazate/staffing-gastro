@@ -46,5 +46,28 @@ la constante `BOTON_LISO`, para lo que no puede ser un `Button` (un `Link`, un
   guardar), los chips de filtro y de oficio (no son botones de acción), el
   menú del admin y la encuesta para locales, que es una pantalla propia.
 
+**Revisión independiente** (otro agente; Panel, su aviso de cancelar, Mis
+turnos, la ficha de quien trabaja, ingreso, bienvenida y 404, de 320 a 1280
+px, claro y oscuro): aprobada con arreglos, hechos acá.
+
+- «Agregar a favoritos» de la ficha de quien trabaja seguía en píldora al lado
+  de «Ver CV» recto; y en la cabecera, «Ingresar», «Crear cuenta» y «Salir»
+  tenían 6 px o eran píldora. Ahora rectos.
+- Alturas distintas lado a lado: «Chat» y «Más» medían 36 px y «Chatear» 32
+  junto a botones de 40. `BOTON_LISO` mide 40, como el `Button` chico.
+- A 320 px «Marcar como pagado» se partía en tres renglones al lado de «Chat»
+  y «Más» (ya pasaba con las píldoras). La fila de la comanda ahora se parte:
+  el principal pide 11 rem y, si no los tiene, «Chat» y «Más» bajan juntos al
+  renglón de abajo. A 390 px entran los tres en uno.
+- **El verde y el rojo con letra blanca daban 3,3 y 3,8** («Confirmar», «Sí,
+  cancelar turno»; ya era así, el cambio sólo les sacó el resplandor). Pasan
+  a un relleno más hondo, `--color-success-strong` `#15803d` y
+  `--color-danger-strong` `#c22f2f`, que da 5,0 y 5,6 (`color-system.md`).
+  El aviso de error (`Toast`) sigue con el rojo de base: no es un botón.
+
+Anotó además que el filete de los secundarios contra el fondo da 1,1 a 1,2:
+el botón se reconoce por el relleno blanco y por la letra, como en la prueba.
+No cubrió «Comparar», «Cómo llegar» ni el recorte de fotos.
+
 **Queda abierto:** los pasos tachados a mano, los colores de los sellos y el
 detalle del turno (ítem 0 de `STATUS.md`).

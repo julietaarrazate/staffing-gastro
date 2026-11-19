@@ -762,7 +762,7 @@ function MatchesContent() {
                   <button
                     type="button"
                     onClick={() => (compareMode ? exitCompareMode() : setCompareMode(true))}
-                    className={`inline-flex items-center gap-1.5 rounded-[var(--radius-relieve)] px-3 py-1.5 text-sm font-semibold ring-1 transition active:scale-95 ${
+                    className={`inline-flex min-h-[40px] items-center gap-1.5 rounded-[var(--radius-relieve)] px-3 py-1.5 text-sm font-semibold ring-1 transition active:scale-95 ${
                       compareMode
                         ? "bg-primary/10 text-primary-text ring-primary/30"
                         : "bg-card text-ink ring-line hover:bg-surface"

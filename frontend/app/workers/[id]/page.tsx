@@ -68,10 +68,10 @@ function FavoriteToggle({ workerProfileId, token }: { workerProfileId: string; t
       onClick={toggle}
       disabled={busy}
       aria-pressed={isFavorite}
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ring-1 transition active:scale-95 disabled:opacity-60 ${
+      className={`inline-flex min-h-[40px] items-center gap-1.5 rounded-[var(--radius-relieve)] px-3 py-1.5 text-sm font-semibold ring-1 transition active:scale-95 disabled:opacity-60 ${
         isFavorite
           ? "bg-primary/10 text-primary-text ring-primary/30"
-          : "bg-card text-ink/60 ring-line hover:bg-surface"
+          : "bg-card text-ink ring-line hover:bg-surface"
       }`}
     >
       <HeartIcon size={16} filled={isFavorite} />

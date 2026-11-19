@@ -23,9 +23,10 @@ const VARIANTS: Record<Variant, string> = {
   dark: "bg-night text-white hover:brightness-150",
   // Verde y rojo, planos desde el 2026-11-19 (dirección «con relieve»): el
   // resplandor de color era una sombra difusa más, y el relieve queda sólo
-  // para el principal.
-  secondary: "bg-success text-white hover:brightness-[1.04]",
-  danger: "bg-danger text-white hover:brightness-[1.04]",
+  // para el principal. El relleno es el tono fuerte (`-strong`): con el de
+  // siempre la letra blanca daba 3,3 y 3,8.
+  secondary: "bg-success-strong text-white hover:brightness-[1.08]",
+  danger: "bg-danger-strong text-white hover:brightness-[1.08]",
   // El secundario: blanco, con filete y plano, recto como el principal
   // (`.btn-liso` de la prueba de la app «con relieve», 2026-11-19).
   // Desactivados como el de `primary`: sin opacidad (a opacity-50 la tinta sobre
@@ -48,7 +49,7 @@ const SIZES: Record<Size, string> = {
  * usa le suma el relleno y el tamaño de letra.
  */
 export const BOTON_LISO =
-  "inline-flex items-center justify-center gap-1.5 rounded-[var(--radius-relieve)] bg-card font-semibold text-ink ring-1 ring-line transition hover:bg-surface active:scale-95";
+  "inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-[var(--radius-relieve)] bg-card font-semibold text-ink ring-1 ring-line transition hover:bg-surface active:scale-95";
 
 export default function Button({
   children,
