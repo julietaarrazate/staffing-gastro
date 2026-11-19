@@ -5,14 +5,23 @@ import { motion } from "motion/react";
 import { cn } from "@/lib/cn";
 
 /**
- * Control segmentado estilo iOS: una pista con una pastilla blanca que se
- * desliza al segmento activo (motion layout). Reemplaza los chip-tabs.
+ * Las pestañas de una pantalla (Mis turnos, el Panel, Candidatos, el admin y
+ * el alta). Con la dirección «con relieve» (Julieta, 2026-11-19; ADR-0027):
+ * texto plano sobre un filete, la activa en tinta y con una raya azul hondo
+ * debajo, el mismo gesto que la barra de abajo. Sin píldora ni sombra: el
+ * relieve queda para el objeto de la pantalla. Julieta la eligió entre tres
+ * opciones puestas sobre las pantallas ya migradas (la raya, una pista recta
+ * con la activa llena en azul y fichas de carpeta;
+ * `docs/design-system/direccion-relieve.md`).
  *
- * La pista lleva `ring-1 ring-line` (reporte real de Julieta con captura
- * marcada, tabs de `/shifts`: "sigue todo muy beige") — Arena sola, sin
- * borde, casi no se distingue del fondo crema del panel alrededor. El
- * texto inactivo sube de `ink/45` a `ink/60`: sobre Arena, /45 quedaba por
- * debajo de lo legible.
+ * Antes (desde el 2026-08) era un control segmentado estilo iOS, una pastilla
+ * blanca que se deslizaba sobre una pista gris. La raya se sigue deslizando
+ * de una pestaña a la otra (motion layout).
+ *
+ * Cada pestaña mide lo que su nombre, no una parte igual del ancho. Si entre
+ * todas no entran, el nombre se recorta con «…» y el número queda a la vista;
+ * donde hay muchas (el Panel) quien la usa le pasa `w-max min-w-full` dentro
+ * de un contenedor que scrollea en horizontal.
  */
 export default function SegmentedControl<T extends string>({
   options,
@@ -29,7 +38,12 @@ export default function SegmentedControl<T extends string>({
 }) {
   const id = useId();
   return (
-    <div className={cn("flex gap-0.5 sm:gap-1 rounded-full bg-surface p-1 ring-1 ring-line", className)}>
+    // El filete va como sombra hacia adentro y no como `border-b`: así la
+    // raya de la activa lo tapa sin salirse de la caja de las pestañas.
+    // Donde scrollean (el Panel, el «En vivo» del admin), el contenedor lleva
+    // `-my-1 py-1`: sin ese aire el contorno de foco, que va 4 px por fuera,
+    // quedaba cortado arriba y abajo.
+    <div data-pestanas className={cn("flex gap-4 shadow-[inset_0_-1px_0_var(--color-line)] sm:gap-6", className)}>
       {options.map((o) => {
         const active = o.value === value;
         return (
@@ -39,38 +53,31 @@ export default function SegmentedControl<T extends string>({
             aria-pressed={active}
             aria-label={o.count ? `${o.label} (${o.count})` : undefined}
             onClick={() => onChange(o.value)}
-            // `whitespace-nowrap`: sin esto una etiqueta larga
-            // ("Postulaciones (1)" en /my-shifts) envuelve a dos líneas y,
-            // como el track es flex, ESTIRA a todos los segmentos — la pista
-            // entera queda más alta que las demás de la app (Julieta,
-            // captura 2026-08-17: "donde dice postulaciones tiene una altura
-            // diferente"). Con nowrap todos miden una línea; si la suma no
-            // entra, el contenedor de la página ya scrollea en horizontal
-            // (ver `overflow-x-auto` en my-shifts/shifts).
-            // Debajo de `sm`, 13 px y menos relleno (como el control de iOS):
-            // con 14 px las tres pestañas de Matches entraban en 360 px con
-            // la fuente local y se pasaban 4 px con la de CI (#609).
-            className="relative min-w-0 flex-auto whitespace-nowrap rounded-full px-1 py-2 sm:px-3 text-caption sm:text-sm font-semibold outline-none"
+            // `whitespace-nowrap`: un nombre largo («Postulaciones» con su
+            // número) no se parte en dos renglones (Julieta, captura
+            // 2026-08-17: una pestaña más alta que las otras). Debajo de `sm`,
+            // 13 px: con 14 px las tres de Matches no entraban en 320 px.
+            className="relative flex min-h-[44px] min-w-0 flex-initial items-center whitespace-nowrap pb-3 pt-2.5 text-caption font-semibold sm:text-sm"
           >
             {active && (
               <motion.span
                 layoutId={`seg-${id}`}
                 transition={{ type: "spring", stiffness: 400, damping: 32 }}
-                className="absolute inset-0 rounded-full bg-raised shadow-[var(--shadow-soft)]"
+                aria-hidden="true"
+                className="absolute inset-x-0 bottom-0 h-[3px] bg-primary-text"
               />
             )}
-            {/* Último recurso si igual no entra (contadores de tres cifras,
-                celulares de 320 px): se recorta el nombre con «…» y el número
-                queda a la vista; la pista nunca desborda la pantalla. */}
             <span
               className={cn(
-                "relative z-10 flex min-w-0 items-baseline justify-center transition-colors",
-                active ? "text-ink" : "text-ink/60",
+                "flex min-w-0 items-baseline transition-colors",
+                // Las de reposo en `ink-soft` (7,5 sobre el lienzo claro) y
+                // no en `ink/60` como antes.
+                active ? "text-ink" : "text-ink-soft",
               )}
             >
               <span className="truncate">{o.label}</span>
               {o.count ? (
-                <span className="ml-0.5 shrink-0 text-xs font-bold tabular-nums opacity-80 sm:ml-1">{o.count}</span>
+                <span className="ml-1 shrink-0 text-xs font-bold tabular-nums">{o.count}</span>
               ) : null}
             </span>
           </button>

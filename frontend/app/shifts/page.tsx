@@ -629,15 +629,15 @@ function MyShiftsPanel() {
 
       {!loading && !error && !sinPerfil && shifts.length > 0 && (
         <>
-          {/* Control segmentado por familia de estado. En 390px de ancho 5
-              segmentos con conteo no entran sin achicar el texto a ilegible
-              — el `min-w` fuerza el ancho real del control y el contenedor
-              scrollea horizontal (mismo patrón que un tab bar nativo). */}
-          <div className="-mx-4 mt-4 overflow-x-auto px-4 no-scrollbar" data-tour="shifts-tabs">
+          {/* Pestañas por familia de estado. En 390 px las cinco con su
+              conteo no entran: `w-max` les deja su ancho real y el contenedor
+              scrollea en horizontal (mismo patrón que un tab bar nativo);
+              `min-w-full` lleva el filete hasta el borde aunque entren. */}
+          <div className="-mx-4 -mb-1 mt-3 overflow-x-auto px-4 py-1 no-scrollbar" data-tour="shifts-tabs">
             <SegmentedControl<Tab>
               value={tab}
               onChange={setTab}
-              className="min-w-[540px]"
+              className="w-max min-w-full"
               options={[
                 { value: "todos", label: "Todos" },
                 { value: "buscando", label: `Buscando (${families.buscando.length})` },

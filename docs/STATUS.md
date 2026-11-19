@@ -90,8 +90,10 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
    Mis turnos ([historial](./historial/2026-11-18-mis-turnos-relieve.md)).
    **Sigue** lo que es de toda la app, cada cosa en su PR y en este orden:
    ~~la barra de abajo~~ (hecha el 2026-11-19,
-   [historial](./historial/2026-11-19-barra-de-abajo-relieve.md)), las
-   pestañas (raya azul hondo), los botones secundarios, los pasos tachados a
+   [historial](./historial/2026-11-19-barra-de-abajo-relieve.md)), ~~las
+   pestañas~~ (hechas el 2026-11-19, con la raya azul hondo;
+   [historial](./historial/2026-11-19-pestanas-relieve.md)), los botones
+   secundarios, los pasos tachados a
    mano (en un renglón), los colores de los sellos y el detalle del turno
    (el pago en la comanda). Cómo va cada uno lo decidió Julieta el 2026-11-19
    (`direccion-relieve.md`). Las piezas compartidas ya están

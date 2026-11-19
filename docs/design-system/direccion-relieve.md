@@ -298,8 +298,10 @@ preguntó con opciones puestas sobre las pantallas ya migradas (capturas a
    landing~~ (hecha). Capturas en claro y oscuro.
 4. **Lo que es de toda la app**, un PR cada cosa, en este orden (Julieta,
    2026-11-19): ~~la barra de abajo~~ (hecha el 2026-11-19,
-   [historial](../historial/2026-11-19-barra-de-abajo-relieve.md)), las
-   pestañas, los botones secundarios, los pasos tachados a mano, los colores
+   [historial](../historial/2026-11-19-barra-de-abajo-relieve.md)), ~~las
+   pestañas~~ (hechas el 2026-11-19,
+   [historial](../historial/2026-11-19-pestanas-relieve.md)), los botones
+   secundarios, los pasos tachados a mano, los colores
    de los sellos y el detalle del turno. Cómo va cada uno, en «Decidido por
    Julieta (2026-11-19)».
 
