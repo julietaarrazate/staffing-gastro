@@ -1,4 +1,4 @@
-# El backend deja de guardar entidades enteras que pisan lo que otro escribió
+# El backend deja de guardar entidades enteras que pisan lo que otro escribió (#674)
 
 **Pedido:** hallazgos ESC-01, CON-13 y CON-08 de la pasada por clase de error
 del 2026-11-19 (Julieta, beta). Una sola causa: tres repositorios guardaban
