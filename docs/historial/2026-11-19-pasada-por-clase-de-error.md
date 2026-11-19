@@ -1,4 +1,4 @@
-# La pasada por clase de error: qué se buscó, qué se encontró y dónde quedó cada arreglo
+# La pasada por clase de error: qué se buscó, qué se encontró y dónde quedó cada arreglo (#675)
 
 **Pedido:** Julieta, beta etapa 2 (2026-11-19, punto 1): un agente por clase
 de error sobre turno, postulación, sesión, pagos y avisos; primero

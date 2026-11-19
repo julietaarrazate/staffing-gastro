@@ -31,7 +31,7 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
   segunda mirada a G6, los dos arreglos chicos de la baja del dispositivo y
   del panel sin mapa, U080 (turno reofrecido) y las decisiones 21, 22 y 24.
   La pasada por clase de error (2026-11-19) quedó auditada y arreglada en
-  diez PRs (#661 a #675, más los tests de contrato en #666), salvo el cobro
+  once PRs (#661 a #675, más los tests de contrato en #666), salvo el cobro
   con Mercado Pago (CON-06, CON-07, CON-09: latente, va antes de prender el
   cobro) y tres decisiones de Julieta (PRI-06, PRI-07 y PRI-09, más el
   texto de `/privacidad` sobre el CV). Detalle en el tablero («Pasada por

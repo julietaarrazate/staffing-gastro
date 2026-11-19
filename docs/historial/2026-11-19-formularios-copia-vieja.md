@@ -1,4 +1,4 @@
-# Los formularios de perfil mandan sólo lo que la persona tocó (#PR)
+# Los formularios de perfil mandan sólo lo que la persona tocó (#675)
 
 **Pedido:** pasada por clase de error del 2026-11-19, hallazgos menores ESC-02
 (comercio) y ESC-03 (trabajador): formularios que mandan el recurso entero
