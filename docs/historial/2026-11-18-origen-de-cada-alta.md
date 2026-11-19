@@ -20,7 +20,7 @@ período, la tabla «Altas por origen» cuenta las cuentas nuevas del período
 - Backend: `identity/domain/origen_alta.py` arma la etiqueta (`ref` gana;
   si no, `utm_source/utm_campaign`; sin nada, «directo»), la normaliza
   (minúsculas, sin tildes, sólo `a-z 0-9 . _ -`, 40 caracteres por parte) y
-  el alta pública la guarda en `users.signup_origin` (migración 0054). Las
+  el alta pública la guarda en `users.signup_origin` (migración 0056). Las
   altas internas (invitadas, de prueba, seed) quedan en NULL. El esquema del
   alta nunca rechaza un `origen` mal formado: lo ignora o lo recorta.
   `UserRepository.count_signups_by_origin` cuenta en SQL y
@@ -41,7 +41,18 @@ período, la tabla «Altas por origen» cuenta las cuentas nuevas del período
 - Las cuentas anteriores al cambio quedan «Sin dato» en vez de «directo»,
   para no inflar «directo» con altas de las que no se sabe nada.
 
-**Queda abierto:** el texto de `/privacidad` no lista todavía este dato ni
-el almacenamiento en el navegador. Julieta pidió que se le pregunte antes de
-cambiarlo; el texto propuesto está en el PR. Sin ese cambio el PR no se
-mergea.
+**Privacidad:** Julieta aprobó el 2026-11-19 el texto nuevo de
+`/privacidad`: «Cómo llegaste» en «Para todos» y el código guardado en el
+navegador en «Cookies y almacenamiento». Versión legal `2026-11-19-1` en
+`identity/domain/value_objects.py` y `frontend/lib/legal.ts`. Las cuentas
+existentes no tienen que volver a aceptar nada: la versión sólo se registra
+en las altas nuevas, y a esas cuentas no se les guarda origen.
+
+**Migración:** iba a ser la 0054, pero la 0055 (decisión 22, #649) se
+mergeó antes sobre la 0053; ésta quedó como 0056, sobre la 0055, para que la
+cadena tenga una sola cabeza.
+
+**Queda abierto:** nada de código. Para usarlo: códigos cortos de canal y
+lugar (`ig-bio`, `wa-grupo-palermo`, `volante-villa-crespo`,
+`visita-palermo`), sin nombres de personas (un enlace por persona sería un
+programa de referidos, que espera la consulta legal).
