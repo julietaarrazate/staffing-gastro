@@ -21,7 +21,7 @@ servidor y no se pueden mockear con `page.route` (ver
 | Ruta | Qué responde | Piezas clave | API |
 |---|---|---|---|
 | `/feed` (Inicio) | ¿Qué turno tomo ahora? Con la dirección «con relieve» desde el 2026-11-18: cielo arriba (`.app-cielo`), saludo en brocha (`lib/letras.ts`), «Disponible» como cartelito, el recomendado como comanda (`ui/Comanda`) y «Cerca tuyo» en lista | `worker/FeedHero`, `worker/DiscoverDeck` + `worker/SwipeDeck` ("Descubrir rápido": deslizar recorre, postularse es botón), `worker/OpportunityCard` (en la grilla de escritorio lleva a `/turno/[id]`), `worker/NearbyRow`, `AIAssistantBar` | `/shifts/feed`, `/applications/mine` |
-| `/buscar` | Buscar turnos con filtros, de cualquier zona; tocar la tarjeta abre `/turno/[id]` | `worker/OpportunityCard` (`href`) | `/shifts/feed?scope=all`, `/applications/mine` |
+| `/buscar` | Buscar turnos con filtros, de cualquier zona; tocar la comanda abre `/turno/[id]`. Con la dirección «con relieve» desde el 2026-11-19: cielo con el título en brocha, rubros como pestañas con raya y cada turno como comanda | `worker/OportunidadComanda`, `SegmentedControl` | `/shifts/feed?scope=all`, `/applications/mine` |
 | `/map` | Turnos en el mapa, con el pago en el pin | `worker/MapSheet`, `lib/map/` | `/shifts/feed` |
 | `/my-shifts` | Mis turnos y en qué paso están. Con la dirección «con relieve» desde el 2026-11-18: encabezado sobre la banda azul hondo y los turnos como comandas (`ShiftCard comanda`) | `ShiftCard`, `ShiftLifecycleStepper`, `worker/EnRouteToggle` ("Va en camino"), `worker/CompareShiftsModal`, `ReviewBox` | `/shifts/mine`, `/applications/mine`, `/saved-shifts` |
 | `/assistant` | Asistente de IA (lenguaje natural) | `lib/use-worker-ai-assistant.ts` | `/assistant/worker-query` |

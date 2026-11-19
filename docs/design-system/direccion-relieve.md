@@ -309,9 +309,12 @@ preguntó con opciones puestas sobre las pantallas ya migradas (capturas a
    [historial](../historial/2026-11-19-colores-de-los-sellos.md)) y ~~el
    detalle del turno~~ (hecho el 2026-11-19,
    [historial](../historial/2026-11-19-detalle-del-turno-comanda.md)).
-5. **El resto de las pantallas**, un PR cada una (Julieta, 2026-11-19: Buscar
-   y las demás siguen igual). Orden propuesto, a confirmar: Buscar del
-   trabajador, Buscar del comercio, Publicar turno, Chats, Perfil, Mapa, las
+5. **El resto de las pantallas**, un PR cada una (Julieta, 2026-11-19: «todas
+   las pantallas tienen que tener la misma estética, no puede quedar a
+   medias»). Antes de escribir cada una, se le muestran las opciones puestas
+   sobre la pantalla real. Orden: ~~Buscar del trabajador~~ (hecho el
+   2026-11-19, cada turno como comanda; [historial](../historial/2026-11-19-buscar-trabajador-relieve.md)),
+   Buscar del comercio, Publicar turno, Chats, Perfil, Mapa, las
    fichas, Favoritos, Mi plan, y el ingreso, el alta y la bienvenida. Cómo va cada uno, en «Decidido por
    Julieta (2026-11-19)».
 
@@ -335,4 +338,5 @@ Antes de dibujar algo nuevo en una pantalla, usar éstas:
 | `.app-banda` + `.riel` | `globals.css` | La banda azul hondo donde cuelgan las comandas en curso, y la barra del riel. Sobre la banda el relieve cambia de tono solo |
 | `BOTON_LISO` y `Button` `surface` | `components/ui/Button.tsx` | El secundario: blanco, recto (10 px, el radio del principal), con filete y plano. `BOTON_LISO` es para lo que no puede ser un `Button` (un `Link`, un `<a>`) |
 | `ShiftLifecycleStepper` + `.pasos-tachados` | `components/ShiftLifecycleStepper.tsx`, `globals.css` | Los pasos del turno en un renglón: lo hecho tachado a mano en azul hondo (`.tacha`), lo actual en negrita |
+| `OportunidadComanda` | `components/worker/OportunidadComanda.tsx` | Un turno abierto a postulaciones como comanda, con sus acciones («Cómo llegar», «Compartir», «No, gracias», «Postularme»). La usa Buscar del trabajador |
 | `.boton-relieve` | `globals.css` | El relieve del botón principal: borde azul hondo, sombra dura, se aprieta. El fondo lo pone quien lo usa. Desde el 2026-11-18 lo lleva `Button` en su variante `primary` en toda la app (sigue en ámbar): un principal plano al lado de uno con relieve desentona |

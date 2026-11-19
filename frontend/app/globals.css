@@ -1354,6 +1354,21 @@ body:has([data-landing]) main {
   text-align: right;
 }
 
+/* Un turno de Buscar como comanda (`OportunidadComanda`). Es contenedor de
+   su propio ancho: el puesto en brocha achica la letra con la comanda (el 8 %
+   del ancho, entre 22 y 30 px: unos 29 a 390 px y 23 a 320), así
+   «Recepcionista» no se parte. El papel ocupa todo el alto de la
+   celda de la grilla, para que las acciones queden todas abajo. */
+.comanda-oportunidad {
+  container-type: inline-size;
+}
+.comanda-oportunidad > .comanda-papel {
+  height: 100%;
+}
+.comanda-oportunidad .letra-cartel-puesto {
+  font-size: clamp(1.375rem, 8cqi, 1.875rem);
+}
+
 /* La cinta «¡Oído!» pegada sobre la comanda del detalle del turno cuando la
    persona se postuló: abajo a la derecha, torcida, sobresaliendo del papel.
    Se pega con un golpe sólo si la postulación pasó en esa pantalla. */
