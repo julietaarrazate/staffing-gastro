@@ -26,6 +26,7 @@ import { restartAtHome } from "@/lib/restart-at-home";
 import { isSessionEndReason, loginHref, type SessionEndReason } from "@/lib/safe-next";
 import { clearAllCached } from "@/lib/screen-cache";
 import { borrarBorradores } from "@/lib/almacen-sesion";
+import { borrarOrigen, origenGuardado } from "@/lib/origen-alta";
 import {
   isTwoFactorChallenge,
   TWO_FACTOR_CODES,
@@ -951,7 +952,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role,
       accepted_terms: true,
       birth_date: birthDate,
+      // De qué enlace llegó (`lib/origen-alta.ts`); sin él, «directo».
+      origen: origenGuardado() ?? undefined,
     });
+    borrarOrigen();
     // Desde acá la cuenta ya existe: si el ingreso automático falla (el 429 de
     // `/auth/login` por IP es lo más común: misma red que ya probó ingresos),
     // el error no es del alta y no se le muestra como tal.
@@ -982,8 +986,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Con el rol va la fecha de nacimiento (U101): el backend no crea la
         // cuenta sin ella ni a un menor de 18.
         birth_date: role !== undefined ? birthDate : undefined,
+        origen: role !== undefined ? (origenGuardado() ?? undefined) : undefined,
       })
     );
+    // Con el rol se creó la cuenta (un 2xx): el origen ya quedó guardado.
+    if (role !== undefined) borrarOrigen();
 
     if ("requires_role" in data && data.requires_role) {
       return { requiresRole: true, email: data.email, fullName: data.full_name };

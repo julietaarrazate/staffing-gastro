@@ -150,6 +150,14 @@ export default function PrivacidadPage() {
                 falta.
               </li>
               <li>
+                <strong>Cómo llegaste:</strong> si entraste a Oído por un
+                enlace con un código (por ejemplo, el de nuestra cuenta de
+                Instagram o uno que compartimos en un grupo de WhatsApp),
+                guardamos ese código con tu cuenta, sólo para saber qué
+                canales funcionan. No aparece en tu perfil ni lo ve nadie
+                fuera del equipo, y sólo como conteo.
+              </li>
+              <li>
                 <strong>Mensajes:</strong> el chat entre comercio y trabajador
                 para coordinar cada turno.
               </li>
@@ -424,8 +432,10 @@ export default function PrivacidadPage() {
               Usamos una <strong>cookie propia</strong> para mantener tu
               sesión iniciada de forma segura (el navegador no deja que ningún
               script la lea), y el almacenamiento local del navegador para
-              recordar tu sesión y tu preferencia de tema claro u oscuro. No
-              usamos cookies de terceros, ni de publicidad, ni de seguimiento.
+              recordar tu sesión, tu preferencia de tema claro u oscuro y, si
+              llegaste por un enlace con código, ese código hasta que crees tu
+              cuenta (como máximo 30 días). No usamos cookies de terceros, ni
+              de publicidad, ni de seguimiento.
             </p>
           </Section>
 

@@ -62,6 +62,7 @@ from app.modules.identity.domain.exceptions import (
     UserNotFoundError,
 )
 from app.modules.identity.domain.google_verifier import GoogleTokenVerifier
+from app.modules.identity.domain.origen_alta import OrigenAlta, origen_de_alta_publica
 from app.modules.identity.domain.repositories import (
     EmailVerificationTokenRepository,
     PasswordResetTokenRepository,
@@ -186,6 +187,7 @@ class IdentityService:
             full_name=command.full_name,
             role=command.role,
             birth_date=birth_date,
+            signup_origin=self._alta_origin(command.accepted_terms, command.origen),
         )
         created = await self._users.add(user)
         if command.accepted_terms:
@@ -277,6 +279,7 @@ class IdentityService:
             full_name=identity.full_name,
             role=command.role,
             birth_date=birth_date,
+            signup_origin=self._alta_origin(command.accepted_terms, command.origen),
             # Google ya verificó la propiedad del email: no hace falta el
             # flujo de verificación propio para estas cuentas.
             is_verified=True,
@@ -289,6 +292,12 @@ class IdentityService:
         # confirmada, así que es acá. Antes estas cuentas no la recibían nunca.
         await self._send_welcome_email(user)
         return await self._issue_tokens(user)
+
+    @staticmethod
+    def _alta_origin(accepted_terms: bool, origen: OrigenAlta | None) -> str | None:
+        """Toda alta pública guarda de qué enlace llegó («directo» si no
+        traía nada); las internas (seed, scripts) no llegaron por ninguno."""
+        return origen_de_alta_publica(origen) if accepted_terms else None
 
     @staticmethod
     def _alta_birth_date(accepted_terms: bool, birth_date: date | None) -> date | None:

@@ -17,6 +17,7 @@ import type { PeriodMetrics, PeriodSummary, PlatformStats, SubscriptionStats } f
 import { Badge, Card, ErrorBanner, SegmentedControl } from "@/components/ui";
 import { WalletIcon } from "@/components/icons";
 import { periodDelta } from "@/components/admin/live";
+import AltasPorOrigen from "@/components/admin/AltasPorOrigen";
 import { formatArs, plural } from "@/lib/format";
 import {
   AdminHeading,
@@ -170,6 +171,7 @@ function PeriodSection({ token }: { token: string | null }) {
       <p className="mt-1.5 px-1 text-xs text-ink/40">
         Contra los {period} días anteriores. Los días se cortan a la medianoche de Argentina.
       </p>
+      {data?.signups_by_origin && <AltasPorOrigen filas={data.signups_by_origin} />}
     </div>
   );
 }
