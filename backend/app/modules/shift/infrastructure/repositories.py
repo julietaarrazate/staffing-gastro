@@ -106,6 +106,8 @@ def _to_entity(model: ShiftModel) -> Shift:
         last_no_show_worker_profile_id=model.last_no_show_worker_profile_id,
         checkin_reminder_sent_at=model.checkin_reminder_sent_at,
         departure_reminder_sent_at=model.departure_reminder_sent_at,
+        finish_reminder_sent_at=model.finish_reminder_sent_at,
+        auto_finished_at=model.auto_finished_at,
         event_id=model.event_id,
         event_name=model.event_name,
         published_at=model.published_at,
@@ -157,6 +159,12 @@ def _apply_fields(model: ShiftModel, shift: Shift) -> None:
         and same_worker
     ):
         model.departure_reminder_sent_at = shift.departure_reminder_sent_at
+    # El recordatorio de cierre también es marca de sistema sin versión
+    # (`mark_finish_reminder_sent`) y el dominio nunca la borra: una entidad
+    # leída antes de marcarla llega con None y no la pisa.
+    if shift.finish_reminder_sent_at is not None:
+        model.finish_reminder_sent_at = shift.finish_reminder_sent_at
+    model.auto_finished_at = shift.auto_finished_at
     model.published_at = shift.published_at
     model.first_assigned_at = shift.first_assigned_at
     model.first_confirmed_at = shift.first_confirmed_at
@@ -306,6 +314,23 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         await self._session.commit()
         return result.rowcount == 1
 
+    async def mark_finish_reminder_sent(self, shift_id: UUID, sent_at: datetime) -> bool:
+        # Mismo patrón que `mark_departure_reminder_sent`: UPDATE masivo sin
+        # versión, y el WHERE corta la carrera. Sólo marca si el turno sigue
+        # con la salida marcada (sin cerrar) y sin marca previa.
+        result = await self._session.execute(
+            update(ShiftModel)
+            .where(
+                ShiftModel.id == shift_id,
+                ShiftModel.status == ShiftStatus.CHECK_OUT.value,
+                ShiftModel.finish_reminder_sent_at.is_(None),
+            )
+            .values(finish_reminder_sent_at=sent_at)
+            .execution_options(synchronize_session=False)
+        )
+        await self._session.commit()
+        return result.rowcount == 1
+
     async def get_by_id(self, shift_id: UUID) -> Shift | None:
         # `populate_existing`: siempre lo que hay en la base, no la copia del
         # identity map de la sesión. El scheduler usa una sesión por pasada y,
@@ -450,6 +475,11 @@ class SqlAlchemyShiftRepository(ShiftRepository):
                 [ShiftStatus.CONFIRMADO.value, ShiftStatus.EN_CAMINO.value]
             )
         )
+        result = await self._session.execute(stmt)
+        return [_to_entity(m) for m in result.scalars().all()]
+
+    async def list_awaiting_finish(self) -> list[Shift]:
+        stmt = select(ShiftModel).where(ShiftModel.status == ShiftStatus.CHECK_OUT.value)
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
 

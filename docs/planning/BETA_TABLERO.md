@@ -216,12 +216,14 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
   reemplazo (salió de #562; sumarlo es decidir quién recibe qué, va con U080).
   Resuelto con U080: el aviso de reapertura le dice qué pasó y qué hizo la
   app con el turno.
-- Un turno con la salida marcada que el comercio nunca cierra queda «en
+- ✅ Un turno con la salida marcada que el comercio nunca cierra queda «en
   marcha» para siempre: la persona ve «Esperando que el comercio cierre el
   turno» y no puede calificar ni verlo en sus ganancias. No hay recordatorio
   ni cierre automático (salió de la revisión de U081; antes pasaba igual, y
   cancelar no era una salida buena). Decidido el 2026-11-18 (decisión 24:
-  recordatorio a las 24 horas y cierre automático a las 72), sin escribir.
+  recordatorio a las 24 horas y cierre automático a las 72). Hecho: el
+  scheduler le recuerda al comercio a las 24 h y lo cierra solo a las 72 con
+  la puntualidad de la llegada (ADR-0008, act. 2026-11-18).
 - El detalle de un turno cancelado por la suspensión del comercio dice «El
   comercio canceló este turno.» (el aviso sí es neutro; #572).
 - «Descubrir rápido»: el toque y el arrastre de la tarjeta sólo se cubren con

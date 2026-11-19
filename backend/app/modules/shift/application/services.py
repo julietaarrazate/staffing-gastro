@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 
 from app.core.dt import naive as _naive
 from app.core.geo import bounding_box, haversine_km
-from app.core.tz import ARG_TZ, format_duracion, format_turno_art, to_art
+from app.core.tz import ARG_TZ, format_duracion, format_inicio_art, format_turno_art, to_art
 from app.modules.application.domain.repositories import ShiftApplicationRepository
 from app.modules.application.domain.entities import ASSIGNABLE_FROM, ShiftApplication
 from app.modules.application.domain.value_objects import (
@@ -133,6 +133,14 @@ ESCALATION_DELAY = timedelta(minutes=8)
 # check-in/confirmación demorados.
 NOT_COVERED_GRACE_URGENT = timedelta(minutes=30)
 NOT_COVERED_GRACE_NORMAL = NO_SHOW_GRACE_PERIOD
+
+# Turno con la salida marcada que el comercio no cierra (ADR-0008, decisión
+# 24 de Julieta): sin cerrar queda «en marcha» para siempre y la persona no
+# puede calificar ni verlo en sus ganancias. Medidos desde `check_out_at`: al
+# día se le recuerda al comercio que lo cierre; a los tres días Oído lo
+# cierra solo, con la puntualidad que ya quedó registrada en la llegada.
+FINISH_REMINDER_DELAY = timedelta(hours=24)
+AUTO_FINISH_DELAY = timedelta(hours=72)
 
 # Hasta dónde llega «cerca» en el feed del trabajador (Inicio y Mapa): el
 # mismo círculo máximo al que puede llegar un aviso de ese turno, el de la
@@ -2078,14 +2086,105 @@ class ShiftService(AccountSuspensionEffects):
 
         R2.4: al finalizar con éxito (el turno sólo llega acá habiendo pasado
         por check-in y check-out, ver `Shift._transition`) se actualizan las
-        métricas de reputación reales del trabajador asignado:
-        `events_completed` (+1) y `punctuality_rate` (promedio móvil simple
-        sobre si el check-in fue hasta 15 min después del horario
-        pactado). Mismo patrón que las notificaciones: el efecto vive dentro
-        del caso de uso que cierra el ciclo, no en un job aparte.
+        métricas de reputación reales del trabajador asignado; los efectos
+        viven en `_save_finished`, compartidos con `auto_finish`.
         """
         shift = await self._get_owned(company_id, shift_id)
         shift.finish()
+        return await self._save_finished(shift, automatic=False)
+
+    async def list_shifts_awaiting_finish(self) -> list[Shift]:
+        """Turnos CHECK_OUT (salida marcada, sin cerrar), para el chequeo de
+        cierre automático del scheduler (decisión 24). Sin scoping por
+        comercio: lo recorre un proceso de sistema."""
+        return await self._shifts.list_awaiting_finish()
+
+    async def send_finish_reminder(self, shift_id: UUID) -> Shift:
+        """Le recuerda al comercio que cierre un turno con la salida marcada
+        (decisión 24): lo dispara el scheduler a `FINISH_REMINDER_DELAY` de
+        `check_out_at`. Marca de sistema reclamada con un UPDATE condicional
+        (no sube la versión, ADR-0016): dos pasadas no mandan dos avisos. Con
+        la cuenta del comercio suspendida la marca se pone igual, pero no se
+        le avisa nada (ADR-0024)."""
+        claimed = await self._shifts.mark_finish_reminder_sent(
+            shift_id, datetime.now(timezone.utc)
+        )
+        updated = await self.get_shift(shift_id)
+        if (
+            claimed
+            and updated.check_out_at is not None
+            and await self.company_account_active(updated.company_id)
+        ):
+            # La fecha real de la salida, no «hace un día»: la pasada puede
+            # llegar tarde (primer despliegue, Render dormido).
+            now = datetime.now(timezone.utc)
+            checked_out = format_inicio_art(updated.check_out_at, now)
+            closes_at = format_inicio_art(updated.check_out_at + AUTO_FINISH_DELAY, now)
+            # El pago registrado después de `PAYMENT_TOLERANCE` desde el fin
+            # cuenta como tardío (`_was_paid_on_time`): se dice antes de que
+            # pase, con la fecha (Julieta, 2026-11-18).
+            paid_on_time_until = updated.end_at + PAYMENT_TOLERANCE
+            if _naive(now) < _naive(paid_on_time_until):
+                pago = (
+                    "Para que cuente como pago a tiempo, registralo hasta "
+                    f"{format_inicio_art(paid_on_time_until, now)}."
+                )
+            else:
+                pago = "Si registrás el pago ahora, ya cuenta como pago tardío."
+            await self._notify_company(
+                updated.company_id,
+                NotificationType.SHIFT_FINISH_REMINDER,
+                "Te falta cerrar un turno",
+                (
+                    f"La persona marcó la salida de \"{updated.title or updated.position.label}\" "
+                    f"{checked_out}. Cerralo para poder calificarla y registrar el pago. "
+                    f"{pago} Si no lo cerrás, se cierra solo {closes_at}."
+                ),
+                link="/shifts",
+            )
+        return updated
+
+    async def auto_finish(self, shift_id: UUID) -> Shift:
+        """Oído cierra solo el turno que el comercio no cerró (decisión 24):
+        lo dispara el scheduler a `AUTO_FINISH_DELAY` de `check_out_at`.
+        Mismos efectos que `finish` (`_save_finished`), con su propio aviso
+        al trabajador, y además le avisa al comercio, salvo cuenta suspendida.
+
+        Si el comercio cierra en el mismo instante gana uno solo: el guardado
+        con versión (ADR-0016) hace que el otro falle antes de cualquier
+        efecto (`ShiftConcurrentModificationError`, o
+        `InvalidShiftTransitionError` si ya lo leyó cerrado); el scheduler lo
+        saltea."""
+        shift = await self.get_shift(shift_id)
+        shift.auto_finish()
+        updated = await self._save_finished(shift, automatic=True)
+        if await self.company_account_active(updated.company_id):
+            await self._notify_company(
+                updated.company_id,
+                NotificationType.SHIFT_AUTO_FINISHED,
+                "Oído cerró un turno",
+                (
+                    f"Cerramos automáticamente \"{updated.title or updated.position.label}\": "
+                    "pasaron 72 horas desde que la persona marcó la salida. "
+                    "Te queda marcarlo como pagado: como pasaron más de 48 horas "
+                    "desde el fin del turno, cuenta como pago tardío."
+                ),
+                link="/shifts",
+            )
+        return updated
+
+    async def _save_finished(self, shift: Shift, *, automatic: bool) -> Shift:
+        """Lo común a cerrar un turno trabajado, lo cierre el comercio
+        (`finish`) o el sistema (`auto_finish`): guardar con versión y, si
+        hubo alguien, sumarle el turno completado a su reputación y avisarle
+        que ya puede calificar. La puntualidad es la que quedó registrada en
+        la llegada; vive en un solo lugar para que cambiarla toque los dos
+        caminos a la vez.
+
+        R2.4: `events_completed` (+1) y `punctuality_rate` (promedio móvil
+        simple sobre si el check-in fue hasta 15 min después del horario
+        pactado). Mismo patrón que las notificaciones: el efecto vive dentro
+        del caso de uso que cierra el ciclo, no en un job aparte."""
         updated = await self._shifts.update(shift)
         if updated.worker_profile_id is not None:
             await self._workers.record_completed_shift(
@@ -2096,11 +2195,21 @@ class ShiftService(AccountSuspensionEffects):
             # la lista, donde el turno cerrado trae su caja de calificación.
             company = await self._companies.get_by_id(updated.company_id)
             company_name = (company.name if company is not None else None) or "el comercio"
+            name = updated.title or updated.position.label
+            if automatic:
+                title = "Se cerró tu turno"
+                message = (
+                    f"\"{name}\" se cerró solo porque pasaron 72 horas desde tu salida. "
+                    f"Ya podés calificar a {company_name}."
+                )
+            else:
+                title = "Cerró tu turno"
+                message = f"Calificá a {company_name} por el turno \"{name}\"."
             await self._notify_worker(
                 updated.worker_profile_id,
                 NotificationType.SHIFT_FINISHED,
-                "Cerró tu turno",
-                f"Calificá a {company_name} por el turno \"{updated.title or updated.position.label}\".",
+                title,
+                message,
                 link=f"/my-shifts?turno={updated.id}",
             )
         return updated

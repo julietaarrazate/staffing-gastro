@@ -84,6 +84,11 @@ listados más abajo.
 - **Un turno ya trabajado no se cancela** (U081, 2026-11-18): con la salida
   marcada el panel no ofrece «Cancelar turno» y el servidor lo rechaza; el
   comercio lo finaliza y lo paga, y un problema va por soporte.
+- **Si el comercio no lo cierra, se cierra solo** (decisión 24, 2026-11-18,
+  ADR-0008): a las 24 horas de la salida se le recuerda al comercio, y a las
+  72 Oído lo cierra con la puntualidad de la llegada; la persona ya puede
+  calificar y el comercio, marcarlo como pagado. La persona lo ve en «Mis
+  turnos» mientras espera, y el panel del comercio dice cuándo se cierra solo.
 - **Turno "no cubierto"** (ADR-0015): un turno ASIGNADO cuyo trabajador nunca
   confirma ni rechaza, o uno PUBLICADO/BUSCANDO_PERSONAL que nadie tomó,
   cuyo `start_at` ya pasó, se resuelve solo — **sin** impacto de reputación

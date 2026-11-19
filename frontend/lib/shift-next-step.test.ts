@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Shift, ShiftStatus } from "@/lib/types";
-import { firstNameOf, nextStepFor } from "./shift-next-step";
+import { autoFinishPhrase, autoFinishWorkerNote, firstNameOf, nextStepFor } from "./shift-next-step";
 
 // Sólo se lee `shift.status` — el cast evita tener que armar un Shift
 // completo por cada caso (intencional, no un atajo por descuido).
@@ -161,6 +161,35 @@ describe("nextStepFor con viaje compartido (en_route_at)", () => {
   it("no cambia otros estados", () => {
     expect(nextStepFor(shift({ status: "asignado", en_route_at: "2026-11-18T20:00:00Z" })).hint).toBe(
       "Esperando que confirme su asistencia."
+    );
+  });
+});
+
+describe("cierre automático (decisión 24)", () => {
+  // Salida el martes 17/11 a las 15:00 en Argentina (18:00 UTC).
+  const salida = "2026-11-17T18:00:00Z";
+
+  it("se cierra solo a las 72 horas de la salida, en hora argentina", () => {
+    const now = new Date("2026-11-18T18:00:00Z");
+    expect(autoFinishPhrase(salida, now)).toBe("el viernes 20/11 a las 15:00");
+  });
+
+  it("el día antes dice «mañana»", () => {
+    const now = new Date("2026-11-19T18:00:00Z");
+    expect(autoFinishPhrase(salida, now)).toBe("mañana a las 15:00");
+  });
+
+  it("sin salida registrada o con la hora ya pasada no inventa una fecha", () => {
+    expect(autoFinishPhrase(null)).toBeNull();
+    expect(autoFinishPhrase(salida, new Date("2026-11-20T18:00:01Z"))).toBeNull();
+  });
+
+  it("la línea del trabajador dice el plazo, con la fecha cuando se sabe", () => {
+    expect(autoFinishWorkerNote(salida, new Date("2026-11-18T18:00:00Z"))).toBe(
+      "Esperando que el comercio lo cierre. Si no, Oído lo cierra el viernes 20/11 a las 15:00 (72 horas después de tu salida).",
+    );
+    expect(autoFinishWorkerNote(null)).toBe(
+      "Esperando que el comercio lo cierre. Si no, Oído lo cierra 72 horas después de tu salida.",
     );
   });
 });

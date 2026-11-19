@@ -83,6 +83,10 @@ def test_aviso_que_solo_vale_en_el_momento_vence_a_los_30_minutos(tipo: Notifica
     [
         _N.SHIFT_PAID,
         _N.SHIFT_FINISHED,
+        # Decisión 24: el recordatorio de cerrar el turno y el aviso de que
+        # se cerró solo pueden caer de madrugada; no despiertan a nadie.
+        _N.SHIFT_FINISH_REMINDER,
+        _N.SHIFT_AUTO_FINISHED,
         _N.REVIEW_RECEIVED,
         _N.VERIFICATION_DECIDED,
         _N.SUPPORT_REPLY,

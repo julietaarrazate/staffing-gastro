@@ -109,6 +109,10 @@ transiciones). **Editables:** `borrador`, `publicado`. **Abiertos (feed):**
   descartados salvo su postulación registrada.
 - **Cierre → reputación:** al llegar a `finalizado`/`pagado` se habilita la
   **calificación bidireccional** (ver [REPUTATION.md](./REPUTATION.md)).
+- **Cierre automático** (decisión 24, [ADR-0008](../adr/ADR-0008-asistencia-simplificada-y-no-show-automatico.md)
+  act. 2026-11-18): un `CHECK_OUT` que el comercio no cierra recibe un
+  recordatorio a las 24 h de la salida y pasa a `FINALIZADO` solo a las 72 h
+  (`auto_finished_at`), con los mismos efectos que el cierre del comercio.
 
 ## Invariantes
 
