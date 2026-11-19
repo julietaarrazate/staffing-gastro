@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useLiveRefresh } from "@/lib/live-refresh";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
 import { appliedShiftIds } from "@/lib/applications";
@@ -270,31 +271,54 @@ export default function MapPage() {
     if (gpsFailed && fallbackOrigin && !originRef.current) applyOrigin(fallbackOrigin);
   }, [gpsFailed, fallbackOrigin, applyOrigin]);
 
-  const load = useCallback(async () => {
-    if (!token) return;
-    setLoading(true);
-    try {
-      const [feed, applied] = await Promise.all([
-        api.get<Shift[]>("/shifts/feed", token),
-        api.get<ShiftApplication[]>("/applications/mine", token).catch(() => []),
-      ]);
-      const appliedIds = appliedShiftIds(applied);
-      const fetched = feed.filter((s) => !appliedIds.has(s.id) && s.latitude != null);
-      fetchedRef.current = fetched;
-      const near = nearbyOnly(fetched, originRef.current);
-      setFarFromHere(near.length < fetched.length);
-      setShifts(sortByDistance(near, originRef.current));
-      setError(null);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo cargar el mapa");
-    } finally {
-      setLoading(false);
-    }
-  }, [token]);
+  // `silent` (avisos y vuelta a la pestaña): sin esqueleto, y si falla se deja
+  // lo que ya se ve.
+  // Último pedido gana: una respuesta vieja no pisa a la nueva.
+  const latestLoad = useRef(0);
+  // Turnos a los que se postuló desde esta pantalla: una recarga que salió antes
+  // no los vuelve a poner.
+  const postulados = useRef<Set<string>>(new Set());
+
+  const load = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (!token) return;
+      const silent = options?.silent === true;
+      const mine = ++latestLoad.current;
+      if (!silent) setLoading(true);
+      try {
+        const [feed, applied] = await Promise.all([
+          api.get<Shift[]>("/shifts/feed", token),
+          api.get<ShiftApplication[]>("/applications/mine", token).catch(() => []),
+        ]);
+        if (mine !== latestLoad.current) return;
+        const appliedIds = appliedShiftIds(applied);
+        const fetched = feed.filter((s) => !appliedIds.has(s.id) && !postulados.current.has(s.id) && s.latitude != null);
+        fetchedRef.current = fetched;
+        const near = nearbyOnly(fetched, originRef.current);
+        setFarFromHere(near.length < fetched.length);
+        setShifts(sortByDistance(near, originRef.current));
+        setError(null);
+      } catch (err) {
+        if (!silent && mine === latestLoad.current) {
+          setError(err instanceof ApiError ? err.message : "No se pudo cargar el mapa");
+        }
+      } finally {
+        if (mine === latestLoad.current) setLoading(false);
+      }
+    },
+    [token]
+  );
 
   useEffect(() => {
     load();
   }, [load]);
+
+  // Al día con los avisos (VIE-03): un turno cubierto o cancelado sale del mapa
+  // sin recargar. En pausa con una carga normal, una postulación en curso o la
+  // ficha de un turno abierta (para no cambiarle la lista bajo los dedos).
+  useLiveRefresh(load, {
+    paused: loading || applyingId !== null || justAppliedId !== null || previewShift !== null,
+  });
 
   // Scroll del carrusel -> tarjeta activa (que el mapa sigue).
   function onCarouselScroll() {
@@ -350,6 +374,7 @@ export default function MapPage() {
         keyFor(shift.id)
       );
       clearIdempotencyKey(shift.id);
+      postulados.current.add(shift.id);
       toast("¡Te postulaste! El comercio ya te puede ver");
       setPreviewShift((prev) => (prev?.id === shift.id ? null : prev));
       setJustAppliedId(shift.id);
@@ -393,10 +418,10 @@ export default function MapPage() {
       ? "El mapa trae los turnos de la zona de tu perfil. Los de otras zonas están en Buscar."
       : "Aparecen en tiempo real. Volvé en un rato o mirá otras zonas en Buscar.";
   const emptyPrimary = error
-    ? { label: "Reintentar", onClick: load }
+    ? { label: "Reintentar", onClick: () => load() }
     : allFarFromHere
       ? goToSearch
-      : { label: "Actualizar", onClick: load };
+      : { label: "Actualizar", onClick: () => load() };
   const emptySecondary = error || allFarFromHere ? undefined : goToSearch;
 
   return (

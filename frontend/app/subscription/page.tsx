@@ -9,7 +9,7 @@ import { useIdempotencyKeys } from "@/lib/idempotency";
 import { Subscription, SubscriptionPlan } from "@/lib/types";
 import { formatArs } from "@/lib/format";
 import { useLiveRefresh } from "@/lib/live-refresh";
-import { formatPlainDate, limiteExigido, paymentReturnMessage } from "@/lib/subscription";
+import { endOfArgentinaDay, formatPlainDate, limiteExigido, paymentReturnMessage } from "@/lib/subscription";
 import { planValido } from "@/lib/plan-elegido";
 import SubscriptionStatusCard from "@/components/subscription/SubscriptionStatusCard";
 import PlanCard from "@/components/subscription/PlanCard";
@@ -164,6 +164,13 @@ function SubscriptionContent() {
       setPendingAction(null);
     } catch (err) {
       toast(err instanceof ApiError ? err.message : "No se pudo completar la acción", "error");
+      // El servidor rechazó: el plan o el plazo ya cambiaron. Se cierra el
+      // diálogo y se relee para que la tarjeta deje de ofrecer lo que ya no se
+      // puede (VIE-05). Un corte de red no: ahí conviene poder reintentar.
+      if (err instanceof ApiError) {
+        setPendingAction(null);
+        void load({ silent: true });
+      }
     } finally {
       setActing(false);
     }
@@ -182,7 +189,32 @@ function SubscriptionContent() {
     subscription.can_publish !== false;
   const currentPayLabel = billing ? (paidAndActive ? "Pagar 30 días más" : "Pagar el mes") : undefined;
   const canCancelRenewal = paidAndActive && subscription?.renews !== false;
-  const withdrawalUntil = billing ? (subscription?.withdrawal_until ?? null) : null;
+  const serverWithdrawalUntil = billing ? (subscription?.withdrawal_until ?? null) : null;
+  // El plazo no se queda en pantalla con la pestaña abierta: se apaga solo al
+  // terminar el último día (VIE-05). `now` se refresca al vencer y al volver a
+  // primer plano.
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    if (!serverWithdrawalUntil) return;
+    const expiresAt = endOfArgentinaDay(serverWithdrawalUntil);
+    if (expiresAt === null) return;
+    const remaining = expiresAt - Date.now();
+    if (remaining <= 0) return;
+    const timer = setTimeout(() => setNow(Date.now()), Math.min(remaining + 50, 2 ** 31 - 1));
+    const onVisible = () => {
+      if (document.visibilityState === "visible") setNow(Date.now());
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [serverWithdrawalUntil]);
+  const withdrawalExpiresAt = serverWithdrawalUntil ? endOfArgentinaDay(serverWithdrawalUntil) : null;
+  const withdrawalUntil =
+    serverWithdrawalUntil && !(withdrawalExpiresAt !== null && withdrawalExpiresAt <= now)
+      ? serverWithdrawalUntil
+      : null;
 
   // El plan elegido en la landing, si existe en el catálogo que contestó la API.
   const elegido = planPedido ? plans.find((p) => p.code === planPedido) : undefined;

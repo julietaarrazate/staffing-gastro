@@ -253,3 +253,66 @@ describe("ShiftDetail: aviso durante la primera carga", () => {
     expect(await screen.findByRole("button", { name: "Postularme" })).toBeInTheDocument();
   });
 });
+
+describe("ShiftDetail: turno que ya no está disponible (VIE-03)", () => {
+  it("si el servidor contesta 404 al pedir el turno, dice que ya no está y no ofrece «Postularme»", async () => {
+    auth.value = { user: { role: "worker" }, token: "tok", loading: false };
+    get.mockImplementation((path: string) => {
+      if (path.startsWith("/applications/mine")) return Promise.resolve([]);
+      if (path === "/shifts/s1") return Promise.reject(new ApiError(404, "Turno no encontrado"));
+      return Promise.reject(new Error(`sin mock: ${path}`));
+    });
+    render(<ShiftDetail publicShift={SHIFT} />);
+
+    expect(await screen.findByRole("heading", { name: "Este turno ya no está disponible" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Postularme" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Ver otros turnos" })).toHaveAttribute("href", "/feed");
+  });
+
+  it("un error que no es 404 deja la vista pública y el botón", async () => {
+    auth.value = { user: { role: "worker" }, token: "tok", loading: false };
+    get.mockImplementation((path: string) => {
+      if (path.startsWith("/applications/mine")) return Promise.resolve([]);
+      if (path === "/shifts/s1") return Promise.reject(new ApiError(500, "Error"));
+      return Promise.reject(new Error(`sin mock: ${path}`));
+    });
+    render(<ShiftDetail publicShift={SHIFT} />);
+
+    expect(await screen.findByRole("button", { name: "Postularme" })).toBeInTheDocument();
+    expect(screen.queryByText("Este turno ya no está disponible")).not.toBeInTheDocument();
+  });
+
+  it("tras un error al postularse relee el turno: si ya no está, lo dice en lugar de dejar el botón", async () => {
+    auth.value = { user: { role: "worker" }, token: "tok", loading: false };
+    let cerrado = false;
+    get.mockImplementation((path: string) => {
+      if (path.startsWith("/applications/mine")) return Promise.resolve([]);
+      if (path === "/shifts/s1") {
+        return cerrado ? Promise.reject(new ApiError(404, "Turno no encontrado")) : Promise.resolve({ ...SHIFT });
+      }
+      return Promise.reject(new Error(`sin mock: ${path}`));
+    });
+    post.mockImplementation(() => {
+      cerrado = true; // se cubrió mientras la pantalla seguía abierta
+      return Promise.reject(new ApiError(404, "Turno no encontrado o no disponible para postularse"));
+    });
+    const user = userEvent.setup();
+    render(<ShiftDetail publicShift={SHIFT} />);
+
+    await user.click(await screen.findByRole("button", { name: "Postularme" }));
+
+    expect(await screen.findByRole("heading", { name: "Este turno ya no está disponible" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Postularme" })).not.toBeInTheDocument();
+  });
+
+  it("quien ya se postuló no ve el aviso aunque el pedido del turno falle con 404", async () => {
+    auth.value = { user: { role: "worker" }, token: "tok", loading: false };
+    get.mockImplementation((path: string) => {
+      if (path.startsWith("/applications/mine")) return Promise.resolve([{ shift_id: "s1", status: "pendiente" }]);
+      if (path === "/shifts/s1") return Promise.reject(new ApiError(404, "Turno no encontrado"));
+      return Promise.reject(new Error(`sin mock: ${path}`));
+    });
+    render(<ShiftDetail publicShift={SHIFT} />);
+    expect(await screen.findByText("Ya te postulaste")).toBeInTheDocument();
+  });
+});
