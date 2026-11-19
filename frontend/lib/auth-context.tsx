@@ -417,7 +417,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // De a una pestaña por vez (CON-02): la que espera el candado sale
       // después de que la otra recibió su respuesta, con la cookie ya rotada.
       const attempt: Promise<string | null> = conCandadoDeRenovacion(() => {
-        // Mientras esperaba, otra pestaña cerró la sesión o entró otra cuenta.
+        // Mientras esperaba, la sesión se cerró (acá o en otra pestaña) o
+        // esta pestaña cambió de sesión: no hay nada que renovar.
         if (sessionEpoch.current !== epoch || !localStorage.getItem(HAS_SESSION_KEY)) {
           return Promise.reject(staleSession());
         }
