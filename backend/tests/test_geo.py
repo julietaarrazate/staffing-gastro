@@ -6,6 +6,7 @@ from app.core.geo import (
     FUZZ_CELL_KM,
     FUZZ_MAX_RADIUS_KM,
     FUZZ_MIN_RADIUS_KM,
+    _FUZZ_ROUNDING_MARGIN_KM,
     _fuzz_cell,
     fuzz_point,
     haversine_km,
@@ -16,11 +17,12 @@ def test_fuzz_point_is_never_closer_than_the_minimum_to_the_real_point():
     """El pin sale del centro de la celda (ADR-0014, actualización
     2026-11-19), pero nunca queda a menos de `FUZZ_MIN_RADIUS_KM` del punto
     real, esté donde esté el punto dentro de su celda; y a lo sumo a
-    `FUZZ_MAX_RADIUS_KM` más una diagonal de celda."""
+    `FUZZ_MAX_RADIUS_KM` más una diagonal de celda, el margen del redondeo
+    y lo que mueve el redondeo (~8 m)."""
     import random
 
     azar = random.Random(20261119)
-    maximo = FUZZ_MAX_RADIUS_KM + FUZZ_CELL_KM * math.sqrt(2)
+    maximo = FUZZ_MAX_RADIUS_KM + FUZZ_CELL_KM * math.sqrt(2) + _FUZZ_ROUNDING_MARGIN_KM + 0.008
     for i in range(3000):
         lat = azar.uniform(-34.75, -34.50)
         lng = azar.uniform(-58.55, -58.30)
