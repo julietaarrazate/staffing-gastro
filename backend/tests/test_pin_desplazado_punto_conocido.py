@@ -77,9 +77,12 @@ async def test_un_punto_conocido_no_deshace_el_desplazamiento_del_domicilio(
     deducido = (pin_casa[0] - vector[0], pin_casa[1] - vector[1])
 
     error_km = haversine_km(deducido[0], deducido[1], _DOMICILIO[0], _DOMICILIO[1])
-    # El pin promete «no alcanza para llegar a tu puerta» (anillo de 150 a
-    # 350 m). Con un solo punto conocido el comercio queda a metros.
-    assert error_km >= 0.15, f"domicilio deducido a {error_km * 1000:.1f} m del real"
+    # Con el vector fijo el comercio quedaba a 0,05 mm del domicilio. Ahora
+    # el vector de la celda del local no dice nada del de la celda de la
+    # casa: lo «deducido» es un punto cualquiera a cientos de metros. (No se
+    # exige un mínimo de 150 m: ese es el del pin, y acá la distancia es la
+    # de un punto al azar, que con otra clave puede caer más cerca.)
+    assert error_km >= 0.05, f"domicilio deducido a {error_km * 1000:.1f} m del real"
 
 
 # Lo encontró la revisión independiente del 2026-11-19: el pin con todos sus
