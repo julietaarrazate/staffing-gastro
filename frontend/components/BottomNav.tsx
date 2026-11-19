@@ -72,7 +72,7 @@ export default function BottomNav() {
       // borde, lisa (sin vidrio: `bg-card`, sin desenfoque) y con un filete
       // arriba. Lo activo es una raya azul hondo sobre la pestaña, el mismo
       // gesto que las pestañas de las pantallas; la píldora celeste se fue.
-      className="barra-secciones fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-card pb-[env(safe-area-inset-bottom)] md:hidden print:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-card pb-[env(safe-area-inset-bottom)] md:hidden print:hidden"
     >
       {tabs.map(({ href, label, Icon }) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
@@ -97,7 +97,13 @@ export default function BottomNav() {
             // filete de la barra (`-mt-px`). Las de reposo en `ink-soft` y no
             // en `ink/40`, que sobre el blanco daba 2,6 de contraste: el
             // nombre de una sección es texto y pide 4,5.
-            className={`-mt-px flex min-w-0 flex-1 flex-col items-center gap-1 border-t-[3px] pb-2 pt-2 text-xs font-semibold transition-colors ${
+            // El foco de teclado lo dibuja la pestaña por dentro (`foco-propio`,
+            // como las tarjetas del mapa): por fuera lo cortaba el borde de la
+            // pantalla y arriba se fundía con la raya, que es del mismo azul;
+            // y con el contorno global corrido hacia adentro cruzaba las
+            // letras de «Matches» a 360 px (revisión del 2026-11-19). Este
+            // anillo va a 1 px de los costados y 2 px por debajo de la raya.
+            className={`foco-propio relative -mt-px flex min-w-0 flex-1 flex-col items-center gap-1 border-t-[3px] pb-2 pt-2 text-xs font-semibold transition-colors after:pointer-events-none after:absolute after:inset-x-px after:bottom-px after:top-0.5 after:rounded-md focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-(--focus-ring) ${
               active ? "border-primary-text text-ink" : "border-transparent text-ink-soft"
             }`}
           >

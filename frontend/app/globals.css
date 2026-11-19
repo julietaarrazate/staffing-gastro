@@ -1264,16 +1264,6 @@ body:has([data-landing]) main {
   }
 }
 
-/* La barra de secciones del celular (`BottomNav`): el foco de teclado va
-   por dentro de la pestaña. Por fuera quedaba cortado por el borde de la
-   pantalla (la barra va pegada abajo y a los costados) y arriba se fundía
-   con la raya de la activa, que es del mismo azul (revisión del 2026-11-19).
-   Va acá y no como utilidad de Tailwind: el piso global de `:focus-visible`
-   no tiene capa y le gana a las utilidades. */
-.barra-secciones a:focus-visible {
-  outline-offset: -7px;
-}
-
 /* La comanda: papel de cocina con el relieve del filete. */
 .comanda {
   position: relative;

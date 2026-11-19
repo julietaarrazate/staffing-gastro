@@ -170,11 +170,26 @@ for (const theme of ["light", "dark"] as const) {
     // borde de la pantalla y arriba se fundía con la raya.
     const inicio = barra.getByRole("link", { name: "Inicio" });
     await inicio.focus();
-    const foco = await inicio.evaluate((a) => ({
-      visible: a.matches(":focus-visible"),
-      offset: getComputedStyle(a).outlineOffset,
-    }));
-    expect(foco).toEqual({ visible: true, offset: "-7px" });
+    const foco = await inicio.evaluate((a) => {
+      const caja = a.getBoundingClientRect();
+      const anillo = getComputedStyle(a, "::after");
+      return {
+        visible: a.matches(":focus-visible"),
+        // Un solo indicador: el contorno global apagado y el anillo de adentro.
+        contorno: getComputedStyle(a).outlineStyle,
+        anillo: anillo.boxShadow.includes("inset"),
+        arriba: parseFloat(anillo.top),
+        costados: [parseFloat(anillo.left), parseFloat(anillo.right)],
+        alto: caja.height,
+      };
+    });
+    expect(foco.visible).toBe(true);
+    expect(foco.contorno).toBe("none");
+    expect(foco.anillo).toBe(true);
+    // Por debajo de la raya (que es el borde de arriba, fuera de esta caja) y
+    // sin pegarse a los costados.
+    expect(foco.arriba).toBeGreaterThanOrEqual(2);
+    expect(Math.min(...foco.costados)).toBeGreaterThanOrEqual(1);
   });
 }
 

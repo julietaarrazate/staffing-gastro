@@ -45,10 +45,12 @@ raya a 3 o más).
 claro y oscuro, con teclado y con contenido pasando por debajo): aprobada con
 un arreglo, hecho acá. El contorno de foco iba por fuera de la pestaña: abajo
 y en las puntas lo cortaba el borde de la pantalla, y arriba se fundía con la
-raya de la activa, que es del mismo azul. Ahora va por dentro (`outline-offset:
--7px` en `.barra-secciones`, en `globals.css`: el piso global de
-`:focus-visible` no tiene capa y le gana a una utilidad de Tailwind), entero y
-separado de la raya; lo cubre el mismo test. Anotó también que la barra mide
+raya de la activa, que es del mismo azul. Primero se corrió el contorno
+hacia adentro, y en la segunda mirada cruzaba las letras de «Matches» a 360
+px. Quedó un anillo propio por dentro de la pestaña (`foco-propio` con un
+`::after`, como las tarjetas del mapa): a 1 px de los costados y 2 px por
+debajo de la raya, entero y separado de ella; lo cubre el mismo test. A 320
+px «Matches» ocupa casi toda su pestaña (53 px) y el anillo la roza. Anotó también que la barra mide
 61 px (antes unos 67) y el contenido sigue reservando 80 (`--chrome-bottom`):
 quedan 19 px de aire al final de cada pantalla, como antes quedaban 13.
 
