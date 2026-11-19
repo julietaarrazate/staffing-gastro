@@ -88,6 +88,14 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
   Los ids ajenos o inexistentes se ignoran; `{"ids": []}` no marca nada. **Sin
   cuerpo** (la app vieja que quedó en caché de la PWA) marca todos los no
   leídos de la cuenta, como antes.
+- **Los sockets y la revocación (límite conocido):** el socket de avisos y el de
+  chat se cortan (1008) cuando vence el token con el que se conectaron, y
+  cuando se revocan en bloque las sesiones de la cuenta (contraseña nueva,
+  reclamo por Google, alta de dos pasos). Ese segundo corte **no cierra el
+  hueco por completo**: el access token sigue valiendo hasta su `exp` (hasta 15
+  min) y el handshake no mira la revocación, así que quien tenga un token
+  vigente reconecta y vuelve a recibir hasta que venza. Cerrarlo pide atar el
+  token a la sesión, y eso es un ADR aparte.
 - **La campanita se relee** al volver a primer plano y al volver la red, con el
   mismo piso de 30 s que la reconexión del socket (`NotificationBell.tsx`).
 - **Turnos cerca (`new_shift_nearby`, `urgent_shift_nearby`):** sólo a quien
