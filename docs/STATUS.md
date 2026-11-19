@@ -88,9 +88,13 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
    ([historial](./historial/2026-11-18-panel-comercio-relieve.md)),
    Candidatos ([historial](./historial/2026-11-18-candidatos-relieve.md)) y
    Mis turnos ([historial](./historial/2026-11-18-mis-turnos-relieve.md)).
-   **Sigue** lo que es de toda la app, cada cosa en su PR: la barra de abajo,
-   las pestañas, los botones secundarios, los pasos tachados a mano, los
-   colores de los sellos y el detalle del turno. Las piezas compartidas ya están
+   **Sigue** lo que es de toda la app, cada cosa en su PR y en este orden:
+   ~~la barra de abajo~~ (hecha el 2026-11-19,
+   [historial](./historial/2026-11-19-barra-de-abajo-relieve.md)), las
+   pestañas (raya azul hondo), los botones secundarios, los pasos tachados a
+   mano (en un renglón), los colores de los sellos y el detalle del turno
+   (el pago en la comanda). Cómo va cada uno lo decidió Julieta el 2026-11-19
+   (`direccion-relieve.md`). Las piezas compartidas ya están
    (`components/ui/Comanda.tsx`, `lib/letras.ts`, `.app-cielo`). Qué tiene, las referencias de Julieta,
    lo que falta decidir y el orden, en
    [`design-system/direccion-relieve.md`](./design-system/direccion-relieve.md).
