@@ -341,7 +341,9 @@ inactividad**: ver el primer límite, más abajo.
   3. su fila más reciente (`created_at`) está revocada.
 
   Entran: quien cerró sesión en todos lados, la contraseña restablecida, el
-  refresh reutilizado y la suspendida (todas revocan), **mientras la cuenta
+  refresh reutilizado pasada la ventana de gracia de 30 s (ADR-0002,
+  actualización 2026-11-19; dentro de ella no se revoca nada) y la
+  suspendida (todas revocan), **mientras la cuenta
   no vuelva a entrar en ningún lado**. No entran: la rotación normal (la anterior revocada, la nueva
   viva), la cuenta inactiva (la última fila venció sin revocar, aunque haya
   revocadas más viejas de las renovaciones) y la que ya no tiene filas.

@@ -1,6 +1,6 @@
 # ADR-0002 — Sesiones revocables: rotación de refresh tokens con tabla de `jti`
 
-**Estado:** aceptado · **Fecha:** 2026-07-02
+**Estado:** aceptado · **Fecha:** 2026-07-02 · **Actualizado:** 2026-11-19 (ventana de gracia, abajo)
 
 ## Contexto
 
@@ -37,7 +37,9 @@ problema real era el refresh de 30 días.
    token que ya fue rotado), se interpreta como señal de que el token
    circuló fuera de control. Se revocan **todas** las sesiones activas del
    usuario (`revoke_all_for_user`) y se rechaza con 401 — fuerza un
-   re-login, cortando cualquier sesión robada en paralelo.
+   re-login, cortando cualquier sesión robada en paralelo. Desde el
+   2026-11-19, salvo que el token se haya **rotado** hace 30 segundos o
+   menos (ver «Actualización 2026-11-19»).
 4. **Logout server-side:** nuevo endpoint `POST /auth/logout` con body
    `{"refresh_token": "..."}`. Revoca la sesión asociada; responde `204` si
    el token era válido, `401` si no lo era (no-disclosure: mismo mensaje que
@@ -74,3 +76,111 @@ problema real era el refresh de 30 días.
 - ⚠️ El frontend actual no llama a `/auth/logout` (borra tokens de
   `localStorage` nada más); wiring del cliente queda fuera de este ADR —
   el backend ya soporta el flujo completo cuando se conecte.
+
+## Actualización 2026-11-19 — rotación atómica y ventana de gracia de 30 s
+
+### Qué fallaba
+
+La pasada por clase de error del 2026-11-19 encontró tres caminos por los que
+el punto 3 cerraba sesiones legítimas o dejaba pasar un reuso:
+
+- **Dos pestañas (CON-02).** La cookie de renovación es una sola por
+  navegador, pero cada pestaña (y la PWA instalada) renovaba por su cuenta.
+  Si dos salían casi a la vez, la segunda llevaba la cookie que la primera
+  acababa de rotar: el servidor lo tomaba por robo y cerraba la sesión en
+  todos los dispositivos, también en el celular. Pasa sobre todo al
+  despertar el equipo o al restaurar pestañas (todas renuevan juntas) y con
+  pestañas en segundo plano, cuyos temporizadores el navegador agrupa.
+- **Respuesta perdida (SES-01).** El servidor rota, pero la respuesta no
+  llega (el celular se suspende, se corta la red). El reintento sale con la
+  cookie vieja: mismo cierre en todos lados, y ese dispositivo además queda
+  afuera, porque la cookie nueva se perdió.
+- **Rotación no atómica (CON-03).** Rotar era leer la sesión y después
+  marcarla. Dos pedidos con el mismo token que leían antes de que el otro
+  escribiera ganaban los dos: dos sesiones de 30 días salidas del mismo
+  token, sin que la detección de reuso se enterara.
+
+### Decisión
+
+1. **Rotación atómica.** `RefreshSessionRepository.rotate` marca la sesión
+   con un solo `UPDATE refresh_sessions SET revoked_at = :now, rotated_at =
+   :now WHERE jti = :jti AND revoked_at IS NULL` y mira `rowcount`. Sólo
+   quien la rota emite el par nuevo por la rotación; el otro pedido vuelve a
+   leer la fila y sigue las reglas del reuso (abajo).
+2. **Ventana de gracia de 30 s para un token rotado.** Columna nueva
+   `refresh_sessions.rotated_at` (migración `0059`): cuándo se revocó la
+   sesión **por rotación**. Si ese token vuelve dentro de
+   `REFRESH_ROTATION_GRACE` (`identity/domain/entities.py`) no es robo: se
+   emite un par nuevo (una sesión nueva, con el mismo claim `mfa` que traía
+   el token) y no se revoca nada más. Así se recuperan la segunda pestaña y
+   el dispositivo que perdió la respuesta.
+3. **Sigue siendo robo** (revoca todas las sesiones y contesta 401, como el
+   punto 3 original):
+   - un token rotado que vuelve **pasados** los 30 s;
+   - un token revocado **por otra causa**, aunque sea de hace un segundo:
+     cierre de sesión, contraseña restablecida, suspensión, alta de los dos
+     pasos, cuenta reclamada con Google, robo detectado. Ninguno de esos
+     caminos llena `rotated_at`;
+   - `revoke_all_for_user` además **borra** `rotated_at` de las sesiones ya
+     rotadas de la cuenta: después de una revocación en bloque, el token de
+     hace unos segundos tampoco tiene gracia (quien cambia la contraseña
+     porque le robaron la sesión no deja una puerta de 30 s abierta).
+4. **Candado entre pestañas en el frontend.** La renovación corre bajo
+   `navigator.locks.request("oido-renovar-sesion", …)`
+   (`frontend/lib/candado-renovacion.ts`, usado por `tryRefresh` en
+   `frontend/lib/auth-context.tsx`): la pestaña que espera sale cuando la
+   otra ya recibió su respuesta, con la cookie nueva. Sin `navigator.locks`
+   (navegadores viejos) renueva como antes, y la ventana del servidor cubre
+   el choque. Si el candado no se libera dentro del tope de la renovación
+   (90 s), se contesta como un servidor que no respondió: no se cierra la
+   sesión.
+
+### Por qué 30 segundos
+
+- **Lo que tiene que cubrir:** el choque de dos pestañas (de milisegundos a
+  pocos segundos) y el reintento después de un corte corto de red, que el
+  frontend hace enseguida (al volver la conexión, la pestaña al frente o el
+  próximo pedido con 401).
+- **Lo que cuesta:** dentro de la ventana, quien tenga una copia del token
+  viejo obtiene una sesión propia sin disparar la detección. Es acotado: un
+  atacante con el refresh ya podía usarlo antes que el dueño (la detección
+  corta recién cuando el otro vuelve a usar el suyo), y 30 s es una fracción
+  de los 15 minutos de access token que cualquier robo ya regala. La carrera
+  de CON-03 ya daba lo mismo, sin límite de tiempo ni registro.
+- **Por qué no más ni menos:** una ventana de minutos cubriría al celular
+  que estuvo suspendido, pero dejaría el token copiado vivo mucho más; una de
+  5 s no alcanza para un reintento sobre red móvil.
+
+### Descartado
+
+- **Contestar 401 sin revocar dentro de la ventana.** Salvaba a los otros
+  dispositivos pero dejaba afuera al que perdió la respuesta (SES-01).
+- **Guardar el `jti` sucesor y reentregar el mismo par.** El refresh es un
+  JWT firmado que no se guarda; habría que guardarlo (o volver a firmarlo
+  igual) para el mismo efecto que emitir uno nuevo.
+- **Revocar la sesión sucesora al reemitir.** Si las dos respuestas llegan
+  desordenadas, el navegador puede quedarse con la sucesora revocada y la
+  próxima renovación sería robo.
+
+### Consecuencias
+
+- ✅ Dos pestañas, la PWA y una pestaña, o el reintento tras un corte corto
+  ya no cierran la sesión en todos los dispositivos.
+- ✅ De dos renovaciones simultáneas con el mismo token rota una sola; la
+  otra pasa por las reglas del reuso.
+- ⚠️ Dentro de los 30 s, un token copiado obtiene sesión sin que se note
+  (decisión de seguridad aceptada, ver arriba).
+- ⚠️ Cada par emitido por la ventana deja viva la sesión sucesora del
+  primero aunque nadie tenga su cookie; la retención la borra al vencer (30
+  días más 7).
+- ⚠️ Límite conocido: si el celular queda suspendido más de 30 s con la
+  respuesta en el aire (o el pedido cuelga hasta el tope de 90 s después de
+  que el servidor rotó), el reintento sigue cerrando todo. Cubrirlo exige
+  guardar el sucesor (descartado por ahora).
+- Tests: `backend/tests/test_renovacion_de_sesion.py` (la ventana, la
+  respuesta perdida, las dos pestañas, el cierre de sesión y la contraseña
+  nueva que no tienen gracia, y la rotación concurrente con dos sesiones de
+  base), `test_refresh_reuse_revokes_all_sessions` en
+  `backend/tests/test_identity.py` (fuera de la ventana sigue revocando
+  todo), `frontend/lib/candado-renovacion.test.ts` y «otra pestaña está
+  renovando» en `frontend/lib/auth-context.test.tsx`.
