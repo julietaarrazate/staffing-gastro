@@ -53,7 +53,10 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
 0. 🟡 **Marca: Shrikhand e ícono «el pinche con oído» (beta, etapa 4).** **2026-11-19: la app pasa a
    la dirección suave** ([ADR-0028](./adr/ADR-0028-direccion-suave.md), «la hoja sobre el cielo»),
    de a una pantalla: ya están «Publicar turno» y «Publicar evento»; el orden de lo que sigue está
-   en `design-system/direccion-relieve.md` ([historial](./historial/2026-11-19-publicar-direccion-suave.md)). Julieta eligió el
+   en `design-system/direccion-relieve.md` ([historial](./historial/2026-11-19-publicar-direccion-suave.md)). **Para mirar y decidir:** la
+   prueba de identidad por pantalla, diez pantallas en claro y en noche
+   (https://claude.ai/artifact/WJn8NkYTpvSsa81RpoR2Jg; qué propone y qué cambia de lo decidido, en
+   `direccion-relieve.md`, «Identidad por pantalla»). Julieta eligió el
    2026-11-17 la letra Shrikhand y seguir con el ámbar. El 2026-11-18 eligió,
    después de ver cinco conceptos (https://claude.ai/artifact/TqfGBkrBX1aGFJSygrsQkS),
    el ícono **«el pinche con oído»** (la comanda clavada en el pinche, con

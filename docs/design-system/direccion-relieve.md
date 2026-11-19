@@ -383,3 +383,45 @@ cada uno, sin tocar la lógica:
 6. Chats, Perfil, Mapa, fichas, Favoritos y Mi plan.
 7. Las reglas de `.estilo-suave` pasan a `:root` y se borra lo de «con
    relieve» que quede en la app.
+
+## Identidad por pantalla (2026-11-19, prueba; falta que decida Julieta)
+
+Prueba con diez pantallas, en claro y en noche, enlazadas entre sí:
+https://claude.ai/artifact/WJn8NkYTpvSsa81RpoR2Jg (privada).
+
+Con el cielo y la hoja iguales en todas, las pantallas se vuelven a parecer.
+La regla que se propone: **el cielo muestra lo que la pantalla responde y la
+hoja es donde se actúa**. Cambian cuatro cosas, siempre dentro de la paleta:
+el alto del cielo, lo que vive en él, cómo se encuentra con la hoja y si es
+el cielo de día o el hondo.
+
+| Pantalla | Pregunta | El cielo | Lo propio |
+|---|---|---|---|
+| Inicio (trabaja) | ¿Qué tengo hoy? | Alto, con nubes | La frase que termina en la hora gigante («Hoy trabajás a las 20:00») y el ámbar sobre el cielo |
+| Buscar (trabaja) | ¿Qué turno tomo? | Corto, con el buscador de vidrio | El pago en grande en cada fila; la marca («Urgente», «Paga más») al final del renglón |
+| Mapa | ¿Qué hay cerca? | El mapa es el cielo (se funde arriba) | El pago en el pin; el elegido, en azul hondo |
+| El turno | ¿Me conviene? | La foto del local es el cielo | El pago es el número más grande de la hoja |
+| Mis turnos | ¿Qué tengo y en qué anda? | Medio, con la semana | La tarjeta de hoy lleva su propio cielo y los cuatro pasos |
+| Chats | ¿Quién me escribió? | Corto y liso, sin nubes | Cada chat cuelga de su turno |
+| Perfil (trabaja) | ¿Cómo me ven? | Medio; la foto a caballo de la hoja | La reputación como número grande y una reseña |
+| Panel (comercio) | ¿Está cubierto? | **Hondo** (el servicio en marcha) | El número de turnos de hoy y sus tres estados |
+| Candidatos | ¿A quién elijo? | Corto | La recomendada como tarjeta de foto con el nombre encima |
+| «¡Oído!» | Listo | Entero, sin hoja | El único momento de marca: la cinta y las dos fotos |
+
+Lo que la prueba cambia de lo ya decidido (hay que decidirlo de nuevo):
+
+1. **Barra de abajo:** flota sobre la hoja, blanca y con sombra difusa (la
+   decidida el 2026-11-19 va pegada al borde con una raya azul).
+2. **Pestañas:** una pista hundida con la elegida como tecla (la decidida
+   es texto con raya azul).
+3. **«Publicar turno» del comercio:** un «+» redondo azul hondo al lado de
+   la barra. No va en ámbar: el ámbar queda para la acción de cada pantalla.
+4. **El cielo hondo** para el Panel (sale de la banda azul hondo de la
+   dirección anterior).
+
+Antes de llevarla al código hay que confirmar contra el producto: «Empieza en
+2 h 40 min», «puntual en 31», la calificación del comercio en el turno, «Ya
+se postularon 4» con las fotos y el tiempo de «Buscando hace 3 min». La cinta
+«¡Oído!» de la prueba está dibujada con CSS; en la app la dibuja
+`components/landing/Filete.tsx`. Las fotos son las de banco de la landing y
+las personas sin foto van con iniciales.
