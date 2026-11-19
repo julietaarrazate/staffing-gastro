@@ -14,6 +14,7 @@ import { Button, ErrorBanner, Skeleton, TextField } from "@/components/ui";
 import { MapPinIcon } from "@/components/icons";
 import IconChip from "@/components/ui/IconChip";
 import { LIMITES } from "@/lib/limites";
+import { saveCompanyProfilePart, type CompanyProfileChanges } from "@/lib/company-profile";
 
 // maplibre pesa ~286 KB comprimidos: se carga recién cuando se muestra el
 // mapa, no con la página (medido 2026-10-22, ver historial).
@@ -26,6 +27,50 @@ const MapAddressPicker = dynamic(() => import("@/components/map/MapAddressPicker
     </div>
   ),
 });
+
+/** Lo que el formulario edita, normalizado para compararlo con lo cargado. */
+type CompanyFields = Required<CompanyProfileChanges>;
+
+function fieldsOf(p: CompanyProfile): CompanyFields {
+  return {
+    name: p.name,
+    logo_url: p.logo_url ?? null,
+    cover_photo_url: p.cover_photo_url ?? null,
+    address: p.address || null,
+    city: p.city || null,
+    latitude: p.latitude ?? null,
+    longitude: p.longitude ?? null,
+  };
+}
+
+/**
+ * Sólo lo que la persona tocó respecto de lo que cargó el formulario (ESC-02,
+ * 2026-11-19): lo demás lo pone `saveCompanyProfilePart` con lo que tiene el
+ * servidor, así un formulario abierto desde antes no revierte, por ejemplo, un
+ * logo cambiado en otro lado. La ubicación va junta (dirección, ciudad y
+ * coordenadas cambian en un mismo gesto del selector).
+ */
+export function changedCompanyFields(
+  now: CompanyFields,
+  loaded: CompanyFields
+): CompanyProfileChanges {
+  const out: CompanyProfileChanges = {};
+  if (now.name !== loaded.name) out.name = now.name;
+  if (now.logo_url !== loaded.logo_url) out.logo_url = now.logo_url;
+  if (now.cover_photo_url !== loaded.cover_photo_url) out.cover_photo_url = now.cover_photo_url;
+  if (
+    now.address !== loaded.address ||
+    now.city !== loaded.city ||
+    now.latitude !== loaded.latitude ||
+    now.longitude !== loaded.longitude
+  ) {
+    out.address = now.address;
+    out.city = now.city;
+    out.latitude = now.latitude;
+    out.longitude = now.longitude;
+  }
+  return out;
+}
 
 export default function CompanyProfileForm() {
   const { token } = useAuth();
@@ -40,6 +85,7 @@ export default function CompanyProfileForm() {
   // El mapa (ADR-0006) es el método principal de ubicación; el selector
   // manual por provincia/localidad queda como fallback (geocoder caído, o el
   // comercio prefiere cargar a mano).
+  const [loadedFields, setLoadedFields] = useState<CompanyFields | null>(null);
   const [useManualPicker, setUseManualPicker] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -62,6 +108,7 @@ export default function CompanyProfileForm() {
         setCity(p.city ?? "");
         setLatitude(p.latitude ?? null);
         setLongitude(p.longitude ?? null);
+        setLoadedFields(fieldsOf(p));
       })
       .catch((err) => {
         // Sólo un 404 real significa "todavía no hay perfil". Cualquier otro
@@ -86,7 +133,7 @@ export default function CompanyProfileForm() {
     setSaved(false);
     // Rubro, descripción, capacidad y horarios no se editan acá y no se mandan:
     // el backend trata lo que no vino como «no tocar» (actualización parcial).
-    const payload = {
+    const current: CompanyFields = {
       name,
       logo_url: logoUrl,
       cover_photo_url: coverUrl,
@@ -98,11 +145,16 @@ export default function CompanyProfileForm() {
     setSubmitting(true);
     try {
       if (exists) {
-        await api.put<CompanyProfile>("/companies/me/profile", payload, token);
+        await saveCompanyProfilePart(
+          token,
+          loadedFields ? changedCompanyFields(current, loadedFields) : current
+        );
       } else {
-        await api.post<CompanyProfile>("/companies/me/profile", payload, token);
+        // Todavía no hay perfil: no hay nada que preservar.
+        await api.post<CompanyProfile>("/companies/me/profile", current, token);
       }
       setExists(true);
+      setLoadedFields(current);
       setSaved(true);
     } catch (err) {
       setError(getErrorMessage(err, "No se pudo guardar el perfil"));
