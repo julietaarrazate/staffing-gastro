@@ -51,7 +51,7 @@ export default function BottomSheet({
 
   return (
     <div
-      className={`absolute inset-x-0 bottom-0 z-20 flex h-[78dvh] flex-col rounded-t-3xl bg-card shadow-[0_-8px_30px_rgba(0,0,0,0.15)] ${
+      className={`absolute inset-x-0 bottom-0 z-20 flex h-[78dvh] flex-col rounded-t-[var(--radius-relieve)] border-t-[1.5px] border-[color:var(--relieve)] bg-card ${
         dragging ? "" : "transition-transform duration-200 ease-out"
       }`}
       style={{ transform: `translateY(${transform})` }}
