@@ -405,19 +405,18 @@ class ShiftRepository(ABC):
         quien llama con `hoy_art()`. Una sola consulta con SUM/CASE."""
 
     @abstractmethod
-    async def count_period_stats(
+    async def count_window_stats(
         self,
         *,
-        previous_start: datetime,
-        current_start: datetime,
-        end: datetime,
+        windows: Sequence[tuple[datetime, datetime]],
         exclude_company_emails: frozenset[str] = frozenset(),
-    ) -> tuple[ShiftPeriodStats, ShiftPeriodStats]:
-        """`(actual, anterior)`: turnos publicados en `[current_start, end)`
-        y en `[previous_start, current_start)`, sin los de comercios cuyo
-        email está en `exclude_company_emails`. Los agregados salen de UNA
-        consulta (SUM/CASE por ventana) y la mediana de otra, así la
-        comparación no suma round-trips según el volumen."""
+    ) -> list[ShiftPeriodStats]:
+        """Una `ShiftPeriodStats` por ventana `[inicio, fin)`, en el mismo
+        orden: turnos publicados en cada una, sin los de comercios cuyo email
+        está en `exclude_company_emails`. Las ventanas no se superponen (el
+        período y el anterior de «Métricas», o las semanas de la serie M7).
+        Los agregados salen de UNA consulta (SUM/CASE por ventana) y la
+        mediana de otra, así sumar ventanas no suma round-trips."""
 
     @abstractmethod
     async def count_return_stats(

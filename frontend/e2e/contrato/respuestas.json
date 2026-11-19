@@ -390,6 +390,38 @@
     },
     "status": 401
   },
+  "metricas_semanales": {
+    "body": {
+      "weeks": [
+        {
+          "active_companies": 1,
+          "companies_with_covered": 1,
+          "covered_pct": 50.0,
+          "end": "2026-11-01T12:00:00+00:00",
+          "fulfilled": 0,
+          "fulfilled_pct": 0.0,
+          "in_progress": true,
+          "median_minutes_to_cover": 4.0,
+          "shifts_covered": 2,
+          "shifts_published": 4,
+          "short_notice_covered": 1,
+          "short_notice_under_10_min_pct": 100.0,
+          "signups_by_origin": [
+            {
+              "companies": 3,
+              "origin": "directo",
+              "total": 7,
+              "workers": 4
+            }
+          ],
+          "signups_companies": 3,
+          "signups_workers": 4,
+          "start": "2026-11-01T12:00:00+00:00"
+        }
+      ]
+    },
+    "status": 200
+  },
   "perfil_comercio": {
     "body": {
       "address": null,

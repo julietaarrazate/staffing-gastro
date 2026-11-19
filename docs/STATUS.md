@@ -41,7 +41,7 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
   scripts del CV y los documentos y la prueba de los 6 minutos
   (`reference/PENDIENTE_OPERATIVO.md`, 5c). La próxima migración libre es
   la 0061. En paralelo, las
-  etapas 4 (marca) y 5 (lista de salida, con M7). Antes de encender el
+  etapas 4 (marca) y 5 (lista de salida; M7 ya está). Antes de encender el
   cobro: la regla de cambio de plan que decidió Julieta, con U140, U142 y
   U143. Antes del 17/12: revisar la excepción de picomatch (#612).
   Qué está hecho,
@@ -275,8 +275,10 @@ pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
   4/12) y contratar Render Starter antes del piloto. Del lado del código, el
   origen de cada alta ya se guarda y se ve en Administración → Métricas,
   «Altas por origen» (enlaces con `?ref=`, `utm_source` y `utm_campaign`;
-  [historial](./historial/2026-11-18-origen-de-cada-alta.md)); falta la
-  serie semanal M7 del tablero
+  [historial](./historial/2026-11-18-origen-de-cada-alta.md)), y la serie
+  semanal M7 (Métricas → «Semana por semana», con CSV y las altas de cada
+  semana por origen y rol;
+  [historial](./historial/2026-11-19-serie-semanal-m7.md))
   ([`historial/2026-11-18-plan-90-dias-growth.md`](./historial/2026-11-18-plan-90-dias-growth.md),
   [`historial/2026-11-18-decisiones-fase-0.md`](./historial/2026-11-18-decisiones-fase-0.md)).
 - **Verificación en dos pasos del admin (ADR-0023):** **antes del merge**,

@@ -47,7 +47,7 @@ _FECHA = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}")
 # Campos de fecha que dependen del reloj del momento de correr el test.
 _FECHA_FIJA = "2026-11-01T12:00:00+00:00"
 # Campos que dependen del reloj o del azar de cada corrida.
-_AL_AZAR = {"distance_km": 0.3, "score": 0.4}
+_AL_AZAR = {"distance_km": 0.3, "score": 0.4, "median_minutes_to_cover": 4.0}
 _VOLATIL_OTROS = {"slug", "share_token"}
 # Horario fijo del turno en el archivo (el real se calcula desde hoy, porque el
 # feed y la página pública sólo muestran turnos que todavía no empezaron).
@@ -108,6 +108,9 @@ class Normalizador:
             if clave.endswith("_at") and _FECHA.match(v):
                 return _FECHA_FIJA
             if clave in ("period_end", "paid_until") and _FECHA.match(v):
+                return _FECHA_FIJA
+            # Los cortes de la serie semanal (M7) dependen de la semana en que corre.
+            if clave in ("start", "end") and _FECHA.match(v):
                 return _FECHA_FIJA
             return self.texto(v)
         return v
@@ -483,6 +486,10 @@ async def test_contrato_frontend(client: AsyncClient, session_factory):
     cap.guardar("turno_asignar_cuenta_suspendida", await client.post(
         f"/api/v1/shifts/{s3.json()['id']}/assign", headers=emp,
         json={"worker_profile_id": perfil_w3.json()["id"]}))
+
+    # --- Métricas: la serie semanal M7 (las altas y los turnos de esta corrida) --
+    cap.guardar("metricas_semanales", await client.get(
+        "/api/v1/admin/weekly-metrics?weeks=1", headers=verificado))
 
     # --- Renovar y cerrar sesión (cookie httpOnly en un cliente aparte) -------
     async with new_client() as otro:
