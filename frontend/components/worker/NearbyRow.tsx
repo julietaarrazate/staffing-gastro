@@ -17,11 +17,12 @@ function NearbyItem({ shift, distanceKm }: { shift: Shift; distanceKm: number | 
   const heroPhoto = shiftHeroPhoto(shift);
   const hasPhoto = Boolean(heroPhoto) && !broken;
   const { Icon } = SKILL_ACCENT[shift.position];
-  // Cuándo y distancia nunca se cortan: si no entran al lado, bajan de
-  // renglón. Lo único que se trunca es el nombre del local.
-  const cuando = [distanceKm != null ? formatDistance(distanceKm) : null, formatShiftWhenLive(shift)]
-    .filter(Boolean)
-    .join(" · ");
+  // Lo único que se trunca es el nombre del local. La distancia va fija a su
+  // lado y el cuándo en su renglón, en dos bloques que no se parten por dentro
+  // (el día y el rango horario): si no entran, el rango baja entero.
+  const distancia = distanceKm != null ? formatDistance(distanceKm) : null;
+  const [dia, ...restoCuando] = formatShiftWhenLive(shift).split(" · ");
+  const rango = restoCuando.join(" · ");
 
   return (
     <li>
@@ -60,8 +61,8 @@ function NearbyItem({ shift, distanceKm }: { shift: Shift; distanceKm: number | 
               </span>
             )}
           </span>
-          {/* El local: lo único que se corta con «…». */}
-          {(shift.company_name || shift.company_verified) && (
+          {/* El local (lo único que se corta con «…») y, al lado, la distancia fija. */}
+          {(shift.company_name || shift.company_verified || distancia) && (
             <span className="flex items-center gap-1 text-caption text-ink-soft">
               {/* Forma compacta: sello de `company_verified` con nombre
                   accesible completo. */}
@@ -75,12 +76,19 @@ function NearbyItem({ shift, distanceKm }: { shift: Shift; distanceKm: number | 
                   <ShieldIcon size={13} />
                 </span>
               )}
-              <span className="truncate">{shift.company_name}</span>
+              <span className="min-w-0 truncate">{shift.company_name}</span>
+              {distancia && (
+                <span data-testid="feed-nearby-distancia" className="shrink-0 whitespace-nowrap">
+                  {shift.company_name ? "· " : ""}
+                  {distancia}
+                </span>
+              )}
             </span>
           )}
-          {/* Cuándo y distancia, enteros: 13 px/600 en tinta. */}
-          <span data-testid="feed-nearby-cuando" className="block text-caption font-semibold text-ink">
-            {cuando}
+          {/* Sólo cuándo: 13 px/600 en tinta, en dos bloques sin partir. */}
+          <span data-testid="feed-nearby-cuando" className="flex flex-wrap gap-x-1.5 text-caption font-semibold text-ink">
+            <span className="whitespace-nowrap">{rango ? `${dia} ·` : dia}</span>
+            {rango && <span className="whitespace-nowrap">{rango}</span>}
           </span>
         </span>
         <span className="ml-auto shrink-0 text-[length:min(1.125rem,6vw)] font-extrabold tabular-nums text-ink">{formatPayCompact(shift)}</span>

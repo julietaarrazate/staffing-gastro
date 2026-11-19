@@ -44,12 +44,26 @@ for (const ancho of [320, 360, 390]) {
     // El local es lo único con elipsis.
     const local = fila.locator(".truncate");
     expect(await local.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
-    // Cuándo y distancia: enteros, en un renglón propio, sin recorte.
+    // La distancia: fija al lado del local, entera y en el mismo renglón.
+    const distancia = fila.getByTestId("feed-nearby-distancia");
+    await expect(distancia).toContainText(" km");
+    const dm = await distancia.evaluate((el) => ({ sobra: el.scrollWidth > el.clientWidth, ws: getComputedStyle(el).whiteSpace, shrink: getComputedStyle(el).flexShrink }));
+    expect(dm).toEqual({ sobra: false, ws: "nowrap", shrink: "0" });
+    const cl = await local.boundingBox();
+    const cd = await distancia.boundingBox();
+    expect(Math.abs(cl!.y - cd!.y)).toBeLessThan(6);
+    // El cuándo, en su renglón: el día y el rango horario son dos bloques que no se parten por dentro.
     const cuando = fila.getByTestId("feed-nearby-cuando");
-    await expect(cuando).toContainText(" km");
-    await expect(cuando).toContainText(/\d{2}:\d{2}/);
-    const medidas = await cuando.evaluate((el) => ({ sobra: el.scrollWidth > el.clientWidth, recorte: getComputedStyle(el).textOverflow, ws: getComputedStyle(el).whiteSpace, tam: getComputedStyle(el).fontSize, peso: getComputedStyle(el).fontWeight }));
-    expect(medidas).toEqual({ sobra: false, recorte: "clip", ws: "normal", tam: "13px", peso: "600" });
+    await expect(cuando).toContainText(/\d{2}:\d{2}\s*–\s*\d{2}:\d{2}/);
+    const medidas = await cuando.evaluate((el) => ({ sobra: el.scrollWidth > el.clientWidth, tam: getComputedStyle(el).fontSize, peso: getComputedStyle(el).fontWeight }));
+    expect(medidas).toEqual({ sobra: false, tam: "13px", peso: "600" });
+    const bloques = await cuando.locator("> span").all();
+    expect(bloques.length).toBe(2);
+    for (const b of bloques) {
+      expect(await b.evaluate((el) => getComputedStyle(el).whiteSpace)).toBe("nowrap");
+      expect((await b.evaluate((el) => el.getClientRects().length))).toBe(1);
+      expect((await b.boundingBox())!.height).toBeLessThan(20); // un solo renglón
+    }
     // Y la fila entera no se sale de la pantalla.
     const caja = await fila.boundingBox();
     expect(caja!.x + caja!.width).toBeLessThanOrEqual(ancho);
