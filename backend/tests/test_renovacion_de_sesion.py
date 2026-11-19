@@ -329,10 +329,13 @@ async def test_sin_ventana_la_segunda_de_dos_renovaciones_simultaneas_es_robo(
     async with _otro_dispositivo() as celular:
         monkeypatch.setattr(entities, "REFRESH_ROTATION_GRACE", timedelta(0))
         _cruzar_dos_renovaciones(monkeypatch)
-        primera, segunda = await asyncio.gather(
+        respuestas = await asyncio.gather(
             refresh_with_cookie(cookie), refresh_with_cookie(cookie)
         )
-        assert [primera.status_code, segunda.status_code] == [200, 401]
+        # Cuál de los dos llega primero a la base no depende del orden del
+        # `gather` (con la suite completa a veces gana el segundo).
+        ganadora, rechazada = sorted(respuestas, key=lambda r: r.status_code)
+        assert [ganadora.status_code, rechazada.status_code] == [200, 401]
         monkeypatch.undo()
-        assert (await refresh_with_cookie(primera.cookies.get(COOKIE))).status_code == 401
+        assert (await refresh_with_cookie(ganadora.cookies.get(COOKIE))).status_code == 401
         assert (await celular.post("/api/v1/auth/refresh")).status_code == 401
