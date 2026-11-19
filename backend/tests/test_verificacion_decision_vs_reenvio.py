@@ -242,7 +242,7 @@ async def test_el_reenvio_que_choca_con_una_aprobacion_dice_que_ya_esta_verifica
 # --- Dominio: se decide sobre el envío revisado -------------------------------
 
 
-def test_decidir_sobre_otro_envio_que_el_revisado_no_cambia_nada():
+async def test_decidir_sobre_otro_envio_que_el_revisado_no_cambia_nada():
     enviado = datetime(2026, 11, 19, 15, 30, 0, 123456, tzinfo=timezone.utc)
     claim = Claim(user_id=uuid4(), claim_type=ClaimType.DOCUMENTO_VERIFICADO)
     claim.submit(
