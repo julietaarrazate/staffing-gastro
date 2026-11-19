@@ -1,6 +1,10 @@
 """Borrado de los archivos de evidencia que dejó una decisión (ADR-0021,
 «Borrado al decidir»), armado con los adaptadores reales.
 
+Desde el 2026-11-19 la cola también recibe el CV del trabajador que se
+cambió o se sacó (`queue_file_deletions`, ADR-0021 «Actualización: el CV
+también»): mismo storage, mismo borrado y mismos reintentos.
+
 Dos entradas, el mismo caso de uso (`EvidenceFileCleaner`):
 
 - `delete_released_files`: corre **después de responder** la decisión del
@@ -15,7 +19,7 @@ Dos entradas, el mismo caso de uso (`EvidenceFileCleaner`):
 """
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -24,7 +28,9 @@ from app.core.database import AsyncSessionLocal
 from app.core.dt import naive
 from app.modules.verification.application.dtos import FileCleanupReport
 from app.modules.verification.application.services import EvidenceFileCleaner
+from app.modules.verification.domain.entities import EvidenceFileDeletion
 from app.modules.verification.domain.repositories import EvidenceFileStorage
+from app.modules.verification.domain.value_objects import EvidenceFile
 from app.modules.verification.infrastructure.evidence_file_storage import (
     CloudinaryEvidenceFileStorage,
 )
@@ -33,6 +39,26 @@ from app.modules.verification.infrastructure.repositories import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def queue_file_deletions(
+    session: AsyncSession, files: list[EvidenceFile], now: datetime | None = None
+) -> list[UUID]:
+    """Puerta de la cola para otro módulo que guarda archivos privados en el
+    mismo storage (el CV del trabajador). Los pedidos entran en la sesión de
+    quien llama y se confirman con su commit; devuelve los ids para
+    `delete_released_files` después de responder."""
+    now = now or datetime.now(UTC)
+    deletions = [EvidenceFileDeletion.request(file, now) for file in files]
+    SqlAlchemyEvidenceFileDeletionRepository(session).add_pending(deletions)
+    return [deletion.id for deletion in deletions]
+
+
+async def file_deletion_requested(session: AsyncSession, public_id: str) -> bool:
+    """¿Ese archivo ya se mandó a borrar, esté pendiente o ya borrado? Lo usa
+    el perfil del trabajador para no volver a aceptar un CV que la persona
+    ya cambió o sacó (un formulario abierto desde antes)."""
+    return await SqlAlchemyEvidenceFileDeletionRepository(session).was_requested(public_id)
 
 
 async def _run(

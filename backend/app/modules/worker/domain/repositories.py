@@ -2,9 +2,11 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from datetime import datetime
 from uuid import UUID
 
 from app.modules.worker.domain.entities import WorkerProfile
+from app.modules.worker.domain.value_objects import CvFile
 
 
 @dataclass
@@ -123,3 +125,44 @@ class WorkerProfileRepository(ABC):
         """Cuenta agregados de compromiso de trabajadores (`no_show_rate`,
         `worker_repeat_rate`, panel de admin) — agregado en SQL, no una
         lista de filas."""
+
+
+class CvFileStorage(ABC):
+    """Dónde vive el archivo del CV (ADR-0021, actualización 2026-11-19). El
+    adaptador es Cloudinary con entrega privada; el dominio sólo sabe que
+    hay un link que vence, que un archivo lo subió alguien, y que una URL
+    puede ser de un archivo del storage o un link pegado a mano."""
+
+    @abstractmethod
+    def link_for(self, file: CvFile, expires_at: datetime, download: bool = False) -> str:
+        """Link que abre el archivo hasta `expires_at` (y lo baja con
+        `download`)."""
+
+    @abstractmethod
+    def was_uploaded_by(self, file: CvFile, user_id: UUID) -> bool:
+        """¿Lo subió esa cuenta, con la firma del CV? Un archivo que no pasa
+        esto no entra a un perfil: si no, quien vio el link de otro (y con él
+        su nombre de archivo) se lo podía poner en su propio perfil."""
+
+    @abstractmethod
+    def file_from_url(self, url: str) -> CvFile | None:
+        """Si `url` es de un archivo de este storage, su referencia (un CV
+        viejo subido público, o lo que manda una versión vieja de la app
+        después de subir uno privado). Un link pegado a mano da `None`."""
+
+
+class CvFileDeletionQueue(ABC):
+    """Manda a borrar los archivos de CV que se dejaron de usar, con
+    reintentos si el storage falla (la cola del ADR-0021, «Borrado al
+    decidir»)."""
+
+    @abstractmethod
+    async def enqueue(self, files: list[CvFile]) -> None:
+        """El pedido entra en la misma transacción que el perfil: se confirma
+        con el próximo commit del repositorio (si el perfil no se guarda, el
+        archivo no se borra) y el borrado corre después de responder."""
+
+    @abstractmethod
+    async def was_released(self, file: CvFile) -> bool:
+        """¿Ese archivo ya se mandó a borrar (pendiente o ya borrado)? Un
+        archivo así no vuelve a entrar a un perfil."""

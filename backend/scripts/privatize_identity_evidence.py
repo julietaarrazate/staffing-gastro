@@ -1,21 +1,28 @@
-"""Pasa a privados los documentos de identidad pendientes y BORRA los que ya se
+"""Protege los documentos de identidad pendientes y BORRA los que ya se
 decidieron (ADR-0021).
 
 Hasta el ADR-0021 el DNI, la selfie y la constancia de AFIP subían a
 Cloudinary con entrega pública (`type=upload`): cualquiera con el link los
-veía. Y hasta el borrado al decidir (ADR-0021, «Borrado al decidir»), aprobar
-o rechazar sólo borraba el puntero en la base: el archivo quedaba en
-Cloudinary. Las subidas y decisiones nuevas ya están bien; este script arregla
-lo de antes:
+veía. Del 2026-10-23 al 2026-11-19 subieron `private`, que protege sólo el
+original: Cloudinary entrega sin firma cualquier versión transformada
+(`…/image/private/w_2000/<id>.jpg`). Desde el 2026-11-19 suben
+`authenticated` (ADR-0021, «Actualización 2026-11-19»). Y hasta el borrado
+al decidir, aprobar o rechazar sólo borraba el puntero en la base: el
+archivo quedaba en Cloudinary. Las subidas y decisiones nuevas ya están
+bien; este script arregla lo de antes:
 
-1. **Evidencias pendientes en la base** (`identity_evidences.data_url` con una
-   URL pública): cambia el archivo a `private` con el método `rename` de la
-   Upload API de Cloudinary (mismo `public_id`, `to_type=private`,
-   `invalidate=true` para sacarlo de la caché del CDN) y guarda en la fila la
-   referencia privada (`file_*`), borrando la URL. Siguen esperando la
-   revisión del admin.
+1. **Evidencias pendientes en la base con una URL pública**
+   (`identity_evidences.data_url`) **o con un archivo `private`**
+   (`file_delivery_type`): cambia el archivo a `authenticated` con el método
+   `rename` de la Upload API de Cloudinary (mismo `public_id`,
+   `to_type=authenticated`, `invalidate=true` para sacarlo de la caché del
+   CDN) y guarda en la fila la referencia protegida (`file_*`), borrando la
+   URL. Siguen esperando la revisión del admin. La fila se escribe sólo si
+   sigue como estaba al leerla: si el admin decidió mientras tanto, no se
+   pisa (el archivo queda huérfano y lo borra el paso 2 en la próxima
+   corrida).
 2. **Archivos huérfanos de las carpetas `oido/identidad/` y
-   `oido/constancias/`** (públicos o privados) que ninguna evidencia de la
+   `oido/constancias/`** (de cualquier tipo) que ninguna evidencia de la
    base apunta: son de claims ya decididos (la decisión borró el puntero pero
    no el archivo) o subidas que nunca se enviaron. Los **borra** con
    `destroy` de la Upload API (`invalidate=true`). Nunca toca un archivo que
@@ -23,12 +30,13 @@ lo de antes:
    ser de alguien que está por enviar su DNI).
 
 **Es idempotente:** una fila ya migrada no se vuelve a tocar, un archivo que
-ya es privado sólo actualiza la fila, y un huérfano borrado ya no aparece. Si
-se corta a la mitad, se vuelve a correr.
+ya es `authenticated` sólo actualiza la fila, y un huérfano borrado ya no
+aparece. Si se corta a la mitad, se vuelve a correr.
 
 **Por defecto NO cambia nada** (dry-run): lista lo que haría. Para hacerlo de
 verdad, `--apply`. Cómo correrlo en producción: ver
-`docs/adr/ADR-0021-documentos-de-identidad-privados.md` ("Migración").
+`docs/adr/ADR-0021-documentos-de-identidad-privados.md` ("Migración" y
+«Actualización 2026-11-19»).
 
     cd backend
     python -m scripts.privatize_identity_evidence           # sólo mira
@@ -42,34 +50,32 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import re
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Protocol
 
 import httpx
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core import cloudinary as cld
+from app.core.cloudinary import (  # noqa: F401 (ParsedUrl: la usan los tests)
+    ParsedUrl,
+    parse_cloudinary_url,
+)
 from app.core.config import settings
 from app.modules.verification.infrastructure.models import IdentityEvidenceModel
 
-PRIVATE = cld.PRIVATE_DELIVERY_TYPE
+PROTECTED = cld.PROTECTED_DELIVERY_TYPE
+OLD_PRIVATE = cld.OLD_PRIVATE_DELIVERY_TYPE
 FOLDERS_TO_SWEEP = (cld.FOLDERS["identity"], cld.FOLDERS["business_document"])
 RESOURCE_TYPES = ("image", "raw")
-DELIVERY_TYPES = ("upload", PRIVATE, "authenticated")
+DELIVERY_TYPES = ("upload", OLD_PRIVATE, PROTECTED)
 # Un archivo más nuevo que esto no se borra aunque nadie lo apunte: la app
 # sube primero a Cloudinary y recién después envía la referencia, así que
 # puede ser de alguien que está completando el formulario.
 ORPHAN_MIN_AGE = timedelta(hours=24)
-
-_URL = re.compile(
-    r"^https://res\.cloudinary\.com/[^/]+/(?P<rt>image|raw|video)/"
-    r"(?P<type>upload|private|authenticated)/(?P<rest>.+)$"
-)
-_VERSION = re.compile(r"^v\d+$")
 
 
 @dataclass(frozen=True)
@@ -80,38 +86,9 @@ class Asset:
     type: str
     # Cuándo se subió (lo da la Admin API). `None` = no se sabe: no se borra.
     created_at: datetime | None = None
-
-
-@dataclass(frozen=True)
-class ParsedUrl:
-    public_id: str
-    resource_type: str
-    format: str
-    type: str
-
-
-def parse_cloudinary_url(url: str) -> ParsedUrl | None:
-    """`https://res.cloudinary.com/<cloud>/image/upload/v123/oido/identidad/ab.jpg`
-    → (`oido/identidad/ab`, `image`, `jpg`, `upload`). Lo que hay antes de la
-    versión (`v123`) son transformaciones y se descarta. En `raw` la
-    extensión es parte del `public_id` y el formato queda vacío. `None` si no
-    es una URL de entrega de Cloudinary."""
-    match = _URL.match(url.split("?", 1)[0])
-    if not match:
-        return None
-    segments = match["rest"].split("/")
-    for i, segment in enumerate(segments):
-        if _VERSION.match(segment):
-            segments = segments[i + 1 :]
-            break
-    path = "/".join(segments)
-    if not path:
-        return None
-    resource_type = match["rt"]
-    if resource_type == "raw" or "." not in segments[-1]:
-        return ParsedUrl(path, resource_type, "", match["type"])
-    public_id, file_format = path.rsplit(".", 1)
-    return ParsedUrl(public_id, resource_type, file_format.lower(), match["type"])
+    # La carpeta (`asset_folder` en las cuentas con carpetas dinámicas, donde
+    # no siempre está en el `public_id`; `folder` en las de carpetas fijas).
+    folder: str = ""
 
 
 class CloudinaryAdmin(Protocol):
@@ -121,10 +98,13 @@ class CloudinaryAdmin(Protocol):
         """El archivo, sea público o privado; `None` si no existe."""
 
     def list_files(self, folder: str, resource_type: str) -> Iterable[Asset]:
-        """Todos los archivos de esa carpeta, públicos o privados."""
+        """Todos los archivos de esa carpeta, de cualquier tipo de entrega."""
 
-    def make_private(self, asset: Asset) -> None:
-        """Cambia el archivo a `type=private` (mismo `public_id`)."""
+    def list_root(self, resource_type: str) -> Iterable[Asset]:
+        """Los archivos sin carpeta (de antes de las carpetas, 2026-10-15)."""
+
+    def protect(self, asset: Asset) -> None:
+        """Cambia el archivo a `type=authenticated` (mismo `public_id`)."""
 
     def delete(self, asset: Asset) -> None:
         """Borra el archivo (`destroy`). Que ya no exista cuenta como borrado."""
@@ -140,8 +120,11 @@ class HttpCloudinaryAdmin:
       cada tipo de entrega y, para las cuentas con carpetas dinámicas (donde
       la carpeta no siempre está en el `public_id`),
       `GET /resources/by_asset_folder`.
+    - Listar la raíz: `GET /resources/<rt>/<type>` sin `prefix`; quedan los
+      que no tienen carpeta (ni en el `public_id` ni en `asset_folder`).
     - Cambiar el tipo: `POST /<rt>/rename` con `from_public_id` =
-      `to_public_id`, `type=upload`, `to_type=private`, `invalidate=true`.
+      `to_public_id`, el `type` que tiene, `to_type=authenticated` e
+      `invalidate=true`.
     - Borrar: `POST /<rt>/destroy` con `public_id`, `type` e
       `invalidate=true` (`cld.destroy_request`, el mismo que usa la app).
     """
@@ -167,10 +150,11 @@ class HttpCloudinaryAdmin:
             format=raw.get("format") or "",
             type=raw.get("type", "upload"),
             created_at=_parse_created_at(raw.get("created_at")),
+            folder=raw.get("asset_folder") or raw.get("folder") or "",
         )
 
     def find(self, public_id: str, resource_type: str) -> Asset | None:
-        for delivery_type in ("upload", PRIVATE):
+        for delivery_type in DELIVERY_TYPES:
             response = self._client.get(
                 f"{self._base}/resources/{resource_type}/{delivery_type}/{public_id}"
             )
@@ -219,15 +203,24 @@ class HttpCloudinaryAdmin:
             # listado por prefijo ya alcanzó.
             return
 
-    def make_private(self, asset: Asset) -> None:
+    def list_root(self, resource_type: str) -> Iterable[Asset]:
+        for delivery_type in DELIVERY_TYPES:
+            for raw in self._paginate(
+                f"{self._base}/resources/{resource_type}/{delivery_type}", {}
+            ):
+                asset = self._asset(raw)
+                if "/" not in asset.public_id and not asset.folder:
+                    yield asset
+
+    def protect(self, asset: Asset) -> None:
         response = self._client.post(
             cld.api_url(asset.resource_type, "rename"),
             data=cld.signed_api_params(
                 {
                     "from_public_id": asset.public_id,
                     "to_public_id": asset.public_id,
-                    "type": "upload",
-                    "to_type": PRIVATE,
+                    "type": asset.type,
+                    "to_type": PROTECTED,
                     "invalidate": "true",
                 }
             ),
@@ -255,11 +248,13 @@ def _parse_created_at(value: object) -> datetime | None:
 @dataclass
 class Report:
     rows_migrated: int = 0
-    files_made_private: int = 0
-    already_private: int = 0
+    files_protected: int = 0
+    already_protected: int = 0
     orphans_deleted: int = 0
     recent_skipped: int = 0
     problems: list[str] = field(default_factory=list)
+    # Lo que no se toca y hay que mirar a mano (el script del CV).
+    to_review: list[str] = field(default_factory=list)
 
 
 async def _referenced_public_ids(session: AsyncSession) -> set[str]:
@@ -298,43 +293,80 @@ async def run(
     verb = "pasa" if apply else "pasaría"
     handled: set[tuple[str, str]] = set()
 
-    # 1) Filas de la base que todavía guardan una URL pública.
+    # 1) Evidencias pendientes con una URL pública o un archivo `private`.
     async with session_factory() as session:
         rows = (
             await session.execute(
-                select(IdentityEvidenceModel).where(
-                    IdentityEvidenceModel.data_url.is_not(None),
-                    IdentityEvidenceModel.file_public_id.is_(None),
+                select(
+                    IdentityEvidenceModel.id,
+                    IdentityEvidenceModel.data_url,
+                    IdentityEvidenceModel.file_public_id,
+                    IdentityEvidenceModel.file_resource_type,
+                    IdentityEvidenceModel.file_format,
+                    IdentityEvidenceModel.file_delivery_type,
+                ).where(
+                    or_(
+                        IdentityEvidenceModel.data_url.is_not(None)
+                        & IdentityEvidenceModel.file_public_id.is_(None),
+                        IdentityEvidenceModel.file_public_id.is_not(None)
+                        & (IdentityEvidenceModel.file_delivery_type != PROTECTED),
+                    )
                 )
             )
-        ).scalars().all()
-        for row in rows:
-            parsed = parse_cloudinary_url(row.data_url or "")
-            if parsed is None:
-                report.problems.append(f"evidencia {row.id}: URL que no es de Cloudinary")
-                continue
-            asset = admin.find(parsed.public_id, parsed.resource_type)
-            if asset is None:
-                report.problems.append(
-                    f"evidencia {row.id}: {parsed.public_id} no está en Cloudinary"
+        ).all()
+        for row_id, data_url, file_public_id, file_rt, file_format, file_type in rows:
+            if file_public_id:
+                public_id, resource_type, fmt = file_public_id, file_rt or "image", file_format
+                still_as_read = (IdentityEvidenceModel.file_public_id == file_public_id) & (
+                    IdentityEvidenceModel.file_delivery_type == file_type
                 )
+            else:
+                parsed = parse_cloudinary_url(data_url or "")
+                if parsed is None:
+                    report.problems.append(f"evidencia {row_id}: URL que no es de Cloudinary")
+                    continue
+                public_id, resource_type, fmt = (
+                    parsed.public_id,
+                    parsed.resource_type,
+                    parsed.format,
+                )
+                still_as_read = (IdentityEvidenceModel.data_url == data_url) & (
+                    IdentityEvidenceModel.file_public_id.is_(None)
+                )
+            asset = admin.find(public_id, resource_type)
+            if asset is None:
+                report.problems.append(f"evidencia {row_id}: {public_id} no está en Cloudinary")
                 continue
             handled.add((asset.resource_type, asset.public_id))
-            if asset.type == PRIVATE:
-                report.already_private += 1
+            if asset.type == PROTECTED:
+                report.already_protected += 1
             else:
-                out(f"evidencia {row.id}: {asset.public_id} {verb} a privado")
+                out(f"evidencia {row_id}: {asset.public_id} ({asset.type}) {verb} a protegido")
                 if apply:
-                    admin.make_private(asset)
-                report.files_made_private += 1
+                    admin.protect(asset)
+                report.files_protected += 1
             if apply:
-                row.file_public_id = asset.public_id
-                row.file_resource_type = asset.resource_type
-                row.file_format = asset.format or parsed.format
-                row.file_delivery_type = PRIVATE
-                row.data_url = None
+                # Sólo si la fila sigue como se leyó: si el admin decidió
+                # mientras tanto, no se pisa la decisión.
+                result = await session.execute(
+                    update(IdentityEvidenceModel)
+                    .where(IdentityEvidenceModel.id == row_id, still_as_read)
+                    .values(
+                        file_public_id=asset.public_id,
+                        file_resource_type=asset.resource_type,
+                        file_format=asset.format or fmt or "",
+                        file_delivery_type=PROTECTED,
+                        data_url=None,
+                    )
+                    .execution_options(synchronize_session=False)
+                )
                 # Una fila por commit: si algo se corta, lo hecho queda hecho.
                 await session.commit()
+                if result.rowcount == 0:
+                    report.problems.append(
+                        f"evidencia {row_id}: cambió mientras corría; no se tocó la fila"
+                    )
+                    continue
             report.rows_migrated += 1
 
     # 2) Huérfanos de las carpetas de identidad: se borran. Lo que apunta la
@@ -365,17 +397,25 @@ async def run(
                         continue
                 report.orphans_deleted += 1
 
-    mode = "APLICADO" if apply else "DRY-RUN (no se cambió nada; --apply para hacerlo)"
-    orphans = "huérfanos borrados" if apply else "huérfanos a borrar"
-    out(
-        f"[{mode}] filas migradas: {report.rows_migrated} · archivos a privado: "
-        f"{report.files_made_private} · ya privados: {report.already_private} · "
-        f"{orphans}: {report.orphans_deleted} · recientes sin tocar: "
-        f"{report.recent_skipped} · problemas: {len(report.problems)}"
-    )
+    out(summary(report, apply, "filas migradas"))
     for problem in report.problems:
         out(f"  ! {problem}")
     return report
+
+
+def summary(report: Report, apply: bool, rows_label: str) -> str:
+    """La línea final de los dos scripts (éste y el del CV)."""
+    mode = "APLICADO" if apply else "DRY-RUN (no se cambió nada; --apply para hacerlo)"
+    orphans = "huérfanos borrados" if apply else "huérfanos a borrar"
+    line = (
+        f"[{mode}] {rows_label}: {report.rows_migrated} · archivos a protegido: "
+        f"{report.files_protected} · ya protegidos: {report.already_protected} · "
+        f"{orphans}: {report.orphans_deleted} · recientes sin tocar: "
+        f"{report.recent_skipped} · problemas: {len(report.problems)}"
+    )
+    if report.to_review:
+        line += f" · a revisar a mano: {len(report.to_review)}"
+    return line
 
 
 def main(argv: list[str] | None = None) -> None:

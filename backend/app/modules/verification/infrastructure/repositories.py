@@ -8,7 +8,7 @@ manda a borrar a `identity_evidence_file_deletions` (ADR-0021).
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -242,12 +242,21 @@ class SqlAlchemyEvidenceFileDeletionRepository(EvidenceFileDeletionRepository):
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
+    def add_pending(self, deletions: list[EvidenceFileDeletion]) -> None:
+        """Suma pedidos a la cola SIN commitear: entran con el próximo commit
+        de la sesión, el de quien los pidió (el CV del trabajador, ADR-0021
+        actualización 2026-11-19). Si eso no se guarda, no se borra nada."""
+        self._session.add_all(_deletion_to_model(d) for d in deletions)
+
     async def list_due(
         self, now: datetime, ids: list[UUID] | None = None, limit: int = 100
     ) -> list[EvidenceFileDeletion]:
         if ids is not None and not ids:
             return []
-        conditions = [EvidenceFileDeletionModel.next_attempt_at <= now]
+        conditions = [
+            EvidenceFileDeletionModel.deleted_at.is_(None),
+            EvidenceFileDeletionModel.next_attempt_at <= now,
+        ]
         if ids is not None:
             conditions.append(EvidenceFileDeletionModel.id.in_(ids))
         stmt = (
@@ -261,21 +270,33 @@ class SqlAlchemyEvidenceFileDeletionRepository(EvidenceFileDeletionRepository):
 
     async def next_attempt_at(self) -> datetime | None:
         result = await self._session.execute(
-            select(func.min(EvidenceFileDeletionModel.next_attempt_at))
+            select(func.min(EvidenceFileDeletionModel.next_attempt_at)).where(
+                EvidenceFileDeletionModel.deleted_at.is_(None)
+            )
         )
         return result.scalar_one_or_none()
 
-    async def remove(self, deletion_id: UUID) -> None:
+    async def mark_deleted(self, deletion_id: UUID, now: datetime) -> None:
         await self._session.execute(
-            delete(EvidenceFileDeletionModel).where(
-                EvidenceFileDeletionModel.id == deletion_id
-            )
+            update(EvidenceFileDeletionModel)
+            .where(EvidenceFileDeletionModel.id == deletion_id)
+            .values(deleted_at=now, last_error=None)
         )
         await self._session.commit()
 
+    async def was_requested(self, public_id: str) -> bool:
+        stmt = select(EvidenceFileDeletionModel.id).where(
+            EvidenceFileDeletionModel.public_id == public_id
+        )
+        return (await self._session.execute(stmt.limit(1))).first() is not None
+
     async def save_failure(self, deletion: EvidenceFileDeletion) -> None:
         model = await self._session.get(EvidenceFileDeletionModel, deletion.id)
-        if model is None:  # otra pasada lo borró mientras tanto
+        # Otra pasada (después de responder o el scheduler) ya confirmó el
+        # borrado y lo marcó con `deleted_at`: el fallo de ésta no lo vuelve a
+        # poner pendiente ni le deja un error. (`None` ya no pasa: las filas
+        # no se borran, salvo a mano.)
+        if model is None or model.deleted_at is not None:
             return
         model.attempts = deletion.attempts
         model.last_error = deletion.last_error

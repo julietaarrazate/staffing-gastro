@@ -190,14 +190,22 @@ listados más abajo.
   número de CUIT** (la constancia se purga al decidir, como el DNI), y un
   comercio verificado **no** sube el nivel de garantía personal de su dueño.
 - **Documentos de identidad privados y borrados al decidir** (ADR-0021): DNI,
-  selfie y constancia suben a Cloudinary como `private` y la base guarda la
-  referencia, no una URL. El admin los ve con un link que vence a los 5
+  selfie y constancia suben a Cloudinary como `authenticated` (desde el
+  2026-11-19; antes `private`, que dejaba ver sin firma las versiones
+  transformadas) y la base guarda la referencia, no una URL. El admin los ve con un link que vence a los 5
   minutos (`GET /identity/evidences/{id}/link`); nadie más los puede bajar,
   ni el dueño. Al aprobar o rechazar, **los archivos se borran de
   Cloudinary** después de responder; si Cloudinary falla, quedan en una cola
   (`identity_evidence_file_deletions`) y el scheduler reintenta. Los subidos
   antes se privatizan (pendientes) o se borran (ya decididos) con
   `backend/scripts/privatize_identity_evidence.py`.
+- **CV privado** (ADR-0021, actualización 2026-11-19): el CV sube
+  `authenticated`, con la marca de la cuenta que lo sube en el nombre. Lo ve
+  el dueño, admin o un comercio con un turno o una postulación de esa
+  persona, con un link que vence a los 5 minutos
+  (`GET /workers/{id}/cv-link`); el perfil no trae una URL. Al cambiarlo o
+  sacarlo, el archivo viejo se borra por la misma cola. Los subidos antes se
+  protegen o se borran con `backend/scripts/privatize_worker_cvs.py`.
 - **Encuesta para locales** (`/encuesta`, ADR-0025): pública y sin cuenta, mide cómo usan personal eventual los locales y junta interesados en la beta. Módulo propio (no un lead), sin IP guardada, rol, nombre del local y barrio obligatorios, contacto opcional con consentimiento, guardado mientras dure la beta y el lanzamiento, que la admin borra por respuesta («Borrar contacto») o de todas con `backend/scripts/clear_survey_contacts.py` (el nombre del local queda); el resumen cuenta sólo dueños y encargados; los resultados están en `/admin/leads` → «Encuesta».
 - **Panel de admin** con métricas del dashboard, estadísticas de suscripción/
   MRR y **cuentas de prueba** (trabajador/comercio) creables desde ahí. Las

@@ -30,13 +30,15 @@ _HEX_ID = r"[0-9a-f]{32}"
 
 
 class _EvidenceFileInput(BaseModel):
-    """Lo que devuelve Cloudinary al subir un archivo privado (ADR-0021).
-    No es una URL: con esto el servidor arma después el link que vence."""
+    """Lo que devuelve Cloudinary al subir un archivo protegido (ADR-0021).
+    No es una URL: con esto el servidor arma después el link que vence.
+    Desde el 2026-11-19 sólo entra `authenticated`: `private` dejaba ver sin
+    firma las versiones transformadas (ADR-0021, actualización 2026-11-19)."""
 
     public_id: str
     resource_type: Literal["image", "raw"] = "image"
     format: str = Field(default="", pattern=r"^[a-z0-9]{0,10}$")
-    type: Literal["private"] = "private"
+    type: Literal["authenticated"] = "authenticated"
 
     def to_domain(self) -> EvidenceFile:
         return EvidenceFile(

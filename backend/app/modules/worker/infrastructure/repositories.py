@@ -10,11 +10,24 @@ from app.modules.worker.domain.entities import WorkerProfile
 from app.modules.worker.domain.repositories import WorkerEngagementStats, WorkerProfileRepository
 from app.modules.worker.domain.rules import compute_badges, compute_level
 from app.modules.worker.domain.value_objects import (
+    CV_PROTECTED_DELIVERY,
+    CvFile,
     GamificationLevel,
     WorkerBadge,
     WorkerSkill,
 )
 from app.modules.worker.infrastructure.models import WorkerProfileModel
+
+
+def _cv_file(model: WorkerProfileModel) -> CvFile | None:
+    if not model.cv_public_id:
+        return None
+    return CvFile(
+        public_id=model.cv_public_id,
+        resource_type=model.cv_resource_type or "image",
+        format=model.cv_format or "",
+        delivery_type=model.cv_delivery_type or CV_PROTECTED_DELIVERY,
+    )
 
 
 def _to_entity(model: WorkerProfileModel) -> WorkerProfile:
@@ -31,6 +44,7 @@ def _to_entity(model: WorkerProfileModel) -> WorkerProfile:
         years_experience=model.years_experience,
         languages=list(model.languages or []),
         certifications=list(model.certifications or []),
+        cv_file=_cv_file(model),
         cv_url=model.cv_url,
         cv_filename=model.cv_filename,
         is_available=model.is_available,
@@ -63,6 +77,11 @@ def _apply_editable_fields(model: WorkerProfileModel, profile: WorkerProfile) ->
     model.certifications = profile.certifications
     model.cv_url = profile.cv_url
     model.cv_filename = profile.cv_filename
+    cv_file = profile.cv_file
+    model.cv_public_id = cv_file.public_id if cv_file else None
+    model.cv_resource_type = cv_file.resource_type if cv_file else None
+    model.cv_format = cv_file.format if cv_file else None
+    model.cv_delivery_type = cv_file.delivery_type if cv_file else None
     model.is_available = profile.is_available
     model.available_now_latitude = profile.available_now_latitude
     model.available_now_longitude = profile.available_now_longitude

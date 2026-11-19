@@ -1,6 +1,6 @@
 # ADR-0021 — Documentos de identidad privados en Cloudinary, con link que vence
 
-**Estado:** aceptado · **Fecha:** 2026-10-23 · **Ampliado:** 2026-10-23, «Borrado al decidir» · **Complementa a:** ADR-0010 (§4, retención), ADR-0013 (constancia de AFIP)
+**Estado:** aceptado · **Fecha:** 2026-10-23 · **Ampliado:** 2026-10-23, «Borrado al decidir»; 2026-11-19, «el CV también» (y `private` → `authenticated`) · **Complementa a:** ADR-0010 (§4, retención), ADR-0013 (constancia de AFIP)
 
 ## Contexto
 
@@ -20,8 +20,11 @@ sólo el puntero en la base: el archivo seguía público
    `type=private` a los parámetros firmados de la subida (`app/core/cloudinary.py`,
    `sign_image_upload("identity")` y `sign_business_document_upload`): el
    cliente no puede subirlos públicos sin invalidar la firma. Foto de perfil,
-   logo y portada siguen públicos (se muestran a todos). El CV queda fuera de
-   este ADR.
+   logo y portada siguen públicos (se muestran a todos). El CV quedó fuera de
+   este ADR, y fue una omisión: desde el 2026-11-19 también es privado (ver
+   «Actualización 2026-11-19: el CV también»). **Corregido el 2026-11-19:**
+   `private` no alcanzaba (deja ver sin firma las versiones transformadas);
+   desde ahí el tipo es `authenticated`, también para los documentos.
 2. **La base guarda la referencia, no una URL.** `identity_evidences` suma
    `file_public_id`, `file_resource_type`, `file_format` y
    `file_delivery_type` (migración `0039`). El envío
@@ -59,9 +62,16 @@ sólo el puntero en la base: el archivo seguía público
   pagos de Cloudinary (Advanced o superior). Oído está en el plan gratis.
 - **`type=authenticated` + URL firmada (`s--…--`)**: la firma de una URL de
   entrega **no vence**: sirve hasta que se rota el `api_secret`. Un link
-  filtrado seguiría abriendo el DNI. Además, `expires_at` en la API de
-  descarga está pensado para recursos `private` (respuesta del equipo de
-  Cloudinary en su foro); por eso `private` y no `authenticated`.
+  filtrado seguiría abriendo el DNI. (El 2026-10-23 se eligió `private`
+  creyendo, por un comentario del foro de Cloudinary, que `expires_at` de la
+  API de descarga era sólo para `private`. **Era un error:** la
+  documentación oficial dice que `private_download_url` acepta `type`
+  `upload`, `private` o `authenticated`; ver «Fuentes».)
+  *Revisado el 2026-11-19:* lo que no sirve es la **URL de entrega
+  firmada**, no el tipo. `private` deja ver sin firma las versiones
+  transformadas, así que se pasó a `authenticated` **sin** URLs de entrega
+  firmadas: el link sigue siendo el de la API de descarga con
+  `expires_at`. Ver «Actualización 2026-11-19».
 - **Hacer pasar el archivo por el backend (proxy)**: ataría el ancho de banda
   de Render (plan gratis) a cada imagen y no agrega nada sobre un link que
   vence en 5 minutos.
@@ -74,10 +84,17 @@ parámetros se confirmaron en el **código del SDK oficial** (`cloudinary`
 `uploader.rename`, `api.resources`) y en estas páginas:
 
 - Control de acceso (private, authenticated, token-based):
-  <https://cloudinary.com/documentation/control_access_to_media>
-- `private_download_url` y `expires_at` para recursos privados, y token auth
-  como función paga: <https://community.cloudinary.com/discussion/comment/764/>,
-  <https://community.cloudinary.com/discussion/comment/784>
+  <https://cloudinary.com/documentation/control_access_to_media>. En
+  «Providing time-limited access to private media assets», para
+  `private_download_url`: `type` admite «upload, private, authenticated», y
+  `expires_at` es «The date (UNIX time in seconds) for the URL expiration».
+  En la misma página: por defecto, las versiones derivadas (transformadas)
+  de un archivo `private` se entregan públicas.
+- Token-based auth como función de los planes pagos:
+  <https://community.cloudinary.com/discussion/comment/764/>,
+  <https://community.cloudinary.com/discussion/comment/784>. (Esos mismos
+  comentarios decían que `expires_at` era para recursos `private`: la
+  documentación de arriba lo contradice.)
 - Cambiar el tipo de un archivo existente con `rename` + `to_type`:
   <https://support.cloudinary.com/hc/en-us/community/posts/4511376378770-How-to-convert-public-delivery-types-to-authenticated-delivery-type-for-existing-media>
 - Referencia de `rename` (Upload API):
@@ -103,7 +120,9 @@ archivo quedaba en Cloudinary. Ahora:
    que `cloudinary.uploader.destroy` del SDK 1.46.3), detrás del puerto
    `EvidenceFileStorage` (adaptador `CloudinaryEvidenceFileStorage`).
 3. **Recién al confirmar se olvida la referencia.** `{"result": "ok"}` o
-   `{"result": "not found"}` (ya no estaba) borran la fila de la cola.
+   `{"result": "not found"}` (ya no estaba) sacan el pedido de la cola
+   (*desde el 2026-11-19 la fila no se borra: queda marcada con
+   `deleted_at`, ver «Actualización 2026-11-19»*).
    Cualquier otra cosa —red, credenciales, `CLOUDINARY_CLOUD_NAME` sin
    cargar, un HTTP 404 (también es un `cloud_name` que no existe)— deja la
    fila con `attempts`, `last_error` y `next_attempt_at`.
@@ -187,3 +206,186 @@ cola) y lo borra el paso 2.
   Cloudinary sin que la base lo apunte. No hay un barrido periódico: listar
   las carpetas usa la Admin API, que en el plan gratis tiene un tope por
   hora. Volver a correr el script (es idempotente) los borra.
+
+## Actualización 2026-11-19: el CV también
+
+**Qué fallaba** (PRI-03, pasada de privacidad del 2026-11-19, grave). El CV
+del trabajador trae teléfono, email y domicilio, y subía a Cloudinary como
+archivo **público y sin vencimiento**: `sign_cv_upload` no firmaba `type`, y
+el perfil guardaba la URL de `res.cloudinary.com`. El candado de
+`GET /workers/{id}` (sólo el dueño, admin o un comercio con un turno o una
+postulación de esa persona reciben el CV) era de una sola vez: quien vio el
+link lo seguía abriendo para siempre, aunque la persona cambiara o sacara el
+CV, porque el archivo viejo no se borraba. Este ADR había dejado el CV
+afuera sin decir por qué; no fue una decisión de dejarlo público.
+
+**Y `private` tampoco alcanzaba** (revisión independiente del arreglo, el
+mismo día; vale también para el DNI, la selfie y la constancia). La
+documentación de Cloudinary (*control access to media*) dice que, por
+defecto, «any derived (transformed) versions of the asset are publicly
+accessible». El link que vence trae la cuenta, el tipo, el
+`public_id` y el formato: con eso se arma
+`https://res.cloudinary.com/<cuenta>/image/private/w_2000/<public_id>.jpg`
+(o `pg_1`, `pg_2`… para cada página de un PDF) y el documento se abre sin
+firma y sin vencimiento. `authenticated` pide firma en el original **y** en
+cualquier transformación, y la app nunca arma URLs de entrega firmadas: el
+único camino es el link de la API de descarga, que vence. El Cloudinary de
+mentira del arnés (`tools/e2e-local/fakes.py`) imita las dos reglas, y
+`backend/tests/test_cloudinary_entrega.py` prueba las URLs transformadas
+sin firma contra él.
+
+**Qué cambia.**
+
+1. **Todo sube `authenticated`.** DNI, selfie, constancia y CV
+   (`PROTECTED_DELIVERY_TYPE` en `app/core/cloudinary.py`). El envío de la
+   verificación y el perfil aceptan sólo `authenticated` como archivo nuevo;
+   las evidencias pendientes `private` de antes se siguen viendo (el link
+   lleva su tipo) hasta que el script las pasa. Una versión vieja de la app
+   que suba un DNI falla al leer la respuesta (esperaba `private`) y muestra
+   «No se pudo subir el archivo de forma privada»; al recargar toma la
+   nueva.
+2. **El CV lleva la marca de quien lo sube.** `sign_cv_upload(user_id)`
+   firma un `public_id` de 64 hex: 32 al azar y 32 de un HMAC de la cuenta
+   (`cv_public_id_for`, `is_cv_upload_of`). La marca hace falta porque el
+   link que vence muestra el `public_id`: sin ella, un comercio que abrió el
+   CV una vez podía crearse una cuenta de trabajador, ponerse ese mismo
+   archivo y pedir links para siempre (o hacerlo borrar al «sacarlo»). El
+   perfil acepta un archivo nuevo sólo si es `authenticated` y lleva la
+   marca de esa cuenta; si no, 422. La clave del HMAC es
+   `CLOUDINARY_API_SECRET`: si se rota, sólo falla un CV subido y todavía no
+   guardado (se vuelve a subir); los guardados no se vuelven a chequear.
+3. **El perfil guarda la referencia, no una URL.** `worker_profiles` suma
+   `cv_public_id`, `cv_resource_type`, `cv_format` y `cv_delivery_type`
+   (migración `0060`). `PUT /workers/me/profile` recibe `cv_file` (lo que
+   devuelve Cloudinary al subir). `cv_url` queda para un **link pegado a
+   mano** (Drive, LinkedIn: lo controla la persona, no es un archivo nuestro)
+   y para los CV viejos hasta correr el script. Un link de Cloudinary ya no
+   entra como «link pegado»; si es `authenticated` y de esa cuenta (lo que
+   manda una versión vieja de la app después de subir), se toma como el
+   archivo. El mismo archivo se reconoce por `public_id`, tipo de recurso y
+   tipo de entrega (`CvFile.same_file`): un pedido con otro `format` no lo
+   manda a borrar.
+4. **Se ve con un link que vence, sólo a quien hoy puede verlo.**
+   `GET /workers/{id}/cv-link` da un `private_download_url` de 5 minutos (con
+   `download=true`, como adjunto, para «Descargar»). La regla de quién es la
+   de siempre (`_sees_contact` en `worker/api/routes.py`: el dueño, admin o
+   un comercio con `EmployerWorkerRelation`); perfil inexistente, sin CV o
+   ajeno → 404 igual. El perfil ajeno ya no trae `cv_url` ni la referencia:
+   dice qué CV hay (`cv_kind`: `file` o `link`) y el nombre del archivo.
+   Sólo el dueño recibe `cv_file` (para mandarlo de vuelta al guardar el
+   perfil, que reemplaza y no parchea) y `cv_url`.
+5. **El archivo viejo se borra, y lo borrado queda anotado.** Al cambiar o
+   sacar el CV, el archivo que se deja de usar entra a la **misma cola** de
+   «Borrado al decidir» (`identity_evidence_file_deletions`, por
+   `file_cleanup_job.queue_file_deletions`) en el mismo commit que el
+   perfil, se borra después de responder y, si Cloudinary falla, lo
+   reintenta el scheduler. Desde este cambio, al confirmar un borrado la
+   fila **no se borra**: queda marcada (`deleted_at`, migración `0060`). Así
+   el perfil sabe qué archivos ya se mandaron a borrar y no los vuelve a
+   aceptar (409 «Ese CV ya lo cambiaste o lo sacaste desde otro lado»): era
+   un formulario abierto desde antes que, al guardar, dejaba el perfil
+   apuntando a un archivo borrado y mandaba a borrar el CV vigente. El
+   formulario, además, manda los campos del CV sólo si la persona lo tocó.
+   Puertos `CvFileStorage` y `CvFileDeletionQueue` en
+   `worker/domain/repositories.py`; adaptadores en
+   `worker/infrastructure/cv_files.py`.
+6. **Una versión vieja de la app no borra el CV.** Un pedido que trae
+   `cv_url` y no `cv_file` (la PWA en caché no conoce el campo) conserva el
+   archivo que ya estaba. Sin esto, cambiar la foto desde esa versión
+   mandaba `cv_url: null` y borraba el CV.
+
+**Lo que no se borra desde la app.** Un CV viejo (URL pública en `cv_url`)
+que se cambia antes de correr el script no se borra en el momento: desde la
+URL no se puede saber con certeza que sea un CV (antes de las carpetas,
+alguien podría haber pegado la URL de una foto). Lo borra el script.
+
+**La regla de quién ve el CV no cambia.** Un comercio con un turno o una
+postulación de la persona, **también pasada**, sigue pudiendo pedir el link
+(es la regla vigente desde la revisión del 2026-10-20). Lo que cambia es que
+tiene que cumplirla cada vez que lo abre, que un link reenviado deja de
+andar a los 5 minutos, y que cuando la persona cambia o saca el CV el
+archivo viejo deja de existir. Si se quisiera que el vínculo «termine»
+(por ejemplo, que una postulación retirada deje de contar), es un cambio de
+la regla del producto, aparte.
+
+**Los scripts** (idempotentes; por defecto miran y no cambian nada; escriben
+cada fila sólo si sigue como la leyeron, así un cambio hecho mientras corren
+no se pisa):
+
+- `privatize_identity_evidence.py`, paso 1, pasa a `authenticated`
+  (`rename` con el tipo que tiene, `to_type=authenticated`,
+  `invalidate=true`) las evidencias pendientes con URL pública **o con un
+  archivo `private`**. El paso 2 (huérfanos de `oido/identidad/` y
+  `oido/constancias/`) sigue igual.
+- `privatize_worker_cvs.py`:
+  1. Para cada perfil con un CV viejo (URL de Cloudinary en `cv_url`) o un
+     CV que no es `authenticated`, pasa el archivo a `authenticated` y
+     guarda la referencia, vaciando `cv_url`. No toca —y lo lista para
+     mirarlo a mano— un archivo de otra carpeta de la app, uno **sin
+     carpeta que usa otra cosa** (foto de perfil, logo, portada o documento
+     de identidad: protegerlo rompería esa foto), uno que apuntan dos
+     perfiles (si uno lo cambia se le borraría al otro) ni una URL de otra
+     cuenta de Cloudinary.
+  2. **Borra** lo que ningún perfil apunta, subido hace más de 24 h: todo lo
+     de `oido/cv/`, y **sin carpeta** (los CV de antes de las carpetas) los
+     Word (`raw`) y los PDF que nada usa **subidos antes del 2026-10-16**:
+     desde ese día toda subida de la app trae carpeta, así que un documento
+     sin carpeta más nuevo no es de la app (alguien lo subió a mano) y sólo
+     se lista. Las fotos sin carpeta que nada usa (jpg, png…) **no las
+     toca**: las lista para mirarlas a mano, porque pueden ser un CV en
+     imagen o una foto vieja.
+
+**Qué tiene que hacer Julieta** (también en
+[`PENDIENTE_OPERATIVO.md`](../reference/PENDIENTE_OPERATIVO.md), ítem 5c),
+en este orden, desde una compu con el repo y las mismas variables que el
+script de los documentos:
+
+1. Mergear y esperar el deploy (Render corre la `0060`;
+   `CLOUDINARY_CLOUD_NAME` tiene que estar cargada).
+2. Documentos:
+
+   ```bash
+   cd backend
+   python -m scripts.privatize_identity_evidence          # mira y lista
+   python -m scripts.privatize_identity_evidence --apply  # protege y borra
+   python -m scripts.privatize_identity_evidence          # filas, a protegido y huérfanos en 0
+   ```
+
+3. CV:
+
+   ```bash
+   python -m scripts.privatize_worker_cvs          # mira y lista
+   python -m scripts.privatize_worker_cvs --apply  # protege y borra
+   python -m scripts.privatize_worker_cvs          # perfiles, a protegido y huérfanos en 0
+   ```
+
+4. Mirar a mano lo que los scripts listan con `!` (problemas) y con `?`
+   (fotos y documentos sin carpeta que no se tocan).
+5. **Prueba obligatoria en producción** (PRI-03 no se da por cerrado sin
+   ella): «Ver CV» de un PDF y de una foto se ven en el navegador, el admin
+   ve un DNI pendiente, y el link de «Ver CV» copiado deja de abrir a los 6
+   minutos. La documentación dice que `private_download_url` vence con
+   `expires_at` para `authenticated` (ver «Fuentes»), y el arnés lo imita,
+   pero desde la sesión no se pudo abrir Cloudinary para verlo en el
+   servicio real.
+
+   **Si el link no venciera**, el arreglo no alcanza (quien lo vio lo
+   seguiría abriendo) y hay dos salidas, las dos con ADR nuevo:
+   - **Token-based authentication** de Cloudinary: URLs de entrega con
+     `__cld_token__` que vencen. Es de los planes pagos (Advanced o
+     superior); es la forma prevista por Cloudinary.
+   - **Pasar el archivo por el backend**: `cv-link` deja de dar un link de
+     Cloudinary y el backend entrega el archivo (lo baja con la API de
+     descarga y lo reenvía) a quien puede verlo, en cada pedido. Sin costo
+     de Cloudinary, pero usa ancho de banda y memoria de Render (plan
+     gratis) por cada CV o DNI que se abre.
+
+Entre el deploy y la corrida, los CV viejos se siguen viendo: `cv-link`
+devuelve su URL vieja (sin vencimiento) a quien puede verlos.
+
+**`/privacidad` no se tocó.** Hoy no dice que el comercio con un turno o una
+postulación ve el CV, ni cuánto se guarda el CV. Con este cambio se podría
+decir «el CV lo ve el comercio con el que tenés un turno o una postulación,
+con un link que vence a los minutos; si lo cambiás o lo sacás, lo
+borramos». Cambiar ese texto necesita el sí de Julieta y subir
+`LEGAL_TERMS_VERSION` y `frontend/lib/legal.ts`.

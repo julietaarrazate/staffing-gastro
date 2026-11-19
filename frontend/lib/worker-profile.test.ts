@@ -69,6 +69,25 @@ describe("saveProfilePart", () => {
     expect(body.cv_filename).toBe("CV-Vera.pdf");
   });
 
+  it("manda de vuelta la referencia del CV privado tal cual (si no, lo borraría)", async () => {
+    const cv = { public_id: `oido/cv/${"c".repeat(64)}`, resource_type: "image", format: "pdf", type: "authenticated" as const };
+    get.mockResolvedValue(perfil({ cv_url: null, cv_file: cv }));
+    put.mockResolvedValue(perfil());
+
+    await saveProfilePart("tok", { is_available: false });
+
+    expect(put.mock.calls[0][1]).toMatchObject({ cv_file: cv, cv_url: null, cv_filename: "CV-Vera.pdf" });
+  });
+
+  it("un perfil sin `cv_file` (respuesta vieja) no lo manda: el backend conserva el CV", async () => {
+    get.mockResolvedValue(perfil());
+    put.mockResolvedValue(perfil());
+
+    await saveProfilePart("tok", { is_available: false });
+
+    expect(put.mock.calls[0][1]).not.toHaveProperty("cv_file");
+  });
+
   it("si no se puede leer el perfil, no escribe nada", async () => {
     get.mockRejectedValue(new Error("sin conexión"));
     await expect(saveProfilePart("tok", { is_available: false })).rejects.toThrow();

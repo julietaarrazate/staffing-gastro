@@ -1,5 +1,6 @@
 """Objetos de valor del dominio de perfil del trabajador."""
 
+from dataclasses import dataclass
 from enum import Enum
 
 
@@ -56,3 +57,37 @@ class GamificationLevel(str, Enum):
     PLATA = "plata"
     ORO = "oro"
     PLATINO = "platino"
+
+
+# Tipo de entrega del CV subido desde el 2026-11-19 (ADR-0021): ni el
+# original ni una versión transformada se entregan sin firma; se ve con un
+# link firmado que vence. (`private` no alcanza: deja ver sin firma las
+# versiones transformadas.)
+CV_PROTECTED_DELIVERY = "authenticated"
+
+
+@dataclass(frozen=True)
+class CvFile:
+    """Dónde está guardado el CV que subió el trabajador (ADR-0021,
+    actualización 2026-11-19: el CV también).
+
+    No es una URL: es la referencia al archivo **protegido** en el storage
+    (`public_id`, tipo de recurso, formato y tipo de entrega). El CV trae
+    teléfono, email y domicilio: para verlo hay que pedir un link que vence
+    (`CvFileStorage.link_for`), y sólo quien hoy puede verlo lo consigue. Un
+    link visto una vez deja de servir a los pocos minutos."""
+
+    public_id: str
+    resource_type: str
+    format: str
+    delivery_type: str = CV_PROTECTED_DELIVERY
+
+    def same_file(self, other: "CvFile | None") -> bool:
+        """¿Es el mismo archivo en el storage? Lo identifican el `public_id`,
+        el tipo de recurso y el de entrega; el formato no (es cómo se pide,
+        y un pedido con otro formato no puede hacer borrar el que está)."""
+        return other is not None and (
+            self.public_id,
+            self.resource_type,
+            self.delivery_type,
+        ) == (other.public_id, other.resource_type, other.delivery_type)

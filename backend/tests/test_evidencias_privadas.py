@@ -1,10 +1,11 @@
 """Documentos de identidad privados en Cloudinary (ADR-0021).
 
-Cubren: la firma de la subida (`type=private` firmado), el link de descarga
-que vence, los datos que acepta el envío (referencia privada, no URL), el
-endpoint de admin para ver una evidencia (no-disclosure) y el script que
-pasa a privados los archivos pendientes y borra los huérfanos (con un
-Cloudinary de mentira). El borrado al decidir está en
+Cubren: la firma de la subida (`type=authenticated` firmado desde el
+2026-11-19; antes `private`, que dejaba ver sin firma las versiones
+transformadas), el link de descarga que vence, los datos que acepta el envío
+(referencia protegida, no URL), el endpoint de admin para ver una evidencia
+(no-disclosure) y el script que protege los archivos pendientes y borra los
+huérfanos (con un Cloudinary de mentira). El borrado al decidir está en
 `test_borrado_evidencias.py`.
 """
 
@@ -62,22 +63,22 @@ def _ident() -> dict:
         "public_id": f"oido/identidad/{uuid4().hex}",
         "resource_type": "image",
         "format": "jpg",
-        "type": "private",
+        "type": "authenticated",
     }
 
 
 # --- Firma de la subida ----------------------------------------------------
 
 
-def test_dni_y_selfie_suben_privados_con_el_tipo_dentro_de_la_firma(cloudinary_on):
+def test_dni_y_selfie_suben_protegidos_con_el_tipo_dentro_de_la_firma(cloudinary_on):
     result = sign_image_upload("identity")
-    assert result["type"] == "private"
+    assert result["type"] == "authenticated"
     signed = {k: v for k, v in result.items() if k not in ("signature", "api_key")}
     assert result["signature"] == _sha1(signed)
 
 
-def test_la_constancia_sube_privada(cloudinary_on):
-    assert sign_business_document_upload()["type"] == "private"
+def test_la_constancia_sube_protegida(cloudinary_on):
+    assert sign_business_document_upload()["type"] == "authenticated"
 
 
 def test_perfil_y_portada_siguen_publicos(cloudinary_on):
@@ -90,20 +91,20 @@ def test_perfil_y_portada_siguen_publicos(cloudinary_on):
 
 def test_el_link_privado_esta_firmado_y_vence(cloudinary_on):
     expires = int(time.time()) + 300
-    url = private_download_url("oido/identidad/abc", "jpg", "image", "private", expires)
+    url = private_download_url("oido/identidad/abc", "jpg", "image", "authenticated", expires)
     parsed = urlparse(url)
     assert parsed.netloc == "api.cloudinary.com"
     assert parsed.path == "/v1_1/oido-test/image/download"
     params = {k: v[0] for k, v in parse_qs(parsed.query).items()}
     assert params["expires_at"] == str(expires)
-    assert params["type"] == "private"
+    assert params["type"] == "authenticated"
     assert params["api_key"] == "test-api-key"
     signed = {k: v for k, v in params.items() if k not in ("signature", "api_key")}
     assert params["signature"] == _sha1(signed)
 
 
 def test_el_link_de_un_raw_no_manda_formato_vacio(cloudinary_on):
-    url = private_download_url("oido/constancias/a.pdf", "", "raw", "private", 1)
+    url = private_download_url("oido/constancias/a.pdf", "", "raw", "authenticated", 1)
     assert "format=" not in url
     assert "/raw/download" in url
 
@@ -111,7 +112,7 @@ def test_el_link_de_un_raw_no_manda_formato_vacio(cloudinary_on):
 def test_sin_cloud_name_no_hay_link(cloudinary_on):
     settings.cloudinary_cloud_name = ""
     with pytest.raises(CloudinaryNotConfiguredError):
-        private_download_url("x", "jpg", "image", "private", 1)
+        private_download_url("x", "jpg", "image", "authenticated", 1)
 
 
 # --- Lo que acepta el envío ---------------------------------------------------
@@ -133,9 +134,12 @@ def test_rechaza_public_id_fuera_de_la_carpeta(public_id):
         )
 
 
-def test_rechaza_un_archivo_publico():
+@pytest.mark.parametrize("tipo", ["upload", "private"])
+def test_rechaza_un_archivo_publico_o_private(tipo):
+    """`private` tampoco: deja ver sin firma las versiones transformadas
+    (ADR-0021, actualización 2026-11-19)."""
     with pytest.raises(ValidationError):
-        SubmitIdentityDocumentInput(dni_frente={**_ident(), "type": "upload"}, selfie=_ident())
+        SubmitIdentityDocumentInput(dni_frente={**_ident(), "type": tipo}, selfie=_ident())
 
 
 def test_ya_no_acepta_urls():
@@ -157,7 +161,7 @@ def test_acepta_el_public_id_con_o_sin_carpeta():
     biz = SubmitBusinessDocumentInput(
         constancia={"public_id": f"oido/constancias/{hex_id}", "format": "pdf"}
     )
-    assert biz.constancia.to_domain().delivery_type == "private"
+    assert biz.constancia.to_domain().delivery_type == "authenticated"
 
 
 # --- Endpoint del admin -------------------------------------------------------
@@ -273,8 +277,8 @@ AHORA = datetime(2026, 10, 23, 12, 0, tzinfo=UTC)
 VIEJO = AHORA - timedelta(days=3)
 
 
-def _asset(public_id, fmt="jpg", type_="upload", rt="image", created_at=VIEJO):
-    return script.Asset(public_id, rt, fmt, type_, created_at)
+def _asset(public_id, fmt="jpg", type_="upload", rt="image", created_at=VIEJO, folder=""):
+    return script.Asset(public_id, rt, fmt, type_, created_at, folder)
 
 
 class FakeAdmin:
@@ -282,7 +286,7 @@ class FakeAdmin:
 
     def __init__(self, assets: list[script.Asset]) -> None:
         self.assets = {(a.resource_type, a.public_id): a for a in assets}
-        self.made_private: list[str] = []
+        self.protected: list[str] = []
         self.deleted: list[str] = []
         self.fail_delete: set[str] = set()
 
@@ -296,10 +300,22 @@ class FakeAdmin:
             if a.resource_type == resource_type and a.public_id.startswith(f"{folder}/")
         ]
 
-    def make_private(self, asset):
-        self.made_private.append(asset.public_id)
+    def list_root(self, resource_type):
+        return [
+            a
+            for a in self.assets.values()
+            if a.resource_type == resource_type and "/" not in a.public_id and not a.folder
+        ]
+
+    def protect(self, asset):
+        self.protected.append(asset.public_id)
         self.assets[(asset.resource_type, asset.public_id)] = script.Asset(
-            asset.public_id, asset.resource_type, asset.format, "private", asset.created_at
+            asset.public_id,
+            asset.resource_type,
+            asset.format,
+            "authenticated",
+            asset.created_at,
+            asset.folder,
         )
 
     def delete(self, asset):
@@ -374,16 +390,19 @@ async def test_dry_run_no_cambia_nada(session_factory: async_sessionmaker[AsyncS
     )
     report = await _run(session_factory, admin, apply=False)
     assert report.rows_migrated == 1
-    assert report.files_made_private == 1
+    assert report.files_protected == 1
     assert report.orphans_deleted == 1
-    assert admin.made_private == []
+    assert admin.protected == []
     assert admin.deleted == []
     assert len(admin.assets) == 2
     assert (await _row(session_factory, row.id)).data_url is not None
 
 
-async def _pending_private_row(session_factory, public_id: str) -> None:
-    """Una evidencia nueva (ADR-0021) de un claim pendiente."""
+async def _pending_private_row(
+    session_factory, public_id: str, delivery_type: str = "private"
+) -> IdentityEvidenceModel:
+    """Una evidencia de un claim pendiente con referencia a un archivo:
+    `private` (del 2026-10-23 al 2026-11-19) o `authenticated` (desde ahí)."""
     row = await _legacy_row(session_factory, URL_VIEJA.format("tmp"))
     async with session_factory() as session:
         fila = await session.get(IdentityEvidenceModel, row.id)
@@ -391,20 +410,24 @@ async def _pending_private_row(session_factory, public_id: str) -> None:
         fila.file_public_id = public_id
         fila.file_resource_type = "image"
         fila.file_format = "jpg"
-        fila.file_delivery_type = "private"
+        fila.file_delivery_type = delivery_type
         await session.commit()
+    return row
 
 
 @pytest.mark.asyncio
 async def test_apply_migra_lo_pendiente_y_borra_solo_los_huerfanos(session_factory):
     row = await _legacy_row(session_factory, URL_VIEJA.format("bbb"))
-    await _pending_private_row(session_factory, "oido/identidad/pendiente")
+    pendiente = await _pending_private_row(session_factory, "oido/identidad/pendiente")
+    await _pending_private_row(session_factory, "oido/identidad/nueva", "authenticated")
     admin = FakeAdmin(
         [
-            # Pendiente vieja (URL pública en la base): se privatiza, no se borra.
+            # Pendiente vieja (URL pública en la base): se protege, no se borra.
             _asset("oido/identidad/bbb"),
-            # Pendiente nueva (privada, la apunta la base): no se toca.
+            # Pendiente `private` (ADR-0021 del 2026-10-23): se protege.
             _asset("oido/identidad/pendiente", type_="private"),
+            # Pendiente nueva (`authenticated`, la apunta la base): no se toca.
+            _asset("oido/identidad/nueva", type_="authenticated"),
             # Huérfanos de claims ya decididos, públicos o privados: se borran.
             _asset("oido/constancias/ccc", "pdf"),
             _asset("oido/identidad/decidida", type_="private"),
@@ -416,16 +439,17 @@ async def test_apply_migra_lo_pendiente_y_borra_solo_los_huerfanos(session_facto
         ]
     )
     report = await _run(session_factory, admin, apply=True)
-    assert admin.made_private == ["oido/identidad/bbb"]
+    assert sorted(admin.protected) == ["oido/identidad/bbb", "oido/identidad/pendiente"]
     assert sorted(admin.deleted) == [
         "oido/constancias/ccc",
         "oido/constancias/doc.pdf",
         "oido/identidad/decidida",
     ]
-    assert (report.files_made_private, report.orphans_deleted) == (1, 3)
+    assert (report.files_protected, report.orphans_deleted) == (2, 3)
     assert report.recent_skipped == 1
     assert sorted(public_id for _rt, public_id in admin.assets) == [
         "oido/identidad/bbb",
+        "oido/identidad/nueva",
         "oido/identidad/pendiente",
         "oido/identidad/reciente",
         "oido/perfiles/ddd",
@@ -435,10 +459,11 @@ async def test_apply_migra_lo_pendiente_y_borra_solo_los_huerfanos(session_facto
     assert migrated.data_url is None
     assert migrated.file_public_id == "oido/identidad/bbb"
     assert (migrated.file_resource_type, migrated.file_format) == ("image", "jpg")
-    assert migrated.file_delivery_type == "private"
+    assert migrated.file_delivery_type == "authenticated"
+    assert (await _row(session_factory, pendiente.id)).file_delivery_type == "authenticated"
 
     again = await _run(session_factory, admin, apply=True)
-    assert (again.rows_migrated, again.files_made_private, again.orphans_deleted) == (0, 0, 0)
+    assert (again.rows_migrated, again.files_protected, again.orphans_deleted) == (0, 0, 0)
 
 
 @pytest.mark.asyncio
@@ -454,14 +479,14 @@ async def test_un_borrado_que_falla_queda_en_problemas_y_sigue(session_factory):
 
 
 @pytest.mark.asyncio
-async def test_si_el_archivo_ya_es_privado_solo_actualiza_la_fila(session_factory):
+async def test_si_el_archivo_ya_esta_protegido_solo_actualiza_la_fila(session_factory):
     """Una corrida que se cortó entre el `rename` y el commit."""
     row = await _legacy_row(session_factory, URL_VIEJA.format("eee"))
-    admin = FakeAdmin([_asset("oido/identidad/eee", type_="private")])
+    admin = FakeAdmin([_asset("oido/identidad/eee", type_="authenticated")])
     report = await _run(session_factory, admin, apply=True)
-    assert admin.made_private == []
+    assert admin.protected == []
     assert admin.deleted == []
-    assert report.already_private == 1
+    assert report.already_protected == 1
     assert (await _row(session_factory, row.id)).file_public_id == "oido/identidad/eee"
 
 
@@ -531,13 +556,21 @@ def test_el_cliente_http_lista_por_tipo_y_hace_rename_y_destroy_firmados(cloudin
     ]
     assert listed[2].created_at == datetime(2026, 10, 1, 10, 0, tzinfo=UTC)
 
-    admin.make_private(_asset("oido/identidad/p1"))
+    admin.protect(_asset("oido/identidad/p1"))
     rename = calls[-1]
     assert rename.method == "POST"
     assert str(rename.url) == "https://api.cloudinary.com/v1_1/oido-test/image/rename"
     form = {k: v[0] for k, v in parse_qs(rename.content.decode()).items()}
     assert form["from_public_id"] == form["to_public_id"] == "oido/identidad/p1"
-    assert (form["type"], form["to_type"], form["invalidate"]) == ("upload", "private", "true")
+    assert (form["type"], form["to_type"], form["invalidate"]) == (
+        "upload",
+        "authenticated",
+        "true",
+    )
+    # Un `private` (ADR-0021 de antes) también pasa a `authenticated`.
+    admin.protect(_asset("oido/identidad/p1", type_="private"))
+    form = {k: v[0] for k, v in parse_qs(calls[-1].content.decode()).items()}
+    assert (form["type"], form["to_type"]) == ("private", "authenticated")
     signed = {k: v for k, v in form.items() if k not in ("signature", "api_key")}
     assert form["signature"] == _sha1(signed)
 
@@ -553,6 +586,30 @@ def test_el_cliente_http_lista_por_tipo_y_hace_rename_y_destroy_firmados(cloudin
     )
     signed = {k: v for k, v in form.items() if k not in ("signature", "api_key")}
     assert form["signature"] == _sha1(signed)
+
+
+def test_el_cliente_http_lista_la_raiz_sin_carpeta(cloudinary_on):
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/resources/raw/upload"):
+            assert "prefix" not in request.url.params
+            return httpx.Response(
+                200,
+                json={
+                    "resources": [
+                        {"public_id": "viejo.docx", "resource_type": "raw", "type": "upload"},
+                        {"public_id": "oido/cv/x.docx", "resource_type": "raw"},
+                        {
+                            "public_id": "dinamico",
+                            "resource_type": "raw",
+                            "asset_folder": "oido/cv",
+                        },
+                    ]
+                },
+            )
+        return httpx.Response(200, json={"resources": []})
+
+    admin = script.HttpCloudinaryAdmin(httpx.Client(transport=httpx.MockTransport(handler)))
+    assert [a.public_id for a in admin.list_root("raw")] == ["viejo.docx"]
 
 
 def test_el_cliente_http_exige_configuracion():
