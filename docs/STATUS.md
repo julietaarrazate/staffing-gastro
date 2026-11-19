@@ -239,9 +239,11 @@ pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
   abogada amiga; y el backend pasa a **Render Starter** (USD 7 por mes)
   antes del piloto, con todo lo demás en $0. Falta de Julieta: hacer la
   consulta con el cuestionario de la pestaña Lanzamiento de beta (antes del
-  4/12) y contratar Render Starter antes del piloto. Del lado del código, la
-  fase 0 pide un cambio chico (guardar el origen de cada alta, aprobado el
-  18/11) y la serie semanal M7 del tablero
+  4/12) y contratar Render Starter antes del piloto. Del lado del código, el
+  origen de cada alta ya se guarda y se ve en Administración → Métricas,
+  «Altas por origen» (enlaces con `?ref=`, `utm_source` y `utm_campaign`;
+  [historial](./historial/2026-11-18-origen-de-cada-alta.md)); falta la
+  serie semanal M7 del tablero
   ([`historial/2026-11-18-plan-90-dias-growth.md`](./historial/2026-11-18-plan-90-dias-growth.md),
   [`historial/2026-11-18-decisiones-fase-0.md`](./historial/2026-11-18-decisiones-fase-0.md)).
 - **Verificación en dos pasos del admin (ADR-0023):** **antes del merge**,
