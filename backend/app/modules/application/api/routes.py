@@ -22,7 +22,7 @@ from app.modules.application.domain.exceptions import (
 from app.modules.identity.api.dependencies import get_current_user, per_account_quota_key
 from app.modules.identity.domain.entities import User
 from app.modules.shift.api.dependencies import get_my_company_id, get_my_worker_profile_id
-from app.modules.shift.api.schemas import ShiftResponse, without_worker_data
+from app.modules.shift.api.schemas import ShiftResponse, for_worker
 from app.modules.shift.domain.entities import Shift
 from app.modules.verification.api.dependencies import get_verification_service
 from app.modules.verification.application.services import VerificationService
@@ -178,9 +178,7 @@ def _shift_for_applicant(
         response.company_logo_url = company.logo_url
         response.company_cover_url = company.cover_photo_url
         response.company_verified = company.user_id in verified_owner_ids
-    if shift.worker_profile_id != worker_profile_id:
-        return without_worker_data(response)
-    return response
+    return for_worker(response, worker_profile_id)
 
 
 @router.get(

@@ -168,6 +168,10 @@ WORKER_DATA_FIELDS = (
     "check_out_latitude",
     "check_out_longitude",
     "check_out_at",
+    # Cuándo el comercio le pagó a quien lo trabajó: a un postulante que no
+    # quedó, o a quien sólo lo guardó, no le corresponde (pasada de
+    # privacidad 2026-11-19, PRI-05).
+    "paid_at",
     "no_show_at",
     "last_no_show_worker_profile_id",
     "prorated_pay_amount",
@@ -183,6 +187,30 @@ def without_worker_data(response: ShiftResponse) -> ShiftResponse:
     cualquier endpoint que embeba un `ShiftResponse` para alguien que no es
     parte —turnos guardados, "mis postulaciones"— tiene que pasar por acá."""
     return response.model_copy(update={field: None for field in WORKER_DATA_FIELDS})
+
+
+# La última ausencia del turno: quién faltó y cuándo. Es un dato de QUIEN
+# FALTÓ, no de quien tiene el turno ahora. Un turno reofrecido (U080) se
+# reasigna con esos campos puestos, y quien lo tomaba después los heredaba
+# como "parte" del turno; con el id llegaba al perfil público de quien faltó
+# (pasada de privacidad 2026-11-19, PRI-01). Los ve el comercio dueño, admin
+# y la propia persona que faltó.
+NO_SHOW_FIELDS = ("no_show_at", "last_no_show_worker_profile_id")
+
+
+def for_worker(response: ShiftResponse, worker_profile_id: UUID) -> ShiftResponse:
+    """La vista de un turno para un TRABAJADOR: si no lo tiene asignado, la
+    de quien no es parte (`without_worker_data`); si lo tiene, el turno
+    entero salvo la ausencia de otra persona.
+
+    Toda respuesta que embeba un `ShiftResponse` para un trabajador pasa por
+    acá: el detalle, `/shifts/mine`, «Mis postulaciones», «Guardados» y las
+    respuestas de sus propias acciones (confirmar, llegar, salir…)."""
+    if response.worker_profile_id != worker_profile_id:
+        return without_worker_data(response)
+    if response.last_no_show_worker_profile_id == worker_profile_id:
+        return response
+    return response.model_copy(update={field: None for field in NO_SHOW_FIELDS})
 
 
 class EventRoleInput(BaseModel):
