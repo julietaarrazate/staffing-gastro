@@ -26,7 +26,11 @@ import {
 import { restartAtHome } from "@/lib/restart-at-home";
 import { isSessionEndReason, loginHref, type SessionEndReason } from "@/lib/safe-next";
 import { clearAllCached } from "@/lib/screen-cache";
-import { borrarBorradores } from "@/lib/almacen-sesion";
+import {
+  esOtraCuenta,
+  limpiarDeLaCuentaAnterior,
+  recordarUltimaCuenta,
+} from "@/lib/cambio-de-cuenta";
 import { borrarOrigen, origenGuardado } from "@/lib/origen-alta";
 import {
   isTwoFactorChallenge,
@@ -254,8 +258,9 @@ function clearSession() {
   localStorage.removeItem(HAS_SESSION_KEY);
   localStorage.removeItem(SESSION_USER_KEY);
   forgetImpersonation();
-  // Borradores de la pestaña (publicar, bienvenida): no pasan a la próxima cuenta.
-  borrarBorradores();
+  // Los borradores de la pestaña NO se tocan acá: si la sesión vence, la misma
+  // cuenta los retoma. Se limpian al salir a propósito o al entrar otra cuenta
+  // (`limpiarDeLaCuentaAnterior`).
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -282,6 +287,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     restoredAccount.current = account;
     sessionUserId.current = account.id;
     localStorage.setItem(SESSION_USER_KEY, account.id);
+    recordarUltimaCuenta(account.id);
   }
 
   /** Al recuperar la sesión guardada: si mientras se esperaba al servidor
@@ -804,7 +810,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       sessionEpoch.current += 1;
       sessionUserId.current = null;
-      clearAllCached();
+      // Salida a propósito en otra pestaña: lo de esa cuenta no queda acá.
+      limpiarDeLaCuentaAnterior();
       impersonatingRef.current = false;
       forgetImpersonation();
       setImpersonating(null);
@@ -897,6 +904,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // al /auth/me sólo si no vino `user` — cubre el skew de deploy (frontend
     // nuevo contra backend viejo que todavía no lo embebe) y no rompe el login.
     const account = tokens.user ?? (await api.get<User>("/auth/me", tokens.access_token));
+    // Otra cuenta sin haber cerrado sesión (o tras un vencimiento): nada de la
+    // anterior pasa a ésta. La misma cuenta conserva sus borradores.
+    if (esOtraCuenta(account.id)) limpiarDeLaCuentaAnterior();
+    setPendingTwoFactor(null);
     setUser(account);
     rememberSessionUser(account);
     // Se sabe acá, antes de que monten las pantallas (la campanita no pide
@@ -1086,7 +1097,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionEpoch.current += 1;
     sessionUserId.current = null;
     clearSession();
-    clearAllCached();
+    limpiarDeLaCuentaAnterior();
     setJustLoggedOut(true);
     setSessionEnded(null);
     setReconnecting(false);
