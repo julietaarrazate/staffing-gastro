@@ -1,7 +1,8 @@
 "use client";
 
 import { puedeMarcarAusencia } from "@/lib/turno-reofrecido";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useNow } from "@/lib/use-now";
 import Link from "next/link";
 import { Button, Sheet } from "@/components/ui";
 import ShareShiftButton from "@/components/ShareShiftButton";
@@ -63,11 +64,9 @@ export default function ShiftActions({
   const canCancel = isCancellable(shift.status);
   // La hora corre mientras la tarjeta está abierta: se relee cada medio
   // minuto para que la opción aparezca sola a los 15 minutos del inicio.
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(id);
-  }, []);
+  // Sólo corre si la opción puede aparecer (turno confirmado o en camino) y con
+  // la pestaña a la vista (`useNow`): en el resto de las tarjetas no dibuja nada.
+  const now = useNow(30_000, NO_SHOW_ELIGIBLE.includes(shift.status));
   const canNoShow = NO_SHOW_ELIGIBLE.includes(shift.status) && puedeMarcarAusencia(shift, now);
   const hasWorker = Boolean(shift.worker_profile_id) && shift.status !== "cancelado";
 

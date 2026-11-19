@@ -1,6 +1,7 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNow } from "@/lib/use-now";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useLiveRefresh } from "@/lib/live-refresh";
 import Link from "next/link";
@@ -151,16 +152,12 @@ function MatchesContent() {
     "reject"
   );
   // Reloj para saber si el turno ya empezó ("Me fui" recién desde ahí).
-  const [now, setNow] = useState(() => new Date());
+  const nowMs = useNow(30_000);
+  const now = useMemo(() => new Date(nowMs), [nowMs]);
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
   // Un toque que cae sobre un botón recién aparecido no cuenta (U004): tras
   // "Llegué" la lista se redibuja y "Me fui" queda justo bajo el dedo.
   const tapGuard = useTapGuard();
-
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 30_000);
-    return () => clearInterval(t);
-  }, []);
 
   function pedirConfirmacion(id: string, path: "reject" | "worker-cancel" | "check-out") {
     void tapGuard.run(() => {
