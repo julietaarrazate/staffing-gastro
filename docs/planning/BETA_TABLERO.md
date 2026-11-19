@@ -340,7 +340,7 @@ horaria.
 | Pin desplazado del trabajador (se podía deshacer conociendo un punto real de la persona) | PRI-02 | grave | ✅ #665 |
 | CV del trabajador | PRI-03 | grave | ⚪ |
 | Renovación de la sesión sin ventana de gracia ni coordinación entre pestañas | CON-02, CON-03, SES-01 | grave | ⚪ |
-| Pedidos repetidos (idempotencia de las acciones del turno, duplicados que dan 500) | CON-01, CON-05, CON-12, CON-14 | menor | ⚪ |
+| Pedidos repetidos (idempotencia de las acciones del turno, duplicados que dan 500) | CON-01, CON-05, CON-12, CON-14 | menor | 🔵 este PR |
 | Postulación con el estado viejo | VIE-01, CON-04, CON-11 | menor | ⚪ |
 | Socket y lista de avisos | PRI-04, VIE-04, CON-10, ESC-04 | menor | ⚪ |
 | Pantallas sin reloj ni relectura | VIE-02, VIE-03, VIE-05 | menor | ⚪ |
@@ -356,7 +356,7 @@ releen el turno; el dominio impide que la acción caiga sobre otra persona),
 FEC-01 (fechas fijas en tests: un fixture congela el reloj del horario) y
 FEC-03 («ausencias de hoy» cuenta las marcadas hoy, a propósito).
 
-**Tests de contrato:** 🔵 este PR. Los mocks de los e2e se arman con
+**Tests de contrato:** ✅ #666. Los mocks de los e2e se arman con
 respuestas reales del backend (`frontend/e2e/contrato/`): un test del backend
 guarda la forma de cada respuesta y falla si cambia; los specs no pueden
 inventar campos. Al migrar 16 specs aparecieron 8 mocks que mandaban cosas

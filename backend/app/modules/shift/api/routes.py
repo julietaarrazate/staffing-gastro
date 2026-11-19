@@ -688,7 +688,10 @@ async def confirm_assignment(
     summary="Rechazar un turno asignado (trabajador)",
 )
 async def reject_assignment(
-    shift_id: UUID, worker_profile_id: WorkerProfileIdDep, service: ServiceDep
+    shift_id: UUID,
+    worker_profile_id: WorkerProfileIdDep,
+    service: ServiceDep,
+    recorder: RecorderDep,
 ):
     try:
         shift = await service.reject_assignment(worker_profile_id, shift_id)
@@ -696,7 +699,9 @@ async def reject_assignment(
         raise _not_found() from exc
     except InvalidShiftTransitionError as exc:
         raise _bad_request(str(exc)) from exc
-    return for_worker(ShiftResponse.model_validate(shift), worker_profile_id)
+    response = for_worker(ShiftResponse.model_validate(shift), worker_profile_id)
+    await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
+    return response
 
 
 @router.post(
@@ -705,7 +710,10 @@ async def reject_assignment(
     summary="Cancelar mi asignación ya confirmada a un turno (trabajador)",
 )
 async def worker_cancel(
-    shift_id: UUID, worker_profile_id: WorkerProfileIdDep, service: ServiceDep
+    shift_id: UUID,
+    worker_profile_id: WorkerProfileIdDep,
+    service: ServiceDep,
+    recorder: RecorderDep,
 ):
     try:
         shift = await service.worker_cancel(worker_profile_id, shift_id)
@@ -713,7 +721,9 @@ async def worker_cancel(
         raise _not_found() from exc
     except InvalidShiftTransitionError as exc:
         raise _bad_request(str(exc)) from exc
-    return for_worker(ShiftResponse.model_validate(shift), worker_profile_id)
+    response = for_worker(ShiftResponse.model_validate(shift), worker_profile_id)
+    await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
+    return response
 
 
 @router.post(
@@ -810,7 +820,10 @@ async def check_in(
     summary="Marcar el inicio efectivo del turno (trabajador)",
 )
 async def start_working(
-    shift_id: UUID, worker_profile_id: WorkerProfileIdDep, service: ServiceDep
+    shift_id: UUID,
+    worker_profile_id: WorkerProfileIdDep,
+    service: ServiceDep,
+    recorder: RecorderDep,
 ):
     try:
         shift = await service.start_working(worker_profile_id, shift_id)
@@ -818,7 +831,9 @@ async def start_working(
         raise _not_found() from exc
     except InvalidShiftTransitionError as exc:
         raise _bad_request(str(exc)) from exc
-    return for_worker(ShiftResponse.model_validate(shift), worker_profile_id)
+    response = for_worker(ShiftResponse.model_validate(shift), worker_profile_id)
+    await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
+    return response
 
 
 @router.post(
@@ -870,13 +885,18 @@ async def mark_no_show(
     response_model=ShiftResponse,
     summary="Cerrar un turno ya trabajado (comercio)",
 )
-async def finish(shift_id: UUID, company_id: CompanyIdDep, service: ServiceDep):
+async def finish(
+    shift_id: UUID, company_id: CompanyIdDep, service: ServiceDep, recorder: RecorderDep
+):
     try:
-        return await service.finish(company_id, shift_id)
+        shift = await service.finish(company_id, shift_id)
     except ShiftNotFoundError as exc:
         raise _not_found() from exc
     except InvalidShiftTransitionError as exc:
         raise _bad_request(str(exc)) from exc
+    response = ShiftResponse.model_validate(shift)
+    await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
+    return response
 
 
 @router.post(
@@ -884,10 +904,15 @@ async def finish(shift_id: UUID, company_id: CompanyIdDep, service: ServiceDep):
     response_model=ShiftResponse,
     summary="Confirmar el pago de un turno finalizado (comercio)",
 )
-async def mark_paid(shift_id: UUID, company_id: CompanyIdDep, service: ServiceDep):
+async def mark_paid(
+    shift_id: UUID, company_id: CompanyIdDep, service: ServiceDep, recorder: RecorderDep
+):
     try:
-        return await service.mark_paid(company_id, shift_id)
+        shift = await service.mark_paid(company_id, shift_id)
     except ShiftNotFoundError as exc:
         raise _not_found() from exc
     except InvalidShiftTransitionError as exc:
         raise _bad_request(str(exc)) from exc
+    response = ShiftResponse.model_validate(shift)
+    await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
+    return response

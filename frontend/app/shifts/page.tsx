@@ -222,7 +222,7 @@ function MyShiftsPanel() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [planLimitMessage, setPlanLimitMessage] = useState<string | null>(null);
-  const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
+  const { keyFor, clear: clearIdempotencyKey, clearSiTermino } = useIdempotencyKeys();
   // Guarda contra el toque de más (ver `lib/use-tap-guard.ts`): el botón
   // principal de cada tarjeta está siempre en el mismo lugar y cambia de
   // acción con el estado. Un segundo toque después de «Cerrar turno» no
@@ -349,6 +349,7 @@ function MyShiftsPanel() {
         await load();
         if (action === "publish") setJustPublishedId(id);
       } catch (err) {
+        clearSiTermino(key, err);
         if (action === "publish" && isPlanLimitError(err)) {
           setPlanLimitMessage(getErrorMessage(err));
         } else {

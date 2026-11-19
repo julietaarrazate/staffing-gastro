@@ -1,4 +1,4 @@
-# Privacidad: el pin desplazado del trabajador ya no se deshace con un punto conocido
+# Privacidad: el pin desplazado del trabajador ya no se deshace con un punto conocido (#665)
 
 **Pedido:** Julieta, pasada por clase de error de la beta (etapa 2, punto 1
 del 2026-11-19). Hallazgo PRI-02 de la clase «privacidad entre roles», grave,

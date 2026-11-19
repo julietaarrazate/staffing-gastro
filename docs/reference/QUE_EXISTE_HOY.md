@@ -108,7 +108,14 @@ listados más abajo.
   el que ve en la tarjeta y en sus ganancias. A esa persona la ausencia se le
   cuenta desde que confirmó, y su puntualidad no se mueve.
 - **Idempotencia** en mutaciones críticas vía header `Idempotency-Key`
-  (`backend/app/core/idempotency.py`).
+  (`backend/app/core/idempotency.py`). Todas las transiciones del turno la
+  usan (`confirm`, `reject`, `worker-cancel`, `check-in`, `start-working`,
+  `check-out`, `no-show`, `finish`, `mark-paid`...). Del lado del cliente
+  (`frontend/lib/idempotency.ts`) la key es del intento, no de la acción: se
+  suelta al terminar bien o con un error definitivo (4xx, salvo 408 y 409) y
+  vence sola a los 5 minutos; con «Llegué»/«Terminé» se guarda junto a la key
+  la posición del primer intento, porque el servidor rechaza la misma key con
+  otro cuerpo. Postularse o calificar dos veces a la vez da 409, no 500.
 - **Helper de zona horaria Argentina** (`backend/app/core/tz.py`,
   `hoy_art()`/`now_art()`): usar para toda fecha de NEGOCIO (edad, "turnos de
   hoy", cortes de período); los timestamps de auditoría siguen en UTC a
