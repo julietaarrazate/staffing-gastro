@@ -40,12 +40,12 @@ def _now() -> datetime:
 
 
 def _ident(fmt: str = "jpg") -> dict:
-    """Lo que devuelve Cloudinary al subir un DNI/selfie privado (ADR-0021)."""
+    """Lo que devuelve Cloudinary al subir un DNI/selfie protegido (ADR-0021)."""
     return {
         "public_id": f"oido/identidad/{uuid4().hex}",
         "resource_type": "image",
         "format": fmt,
-        "type": "private",
+        "type": "authenticated",
     }
 
 
@@ -59,7 +59,7 @@ def _constancia_payload() -> dict:
             "public_id": f"oido/constancias/{uuid4().hex}",
             "resource_type": "image",
             "format": "pdf",
-            "type": "private",
+            "type": "authenticated",
         }
     }
 

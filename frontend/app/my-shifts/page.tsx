@@ -427,6 +427,9 @@ function MatchesContent() {
         return;
       }
       toast(getErrorMessage(err, "No se pudo enviar tu postulación"), "error");
+      // Si el turno ya se cubrió o se canceló, la lista de guardados se relee
+      // para que deje de ofrecerlo (VIE-03).
+      void load({ silent: true });
     } finally {
       setApplyingSaved(null);
     }

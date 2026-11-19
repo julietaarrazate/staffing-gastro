@@ -89,6 +89,9 @@ class AuthenticatedSession:
     user: User
     two_factor_enabled: bool = False
     two_factor_verified: bool = False
+    # Cuándo vence el access token con el que se autenticó (segundos UNIX).
+    # Los sockets lo usan para cortarse solos al vencer (PRI-04).
+    token_expires_at: float | None = None
 
     @property
     def gate(self) -> AdminGate:

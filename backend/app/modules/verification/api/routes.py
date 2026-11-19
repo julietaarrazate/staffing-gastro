@@ -34,6 +34,7 @@ from app.modules.company.domain.repositories import CompanyProfileRepository
 from app.modules.verification.api.dependencies import get_verification_service
 from app.modules.verification.api.schemas import (
     ClaimSummaryResponse,
+    DecideClaimInput,
     EvidenceLinkResponse,
     IdentitySummaryResponse,
     PendingClaimResponse,
@@ -47,6 +48,7 @@ from app.modules.verification.application.dtos import IdentitySummary
 from app.modules.verification.application.services import VerificationService
 from app.modules.verification.domain.exceptions import (
     ClaimAlreadyVerifiedError,
+    ClaimChangedError,
     ClaimNotFoundError,
     ClaimNotPendingError,
     EvidenceNotFoundError,
@@ -57,6 +59,13 @@ from app.modules.verification.domain.value_objects import ClaimStatus, ClaimType
 from app.modules.worker.api.dependencies import get_user_repository
 
 logger = logging.getLogger(__name__)
+
+# La persona volvió a mandar los documentos después de lo que el admin revisó
+# (o mientras decidía): no se decide nada y la cola se vuelve a cargar (ESC-01).
+CLAIM_RESUBMITTED_DETAIL = "La persona volvió a mandar los documentos. Revisalos de nuevo."
+# El envío perdió la carrera de guardado varias veces seguidas (otro envío o
+# una decisión entraron en el medio): no se guardó nada.
+SUBMIT_CONFLICT_DETAIL = "No pudimos guardar tu envío porque cambió mientras tanto. Probá de nuevo."
 
 router = APIRouter(prefix="/identity", tags=["identity-verification"])
 
@@ -124,6 +133,10 @@ async def submit_my_document(
             status_code=status.HTTP_409_CONFLICT,
             detail="Tu identidad ya está verificada",
         ) from exc
+    except ClaimChangedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=SUBMIT_CONFLICT_DETAIL
+        ) from exc
     except EvidenceRequiredError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -156,6 +169,10 @@ async def submit_my_business_document(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Tu comercio ya está verificado",
+        ) from exc
+    except ClaimChangedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=SUBMIT_CONFLICT_DETAIL
         ) from exc
     except EvidenceRequiredError as exc:
         raise HTTPException(
@@ -308,9 +325,12 @@ async def approve_claim(
     users: UsersDep,
     notifications: NotificationsDep,
     email_sender: EmailSenderDep,
+    payload: DecideClaimInput | None = None,
 ):
     try:
-        claim = await service.approve_claim(claim_id, current_user.id)
+        claim = await service.approve_claim(
+            claim_id, current_user.id, payload.submitted_at if payload else None
+        )
     except ClaimNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Claim no encontrado"
@@ -319,6 +339,10 @@ async def approve_claim(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="El claim no está pendiente de revisión",
+        ) from exc
+    except ClaimChangedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=CLAIM_RESUBMITTED_DETAIL
         ) from exc
     await _notify_decision(claim, users, notifications, email_sender)
     return ClaimSummaryResponse(
@@ -345,7 +369,9 @@ async def reject_claim(
     email_sender: EmailSenderDep,
 ):
     try:
-        claim = await service.reject_claim(claim_id, current_user.id, payload.reason)
+        claim = await service.reject_claim(
+            claim_id, current_user.id, payload.reason, payload.submitted_at
+        )
     except ClaimNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Claim no encontrado"
@@ -354,6 +380,10 @@ async def reject_claim(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="El claim no está pendiente de revisión",
+        ) from exc
+    except ClaimChangedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=CLAIM_RESUBMITTED_DETAIL
         ) from exc
     await _notify_decision(claim, users, notifications, email_sender)
     return ClaimSummaryResponse(

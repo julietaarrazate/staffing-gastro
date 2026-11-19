@@ -9,6 +9,7 @@ from sqlalchemy import and_, func, or_, select, true, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dt import naive as _naive
+from app.core.row_state import unchanged_since_read
 from app.modules.company.infrastructure.models import CompanyProfileModel
 from app.modules.identity.infrastructure.models import UserModel
 from app.modules.subscription.domain.entities import (
@@ -16,6 +17,7 @@ from app.modules.subscription.domain.entities import (
     Subscription,
     SubscriptionPayment,
 )
+from app.modules.subscription.domain.exceptions import SubscriptionChangedError
 from app.modules.subscription.domain.plans import DEFAULT_PLAN_CODE
 from app.modules.subscription.domain.repositories import (
     SubscriptionPaymentRepository,
@@ -45,8 +47,25 @@ def _not_from_companies_of(emails: frozenset[str]):
     return SubscriptionModel.company_id.not_in(excluded)
 
 
+def _subscription_values(subscription: Subscription) -> dict:
+    """Las columnas que escribe `update`. `chosen_plan_*` y
+    `payment_commitment_*` NO: tienen sus propios UPDATE condicionales."""
+    return {
+        "plan_code": subscription.plan_code,
+        "status": subscription.status.value,
+        "period_start": subscription.period_start,
+        "period_end": subscription.period_end,
+        "turnos_usados_mes": subscription.turnos_usados_mes,
+        "paid_until": subscription.paid_until,
+        "renews": subscription.renews,
+        "expiry_notice": (
+            subscription.expiry_notice.value if subscription.expiry_notice else None
+        ),
+    }
+
+
 def _to_entity(model: SubscriptionModel) -> Subscription:
-    return Subscription(
+    subscription = Subscription(
         id=model.id,
         company_id=model.company_id,
         plan_code=model.plan_code,
@@ -65,6 +84,8 @@ def _to_entity(model: SubscriptionModel) -> Subscription:
         created_at=model.created_at,
         updated_at=model.updated_at,
     )
+    subscription.persisted_state = _subscription_values(subscription)
+    return subscription
 
 
 class SqlAlchemySubscriptionRepository(SubscriptionRepository):
@@ -95,25 +116,62 @@ class SqlAlchemySubscriptionRepository(SubscriptionRepository):
         return _to_entity(model)
 
     async def update(self, subscription: Subscription) -> Subscription:
-        model = await self._session.get(SubscriptionModel, subscription.id)
-        if model is None:
-            raise ValueError("La suscripción no existe")
-        model.plan_code = subscription.plan_code
-        model.status = subscription.status.value
-        model.period_start = subscription.period_start
-        model.period_end = subscription.period_end
-        model.turnos_usados_mes = subscription.turnos_usados_mes
-        model.paid_until = subscription.paid_until
-        model.renews = subscription.renews
-        model.expiry_notice = (
-            subscription.expiry_notice.value if subscription.expiry_notice else None
+        """`UPDATE subscriptions SET … WHERE id = … AND <cada columna> =
+        <leída>`: guarda sólo si nadie la cambió desde la lectura. Antes
+        reescribía la fila entera desde la copia leída, y la pasada de
+        vencimiento dejaba «vencida» a una suscripción que se pagó en el
+        medio (CON-08). Si afectó 0 filas, `SubscriptionChangedError` y no
+        se guardó nada.
+
+        `chosen_plan_*` y `payment_commitment_*` NO se escriben acá: una
+        entidad leída antes (webhook de pago, cambio de plan) pisaría lo que
+        otro pedido registró mientras tanto. Tienen sus propios métodos."""
+        values = _subscription_values(subscription)
+        conditions = [SubscriptionModel.id == subscription.id]
+        if subscription.persisted_state is not None:
+            conditions += unchanged_since_read(
+                SubscriptionModel, subscription.persisted_state
+            )
+        result = await self._session.execute(
+            update(SubscriptionModel)
+            .where(*conditions)
+            .values(**values)
+            .execution_options(synchronize_session=False)
         )
-        # `chosen_plan_*` y `payment_commitment_*` NO se escriben acá: una
-        # entidad leída antes (webhook de pago, cambio de plan) pisaría lo que
-        # otro pedido registró mientras tanto. Tienen sus propios métodos.
+        if result.rowcount != 1:
+            await self._session.rollback()
+            if await self._session.get(SubscriptionModel, subscription.id) is None:
+                raise ValueError("La suscripción no existe")
+            raise SubscriptionChangedError(str(subscription.id))
         await self._session.commit()
-        await self._session.refresh(model)
+        # Lo que escribió pasa a ser lo leído (para un segundo guardado de la
+        # misma entidad en el mismo caso de uso).
+        subscription.persisted_state = values
+        model = await self._session.get(
+            SubscriptionModel, subscription.id, populate_existing=True
+        )
         return _to_entity(model)
+
+    async def register_publication(self, company_id: UUID, now: datetime) -> None:
+        # Dos UPDATE en la misma transacción. El primero abre la ventana nueva
+        # sólo si venció (el WHERE lo hace una sola vez aunque dos lleguen
+        # juntas); el segundo suma en la base, así que ninguna suma se pierde.
+        await self._session.execute(
+            update(SubscriptionModel)
+            .where(
+                SubscriptionModel.company_id == company_id,
+                SubscriptionModel.period_end <= now,
+            )
+            .values(period_start=now, period_end=now + PERIOD_LENGTH, turnos_usados_mes=0)
+            .execution_options(synchronize_session=False)
+        )
+        await self._session.execute(
+            update(SubscriptionModel)
+            .where(SubscriptionModel.company_id == company_id)
+            .values(turnos_usados_mes=SubscriptionModel.turnos_usados_mes + 1)
+            .execution_options(synchronize_session=False)
+        )
+        await self._session.commit()
 
     async def get_by_company_id(self, company_id: UUID) -> Subscription | None:
         stmt = select(SubscriptionModel).where(SubscriptionModel.company_id == company_id)

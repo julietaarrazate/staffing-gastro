@@ -95,6 +95,10 @@ class ApplicationService:
             raise AlreadyUnassignedError(str(shift_id))
         else:
             raise AlreadyAppliedError(str(shift_id))
+        # El turno pudo asignarse o cancelarse entre la lectura de arriba y esta
+        # escritura (CON-04): `_reject_pending_applicants` ya recorrió la lista
+        # sin ver esta fila, y quedaría «pendiente» para siempre.
+        application = await self._undo_if_shift_closed(application, shift_id)
         logger.info(
             "application.submitted",
             extra={
@@ -105,9 +109,42 @@ class ApplicationService:
             },
         )
 
-        if company is not None:
+        # Ya tiene el turno (lo asignaron en el medio): no es un postulante
+        # nuevo para el comercio.
+        if company is not None and application.status == ApplicationStatus.PENDIENTE:
             await self._notify_new_applicant(company.user_id, shift, worker_profile_id)
         return application
+
+    async def _undo_if_shift_closed(
+        self, application: ShiftApplication, shift_id: UUID
+    ) -> ShiftApplication:
+        """Relee el turno ya con la postulación guardada; si dejó de estar
+        abierto, la deshace y responde como ante un turno cerrado.
+
+        Es correcto sin bloquear porque quien cierra el turno primero guarda el
+        estado y recién después recorre las postulaciones pendientes: o esa
+        pasada ve esta fila (y la rechaza), o esta relectura ve el turno
+        cerrado. Se deshace con `withdraw`: queda RETIRADA, como si nunca se
+        hubiera postulado (el comercio la tolera, ADR-0026 punto 5). Si en el
+        medio el comercio ya la asignó, no es pendiente: se devuelve tal cual.
+
+        Y si el turno se cerró porque el comercio le asignó el turno a ESTA
+        persona (desde «Recomendados», antes de que existiera la fila), la
+        postulación queda aceptada, no retirada: tiene el turno (revisión
+        independiente del 2026-11-19)."""
+        current = await self._shifts.get_by_id(shift_id)
+        if current is not None and current.status in OPEN_STATUSES:
+            return application
+        latest = await self._applications.get_by_id(application.id)
+        if latest is None or latest.status != ApplicationStatus.PENDIENTE:
+            return latest or application
+        if current is not None and current.worker_profile_id == latest.worker_profile_id:
+            latest.accept()
+            await self._applications.update(latest)
+            return latest
+        latest.withdraw()
+        await self._applications.update(latest)
+        raise ShiftNotApplicableError(str(shift_id))
 
     async def _account_active(self, user_id: UUID | None) -> bool:
         if user_id is None:
@@ -211,4 +248,24 @@ class ApplicationService:
                 "worker_profile_id": str(worker_profile_id),
             },
         )
+        await self._refresh_company_screen(application.shift_id)
         return updated
+
+    async def _refresh_company_screen(self, shift_id: UUID) -> None:
+        """Le pide al comercio que tiene abierta la lista de candidatos que la
+        recargue (VIE-01): sin esto seguía mostrando a quien ya retiró su
+        postulación y podía asignarle el turno. Sin aviso visible ni push, y
+        sin romper el retiro si falla."""
+        try:
+            shift = await self._shifts.get_by_id(shift_id)
+            company = (
+                await self._companies.get_by_id(shift.company_id) if shift else None
+            )
+            if company is not None:
+                await self._notifications.request_live_refresh(company.user_id)
+        except Exception:
+            logger.exception(
+                "Refresco del comercio tras retirar: fallo inesperado, no se "
+                "propaga (shift_id=%s)",
+                shift_id,
+            )

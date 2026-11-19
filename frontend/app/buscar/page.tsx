@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { appliedShiftIds } from "@/lib/applications";
 import { getErrorMessage } from "@/lib/errors";
+import { useLiveRefresh } from "@/lib/live-refresh";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
@@ -77,44 +78,70 @@ export default function BuscarPage() {
   const [sort, setSort] = useState<"nearby" | "pay">("nearby");
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
 
-  const load = useCallback(async () => {
-    if (!token) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const params = new URLSearchParams();
-      // Buscar es la pantalla para mirar otras zonas: pide todo el mercado.
-      // Sin esto, el feed sólo devuelve lo que queda cerca de la zona del
-      // perfil (lo que muestran el Inicio y el Mapa).
-      params.set("scope", "all");
-      // Sin rubro elegido ("Todos"): se pasan TODOS los rubros explícitos
-      // como `positions`, para no caer en el default de `/shifts/feed`
-      // (los rubros del perfil) — acá el propósito es ver el mercado
-      // completo, no lo mismo que ya se ve en el feed.
-      if (skill) params.set("position", skill);
-      else WORKER_SKILLS.forEach((s) => params.append("positions", s));
-      const [feed, prof, applied] = await Promise.all([
-        api.get<Shift[]>(`/shifts/feed?${params.toString()}`, token),
-        api.get<WorkerProfile>("/workers/me/profile", token).catch(() => null),
-        api.get<ShiftApplication[]>("/applications/mine", token).catch(() => []),
-      ]);
-      const appliedIds = appliedShiftIds(applied);
-      setShifts(feed.filter((s) => !appliedIds.has(s.id)));
-      setProfile(prof);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudieron cargar los turnos");
-    } finally {
-      setLoading(false);
-    }
-  }, [token, skill]);
+  // Turnos que la persona descartó o a los que se postuló desde esta pantalla:
+  // una recarga (aviso, vuelta a la pestaña) no los vuelve a mostrar aunque el
+  // servidor todavía los traiga o la respuesta haya salido antes.
+  const ocultos = useRef<Set<string>>(new Set());
+  // Último pedido gana: una respuesta vieja (otro rubro, o salida antes de una
+  // postulación) no pisa a la nueva.
+  const latestLoad = useRef(0);
+
+  // `silent` (avisos y vuelta a la pestaña): sin esqueleto, y si falla se deja
+  // lo que ya se ve.
+  const load = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (!token) return;
+      const silent = options?.silent === true;
+      const mine = ++latestLoad.current;
+      if (!silent) {
+        setLoading(true);
+        setError(null);
+      }
+      try {
+        const params = new URLSearchParams();
+        // Buscar es la pantalla para mirar otras zonas: pide todo el mercado.
+        // Sin esto, el feed sólo devuelve lo que queda cerca de la zona del
+        // perfil (lo que muestran el Inicio y el Mapa).
+        params.set("scope", "all");
+        // Sin rubro elegido ("Todos"): se pasan TODOS los rubros explícitos
+        // como `positions`, para no caer en el default de `/shifts/feed`
+        // (los rubros del perfil) — acá el propósito es ver el mercado
+        // completo, no lo mismo que ya se ve en el feed.
+        if (skill) params.set("position", skill);
+        else WORKER_SKILLS.forEach((s) => params.append("positions", s));
+        const [feed, prof, applied] = await Promise.all([
+          api.get<Shift[]>(`/shifts/feed?${params.toString()}`, token),
+          api.get<WorkerProfile>("/workers/me/profile", token).catch(() => null),
+          api.get<ShiftApplication[]>("/applications/mine", token).catch(() => []),
+        ]);
+        if (mine !== latestLoad.current) return;
+        const appliedIds = appliedShiftIds(applied);
+        setShifts(feed.filter((s) => !appliedIds.has(s.id) && !ocultos.current.has(s.id)));
+        setProfile(prof);
+        setError(null);
+      } catch (err) {
+        if (!silent && mine === latestLoad.current) {
+          setError(err instanceof ApiError ? err.message : "No se pudieron cargar los turnos");
+        }
+      } finally {
+        if (mine === latestLoad.current) setLoading(false);
+      }
+    },
+    [token, skill]
+  );
 
   useEffect(() => {
     load();
   }, [load]);
 
+  // Al día con los avisos (VIE-03): un turno que se cubrió o se canceló sale de
+  // la lista sin recargar. En pausa con una carga normal o una postulación en curso.
+  useLiveRefresh(load, { paused: loading || decidingId !== null });
+
   async function handleDecide(shift: Shift, decision: "like" | "pass") {
     if (decidingId !== null) return;
     if (decision === "pass") {
+      ocultos.current.add(shift.id);
       setShifts((prev) => prev.filter((s) => s.id !== shift.id));
       return;
     }
@@ -129,12 +156,14 @@ export default function BuscarPage() {
         keyFor(shift.id)
       );
       clearIdempotencyKey(shift.id);
+      ocultos.current.add(shift.id);
       setShifts((prev) => prev.filter((s) => s.id !== shift.id));
       toast("¡Te postulaste! El comercio ya te puede ver");
       requestOptIn();
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         clearIdempotencyKey(shift.id);
+        ocultos.current.add(shift.id);
         setShifts((prev) => prev.filter((s) => s.id !== shift.id));
         toast("Ya te habías postulado a este turno");
       } else {
@@ -208,7 +237,7 @@ export default function BuscarPage() {
 
       {error && (
         <div className="mt-4">
-          <ErrorBanner message={error} onRetry={load} />
+          <ErrorBanner message={error} onRetry={() => load()} />
         </div>
       )}
 

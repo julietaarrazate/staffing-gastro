@@ -19,11 +19,13 @@ vez de vivir sobre `WorkerProfile`.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from typing import Any
 from uuid import UUID, uuid4
 
 from app.modules.verification.domain.exceptions import (
     ClaimAlreadyVerifiedError,
+    ClaimChangedError,
     ClaimNotPendingError,
     EvidenceRequiredError,
 )
@@ -35,6 +37,20 @@ from app.modules.verification.domain.value_objects import (
     EvidenceType,
     VerificationMethod,
 )
+
+
+def _same_instant(a: datetime, b: datetime | None) -> bool:
+    """El mismo instante, venga con zona o sin ella (sin zona = UTC: así
+    vuelve de SQLite)."""
+    if b is None:
+        return False
+
+    def utc(value: datetime) -> datetime:
+        if value.tzinfo is None:
+            return value
+        return value.astimezone(timezone.utc).replace(tzinfo=None)
+
+    return utc(a) == utc(b)
 
 
 @dataclass
@@ -146,6 +162,16 @@ class Claim:
     files_to_delete: list[EvidenceFileDeletion] = field(
         default_factory=list, compare=False, repr=False
     )
+    # Cómo estaba guardado cuando se leyó (estado y envío): lo arma el
+    # repositorio, que guarda sólo si en la base sigue igual (si no,
+    # `ClaimChangedError`). Así una decisión no pisa un reenvío que entró en
+    # el medio, ni un reenvío una decisión (ESC-01). Cada cambio del claim
+    # mueve el estado o `submitted_at`: alcanza como versión, sin columna
+    # nueva. El dominio sólo lo transporta, como la versión del turno
+    # (ADR-0016). `None` en un claim que todavía no se guardó.
+    persisted_state: dict[str, Any] | None = field(
+        default=None, compare=False, repr=False
+    )
 
     @property
     def is_verified(self) -> bool:
@@ -190,17 +216,31 @@ class Claim:
         self.rejection_reason = None
         self.confidence = None
 
+    def _ensure_decidable(self, reviewed_submission: datetime | None) -> None:
+        """Se decide un claim pendiente, y sólo sobre el envío que el
+        verificador revisó: `reviewed_submission` es el `submitted_at` que
+        tenía en pantalla. Si la persona reenvió después, decidir aprobaría o
+        rechazaría documentos que nadie miró (ESC-01). Sin él (llamadores
+        viejos), se decide sobre el envío pendiente."""
+        if not self.is_pending:
+            raise ClaimNotPendingError(str(self.claim_type))
+        if reviewed_submission is not None and not _same_instant(
+            reviewed_submission, self.submitted_at
+        ):
+            raise ClaimChangedError(str(self.id))
+
     def approve(
         self,
         reviewed_by: UUID,
         now: datetime,
         confidence: ConfidenceLevel = ConfidenceLevel.MEDIA,
+        *,
+        reviewed_submission: datetime | None = None,
     ) -> None:
         """Un verificador aprueba el claim pendiente. Purga la evidencia
         sensible dejando la constancia (retención, ADR-0010 §4) y manda sus
         archivos a borrar (ADR-0021)."""
-        if not self.is_pending:
-            raise ClaimNotPendingError(str(self.claim_type))
+        self._ensure_decidable(reviewed_submission)
         self.status = ClaimStatus.VERIFICADA
         self.confidence = confidence
         self.decided_at = now
@@ -209,13 +249,17 @@ class Claim:
         self._purge_evidence_data(now)
 
     def reject(
-        self, reviewed_by: UUID, reason: str | None, now: datetime
+        self,
+        reviewed_by: UUID,
+        reason: str | None,
+        now: datetime,
+        *,
+        reviewed_submission: datetime | None = None,
     ) -> None:
         """Un verificador rechaza el claim pendiente. También purga la
         evidencia sensible y manda sus archivos a borrar: ya cumplió su
         finalidad (se decidió)."""
-        if not self.is_pending:
-            raise ClaimNotPendingError(str(self.claim_type))
+        self._ensure_decidable(reviewed_submission)
         self.status = ClaimStatus.RECHAZADA
         self.confidence = None
         self.decided_at = now

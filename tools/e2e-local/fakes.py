@@ -312,7 +312,8 @@ def gsi_client():
 # ─────────────────────────────── Cloudinary ────────────────────────────────
 # Navegador (frontend/lib/cloudinary.ts): POST multipart a
 # /v1_1/<cloud>/auto/upload con file, api_key, timestamp, signature,
-# allowed_formats, folder, public_id, overwrite y, si es privado, type. Lee
+# allowed_formats, folder, public_id, overwrite y, si es protegido, type
+# (`authenticated` para el DNI, la selfie, la constancia y el CV). Lee
 # secure_url, public_id, resource_type, format, type.
 # Backend (app/core/cloudinary.py): firma, destroy, rename (script) y el link
 # de descarga privada GET /v1_1/<cloud>/<rt>/download.
@@ -417,6 +418,14 @@ def _image_size(data: bytes, fmt: str) -> tuple[int, int]:
     return 0, 0
 
 
+def _cld_delivery_signature(to_sign: str) -> str:
+    """Firma de una URL de entrega (`s--XXXXXXXX--`): los primeros 8
+    caracteres del SHA-1 (base64 url-safe) de `<transformaciones>/<nombre>`
+    más el api_secret, como `cloudinary_url(..., sign_url=True)` del SDK."""
+    digest = hashlib.sha1(f"{to_sign}{CLD_API_SECRET}".encode()).digest()
+    return base64.urlsafe_b64encode(digest)[:8].decode()
+
+
 def _cld_key(resource_type: str, delivery_type: str, public_id: str) -> str:
     return f"{resource_type}/{delivery_type}/{public_id}"
 
@@ -431,8 +440,7 @@ def _cld_public_view(asset: dict) -> dict:
     suffix = "" if rt == "raw" else f".{asset['format']}"
     sig = ""
     if dtype != "upload":
-        token = base64.urlsafe_b64encode(hashlib.sha1(f"{pid}{CLD_API_SECRET}".encode()).digest())
-        sig = f"s--{token[:8].decode()}--/"
+        sig = f"s--{_cld_delivery_signature(f'{pid}{suffix}')}--/"
     path = f"{CLOUD_NAME}/{rt}/{dtype}/{sig}v{asset['version']}/{pid}{suffix}"
     out = {
         "asset_id": asset["asset_id"],
@@ -647,21 +655,45 @@ def cld_delivery(path: str):
     """`https://res.cloudinary.com/<path>` (el kit lo enruta acá). Ignora las
     transformaciones (`f_auto,q_auto,w_…`): entrega el original. Si el
     archivo no existe, una imagen placeholder (pedido del arnés; Cloudinary
-    real daría 404)."""
+    real daría 404).
+
+    Los tipos de entrega se comportan como en Cloudinary (control de acceso,
+    ADR-0021):
+    - `upload`: público, con o sin transformación.
+    - `private`: el original da 401, pero **cualquier versión transformada
+      se entrega sin firma** (`…/image/private/w_2000/<id>.jpg`, `pg_1` de
+      un PDF). Por eso los documentos y el CV pasaron a `authenticated`
+      (revisión del 2026-11-19).
+    - `authenticated`: 401 sin una firma válida (`s--XXXXXXXX--`), en el
+      original y en cualquier transformación. La app nunca arma URLs de
+      entrega firmadas: el que puede ver el archivo recibe un link de la API
+      de descarga que vence (`/cloudinary/v1_1/<cloud>/<rt>/download`)."""
     parts = [p for p in path.split("/") if p]
     if len(parts) < 4:
         return Response(placeholder_png("photo", 1), media_type="image/png")
     _cloud, resource_type, delivery_type, rest = parts[0], parts[1], parts[2], parts[3:]
     attachment = False
     avatar_hint = False
+    signature: str | None = None
+    transformations: list[str] = []
     while rest and (_SIGNATURE.match(rest[0]) or _TRANSFORM.match(rest[0]) or _VERSION.match(rest[0])):
         segment = rest.pop(0)
+        if _SIGNATURE.match(segment):
+            signature = segment[3:-2]
+            continue
+        if _TRANSFORM.match(segment):
+            transformations.append(segment)
         attachment = attachment or "fl_attachment" in segment
         width = re.search(r"(?:^|,)w_(\d+)", segment)
         avatar_hint = avatar_hint or bool(width and int(width.group(1)) <= 200)
     name = "/".join(rest)
-    if delivery_type in ("private", "authenticated"):
-        # Privado de verdad: el original no se entrega por res.cloudinary.com.
+    if delivery_type == "authenticated":
+        expected = _cld_delivery_signature("/".join([*transformations, name]))
+        if signature != expected:
+            return Response(status_code=401, headers={"X-Cld-Error": "Resource is authenticated"})
+    elif delivery_type == "private" and not transformations:
+        # El original de un `private` no se entrega por res.cloudinary.com
+        # (sí una versión transformada: ver arriba).
         return Response(status_code=401, headers={"X-Cld-Error": "Resource is private"})
     file_path = CLOUD / resource_type / delivery_type / name
     if name and file_path.is_file() and CLOUD in file_path.resolve().parents:

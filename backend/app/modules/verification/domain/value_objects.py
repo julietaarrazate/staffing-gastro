@@ -110,4 +110,6 @@ class EvidenceFile:
     public_id: str
     resource_type: str
     format: str
-    delivery_type: str = "private"
+    # `authenticated` desde el 2026-11-19; las de antes, `private` hasta que
+    # el script las pasa (ADR-0021, actualización 2026-11-19).
+    delivery_type: str = "authenticated"

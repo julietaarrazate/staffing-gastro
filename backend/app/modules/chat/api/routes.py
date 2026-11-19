@@ -16,6 +16,7 @@ from fastapi import (
 from app.core.idempotency import IdempotencyRecorder, idempotent
 from app.core.rate_limit import RateLimiter
 from app.core.ws_manager import ws_manager
+from app.core.ws_vigencia import receive_text_until
 from app.modules.chat.api.dependencies import get_chat_service
 from app.modules.chat.api.schemas import (
     ConversationResponse,
@@ -27,7 +28,8 @@ from app.modules.chat.domain.exceptions import (
     ConversationNotFoundError,
     EmptyMessageError,
 )
-from app.modules.identity.api.dependencies import get_current_user, get_current_user_ws
+from app.modules.identity.api.dependencies import get_current_user, get_current_ws_session
+from app.modules.identity.application.dtos import AuthenticatedSession
 from app.modules.identity.domain.entities import User
 
 router = APIRouter(prefix="/chats", tags=["chat"])
@@ -116,10 +118,13 @@ async def send_message(
 async def chat_stream(
     websocket: WebSocket,
     shift_id: UUID,
-    current_user: Annotated[User, Depends(get_current_user_ws)],
+    auth: Annotated[AuthenticatedSession, Depends(get_current_ws_session)],
     service: ServiceDep,
 ):
-    """Push en tiempo real de mensajes nuevos para la conversación de un turno."""
+    """Push en tiempo real de mensajes nuevos para la conversación de un turno.
+
+    Se corta (1008) cuando vence el token con el que se conectó (PRI-04)."""
+    current_user = auth.user
     try:
         thread = await service.assert_participant(current_user.id, shift_id)
     except ConversationNotFoundError as exc:
@@ -129,13 +134,17 @@ async def chat_stream(
     # La conexión queda sobre el hilo vigente (el del comercio con la persona
     # asignada ahora): si el turno se reasigna, `ws_manager` deja de
     # entregarle y la corta.
-    if not ws_manager.connect_chat(shift_id, thread.worker_user_id, websocket):
+    if not ws_manager.connect_chat(
+        shift_id, thread.worker_user_id, websocket, user_id=current_user.id
+    ):
         # Tope de conexiones concurrentes por turno (PRODUCTION_HARDENING.md).
         await websocket.close(code=status.WS_1013_TRY_AGAIN_LATER)
         return
     try:
         while True:
-            await websocket.receive_text()
+            if await receive_text_until(websocket, auth.token_expires_at) is None:
+                await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+                break
             try:
                 _ws_frame_rate_limit.check(str(current_user.id))
             except HTTPException:

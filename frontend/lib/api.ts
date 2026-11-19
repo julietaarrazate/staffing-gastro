@@ -57,6 +57,7 @@ const FIELD_NAMES: Record<string, string> = {
   birth_date: "Fecha de nacimiento",
   photo_url: "Foto",
   cv_url: "CV",
+  cv_file: "CV",
 };
 
 const num = (v: unknown): number | undefined => {

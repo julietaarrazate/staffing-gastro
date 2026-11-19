@@ -52,7 +52,7 @@ def _file(folder: str = "oido/identidad", fmt: str = "jpg") -> dict:
         "public_id": f"{folder}/{uuid4().hex}",
         "resource_type": "image",
         "format": fmt,
-        "type": "private",
+        "type": "authenticated",
     }
 
 
@@ -66,8 +66,13 @@ async def _pending_claim_id(client, admin: dict, claim_type: str) -> str:
 
 
 async def _queue(session_factory) -> list[EvidenceFileDeletionModel]:
+    """Los pedidos de borrado pendientes. Desde el 2026-11-19 un borrado
+    confirmado no se borra de la tabla: queda marcado (`deleted_at`)."""
     async with session_factory() as session:
-        return list((await session.execute(select(EvidenceFileDeletionModel))).scalars())
+        stmt = select(EvidenceFileDeletionModel).where(
+            EvidenceFileDeletionModel.deleted_at.is_(None)
+        )
+        return list((await session.execute(stmt)).scalars())
 
 
 async def _evidences(session_factory) -> list[IdentityEvidenceModel]:
@@ -214,9 +219,14 @@ async def test_aprobar_la_identidad_borra_dni_dorso_y_selfie(
     assert sorted(f.public_id for f in evidence_storage.deleted) == sorted(
         f["public_id"] for f in files.values()
     )
-    assert all(f.delivery_type == "private" for f in evidence_storage.deleted)
-    # Confirmado el borrado, no queda ninguna referencia en la base.
+    assert all(f.delivery_type == "authenticated" for f in evidence_storage.deleted)
+    # Confirmado el borrado, no queda ningún pedido pendiente; las filas
+    # quedan como constancia de lo que se borró (2026-11-19).
     assert await _queue(session_factory) == []
+    async with session_factory() as session:
+        done = list((await session.execute(select(EvidenceFileDeletionModel))).scalars())
+    assert sorted(d.public_id for d in done) == sorted(f["public_id"] for f in files.values())
+    assert all(d.deleted_at is not None for d in done)
     assert all(
         e.file_public_id is None and e.data_purged for e in await _evidences(session_factory)
     )
@@ -402,7 +412,7 @@ DNI = EvidenceFile(public_id="oido/identidad/abc", resource_type="image", format
 
 
 @pytest.mark.asyncio
-async def test_cloudinary_destroy_firmado_privado_e_invalidando_cache(cloudinary_on):
+async def test_cloudinary_destroy_firmado_protegido_e_invalidando_cache(cloudinary_on):
     calls: list[httpx.Request] = []
     await _storage(200, {"result": "ok"}, calls).delete(DNI)
     (request,) = calls
@@ -411,7 +421,7 @@ async def test_cloudinary_destroy_firmado_privado_e_invalidando_cache(cloudinary
     form = {k: v[0] for k, v in parse_qs(request.content.decode()).items()}
     assert (form["public_id"], form["type"], form["invalidate"]) == (
         "oido/identidad/abc",
-        "private",
+        "authenticated",
         "true",
     )
     assert form["api_key"] == "test-api-key" and form["signature"]
@@ -430,3 +440,29 @@ async def test_un_404_o_un_resultado_raro_no_cuentan_como_borrado(cloudinary_on)
         await _storage(404, {"error": {"message": "Invalid cloud_name"}}, []).delete(DNI)
     with pytest.raises(CloudinaryDestroyError):
         await _storage(200, {"result": "error"}, []).delete(DNI)
+
+
+@pytest.mark.asyncio
+async def test_un_fallo_tardio_no_reabre_un_borrado_ya_confirmado(session_factory):
+    """Dos pasadas cruzadas: una confirma el borrado (queda `deleted_at`) y
+    la otra, que falló, no lo vuelve a poner pendiente ni le deja el error."""
+    from app.modules.verification.infrastructure.repositories import (
+        SqlAlchemyEvidenceFileDeletionRepository,
+    )
+
+    now = datetime.now(UTC)
+    deletion = EvidenceFileDeletion.request(DNI, now)
+    async with session_factory() as session:
+        repo = SqlAlchemyEvidenceFileDeletionRepository(session)
+        repo.add_pending([deletion])
+        await session.commit()
+        await repo.mark_deleted(deletion.id, now)
+
+        deletion.record_failure("ConnectError: Cloudinary no responde", now)
+        await repo.save_failure(deletion)
+
+        row = await session.get(EvidenceFileDeletionModel, deletion.id)
+        await session.refresh(row)
+        assert row.deleted_at is not None
+        assert (row.attempts, row.last_error) == (0, None)
+        assert await repo.next_attempt_at() is None

@@ -101,6 +101,12 @@
     ],
     "status": 200
   },
+  "avisos_leer_todo": {
+    "body": {
+      "marked": 2
+    },
+    "status": 200
+  },
   "avisos_trabajador": {
     "body": [
       {
@@ -419,7 +425,9 @@
       "certifications": [],
       "city": null,
       "created_at": "2026-11-01T12:00:00+00:00",
+      "cv_file": null,
       "cv_filename": null,
+      "cv_kind": null,
       "cv_url": null,
       "events_completed": 0,
       "full_name": "Trabajador Uno",

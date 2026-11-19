@@ -42,26 +42,6 @@ export function cldOgImage(url: string, width = 1200, height = 630): string {
 }
 
 /**
- * Fuerza la descarga (en vez de mostrarla en el navegador) de un archivo
- * subido a Cloudinary agregando la transformación `fl_attachment`, que hace
- * que Cloudinary responda con `Content-Disposition: attachment` — el
- * atributo HTML `download` no alcanza porque `res.cloudinary.com` es un
- * origen cruzado y los navegadores lo ignoran ahí. Pensado para que el
- * comercio pueda guardar una copia del CV del trabajador, no sólo verlo.
- * URLs que no son de Cloudinary (link pegado a mano) se devuelven tal cual
- * — no podemos garantizar el comportamiento de descarga en esos casos.
- */
-export function cldAttachment(url: string): string {
-  const marker = "/upload/";
-  const at = url.indexOf(marker);
-  if (!url.includes("res.cloudinary.com") || at === -1) return url;
-  const head = url.slice(0, at + marker.length);
-  const tail = url.slice(at + marker.length);
-  if (tail.startsWith("fl_attachment")) return url;
-  return `${head}fl_attachment/${tail}`;
-}
-
-/**
  * Sube una foto pública (perfil o logo, portada del comercio) con una subida
  * FIRMADA por el backend (`POST /uploads/sign-image`). Antes usaba un preset
  * unsigned que viajaba en el código del navegador, y con él cualquiera podía
@@ -77,16 +57,19 @@ export async function uploadImage(file: File, token: string, kind: ImageKind): P
 }
 
 /**
- * Referencia a un archivo PRIVADO en Cloudinary (ADR-0021): DNI, selfie o
- * constancia de AFIP. No es una URL — no hay URL pública que lo muestre. Se
- * manda tal cual al backend; el único que lo puede volver a ver es un admin,
- * con un link que vence a los 5 minutos.
+ * Referencia a un archivo PRIVADO en Cloudinary (ADR-0021): DNI, selfie,
+ * constancia de AFIP o CV. No es una URL — no hay URL pública que lo muestre.
+ * Se manda tal cual al backend; se vuelve a ver sólo con un link que vence a
+ * los 5 minutos (el DNI y la constancia, un admin; el CV, quien hoy lo puede
+ * ver). El tipo de entrega es `authenticated`: ni el original ni una versión
+ * transformada se ven sin firma (`private` dejaba ver las transformadas,
+ * revisión del 2026-11-19).
  */
 export interface PrivateFileRef {
   public_id: string;
   resource_type: string;
   format: string;
-  type: "private";
+  type: "authenticated";
 }
 
 /** Sube el DNI o la selfie, privados (ADR-0021). */
@@ -95,16 +78,15 @@ export async function uploadIdentityImage(file: File, token: string): Promise<Pr
 }
 
 /**
- * Sube el CV con una subida FIRMADA (en vez del `upload_preset` unsigned de
- * `uploadFile`): Cloudinary bloquea por default la entrega de PDF subido sin
- * firma (medida anti-abuso desde 2023) — causa real confirmada de que el CV
- * suba bien pero no abra (`ERR_INVALID_RESPONSE`). El backend firma la
- * subida (`POST /uploads/sign-cv`, sólo trabajador) sin ver el archivo; si
- * no está configurada en el servidor (`CLOUDINARY_API_KEY`/`_SECRET`), tira
- * un error claro (503) en vez de fallar en silencio.
+ * Sube el CV con una subida FIRMADA por el backend (`POST /uploads/sign-cv`,
+ * sólo trabajador). Desde el 2026-11-19 es PRIVADO, como el DNI (ADR-0021):
+ * el CV trae teléfono, email y domicilio, y antes cualquiera con el link lo
+ * abría para siempre. Devuelve la referencia, no una URL; el comercio que
+ * puede verlo pide un link que vence (`lib/cv.ts`). Si la subida no está
+ * configurada en el servidor, tira un error claro (503).
  */
-export async function uploadCv(file: File, token: string): Promise<string> {
-  return (await uploadSigned(file, token, "/uploads/sign-cv", "cv")).secure_url;
+export async function uploadCv(file: File, token: string): Promise<PrivateFileRef> {
+  return toPrivateRef(await uploadSigned(file, token, "/uploads/sign-cv", "cv"));
 }
 
 /**
@@ -132,16 +114,16 @@ interface UploadResult {
 }
 
 function toPrivateRef(result: UploadResult): PrivateFileRef {
-  if (result.type !== "private") {
-    // El backend firmó `type=private`; si Cloudinary contesta otra cosa, el
-    // archivo quedó público y no hay que mandarlo como si fuera privado.
+  if (result.type !== "authenticated") {
+    // El backend firmó `type=authenticated`; si Cloudinary contesta otra cosa,
+    // el archivo no quedó protegido y no hay que mandarlo como si lo fuera.
     throw new Error("No se pudo subir el archivo de forma privada. Probá de nuevo.");
   }
   return {
     public_id: result.public_id,
     resource_type: result.resource_type,
     format: result.format ?? "",
-    type: "private",
+    type: "authenticated",
   };
 }
 
@@ -178,7 +160,7 @@ async function uploadSigned(
   formData.append("folder", folder);
   formData.append("public_id", public_id);
   formData.append("overwrite", overwrite);
-  // Documentos de identidad: `private`, también firmado (ADR-0021).
+  // Documentos de identidad y CV: `authenticated`, también firmado (ADR-0021).
   if (type) formData.append("type", type);
 
   const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {

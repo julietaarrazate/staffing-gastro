@@ -30,9 +30,17 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
   «para revisar con Fable», el 2026-11-18 entraron G4, U081, U072, la
   segunda mirada a G6, los dos arreglos chicos de la baja del dispositivo y
   del panel sin mapa, U080 (turno reofrecido) y las decisiones 21, 22 y 24.
-  La pasada por clase de error se auditó el 2026-11-19: los arreglos van por
-  grupo, con su estado en el tablero («Pasada por clase de error»). Después,
-  P1 a P5. La próxima migración libre es la 0060. En paralelo, las
+  La pasada por clase de error (2026-11-19) quedó auditada y arreglada en
+  once PRs (#661 a #675, más los tests de contrato en #666), salvo el cobro
+  con Mercado Pago (CON-06, CON-07, CON-09: latente, va antes de prender el
+  cobro) y tres decisiones de Julieta (PRI-06, PRI-07 y PRI-09, más el
+  texto de `/privacidad` sobre el CV). Detalle en el tablero («Pasada por
+  clase de error» y «Para la próxima sesión»). **Sigue, en una sesión
+  nueva: P1 a P5** en el orden del tablero (antes de P3 y P4, la opinión de
+  la asesoría). Falta de Julieta, después del deploy del #669: los dos
+  scripts del CV y los documentos y la prueba de los 6 minutos
+  (`reference/PENDIENTE_OPERATIVO.md`, 5c). La próxima migración libre es
+  la 0061. En paralelo, las
   etapas 4 (marca) y 5 (lista de salida, con M7). Antes de encender el
   cobro: la regla de cambio de plan que decidió Julieta, con U140, U142 y
   U143. Antes del 17/12: revisar la excepción de picomatch (#612).

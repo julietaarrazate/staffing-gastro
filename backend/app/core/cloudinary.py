@@ -10,9 +10,13 @@ el cliente no lo puede alterar sin invalidar la firma).
 """
 
 import hashlib
+import hmac
+import re
 import time
 import uuid
+from dataclasses import dataclass
 from urllib.parse import urlencode
+from uuid import UUID
 
 from app.core.config import settings
 
@@ -40,12 +44,22 @@ FOLDERS = {
 }
 
 
-# Tipo de entrega de los documentos de identidad (DNI, selfie, constancia de
-# AFIP), ADR-0021. `private`: el original NO se puede bajar con una URL de
-# `res.cloudinary.com`; sólo con un link de la API de descarga firmado por el
-# servidor y con vencimiento (`private_download_url`). Antes subían como
-# `upload` (público): cualquiera con el link los veía para siempre.
-PRIVATE_DELIVERY_TYPE = "private"
+# Tipo de entrega de los archivos con datos personales: DNI, selfie,
+# constancia de AFIP y CV (ADR-0021, actualización 2026-11-19).
+# `authenticated`: ni el original ni NINGUNA versión transformada se entregan
+# por `res.cloudinary.com` sin una firma del servidor. Quien puede verlos
+# recibe un link de la API de descarga firmado y con vencimiento
+# (`private_download_url`). Antes subían como `upload` (público): cualquiera
+# con el link los veía para siempre.
+PROTECTED_DELIVERY_TYPE = "authenticated"
+
+# El tipo que usó el ADR-0021 del 2026-10-23 al 2026-11-19. `private` protege
+# sólo el ORIGINAL: Cloudinary entrega sin firma cualquier versión
+# transformada (`…/image/private/w_2000/<public_id>.jpg`, o `pg_1` para cada
+# página de un PDF). Las evidencias pendientes de entonces lo siguen teniendo
+# hasta correr `scripts/privatize_identity_evidence.py`, que las pasa a
+# `authenticated`.
+OLD_PRIVATE_DELIVERY_TYPE = "private"
 
 # Cuánto dura el link que ve el admin al revisar una evidencia (ADR-0021).
 # Alcanza para mirar la foto o abrir el PDF; si se filtra, vence enseguida.
@@ -60,7 +74,10 @@ class CloudinaryNotConfiguredError(Exception):
 
 
 def sign_upload(
-    allowed_formats: str, folder: str, delivery_type: str | None = None
+    allowed_formats: str,
+    folder: str,
+    delivery_type: str | None = None,
+    public_id: str | None = None,
 ) -> dict[str, str]:
     """Parámetros que el cliente necesita para subir un archivo directo a
     Cloudinary con una subida firmada (sin `upload_preset`).
@@ -74,9 +91,12 @@ def sign_upload(
     el servidor (`public_id`) y `overwrite=false`: el cliente no puede elegir
     dónde ni con qué nombre guarda, ni pisar un archivo que ya existe.
 
-    Con `delivery_type` (`private` para documentos de identidad, ADR-0021)
-    también viaja firmado el `type`: el cliente no puede subir un DNI como
-    público sin invalidar la firma."""
+    Con `delivery_type` (`authenticated` para los documentos de identidad y
+    el CV, ADR-0021) también viaja firmado el `type`: el cliente no puede
+    subir un DNI como público sin invalidar la firma.
+
+    `public_id` lo pasa quien necesita un nombre con marca (el CV,
+    `cv_public_id_for`); si no, es uno al azar."""
     if not settings.cloudinary_api_key or not settings.cloudinary_api_secret:
         raise CloudinaryNotConfiguredError()
 
@@ -84,7 +104,7 @@ def sign_upload(
         "allowed_formats": allowed_formats,
         "folder": folder,
         "overwrite": "false",
-        "public_id": uuid.uuid4().hex,
+        "public_id": public_id or uuid.uuid4().hex,
         "timestamp": str(int(time.time())),
     }
     if delivery_type:
@@ -96,27 +116,74 @@ def sign_upload(
     }
 
 
-def sign_cv_upload() -> dict[str, str]:
-    """Firma para el CV del trabajador."""
-    return sign_upload(ALLOWED_CV_FORMATS, FOLDERS["cv"])
+def sign_cv_upload(owner_id: UUID) -> dict[str, str]:
+    """Firma para el CV del trabajador. Protegido (`authenticated`), como los
+    documentos de identidad (ADR-0021, actualización 2026-11-19): el CV trae
+    teléfono, email y domicilio. El nombre del archivo lleva la marca de quien
+    lo sube (`cv_public_id_for`)."""
+    if not settings.cloudinary_api_key or not settings.cloudinary_api_secret:
+        raise CloudinaryNotConfiguredError()
+    return sign_upload(
+        ALLOWED_CV_FORMATS,
+        FOLDERS["cv"],
+        PROTECTED_DELIVERY_TYPE,
+        public_id=cv_public_id_for(owner_id),
+    )
+
+
+# El nombre de un CV es `<32 hex al azar><32 hex de marca>`, y la marca es un
+# HMAC del dueño (ADR-0021, actualización 2026-11-19). El link que vence
+# muestra el `public_id`: sin la marca, un comercio que abrió el CV una vez
+# podía crearse una cuenta de trabajador, ponerse ese mismo archivo en su
+# perfil y pedir links para siempre (o hacerlo borrar al «sacarlo»). Con la
+# marca, el perfil sólo acepta un archivo nuevo que subió esa misma cuenta.
+# Un `raw` (Word) puede volver con la extensión pegada al nombre.
+_CV_PUBLIC_ID = re.compile(
+    rf"^(?:{re.escape(FOLDERS['cv'])}/)?(?P<nonce>[0-9a-f]{{32}})(?P<mark>[0-9a-f]{{32}})"
+    r"(?:\.[a-z0-9]{1,10})?$"
+)
+
+
+def _cv_mark(owner_id: UUID, nonce: str) -> str:
+    message = f"oido-cv:{owner_id}:{nonce}".encode()
+    key = settings.cloudinary_api_secret.encode()
+    return hmac.new(key, message, hashlib.sha256).hexdigest()[:32]
+
+
+def cv_public_id_for(owner_id: UUID) -> str:
+    """Nombre al azar para el CV de `owner_id`, con su marca."""
+    nonce = uuid.uuid4().hex
+    return f"{nonce}{_cv_mark(owner_id, nonce)}"
+
+
+def is_cv_upload_of(public_id: str, owner_id: UUID) -> bool:
+    """¿Este archivo lo subió `owner_id` con una firma de `sign_cv_upload`?
+    Acepta el `public_id` con o sin la carpeta (según el modo de carpetas
+    de la cuenta) y con la extensión de un `raw`."""
+    if not settings.cloudinary_api_secret:
+        return False
+    match = _CV_PUBLIC_ID.match(public_id)
+    if match is None:
+        return False
+    return hmac.compare_digest(match["mark"], _cv_mark(owner_id, match["nonce"]))
 
 
 def sign_business_document_upload() -> dict[str, str]:
-    """Firma para la constancia de AFIP del comercio (ADR-0013). Privada
-    (ADR-0021)."""
+    """Firma para la constancia de AFIP del comercio (ADR-0013). Protegida
+    (`authenticated`, ADR-0021)."""
     return sign_upload(
         ALLOWED_BUSINESS_DOC_FORMATS,
         FOLDERS["business_document"],
-        PRIVATE_DELIVERY_TYPE,
+        PROTECTED_DELIVERY_TYPE,
     )
 
 
 def sign_image_upload(kind: str) -> dict[str, str]:
     """Firma para una foto: `profile` (perfil o logo), `cover` (portada del
-    comercio) o `identity` (DNI y selfie). Las de identidad suben privadas
-    (ADR-0021); perfil y portada son públicas a propósito (se muestran a
-    todos)."""
-    delivery_type = PRIVATE_DELIVERY_TYPE if kind == "identity" else None
+    comercio) o `identity` (DNI y selfie). Las de identidad suben protegidas
+    (`authenticated`, ADR-0021); perfil y portada son públicas a propósito
+    (se muestran a todos)."""
+    delivery_type = PROTECTED_DELIVERY_TYPE if kind == "identity" else None
     return sign_upload(ALLOWED_IMAGE_FORMATS, FOLDERS[kind], delivery_type)
 
 
@@ -149,26 +216,77 @@ def private_download_url(
     resource_type: str,
     delivery_type: str,
     expires_at: int,
+    attachment: bool = False,
 ) -> str:
     """Link firmado a la API de descarga de Cloudinary que entrega el
-    ORIGINAL de un archivo privado y deja de andar en `expires_at` (Unix).
+    ORIGINAL de un archivo protegido (`authenticated`, o `private` en las
+    evidencias de antes del 2026-11-19) y deja de andar en `expires_at`
+    (Unix).
 
     Equivale a `cloudinary.utils.private_download_url` del SDK oficial
     (`GET /v1_1/<cloud>/<resource_type>/download` con `public_id`, `format`,
     `type`, `expires_at`, `timestamp`, firmados). Funciona en cualquier plan;
     la alternativa con vencimiento sobre `res.cloudinary.com` (token-based
-    auth) es de los planes pagos (ADR-0021). No se usa `attachment`: el
-    navegador lo muestra en vez de descargarlo, y en la cola del admin va
-    directo a un `<img>`."""
+    auth) es de los planes pagos (ADR-0021). Sin `attachment` el navegador
+    lo muestra en vez de descargarlo (en la cola del admin va directo a un
+    `<img>`); con `attachment=True` lo baja (el «Descargar» del CV)."""
     params = signed_api_params(
         {
             "public_id": public_id,
             "format": file_format,
             "type": delivery_type,
             "expires_at": str(expires_at),
+            "attachment": "true" if attachment else "",
         }
     )
     return f"{api_url(resource_type, 'download')}?{urlencode(params)}"
+
+
+_DELIVERY_URL = re.compile(
+    r"^https://res\.cloudinary\.com/(?P<cloud>[^/]+)/(?P<rt>image|raw|video)/"
+    r"(?P<type>upload|private|authenticated)/(?P<rest>.+)$"
+)
+_VERSION = re.compile(r"^v\d+$")
+
+
+@dataclass(frozen=True)
+class ParsedUrl:
+    public_id: str
+    resource_type: str
+    format: str
+    type: str
+
+
+def delivery_url_cloud(url: str) -> str | None:
+    """El `cloud_name` de una URL de entrega de Cloudinary, o `None` si no
+    es una."""
+    match = _DELIVERY_URL.match(url.split("?", 1)[0])
+    return match["cloud"] if match else None
+
+
+def parse_cloudinary_url(url: str) -> ParsedUrl | None:
+    """`https://res.cloudinary.com/<cloud>/image/upload/v123/oido/identidad/ab.jpg`
+    → (`oido/identidad/ab`, `image`, `jpg`, `upload`). Lo que hay antes de la
+    versión (`v123`) son transformaciones y se descarta. En `raw` la
+    extensión es parte del `public_id` y el formato queda vacío. `None` si no
+    es una URL de entrega de Cloudinary. Lo usan los scripts que pasan a
+    privados los archivos viejos y el CV (ADR-0021)."""
+    match = _DELIVERY_URL.match(url.split("?", 1)[0])
+    if not match:
+        return None
+    segments = match["rest"].split("/")
+    for i, segment in enumerate(segments):
+        if _VERSION.match(segment):
+            segments = segments[i + 1 :]
+            break
+    path = "/".join(segments)
+    if not path:
+        return None
+    resource_type = match["rt"]
+    if resource_type == "raw" or "." not in segments[-1]:
+        return ParsedUrl(path, resource_type, "", match["type"])
+    public_id, file_format = path.rsplit(".", 1)
+    return ParsedUrl(public_id, resource_type, file_format.lower(), match["type"])
 
 
 # Respuestas de `destroy` que cuentan como borrado (ADR-0021, «Borrado al
@@ -188,7 +306,7 @@ def destroy_request(
 ) -> tuple[str, dict[str, str]]:
     """URL y parámetros firmados para borrar un archivo con `destroy` de la
     Upload API (`POST /v1_1/<cloud>/<resource_type>/destroy`): `public_id`,
-    `type` (el de entrega: `private` para los documentos de identidad) e
+    `type` (el de entrega: `authenticated` para los documentos y el CV) e
     `invalidate=true`, para que el CDN deje de servir una copia en caché.
     Mismos parámetros que `cloudinary.uploader.destroy` del SDK oficial. Es
     de la Upload API a propósito: la Admin API tiene un tope por hora en el

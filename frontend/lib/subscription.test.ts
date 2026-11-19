@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   BETA_SIN_TOPE_TEXT,
+  endOfArgentinaDay,
   formatPlainDate,
   isInactivePlanMessage,
   limiteExigido,
@@ -49,5 +50,14 @@ describe("tope de turnos (G11)", () => {
     expect(usoSinTopeText(1)).toBe("1 turno publicado este mes");
     expect(usoSinTopeText(0)).toBe("0 turnos publicados este mes");
     expect(BETA_SIN_TOPE_TEXT).toBe("Durante la beta no hay tope de turnos.");
+  });
+});
+
+describe("endOfArgentinaDay", () => {
+  it("vence al terminar el día argentino, inclusive (23:59:59.999 ART = 02:59:59.999 UTC del día siguiente)", () => {
+    expect(endOfArgentinaDay("2026-11-10")).toBe(Date.parse("2026-11-11T02:59:59.999Z"));
+  });
+  it("una fecha ilegible no vence", () => {
+    expect(endOfArgentinaDay("basura")).toBeNull();
   });
 });

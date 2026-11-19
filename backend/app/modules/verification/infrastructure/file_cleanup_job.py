@@ -1,6 +1,10 @@
 """Borrado de los archivos de evidencia que dejó una decisión (ADR-0021,
 «Borrado al decidir»), armado con los adaptadores reales.
 
+Desde el 2026-11-19 la cola también recibe el CV del trabajador que se
+cambió o se sacó (`queue_file_deletions`, ADR-0021 «Actualización: el CV
+también»): mismo storage, mismo borrado y mismos reintentos.
+
 Dos entradas, el mismo caso de uso (`EvidenceFileCleaner`):
 
 - `delete_released_files`: corre **después de responder** la decisión del
@@ -30,9 +34,17 @@ from app.modules.verification.infrastructure.evidence_file_storage import (
 )
 from app.modules.verification.infrastructure.repositories import (
     SqlAlchemyEvidenceFileDeletionRepository,
+    queue_file_deletions,  # la puerta de la cola; la importan otros módulos desde acá
 )
 
 logger = logging.getLogger(__name__)
+
+
+async def file_deletion_requested(session: AsyncSession, public_id: str) -> bool:
+    """¿Ese archivo ya se mandó a borrar, esté pendiente o ya borrado? Lo usa
+    el perfil del trabajador para no volver a aceptar un CV que la persona
+    ya cambió o sacó (un formulario abierto desde antes)."""
+    return await SqlAlchemyEvidenceFileDeletionRepository(session).was_requested(public_id)
 
 
 async def _run(

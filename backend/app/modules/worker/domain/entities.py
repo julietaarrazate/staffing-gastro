@@ -11,6 +11,7 @@ from uuid import UUID, uuid4
 from app.core.dt import naive as _naive
 from app.core.tz import hoy_art
 from app.modules.worker.domain.value_objects import (
+    CvFile,
     GamificationLevel,
     WorkerBadge,
     WorkerSkill,
@@ -40,12 +41,17 @@ class WorkerProfile:
     years_experience: int = 0
     languages: list[str] = field(default_factory=list)
     certifications: list[str] = field(default_factory=list)
+    # El CV subido, privado (ADR-0021, actualización 2026-11-19). Se ve con
+    # un link que vence, nunca con una URL fija.
+    cv_file: CvFile | None = None
+    # Un link pegado a mano (Drive, LinkedIn: lo controla la persona) o, hasta
+    # que corre `scripts/privatize_worker_cvs.py`, la URL pública de un CV
+    # subido antes del 2026-11-19. Nunca a la vez que `cv_file`.
     cv_url: str | None = None
-    # Nombre de archivo original (F1 auditoría 2026-08-10): el `public_id` que
-    # asigna Cloudinary a un upload no firmado es un hash, no el nombre real
-    # del archivo — sin esto, la UI no tenía forma de mostrar algo legible
-    # más que la URL entera. Sólo tiene sentido cuando `cv_url` viene de un
-    # archivo subido (no de un link pegado a mano).
+    # Nombre de archivo original (F1 auditoría 2026-08-10): el `public_id` es
+    # un hash, no el nombre real del archivo — sin esto, la UI no tenía forma
+    # de mostrar algo legible. Sólo tiene sentido con un archivo subido (no
+    # con un link pegado a mano).
     cv_filename: str | None = None
     is_available: bool = True
 
@@ -93,6 +99,27 @@ class WorkerProfile:
             - self.birth_date.year
             - ((today.month, today.day) < (self.birth_date.month, self.birth_date.day))
         )
+
+    @property
+    def has_cv(self) -> bool:
+        return self.cv_file is not None or bool(self.cv_url)
+
+    def change_cv(
+        self, file: CvFile | None, url: str | None, filename: str | None
+    ) -> CvFile | None:
+        """Pone el CV (un archivo subido o un link pegado; el archivo gana) o lo
+        saca, y devuelve el archivo subido que dejó de usar, para que se
+        borre del storage (ADR-0021, actualización 2026-11-19). Si el archivo
+        sigue siendo el mismo, no devuelve nada."""
+        released = (
+            self.cv_file
+            if self.cv_file is not None and not self.cv_file.same_file(file)
+            else None
+        )
+        self.cv_file = file
+        self.cv_url = None if file is not None else (url or None)
+        self.cv_filename = filename if self.has_cv else None
+        return released
 
     @property
     def is_available_now(self) -> bool:

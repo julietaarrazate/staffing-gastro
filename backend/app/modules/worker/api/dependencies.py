@@ -3,10 +3,10 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends
+from fastapi import BackgroundTasks, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_session
+from app.core.database import get_session, sessions_like
 from app.modules.application.infrastructure.repositories import (
     SqlAlchemyShiftApplicationRepository,
 )
@@ -15,8 +15,17 @@ from app.modules.identity.domain.repositories import UserRepository
 from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
 from app.modules.shift.domain.value_objects import COMMITTED_STATUSES, ShiftStatus
 from app.modules.shift.infrastructure.repositories import SqlAlchemyShiftRepository
+from app.modules.verification.api.dependencies import get_evidence_file_storage
+from app.modules.verification.domain.repositories import EvidenceFileStorage
+from app.modules.verification.infrastructure.file_cleanup_job import (
+    delete_released_files,
+)
 from app.modules.worker.application.services import WorkerProfileService
 from app.modules.worker.domain.repositories import WorkerProfileRepository
+from app.modules.worker.infrastructure.cv_files import (
+    CloudinaryCvFileStorage,
+    QueuedCvFileDeletion,
+)
 from app.modules.worker.infrastructure.repositories import (
     SqlAlchemyWorkerProfileRepository,
 )
@@ -24,9 +33,25 @@ from app.modules.worker.infrastructure.repositories import (
 
 def get_worker_service(
     session: Annotated[AsyncSession, Depends(get_session)],
+    background_tasks: BackgroundTasks,
+    storage: Annotated[EvidenceFileStorage, Depends(get_evidence_file_storage)],
 ) -> WorkerProfileService:
+    sessions = sessions_like(session)
+
+    def delete_after_response(ids: list[UUID]) -> None:
+        # El CV que se dejó de usar se borra después de responder, con sesión
+        # propia, por el mismo camino que los documentos de identidad
+        # (ADR-0021): si Cloudinary falla, queda en la cola y reintenta el
+        # scheduler.
+        background_tasks.add_task(delete_released_files, sessions, storage, ids)
+
     repository = SqlAlchemyWorkerProfileRepository(session)
-    return WorkerProfileService(repository, SqlAlchemyShiftRepository(session))
+    return WorkerProfileService(
+        repository,
+        SqlAlchemyShiftRepository(session),
+        CloudinaryCvFileStorage(),
+        QueuedCvFileDeletion(session, delete_after_response),
+    )
 
 
 def get_user_repository(

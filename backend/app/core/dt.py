@@ -11,6 +11,8 @@ duplicada (idéntica, cinco veces) en `identity/domain/entities.py`,
 
 from datetime import datetime
 
+from app.core.tz import ARG_TZ
+
 
 def naive(dt: datetime) -> datetime:
     return dt.replace(tzinfo=None) if dt.tzinfo is not None else dt
@@ -24,6 +26,11 @@ def parse_iso_datetime(value: str | None) -> datetime | None:
     if not value:
         return None
     try:
-        return datetime.fromisoformat(value)
+        parsed = datetime.fromisoformat(value)
     except ValueError:
         return None
+    # Sin zona (la IA se olvidó del offset): es hora argentina, no la del
+    # celular de quien lo lea después.
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=ARG_TZ)
+    return parsed

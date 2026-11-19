@@ -7,6 +7,8 @@ from uuid import UUID
 from sqlalchemy import and_, case, delete, desc, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.row_state import changed_since_read
+
 from app.modules.identity.domain.entities import (
     REFRESH_ROTATION_GRACE,
     EmailVerificationToken,
@@ -38,9 +40,20 @@ from app.modules.identity.infrastructure.models import (
 )
 
 
+def _user_values(user: User) -> dict:
+    """Las columnas que escribe `update` (el resto no cambia después del alta)."""
+    return {
+        "role": user.role.value,
+        "status": user.status.value,
+        "is_verified": user.is_verified,
+        "full_name": user.full_name,
+        "hashed_password": user.hashed_password,
+    }
+
+
 def _to_entity(model: UserModel) -> User:
     """Mapea un modelo ORM a la entidad de dominio."""
-    return User(
+    user = User(
         id=model.id,
         email=model.email,
         hashed_password=model.hashed_password,
@@ -53,6 +66,8 @@ def _to_entity(model: UserModel) -> User:
         created_at=model.created_at,
         updated_at=model.updated_at,
     )
+    user.persisted_state = _user_values(user)
+    return user
 
 
 class SqlAlchemyUserRepository(UserRepository):
@@ -94,19 +109,29 @@ class SqlAlchemyUserRepository(UserRepository):
         return result.first() is not None
 
     async def update(self, user: User) -> User:
-        model = await self._session.get(UserModel, user.id)
-        model.role = user.role.value
-        model.status = user.status.value
-        model.is_verified = user.is_verified
-        model.full_name = user.full_name
-        # hashed_password: lo cambian el reset de contraseña
-        # (`IdentityService.reset_password`) y el ingreso con Google sobre una
-        # cuenta sin verificar (`_claim_unverified_account`); el resto de los llamadores
-        # reasignan el mismo hash que ya tenía la entidad, así que incluirlo
-        # acá es un no-op para ellos.
-        model.hashed_password = user.hashed_password
+        """Escribe sólo las columnas que el caso de uso cambió desde que leyó
+        al usuario (`User.persisted_state`): `UPDATE users SET <esas> WHERE
+        id = …`. Antes reescribía rol, estado, verificado, nombre y
+        contraseña desde la copia leída, y cambiarse el nombre mientras la
+        admin suspendía la cuenta deshacía la suspensión (CON-13). Cada caso
+        de uso escribe columnas distintas (nombre, contraseña, estado, rol,
+        verificado), así que no hace falta versión: lo de los dos queda.
+        Devuelve el usuario como quedó en la base."""
+        changes = changed_since_read(user.persisted_state, _user_values(user))
+        if changes:
+            await self._session.execute(
+                update(UserModel)
+                .where(UserModel.id == user.id)
+                .values(**changes)
+                .execution_options(synchronize_session=False)
+            )
         await self._session.commit()
-        await self._session.refresh(model)
+        # Lo que escribió pasa a ser lo leído: si el caso de uso vuelve a
+        # guardar la misma entidad, no reescribe estos cambios.
+        user.persisted_state = _user_values(user)
+        model = await self._session.get(UserModel, user.id, populate_existing=True)
+        if model is None:
+            raise ValueError("El usuario no existe")
         return _to_entity(model)
 
     async def list_all(
