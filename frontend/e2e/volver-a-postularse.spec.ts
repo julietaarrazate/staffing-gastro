@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { deContrato, fulfillContrato } from "./contrato";
 import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./mocks";
 
 /**
@@ -14,78 +15,30 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./moc
  * acá: lo cubre `components/ShiftDetail.test.tsx`.
  */
 
-const WORKER_SESSION = {
-  id: "user-1",
-  email: "demo.mozo.palermo@staffya.com",
-  full_name: "Mozo Demo",
-  role: "worker",
-  status: "activo",
-  is_active: true,
-  is_verified: true,
-};
-
-const WORKER_PROFILE = {
+// Respuestas reales del backend (e2e/contrato): perfil, turno abierto del feed y
+// postulación. El turno del feed lo ve un trabajador ajeno: sin datos de nadie.
+const WORKER_PROFILE = deContrato("perfil_trabajador", {
   id: "profile-1",
   user_id: "user-1",
   full_name: "Mozo Demo",
-  photo_url: null,
-  birth_date: null,
-  age: null,
   city: "Palermo, CABA",
-  bio: null,
   latitude: -34.5875,
   longitude: -58.4257,
-  skills: ["mozo"],
-  years_experience: 2,
-  languages: [],
-  certifications: [],
-  cv_url: null,
-  is_available: true,
   rating: 4.8,
   events_completed: 10,
   punctuality_rate: 0.95,
-  cancellations: 0,
-  badges: [],
   level: "plata",
-};
+});
 
-const SHIFT = {
-  id: "shift-1",
-  company_id: "company-1",
-  position: "mozo",
-  quantity: 1,
-  start_at: "2026-07-10T20:00:00-03:00",
-  end_at: "2026-07-10T23:00:00-03:00",
-  pay_amount: "15000",
-  currency: "ARS",
-  tips: true,
-  meal: false,
-  dress_code: null,
-  urgent: false,
-  address: null,
-  city: "Palermo, CABA",
-  latitude: -34.5875,
-  longitude: -58.4257,
-  title: null,
-  description: null,
-  status: "publicado",
-  worker_profile_id: null,
-  check_in_latitude: null,
-  check_in_longitude: null,
-  check_in_at: null,
-  check_out_latitude: null,
-  check_out_longitude: null,
-  check_out_at: null,
-  paid_at: null,
-  no_show_at: null,
-  last_no_show_worker_profile_id: null,
-  event_id: null,
-  event_name: null,
-  created_at: "2026-07-01T12:00:00-03:00",
-  company_name: "Bar Demo Palermo",
-  company_logo_url: null,
-  company_verified: false,
-};
+const SHIFT = deContrato("feed", [
+  {
+    id: "shift-1",
+    start_at: "2026-07-10T20:00:00-03:00",
+    end_at: "2026-07-10T23:00:00-03:00",
+    pay_amount: "15000",
+    company_name: "Bar Demo Palermo",
+  },
+])[0];
 
 function json(body: unknown, status = 200) {
   return { status, contentType: "application/json", body: JSON.stringify(body) };
@@ -97,16 +50,14 @@ function json(body: unknown, status = 200) {
  * esa misma (mismo id), no crea otra.
  */
 async function mockApi(page: Page) {
-  const application = {
+  const application = deContrato("postular", {
     id: "app-1",
     shift_id: SHIFT.id,
     worker_profile_id: WORKER_PROFILE.id,
-    status: "pendiente",
-    created_at: "2026-07-02T10:00:00-03:00",
-  };
+  });
   const calls = { withdraw: 0, apply: 0 };
 
-  await page.route("**/api/v1/auth/me", (route) => route.fulfill(json(WORKER_SESSION)));
+  await page.route("**/api/v1/auth/me", (route) => fulfillContrato(route, "auth_me_worker"));
   await page.route("**/api/v1/workers/me/profile", (route) => route.fulfill(json(WORKER_PROFILE)));
   // Inicio pide `/shifts/feed`; Buscar le suma los rubros en la query.
   await page.route(/\/api\/v1\/shifts\/feed(\?.*)?$/, (route) => route.fulfill(json([SHIFT])));
@@ -125,7 +76,7 @@ async function mockApi(page: Page) {
     if (route.request().method() !== "POST") return route.continue();
     calls.apply += 1;
     if (application.status !== "retirada") {
-      return route.fulfill(json({ detail: "Ya te postulaste a este turno" }, 409));
+      return fulfillContrato(route, "postular_repetida"); // 409, texto real
     }
     application.status = "pendiente";
     return route.fulfill(json(application, 201));

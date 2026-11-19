@@ -251,6 +251,9 @@ async def test_contrato_frontend(client: AsyncClient, session_factory):
     _, wk2 = await _registrar(
         client, cap, "contrato_w2@staffya.com", "worker", "Trabajador Dos", "user-worker"
     )
+    _, wk3_sin_perfil = await _registrar(
+        client, cap, "contrato_sinperfil@staffya.com", "worker", "Sin Perfil", "user-worker"
+    )
     _, otro_emp = await _registrar(
         client, cap, "contrato_emp2@staffya.com", "employer", "Otro Comercio", "user-employer"
     )
@@ -272,6 +275,11 @@ async def test_contrato_frontend(client: AsyncClient, session_factory):
         "/api/v1/workers/me/profile", headers=wk2, json=_PERFIL_TRABAJADOR
     )
     cap.norm.nombrar(perfil_w2.json()["id"], "worker-profile")
+
+    cap.guardar("perfil_trabajador", await client.get("/api/v1/workers/me/profile", headers=wk))
+    cap.guardar("perfil_comercio", await client.get("/api/v1/companies/me/profile", headers=emp))
+    cap.guardar("perfil_trabajador_sin_crear", await client.get(
+        "/api/v1/workers/me/profile", headers=wk3_sin_perfil))
 
     # --- Turno: borrador, publicado, postulaciones, asignado, confirmado ---
     creado = await client.post("/api/v1/shifts", headers=emp, json=_payload())
@@ -304,6 +312,14 @@ async def test_contrato_frontend(client: AsyncClient, session_factory):
     cap.guardar("postulantes_de_turno_ajeno", await client.get(
         f"/api/v1/applications/shifts/{shift_id}", headers=otro_emp))
     cap.guardar("avisos_comercio", await client.get("/api/v1/notifications", headers=emp), ordenar=True)
+
+    # Retirar y volver a postularse (misma postulación, se reactiva).
+    cap.guardar("postulacion_retirar", await client.post(
+        f"/api/v1/applications/{post2.json()['id']}/withdraw", headers=wk2))
+    cap.guardar("postulacion_retirar_repetida", await client.post(
+        f"/api/v1/applications/{post2.json()['id']}/withdraw", headers=wk2))
+    cap.guardar("postular_de_nuevo", await client.post(
+        f"/api/v1/applications/shifts/{shift_id}", headers=wk2))
 
     cap.guardar("candidatos_recomendados", await client.get(
         f"/api/v1/shifts/{shift_id}/candidates", headers=emp), ordenar=True)

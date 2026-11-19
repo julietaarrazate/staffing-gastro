@@ -384,6 +384,70 @@
     },
     "status": 401
   },
+  "perfil_comercio": {
+    "body": {
+      "address": null,
+      "capacity": null,
+      "category": null,
+      "city": "Palermo",
+      "cover_photo_url": null,
+      "created_at": "2026-11-01T12:00:00+00:00",
+      "description": null,
+      "events_published": 0,
+      "id": "company-1",
+      "late_cancellations": 0,
+      "latitude": null,
+      "logo_url": null,
+      "longitude": null,
+      "name": "Bar Palermo",
+      "on_time_payment_rate": 0.0,
+      "opening_hours": null,
+      "owner_full_name": "Comercio Prueba",
+      "payments_recorded": 0,
+      "rating": 0.0,
+      "user_id": "user-employer-1"
+    },
+    "status": 200
+  },
+  "perfil_trabajador": {
+    "body": {
+      "age": null,
+      "badges": [],
+      "bio": null,
+      "birth_date": null,
+      "cancellations": 0,
+      "certifications": [],
+      "city": null,
+      "created_at": "2026-11-01T12:00:00+00:00",
+      "cv_filename": null,
+      "cv_url": null,
+      "events_completed": 0,
+      "full_name": "Trabajador Uno",
+      "id": "worker-profile-1",
+      "identidad_verificada": false,
+      "is_available": true,
+      "languages": [],
+      "latitude": -34.58,
+      "level": "bronce",
+      "longitude": -58.43,
+      "no_shows": 0,
+      "photo_url": null,
+      "punctuality_rate": 0.0,
+      "rating": 0.0,
+      "skills": [
+        "mozo"
+      ],
+      "user_id": "user-worker-1",
+      "years_experience": 2
+    },
+    "status": 200
+  },
+  "perfil_trabajador_sin_crear": {
+    "body": {
+      "detail": "Todavía no creaste tu perfil de trabajador"
+    },
+    "status": 404
+  },
   "planes": {
     "body": {
       "plans": [
@@ -421,6 +485,24 @@
       ]
     },
     "status": 200
+  },
+  "postulacion_retirar": {
+    "body": {
+      "created_at": "2026-11-01T12:00:00+00:00",
+      "id": "application-2",
+      "motivo": null,
+      "shift": null,
+      "shift_id": "shift-1",
+      "status": "retirada",
+      "worker_profile_id": "worker-profile-2"
+    },
+    "status": 200
+  },
+  "postulacion_retirar_repetida": {
+    "body": {
+      "detail": "No se puede retirar una postulación en estado retirada"
+    },
+    "status": 400
   },
   "postulaciones_mias": {
     "body": [
@@ -539,6 +621,18 @@
       "shift_id": "shift-1",
       "status": "pendiente",
       "worker_profile_id": "worker-profile-1"
+    },
+    "status": 201
+  },
+  "postular_de_nuevo": {
+    "body": {
+      "created_at": "2026-11-01T12:00:00+00:00",
+      "id": "application-2",
+      "motivo": null,
+      "shift": null,
+      "shift_id": "shift-1",
+      "status": "pendiente",
+      "worker_profile_id": "worker-profile-2"
     },
     "status": 201
   },

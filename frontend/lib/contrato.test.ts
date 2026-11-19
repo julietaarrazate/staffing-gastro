@@ -5,12 +5,14 @@ import {
   STATUS_LABELS,
   type Applicant,
   type CandidateMatch,
+  type CompanyProfile,
   type Notification,
   type Shift,
   type ShiftApplication,
   type ShiftPublic,
   type Subscription,
   type User,
+  type WorkerProfile,
 } from "./types";
 
 /**
@@ -85,6 +87,13 @@ describe("los tipos del frontend calzan con lo que manda el backend", () => {
   it("candidatos recomendados", () => {
     const candidatos: Ensanchar<CandidateMatch>[] = contrato.candidatos_recomendados.body;
     expect(candidatos.length).toBe(2);
+  });
+
+  it("perfiles", () => {
+    const trabajador: Ensanchar<WorkerProfile> = contrato.perfil_trabajador.body;
+    const comercio: Ensanchar<CompanyProfile> = contrato.perfil_comercio.body;
+    expect(trabajador.skills).toEqual(["mozo"]);
+    expect(comercio.name).toBe("Bar Palermo");
   });
 
   it("avisos", () => {
