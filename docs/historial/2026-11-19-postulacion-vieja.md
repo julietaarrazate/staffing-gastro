@@ -17,3 +17,7 @@
 **Queda abierto:**
 - El auto-retiro de postulaciones al confirmar otro turno (U123, `_withdraw_overlapping_applications`) tampoco le avisa al comercio con la lista abierta; mismo hueco que VIE-01, por otro camino.
 - Al asignar, el resto de los postulantes pasa a `rechazada` sin aviso (por diseño): su lista queda «pendiente» hasta recargar.
+- El candado por persona de CON-11 sólo cubre confirmar contra confirmar: asignar, o confirmar mientras el comercio reasigna directo, no pasan por él (dentro del alcance de CON-11, pero queda escrito).
+- La relectura de CON-04 está probada en SQLite con el intercalado forzado; en Postgres la cubre el razonamiento de la revisión (cada escritura confirma antes de leer), no una prueba con dos sesiones reales.
+
+**Lo que agregó la revisión independiente:** si el comercio le asigna el turno a la misma persona (desde «Recomendados») mientras ella se postula, la postulación queda aceptada y no retirada, y al comercio no le llega «postulante nuevo». La campanita ignora un cuadro del socket que no sea un objeto.

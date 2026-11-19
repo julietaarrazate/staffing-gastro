@@ -158,6 +158,33 @@ async def test_postulacion_que_llega_mientras_asignan_no_queda_pendiente(
     assert [n for n in avisos if n["type"] == "new_applicant"] == []
 
 
+async def test_si_la_asignan_a_ella_mientras_se_postula_queda_aceptada(
+    client: AsyncClient, monkeypatch
+):
+    """El comercio la asigna desde «Recomendados» justo mientras ella se
+    postula: tiene el turno, así que la postulación queda aceptada (no
+    retirada) y ella no recibe «turno no disponible» (revisión del
+    2026-11-19)."""
+    shift_id, employer = await _published(client, "con04c")
+    ella, ella_id = await _worker_with_profile(client, "con04c_a@staffya.com")
+
+    async def asignarla():
+        res = await client.post(
+            f"/api/v1/shifts/{shift_id}/assign",
+            headers=employer,
+            json={"worker_profile_id": ella_id},
+        )
+        assert res.status_code == 200
+
+    respuesta = await _postularse_mientras(client, monkeypatch, shift_id, ella, asignarla)
+    assert respuesta.status_code == 201, respuesta.text
+    assert respuesta.json()["status"] == "aceptada"
+    mias = (await client.get("/api/v1/applications/mine", headers=ella)).json()
+    assert [a["status"] for a in mias if a["shift_id"] == shift_id] == ["aceptada"]
+    avisos = (await client.get("/api/v1/notifications", headers=employer)).json()
+    assert [n for n in avisos if n["type"] == "new_applicant"] == []
+
+
 async def test_postulacion_que_llega_mientras_cancelan_no_queda_pendiente(
     client: AsyncClient, monkeypatch
 ):

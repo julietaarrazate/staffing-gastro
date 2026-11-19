@@ -109,6 +109,7 @@ export default function NotificationBell() {
       // Cuadro que no es un aviso (sin id ni texto): sólo pide que las
       // pantallas se pongan al día, p. ej. cuando alguien retira su
       // postulación (VIE-01). No entra en la campanita.
+      if (!frame || typeof frame !== "object") return;
       if (!("id" in frame)) {
         emitLiveRefresh();
         return;

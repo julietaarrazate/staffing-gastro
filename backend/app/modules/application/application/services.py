@@ -109,7 +109,9 @@ class ApplicationService:
             },
         )
 
-        if company is not None:
+        # Ya tiene el turno (lo asignaron en el medio): no es un postulante
+        # nuevo para el comercio.
+        if company is not None and application.status == ApplicationStatus.PENDIENTE:
             await self._notify_new_applicant(company.user_id, shift, worker_profile_id)
         return application
 
@@ -124,13 +126,22 @@ class ApplicationService:
         pasada ve esta fila (y la rechaza), o esta relectura ve el turno
         cerrado. Se deshace con `withdraw`: queda RETIRADA, como si nunca se
         hubiera postulado (el comercio la tolera, ADR-0026 punto 5). Si en el
-        medio el comercio ya la asignó, no es pendiente: se devuelve tal cual."""
+        medio el comercio ya la asignó, no es pendiente: se devuelve tal cual.
+
+        Y si el turno se cerró porque el comercio le asignó el turno a ESTA
+        persona (desde «Recomendados», antes de que existiera la fila), la
+        postulación queda aceptada, no retirada: tiene el turno (revisión
+        independiente del 2026-11-19)."""
         current = await self._shifts.get_by_id(shift_id)
         if current is not None and current.status in OPEN_STATUSES:
             return application
         latest = await self._applications.get_by_id(application.id)
         if latest is None or latest.status != ApplicationStatus.PENDIENTE:
             return latest or application
+        if current is not None and current.worker_profile_id == latest.worker_profile_id:
+            latest.accept()
+            await self._applications.update(latest)
+            return latest
         latest.withdraw()
         await self._applications.update(latest)
         raise ShiftNotApplicableError(str(shift_id))
