@@ -1,4 +1,4 @@
-# Tests de contrato: los mocks de los e2e salen de respuestas reales del backend
+# Tests de contrato: los mocks de los e2e salen de respuestas reales del backend (#666)
 
 **Pedido:** Julieta quería que los mocks del frontend no mientan. En G8 los tests pasaban con un 422 que el servidor nunca mandaba para ese caso; un mock escrito a mano puede inventar campos o faltarle los que el backend sí manda.
 
