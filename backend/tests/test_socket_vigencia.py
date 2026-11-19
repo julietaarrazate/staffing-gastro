@@ -23,7 +23,13 @@ from app.modules.identity.api.dependencies import get_google_verifier
 from app.modules.identity.domain.google_verifier import GoogleIdentity
 from app.modules.notification.api.dependencies import get_email_sender
 from app.modules.notification.infrastructure.fake_email_sender import FakeEmailSender
-from tests.conftest import make_admin, register_user
+from tests.conftest import (
+    login,
+    make_admin,
+    pasar_la_ventana_de_gracia,
+    refresh_with_cookie,
+    register_user,
+)
 from tests.test_chat import _setup_assigned_shift_sync, _setup_in_memory_db
 from tests.test_ws_manager import FakeWebSocket
 
@@ -183,6 +189,22 @@ async def test_el_alta_de_dos_pasos_corta_los_sockets(
     """Confirmar la verificación en dos pasos revoca las sesiones de antes
     (la contraseña robada no sobrevive): sus sockets también se cortan."""
     await make_admin(client, session_factory, "pri04_admin@staffya.com")
+    assert len(cierres) == 1
+
+
+@pytest.mark.asyncio
+async def test_el_reuso_de_un_refresh_viejo_corta_los_sockets(
+    client: AsyncClient, session_factory, cierres: list
+):
+    """Reusar un refresh rotado fuera de la ventana de gracia es robo
+    (ADR-0002): además de revocar todas las sesiones, corta lo que la cuenta
+    tenga abierto en vivo, como el resto de las revocaciones en bloque."""
+    await register_user(client, email="pri04_robo@staffya.com")
+    await login(client, "pri04_robo@staffya.com")
+    viejo = client.cookies.get("staffya_refresh")
+    assert (await client.post("/api/v1/auth/refresh")).status_code == 200
+    await pasar_la_ventana_de_gracia(session_factory)
+    assert (await refresh_with_cookie(viejo)).status_code == 401
     assert len(cierres) == 1
 
 

@@ -441,8 +441,9 @@ class IdentityService:
 
     async def _reject_reused_refresh(self, session: RefreshSession) -> NoReturn:
         """Reuso de un refresh revocado fuera de la ventana de gracia: posible
-        robo (ADR-0002). Corta todas las sesiones de la cuenta y rechaza."""
-        await self._sessions.revoke_all_for_user(session.user_id)
+        robo (ADR-0002). Corta todas las sesiones de la cuenta, y también lo
+        que tenga abierto en vivo, y rechaza."""
+        await self._revoke_everything(session.user_id)
         # Suspender revoca todas las sesiones (`AdminService.suspend_user`):
         # quien vuelve con la suya tiene que enterarse de que la cuenta está
         # suspendida, no de que la sesión venció (ADR-0024, punto 8). La
