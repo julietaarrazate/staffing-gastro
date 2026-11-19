@@ -155,7 +155,15 @@ def seed_once() -> None:
     result = subprocess.run(
         [sys.executable, str(Path(__file__).resolve()), "--module", "scripts.startup_seed"],
         cwd=BACKEND,
-        env={**os.environ, "SEED_DEMO_DATA": "true", "E1_SKIP_SEED": "1"},
+        # El seed corre con `ENVIRONMENT=development`: en producción la siembra
+        # demo no corre aunque el flag esté prendido (`scripts/startup_seed.py`,
+        # 2026-11-19). El servidor sigue en `production` (ver `build_env`).
+        env={
+            **os.environ,
+            "SEED_DEMO_DATA": "true",
+            "E1_SKIP_SEED": "1",
+            "ENVIRONMENT": "development",
+        },
         capture_output=True,
         text=True,
     )

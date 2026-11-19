@@ -149,7 +149,7 @@ Esto es para saber qué existe sin abrir cada archivo.
 
 | Prefijo | Qué hay |
 |---|---|
-| `/auth` | register, login, guest, google, refresh, logout, me, forgot/reset-password, verify-email; verificación en dos pasos del admin: `2fa` (estado), `2fa/setup`, `2fa/confirm`, `2fa/verify` (paso del código del login), `2fa/recovery-codes` |
+| `/auth` | register, login, guest (`GET`: si «Explorar sin cuenta» está prendido; `POST`: entrar con el PIN), google, refresh, logout, me, forgot/reset-password, verify-email; verificación en dos pasos del admin: `2fa` (estado), `2fa/setup`, `2fa/confirm`, `2fa/verify` (paso del código del login), `2fa/recovery-codes` |
 | `/shifts` | crear, `parse-text`, `feed`, `me`, `mine`, `events`, `{id}`, `{id}/public`; transiciones: `publish`, `cancel`, `assign`, `confirm`, `reject`, `worker-cancel`, `depart`, `en-route`, `check-in`, `start-working`, `check-out`, `no-show`, `finish`, `mark-paid`; `{id}/candidates` (matching); `events/{event_id}/cancel` (cancelar los puestos que quedan de un evento) |
 | `/applications` | postularse a un turno, retirarse, `mine` |
 | `/matching` | búsqueda de trabajadores para el comercio |

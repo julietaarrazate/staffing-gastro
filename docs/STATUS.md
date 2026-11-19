@@ -41,7 +41,8 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
   scripts del CV y los documentos y la prueba de los 6 minutos
   (`reference/PENDIENTE_OPERATIVO.md`, 5c). La próxima migración libre es
   la 0061. En paralelo, las
-  etapas 4 (marca) y 5 (lista de salida; M7 ya está). Antes de encender el
+  etapas 4 (marca) y 5 (lista de salida: escrita en el tablero, lo de
+  código está salvo TypeScript 7 y falta lo de Julieta para el día que abre). Antes de encender el
   cobro: la regla de cambio de plan que decidió Julieta, con U140, U142 y
   U143. Antes del 17/12: revisar la excepción de picomatch (#612).
   Qué está hecho,
@@ -285,6 +286,10 @@ pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
   [historial](./historial/2026-11-19-serie-semanal-m7.md))
   ([`historial/2026-11-18-plan-90-dias-growth.md`](./historial/2026-11-18-plan-90-dias-growth.md),
   [`historial/2026-11-18-decisiones-fase-0.md`](./historial/2026-11-18-decisiones-fase-0.md)).
+- **Al abrir la beta:** vaciar `GUEST_ACCESS_PIN` en Render (decisión 5; el
+  ingreso deja de mostrar «Explorar sin cuenta» solo) y el resto de la lista
+  de salida en [`planning/BETA_TABLERO.md`](./planning/BETA_TABLERO.md),
+  «Etapa 5: lista de salida a beta».
 - **Verificación en dos pasos del admin (ADR-0023):** **antes del merge**,
   generar `TWO_FACTOR_ENCRYPTION_KEY` y cargarla en Render (sin ella el
   panel de admin queda cerrado); **apenas se deploya**, entrar y activarla en

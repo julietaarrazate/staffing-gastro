@@ -37,6 +37,22 @@ async def test_guest_login_disabled_without_pin_is_404(
         assert resp.status_code == 404
 
 
+async def test_el_ingreso_sabe_si_el_acceso_de_invitado_esta_prendido(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+):
+    """`GET /auth/guest` sin sesión: el ingreso muestra «Explorar sin cuenta»
+    sólo con PIN configurado (decisión 5: se vacía al abrir la beta). No
+    expone el PIN."""
+    resp = await client.get("/api/v1/auth/guest")
+    assert resp.status_code == 200
+    assert resp.json() == {"enabled": True}
+    assert TEST_GUEST_PIN not in resp.text
+
+    monkeypatch.setattr(settings, "guest_access_pin", "")
+    resp = await client.get("/api/v1/auth/guest")
+    assert resp.json() == {"enabled": False}
+
+
 async def test_guest_login_worker_creates_and_reuses_account(client: AsyncClient):
     resp = await client.post(
         "/api/v1/auth/guest", json={"pin": TEST_GUEST_PIN, "role": "worker"}

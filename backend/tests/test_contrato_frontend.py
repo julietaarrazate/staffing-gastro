@@ -250,6 +250,8 @@ async def test_contrato_frontend(client: AsyncClient, session_factory):
         json={"email": "contrato_emp@staffya.com", "password": "supersecreta123"},
     ))
     cap.guardar("auth_me_employer", await client.get("/api/v1/auth/me", headers=emp))
+    # «Explorar sin cuenta»: el ingreso sólo lo muestra con el acceso prendido.
+    cap.guardar("acceso_invitado", await client.get("/api/v1/auth/guest"))
 
     tok_w, wk = await _registrar(
         client, cap, "contrato_w1@staffya.com", "worker", "Trabajador Uno", "user-worker"

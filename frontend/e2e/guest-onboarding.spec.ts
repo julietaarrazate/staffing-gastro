@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { blockExternalHosts, mockEmptyNotifications, skipSplash } from "./mocks";
+import { deContrato, fulfillContrato } from "./contrato";
 
 /**
  * Un invitado ("Explorar sin cuenta") entra por el mismo onboarding
@@ -17,22 +18,24 @@ test("un invitado (comercio) entra por el PIN y cae en el onboarding, no directo
   await mockEmptyNotifications(page);
 
   await page.route("**/api/v1/auth/guest", (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        access_token: "e2e-guest-token",
-        user: {
-          id: "guest-employer-1",
-          email: "invitado.comercio@oido.beta",
-          full_name: "Invitado · Comercio",
-          role: "employer",
-          status: "activo",
-          is_active: true,
-          is_verified: true,
-        },
-      }),
-    })
+    route.request().method() === "GET"
+      ? fulfillContrato(route, "acceso_invitado")
+      : route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            access_token: "e2e-guest-token",
+            user: {
+              id: "guest-employer-1",
+              email: "invitado.comercio@oido.beta",
+              full_name: "Invitado · Comercio",
+              role: "employer",
+              status: "activo",
+              is_active: true,
+              is_verified: true,
+            },
+          }),
+        })
   );
 
   await page.goto("/login");
@@ -59,22 +62,24 @@ test("un invitado (trabajador) entra por el PIN y cae en el onboarding, no direc
   await mockEmptyNotifications(page);
 
   await page.route("**/api/v1/auth/guest", (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        access_token: "e2e-guest-token",
-        user: {
-          id: "guest-worker-1",
-          email: "invitado.trabajador@oido.beta",
-          full_name: "Invitado · Trabajador",
-          role: "worker",
-          status: "activo",
-          is_active: true,
-          is_verified: true,
-        },
-      }),
-    })
+    route.request().method() === "GET"
+      ? fulfillContrato(route, "acceso_invitado")
+      : route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            access_token: "e2e-guest-token",
+            user: {
+              id: "guest-worker-1",
+              email: "invitado.trabajador@oido.beta",
+              full_name: "Invitado · Trabajador",
+              role: "worker",
+              status: "activo",
+              is_active: true,
+              is_verified: true,
+            },
+          }),
+        })
   );
 
   await page.goto("/login");
@@ -88,4 +93,25 @@ test("un invitado (trabajador) entra por el PIN y cae en el onboarding, no direc
   // heading, no un getByText sin acotar que también matchea el anunciador
   // de ruta de Next.js.
   await expect(page.getByRole("heading", { name: "¿Dónde querés trabajar?" })).toBeVisible();
+});
+
+test("con el acceso de invitado apagado (la beta abierta), el ingreso no muestra «Explorar sin cuenta»", async ({
+  page,
+}) => {
+  await skipSplash(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  let pedidos = 0;
+  await page.route("**/api/v1/auth/guest", (route) => {
+    pedidos += 1;
+    return route.fulfill({ json: deContrato("acceso_invitado", { enabled: false }) });
+  });
+
+  await page.goto("/login");
+
+  await expect(page.getByRole("button", { name: "Ingresar", exact: true })).toBeVisible();
+  await expect.poll(() => pedidos).toBe(1);
+  await expect(page.getByText("Explorar sin cuenta")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Soy comercio" })).toHaveCount(0);
+  await expect(page.getByLabel("PIN de acceso")).toHaveCount(0);
 });
