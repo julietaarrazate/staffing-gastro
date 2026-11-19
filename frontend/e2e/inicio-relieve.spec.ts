@@ -130,3 +130,33 @@ test("el cielo del Inicio lleva nubes decorativas de día y sólo estrellas de n
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await expect(nubes.first()).toBeHidden();
 });
+
+test("el recomendado muestra la distancia como chip si se puede medir, con foto y sin foto, y nada si no", async ({ page }) => {
+  await page.route("https://fotos.test/**", (r) =>
+    r.fulfill({ status: 200, contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="2"><rect width="8" height="2" fill="#886"/></svg>' })
+  );
+  // Con foto: el chip va sobre la foto, junto a «Urgente».
+  await inicio(page, [turno("s1", { urgent: true, company_cover_url: "https://fotos.test/bar.svg", latitude: -34.5966, longitude: -58.4257 })]);
+  await page.goto("/feed");
+  const tarjeta = page.getByTestId("feed-hero-card");
+  const chip = tarjeta.getByTestId("feed-hero-distancia");
+  await expect(chip).toHaveText("1,0 km");
+  await expect(chip).toHaveClass(/chip-foto/);
+  await expect(tarjeta).toContainText("Urgente");
+
+  // Sin foto: el chip va arriba del puesto, con el mismo formato que «Cerca tuyo».
+  await page.unroute("**/api/v1/shifts/feed**");
+  await page.route("**/api/v1/shifts/feed**", (r) =>
+    r.fulfill(json([turno("s1", { latitude: -34.5966, longitude: -58.4257 }), turno("s2", { latitude: -34.5966, longitude: -58.4257, position: "barista" })]))
+  );
+  await page.goto("/feed");
+  await expect(page.getByTestId("feed-hero-card").getByTestId("feed-hero-distancia")).toHaveText("1,0 km");
+  await expect(page.getByTestId("feed-nearby-card")).toContainText("1,0 km");
+
+  // Sin ubicación del turno no se puede medir: ningún chip.
+  await page.unroute("**/api/v1/shifts/feed**");
+  await page.route("**/api/v1/shifts/feed**", (r) => r.fulfill(json([turno("s1", { latitude: null, longitude: null })])));
+  await page.goto("/feed");
+  await expect(page.getByTestId("feed-hero-card")).toBeVisible();
+  await expect(page.getByTestId("feed-hero-distancia")).toHaveCount(0);
+});

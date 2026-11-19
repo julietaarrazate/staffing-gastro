@@ -691,7 +691,7 @@ function WorkerFeedPanel() {
                 <div className="space-y-6">
                   <div data-tour="feed-deck" className="space-y-3">
                     <h2 className="text-h3 font-bold text-ink">Para vos</h2>
-                    <FeedHero shift={heroShift} />
+                    <FeedHero shift={heroShift} distanceKm={distanceFromOrigin(heroShift)} />
                     <button
                       type="button"
                       onClick={() => openDiscover(visibleShifts)}

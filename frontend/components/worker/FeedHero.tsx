@@ -6,6 +6,7 @@ import { SKILL_LABELS, Shift } from "@/lib/types";
 import { cldThumb } from "@/lib/cloudinary";
 import { formatShiftWhenLive, isTodayInArgentina } from "@/lib/datetime";
 import { payView } from "@/lib/pay";
+import { formatDistance } from "@/lib/format";
 import SaveShiftButton from "@/components/worker/SaveShiftButton";
 import { ChevronRightIcon, ShieldIcon } from "@/components/icons";
 import { Badge } from "@/components/ui";
@@ -23,7 +24,7 @@ import { shiftHeroPhoto } from "@/lib/company-photo";
  * `pointer-events-none`, salvo el botón de guardar. Así la tarjeta entera abre
  * el detalle sin meter un <button> adentro de un <a> (HTML inválido).
  */
-function FeedHero({ shift }: { shift: Shift }) {
+function FeedHero({ shift, distanceKm = null }: { shift: Shift; distanceKm?: number | null }) {
   const [broken, setBroken] = useState(false);
   const heroPhoto = shiftHeroPhoto(shift);
   const hasPhoto = Boolean(heroPhoto) && !broken;
@@ -31,7 +32,8 @@ function FeedHero({ shift }: { shift: Shift }) {
   const where = [shift.company_name, shift.city].filter(Boolean).join(" · ");
   const pago = payView(shift);
   const hoy = !shift.urgent && isTodayInArgentina(shift.start_at);
-  const hayAviso = shift.urgent || hoy;
+  const distancia = distanceKm != null ? formatDistance(distanceKm) : null;
+  const hayAviso = shift.urgent || hoy || distancia !== null;
 
   return (
     <article
@@ -59,11 +61,16 @@ function FeedHero({ shift }: { shift: Shift }) {
               className="h-full w-full object-cover object-[50%_40%]"
             />
             {hayAviso && (
-              <div className="absolute left-3 top-3 flex gap-1.5">
+              <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
                 {shift.urgent ? (
                   <span className="chip-foto chip-foto-urgente">Urgente</span>
-                ) : (
+                ) : hoy ? (
                   <span className="chip-foto">Para hoy</span>
+                ) : null}
+                {distancia && (
+                  <span className="chip-foto" data-testid="feed-hero-distancia">
+                    {distancia}
+                  </span>
                 )}
               </div>
             )}
@@ -73,11 +80,16 @@ function FeedHero({ shift }: { shift: Shift }) {
         <div className="px-4 pb-3 pt-3.5">
           {/* Sin foto, los avisos van acá, como chips de la hoja. */}
           {!hasPhoto && hayAviso && (
-            <div className="mb-2 flex gap-1.5">
+            <div className="mb-2 flex flex-wrap gap-1.5">
               {shift.urgent ? (
                 <span className="chip-suave chip-urgente">Urgente</span>
-              ) : (
+              ) : hoy ? (
                 <span className="chip-suave">Para hoy</span>
+              ) : null}
+              {distancia && (
+                <span className="chip-suave" data-testid="feed-hero-distancia">
+                  {distancia}
+                </span>
               )}
             </div>
           )}

@@ -1296,15 +1296,15 @@ body:has([data-landing]) main {
   filter: none;
   pointer-events: none;
   opacity: 0.75;
+  /* Seis estrellas, sólo en la franja derecha (x >= 62 %) y a media altura:
+     lejos del chip, del saludo, del título, de la zona y del buscador. */
   background:
-    radial-gradient(circle 1.2px at 9% 16%, #cfe6f5 96%, transparent),
-    radial-gradient(circle 1px at 27% 34%, #cfe6f5 96%, transparent),
-    radial-gradient(circle 1.4px at 46% 12%, #cfe6f5 96%, transparent),
-    radial-gradient(circle 1px at 63% 41%, #cfe6f5 96%, transparent),
-    radial-gradient(circle 1.2px at 78% 20%, #cfe6f5 96%, transparent),
-    radial-gradient(circle 1px at 91% 48%, #cfe6f5 96%, transparent),
-    radial-gradient(circle 1px at 36% 62%, #cfe6f5 96%, transparent),
-    radial-gradient(circle 1.2px at 84% 72%, #cfe6f5 96%, transparent);
+    radial-gradient(circle 1.2px at 66% 30%, #cfe6f5 96%, transparent),
+    radial-gradient(circle 1px at 88% 27%, #cfe6f5 96%, transparent),
+    radial-gradient(circle 1.4px at 75% 38%, #cfe6f5 96%, transparent),
+    radial-gradient(circle 1px at 94% 42%, #cfe6f5 96%, transparent),
+    radial-gradient(circle 1.2px at 82% 50%, #cfe6f5 96%, transparent),
+    radial-gradient(circle 1px at 69% 54%, #cfe6f5 96%, transparent);
 }
 
 /* La banda azul hondo: donde cuelgan las comandas en curso del comercio.
