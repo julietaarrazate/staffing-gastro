@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { deContrato, fulfillContrato } from "./contrato";
 import { blockExternalHosts, injectSession, isoEnDias, mockEmptyNotifications, setTheme, skipSplash } from "./mocks";
 
 /**
@@ -7,12 +8,11 @@ import { blockExternalHosts, injectSession, isoEnDias, mockEmptyNotifications, s
  * banda azul hondo con el título en brocha, y cada turno como comanda.
  */
 const json = (body: unknown) => ({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
-const WORKER = { id: "user-1", email: "w@oido.test", full_name: "Sofía Demo", role: "worker", status: "activo", is_active: true, is_verified: true };
-const turno = (id: string, status: string, position: string) => ({
-  id, company_id: "c1", position, quantity: 1, start_at: isoEnDias(1, "21:00"), end_at: isoEnDias(2, "02:00"), pay_amount: "20000", currency: "ARS",
-  tips: true, meal: false, dress_code: null, urgent: false, address: null, city: "Palermo, CABA", latitude: null, longitude: null,
-  title: null, description: null, status, worker_profile_id: "wp-1", created_at: "2026-07-01T12:00:00-03:00", company_name: "Bar Lavalle", company_logo_url: null,
-});
+// Turno de `GET /shifts/mine` y sesión: respuestas reales del backend (e2e/contrato).
+const turno = (id: string, status: string, position: string) =>
+  deContrato("turnos_asignados_trabajador", [
+    { id, position, status, start_at: isoEnDias(1, "21:00"), end_at: isoEnDias(2, "02:00"), company_name: "Bar Lavalle" },
+  ])[0];
 
 async function misTurnos(page: Page) {
   await injectSession(page);
@@ -21,7 +21,7 @@ async function misTurnos(page: Page) {
   // Catch-all primero: Playwright resuelve la última ruta registrada.
   await page.route("**/api/v1/**", (r) => (r.request().method() === "GET" ? r.fulfill(json([])) : r.continue()));
   await mockEmptyNotifications(page);
-  await page.route("**/api/v1/auth/me", (r) => r.fulfill(json(WORKER)));
+  await page.route("**/api/v1/auth/me", (r) => fulfillContrato(r, "auth_me_worker"));
   await page.route("**/api/v1/shifts/mine**", (r) => r.fulfill(json([turno("s1", "confirmado", "bartender"), turno("s2", "pagado", "mozo")])));
 }
 
