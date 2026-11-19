@@ -73,3 +73,13 @@ for (const theme of ["light", "dark"] as const) {
     for (const p of peor) expect(contraste(p.c, p.bg), String(p.t)).toBeGreaterThanOrEqual(4.5);
   });
 }
+
+test("a 320 px la barra entra entera: el rubro se achica y la lupa queda a la vista", async ({ page }) => {
+  await buscar(page, "light");
+  await page.setViewportSize({ width: 320, height: 700 });
+  const lupa = page.locator("main").getByRole("button", { name: "Buscar" }).first();
+  await expect(lupa).toBeVisible();
+  const caja = (await lupa.boundingBox())!;
+  expect(caja.x + caja.width).toBeLessThanOrEqual(320);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
+});

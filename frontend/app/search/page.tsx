@@ -212,7 +212,9 @@ function SearchPageContent() {
       <select
         value={skill}
         onChange={(e) => setSkill(e.target.value as WorkerSkill | "")}
-        className="flex-1 rounded-[var(--radius-btn)] bg-surface px-3 py-2 text-sm font-medium text-ink ring-1 ring-line transition focus:bg-card"
+        // `min-w-0`: sin esto el select no se achica y a 320 px la lupa quedaba
+        // fuera de la pantalla (revisión del 2026-11-19).
+        className="min-w-0 flex-1 rounded-[var(--radius-btn)] bg-surface px-3 py-2 text-sm font-medium text-ink ring-1 ring-line transition focus:bg-card"
       >
         <option value="">Todos los roles</option>
         {WORKER_SKILLS.map((s) => (
