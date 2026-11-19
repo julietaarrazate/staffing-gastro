@@ -1,6 +1,7 @@
 """Utilidades de geolocalización compartidas (fórmula de Haversine)."""
 
 import hashlib
+import hmac
 import math
 import unicodedata
 
@@ -90,35 +91,89 @@ def is_near(
 # no alcanza para ir a golpear una puerta.
 FUZZ_MIN_RADIUS_KM = 0.15
 FUZZ_MAX_RADIUS_KM = 0.35
+# Lado de la celda de la grilla del pin (ADR-0014, actualización
+# 2026-11-19). El pin sale del CENTRO de la celda donde cae el punto, no del
+# punto: dos lugares de la misma celda dan el mismo pin, así que ni un punto
+# real conocido ni muchas lecturas dicen más que la celda. El anillo se mide
+# desde el centro y se corre media diagonal de celda hacia afuera, para que
+# el pin quede siempre entre `FUZZ_MIN_RADIUS_KM` y
+# `FUZZ_MAX_RADIUS_KM + diagonal` (~0,63 km) del punto real, nunca más cerca.
+FUZZ_CELL_KM = 0.2
+_FUZZ_HALF_DIAGONAL_KM = FUZZ_CELL_KM * math.sqrt(2) / 2
+_KM_POR_GRADO = EARTH_RADIUS_KM * math.pi / 180
+
+
+def _fuzz_cell(lat: float, lng: float) -> tuple[int, int, float, float]:
+    """La celda de la grilla donde cae `(lat, lng)`: sus índices y su
+    centro. El paso en longitud se corrige por la latitud del centro de la
+    fila, para que la celda mida lo mismo en los dos sentidos."""
+    paso_lat = FUZZ_CELL_KM / _KM_POR_GRADO
+    fila = math.floor(lat / paso_lat)
+    centro_lat = (fila + 0.5) * paso_lat
+    paso_lng = paso_lat / math.cos(math.radians(centro_lat))
+    columna = math.floor(lng / paso_lng)
+    return fila, columna, centro_lat, (columna + 0.5) * paso_lng
+
+
+def _fuzz_key() -> bytes:
+    """Clave del servidor para el desplazamiento: sin ella, cualquiera que
+    conozca el id del perfil (el comercio lo ve) calculaba el vector. Sale de
+    `JWT_SECRET_KEY`, separada por propósito, para no sumar otra variable de
+    entorno. Si esa clave se rota, los pines se mueven una vez."""
+    from app.core.config import settings  # import tardío: geo no depende de config al importarse
+
+    return hashlib.sha256(b"oido-pin-desplazado:" + settings.jwt_secret_key.encode()).digest()
 
 
 def fuzz_point(
     lat: float | None, lng: float | None, seed: str
 ) -> tuple[float | None, float | None]:
-    """Desplaza `(lat, lng)` a un punto pseudo-aleatorio pero determinístico
-    (mismo `seed` → siempre el mismo resultado) dentro de un anillo entre
-    `FUZZ_MIN_RADIUS_KM` y `FUZZ_MAX_RADIUS_KM`.
+    """El pin público de un punto: el centro de su celda de la grilla
+    (`FUZZ_CELL_KM`), desplazado a un punto pseudo-aleatorio pero
+    determinístico dentro de un anillo alrededor de ese centro. El anillo va
+    de `FUZZ_MIN_RADIUS_KM` a `FUZZ_MAX_RADIUS_KM` más media diagonal de
+    celda: así el pin queda a 150 m o más de CUALQUIER punto de la celda.
 
-    Determinístico a propósito: el mismo trabajador tiene que aparecer en el
-    mismo punto en cada render, no saltar cada vez que el comercio recarga el
-    mapa — eso sería peor que la coordenada exacta (invita a promediar varias
-    lecturas para deshacer el desplazamiento). `hashlib.sha256` en vez de
-    `hash()`/`random.seed()`: ambos varían entre procesos (`PYTHONHASHSEED`),
-    así que el mismo trabajador se desplazaría distinto en cada request.
+    Determinístico a propósito: el mismo trabajador en el mismo lugar tiene
+    que aparecer en el mismo punto en cada render, no saltar cada vez que el
+    comercio recarga el mapa — eso sería peor que la coordenada exacta
+    (invita a promediar varias lecturas para deshacer el desplazamiento).
+
+    Hasta el 2026-11-19 el desplazamiento salía sólo de `seed` (el id del
+    perfil), igual para el domicilio y para cada posición de «Disponible
+    ahora»: un comercio que conocía UN punto real de la persona (su propio
+    local, donde la prendió) sacaba el vector y con él el domicilio exacto
+    (pasada de privacidad, PRI-02). Ahora el vector depende también de la
+    celda y de una clave del servidor, y parte del centro de la celda: un
+    punto conocido sólo dice el pin de su propia celda, y del domicilio no se
+    puede saber más que la celda en la que cae.
+
+    HMAC-SHA256 en vez de `hash()`/`random.seed()`: ambos varían entre
+    procesos (`PYTHONHASHSEED`), así que el mismo trabajador se desplazaría
+    distinto en cada request.
     """
     if lat is None or lng is None:
         return None, None
 
-    digest = hashlib.sha256(seed.encode()).digest()
+    fila, columna, centro_lat, centro_lng = _fuzz_cell(lat, lng)
+    digest = hmac.new(
+        _fuzz_key(), f"{seed}:{fila}:{columna}".encode(), hashlib.sha256
+    ).digest()
     angle = (int.from_bytes(digest[:4], "big") / 2**32) * 2 * math.pi
-    distance_km = FUZZ_MIN_RADIUS_KM + (int.from_bytes(digest[4:8], "big") / 2**32) * (
-        FUZZ_MAX_RADIUS_KM - FUZZ_MIN_RADIUS_KM
+    distance_km = (
+        _FUZZ_HALF_DIAGONAL_KM
+        + FUZZ_MIN_RADIUS_KM
+        + (int.from_bytes(digest[4:8], "big") / 2**32)
+        * (FUZZ_MAX_RADIUS_KM - FUZZ_MIN_RADIUS_KM)
     )
 
     d_lat = (distance_km / EARTH_RADIUS_KM) * (180 / math.pi)
     d_lng = (
         (distance_km / EARTH_RADIUS_KM)
         * (180 / math.pi)
-        / math.cos(math.radians(lat))
+        / math.cos(math.radians(centro_lat))
     )
-    return lat + d_lat * math.cos(angle), lng + d_lng * math.sin(angle)
+    return (
+        centro_lat + d_lat * math.cos(angle),
+        centro_lng + d_lng * math.sin(angle),
+    )
