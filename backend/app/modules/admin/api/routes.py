@@ -13,6 +13,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.core.log_privacy import mask_email
 from app.modules.admin.api.dependencies import get_admin_service
 from app.modules.admin.api.schemas import (
+    AdminShiftCloseRequest,
+    AdminShiftClosureResponse,
     AdminSubscriptionSummaryResponse,
     AdminUserDetailResponse,
     AdminUserResponse,
@@ -37,6 +39,7 @@ from app.modules.admin.application.services import AdminService
 from app.modules.identity.api.dependencies import require_roles
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.value_objects import UserRole, UserStatus
+from app.modules.shift.domain.exceptions import AdminCloseNotAllowedError, ShiftNotFoundError
 from app.modules.subscription.domain.exceptions import UnknownPlanError
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -217,6 +220,40 @@ async def suspension_preview(user_id: UUID, current: AdminDep, service: ServiceD
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado"
         ) from exc
+
+
+@router.post(
+    "/shifts/{shift_id}/close",
+    response_model=AdminShiftClosureResponse,
+    summary="Cerrar un turno empezado en nombre de una cuenta suspendida",
+)
+async def close_shift_for_suspended_account(
+    shift_id: UUID, body: AdminShiftCloseRequest, current: AdminDep, service: ServiceDep
+):
+    """Decisión 21 (ADR-0024): marca la salida (trabajador suspendido) y/o
+    cierra el turno (comercio suspendido). 404 si el turno no existe; 409 si
+    no aplica, con el motivo para la admin, si se haría otra cosa que lo
+    confirmado (`body`), o si el turno cambió en el medio (manejador global de
+    `ShiftConcurrentModificationError`)."""
+    try:
+        result = await service.close_shift_for_suspended_account(
+            current, shift_id, check_out=body.check_out, finish=body.finish
+        )
+    except ShiftNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Turno no encontrado"
+        ) from exc
+    except AdminCloseNotAllowedError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    logger.warning(
+        "admin close_shift: admin=%s shift=%s check_out=%s finish=%s notifies=%s",
+        current.id,
+        shift_id,
+        result.check_out,
+        result.finish,
+        result.notifies,
+    )
+    return result
 
 
 @router.post(

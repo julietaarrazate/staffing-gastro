@@ -20,7 +20,7 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
 | `shift_assigned` | el comercio asigna el turno a un trabajador | trabajador |
 | `shift_confirmed` | el trabajador confirma la asistencia | comercio |
 | `shift_rejected` | el trabajador rechaza la asignación. Si el turno ya había empezado, el texto dice que se reofreció (U080, ver «Turno reofrecido») | comercio |
-| `shift_checked_out` | el trabajador marca la salida (check-out) | comercio |
+| `shift_checked_out` | el trabajador marca la salida (check-out), o la admin la marca en nombre de un trabajador suspendido («Cerrar turno», decisión 21) | comercio |
 | `shift_finish_reminder` | a las 24 h de la salida el comercio todavía no cerró el turno ([ADR-0008](../adr/ADR-0008-asistencia-simplificada-y-no-show-automatico.md), act. 2026-11-18): «Te falta cerrar un turno» / «La persona marcó la salida de "X" el martes 17/11 a las 15:00. Cerralo para poder calificarla y registrar el pago. Para que cuente como pago a tiempo, registralo hasta el jueves 19/11 a las 23:00. Si no lo cerrás, se cierra solo el viernes 20/11 a las 15:00.» (fechas reales, hora argentina; con el plazo de pago vencido, «Si registrás el pago ahora, ya cuenta como pago tardío.»); abre `/shifts`. Una sola vez; push con la política por defecto (urgencia normal: puede salir de madrugada); con la cuenta suspendida no se manda | comercio |
 | `shift_paid` | el comercio marca el turno como pagado | trabajador |
 | `shift_reopened` | el trabajador cancela su asignación ya confirmada ([ADR-0004](../adr/ADR-0004-cancelacion-trabajador-e-insignias.md)), o se suspende la cuenta de la persona asignada o confirmada ([ADR-0024](../adr/ADR-0024-efectos-de-una-suspension.md)); el turno vuelve a buscar personal. También cuando una persona confirmada **falta** y el turno se reofrece (U080, ver «Turno reofrecido») | comercio |
@@ -29,7 +29,7 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
 | `shift_cancelled` | el comercio cancela un turno asignado que el trabajador todavía no había confirmado, o el turno se cancela porque se suspendió la cuenta del comercio ([ADR-0024](../adr/ADR-0024-efectos-de-una-suspension.md)) | trabajador asignado |
 | `applied_shift_cancelled` | el comercio cancela un turno con postulaciones pendientes | cada persona con la postulación pendiente |
 | `applications_withdrawn` | el trabajador confirma un turno y la app retira sus postulaciones pendientes a turnos del mismo horario (U123). Un solo aviso por confirmación; abre `/my-shifts`. Push con la política por defecto | el trabajador que confirmó |
-| `shift_finished` | el comercio finaliza el turno (U018): «Cerró tu turno» / «Calificá a <comercio> por el turno "<título>".»; abre `/my-shifts?turno=<id>` (salta a «Asignados» y resalta el turno). Push con la política por defecto (24 h). Si lo cerró Oído solo a las 72 h de la salida (ADR-0008, act. 2026-11-18): «Se cerró tu turno» / «"<título>" se cerró solo porque pasaron 72 horas desde tu salida. Ya podés calificar a <comercio>.», mismo destino | trabajador asignado |
+| `shift_finished` | el comercio finaliza el turno (U018), o la admin lo cierra en nombre de un comercio suspendido (decisión 21): «Cerró tu turno» / «Calificá a <comercio> por el turno "<título>".»; abre `/my-shifts?turno=<id>` (salta a «Asignados» y resalta el turno). Push con la política por defecto (24 h) | trabajador asignado (con la cuenta suspendida queda guardado y no sale push) |
 | `shift_auto_finished` | Oído cerró solo el turno a las 72 h de la salida porque el comercio no lo cerró (ADR-0008, act. 2026-11-18): «Oído cerró un turno» / «Cerramos automáticamente "<título>": pasaron 72 horas desde que la persona marcó la salida. Te queda marcarlo como pagado: como pasaron más de 48 horas desde el fin del turno, cuenta como pago tardío.»; abre `/shifts`. Push con la política por defecto (24 h); con la cuenta suspendida no se manda | comercio |
 | `chat_message` | llega un mensaje nuevo en el chat del turno | destinatario del mensaje |
 | `review_received` | recibió una reseña | calificado |
@@ -149,6 +149,18 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
     en la app, ni push, ni mail (decisión 22, 2026-11-18,
     `ShiftService.mark_not_covered`). Si la cuenta se reactiva después, tampoco:
     el comercio lo ve como «No cubierto» en su panel.
+  - **«Cerrar turno» de la admin (decisión 21, 2026-11-18).** Sólo a la parte
+    activa (y, si las dos están suspendidas, a nadie). A una cuenta suspendida
+    no le llega nada al celular; el aviso que
+    le toque queda guardado en la app, como el resto (ADR-0024, punto 4 de la
+    actualización del 2026-11-18).
+    Trabajador suspendido, al comercio (`shift_checked_out`, abre `/shifts`):
+    título «Marcamos la salida de un turno»; texto «Oído marcó la salida de
+    <nombre> en "X" a las HH:MM, porque no pudo marcarla. Ya podés cerrar
+    el turno.» (la hora sola: el aviso se puede leer otro día). Respeta «ningún texto dice que la otra cuenta está suspendida»:
+    explica por qué la marcó Oído sin decir el motivo. Si falla, el turno igual queda con la salida
+    (`ShiftService._notify_company_admin_check_out`). Comercio suspendido, al
+    trabajador: el `shift_finished` de siempre («Cerró tu turno»).
 - **Un aviso rechazado por la base no rompe la sesión del pedido
   (2026-11-13):** el adaptador (`SqlAlchemyNotificationRepository`) la deja
   usable y propaga el error. Vale para todos los avisos: quien atrapa el

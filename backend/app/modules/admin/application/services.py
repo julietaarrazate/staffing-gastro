@@ -15,8 +15,10 @@ from app.core.dt import naive as _naive
 from app.core.security import create_access_token, hash_password_async
 from app.core.tz import now_art, to_art
 from app.modules.admin.application.dtos import (
+    AdminCloseAction,
     AdminCommitmentSummary,
     AdminCompanySummary,
+    AdminShiftClosure,
     AdminShiftRow,
     AdminSubscriptionSummary,
     AdminTicketRow,
@@ -50,10 +52,17 @@ from app.modules.identity.domain.repositories import (
     UserRepository,
 )
 from app.modules.identity.domain.value_objects import UserRole, UserStatus
-from app.modules.shift.domain.value_objects import ShiftStatus
+from app.modules.shift.domain.value_objects import (
+    ADMIN_CHECK_OUT_STATUSES,
+    ShiftStatus,
+)
 from app.modules.shift.domain.repositories import ShiftPeriodStats, ShiftRepository
 from app.modules.admin.application.ports import AccountDeviceRemover, LiveConnectionCloser
-from app.modules.shift.domain.suspension import AccountSuspensionEffects, SuspensionImpact
+from app.modules.shift.domain.suspension import (
+    AccountSuspensionEffects,
+    SuspendedAccountShiftCloser,
+    SuspensionImpact,
+)
 from app.modules.subscription.domain.billing_gateway import BillingGateway
 from app.modules.subscription.domain.plans import DEFAULT_PLAN_CODE, get_plan, list_plans
 from app.modules.subscription.domain.repositories import SubscriptionRepository
@@ -139,8 +148,12 @@ class AdminService:
         suspension_effects: AccountSuspensionEffects | None = None,
         connection_closer: LiveConnectionCloser | None = None,
         device_remover: AccountDeviceRemover | None = None,
+        # «Cerrar turno» de una cuenta suspendida (decisión 21), por puerto
+        # del módulo de turnos. Sin él, la ficha no ofrece la acción.
+        shift_closer: SuspendedAccountShiftCloser | None = None,
     ) -> None:
         self._suspension_effects = suspension_effects
+        self._shift_closer = shift_closer
         self._connection_closer = connection_closer
         self._device_remover = device_remover
         self._users = users
@@ -213,6 +226,7 @@ class AdminService:
         company_summary = None
         shifts = []
         worker_profile_id = None
+        company_id = None
         if user.role == UserRole.WORKER:
             profile = await self._workers.get_by_user_id(user.id)
             if profile is not None:
@@ -247,6 +261,7 @@ class AdminService:
                     payments_recorded=company.payments_recorded,
                     late_cancellations=company.late_cancellations,
                 )
+                company_id = company.id
                 shifts = await self._shifts.list_by_company(company.id, limit=limit)
 
         subscription_summary = None
@@ -254,6 +269,39 @@ class AdminService:
             subscription_summary = await self._subscription_summary(company.id)
 
         tickets = await self._tickets.list_by_user(user.id, limit=limit)
+        # «Cerrar turno» (decisión 21): sólo en la ficha de una cuenta que no
+        # está activa; la regla la decide el módulo de turnos. Los turnos
+        # empezados se traen aparte y sin límite (los únicos donde la acción
+        # puede aplicar): uno empezado puede no estar entre los 5 recientes.
+        close_plans = {}
+        if not user.is_active and self._shift_closer is not None:
+            started_statuses = ADMIN_CHECK_OUT_STATUSES | {ShiftStatus.CHECK_OUT}
+            if worker_profile_id is not None:
+                started = await self._shifts.list_by_worker_and_statuses(
+                    worker_profile_id, started_statuses
+                )
+            elif company_id is not None:
+                started = await self._shifts.list_by_company_and_statuses(
+                    company_id, started_statuses
+                )
+            else:
+                started = []
+            shown = {s.id for s in shifts}
+            # Los empezados que no entraron entre los recientes van primero:
+            # son los que esperan una acción.
+            shifts = [s for s in started if s.id not in shown] + shifts
+            # Sólo donde la persona de la ficha es parte: el trabajador
+            # asignado ahora o el comercio dueño. En el historial del
+            # trabajador hay turnos que ya tiene otra persona (faltó, se lo
+            # reasignaron): ahí no actúa en su nombre.
+            own = [
+                s
+                for s in shifts
+                if (worker_profile_id is not None and s.worker_profile_id == worker_profile_id)
+                or (company_id is not None and s.company_id == company_id)
+            ]
+            if own:
+                close_plans = await self._shift_closer.admin_close_plans(own)
         return AdminUserDetail(
             user=row,
             worker=worker_summary,
@@ -277,6 +325,15 @@ class AdminService:
                         and s.worker_profile_id != worker_profile_id
                         and s.last_no_show_worker_profile_id == worker_profile_id
                         and s.status != ShiftStatus.NO_CUBIERTO
+                    ),
+                    admin_close=(
+                        AdminCloseAction(
+                            check_out=plan.check_out,
+                            finish=plan.finish,
+                            notifies=plan.notifies,
+                        )
+                        if (plan := close_plans.get(s.id)) is not None
+                        else None
                     ),
                 )
                 for s in shifts
@@ -737,6 +794,29 @@ class AdminService:
         if self._suspension_effects is None:
             return SuspensionImpact()
         return await self._suspension_effects.preview_account_suspension(user.id)
+
+    async def close_shift_for_suspended_account(
+        self, actor: User, shift_id: UUID, *, check_out: bool, finish: bool
+    ) -> AdminShiftClosure:
+        """«Cerrar turno» (decisión 21, ADR-0024): marca la salida y/o cierra
+        un turno empezado en nombre de la parte suspendida, con registro en
+        el turno. `check_out`/`finish` son lo que la admin vio y confirmó: si
+        ahora se haría otra cosa, no se hace nada. La regla y los avisos son
+        del módulo de turnos; deja pasar `ShiftNotFoundError` (404) y
+        `AdminCloseNotAllowedError` (409)."""
+        if self._shift_closer is None:
+            raise RuntimeError("«Cerrar turno» necesita el puerto de turnos")
+        result = await self._shift_closer.close_for_suspended_account(
+            actor.id, shift_id, expected=(check_out, finish)
+        )
+        return AdminShiftClosure(
+            shift_id=result.shift.id,
+            status=result.shift.status.value,
+            check_out=result.plan.check_out,
+            finish=result.plan.finish,
+            notifies=result.plan.notifies,
+            checked_out_at=result.shift.check_out_at,
+        )
 
     async def activate_user(self, user_id: UUID) -> User:
         """Reactiva a un usuario suspendido. No toca turnos (ADR-0024, punto
