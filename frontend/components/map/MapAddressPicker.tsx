@@ -233,7 +233,7 @@ export default function MapAddressPicker({
                   <span className="min-w-0">
                     <span className="block truncate font-medium text-ink">{result.address}</span>
                     {result.city && (
-                      <span className="block truncate text-xs text-ink/50">{result.city}</span>
+                      <span className="block truncate text-xs text-ink-soft">{result.city}</span>
                     )}
                   </span>
                 </button>
@@ -243,7 +243,7 @@ export default function MapAddressPicker({
         )}
 
         {query.trim().length >= 3 && status === "empty" && (
-          <p className="mt-1.5 px-1 text-xs text-ink/50">
+          <p className="mt-1.5 px-1 text-xs text-ink-soft">
             No encontramos esa dirección. Probá con otro texto (calle y altura) o ajustá el pin a mano.
           </p>
         )}
@@ -309,7 +309,7 @@ export default function MapAddressPicker({
         </MapView>
 
         {!pin && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/60 px-6 text-center text-sm font-medium text-night/50">
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-card/75 px-6 text-center text-sm font-medium text-ink-soft">
             Buscá tu dirección arriba para ubicar el local en el mapa
           </div>
         )}
@@ -333,7 +333,7 @@ export default function MapAddressPicker({
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs text-ink/50">
+        <p className="text-xs text-ink-soft">
           {pin
             ? "Arrastrá el pin para ajustar la ubicación exacta."
             : "También podés usar tu ubicación actual como punto de partida."}
@@ -343,10 +343,13 @@ export default function MapAddressPicker({
           onClick={useMyLocation}
           disabled={geoBusy}
           className={cn(
-            "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold disabled:opacity-60",
+            // Recto, como los demás secundarios (2026-11-19). Recién elegida
+            // una dirección del buscador se resalta en azul hondo, como lo
+            // actual de un indicador: antes en ámbar, que es sólo la acción.
+            "inline-flex min-h-[36px] shrink-0 items-center gap-1.5 rounded-[var(--radius-relieve)] px-3 py-1.5 text-xs font-semibold ring-1 disabled:opacity-60",
             justPickedFromSearch
-              ? "bg-primary text-night hover:bg-primary/90"
-              : "bg-surface text-ink/70 hover:bg-line"
+              ? "bg-primary-text text-card ring-primary-text"
+              : "bg-card text-ink ring-line hover:bg-surface"
           )}
         >
           <MapPinIcon size={14} />
@@ -363,7 +366,7 @@ export default function MapAddressPicker({
       <button
         type="button"
         onClick={onFallback}
-        className="w-fit text-xs font-medium text-ink/40 underline decoration-line underline-offset-2 hover:text-ink/60"
+        className="w-fit text-xs font-medium text-ink-soft underline decoration-line underline-offset-2 hover:text-ink"
       >
         ¿No encontrás tu dirección? Cargala a mano
       </button>

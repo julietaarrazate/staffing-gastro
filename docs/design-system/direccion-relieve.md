@@ -315,7 +315,9 @@ preguntó con opciones puestas sobre las pantallas ya migradas (capturas a
    sobre la pantalla real. Orden: ~~Buscar del trabajador~~ (hecho el
    2026-11-19, cada turno como comanda; [historial](../historial/2026-11-19-buscar-trabajador-relieve.md)),
    ~~Buscar del comercio~~ (hecho el 2026-11-19, fichas;
-   [historial](../historial/2026-11-19-buscar-comercio-relieve.md)), Publicar turno, Chats, Perfil, Mapa, las
+   [historial](../historial/2026-11-19-buscar-comercio-relieve.md)), ~~la
+   bienvenida~~ (hecha el 2026-11-19, con el cielo y el «oído» plano;
+   [historial](../historial/2026-11-19-bienvenida-relieve.md)), Publicar turno, Chats, Perfil, Mapa, las
    fichas, Favoritos, Mi plan, y el ingreso, el alta y la bienvenida. Cómo va cada uno, en «Decidido por
    Julieta (2026-11-19)».
 
