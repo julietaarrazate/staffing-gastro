@@ -183,6 +183,12 @@
      superficie celeste; #c22f2f da 5.61 sobre la tarjeta, 5.40 sobre el lienzo,
      4.77 sobre la superficie y 4.64 sobre el tinte celeste (2026-11-17). */
   --color-danger-text: #c22f2f;
+  /* Relleno de los botones verde y rojo (`Button` `secondary` y `danger`),
+     con letra blanca, igual en los dos temas: #16a34a y #ef4444 daban 3,3 y
+     3,8 con el blanco (la revisión de los botones secundarios, 2026-11-19);
+     éstos dan 5,0 y 5,6. */
+  --color-success-strong: #15803d;
+  --color-danger-strong: #c22f2f;
   /* Tinte pálido para chips/banners de error — mismo patrón que manteca/
      cielo: NO cambia entre modos, se lee bien tanto sobre tarjeta clara
      como oscura. Reemplaza el `bg-red-50` suelto de SubscriptionStatusCard. */

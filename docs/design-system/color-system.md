@@ -63,6 +63,13 @@ siguen válidos; los tokens soft/mute son la versión nombrada del board.)*
 | danger | `#EF4444` | `#FEF2F2` | `#C22F2F` | Error, cancelado, no-show. |
 | info | `#3B82F6` | `#DBEAFE` | `#1D4ED8` | Informativo, "va en camino", tips. |
 
+**Relleno de botón con letra blanca** (`--color-success-strong` `#15803D` y
+`--color-danger-strong` `#C22F2F`, iguales en los dos temas; desde el
+2026-11-19): el `Button` verde (`secondary`) y el rojo (`danger`). La base
+(`#16A34A`, `#EF4444`) daba 3,3 y 3,8 con el blanco; éstos, 5,0 y 5,6. La base
+sigue para lo que no lleva letra encima (el punto de «disponible», el
+interruptor).
+
 ## Modo oscuro
 
 Es un **modo oscuro real** (v5.0): el lienzo se oscurece, no sólo las tarjetas

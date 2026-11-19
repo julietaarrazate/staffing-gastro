@@ -32,6 +32,7 @@ import { noShowConfirmCopy } from "@/lib/turno-reofrecido";
 import GuidedTour, { type TourStep } from "@/components/GuidedTour";
 import { EmptyPanelIllustration } from "@/components/illustrations";
 import {
+  BOTON_LISO,
   Button,
   CardSkeletons,
   EmptyState,
@@ -563,7 +564,7 @@ function MyShiftsPanel() {
         </Link>
         <Link
           href="/shifts/new-event"
-          className="flex items-center justify-center gap-1.5 rounded-[var(--radius-relieve)] bg-card px-4 py-3 text-sm font-semibold text-ink/75 ring-1 ring-line transition active:scale-95"
+          className={`${BOTON_LISO} px-4 py-3 text-sm`}
         >
           <CalendarPlusIcon size={17} /> Evento
         </Link>

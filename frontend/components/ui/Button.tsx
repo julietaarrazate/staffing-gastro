@@ -21,9 +21,14 @@ const VARIANTS: Record<Variant, string> = {
     "boton-relieve bg-primary text-night hover:brightness-[1.04] disabled:bg-surface disabled:text-ink-mute disabled:opacity-100",
   // "dark" / énfasis neutro de marca (#111).
   dark: "bg-night text-white hover:brightness-150",
-  secondary:
-    "bg-success text-white shadow-[var(--shadow-success)] hover:brightness-[1.04]",
-  danger: "bg-danger text-white shadow-[var(--shadow-danger)] hover:brightness-[1.04]",
+  // Verde y rojo, planos desde el 2026-11-19 (dirección «con relieve»): el
+  // resplandor de color era una sombra difusa más, y el relieve queda sólo
+  // para el principal. El relleno es el tono fuerte (`-strong`): con el de
+  // siempre la letra blanca daba 3,3 y 3,8.
+  secondary: "bg-success-strong text-white hover:brightness-[1.08]",
+  danger: "bg-danger-strong text-white hover:brightness-[1.08]",
+  // El secundario: blanco, con filete y plano, recto como el principal
+  // (`.btn-liso` de la prueba de la app «con relieve», 2026-11-19).
   // Desactivados como el de `primary`: sin opacidad (a opacity-50 la tinta sobre
   // la tarjeta blanca quedaba tenue en claro), fondo `surface` y tinta apagada.
   surface:
@@ -37,6 +42,14 @@ const SIZES: Record<Size, string> = {
   md: "min-h-[48px] px-5 text-body gap-2",
   lg: "min-h-[56px] px-6 text-base gap-2.5",
 };
+
+/**
+ * Las clases del botón secundario para lo que no puede ser un `Button` (un
+ * `Link`, un `<a>` de descarga): blanco, recto, con filete y plano. Quien lo
+ * usa le suma el relleno y el tamaño de letra.
+ */
+export const BOTON_LISO =
+  "inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-[var(--radius-relieve)] bg-card font-semibold text-ink ring-1 ring-line transition hover:bg-surface active:scale-95";
 
 export default function Button({
   children,
@@ -77,7 +90,9 @@ export default function Button({
       whileTap={variant === "primary" ? { x: 3, y: 3 } : { scale: 0.96 }}
       transition={{ type: "spring", stiffness: 400, damping: 25 }}
       className={cn(
-        "inline-flex items-center justify-center rounded-[var(--radius-btn)] font-semibold transition-[filter,background-color] outline-none disabled:opacity-50 disabled:pointer-events-none",
+        // Todos rectos, con el radio del principal (`--radius-relieve`, 10 px):
+        // al lado del principal, un secundario de 6 px se veía de otra familia.
+        "inline-flex items-center justify-center rounded-[var(--radius-relieve)] font-semibold transition-[filter,background-color] outline-none disabled:opacity-50 disabled:pointer-events-none",
         VARIANTS[variant],
         SIZES[size],
         fullWidth && "w-full",

@@ -219,7 +219,7 @@ export default function ImageCropModal({
             type="button"
             onClick={onCancel}
             disabled={saving}
-            className="flex-1 rounded-[var(--radius-btn)] border border-line py-2.5 text-sm font-semibold text-ink/70 disabled:opacity-50"
+            className="flex-1 rounded-[var(--radius-relieve)] bg-card py-2.5 text-sm font-semibold text-ink ring-1 ring-line disabled:opacity-50"
           >
             Cancelar
           </button>

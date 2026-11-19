@@ -378,7 +378,7 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
               href={`https://www.google.com/maps/dir/?api=1&destination=${shift.latitude},${shift.longitude}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-[var(--radius-btn)] bg-card text-sm font-semibold text-ink ring-1 ring-line"
+              className="mt-3 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-[var(--radius-relieve)] bg-card text-sm font-semibold text-ink ring-1 ring-line"
             >
               <RouteIcon size={18} /> Cómo llegar
             </a>
