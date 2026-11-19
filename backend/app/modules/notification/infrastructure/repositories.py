@@ -31,6 +31,11 @@ from app.modules.notification.infrastructure.push_tasks import spawn_push_task
 logger = logging.getLogger(__name__)
 
 
+# Cuadro del socket de avisos que NO es un aviso: sin id ni texto, sólo le dice
+# a la pantalla que vuelva a pedir lo suyo. El cliente lo reconoce por `type`.
+LIVE_REFRESH_FRAME = "live_refresh"
+
+
 def _to_entity(model: NotificationModel) -> Notification:
     return Notification(
         id=model.id,
@@ -115,6 +120,9 @@ class SqlAlchemyNotificationRepository(NotificationRepository):
                 entity.user_id,
             )
         return entity
+
+    async def request_live_refresh(self, user_id: UUID) -> None:
+        await ws_manager.broadcast_notification(user_id, {"type": LIVE_REFRESH_FRAME})
 
     async def add_many(self, notifications: list[Notification]) -> list[Notification]:
         if not notifications:

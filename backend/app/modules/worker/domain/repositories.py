@@ -52,6 +52,13 @@ class WorkerProfileRepository(ABC):
         """Busca un perfil por su id."""
 
     @abstractmethod
+    async def lock_agenda(self, profile_id: UUID) -> None:
+        """Toma el bloqueo de la agenda de la persona hasta el próximo commit
+        o rollback de la sesión, para serializar lo que lee y escribe sobre
+        sus turnos comprometidos (regla de doble turno, CON-11). Quien llega
+        segundo espera a que el primero confirme. Sin fila, no hace nada."""
+
+    @abstractmethod
     async def get_by_user_id(self, user_id: UUID) -> WorkerProfile | None:
         """Busca el perfil asociado a un usuario."""
 

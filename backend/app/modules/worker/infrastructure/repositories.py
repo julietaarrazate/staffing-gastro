@@ -186,6 +186,17 @@ class SqlAlchemyWorkerProfileRepository(WorkerProfileRepository):
         self._recompute_badges_and_level(model)
         await self._session.commit()
 
+    async def lock_agenda(self, profile_id: UUID) -> None:
+        # `FOR NO KEY UPDATE` choca con sí mismo pero no con el KEY SHARE que
+        # toman los turnos al apuntar a este perfil: sólo serializa a quienes
+        # piden esta agenda. En SQLite no emite nada (la base escribe de a
+        # uno), así que ahí no protege ni molesta.
+        await self._session.execute(
+            select(WorkerProfileModel.id)
+            .where(WorkerProfileModel.id == profile_id)
+            .with_for_update(key_share=True)
+        )
+
     async def record_no_show(self, profile_id: UUID) -> None:
         model = await self._session.get(WorkerProfileModel, profile_id)
         if model is None:

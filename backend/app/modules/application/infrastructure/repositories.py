@@ -119,7 +119,11 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
         return _to_entity(model)
 
     async def get_by_id(self, application_id: UUID) -> ShiftApplication | None:
-        model = await self._session.get(ShiftApplicationModel, application_id)
+        # `populate_existing`: siempre lo que hay en la base (CON-04 relee la
+        # postulación después de que otro pedido pudo cambiarla).
+        model = await self._session.get(
+            ShiftApplicationModel, application_id, populate_existing=True
+        )
         return _to_entity(model) if model else None
 
     async def get_by_shift_and_worker(

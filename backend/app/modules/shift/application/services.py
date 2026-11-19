@@ -1632,6 +1632,12 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         confirmado: ya no puede trabajarlas, y libera al comercio de perseguir
         un candidato que en los hechos ya está comprometido en otro lado."""
         shift = await self._get_assigned_to(worker_profile_id, shift_id)
+        # Dos confirmaciones a la vez de turnos que se superponen (dos
+        # dispositivos) leían las dos «ninguno comprometido» y guardaban las
+        # dos: la versión del turno no frena nada, son filas distintas (CON-11).
+        # Se serializan por persona: la segunda espera acá a que la primera
+        # confirme y recién entonces lee los comprometidos.
+        await self._workers.lock_agenda(worker_profile_id)
         others = await self._shifts.list_by_worker_and_statuses(
             worker_profile_id, COMMITTED_STATUSES
         )

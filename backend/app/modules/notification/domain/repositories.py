@@ -22,6 +22,13 @@ class NotificationRepository(ABC):
         trabajadores de la zona."""
 
     @abstractmethod
+    async def request_live_refresh(self, user_id: UUID) -> None:
+        """Le pide a las pantallas abiertas del usuario que se pongan al día
+        (`lib/live-refresh.ts`), SIN dejar un aviso: no se guarda, no suma a la
+        campanita ni sale push. Sólo llega a quien tiene la app abierta;
+        el resto se pone al día al entrar o al volver a la pestaña."""
+
+    @abstractmethod
     async def list_by_user(
         self, user_id: UUID, *, limit: int = 50, offset: int = 0
     ) -> list[Notification]:
