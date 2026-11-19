@@ -22,11 +22,11 @@ import {
   originFor,
   sortByDistance,
 } from "@/lib/current-location";
-import { SKILL_ACCENT } from "@/lib/skill-style";
 import { sortByBestPay } from "@/lib/pay";
 import { FlameIcon, StarIcon } from "@/components/icons";
-import OpportunityCard from "@/components/worker/OpportunityCard";
-import { CardSkeletons, EmptyState, ErrorBanner, useToast } from "@/components/ui";
+import OportunidadComanda from "@/components/worker/OportunidadComanda";
+import { CardSkeletons, EmptyState, ErrorBanner, SegmentedControl, useToast } from "@/components/ui";
+import { LETRAS_APP } from "@/lib/letras";
 import { EmptyFeedIllustration } from "@/components/illustrations";
 
 /**
@@ -38,24 +38,20 @@ import { EmptyFeedIllustration } from "@/components/illustrations";
  * `/applications/shifts/{id}`, `/applications/mine`) — sin lógica nueva de
  * backend, sólo un filtro explícito por chip de rubro en vez del implícito
  * por perfil.
+ *
+ * Con la dirección «con relieve» desde el 2026-11-19: el cielo arriba con el
+ * título en brocha, los rubros como pestañas con la raya azul hondo (antes,
+ * píldoras con «Todos» en ámbar, y el ámbar es sólo la acción) y cada turno
+ * como comanda (`OportunidadComanda`).
  */
 
-function pillClass(active: boolean): string {
-  return `inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-sm font-semibold ring-1 transition active:scale-95 ${
-    active
-      ? "bg-primary text-night ring-primary"
-      : "bg-card text-ink/60 ring-line hover:bg-surface"
-  }`;
-}
-
-/** Filtros secundarios (urgentes, orden por pago): en tinte cuando están
- *  prendidos, para que no compitan con el rubro elegido, que es la decisión
- *  principal. Mismo alto y cuerpo de letra que los rubros (2026-10-04): eran
- *  más chicos (`text-caption`, `py-1.5`) y con la letra agrandada del celular
- *  las dos filas se veían de tamaños distintos, como si no entraran. */
+/** Filtros secundarios (urgentes, orden por pago): rectos con filete; cuando
+ *  están prendidos, llenos en azul hondo, como lo actual de un indicador
+ *  (`marca-hoy.md`, regla 2). Antes, píldoras en tinte. Mismo alto que una
+ *  pestaña tocable (36 px) y la misma letra en las dos. */
 function filterChipClass(active: boolean): string {
-  return `inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-sm font-semibold ring-1 transition active:scale-95 ${
-    active ? "bg-primary-tint text-primary-text ring-primary/30" : "bg-card text-ink/70 ring-line hover:bg-surface"
+  return `inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--radius-relieve)] px-3.5 text-sm font-semibold ring-1 transition active:scale-95 ${
+    active ? "bg-primary-text text-card ring-primary-text" : "bg-card text-ink ring-line hover:bg-surface"
   }`;
 }
 
@@ -180,42 +176,22 @@ export default function BuscarPage() {
   const sortedShifts = urgentOnly ? sorted.filter((s) => s.urgent) : sorted;
 
   return (
-    <div className="app-container px-4 pb-10 pt-6">
-      <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">
-        Buscar turnos
-      </h1>
-      <p className="mt-0.5 text-sm text-ink/50">
-        Explorá oportunidades de cualquier rubro, no sólo el tuyo.
-      </p>
-
-      {/* Las filas de chips sangran hasta el borde de la pantalla (`-mx-4
-          px-4`) y tienen aire arriba y abajo (`py-1`). Antes el scroll
-          horizontal cortaba en seco contra el margen de 16px ("Ba|" partido
-          al costado) y, como `overflow-x-auto` también recorta en vertical,
-          se comía el borde (`ring-1`) del primer chip de cada fila: "Todos" y
-          "Urgentes" se veían mordidos (captura de Julieta, 2026-10-04). Ahora
-          el chip que no entra se va por debajo del borde de la pantalla, que
-          es como se lee "hay más para deslizar". */}
-      <div className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 py-1">
-        <button type="button" onClick={() => setSkill("")} className={pillClass(skill === "")}>
-          Todos
-        </button>
-        {WORKER_SKILLS.map((s) => {
-          const { Icon } = SKILL_ACCENT[s];
-          return (
-            <button
-              key={s}
-              type="button"
-              onClick={() => setSkill(s)}
-              className={pillClass(skill === s)}
-            >
-              <Icon size={14} /> {SKILL_LABELS[s]}
-            </button>
-          );
-        })}
+    <div className={`${LETRAS_APP} app-container px-4 pb-10 md:pt-4`}>
+      <div className="app-cielo -mx-4 px-4 pb-6 pt-5 md:mx-0 md:rounded-[var(--radius-card)] md:px-6">
+        <h1 className="letra-cartel letra-cartel-pantalla break-words">Buscar turnos</h1>
+        <p className="mt-1 text-sm">Explorá oportunidades de cualquier rubro, no sólo el tuyo.</p>
       </div>
 
-      <div className="no-scrollbar -mx-4 mt-1 flex gap-2 overflow-x-auto px-4 py-1">
+      <div className="no-scrollbar -mx-4 -mb-1 mt-3 scroll-px-4 overflow-x-auto px-4 py-1">
+        <SegmentedControl<WorkerSkill | "">
+          className="w-max min-w-full"
+          value={skill}
+          onChange={setSkill}
+          options={[{ value: "", label: "Todos" }, ...WORKER_SKILLS.map((s) => ({ value: s, label: SKILL_LABELS[s] }))]}
+        />
+      </div>
+
+      <div className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 py-1">
         <button
           type="button"
           role="switch"
@@ -223,7 +199,7 @@ export default function BuscarPage() {
           onClick={() => setUrgentOnly((v) => !v)}
           className={filterChipClass(urgentOnly)}
         >
-          <FlameIcon size={14} className="text-primary-text" /> Urgentes
+          <FlameIcon size={14} /> Urgentes
         </button>
         <button
           type="button"
@@ -231,7 +207,7 @@ export default function BuscarPage() {
           onClick={() => setSort((v) => (v === "pay" ? "nearby" : "pay"))}
           className={filterChipClass(sort === "pay")}
         >
-          <StarIcon size={14} filled className="text-rating" /> Mejores pagos
+          <StarIcon size={14} filled /> Mejores pagos
         </button>
       </div>
 
@@ -255,25 +231,21 @@ export default function BuscarPage() {
             }
           />
         ) : (
+          // Cada turno es una comanda de papel, el mismo objeto que en el
+          // Inicio, Mis turnos y el Panel (Julieta, 2026-11-19, entre la
+          // comanda y una lista con filete). Antes, la tarjeta con foto
+          // grande de 560 a 620 px (`OpportunityCard`), que sigue en el mazo
+          // del Inicio y en la grilla del Inicio en compu.
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {sortedShifts.map((shift) => (
-              // 560px en el celu, 620px desde `sm` (2026-10-04): en una sola
-              // columna no hay otra tarjeta con la que alinear el alto, y con
-              // 620px quedaba un hueco de ~100px entre los datos y las
-              // acciones (captura de Julieta). En la grilla sí hace falta el
-              // alto parejo. El cuerpo de la tarjeta igual scrollea si algún
-              // dress code largo no entra.
-              <div key={shift.id} data-testid="buscar-card" className="h-[560px] sm:h-[620px]">
-                <OpportunityCard
-                  shift={shift}
-                  distanceKm={distanceOf(shift, origin)}
-                  href={`/turno/${shift.id}`}
-                  applying={decidingId === shift.id}
-                  onApply={() => handleDecide(shift, "like")}
-                  onPass={() => handleDecide(shift, "pass")}
-                  shareable
-                />
-              </div>
+              <OportunidadComanda
+                key={shift.id}
+                shift={shift}
+                distanceKm={distanceOf(shift, origin)}
+                applying={decidingId === shift.id}
+                onApply={() => handleDecide(shift, "like")}
+                onPass={() => handleDecide(shift, "pass")}
+              />
             ))}
           </div>
         )}
