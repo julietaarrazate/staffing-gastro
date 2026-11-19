@@ -25,13 +25,11 @@ import {
   WORKER_SKILLS,
   WorkerSkill,
 } from "@/lib/types";
-import { SKILL_ACCENT } from "@/lib/skill-style";
+
 import {
   argentinaISOToLocalInput,
   formatDuration,
-  formatShiftRange,
   localInputToArgentinaISO,
-  formatShiftRangeLong,
 } from "@/lib/datetime";
 import { diasParaDuplicar, resolverHorario } from "@/lib/turno-horario";
 import { useVoiceDictation } from "@/lib/use-voice-dictation";
@@ -41,30 +39,46 @@ import { useCompanyPlace } from "@/lib/company-place";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import ShiftPublishedNextSteps from "@/components/ShiftPublishedNextSteps";
 import ShiftDayHint from "@/components/ShiftDayHint";
-import { Button, OidoLoader, PesosInput, TextField, Toggle, useToast } from "@/components/ui";
+import PedidoTarjeta from "@/components/PedidoTarjeta";
+import {
+  Button,
+  OidoLoader,
+  PasosTachados,
+  PesosInput,
+  TextField,
+  Toggle,
+  useToast,
+} from "@/components/ui";
 import { pesosDesdeApi } from "@/lib/pesos";
 import { LogoGlyph } from "@/components/Logo";
 import {
-  CalendarIcon,
+  CheckIcon,
   ChevronLeftIcon,
   ClockIcon,
   FlameIcon,
   MapPinIcon,
   MicIcon,
   MicOffIcon,
-  UsersIcon,
   UtensilsIcon,
-  WalletIcon,
 } from "@/components/icons";
 import { useTapGuard } from "@/lib/use-tap-guard";
-import IconChip, { type IconChipTone } from "@/components/ui/IconChip";
 import { LIMITES } from "@/lib/limites";
+import { LETRAS_APP } from "@/lib/letras";
 import { formatArs } from "@/lib/format";
 
 // Sin paso "Personas": un turno = una persona (ADR-0003), así que esa
 // pantalla mostraba siempre un 1 fijo y costaba un toque más en cada
 // publicación (auditoría de interfaz 2026-10-11, U01).
 const STEPS = ["Puesto", "Cuándo", "Pago", "Publicar"];
+/** La pregunta de cada paso, en brocha sobre el cielo, y su bajada. */
+const PREGUNTAS = ["¿Qué necesitás?", "¿Cuándo?", "¿Cuánto pagás?", "¿Dónde es?"];
+const BAJADAS = [
+  "Elegí el puesto a cubrir. Cada turno es para una persona: para varias, creá varios turnos o un evento.",
+  "Inicio y fin de la jornada.",
+  "Pago por la jornada completa, por persona (no por hora).",
+  "En tu local. Avisamos a la gente que está cerca.",
+];
+const BAJADA_ZONA = "Elegí la zona: completamos las coordenadas para recomendarte gente cerca.";
 const STEP_CUANDO = 1;
 const BASE_URL = "/shifts/new";
 
@@ -495,7 +509,7 @@ function NewShiftWizard() {
     (step === 3 && hasPlace);
   const avisoFalta =
     step > 0 && missingFields.length > 0 && !resueltoAca ? (
-      <p role="status" className="mt-2 rounded-xl bg-warning-tint px-3 py-2 text-sm font-medium text-warning-text">
+      <p role="status" className="mt-2 rounded-[var(--radius-card)] bg-warning-tint px-3 py-2 text-sm font-medium text-warning-text">
         Me falta saber {missingFields.join(", ")}. Completalo acá.
       </p>
     ) : null;
@@ -659,16 +673,23 @@ function NewShiftWizard() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col px-4 pb-4 pt-4 md:min-h-[calc(100dvh-var(--chrome-top))] lg:max-w-5xl lg:flex-row lg:items-start lg:gap-10 lg:px-6 lg:pt-10">
+    <div className={`${LETRAS_APP} estilo-suave mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col px-4 pt-4 md:min-h-[calc(100dvh-var(--chrome-top))] lg:max-w-5xl lg:flex-row lg:items-start lg:gap-10 lg:px-6 lg:pt-10`}>
     <div className="flex flex-1 flex-col">
-      {/* Header con progreso */}
+      {/* La dirección suave (ADR-0028, 2026-11-19; Julieta eligió «la hoja
+          sobre el cielo» entre varias pruebas: sin cielo «sigue pareciendo muy
+          plano», con filetes y sombra dura «muy duro»). Arriba el cielo con la
+          vuelta, los pasos con palabras tachando lo hecho y la pregunta del
+          paso en letra grande; abajo, la hoja blanca con el paso. Antes,
+          barritas de progreso en ámbar y el título en serif adentro de cada
+          paso. */}
+      <div className="app-cielo -mx-4 -mt-4 px-4 pb-14 pt-4 md:mx-0 md:mt-0 md:rounded-t-[28px] md:px-6 md:pt-5">
       <div className="flex items-center gap-3">
         {step > 0 ? (
           <button
             onClick={() => goGuarded(step - 1)}
             disabled={tapGuard.locked}
             aria-label="Atrás"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-ink/60 ring-1 ring-line disabled:opacity-50"
+            className="boton-vidrio h-10 w-10 shrink-0 disabled:opacity-50"
           >
             <ChevronLeftIcon size={18} />
           </button>
@@ -676,23 +697,24 @@ function NewShiftWizard() {
           <button
             onClick={() => router.push("/shifts")}
             aria-label="Cerrar"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-ink/60 ring-1 ring-line disabled:opacity-50"
+            className="boton-vidrio h-10 w-10 shrink-0 disabled:opacity-50"
           >
             <ChevronLeftIcon size={18} />
           </button>
         )}
-        <div className="flex flex-1 gap-1.5">
-          {STEPS.map((_, i) => (
-            <span
-              key={i}
-              className={`h-1.5 flex-1 rounded-full transition-colors ${i <= step ? "bg-primary" : "bg-line"}`}
-            />
-          ))}
-        </div>
+        <PasosTachados active={step} labels={STEPS} tono="cielo" className="min-w-0 flex-1" />
+      </div>
+      <h1 className="titulo-pantalla mt-5 break-words">{PREGUNTAS[step]}</h1>
+      {avisoFalta}
+      <p className="mt-1.5 text-sm">
+        {step === 3 && !(usingCompanyPlace && companyPlace) ? BAJADA_ZONA : BAJADAS[step]}
+      </p>
       </div>
 
+
       {/* Pasos */}
-      <div className="relative flex-1 overflow-hidden pt-6">
+      <div className="hoja -mx-4 -mt-8 flex flex-1 flex-col px-4 pb-4 pt-1 md:mx-0 md:-mt-8 md:px-6">
+      <div className="relative flex-1 overflow-hidden pt-5">
         <AnimatePresence mode="wait" custom={dir}>
           <motion.div
             key={step}
@@ -705,18 +727,12 @@ function NewShiftWizard() {
           >
             {step === 0 && (
               <div>
-                <h1 className="font-display text-h1 font-semibold text-ink">¿Qué necesitás?</h1>
-                <p className="mt-1 text-sm text-ink/50">
-                  Elegí el puesto a cubrir. Cada turno es para una persona: para
-                  varias, creá varios turnos o un evento.
-                </p>
-
                 {/* Turno por texto libre (P2, auditoría de producto 2026-08-10):
                     la IA sólo PRECARGA los pasos siguientes — nunca publica nada
                     sola, el comercio revisa y confirma cada paso a mano. */}
-                <div className="mt-4 rounded-3xl bg-surface p-4 ring-1 ring-line">
-                  <p className="flex items-center gap-1.5 text-sm font-semibold text-ink/70">
-                    <LogoGlyph size={14} color="var(--color-primary)" /> Describilo y lo completamos
+                <div className="nota-ayuda p-4">
+                  <p className="flex items-center gap-1.5 text-sm font-semibold text-ink">
+                    <LogoGlyph size={14} color="var(--color-primary-text)" /> Describilo y lo completamos
                   </p>
                   <div className="relative mt-2">
                     <textarea
@@ -725,7 +741,7 @@ function NewShiftWizard() {
                       rows={2}
                       maxLength={LIMITES.pedidoAsistente}
                       placeholder="Ej: necesito un mozo el sábado a la noche, se paga 45000"
-                      className={`w-full resize-none rounded-2xl bg-card px-3.5 py-2.5 text-sm text-ink outline-none ring-1 ring-line ${
+                      className={`campo w-full resize-none rounded-[var(--radius-input)] px-3.5 py-2.5 text-sm text-ink outline-none ${
                         speechSupported ? "pr-10" : ""
                       }`}
                     />
@@ -738,7 +754,7 @@ function NewShiftWizard() {
                         className={`absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full transition ${
                           listening
                             ? "animate-pulse bg-danger text-white"
-                            : "bg-surface text-ink/50 ring-1 ring-line"
+                            : "bg-card text-ink-soft ring-1 ring-line"
                         }`}
                       >
                         {listening ? <MicOffIcon size={14} /> : <MicIcon size={14} />}
@@ -763,9 +779,11 @@ function NewShiftWizard() {
                         </p>
                       )
                     )}
+                    {/* Liso y no ámbar: el ámbar de la pantalla es «Continuar». */}
                     <Button
                       type="button"
                       size="sm"
+                      variant="surface"
                       className="ml-auto"
                       disabled={!describeText.trim()}
                       loading={parsingText}
@@ -776,15 +794,13 @@ function NewShiftWizard() {
                   </div>
                 </div>
 
+                <p className="mt-7 text-body font-bold text-ink">O elegí el puesto</p>
                 <RejillaPuestos position={position} locked={tapGuard.locked} onPick={elegirPuesto} />
               </div>
             )}
 
             {step === 1 && (
               <div>
-                <h1 className="font-display text-h1 font-semibold text-ink">¿Cuándo?</h1>
-                {avisoFalta}
-                <p className="mt-1 text-sm text-ink/50">Inicio y fin de la jornada.</p>
                 {/* `text-ink` NO es decorativo: sin él, el input hereda la
                     tinta del lienzo (oscura en los dos temas) y adentro de una
                     tarjeta oscura queda texto oscuro sobre fondo oscuro —
@@ -794,7 +810,7 @@ function NewShiftWizard() {
                     del Design System ya lo trae, estos dos no lo tenían. */}
                 <div className="mt-6 flex flex-col gap-4">
                   <label className="flex flex-col gap-1.5">
-                    <span className="text-sm font-semibold text-ink/70">Inicio</span>
+                    <span className="text-sm font-semibold text-ink">Inicio</span>
                     <input
                       type="datetime-local"
                       value={startAt}
@@ -804,7 +820,7 @@ function NewShiftWizard() {
                       }}
                       aria-invalid={horario.errorInicio ? true : undefined}
                       aria-describedby={horario.errorInicio ? "error-inicio" : undefined}
-                      className={`min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 focus:bg-card ${horario.errorInicio ? "ring-danger/60" : "ring-line"}`}
+                      className="campo min-h-[48px] rounded-[var(--radius-input)] px-4 text-body text-ink"
                     />
                     {horario.errorInicio && (
                       <p id="error-inicio" role="alert" className="text-sm font-semibold text-danger-text">
@@ -814,7 +830,7 @@ function NewShiftWizard() {
                     <ShiftDayHint value={startAt} />
                   </label>
                   <label className="flex flex-col gap-1.5">
-                    <span className="text-sm font-semibold text-ink/70">Fin</span>
+                    <span className="text-sm font-semibold text-ink">Fin</span>
                     <input
                       type="datetime-local"
                       value={endAt}
@@ -824,7 +840,7 @@ function NewShiftWizard() {
                       }}
                       aria-invalid={horario.errorFin ? true : undefined}
                       aria-describedby={horario.errorFin ? "error-fin" : undefined}
-                      className={`min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 focus:bg-card ${horario.errorFin ? "ring-danger/60" : "ring-line"}`}
+                      className="campo min-h-[48px] rounded-[var(--radius-input)] px-4 text-body text-ink"
                     />
                     {horario.errorFin ? (
                       <p id="error-fin" role="alert" className="text-sm font-semibold text-danger-text">
@@ -841,8 +857,8 @@ function NewShiftWizard() {
                     Queda sólo el dato DERIVADO, que es el que no está en ningún
                     otro lado: cuántas horas dura la jornada. */}
                 {durationMinutes != null && (
-                  <div className="mt-3 inline-flex items-center gap-1.5 rounded-2xl bg-surface px-4 py-3 text-sm font-semibold text-ink/80">
-                    <ClockIcon size={15} className="text-ink/40" />
+                  <div className="chip-suave mt-3">
+                    <ClockIcon size={15} className="text-ink-soft" />
                     Jornada de {formatDuration(durationMinutes)}
                   </div>
                 )}
@@ -851,13 +867,8 @@ function NewShiftWizard() {
 
             {step === 2 && (
               <div>
-                <h1 className="font-display text-h1 font-semibold text-ink">¿Cuánto pagás?</h1>
-                {avisoFalta}
-                <p className="mt-1 text-sm text-ink/50">
-                  Pago por la jornada completa, por persona (no por hora).
-                </p>
-                <div className="foco-contenedor mt-6 flex items-center gap-2 rounded-2xl bg-surface px-4 ring-1 ring-line focus-within:bg-card">
-                  <span className="text-2xl font-bold text-ink/40">$</span>
+                <div className="foco-contenedor campo mt-6 flex items-center gap-2 rounded-[var(--radius-input)] px-4">
+                  <span className="text-2xl font-bold text-ink-soft">$</span>
                   <PesosInput
                     aria-label="Pago por la jornada, en pesos"
                     value={payAmount}
@@ -871,9 +882,9 @@ function NewShiftWizard() {
                   />
                 </div>
                 {payPerHour != null && durationMinutes != null && (
-                  <p className="mt-2 text-sm text-ink/55">
+                  <p className="mt-2 text-sm text-ink-soft">
                     ≈ {formatArs(payPerHour)} por hora
-                    <span className="text-ink/40"> · jornada de {formatDuration(durationMinutes)}</span>
+                    <span> · jornada de {formatDuration(durationMinutes)}</span>
                   </p>
                 )}
                 <div className="mt-5 flex flex-col gap-3">
@@ -888,7 +899,7 @@ function NewShiftWizard() {
                       tocar("meal");
                       setMeal(v);
                     }}
-                    icon={<UtensilsIcon size={16} className="text-ink/50" />}
+                    icon={<UtensilsIcon size={16} className="text-ink-soft" />}
                   />
                   <Toggle
                     label="Urgente"
@@ -917,14 +928,9 @@ function NewShiftWizard() {
 
             {step === 3 && (
               <div>
-                <h1 className="font-display text-h1 font-semibold text-ink">¿Dónde es?</h1>
-                {avisoFalta}
                 {usingCompanyPlace && companyPlace ? (
                   <>
-                    <p className="mt-1 text-sm text-ink/50">
-                      En tu local. Avisamos a la gente que está cerca.
-                    </p>
-                    <div className="mt-5 flex items-center gap-3 rounded-2xl bg-primary-tint px-4 py-3 ring-1 ring-primary/15">
+                    <div className="campo mt-5 flex items-center gap-3 rounded-[var(--radius-input)] px-4 py-3">
                       <MapPinIcon size={18} className="shrink-0 text-primary-text" />
                       <span className="min-w-0 flex-1 text-sm font-semibold text-ink">
                         {companyPlace.label}
@@ -940,9 +946,6 @@ function NewShiftWizard() {
                   </>
                 ) : (
                   <>
-                    <p className="mt-1 text-sm text-ink/50">
-                      Elegí la zona: completamos las coordenadas para recomendarte gente cerca.
-                    </p>
                     <div className="mt-5">
                       <LocationPicker
                         initialCity={city}
@@ -955,37 +958,35 @@ function NewShiftWizard() {
                       />
                     </div>
                     {city && hasPlace && (
-                      <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary-tint px-3 py-1.5 text-sm font-semibold text-primary-text">
+                      <p className="chip-suave mt-3">
                         <MapPinIcon size={15} /> {city}
                       </p>
                     )}
                     {!hasPlace && (
-                      <p className="mt-3 text-sm text-ink/60">
+                      <p className="mt-3 text-sm text-ink-soft">
                         Elegí la zona para poder avisar a gente cerca.
                       </p>
                     )}
                   </>
                 )}
-                {/* Resumen */}
-                <div className="mt-6 rounded-3xl bg-surface p-4 text-sm text-ink/70">
-                  <p className="font-bold text-ink">{position && SKILL_LABELS[position]}</p>
-                  {/* Siempre cuándo es, también en el celular (donde la vista
-                      previa lateral no se ve): G14, U060. */}
-                  {horario.valido && (
-                    <p className="mt-1 flex items-start gap-1.5 font-semibold text-ink/80">
-                      <CalendarIcon size={15} className="mt-0.5 shrink-0 text-ink/40" />
-                      {formatShiftRangeLong(
-                        localInputToArgentinaISO(startAt),
-                        localInputToArgentinaISO(horario.fin)
-                      )}
-                    </p>
-                  )}
-                  <p className="mt-1 text-ink/50">
-                    {quantity} {quantity === 1 ? "persona" : "personas"} · {formatArs(Number(payAmount || 0))}
-                    {meal && " · con comida"}
-                    {urgent && " · Urgente"}
-                  </p>
-                </div>
+                {/* El pedido como lo van a ver, con el pago grande. Siempre
+                    cuándo es, también en el celular (donde la vista previa
+                    lateral no se ve): G14, U060. */}
+                <PedidoTarjeta
+                  className="mt-6"
+                  apunte="Así lo van a ver"
+                  position={position}
+                  startIso={horario.valido ? localInputToArgentinaISO(startAt) : null}
+                  endIso={horario.valido ? localInputToArgentinaISO(horario.fin) : null}
+                  durationMinutes={durationMinutes}
+                  place={(usingCompanyPlace && companyPlace ? companyPlace.label : city) || null}
+                  quantity={quantity}
+                  payAmount={Number(payAmount || 0)}
+                  tips={tips}
+                  meal={meal}
+                  dressCode={dressCode}
+                  urgent={urgent}
+                />
               </div>
             )}
           </motion.div>
@@ -995,7 +996,7 @@ function NewShiftWizard() {
       {/* Acción */}
       <div className="pt-3">
         {step < STEPS.length - 1 && motivoBloqueo && (
-          <p className="mb-2 text-center text-sm text-ink/60" data-testid="motivo-continuar">
+          <p className="mb-2 text-center text-sm text-ink-soft" data-testid="motivo-continuar">
             {motivoBloqueo}
           </p>
         )}
@@ -1009,6 +1010,7 @@ function NewShiftWizard() {
           </Button>
         )}
       </div>
+      </div>
     </div>
 
       {/* Vista previa (lg+): antes el wizard quedaba como una tarjeta angosta
@@ -1018,19 +1020,36 @@ function NewShiftWizard() {
           suma este panel fijo al lado con lo mismo que ya se mostraba recién
           en el resumen del último paso — visible desde el principio, se va
           completando a medida que el comercio avanza. */}
-      <WizardPreview
-        className="hidden lg:block lg:w-[360px] lg:shrink-0"
-        position={position}
-        quantity={quantity}
-        startAt={startAt}
-        endAt={horario.valido ? horario.fin : endAt}
-        payAmount={payAmount}
-        tips={tips}
-        meal={meal}
-        urgent={urgent}
-        dressCode={dressCode}
-        city={city}
-      />
+      <div className="hidden lg:block lg:w-[360px] lg:shrink-0">
+        <div className="sticky top-24">
+          <p className="font-semibold text-ink">Vista previa</p>
+          <p className="mt-1 text-sm text-ink-soft">Así se va armando el turno.</p>
+          <PedidoTarjeta
+            className="mt-4"
+            aria-label="Vista previa del turno"
+            position={position}
+            startIso={startAt && (horario.valido ? horario.fin : endAt) ? localInputToArgentinaISO(startAt) : null}
+            endIso={
+              startAt && (horario.valido ? horario.fin : endAt)
+                ? localInputToArgentinaISO(horario.valido ? horario.fin : endAt)
+                : null
+            }
+            durationMinutes={durationMinutes}
+            place={city || null}
+            quantity={quantity}
+            payAmount={Number(payAmount) > 0 ? Number(payAmount) : null}
+            tips={tips}
+            meal={meal}
+            dressCode={dressCode}
+            urgent={urgent}
+          />
+          {urgent && (
+            <p className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-ink-soft">
+              <FlameIcon size={13} className="text-danger-text" /> Se muestra como urgente en el feed
+            </p>
+          )}
+        </div>
+      </div>
 
       <PlanLimitModal
         open={planLimitMessage !== null}
@@ -1072,25 +1091,25 @@ const RejillaPuestos = memo(function RejillaPuestos({
   locked: boolean;
   onPick: (skill: WorkerSkill) => void;
 }) {
+  // Fichas rectas con el nombre, como los oficios de la bienvenida; el
+  // elegido, lleno en azul hondo (dirección «con relieve», 2026-11-19).
+  // Antes, tarjetas redondeadas con un ícono por puesto: Julieta los vio
+  // «muy genéricos», y la brocha queda para los títulos.
   return (
-    <div className="mt-5 grid grid-cols-2 gap-3">
+    <div className="mt-3 grid grid-cols-2 gap-3">
       {WORKER_SKILLS.map((skill) => {
-        const { Icon, bg, fg } = SKILL_ACCENT[skill];
         const active = position === skill;
         return (
           <motion.button
             key={skill}
-            whileTap={{ scale: 0.95 }}
+            whileTap={{ scale: 0.97 }}
             disabled={locked}
+            aria-pressed={active}
             onClick={() => onPick(skill)}
-            className={`flex flex-col items-center gap-2 rounded-3xl p-4 ring-1 transition disabled:opacity-60 ${
-              active ? "bg-primary-tint ring-primary" : "bg-card ring-line"
-            }`}
+            className="tecla inline-flex min-h-[52px] items-center justify-center gap-1.5 px-3 py-2.5 text-center text-sm font-semibold text-ink disabled:opacity-60"
           >
-            <span className={`flex h-12 w-12 items-center justify-center rounded-[var(--radius-chip)] ${bg} ${fg}`}>
-              <Icon size={22} />
-            </span>
-            <span className="text-sm font-semibold text-ink/80">{SKILL_LABELS[skill]}</span>
+            {active && <CheckIcon size={15} className="shrink-0" />}
+            {SKILL_LABELS[skill]}
           </motion.button>
         );
       })}
@@ -1098,113 +1117,3 @@ const RejillaPuestos = memo(function RejillaPuestos({
   );
 });
 
-/** Fila de la vista previa: ícono + label + valor, o el placeholder si el
- * paso correspondiente todavía no se completó. */
-function PreviewRow({
-  icon,
-  tone,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  tone: IconChipTone;
-  label: string;
-  value: string | null;
-}) {
-  return (
-    <div className="flex items-start gap-3">
-      <IconChip tone={tone}>{icon}</IconChip>
-      <div className="min-w-0">
-        <p className="text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">{label}</p>
-        <p className={`text-sm font-semibold ${value ? "text-ink" : "text-ink/35"}`}>
-          {value ?? "Todavía sin definir"}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-/** Panel de vista previa del turno en construcción (sólo lg+, ver el
- * comentario donde se usa): mismo contenido que el resumen que ya se
- * mostraba en el último paso, pero visible desde el principio del wizard y
- * completándose en vivo a medida que el comercio avanza. */
-function WizardPreview({
-  className,
-  position,
-  quantity,
-  startAt,
-  endAt,
-  payAmount,
-  tips,
-  meal,
-  urgent,
-  dressCode,
-  city,
-}: {
-  className?: string;
-  position: WorkerSkill | null;
-  quantity: number;
-  startAt: string;
-  endAt: string;
-  payAmount: string;
-  tips: boolean;
-  meal: boolean;
-  urgent: boolean;
-  dressCode: string;
-  city: string;
-}) {
-  const positionAccent = position ? SKILL_ACCENT[position] : null;
-  const when =
-    startAt && endAt
-      ? formatShiftRange(localInputToArgentinaISO(startAt), localInputToArgentinaISO(endAt))
-      : null;
-  const pay = Number(payAmount) > 0 ? formatArs(Number(payAmount)) : null;
-
-  return (
-    <div className={className}>
-      <div className="sticky top-24 rounded-[var(--radius-card)] bg-surface p-5 ring-1 ring-line">
-        <p className="font-display text-lg font-semibold text-ink">Vista previa</p>
-        <p className="mt-1 text-sm text-ink/50">Así se va armando el turno.</p>
-
-        <div className="mt-5 flex flex-col gap-4">
-          <PreviewRow
-            icon={
-              positionAccent ? (
-                <positionAccent.Icon size={18} />
-              ) : (
-                <UsersIcon size={18} />
-              )
-            }
-            tone="manteca"
-            label="Puesto"
-            value={position ? `${SKILL_LABELS[position]} · ${quantity} persona` : null}
-          />
-          <PreviewRow icon={<CalendarIcon size={18} />} tone="cielo" label="Cuándo" value={when} />
-          <PreviewRow
-            icon={<WalletIcon size={18} />}
-            tone="secondary"
-            label="Pago"
-            value={
-              pay
-                ? `${pay}${tips ? " · con propinas" : ""}${meal ? " · con comida" : ""}${urgent ? " · Urgente" : ""}`
-                : null
-            }
-          />
-          <PreviewRow icon={<MapPinIcon size={18} />} tone="trust" label="Dónde" value={city || null} />
-        </div>
-
-        {dressCode && (
-          <p className="mt-5 rounded-2xl bg-card px-3.5 py-2.5 text-sm text-ink/70 ring-1 ring-line">
-            Dress code: {dressCode}
-          </p>
-        )}
-
-        {urgent && (
-          <p className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-primary-tint px-3 py-1.5 text-xs font-semibold text-primary-text">
-            <FlameIcon size={13} className="text-danger-text" /> Se muestra como urgente en el feed
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}

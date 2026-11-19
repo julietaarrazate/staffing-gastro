@@ -18,6 +18,7 @@ import { Button, PesosInput, TextField, Toggle, useToast } from "@/components/ui
 import { pesosDesdeApi } from "@/lib/pesos";
 import { ChevronLeftIcon, FlameIcon, MapPinIcon, PlusIcon, TrashIcon, UtensilsIcon } from "@/components/icons";
 import { LIMITES } from "@/lib/limites";
+import { LETRAS_APP } from "@/lib/letras";
 import { plural } from "@/lib/format";
 
 interface RoleRow {
@@ -202,16 +203,16 @@ function NewEventForm() {
   if (result) {
     const missing = result.requested - result.shifts.length;
     return (
-      <div className="mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col px-4 pb-4 pt-4 md:min-h-[calc(100dvh-var(--chrome-top))] lg:max-w-lg">
+      <div className={`${LETRAS_APP} estilo-suave mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col px-4 pb-4 pt-4 md:min-h-[calc(100dvh-var(--chrome-top))] lg:max-w-lg`}>
         <div className="flex flex-1 flex-col items-center justify-center text-center">
-          <h1 className="font-display text-h1 font-semibold text-ink">
+          <h1 className="titulo-pantalla break-words text-ink">
             {missing === 0 ? "¡Evento publicado!" : "Evento publicado (parcial)"}
           </h1>
-          <p className="mt-2 text-ink/60">
+          <p className="mt-2 text-ink-soft">
             {result.shifts.length === 1 ? "Se publicó" : "Se publicaron"} {result.shifts.length} de {plural(result.requested, "turno", "turnos")}.
           </p>
           {missing > 0 && (
-            <p className="mt-3 max-w-xs rounded-2xl bg-primary-tint p-3 text-sm text-primary-text">
+            <p className="nota-ayuda mt-3 max-w-xs p-4 text-sm text-primary-text">
               {missing === 1 ? "Tu plan no alcanza para el turno que falta." : `Tu plan no alcanza para los ${missing} turnos restantes.`}{" "}
               <button
                 type="button"
@@ -232,22 +233,24 @@ function NewEventForm() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col px-4 pb-4 pt-4 md:min-h-[calc(100dvh-var(--chrome-top))] lg:max-w-2xl">
-      <div className="flex items-center gap-3">
+    <div className={`${LETRAS_APP} estilo-suave mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col px-4 pt-4 md:min-h-[calc(100dvh-var(--chrome-top))] lg:max-w-2xl`}>
+      {/* La dirección suave (ADR-0028, 2026-11-19), como «Publicar turno»:
+          arriba el cielo con la vuelta y el título en letra grande, abajo la
+          hoja blanca con el formulario. */}
+      <div className="app-cielo -mx-4 -mt-4 px-4 pb-14 pt-4 md:mx-0 md:mt-0 md:rounded-t-[28px] md:px-6 md:pt-5">
         <button
           onClick={() => router.push("/shifts")}
           aria-label="Cerrar"
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-ink/60 ring-1 ring-line"
+          className="boton-vidrio h-10 w-10 shrink-0"
         >
           <ChevronLeftIcon size={18} />
         </button>
-        <div>
-          <h1 className="font-display text-h1 font-semibold text-ink">Publicar para un evento</h1>
-          <p className="text-sm text-ink/50">Varios roles, un solo formulario.</p>
-        </div>
+        <h1 className="titulo-pantalla mt-5 break-words">Publicar para un evento</h1>
+        <p className="mt-1.5 text-sm">Varios roles, un solo formulario.</p>
       </div>
 
-      <div className="mt-6 flex-1 space-y-5 pb-4">
+      <div className="hoja -mx-4 -mt-8 flex flex-1 flex-col px-4 pb-4 pt-6 md:mx-0 md:px-6">
+      <div className="flex-1 space-y-5 pb-4">
         <TextField
           label="Nombre del evento"
           value={name}
@@ -263,14 +266,14 @@ function NewEventForm() {
             componente. */}
         <div className="flex flex-col gap-4 lg:flex-row lg:gap-3">
           <label className="flex flex-1 flex-col gap-1.5">
-            <span className="text-sm font-semibold text-ink/70">Inicio</span>
+            <span className="text-sm font-semibold text-ink">Inicio</span>
             <input
               type="datetime-local"
               value={startAt}
               onChange={(e) => setStartAt(e.target.value)}
               aria-invalid={horario.errorInicio ? true : undefined}
               aria-describedby={horario.errorInicio ? "error-inicio" : undefined}
-              className={`min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 focus:bg-card ${horario.errorInicio ? "ring-danger/60" : "ring-line"}`}
+              className="campo min-h-[48px] rounded-[var(--radius-input)] px-4 text-body text-ink"
             />
             {horario.errorInicio && (
               <p id="error-inicio" role="alert" className="text-sm font-semibold text-danger-text">
@@ -280,14 +283,14 @@ function NewEventForm() {
             <ShiftDayHint value={startAt} />
           </label>
           <label className="flex flex-1 flex-col gap-1.5">
-            <span className="text-sm font-semibold text-ink/70">Fin</span>
+            <span className="text-sm font-semibold text-ink">Fin</span>
             <input
               type="datetime-local"
               value={endAt}
               onChange={(e) => setEndAt(e.target.value)}
               aria-invalid={horario.errorFin ? true : undefined}
               aria-describedby={horario.errorFin ? "error-fin" : undefined}
-              className={`min-h-[48px] rounded-2xl bg-surface px-4 text-body text-ink ring-1 focus:bg-card ${horario.errorFin ? "ring-danger/60" : "ring-line"}`}
+              className="campo min-h-[48px] rounded-[var(--radius-input)] px-4 text-body text-ink"
             />
             {horario.errorFin ? (
               <p id="error-fin" role="alert" className="text-sm font-semibold text-danger-text">
@@ -306,11 +309,11 @@ function NewEventForm() {
             <div className="min-h-[132px]" aria-hidden />
           ) : usingCompanyPlace && companyPlace ? (
             <>
-              <p className="text-sm font-semibold text-ink/70">¿Dónde es?</p>
-              <p className="mt-1 text-sm text-ink/50">
+              <p className="text-sm font-semibold text-ink">¿Dónde es?</p>
+              <p className="mt-1 text-sm text-ink-soft">
                 En tu local. Avisamos a la gente que está cerca.
               </p>
-              <div className="mt-3 flex items-center gap-3 rounded-2xl bg-primary-tint px-4 py-3 ring-1 ring-primary/15">
+              <div className="campo mt-3 flex items-center gap-3 rounded-[var(--radius-input)] px-4 py-3">
                 <MapPinIcon size={18} className="shrink-0 text-primary-text" />
                 <span className="min-w-0 flex-1 text-sm font-semibold text-ink">
                   {companyPlace.label}
@@ -330,11 +333,11 @@ function NewEventForm() {
                 onSelect={(loc: LocationSelection) => setPickedPlace(loc)}
               />
               {hasPlace ? (
-                <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary-tint px-3 py-1.5 text-sm font-semibold text-primary-text">
+                <p className="chip-suave mt-3">
                   <MapPinIcon size={15} /> {city}
                 </p>
               ) : (
-                <p className="mt-3 text-sm text-ink/60">
+                <p className="mt-3 text-sm text-ink-soft">
                   Elegí la zona del evento para poder publicar.
                   {!companyPlace && (
                     <>
@@ -361,7 +364,7 @@ function NewEventForm() {
 
         <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:gap-x-6 lg:gap-y-3">
           <Toggle label="Acepta propinas" checked={tips} onChange={setTips} />
-          <Toggle label="Incluye comida (perso)" checked={meal} onChange={setMeal} icon={<UtensilsIcon size={16} className="text-ink/50" />} />
+          <Toggle label="Incluye comida (perso)" checked={meal} onChange={setMeal} icon={<UtensilsIcon size={16} className="text-ink-soft" />} />
           <Toggle
             label="Urgente"
             checked={urgent}
@@ -374,15 +377,15 @@ function NewEventForm() {
             se expande server-side a N turnos individuales (quantity=1 cada
             uno, ADR-0003 intacto). */}
         <div>
-          <p className="text-sm font-semibold text-ink/70">¿Qué necesitás?</p>
+          <p className="text-sm font-semibold text-ink">¿Qué necesitás?</p>
           <div className="mt-2 space-y-3">
             {roles.map((role) => (
-              <div key={role.key} className="rounded-2xl bg-surface p-3 ring-1 ring-line">
+              <div key={role.key} className="tarjeta-suave p-3">
                 <div className="flex items-center gap-2">
                   <select
                     value={role.position}
                     onChange={(e) => updateRole(role.key, { position: e.target.value as WorkerSkill })}
-                    className="min-h-[44px] flex-1 rounded-xl bg-card px-3 text-body text-ink ring-1 ring-line"
+                    className="campo min-h-[44px] min-w-0 flex-1 rounded-[var(--radius-input)] px-3 text-body text-ink"
                   >
                     {WORKER_SKILLS.map((skill) => (
                       <option key={skill} value={skill}>
@@ -395,7 +398,7 @@ function NewEventForm() {
                       type="button"
                       aria-label="Sacar este rol"
                       onClick={() => removeRole(role.key)}
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-ink/40 ring-1 ring-line active:scale-95"
+                      className="tecla flex h-11 w-11 shrink-0 items-center justify-center text-ink-soft"
                     >
                       <TrashIcon size={17} />
                     </button>
@@ -408,7 +411,7 @@ function NewEventForm() {
                       angostos (confirmado con Playwright, hallazgo E1 de la
                       auditoría de producto/UI 2026-08-09). */}
                   <label className="flex min-w-0 flex-1 flex-col gap-1">
-                    <span className="text-xs font-semibold text-ink/50">Cantidad</span>
+                    <span className="text-xs font-semibold text-ink-soft">Cantidad</span>
                     <input
                       type="number"
                       inputMode="numeric"
@@ -417,16 +420,16 @@ function NewEventForm() {
                       step={1}
                       value={role.count}
                       onChange={(e) => updateRole(role.key, { count: e.target.value })}
-                      className="min-h-[44px] min-w-0 rounded-xl bg-card px-3 text-body text-ink ring-1 ring-line"
+                      className="campo min-h-[44px] min-w-0 rounded-[var(--radius-input)] px-3 text-body text-ink"
                     />
                   </label>
                   <label className="flex min-w-0 flex-1 flex-col gap-1">
-                    <span className="text-xs font-semibold text-ink/50">Pago c/u</span>
+                    <span className="text-xs font-semibold text-ink-soft">Pago c/u</span>
                     <PesosInput
                       placeholder="15.000"
                       value={role.payAmount}
                       onChange={(monto) => updateRole(role.key, { payAmount: monto })}
-                      className="min-h-[44px] min-w-0 rounded-xl bg-card px-3 text-body text-ink ring-1 ring-line"
+                      className="campo min-h-[44px] min-w-0 rounded-[var(--radius-input)] px-3 text-body text-ink"
                     />
                   </label>
                 </div>
@@ -443,7 +446,7 @@ function NewEventForm() {
         </div>
 
         {totalRequested > 0 && (
-          <p className="rounded-2xl bg-surface p-3 text-sm text-ink/60">
+          <p className="chip-suave">
             En total: <strong className="text-ink">{totalRequested}</strong>{" "}
             {totalRequested === 1 ? "persona" : "personas"}.
           </p>
@@ -451,13 +454,14 @@ function NewEventForm() {
       </div>
 
       {!canSubmit && motivoBloqueo && (
-        <p className="mb-2 text-center text-sm text-ink/60" data-testid="motivo-publicar">
+        <p className="mb-2 text-center text-sm text-ink-soft" data-testid="motivo-publicar">
           {motivoBloqueo}
         </p>
       )}
       <Button fullWidth size="lg" disabled={!canSubmit} loading={submitting} onClick={submit}>
         Publicar evento
       </Button>
+      </div>
     </div>
   );
 }

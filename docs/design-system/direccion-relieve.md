@@ -1,5 +1,12 @@
 # Dirección «con relieve» (en prueba)
 
+> **2026-11-19: en la app la reemplaza la dirección suave**
+> ([ADR-0028](../adr/ADR-0028-direccion-suave.md), «la hoja sobre el cielo»):
+> Julieta la vio «plana», «muy dura» y con todo «del mismo tono» en «Publicar
+> turno». Entra de a una pantalla (sección «La dirección suave», al final);
+> la primera es «Publicar turno» y «Publicar evento». En la landing esta
+> dirección sigue vigente.
+
 > Elegida por Julieta el 2026-11-17 para seguir: afinarla y llevarla a la app
 > pantalla por pantalla, un PR cada una, **sin tocar la lógica**. **En la
 > landing ya rige** (2026-11-18, ADR-0027); en la app todavía no: ahí lo
@@ -343,3 +350,36 @@ Antes de dibujar algo nuevo en una pantalla, usar éstas:
 | `ShiftLifecycleStepper` + `.pasos-tachados` | `components/ShiftLifecycleStepper.tsx`, `globals.css` | Los pasos del turno en un renglón: lo hecho tachado a mano en azul hondo (`.tacha`), lo actual en negrita |
 | `OportunidadComanda` | `components/worker/OportunidadComanda.tsx` | Un turno abierto a postulaciones como comanda, con sus acciones («Cómo llegar», «Compartir», «No, gracias», «Postularme»). La usa Buscar del trabajador |
 | `.boton-relieve` | `globals.css` | El relieve del botón principal: borde azul hondo, sombra dura, se aprieta. El fondo lo pone quien lo usa. Desde el 2026-11-18 lo lleva `Button` en su variante `primary` en toda la app (sigue en ámbar): un principal plano al lado de uno con relieve desentona |
+
+## La dirección suave (2026-11-19, ADR-0028)
+
+Con «Publicar turno» se probaron sobre la pantalla real, en este orden: sin
+cielo y con cielo; el pedido como comanda colgada del riel, con los renglones
+alineados; los puestos en pizarra, en carta y en fichas rectas; controles con
+filete azul y relieve chico; casillas rectas o interruptor recto. Julieta los
+rechazó («plano, todo del mismo tono», «la brocha es un exceso para lo que no
+es título», «muy duro») y mandó cuatro referencias: color atrás, superficies
+claras adelante, sombras difusas, esquinas redondeadas y títulos grandes en
+sans. Con eso quedó **la hoja sobre el cielo** (detalle en el ADR):
+
+- el cielo arriba con la vuelta de vidrio, los pasos tachados y el título en
+  letra normal grande (`.titulo-pantalla`); debajo, la hoja blanca (`.hoja`);
+- lo que se toca, teclas suaves (`.tecla`); el sí/no, una casilla redonda;
+  donde se escribe, relleno sin borde (`.campo`); la ayuda, celeste
+  (`.nota-ayuda`); el principal, ámbar en degradé con sombra de su color;
+- el turno que se publica como tarjeta (`components/PedidoTarjeta.tsx`).
+
+**Cómo se migra:** la pantalla lleva `.estilo-suave` en su raíz y los
+componentes compartidos se ven suaves sólo adentro. Orden propuesto, un PR
+cada uno, sin tocar la lógica:
+
+1. «Publicar turno» y «Publicar evento» (hecho el 2026-11-19).
+2. Lo compartido de toda la app: la barra de abajo, el encabezado, las
+   pestañas y las hojas (`BottomSheet`, «¡Turno publicado!»).
+3. La bienvenida y el ingreso/alta.
+4. Buscar, del trabajador y del comercio.
+5. El Inicio, el detalle del turno, Mis turnos, el Panel y Candidatos (las
+   comandas pasan a la tarjeta del turno).
+6. Chats, Perfil, Mapa, fichas, Favoritos y Mi plan.
+7. Las reglas de `.estilo-suave` pasan a `:root` y se borra lo de «con
+   relieve» que quede en la app.
