@@ -59,7 +59,14 @@ Aprobó con detalles, y se arreglaron: el horario cortado en «Cerca tuyo», el
 desborde con texto al 200 % a 320 px, las estrellas y la nube sobre el
 título en pantallas chicas, el contraste del chip «Disponible» sobre la
 nube, su nombre accesible (ahora empieza con lo que se ve), el `h1` que se
-leía «turnoa» y el esqueleto de carga, que no se veía de noche.
+leía «turnoa» y el esqueleto de carga, que no se veía de noche. Una segunda
+pasada sobre esos arreglos encontró una regresión del propio arreglo (la
+regla del esqueleto le pisaba el rojo al botón del micrófono de «Publicar
+turno»; ahora apunta sólo a `[data-skeleton]`) y un puesto de una palabra
+larga que desbordaba con el texto al 200 %. Y la primera corrida de CI falló
+en un test nuestro: a 320 px, con un pago largo, al horario le sobraban
+0,3 px; se arregló el diseño (el horario cruza todo el ancho de la fila,
+también debajo del pago), no la medición.
 
 **Queda abierto** (detalle en `design-system/direccion-relieve.md`, «En el
 código»): la hora gigante del turno de hoy; el marrón en `ShiftCard`,
