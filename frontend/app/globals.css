@@ -1354,6 +1354,41 @@ body:has([data-landing]) main {
   text-align: right;
 }
 
+/* La cinta «¡Oído!» pegada sobre la comanda del detalle del turno cuando la
+   persona se postuló: abajo a la derecha, torcida, sobresaliendo del papel.
+   Se pega con un golpe sólo si la postulación pasó en esa pantalla. */
+.cinta-oido {
+  position: absolute;
+  right: -6px;
+  bottom: -30px;
+  z-index: 2;
+  width: 170px;
+  transform: rotate(-10deg);
+  pointer-events: none;
+}
+.cinta-oido-pega {
+  animation: cintaOidoPega 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+@keyframes cintaOidoPega {
+  0% {
+    opacity: 0;
+    transform: scale(2.2) rotate(-24deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.92) rotate(-8deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(-10deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cinta-oido-pega {
+    animation: none;
+  }
+}
+
 /* «Disponible» como el cartelito de la puerta: cuelga de su hilo y se da
    vuelta al tocarlo. Verde como el de «abierto»; blanco cuando no. */
 .cartelito {

@@ -98,9 +98,21 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
    pasos tachados a mano~~ (hechos el 2026-11-19, en un renglón;
    [historial](./historial/2026-11-19-pasos-tachados.md)), ~~los colores de
    los sellos~~ (hechos el 2026-11-19;
-   [historial](./historial/2026-11-19-colores-de-los-sellos.md)) y el detalle del turno
-   (el pago en la comanda). Cómo va cada uno lo decidió Julieta el 2026-11-19
-   (`direccion-relieve.md`). Las piezas compartidas ya están
+   [historial](./historial/2026-11-19-colores-de-los-sellos.md)) y ~~el
+   detalle del turno~~ (hecho el 2026-11-19, el pago en la comanda;
+   [historial](./historial/2026-11-19-detalle-del-turno-comanda.md)). Cómo
+   va cada uno lo decidió Julieta el 2026-11-19 (`direccion-relieve.md`).
+   **Sigue (Julieta, 2026-11-19: «las otras pantallas, Buscar por ejemplo,
+   siguen igual»): el resto de las pantallas**, un PR cada una. Orden
+   propuesto, a confirmar con ella: Buscar del trabajador (`/buscar`, con
+   `OpportunityCard`, que también usan la grilla del Inicio en compu y
+   «Descubrir rápido»), Buscar del comercio (`/search`), Publicar turno,
+   Chats, Perfil (los dos roles), Mapa, las fichas (comercio y trabajador),
+   Favoritos, Mi plan, y el ingreso, el alta y la bienvenida.
+   Queda, de lo que no entró en estos PRs: el encabezado de la app sigue de
+   vidrio, «Agregar a favoritos» de la ficha de quien trabaja se parte en dos
+   renglones en el celular, y el aviso de error (`Toast`) usa el rojo de base
+   con letra blanca (3,8). Las piezas compartidas ya están
    (`components/ui/Comanda.tsx`, `lib/letras.ts`, `.app-cielo`). Qué tiene, las referencias de Julieta,
    lo que falta decidir y el orden, en
    [`design-system/direccion-relieve.md`](./design-system/direccion-relieve.md).

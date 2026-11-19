@@ -140,6 +140,12 @@ cd frontend && npm run build && npx playwright test e2e/zz-captura.spec.ts
   ningún error. Para esas pantallas hay que buildear con
   `NEXT_PUBLIC_API_URL=http://localhost:<puerto>/api/v1` y servir un mock en
   ese puerto. El `/api/v1` del final es obligatorio.
+- **El id de `/turno/[id]` tiene que ser un UUID** (`lib/turno-publico.ts`):
+  con `s1` la página contesta «no encontrada» sin pedirle nada a la API y la
+  captura sale vacía sin error (visto el 2026-11-19). La API simulada puede
+  ser un `http.createServer` de 20 líneas que conteste
+  `GET /api/v1/shifts/<uuid>/public`; lo del navegador (con sesión) se sigue
+  simulando con `page.route` sobre esa misma dirección.
 - **Una pantalla que sale de `notFound()` se dibuja en el navegador**, no en
   el servidor: llega un HTML vacío (`<html id="__next_error__">`) y el layout
   se arma del lado del cliente, así que el `<script>` anti-flash del tema no
