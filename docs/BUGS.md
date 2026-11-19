@@ -481,6 +481,15 @@ que motivó el cambio. Se resolvió con 15 minutos — suficiente para seguir si
 filtro de `list_open`) y cómodamente adentro de cualquier ventana de gracia de 30 minutos del
 dominio.
 
+**El caso inverso: el test mira el día (2026-11-19).** «Relativo a ahora» tampoco alcanza cuando
+lo que se compara es el día en Argentina («hoy a las…», «mañana a las…»). En
+`test_cerrar_turno_admin.py`, un turno que empezaba en 20 minutos esperaba «el turno empieza
+hoy» y fallaba si la suite corría entre las 23:40 y las 00:00 (le pasó a #514). Si el dominio
+recibe `now` por parámetro, el test usa un instante fijo (`_AHORA = datetime(2026, 11, 19, 18,
+0, tzinfo=timezone.utc)`) y arma el turno desde ahí, más un test explícito del borde de
+medianoche. Si pasa por la API, que lee el reloj real, la aserción no fija el día (como
+`test_checkout_antes_del_inicio.py`, que acepta «hoy», «mañana» o «el …»).
+
 ---
 
 ## Renovar el access token cambiaba el `token` del contexto (y todo lo que dependía de él)

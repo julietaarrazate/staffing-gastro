@@ -77,8 +77,20 @@ PALERMO = {"latitude": -34.58, "longitude": -58.43}
 # --- 1. Dominio ---------------------------------------------------------------
 
 
-def _turno(status: ShiftStatus, *, empezo_hace: timedelta = timedelta(hours=1)) -> Shift:
-    inicio = datetime.now(timezone.utc) - empezo_hace
+# Un «ahora» fijo, no el reloj: la regla compara con el inicio y el motivo dice
+# «hoy» o «mañana» según el día en Argentina. Con el reloj real, un turno que
+# empieza en 20 minutos pasaba al día siguiente si la suite corría entre las
+# 23:40 y las 00:00 (le pasó a #514). 15:00 en Argentina.
+_AHORA = datetime(2026, 11, 19, 18, 0, tzinfo=timezone.utc)
+
+
+def _turno(
+    status: ShiftStatus,
+    *,
+    empezo_hace: timedelta = timedelta(hours=1),
+    ahora: datetime = _AHORA,
+) -> Shift:
+    inicio = ahora - empezo_hace
     return Shift(
         company_id=uuid4(),
         position=WorkerSkill.MOZO,
@@ -92,7 +104,6 @@ def _turno(status: ShiftStatus, *, empezo_hace: timedelta = timedelta(hours=1)) 
     )
 
 
-_AHORA = datetime.now(timezone.utc)
 _EMPEZADO = (ShiftStatus.CHECK_IN, ShiftStatus.TRABAJANDO)
 
 
@@ -190,6 +201,19 @@ def test_la_salida_no_se_marca_antes_del_inicio():
     with pytest.raises(InvalidShiftTransitionError):
         turno.admin_check_out(_AHORA)
     assert turno.status == ShiftStatus.CHECK_IN
+
+
+def test_antes_del_inicio_cerca_de_medianoche_dice_manana():
+    """El motivo sale del día en Argentina: a las 23:50, un turno de las
+    00:10 empieza «mañana»."""
+    ahora = to_art(datetime(2026, 11, 20, 2, 50, tzinfo=timezone.utc))  # 23:50 del 19
+    assert f"{ahora:%d %H:%M}" == "19 23:50"
+    turno = _turno(ShiftStatus.CHECK_IN, empezo_hace=-timedelta(minutes=20), ahora=ahora)
+    with pytest.raises(AdminCloseNotAllowedError) as exc:
+        turno.admin_close_plan(worker_active=False, company_active=True, now=ahora)
+    assert str(exc.value) == (
+        "Todavía no se puede marcar la salida: el turno empieza mañana a las 00:10."
+    )
 
 
 def test_la_salida_de_la_admin_no_lleva_ubicacion_ni_controla_distancia():
@@ -327,7 +351,7 @@ async def test_trabajador_suspendido_la_admin_marca_la_salida_y_avisa_al_comerci
     company_notices = await _notices_of(session_factory, employer_uid)
     [aviso] = [n for n in company_notices if n.id not in company_before]
     hora = f"{to_art(model.check_out_at):%H:%M}"
-    # Con el día si no es hoy (`format_inicio_art`); recién marcada, es hoy.
+    # La hora sola, sin «hoy»: el aviso se lee después, quizás otro día.
     assert aviso.type == "shift_checked_out"
     assert aviso.title == "Marcamos la salida de un turno"
     assert aviso.message == (
