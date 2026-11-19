@@ -28,7 +28,11 @@ pide, qué se guarda, a dónde lleva al terminar u omitir.
 - **«Subir foto»** (también en el perfil) pasa de ámbar a azul hondo, el color
   de los links. **«Usar mi ubicación actual»** del buscador de direcciones, recto;
   recién elegida una dirección se resalta en azul hondo, no en ámbar. El link
-  «Volver a buscar en el mapa» pasa de `ink/40` a `ink-soft`.
+  «Volver a buscar en el mapa» pasa de `ink/40` a `ink-soft`, y con él las
+  ayudas de ese mismo buscador que no llegaban a 4,5 (la revisión las midió
+  entre 2,6 y 3,5): «¿No encontrás tu dirección? Cargala a mano», «Arrastrá el
+  pin…», «También podés usar tu ubicación actual…», el barrio de cada
+  resultado y la nota sobre el mapa vacío.
 
 Técnico: `app/bienvenida/page.tsx` (`Shell` con `.app-cielo` y `Logo`,
 `LETRAS_APP`; `StepDots` pasa a los pasos tachados con `.pasos-tachados`; se
