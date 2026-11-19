@@ -11,6 +11,7 @@ import SplashScreen from "@/components/SplashScreen";
 import Navbar from "@/components/Navbar";
 import BottomNav from "@/components/BottomNav";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
+import CapturaOrigen from "@/components/CapturaOrigen";
 import { SITE_URL } from "@/lib/site";
 import { OG_ALT, OG_IMAGE_URL, OG_SQUARE } from "@/lib/og";
 
@@ -136,6 +137,7 @@ export default function RootLayout({
             <ToastProvider>
               <PushPromptProvider>
                 <SplashScreen />
+                <CapturaOrigen />
                 <ImpersonationBanner />
                 <Navbar />
                 {/* Sin botones flotantes globales (Julieta, 2026-08-16: "no

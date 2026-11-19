@@ -39,6 +39,15 @@ class UserCounts:
     verified: int
 
 
+@dataclass(frozen=True)
+class SignupOriginCount:
+    """Cuántas altas de un rol llegaron por un origen (panel de admin)."""
+
+    origin: str | None
+    role: UserRole
+    count: int
+
+
 class UserRepository(ABC):
     """Puerto de persistencia para la entidad Usuario."""
 
@@ -90,6 +99,19 @@ class UserRepository(ABC):
     @abstractmethod
     async def exists_by_email(self, email: str) -> bool:
         """Indica si ya existe un usuario con ese email."""
+
+    @abstractmethod
+    async def count_signups_by_origin(
+        self,
+        *,
+        start: datetime,
+        end: datetime,
+        exclude_emails: frozenset[str] = frozenset(),
+    ) -> list[SignupOriginCount]:
+        """Altas de trabajadores y comercios creadas en `[start, end)`,
+        agrupadas por origen y rol (`User.signup_origin`; `None` = cuenta
+        anterior a que se guardara). Las cuentas admin no cuentan, y
+        `exclude_emails` saca las de prueba e invitadas."""
 
     @abstractmethod
     async def count_stats(self, *, exclude_emails: frozenset[str] = frozenset()) -> UserCounts:

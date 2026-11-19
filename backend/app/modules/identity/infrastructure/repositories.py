@@ -18,6 +18,7 @@ from app.modules.identity.domain.repositories import (
     EmailVerificationTokenRepository,
     PasswordResetTokenRepository,
     RefreshSessionRepository,
+    SignupOriginCount,
     TermsAcceptanceRepository,
     UserCounts,
     UserRepository,
@@ -47,6 +48,7 @@ def _to_entity(model: UserModel) -> User:
         status=UserStatus(model.status),
         is_verified=model.is_verified,
         birth_date=model.birth_date,
+        signup_origin=model.signup_origin,
         created_at=model.created_at,
         updated_at=model.updated_at,
     )
@@ -68,6 +70,7 @@ class SqlAlchemyUserRepository(UserRepository):
             status=user.status.value,
             is_verified=user.is_verified,
             birth_date=user.birth_date,
+            signup_origin=user.signup_origin,
         )
         self._session.add(model)
         await self._session.commit()
@@ -138,6 +141,30 @@ class SqlAlchemyUserRepository(UserRepository):
             stmt = stmt.limit(limit)
         result = await self._session.execute(stmt)
         return [_to_entity(model) for model in result.scalars().all()]
+
+    async def count_signups_by_origin(
+        self,
+        *,
+        start: datetime,
+        end: datetime,
+        exclude_emails: frozenset[str] = frozenset(),
+    ) -> list[SignupOriginCount]:
+        stmt = (
+            select(UserModel.signup_origin, UserModel.role, func.count())
+            .where(
+                UserModel.created_at >= start,
+                UserModel.created_at < end,
+                UserModel.role.in_((UserRole.WORKER.value, UserRole.EMPLOYER.value)),
+            )
+            .group_by(UserModel.signup_origin, UserModel.role)
+        )
+        if exclude_emails:
+            stmt = stmt.where(UserModel.email.notin_(exclude_emails))
+        rows = (await self._session.execute(stmt)).all()
+        return [
+            SignupOriginCount(origin=origin, role=UserRole(role), count=count)
+            for origin, role, count in rows
+        ]
 
     async def count_stats(self, *, exclude_emails: frozenset[str] = frozenset()) -> UserCounts:
         # Una sola query con SUM/CASE en vez de traer toda la tabla y contar

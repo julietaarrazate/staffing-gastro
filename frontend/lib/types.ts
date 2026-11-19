@@ -682,10 +682,21 @@ export interface PeriodSummary {
 }
 
 /** "Métricas" con período (`GET /admin/period-metrics?period=7|30`). */
+/** Altas del período que llegaron por un origen (`?ref=`, `utm_*` o
+ *  «directo»). `origin: null` = cuentas de antes de que se guardara. */
+export interface SignupsByOrigin {
+  origin: string | null;
+  workers: number;
+  companies: number;
+  total: number;
+}
+
 export interface PeriodMetrics {
   days: number;
   current: PeriodSummary;
   previous: PeriodSummary;
+  /** Fase 0 del plan de crecimiento; falta en un backend anterior. */
+  signups_by_origin?: SignupsByOrigin[];
 }
 
 export interface SubscriptionStats {
