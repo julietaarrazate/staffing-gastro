@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useLiveRefresh } from "@/lib/live-refresh";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
 import { appliedShiftIds } from "@/lib/applications";
@@ -270,9 +271,13 @@ export default function MapPage() {
     if (gpsFailed && fallbackOrigin && !originRef.current) applyOrigin(fallbackOrigin);
   }, [gpsFailed, fallbackOrigin, applyOrigin]);
 
-  const load = useCallback(async () => {
+  // `silent` (avisos y vuelta a la pestaña): sin esqueleto, y si falla se deja
+  // lo que ya se ve.
+  const load = useCallback(
+    async (options?: { silent?: boolean }) => {
     if (!token) return;
-    setLoading(true);
+    const silent = options?.silent === true;
+    if (!silent) setLoading(true);
     try {
       const [feed, applied] = await Promise.all([
         api.get<Shift[]>("/shifts/feed", token),
@@ -286,15 +291,24 @@ export default function MapPage() {
       setShifts(sortByDistance(near, originRef.current));
       setError(null);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudo cargar el mapa");
+      if (!silent) setError(err instanceof ApiError ? err.message : "No se pudo cargar el mapa");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  }, [token]);
+    },
+    [token]
+  );
 
   useEffect(() => {
     load();
   }, [load]);
+
+  // Al día con los avisos (VIE-03): un turno cubierto o cancelado sale del mapa
+  // sin recargar. En pausa con una carga normal, una postulación en curso o la
+  // ficha de un turno abierta (para no cambiarle la lista bajo los dedos).
+  useLiveRefresh(load, {
+    paused: loading || applyingId !== null || justAppliedId !== null || previewShift !== null,
+  });
 
   // Scroll del carrusel -> tarjeta activa (que el mapa sigue).
   function onCarouselScroll() {
@@ -393,10 +407,10 @@ export default function MapPage() {
       ? "El mapa trae los turnos de la zona de tu perfil. Los de otras zonas están en Buscar."
       : "Aparecen en tiempo real. Volvé en un rato o mirá otras zonas en Buscar.";
   const emptyPrimary = error
-    ? { label: "Reintentar", onClick: load }
+    ? { label: "Reintentar", onClick: () => load() }
     : allFarFromHere
       ? goToSearch
-      : { label: "Actualizar", onClick: load };
+      : { label: "Actualizar", onClick: () => load() };
   const emptySecondary = error || allFarFromHere ? undefined : goToSearch;
 
   return (

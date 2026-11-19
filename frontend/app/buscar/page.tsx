@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { appliedShiftIds } from "@/lib/applications";
 import { getErrorMessage } from "@/lib/errors";
+import { useLiveRefresh } from "@/lib/live-refresh";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
@@ -77,10 +78,16 @@ export default function BuscarPage() {
   const [sort, setSort] = useState<"nearby" | "pay">("nearby");
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
 
-  const load = useCallback(async () => {
+  // `silent` (avisos y vuelta a la pestaña): sin esqueleto, y si falla se deja
+  // lo que ya se ve.
+  const load = useCallback(
+    async (options?: { silent?: boolean }) => {
     if (!token) return;
-    setLoading(true);
-    setError(null);
+    const silent = options?.silent === true;
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const params = new URLSearchParams();
       // Buscar es la pantalla para mirar otras zonas: pide todo el mercado.
@@ -101,16 +108,23 @@ export default function BuscarPage() {
       const appliedIds = appliedShiftIds(applied);
       setShifts(feed.filter((s) => !appliedIds.has(s.id)));
       setProfile(prof);
+      setError(null);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se pudieron cargar los turnos");
+      if (!silent) setError(err instanceof ApiError ? err.message : "No se pudieron cargar los turnos");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  }, [token, skill]);
+    },
+    [token, skill]
+  );
 
   useEffect(() => {
     load();
   }, [load]);
+
+  // Al día con los avisos (VIE-03): un turno que se cubrió o se canceló sale de
+  // la lista sin recargar. En pausa con una carga normal o una postulación en curso.
+  useLiveRefresh(load, { paused: loading || decidingId !== null });
 
   async function handleDecide(shift: Shift, decision: "like" | "pass") {
     if (decidingId !== null) return;
@@ -208,7 +222,7 @@ export default function BuscarPage() {
 
       {error && (
         <div className="mt-4">
-          <ErrorBanner message={error} onRetry={load} />
+          <ErrorBanner message={error} onRetry={() => load()} />
         </div>
       )}
 

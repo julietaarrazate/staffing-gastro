@@ -17,6 +17,7 @@ import { bienvenidaHref } from "@/lib/safe-next";
 import PerfilFaltanteCard from "@/components/PerfilFaltanteCard";
 import { isTodayInArgentina } from "@/lib/datetime";
 import { LETRAS_APP } from "@/lib/letras";
+import { useLiveRefresh } from "@/lib/live-refresh";
 import {
   distanceOf,
   getStoredLocation,
@@ -239,18 +240,21 @@ function WorkerFeedPanel() {
   // borrar la marca «Postulado» ni volver a ofrecerlo.
   const gridApplies = useRef(0);
 
-  const load = useCallback(async () => {
+  // `silent` (avisos y vuelta a la pestaña): sin esqueleto, y si falla se deja
+  // lo que ya se ve en vez de pisarlo con un error pasajero.
+  const load = useCallback(async (options?: { silent?: boolean }) => {
     if (!token) return;
+    const silent = options?.silent === true;
     const mine = ++latestLoad.current;
     const appliesAtStart = gridApplies.current;
     // Una búsqueda del asistente siempre recarga (no hay caché previo que
     // sirva para una consulta puntual) y siempre bloquea con esqueleto —
     // fuera de eso, sólo bloqueamos en la primera carga real; si ya hay algo
     // cacheado, el refresco del feed normal es silencioso.
-    if (assistantSearch || getCached<CachedFeed>(FEED_CACHE_KEY) === undefined) {
+    if (!silent && (assistantSearch || getCached<CachedFeed>(FEED_CACHE_KEY) === undefined)) {
       setLoading(true);
     }
-    setError(null);
+    if (!silent) setError(null);
     const savesAtStart = profileSaves.current;
     try {
       const [feed, prof, applied] = await Promise.all([
@@ -261,6 +265,7 @@ function WorkerFeedPanel() {
         api.get<ShiftApplication[]>("/applications/mine", token).catch(() => []),
       ]);
       if (mine !== latestLoad.current) return;
+      setError(null);
       const appliedIds = appliedShiftIds(applied);
       const visible = feed.filter((s) => !appliedIds.has(s.id));
       setShifts(visible);
@@ -293,7 +298,7 @@ function WorkerFeedPanel() {
         setCached<CachedFeed>(FEED_CACHE_KEY, { shifts: visible, profile: cachedProfile });
       }
     } catch (err) {
-      if (mine === latestLoad.current) {
+      if (!silent && mine === latestLoad.current) {
         setError(err instanceof ApiError ? err.message : "No se pudo cargar el feed");
       }
     } finally {
@@ -304,6 +309,11 @@ function WorkerFeedPanel() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Al día con los avisos (VIE-03): un turno que se cubrió o se canceló sale
+  // del feed sin recargar. En pausa con una postulación en curso, el mazo
+  // abierto (trabaja sobre una foto fija) o una carga normal en marcha.
+  useLiveRefresh(load, { paused: loading || decidingId !== null || deckShifts !== null });
 
   async function toggleAvailable() {
     if (!token || savingProfile.current) return;
@@ -503,7 +513,7 @@ function WorkerFeedPanel() {
         : "Ya viste todas las oportunidades del momento. Aparecen en tiempo real: volvé en un rato.";
   // Una sola acción primaria (ámbar) por vacío; la otra va como secundaria.
   const verTodosEnBuscar = { label: "Ver todos en Buscar", onClick: goBuscar };
-  const actualizar = { label: "Actualizar", onClick: load };
+  const actualizar = { label: "Actualizar", onClick: () => load() };
   const emptyStateAction = assistantSearch
     ? { label: "Ver todos los turnos", onClick: () => router.push("/feed") }
     : emptyNearHere || emptyNoneInZone
@@ -656,7 +666,7 @@ function WorkerFeedPanel() {
           icon={<ErrorIllustration color="var(--color-primary)" />}
           title="No se pudo cargar"
           subtitle={error}
-          primaryAction={{ label: "Reintentar", onClick: load }}
+          primaryAction={{ label: "Reintentar", onClick: () => load() }}
         />
       ) : (
         <>

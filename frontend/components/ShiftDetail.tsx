@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
 import { appliedShiftIds, unassignedShiftIds } from "@/lib/applications";
@@ -16,6 +16,7 @@ import { SKILL_ACCENT, SKILL_HERO_TONE, heroInk } from "@/lib/skill-style";
 import { cldThumb } from "@/lib/cloudinary";
 import { formatDuration, formatShiftWhenLive, shiftDurationMinutes } from "@/lib/datetime";
 import { formatMoney, payPerHour, payView } from "@/lib/pay";
+import TurnoNoDisponible from "@/components/TurnoNoDisponible";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import SaveShiftButton from "@/components/worker/SaveShiftButton";
 import { useLiveRefresh } from "@/lib/live-refresh";
@@ -77,6 +78,14 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
   const { keyFor, clear } = useIdempotencyKeys();
   const [full, setFull] = useState<Shift | null>(null);
   const [apply, setApply] = useState<ApplyState>("unknown");
+  // El servidor contestó 404 al pedir el turno completo: quien no es parte ya
+  // no lo ve (se cubrió, se canceló o venció). Se muestra el aviso en lugar de
+  // seguir ofreciendo «Postularme» (VIE-03).
+  const [gone, setGone] = useState(false);
+  const applyRef = useRef<ApplyState>("unknown");
+  useLayoutEffect(() => {
+    applyRef.current = apply;
+  });
   // Sólo se festeja la postulación que pasa en esta pantalla, no la que ya
   // estaba hecha al cargar (ver DrawnCheck).
   const [justApplied, setJustApplied] = useState(false);
@@ -111,15 +120,22 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
       if (!token || !user) return;
       const mine = ++latestLoad.current;
       const epoch = applyEpoch.current;
+      let notFound = false; // el servidor dijo 404 al pedir el turno completo
+      let isParty = false; // y la lista de postulaciones dice que es parte
       const tasks: Promise<unknown>[] = [
         api
           .get<Shift>(`/shifts/${publicShift.id}`, token)
           .then((shift) => {
-            if (mine === latestLoad.current) setFull(shift);
+            if (mine !== latestLoad.current) return;
+            setFull(shift);
+            setGone(false);
           })
-          .catch(() => {
-            // Sin el turno completo, la vista pública alcanza: no es un error
-            // que haya que mostrarle a nadie.
+          .catch((err) => {
+            // 404: ya no está disponible para esta persona (se resuelve abajo,
+            // cuando también se sabe si es parte). Cualquier otro error: sin el
+            // turno completo, la vista pública alcanza, no hay nada que
+            // mostrarle a nadie.
+            if (err instanceof ApiError && err.status === 404) notFound = true;
           }),
       ];
       if (user.role === "worker") {
@@ -130,6 +146,7 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
               if (mine !== latestLoad.current) return;
               const applied = appliedShiftIds(mine_).has(publicShift.id);
               const released = unassignedShiftIds(mine_).has(publicShift.id);
+              isParty = applied || released;
               setApply((prev) => {
                 // Se postuló (o está postulándose) después de que salió este
                 // pedido: la lista que trae puede no incluirla todavía.
@@ -146,6 +163,17 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
         );
       }
       await Promise.all(tasks);
+      // Quien se postuló es parte y lo sigue viendo: ahí un 404 no puede ser
+      // «ya no está». Para el resto, sí.
+      if (
+        notFound &&
+        !isParty &&
+        mine === latestLoad.current &&
+        applyRef.current !== "applied" &&
+        applyRef.current !== "released"
+      ) {
+        setGone(true);
+      }
     },
     [token, user, publicShift.id]
   );
@@ -206,8 +234,13 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
       }
       setApply("can_apply");
       toast(getErrorMessage(err, "No se pudo enviar tu postulación"), "error");
+      // Con la pantalla vieja el error suele ser «ya no está»: se relee para
+      // que la pantalla diga lo que pasó en lugar de seguir ofreciendo el botón.
+      void loadState({ silent: true });
     }
   }
+
+  if (gone) return <TurnoNoDisponible />;
 
   return (
     <div className={`${LETRAS_APP} app-container-reading pb-10 md:px-4 md:pt-6`}>
