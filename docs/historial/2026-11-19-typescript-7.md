@@ -15,4 +15,4 @@
 
 **Por qué así:** es lo que decidió Julieta y el mismo arreglo que prepara typescript-eslint para la transición: la 6 como `typescript` para quien usa su API y la 7 al lado. La 7 chequea los tipos en CI; ESLint y `next build` siguen con la 6, que es la misma API de siempre. Se descartó como principal la 7 con un parche a la carga de módulos de Node para engañar a ESLint: usa una API interna de Node y se rompe sin avisar. No cambia nada para los usuarios: TypeScript no llega al navegador.
 
-**Queda abierto:** cuando typescript-eslint acepte la 7 (desde la 7.1, como `@typescript/native`), pasar `typescript` a 7, sacar el alias y la regla de Dependabot, y volver a `tsc` a secas. Ahí también `next build` chequearía con la 7.
+**Queda abierto:** pasar del todo a la 7 apenas typescript-eslint la acepte en una versión estable (hoy sólo la 7.1 beta, como `@typescript/native`). Cómo darse cuenta y los pasos exactos están en `docs/STATUS.md`, ítem 5 («Pasar del todo a TypeScript 7»), y en el comentario de la regla de `.github/dependabot.yml`.
