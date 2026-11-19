@@ -1,5 +1,8 @@
 """Tests del módulo lead (comercios a captar, panel de admin)."""
 
+import asyncio
+import time
+
 import httpx
 import pytest
 from httpx import AsyncClient
@@ -272,18 +275,24 @@ _ONE_CAFE = {
 }
 
 
-def _source(handler) -> tuple[OverpassPlaceSource, list[str]]:
+def _source(handler, total_timeout_s: float = 5.0) -> tuple[OverpassPlaceSource, list[str]]:
     hosts: list[str] = []
 
-    def record(request: httpx.Request) -> httpx.Response:
+    async def record(request: httpx.Request) -> httpx.Response:
         hosts.append(request.url.host)
-        return handler(request)
+        result = handler(request)
+        if asyncio.iscoroutine(result):
+            result = await result
+        return result
 
     urls = ("https://uno.test/api", "https://dos.test/api", "https://tres.test/api")
-    return OverpassPlaceSource(urls=urls, transport=httpx.MockTransport(record)), hosts
+    source = OverpassPlaceSource(
+        urls=urls, transport=httpx.MockTransport(record), total_timeout_s=total_timeout_s
+    )
+    return source, hosts
 
 
-async def test_overpass_falls_back_when_a_server_does_not_connect():
+async def test_overpass_uses_the_server_that_answers_when_others_fail():
     def handler(request):
         if request.url.host == "uno.test":
             raise httpx.ConnectError("All connection attempts failed", request=request)
@@ -294,13 +303,13 @@ async def test_overpass_falls_back_when_a_server_does_not_connect():
     source, hosts = _source(handler)
     places = await source.find_gastronomy("Palermo")
     assert [p.name for p in places] == ["Café Respaldo"]
-    assert hosts == ["uno.test", "dos.test", "tres.test"]
+    assert sorted(hosts) == ["dos.test", "tres.test", "uno.test"]
 
 
-async def test_overpass_stops_at_the_first_server_that_answers():
+async def test_overpass_queries_every_server_at_once():
     source, hosts = _source(lambda request: httpx.Response(200, json=_ONE_CAFE))
     await source.find_gastronomy("Palermo")
-    assert hosts == ["uno.test"]
+    assert sorted(hosts) == ["dos.test", "tres.test", "uno.test"]
 
 
 async def test_overpass_raises_when_every_server_fails():
@@ -313,8 +322,85 @@ async def test_overpass_raises_when_every_server_fails():
     assert len(hosts) == 3
 
 
-async def test_overpass_does_not_retry_a_bad_request():
-    source, hosts = _source(lambda request: httpx.Response(400, text="consulta inválida"))
+async def test_overpass_discards_a_bad_request_and_invalid_json():
+    def handler(request):
+        if request.url.host == "uno.test":
+            return httpx.Response(400, text="consulta inválida")
+        return httpx.Response(200, text="no es json")
+
+    source, hosts = _source(handler)
     with pytest.raises(PlaceSourceUnavailableError):
         await source.find_gastronomy("Palermo")
-    assert hosts == ["uno.test"]
+    assert len(hosts) == 3
+
+
+async def test_overpass_slow_server_does_not_delay_a_fast_one():
+    async def handler(request):
+        if request.url.host == "uno.test":
+            await asyncio.sleep(30)
+        return httpx.Response(200, json=_ONE_CAFE)
+
+    source, _ = _source(handler, total_timeout_s=60)
+    start = time.monotonic()
+    places = await source.find_gastronomy("Palermo")
+    assert [p.name for p in places] == ["Café Respaldo"]
+    assert time.monotonic() - start < 5
+
+
+async def test_overpass_first_valid_answer_wins_even_if_another_errors():
+    async def handler(request):
+        if request.url.host == "uno.test":
+            return httpx.Response(504)
+        if request.url.host == "dos.test":
+            await asyncio.sleep(0.1)
+            return httpx.Response(200, json=_ONE_CAFE)
+        await asyncio.sleep(30)
+        return httpx.Response(200, json={"elements": []})
+
+    source, _ = _source(handler, total_timeout_s=60)
+    places = await source.find_gastronomy("Palermo")
+    assert [p.name for p in places] == ["Café Respaldo"]
+
+
+async def test_overpass_gives_up_within_the_total_timeout():
+    async def handler(request):
+        await asyncio.sleep(30)
+        return httpx.Response(200, json=_ONE_CAFE)
+
+    source, _ = _source(handler, total_timeout_s=0.3)
+    start = time.monotonic()
+    with pytest.raises(PlaceSourceUnavailableError):
+        await source.find_gastronomy("Palermo")
+    assert time.monotonic() - start < 3
+
+
+async def test_overpass_runtime_error_remark_does_not_win_the_race():
+    async def handler(request):
+        if request.url.host == "uno.test":
+            return httpx.Response(
+                200,
+                json={"remark": 'runtime error: Query timed out in "query" at line 1', "elements": []},
+            )
+        if request.url.host == "dos.test":
+            await asyncio.sleep(0.2)
+            return httpx.Response(200, json=_ONE_CAFE)
+        await asyncio.sleep(30)
+        return httpx.Response(200, json=_ONE_CAFE)
+
+    source, _ = _source(handler, total_timeout_s=60)
+    places = await source.find_gastronomy("Palermo")
+    assert [p.name for p in places] == ["Café Respaldo"]
+
+
+async def test_overpass_remark_with_elements_is_accepted():
+    payload = {**_ONE_CAFE, "remark": "runtime error: algo parcial"}
+    source, _ = _source(lambda request: httpx.Response(200, json=payload))
+    places = await source.find_gastronomy("Palermo")
+    assert [p.name for p in places] == ["Café Respaldo"]
+
+
+async def test_overpass_discards_a_json_list_response():
+    source, hosts = _source(lambda request: httpx.Response(200, json=[1, 2]))
+    with pytest.raises(PlaceSourceUnavailableError):
+        await source.find_gastronomy("Palermo")
+    assert len(hosts) == 3

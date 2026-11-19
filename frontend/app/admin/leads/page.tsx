@@ -202,6 +202,11 @@ function ComerciosACaptar() {
           <DownloadIcon size={16} /> CSV
         </Button>
       </div>
+      {importing && (
+        <p className="mt-2 text-sm text-ink/50" role="status">
+          Buscando… puede tardar hasta un minuto y medio. No cierres esta pantalla.
+        </p>
+      )}
 
       {summary && summary.total > 0 && (
         <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Filtrar por estado">
