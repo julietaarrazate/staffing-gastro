@@ -21,13 +21,17 @@
  * hasta cuándo sigue prendido y pueda apagarlo.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import type { AvailableNowStatus } from "@/lib/types";
 import { getCurrentPosition } from "@/lib/geolocation";
 
 export interface AvailableNow {
-  /** `true` mientras sigue vigente (según el backend, no un timer local). */
+  /**
+   * `true` mientras sigue vigente: lo que dijo el backend, apagado por un reloj
+   * local al llegar `until` (si la pantalla queda abierta, el servidor ya lo
+   * apagó) y releído al volver a primer plano.
+   */
   active: boolean;
   /** ISO de cuándo vence, para mostrar "hasta las 22:30". */
   until: string | null;
@@ -43,33 +47,71 @@ export function useAvailableNow(token: string | null): AvailableNow {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Último pedido gana: una lectura vieja no pisa a una acción más nueva.
+  const latestRead = useRef(0);
+  const readStatus = useCallback(async () => {
+    if (!token) return;
+    const mine = ++latestRead.current;
+    try {
+      const result = await api.get<AvailableNowStatus>("/workers/me/available-now", token);
+      if (mine === latestRead.current) setStatus(result);
+    } catch {
+      // Sin perfil todavía, o backend caído: se deja lo que ya se veía (o
+      // apagado, al montar) — no bloquea el resto de la pantalla por esto.
+    }
+  }, [token]);
+
   useEffect(() => {
     if (!token) {
       setLoading(false);
       return;
     }
     let cancelled = false;
-    api
-      .get<AvailableNowStatus>("/workers/me/available-now", token)
-      .then((result) => {
-        if (!cancelled) setStatus(result);
-      })
-      .catch(() => {
-        // Sin perfil todavía, o backend caído: se queda apagado por
-        // default — no bloquea el resto de la pantalla por esto.
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    void readStatus().finally(() => {
+      if (!cancelled) setLoading(false);
+    });
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [token, readStatus]);
+
+  // Reloj local: al llegar `until` se apaga solo, sin esperar a un pedido.
+  const until = status.active ? status.until : null;
+  useEffect(() => {
+    if (!until) return;
+    const expiresAt = Date.parse(until);
+    if (Number.isNaN(expiresAt)) return;
+    const turnOff = () => setStatus((prev) => (prev.until === until ? { active: false, until: null } : prev));
+    const remaining = expiresAt - Date.now();
+    if (remaining <= 0) {
+      turnOff();
+      return;
+    }
+    const timer = setTimeout(turnOff, remaining);
+    return () => clearTimeout(timer);
+  }, [until]);
+
+  // Al volver a primer plano: los timers de una pestaña oculta se frenan (o la
+  // PWA estuvo suspendida) y el servidor pudo haberlo apagado o prendido desde
+  // otro lado. Se compara con la hora y se vuelve a pedir el estado real.
+  useEffect(() => {
+    if (!token) return;
+    function onVisible() {
+      if (document.visibilityState !== "visible") return;
+      setStatus((prev) =>
+        prev.until && Date.parse(prev.until) <= Date.now() ? { active: false, until: null } : prev
+      );
+      void readStatus();
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [token, readStatus]);
 
   const start = useCallback(async () => {
     if (!token) return;
     setError(null);
     setLoading(true);
+    latestRead.current += 1;
     try {
       const position = await getCurrentPosition();
       const result = await api.post<AvailableNowStatus>(
@@ -89,6 +131,7 @@ export function useAvailableNow(token: string | null): AvailableNow {
     if (!token) return;
     setError(null);
     setLoading(true);
+    latestRead.current += 1;
     try {
       await api.del("/workers/me/available-now", undefined, token);
       setStatus({ active: false, until: null });
