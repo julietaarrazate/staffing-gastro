@@ -93,24 +93,27 @@ test("en /shifts los estados se diferencian por color de marca y los cancelados 
   await page.goto("/shifts");
   await expect(page.getByText("Cancelado").first()).toBeVisible();
 
-  // El chip de "Cancelado" usa el token rojo de marca (text-danger), no un
-  // rojo suelto, y la tarjeta que lo contiene queda atenuada (opacity).
+  // El sello de "Cancelado" va en el rojo de los sellos (`.sello-rojo`, la
+  // misma tinta que `danger-text` de claro, fija porque el papel es claro en
+  // los dos temas; 2026-11-19), no un rojo suelto, y la tarjeta que lo
+  // contiene queda apagada.
   const canceladoChip = page.getByText("Cancelado", { exact: true }).first();
-  await expect(canceladoChip).toHaveClass(/text-danger/);
+  await expect(canceladoChip).toHaveClass(/sello-rojo/);
+  await expect(canceladoChip).toHaveCSS("color", "rgb(194, 47, 47)");
   const canceladoCard = page.locator(".no-select", { has: canceladoChip }).first();
   // Apagada: en la comanda (2026-11-18) pierde el relieve en vez de bajar la
   // opacidad, que dejaba el sello por debajo de contraste.
   await expect(canceladoCard).toHaveClass(/comanda-apagada/);
 
-  // "Confirmado" usa el verde de marca (text-secondary), sin atenuar (no es terminal el estilo, sigue activo/vivo).
+  // "Confirmado" va en el verde de los sellos, sin apagar (sigue vivo).
   const confirmadoChip = page.getByText("Confirmado", { exact: true }).first();
-  await expect(confirmadoChip).toHaveClass(/text-success-text/);
+  await expect(confirmadoChip).toHaveClass(/sello-verde/);
   const confirmadoCard = page.locator(".no-select", { has: confirmadoChip }).first();
   await expect(confirmadoCard).not.toHaveClass(/comanda-apagada/);
 
-  // "Publicado" usa el naranja de marca (text-primary) — antes era azul.
+  // "Publicado" va en el azul hondo de los sellos: está en curso.
   const publicadoChip = page.getByText("Publicado", { exact: true }).first();
-  await expect(publicadoChip).toHaveClass(/text-primary/);
+  await expect(publicadoChip).toHaveClass(/sello-azul/);
 
   // Orden: el cancelado (terminal) debe quedar después de los no-terminales
   // en el DOM (bug: se veían mezclados con los turnos vivos).

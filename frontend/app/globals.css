@@ -1140,6 +1140,27 @@ body:has([data-landing]) main {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+/* Los pasos del turno tachados a mano (`ShiftLifecycleStepper`): el trazo
+   va encima de la palabra, en azul hondo (celeste de noche fuera del papel),
+   un poco más ancho que ella, como una raya de birome. */
+.pasos-tachados .tacha {
+  position: absolute;
+  left: -3px;
+  top: 50%;
+  width: calc(100% + 6px);
+  height: 8px;
+  margin-top: -3px;
+  overflow: visible;
+  pointer-events: none;
+  color: var(--color-primary-text);
+}
+.pasos-tachados .tacha path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
 /* Lo destacado de una lista (el candidato que se recomienda): blanco, con el
    borde y el relieve del filete. Uno por pantalla. */
 .tarjeta-relieve {
@@ -1148,7 +1169,15 @@ body:has([data-landing]) main {
     inset 0 0 0 1.5px var(--relieve),
     var(--shadow-relieve-md);
 }
-/* Un estado como sello de goma: borde del color de la letra, apenas torcido. */
+/* Un estado como sello de goma: borde del color de la letra, apenas torcido.
+   Va siempre sobre el papel de la comanda, que es claro en los dos temas
+   (blanco de día, `#eef3f6` de noche): sus cuatro tintas son fijas y se
+   eligieron para dar 4,5 o más sobre los dos papeles (2026-11-19; el verde
+   de antes, `success-text`, daba 4,49 sobre el papel de noche).
+   - verde: lo que salió bien (confirmado, llegó, finalizado, pagado);
+   - azul hondo: lo que está en curso (publicado, asignado, en camino…);
+   - rojo: cancelado y «Urgente»;
+   - gris: lo que no arrancó o no se cubrió (borrador, no cubierto). */
 .sello-goma {
   display: inline-block;
   padding: 3px 7px;
@@ -1160,6 +1189,18 @@ body:has([data-landing]) main {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   transform: rotate(-3deg);
+}
+.sello-verde {
+  color: #166534;
+}
+.sello-azul {
+  color: #1c5478;
+}
+.sello-rojo {
+  color: #c22f2f;
+}
+.sello-gris {
+  color: #4b5563;
 }
 
 /* El cielo de arriba de una pantalla: celeste pleno con dos nubes de día,
@@ -1311,6 +1352,41 @@ body:has([data-landing]) main {
   font-weight: 600;
   color: var(--color-ink);
   text-align: right;
+}
+
+/* La cinta «¡Oído!» pegada sobre la comanda del detalle del turno cuando la
+   persona se postuló: abajo a la derecha, torcida, sobresaliendo del papel.
+   Se pega con un golpe sólo si la postulación pasó en esa pantalla. */
+.cinta-oido {
+  position: absolute;
+  right: -6px;
+  bottom: -30px;
+  z-index: 2;
+  width: 170px;
+  transform: rotate(-10deg);
+  pointer-events: none;
+}
+.cinta-oido-pega {
+  animation: cintaOidoPega 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+@keyframes cintaOidoPega {
+  0% {
+    opacity: 0;
+    transform: scale(2.2) rotate(-24deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.92) rotate(-8deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(-10deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cinta-oido-pega {
+    animation: none;
+  }
 }
 
 /* «Disponible» como el cartelito de la puerta: cuelga de su hilo y se da

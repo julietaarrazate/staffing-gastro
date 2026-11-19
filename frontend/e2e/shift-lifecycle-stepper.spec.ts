@@ -121,10 +121,17 @@ test("turno cancelado: el stepper se corta con un marcador rojo en el paso donde
   const late = page.locator('[data-shift-id="shift-cancelado-en-curso"]');
   await expect(late.getByText("Cancelado en el paso 3 de 4 (En curso)")).toBeVisible();
 
-  // Nunca un 5º paso: siempre 4 numeritos (role="listitem") en el stepper de
+  // Nunca un 5º paso: siempre 4 pasos (role="listitem") en el stepper de
   // cada tarjeta, cancelada o no.
   const steps = early.getByRole("listitem");
   await expect(steps).toHaveCount(4);
+  // El paso donde murió, en rojo y marcado como el actual; los que siguen,
+  // sin tachar (no pasaron).
+  const muerte = late.locator('[aria-current="step"]');
+  await expect(muerte).toHaveText("En curso");
+  await expect(muerte).toHaveAttribute("data-paso", "death");
+  await expect(late.locator('[data-paso="completed"] svg.tacha')).toHaveCount(2);
+  await expect(late.locator('[data-paso="cutoff"] svg.tacha')).toHaveCount(0);
 });
 
 /**
@@ -313,16 +320,13 @@ test("el panel se refresca solo mientras alguien puede venir en camino", async (
   await expect(card.getByText("Juana Pérez va en camino")).toBeVisible({ timeout: 10_000 });
 });
 
-// El paso actual va en azul de marca (no en ámbar, que es del botón de la
-// tarjeta) y el completado en el tinte de marca. Desde el 2026-11-18 el
-// turno del panel es una comanda de papel, forzada a claro por dentro: los
-// colores de los pasos son los de claro también con la app en oscuro (antes,
-// en oscuro, iban en celeste sobre la tarjeta oscura).
-const EN_PAPEL = { actualBg: "rgb(28, 84, 120)", actualInk: "rgb(255, 255, 255)", hechoBg: "rgb(222, 236, 240)", hechoInk: "rgb(28, 84, 120)" };
-const COLORES = { light: EN_PAPEL, dark: EN_PAPEL } as const;
-
+// Los pasos tachados a mano (2026-11-19, docs/historial/2026-11-19-pasos-tachados.md):
+// lo hecho lleva el trazo en azul hondo, lo actual va en negrita y tinta, lo
+// que falta en la letra suave. El turno del panel es una comanda de papel,
+// forzada a claro por dentro: los colores son los de claro también con la app
+// en oscuro. Todas las palabras se leen sobre el papel (4,5).
 for (const theme of ["light", "dark"] as const) {
-  test(`comercio, ${theme}: paso actual en azul de marca y paso completado con su tinte`, async ({ page }) => {
+  test(`comercio, ${theme}: lo hecho tachado en azul hondo, lo actual en negrita, todo se lee`, async ({ page }) => {
     await injectSession(page);
     await setTheme(page, theme);
     await blockExternalHosts(page);
@@ -331,12 +335,34 @@ for (const theme of ["light", "dark"] as const) {
     await page.goto("/shifts");
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
     const lista = page.locator('[data-shift-id="shift-asignado"]').getByRole("list", { name: "Paso 2 de 4: Asignado" });
-    const actual = lista.locator('[aria-current="step"]');
-    const hecho = lista.getByRole("listitem").first().locator("span").first();
-    const esperado = COLORES[theme];
-    await expect(actual).toHaveCSS("background-color", esperado.actualBg);
-    await expect(actual).toHaveCSS("color", esperado.actualInk);
-    await expect(hecho).toHaveCSS("background-color", esperado.hechoBg);
-    await expect(hecho).toHaveCSS("color", esperado.hechoInk);
+    await expect(lista.getByRole("listitem")).toHaveCount(4);
+    const pasos = await lista.evaluate((ol) => {
+      const rgb = (c: string) => (c.match(/[\d.]+/g) ?? []).map(Number);
+      const lum = ([r, g, b]: number[]) => {
+        const x = [r, g, b].map((v) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+        return 0.2126 * x[0] + 0.7152 * x[1] + 0.0722 * x[2];
+      };
+      const ratio = (a: string, b: string) => {
+        const [p, q] = [lum(rgb(a)), lum(rgb(b))].sort((m, n) => n - m);
+        return (p + 0.05) / (q + 0.05);
+      };
+      const papel = getComputedStyle(ol.closest(".comanda") as HTMLElement).backgroundColor;
+      return [...ol.querySelectorAll("li")].map((li) => {
+        const st = getComputedStyle(li);
+        const tacha = li.querySelector("svg.tacha");
+        return {
+          estado: li.getAttribute("data-paso"),
+          peso: st.fontWeight,
+          contraste: ratio(st.color, papel),
+          tacha: tacha ? getComputedStyle(tacha).color : null,
+        };
+      });
+    });
+    expect(pasos.map((p) => p.estado)).toEqual(["completed", "current", "future", "future"]);
+    expect(pasos[0].tacha).toBe("rgb(28, 84, 120)");
+    expect(pasos.slice(1).every((p) => p.tacha === null)).toBe(true);
+    expect(pasos[1].peso).toBe("700");
+    for (const p of pasos) expect(p.contraste).toBeGreaterThanOrEqual(4.5);
+    await expect(lista.locator('[aria-current="step"]')).toHaveText("Asignado");
   });
 }

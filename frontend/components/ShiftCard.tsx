@@ -92,16 +92,19 @@ const DIMMED_STATUSES = new Set(["cancelado", "pagado", "no_cubierto"]);
 // poco es ruido; en uno terminado o cancelado, es ruido sobre historia.
 const PAY_HINT_STATUSES = new Set(["borrador", "publicado", "buscando_personal"]);
 
-// En la comanda (`comanda`), el estado es un sello de goma: toma el color de
-// la letra. Verde para lo que salió bien, rojo sólo para cancelado, gris para
-// lo que no arrancó o no se cubrió, azul hondo para todo lo que está en curso.
+// En la comanda (`comanda`), el estado es un sello de goma con una de sus
+// cuatro tintas (`.sello-*` en globals.css, fijas porque el papel es claro en
+// los dos temas). Verde para lo que salió bien (con «llegó», como en la
+// prueba de la app), rojo sólo para cancelado, gris para lo que no arrancó o
+// no se cubrió, azul hondo para todo lo que está en curso.
 const SELLO_COLORS: Record<string, string> = {
-  borrador: "text-ink-soft",
-  confirmado: "text-success-text",
-  finalizado: "text-success-text",
-  pagado: "text-success-text",
-  cancelado: "text-danger-text",
-  no_cubierto: "text-ink-soft",
+  borrador: "sello-gris",
+  confirmado: "sello-verde",
+  check_in: "sello-verde",
+  finalizado: "sello-verde",
+  pagado: "sello-verde",
+  cancelado: "sello-rojo",
+  no_cubierto: "sello-gris",
 };
 
 export default function ShiftCard({
@@ -171,7 +174,7 @@ export default function ShiftCard({
             <h3 className="letra-cartel letra-cartel-puesto min-w-0 break-words">
               {textoCartel(SKILL_LABELS[shift.position])}
             </h3>
-            {shift.urgent && <span className="sello-goma mt-1 shrink-0 text-danger-text">Urgente</span>}
+            {shift.urgent && <span className="sello-goma sello-rojo mt-1 shrink-0">Urgente</span>}
           </div>
           <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm text-ink-soft">
             {shift.company_name && (
@@ -399,14 +402,15 @@ export default function ShiftCard({
             tarjeta decía el estado dos veces seguidas. El chip nombra el
             estado; los puntos dicen cuánto falta. El texto del stepper sólo
             vuelve cuando el turno se cortó, porque ahí agrega en qué paso. */}
-        {/* En la comanda la fila puede partirse: a 320 px el sello y los
-            cuatro pasos no entran juntos, y los pasos bajan de renglón. */}
-        <div className={`mt-4 flex items-start gap-3 ${comanda ? "flex-wrap" : ""}`}>
+        {/* La fila puede partirse: los pasos son palabras en un renglón
+            (tachadas a mano, 2026-11-19) y, si no entran al lado del estado,
+            bajan enteros al renglón de abajo en lugar de partirse en dos. */}
+        <div className="mt-4 flex flex-wrap items-start gap-x-3 gap-y-2">
           <span
             data-testid="shift-status"
             className={
               comanda
-                ? `sello-goma shrink-0 ${SELLO_COLORS[shift.status] ?? "text-primary-text"}`
+                ? `sello-goma shrink-0 ${SELLO_COLORS[shift.status] ?? "sello-azul"}`
                 : `shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${STATUS_COLORS[shift.status] ?? "bg-surface text-ink/70"}`
             }
           >
@@ -417,7 +421,7 @@ export default function ShiftCard({
               shift={shift}
               perspective={perspective}
               caption="cutShort"
-              className={comanda ? "min-w-[7.5rem] flex-1 pt-0.5" : "min-w-0 flex-1 pt-0.5"}
+              className="flex-auto pt-0.5"
             />
           )}
         </div>
