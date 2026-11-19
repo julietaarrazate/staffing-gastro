@@ -1,4 +1,4 @@
-# TypeScript 7 chequea los tipos; ESLint y `next build` siguen con la 6
+# TypeScript 7 chequea los tipos; ESLint y `next build` siguen con la 6 (#681)
 
 **Pedido:** Julieta, 2026-11-17 (etapa 5 de la salida a beta) y 2026-11-19: «Hacé el PR de TypeScript 7». Lo decidido: subir de 6 a 7 y correr tsc, lint, build y e2e; si ESLint con tipos se traba hasta la 7.1, ESLint sigue con TypeScript 6 mientras tanto.
 

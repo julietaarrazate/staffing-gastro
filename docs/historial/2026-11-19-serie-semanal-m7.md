@@ -1,4 +1,4 @@
-# Métricas: la serie semanal M7, con las altas de cada semana por origen y rol
+# Métricas: la serie semanal M7, con las altas de cada semana por origen y rol (#677)
 
 **Pedido:** Julieta, 2026-11-19 (fase 0 del plan de crecimiento, entrega del 13/12): cerrar M7 del tablero de la beta, una serie semanal desde el día 1 de la beta (o un CSV) para la lámina de tracción y el reporte de los lunes (pestaña «Indicadores» del plan), con las altas por origen y por rol.
 
