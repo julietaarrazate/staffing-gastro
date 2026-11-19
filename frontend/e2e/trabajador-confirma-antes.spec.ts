@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { deContrato, fulfillContrato } from "./contrato";
 import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./mocks";
 
 /**
@@ -7,49 +8,20 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./moc
  * La API está simulada: el spec cuenta los POST que llegan al "servidor".
  */
 
-const WORKER_SESSION = {
-  id: "user-1",
-  email: "demo.mozo.palermo@staffya.com",
-  full_name: "Mozo Demo",
-  role: "worker",
-  status: "activo",
-  is_active: true,
-  is_verified: true,
-};
-
+// Turno de `GET /shifts/mine` (e2e/contrato): con la persona ya asignada.
 function shiftFixture(status: string, startOffsetMin: number) {
   const start = new Date(Date.now() + startOffsetMin * 60_000);
   const end = new Date(start.getTime() + 5 * 3_600_000);
-  return {
-    id: "shift-1",
-    company_id: "company-1",
-    position: "mozo",
-    quantity: 1,
-    start_at: start.toISOString(),
-    end_at: end.toISOString(),
-    pay_amount: "15000",
-    currency: "ARS",
-    tips: true,
-    meal: false,
-    dress_code: null,
-    urgent: false,
-    address: "Thames 1234",
-    city: "Palermo, CABA",
-    latitude: -34.5875,
-    longitude: -58.4257,
-    title: null,
-    description: null,
-    status,
-    worker_profile_id: "profile-1",
-    check_in_latitude: null,
-    check_in_longitude: null,
-    check_in_at: null,
-    check_out_latitude: null,
-    check_out_longitude: null,
-    check_out_at: null,
-    paid_at: null,
-    no_show_at: null,
-  };
+  return deContrato("turnos_asignados_trabajador", [
+    {
+      start_at: start.toISOString(),
+      end_at: end.toISOString(),
+      status,
+      worker_profile_id: "profile-1",
+      latitude: -34.5875,
+      longitude: -58.4257,
+    },
+  ])[0];
 }
 
 async function setup(page: Page, initial: { status: string; startOffsetMin: number }) {
@@ -65,11 +37,11 @@ async function setup(page: Page, initial: { status: string; startOffsetMin: numb
     contentType: "application/json",
     body: JSON.stringify(body),
   });
-  await page.route("**/api/v1/auth/me", (r) => r.fulfill(json(WORKER_SESSION)));
+  await page.route("**/api/v1/auth/me", (r) => fulfillContrato(r, "auth_me_worker"));
   await page.route("**/api/v1/shifts/mine", (r) => r.fulfill(json([state.shift])));
   await page.route("**/api/v1/applications/mine", (r) => r.fulfill(json([])));
   await page.route("**/api/v1/saved-shifts", (r) => r.fulfill(json([])));
-  await page.route("**/api/v1/workers/me/profile", (r) => r.fulfill({ status: 404, body: "{}" }));
+  await page.route("**/api/v1/workers/me/profile", (r) => fulfillContrato(r, "perfil_trabajador_sin_crear"));
   await page.route(/\/api\/v1\/shifts\/shift-1\/(reject|worker-cancel|check-in|check-out)$/, (r) => {
     const accion = r.request().url().split("/").pop() as string;
     posts.push(accion);
