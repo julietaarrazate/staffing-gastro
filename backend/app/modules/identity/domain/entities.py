@@ -6,6 +6,7 @@ La persistencia se hace mediante un mapeo en la capa de infraestructura.
 
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
+from typing import Any
 from uuid import UUID, uuid4
 
 from app.core.dt import naive as _naive
@@ -38,6 +39,14 @@ class User:
     signup_origin: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
+    # Cómo estaba guardado cuando se leyó: lo arma el repositorio, que al
+    # guardar escribe sólo lo que el caso de uso cambió desde entonces.
+    # Cambiarse el nombre no pisa una suspensión que la admin guardó en el
+    # medio, ni la suspensión una contraseña nueva (CON-13). El dominio sólo
+    # lo transporta.
+    persisted_state: dict[str, Any] | None = field(
+        default=None, compare=False, repr=False
+    )
 
     @property
     def is_active(self) -> bool:
