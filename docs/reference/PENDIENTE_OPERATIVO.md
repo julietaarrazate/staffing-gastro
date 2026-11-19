@@ -89,25 +89,51 @@ toda vista previa y el sitemap apuntaban ahí.
    Detalle en
    [`../adr/ADR-0021-documentos-de-identidad-privados.md`](../adr/ADR-0021-documentos-de-identidad-privados.md)
    ("Migración").
-5c. 🟠 **Los CV ya subidos, a privados** (nuevo 2026-11-19, PRI-03; ADR-0021,
-   «Actualización 2026-11-19: el CV también»). Desde ese deploy el CV sube
-   privado y se ve con un link que vence, pero los que ya estaban siguen
-   públicos (quien vio el link lo sigue abriendo) y los que la gente cambió
-   o sacó antes siguen en Cloudinary. Después del deploy (Render corre la
-   migración `0060`; `CLOUDINARY_CLOUD_NAME` tiene que estar cargada, ítem
-   5b), correr **una vez**, desde una compu con el repo y las mismas
-   variables de arriba:
+5c. 🟠 **Documentos y CV ya subidos, a protegidos** (nuevo 2026-11-19, PRI-03
+   y su revisión; ADR-0021, «Actualización 2026-11-19: el CV también»).
+   Desde ese deploy el DNI, la selfie, la constancia y el CV suben
+   `authenticated` (ni el original ni una versión transformada se ven sin
+   firma) y se ven con un link que vence. Lo que ya estaba sigue como
+   estaba: los CV públicos (quien vio el link lo sigue abriendo), los CV que
+   la gente cambió o sacó antes (siguen en Cloudinary), y los documentos
+   pendientes `private` (sus versiones transformadas se ven sin firma).
+   **En este orden**, desde una compu con el repo y las mismas variables de
+   arriba:
 
-   ```bash
-   cd backend
-   python -m scripts.privatize_worker_cvs          # mira: no cambia nada
-   python -m scripts.privatize_worker_cvs --apply  # pasa a privado los CV de los perfiles y borra los que nadie usa
-   python -m scripts.privatize_worker_cvs          # perfiles, a privado y huérfanos en 0
-   ```
+   1. Mergear y esperar el deploy de Render (corre la migración `0060`).
+      `CLOUDINARY_CLOUD_NAME` tiene que estar cargada (ítem 5b).
+   2. Documentos de identidad (pasa los pendientes `private` o públicos a
+      `authenticated` y borra los huérfanos):
 
-   Lo que el script lista como problema («no parece un CV», «lo apuntan 2
-   perfiles», «otra cuenta») no lo toca: hay que mirarlo a mano en
-   Cloudinary. Detalle en el ADR-0021.
+      ```bash
+      cd backend
+      python -m scripts.privatize_identity_evidence          # mira: no cambia nada
+      python -m scripts.privatize_identity_evidence --apply  # protege y borra
+      python -m scripts.privatize_identity_evidence          # filas, a protegido y huérfanos en 0
+      ```
+
+   3. CV (pasa a `authenticated` los CV de los perfiles y borra los que nadie
+      usa, en `oido/cv/` y sin carpeta):
+
+      ```bash
+      python -m scripts.privatize_worker_cvs          # mira: no cambia nada
+      python -m scripts.privatize_worker_cvs --apply  # protege y borra
+      python -m scripts.privatize_worker_cvs          # perfiles, a protegido y huérfanos en 0
+      ```
+
+   Primero siempre sin `--apply` y leer la lista. Lo que un script marca con
+   `!` (problema: «no parece un CV», «lo usa también una foto», «lo apuntan 2
+   perfiles», «otra cuenta», «cambió mientras corría») no lo toca; lo que
+   marca con `?` (a revisar a mano: fotos sin carpeta que nada usa, que
+   pueden ser CV viejos en imagen) tampoco. Hay que mirarlos a mano en
+   Cloudinary (Media Library) y decidir. Si un archivo quedó «cambió
+   mientras corría», volver a correr el script lo resuelve. Detalle en el
+   ADR-0021.
+
+   **Una prueba en producción después del paso 3** (desde acá no se pudo
+   abrir Cloudinary): abrir un CV en PDF y uno en foto con «Ver CV» (tienen
+   que verse en el navegador) y, como admin, un DNI pendiente. Y copiar el
+   link de «Ver CV», esperar 6 minutos y abrirlo: tiene que fallar.
 6. 🟠 **`GEMINI_API_KEY`** (Render, nueva 2026-08-10, P2 auditoría de
    producto): habilita "Describí el turno" en `/shifts/new` — el comercio
    escribe algo como "necesito un mozo el sábado a la noche, se paga
