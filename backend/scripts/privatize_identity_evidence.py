@@ -42,7 +42,6 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import re
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
@@ -53,6 +52,10 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core import cloudinary as cld
+from app.core.cloudinary import (  # noqa: F401 (ParsedUrl: la usan los tests)
+    ParsedUrl,
+    parse_cloudinary_url,
+)
 from app.core.config import settings
 from app.modules.verification.infrastructure.models import IdentityEvidenceModel
 
@@ -65,12 +68,6 @@ DELIVERY_TYPES = ("upload", PRIVATE, "authenticated")
 # puede ser de alguien que está completando el formulario.
 ORPHAN_MIN_AGE = timedelta(hours=24)
 
-_URL = re.compile(
-    r"^https://res\.cloudinary\.com/[^/]+/(?P<rt>image|raw|video)/"
-    r"(?P<type>upload|private|authenticated)/(?P<rest>.+)$"
-)
-_VERSION = re.compile(r"^v\d+$")
-
 
 @dataclass(frozen=True)
 class Asset:
@@ -80,38 +77,9 @@ class Asset:
     type: str
     # Cuándo se subió (lo da la Admin API). `None` = no se sabe: no se borra.
     created_at: datetime | None = None
-
-
-@dataclass(frozen=True)
-class ParsedUrl:
-    public_id: str
-    resource_type: str
-    format: str
-    type: str
-
-
-def parse_cloudinary_url(url: str) -> ParsedUrl | None:
-    """`https://res.cloudinary.com/<cloud>/image/upload/v123/oido/identidad/ab.jpg`
-    → (`oido/identidad/ab`, `image`, `jpg`, `upload`). Lo que hay antes de la
-    versión (`v123`) son transformaciones y se descarta. En `raw` la
-    extensión es parte del `public_id` y el formato queda vacío. `None` si no
-    es una URL de entrega de Cloudinary."""
-    match = _URL.match(url.split("?", 1)[0])
-    if not match:
-        return None
-    segments = match["rest"].split("/")
-    for i, segment in enumerate(segments):
-        if _VERSION.match(segment):
-            segments = segments[i + 1 :]
-            break
-    path = "/".join(segments)
-    if not path:
-        return None
-    resource_type = match["rt"]
-    if resource_type == "raw" or "." not in segments[-1]:
-        return ParsedUrl(path, resource_type, "", match["type"])
-    public_id, file_format = path.rsplit(".", 1)
-    return ParsedUrl(public_id, resource_type, file_format.lower(), match["type"])
+    # La carpeta (`asset_folder` en las cuentas con carpetas dinámicas, donde
+    # no siempre está en el `public_id`; `folder` en las de carpetas fijas).
+    folder: str = ""
 
 
 class CloudinaryAdmin(Protocol):
@@ -167,6 +135,7 @@ class HttpCloudinaryAdmin:
             format=raw.get("format") or "",
             type=raw.get("type", "upload"),
             created_at=_parse_created_at(raw.get("created_at")),
+            folder=raw.get("asset_folder") or raw.get("folder") or "",
         )
 
     def find(self, public_id: str, resource_type: str) -> Asset | None:

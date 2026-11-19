@@ -50,9 +50,11 @@ _IMAGE_ROLES = {
     response_model=SignedUploadResponse,
     summary="Firma para subir un CV directo a Cloudinary (subida firmada, no preset unsigned)",
 )
-async def sign_cv(_current_user: WorkerDep):
+async def sign_cv(current_user: WorkerDep):
+    """Privado (ADR-0021, actualización 2026-11-19), y con el nombre marcado
+    para esta cuenta: el perfil sólo acepta un CV que subió la misma persona."""
     try:
-        return sign_cv_upload()
+        return sign_cv_upload(current_user.id)
     except CloudinaryNotConfiguredError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
