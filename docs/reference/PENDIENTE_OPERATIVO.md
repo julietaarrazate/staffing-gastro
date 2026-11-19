@@ -125,15 +125,20 @@ toda vista previa y el sitemap apuntaban ahí.
    `!` (problema: «no parece un CV», «lo usa también una foto», «lo apuntan 2
    perfiles», «otra cuenta», «cambió mientras corría») no lo toca; lo que
    marca con `?` (a revisar a mano: fotos sin carpeta que nada usa, que
-   pueden ser CV viejos en imagen) tampoco. Hay que mirarlos a mano en
+   pueden ser CV viejos en imagen, y documentos sin carpeta subidos desde el
+   2026-10-16, que no son de la app) tampoco. Hay que mirarlos a mano en
    Cloudinary (Media Library) y decidir. Si un archivo quedó «cambió
    mientras corría», volver a correr el script lo resuelve. Detalle en el
    ADR-0021.
 
-   **Una prueba en producción después del paso 3** (desde acá no se pudo
-   abrir Cloudinary): abrir un CV en PDF y uno en foto con «Ver CV» (tienen
-   que verse en el navegador) y, como admin, un DNI pendiente. Y copiar el
-   link de «Ver CV», esperar 6 minutos y abrirlo: tiene que fallar.
+   **Prueba obligatoria en producción después del paso 3: PRI-03 no se da
+   por cerrado sin ella** (desde la sesión no se pudo abrir Cloudinary).
+   Abrir un CV en PDF y uno en foto con «Ver CV» (tienen que verse en el
+   navegador) y, como admin, un DNI pendiente. Y copiar el link de «Ver CV»,
+   esperar 6 minutos y abrirlo: **tiene que fallar**. Si abre, avisar: el
+   arreglo no alcanza y hay que elegir entre el token con vencimiento de
+   Cloudinary (plan Advanced, pago) o pasar el archivo por el backend
+   (ADR-0021, «Actualización 2026-11-19», paso 5).
 6. 🟠 **`GEMINI_API_KEY`** (Render, nueva 2026-08-10, P2 auditoría de
    producto): habilita "Describí el turno" en `/shifts/new` — el comercio
    escribe algo como "necesito un mozo el sábado a la noche, se paga

@@ -90,8 +90,15 @@ cambió:**
   `python -m scripts.privatize_identity_evidence` y después
   `python -m scripts.privatize_worker_cvs`, y prueba «Ver CV» (PDF y foto),
   el DNI del admin y que el link venza: `docs/reference/PENDIENTE_OPERATIVO.md`,
-  ítem 5c. Que el link de descarga de un `authenticated` vence está
-  confirmado contra el SDK y el arnés, no contra Cloudinary real.
+  ítem 5c. **Esa prueba es obligatoria antes de dar PRI-03 por cerrado:**
+  que el link de descarga de un `authenticated` vence lo dice la
+  documentación de Cloudinary y lo imita el arnés, pero no se pudo ver en el
+  servicio real. Si no venciera, las salidas (token con vencimiento, plan
+  pago; o pasar el archivo por el backend) están en el ADR-0021.
+- El script del CV borra documentos sin carpeta sólo si son de antes del
+  2026-10-16 (desde ahí toda subida de la app trae carpeta); los más nuevos
+  los lista sin tocarlos (segunda vuelta de la revisión: un `media_kit.pdf`
+  subido a mano se marcaba para borrar).
 - `/privacidad` no dice que el comercio con un turno o una postulación ve
   el CV ni cuánto se guarda. No se tocó: necesita el sí de Julieta y subir
   la versión legal (texto propuesto en el ADR-0021).

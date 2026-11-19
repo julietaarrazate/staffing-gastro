@@ -62,9 +62,11 @@ sólo el puntero en la base: el archivo seguía público
   pagos de Cloudinary (Advanced o superior). Oído está en el plan gratis.
 - **`type=authenticated` + URL firmada (`s--…--`)**: la firma de una URL de
   entrega **no vence**: sirve hasta que se rota el `api_secret`. Un link
-  filtrado seguiría abriendo el DNI. Además, `expires_at` en la API de
-  descarga está pensado para recursos `private` (respuesta del equipo de
-  Cloudinary en su foro); por eso `private` y no `authenticated`.
+  filtrado seguiría abriendo el DNI. (El 2026-10-23 se eligió `private`
+  creyendo, por un comentario del foro de Cloudinary, que `expires_at` de la
+  API de descarga era sólo para `private`. **Era un error:** la
+  documentación oficial dice que `private_download_url` acepta `type`
+  `upload`, `private` o `authenticated`; ver «Fuentes».)
   *Revisado el 2026-11-19:* lo que no sirve es la **URL de entrega
   firmada**, no el tipo. `private` deja ver sin firma las versiones
   transformadas, así que se pasó a `authenticated` **sin** URLs de entrega
@@ -82,10 +84,17 @@ parámetros se confirmaron en el **código del SDK oficial** (`cloudinary`
 `uploader.rename`, `api.resources`) y en estas páginas:
 
 - Control de acceso (private, authenticated, token-based):
-  <https://cloudinary.com/documentation/control_access_to_media>
-- `private_download_url` y `expires_at` para recursos privados, y token auth
-  como función paga: <https://community.cloudinary.com/discussion/comment/764/>,
-  <https://community.cloudinary.com/discussion/comment/784>
+  <https://cloudinary.com/documentation/control_access_to_media>. En
+  «Providing time-limited access to private media assets», para
+  `private_download_url`: `type` admite «upload, private, authenticated», y
+  `expires_at` es «The date (UNIX time in seconds) for the URL expiration».
+  En la misma página: por defecto, las versiones derivadas (transformadas)
+  de un archivo `private` se entregan públicas.
+- Token-based auth como función de los planes pagos:
+  <https://community.cloudinary.com/discussion/comment/764/>,
+  <https://community.cloudinary.com/discussion/comment/784>. (Esos mismos
+  comentarios decían que `expires_at` era para recursos `private`: la
+  documentación de arriba lo contradice.)
 - Cambiar el tipo de un archivo existente con `rename` + `to_type`:
   <https://support.cloudinary.com/hc/en-us/community/posts/4511376378770-How-to-convert-public-delivery-types-to-authenticated-delivery-type-for-existing-media>
 - Referencia de `rename` (Upload API):
@@ -213,8 +222,8 @@ afuera sin decir por qué; no fue una decisión de dejarlo público.
 **Y `private` tampoco alcanzaba** (revisión independiente del arreglo, el
 mismo día; vale también para el DNI, la selfie y la constancia). La
 documentación de Cloudinary (*control access to media*) dice que, por
-defecto, las versiones derivadas (transformadas) de un archivo `private` se
-entregan sin firma. El link que vence trae la cuenta, el tipo, el
+defecto, «any derived (transformed) versions of the asset are publicly
+accessible». El link que vence trae la cuenta, el tipo, el
 `public_id` y el formato: con eso se arma
 `https://res.cloudinary.com/<cuenta>/image/private/w_2000/<public_id>.jpg`
 (o `pg_1`, `pg_2`… para cada página de un PDF) y el documento se abre sin
@@ -318,10 +327,13 @@ no se pisa):
      perfiles (si uno lo cambia se le borraría al otro) ni una URL de otra
      cuenta de Cloudinary.
   2. **Borra** lo que ningún perfil apunta, subido hace más de 24 h: todo lo
-     de `oido/cv/`, y **sin carpeta** (los CV de antes de las carpetas,
-     2026-10-15) los Word (`raw`) y los PDF que nada usa. Las fotos sin
-     carpeta que nada usa (jpg, png…) **no las toca**: las lista para
-     mirarlas a mano, porque pueden ser un CV en imagen o una foto vieja.
+     de `oido/cv/`, y **sin carpeta** (los CV de antes de las carpetas) los
+     Word (`raw`) y los PDF que nada usa **subidos antes del 2026-10-16**:
+     desde ese día toda subida de la app trae carpeta, así que un documento
+     sin carpeta más nuevo no es de la app (alguien lo subió a mano) y sólo
+     se lista. Las fotos sin carpeta que nada usa (jpg, png…) **no las
+     toca**: las lista para mirarlas a mano, porque pueden ser un CV en
+     imagen o una foto vieja.
 
 **Qué tiene que hacer Julieta** (también en
 [`PENDIENTE_OPERATIVO.md`](../reference/PENDIENTE_OPERATIVO.md), ítem 5c),
@@ -348,11 +360,25 @@ script de los documentos:
    ```
 
 4. Mirar a mano lo que los scripts listan con `!` (problemas) y con `?`
-   (fotos sin carpeta), y probar en producción: «Ver CV» de un PDF y de una
-   foto se ven en el navegador, el admin ve un DNI pendiente, y el link de
-   «Ver CV» copiado deja de abrir a los 6 minutos. Desde la sesión no se
-   pudo abrir Cloudinary para confirmarlo: está confirmado contra el SDK y
-   contra el arnés, no contra el servicio real.
+   (fotos y documentos sin carpeta que no se tocan).
+5. **Prueba obligatoria en producción** (PRI-03 no se da por cerrado sin
+   ella): «Ver CV» de un PDF y de una foto se ven en el navegador, el admin
+   ve un DNI pendiente, y el link de «Ver CV» copiado deja de abrir a los 6
+   minutos. La documentación dice que `private_download_url` vence con
+   `expires_at` para `authenticated` (ver «Fuentes»), y el arnés lo imita,
+   pero desde la sesión no se pudo abrir Cloudinary para verlo en el
+   servicio real.
+
+   **Si el link no venciera**, el arreglo no alcanza (quien lo vio lo
+   seguiría abriendo) y hay dos salidas, las dos con ADR nuevo:
+   - **Token-based authentication** de Cloudinary: URLs de entrega con
+     `__cld_token__` que vencen. Es de los planes pagos (Advanced o
+     superior); es la forma prevista por Cloudinary.
+   - **Pasar el archivo por el backend**: `cv-link` deja de dar un link de
+     Cloudinary y el backend entrega el archivo (lo baja con la API de
+     descarga y lo reenvía) a quien puede verlo, en cada pedido. Sin costo
+     de Cloudinary, pero usa ancho de banda y memoria de Render (plan
+     gratis) por cada CV o DNI que se abre.
 
 Entre el deploy y la corrida, los CV viejos se siguen viendo: `cv-link`
 devuelve su URL vieja (sin vencimiento) a quien puede verlos.
