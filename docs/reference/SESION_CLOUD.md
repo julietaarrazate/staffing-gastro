@@ -232,12 +232,13 @@ cd frontend && npm run build && npx playwright test e2e/zz-captura.spec.ts
   `ToolSearch` (`select:mcp__Render__list_logs,mcp__Render__list_deploys`);
   si ni ese conecta, decilo y no des el deploy por verificado.
 - **Los registros de la app en Render no muestran los campos `extra`** de
-  `logger.info("…", extra={…})`. Salen en el formato de texto (el de
-  `log_json=False`, el valor por defecto de `backend/app/core/config.py`;
-  ver `observability.py`), que imprime sólo el mensaje: el `extra` se
-  pierde. Lo que tenga que leerse en un log
-  va **en el mensaje** (`logger.info("evento x: shift_id=%s", shift.id)`);
-  el `extra` sirve sólo como dato adicional para el formato JSON.
+  `logger.info("…", extra={…})`. En Render salen en el formato de texto
+  (`LOG_JSON` apagado; visto el 2026-11-19:
+  `2026-11-19 08:54:34,032 INFO [-] app.modules.shift.application.scheduler: scheduler.retention`),
+  que imprime sólo el mensaje (`_PlainFormatter` en
+  `backend/app/core/observability.py`). Lo que tenga que leerse en un log
+  va **en el mensaje** (`logger.info("evento x: shift_id=%s", shift.id)`).
+  Si algún día se prende `LOG_JSON=true`, el `extra` sale bajo `data`.
 - **Dependabot: cada merge deja atrás a los demás PRs suyos** (visto el
   2026-11-18, con 8 PRs seguidos). Mergealos de a uno: después de cada
   merge, `mcp__github__update_pull_request_branch` pone al día el siguiente
