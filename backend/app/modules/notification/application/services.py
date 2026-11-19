@@ -1,5 +1,6 @@
 """Casos de uso del módulo notification."""
 
+from collections.abc import Collection
 from uuid import UUID
 
 from app.modules.notification.application.ports import SessionRevocations
@@ -28,10 +29,13 @@ class NotificationService:
             raise NotificationNotFoundError(str(notification_id))
         return notification
 
-    async def mark_all_read(self, user_id: UUID) -> int:
-        """Marca leídos todos los avisos no leídos del usuario y devuelve
-        cuántos eran. Sólo toca los suyos: no hay id que adivinar."""
-        return await self._notifications.mark_all_read(user_id)
+    async def mark_all_read(self, user_id: UUID, ids: Collection[UUID] | None = None) -> int:
+        """Marca leídos los avisos no leídos del usuario y devuelve cuántos
+        eran. Con `ids`, sólo los que la persona tenía en pantalla (CON-10):
+        marcar «todo» de la cuenta pisaba avisos que nunca vio. Sin `ids` (un
+        cliente viejo, con la app en caché), todos, como antes. Sólo toca los
+        suyos: un id ajeno no marca nada."""
+        return await self._notifications.mark_all_read(user_id, ids)
 
 
 # De a cuántas cuentas se le pregunta a identity en el barrido.
