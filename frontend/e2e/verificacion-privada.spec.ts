@@ -160,6 +160,50 @@ test("la cola del admin muestra cada evidencia con su link que vence", async ({ 
   expect(new Set(linkCalls)).toEqual(new Set(["ev-dni", "ev-selfie", "ev-afip"]));
 });
 
+test("al decidir manda el envío que vio; si la persona reenvió, lo dice y recarga la cola", async ({
+  page,
+}) => {
+  // ESC-01: la decisión lleva el `submitted_at` de la cola tal cual. Si la
+  // persona volvió a mandar los documentos, el servidor responde 409 y no
+  // decide nada; «Reintentar» trae la cola con el envío nuevo.
+  await mockAdmin(page, []);
+  let pendingCalls = 0;
+  await page.route("**/api/v1/identity/claims/pending", (route) => {
+    pendingCalls += 1;
+    return route.fulfill(json(PENDING));
+  });
+  const bodies: unknown[] = [];
+  const resubmitted = "La persona volvió a mandar los documentos. Revisalos de nuevo.";
+  await page.route("**/api/v1/identity/claims/*/approve", (route) => {
+    bodies.push(route.request().postDataJSON());
+    return route.fulfill({
+      status: 409,
+      contentType: "application/json",
+      body: JSON.stringify({ detail: resubmitted }),
+    });
+  });
+  await page.route("**/api/v1/identity/claims/*/reject", (route) => {
+    bodies.push(route.request().postDataJSON());
+    return route.fulfill(json({ claim_type: "negocio_verificado", status: "rechazada" }));
+  });
+
+  await page.goto("/admin/verificacion");
+  await page.getByRole("button", { name: "Aprobar" }).first().click();
+  await expect(page.getByText(resubmitted)).toBeVisible({ timeout: 15_000 });
+  expect(bodies).toEqual([{ submitted_at: "2026-10-23T12:00:00Z" }]);
+
+  await page.getByRole("button", { name: "Reintentar" }).click();
+  await expect(page.getByRole("button", { name: "Aprobar" })).toHaveCount(2);
+  expect(pendingCalls).toBe(2);
+
+  // El rechazo lleva el envío y el motivo.
+  await page.getByRole("button", { name: "Rechazar" }).nth(1).click();
+  await page.getByLabel("Motivo del rechazo (opcional)").fill("Constancia vencida");
+  await page.getByRole("button", { name: "Confirmar rechazo" }).click();
+  await expect(page.getByRole("button", { name: "Aprobar" })).toHaveCount(1);
+  expect(bodies[1]).toEqual({ submitted_at: "2026-10-23T12:05:00Z", reason: "Constancia vencida" });
+});
+
 test("el trabajador lee que sus fotos quedan privadas", async ({ page }) => {
   await mockWorker(page);
   await page.goto("/profile");
