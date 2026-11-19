@@ -73,7 +73,7 @@
 17. **No romper lo que funciona.** Los cambios de presentación no tocan la lógica
     de backend salvo necesidad; se preservan las funcionalidades existentes.
 18. **Verificar antes de dar por hecho.** Backend `pytest -q`; frontend
-    `npx tsc --noEmit` + `npm run build` antes de commitear. Se reporta el
+    `npm run typecheck` + `npm run build` antes de commitear. Se reporta el
     resultado real, no el esperado.
 
 ## Git y trabajo

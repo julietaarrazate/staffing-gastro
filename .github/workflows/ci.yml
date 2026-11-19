@@ -110,8 +110,11 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Instalar dependencias
         run: npm ci
-      - name: Typecheck
-        run: npx tsc --noEmit
+      # TypeScript 7 (el compilador en Go): `typescript` sigue en 6 porque
+      # typescript-eslint y el chequeo de `next build` usan su API de
+      # JavaScript, que la 7.0 no trae (docs/historial/2026-11-19-typescript-7.md).
+      - name: Typecheck (TypeScript 7)
+        run: npm run typecheck
       - name: Lint
         run: npm run lint
       - name: Tests unitarios
