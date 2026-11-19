@@ -1583,6 +1583,7 @@ describe("AuthProvider: lo guardado en el navegador es de la cuenta, no de la se
     dejarCosasDeLaCuenta();
 
     act(() => {
+      localStorage.setItem("staffya_session_logout", "1");
       localStorage.removeItem("staffya_token");
       localStorage.removeItem("staffya_has_session");
       window.dispatchEvent(
@@ -1597,6 +1598,62 @@ describe("AuthProvider: lo guardado en el navegador es de la cuenta, no de la se
 
     expect(auth().justLoggedOut).toBe(true);
     expect(hayRastros()).toBe(false);
+  });
+
+  it("SES-03: si la otra pestaña sólo perdió la marca de sesión (recuperación fallida), no se borra nada", async () => {
+    const auth = await mountApp();
+    await loginAs(auth, TRABAJADORA, "token-trabajadora");
+    dejarCosasDeLaCuenta();
+
+    act(() => {
+      localStorage.removeItem("staffya_token");
+      localStorage.removeItem("staffya_has_session");
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: "staffya_has_session",
+          oldValue: "1",
+          newValue: null,
+          storageArea: localStorage,
+        }),
+      );
+    });
+
+    expect(auth().user).toBeNull();
+    expect(sessionStorage.getItem(BORRADOR)).not.toBeNull();
+    expect(sessionStorage.getItem("staffya_ai_shift_draft")).not.toBeNull();
+  });
+
+  it("SES-04: recuperar la sesión como otra cuenta (sin pasar por un ingreso) limpia lo de la anterior", async () => {
+    sessionStorage.setItem(
+      "staffya_ultima_cuenta",
+      JSON.stringify(TRABAJADORA.id),
+    );
+    sessionStorage.setItem("staffya_ai_shift_draft", "{}");
+    sessionStorage.setItem("staffya_plan_elegido", "pro");
+    localStorage.setItem("staffya_token", "token-guardado");
+    localStorage.setItem("staffya_has_session", "1");
+    backend["GET /auth/me"] = [200, ADMIN];
+
+    const auth = await mountApp();
+
+    expect(auth().user?.id).toBe(ADMIN.id);
+    expect(sessionStorage.getItem("staffya_ai_shift_draft")).toBeNull();
+    expect(sessionStorage.getItem("staffya_plan_elegido")).toBeNull();
+  });
+
+  it("recuperar la sesión como la misma cuenta conserva sus borradores", async () => {
+    sessionStorage.setItem(
+      "staffya_ultima_cuenta",
+      JSON.stringify(TRABAJADORA.id),
+    );
+    sessionStorage.setItem("staffya_ai_shift_draft", "{}");
+    localStorage.setItem("staffya_token", "token-guardado");
+    localStorage.setItem("staffya_has_session", "1");
+    backend["GET /auth/me"] = [200, TRABAJADORA];
+
+    await mountApp();
+
+    expect(sessionStorage.getItem("staffya_ai_shift_draft")).not.toBeNull();
   });
 
   it("SES-04: entrar con otra cuenta sin cerrar sesión limpia lo de la anterior", async () => {
