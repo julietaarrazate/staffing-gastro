@@ -38,7 +38,7 @@ directo. Lo demás no se ve; números y método en
   Fotos de tamaño fijo con `width`/`height`.
 - **Backend:** la lista de chats pasó de un `OR` a una unión de dos lecturas
   por índice (8 ms → 0,09 ms con volumen,
-  `chat/infrastructure/repositories.py`); migración `0059` con dos índices
+  `chat/infrastructure/repositories.py`); migración `0060` con dos índices
   parciales de ausencias en `shifts`; `Cache-Control` público en
   `/push/public-key`.
 

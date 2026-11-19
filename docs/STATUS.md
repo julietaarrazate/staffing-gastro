@@ -32,7 +32,7 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
   del panel sin mapa, U080 (turno reofrecido) y las decisiones 21, 22 y 24.
   La pasada por clase de error se auditó el 2026-11-19: los arreglos van por
   grupo, con su estado en el tablero («Pasada por clase de error»). Después,
-  P1 a P5. La próxima migración libre es la 0059. En paralelo, las
+  P1 a P5. La próxima migración libre es la 0060. En paralelo, las
   etapas 4 (marca) y 5 (lista de salida, con M7). Antes de encender el
   cobro: la regla de cambio de plan que decidió Julieta, con U140, U142 y
   U143. Antes del 17/12: revisar la excepción de picomatch (#612).
