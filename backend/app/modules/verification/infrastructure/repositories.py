@@ -5,7 +5,7 @@ Mapea el agregado `Claim` (con sus `Evidence`) a/desde las tablas
 manda a borrar a `identity_evidence_file_deletions` (ADR-0021).
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import func, select, update
@@ -159,8 +159,11 @@ class SqlAlchemyClaimRepository(ClaimRepository):
 
     def _stage_file_deletions(self, claim: Claim) -> None:
         """Los archivos que la operación mandó a borrar entran a la cola en el
-        mismo commit que la purga del puntero (ADR-0021)."""
-        self._session.add_all(_deletion_to_model(d) for d in claim.files_to_delete)
+        mismo commit que la purga del puntero (ADR-0021), por la misma puerta
+        que el resto (`add_pending`)."""
+        SqlAlchemyEvidenceFileDeletionRepository(self._session).add_pending(
+            claim.files_to_delete
+        )
 
     async def _exists(self, user_id: UUID, claim_type: ClaimType) -> bool:
         stmt = select(IdentityClaimModel.id).where(
@@ -252,9 +255,12 @@ class SqlAlchemyClaimRepository(ClaimRepository):
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
 
-    async def queue_file_deletions(self, deletions: list[EvidenceFileDeletion]) -> None:
-        self._session.add_all(_deletion_to_model(d) for d in deletions)
+    async def queue_file_deletions(self, files: list[EvidenceFile]) -> list[UUID]:
+        # La misma puerta que el CV (`queue_file_deletions`, sin commit); acá
+        # confirma porque el envío que se descarta no guarda nada más.
+        ids = queue_file_deletions(self._session, files)
         await self._session.commit()
+        return ids
 
     async def get_by_evidence_id(self, evidence_id: UUID) -> Claim | None:
         stmt = select(IdentityEvidenceModel.claim_id).where(
@@ -284,6 +290,21 @@ class SqlAlchemyClaimRepository(ClaimRepository):
         )
         result = await self._session.execute(stmt)
         return {row[0] for row in result.all()}
+
+
+def queue_file_deletions(
+    session: AsyncSession, files: list[EvidenceFile], now: datetime | None = None
+) -> list[UUID]:
+    """La puerta de la cola de borrado para archivos sueltos: el CV que se
+    cambió o se sacó, o los archivos de un envío de verificación que no se
+    guardó. Los pedidos entran pendientes (`deleted_at` vacío) en la sesión
+    de quien llama y se confirman con su commit; devuelve los ids para
+    `delete_released_files` después de responder. Las decisiones sobre un
+    claim usan `add_pending` directo, con los pedidos que ya armó el dominio."""
+    now = now or datetime.now(UTC)
+    deletions = [EvidenceFileDeletion.request(file, now) for file in files]
+    SqlAlchemyEvidenceFileDeletionRepository(session).add_pending(deletions)
+    return [deletion.id for deletion in deletions]
 
 
 class SqlAlchemyEvidenceFileDeletionRepository(EvidenceFileDeletionRepository):

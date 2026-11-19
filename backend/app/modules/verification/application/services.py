@@ -22,11 +22,7 @@ from app.modules.verification.application.dtos import (
     PendingClaimItem,
     PendingEvidenceItem,
 )
-from app.modules.verification.domain.entities import (
-    Claim,
-    Evidence,
-    EvidenceFileDeletion,
-)
+from app.modules.verification.domain.entities import Claim, Evidence
 from app.modules.verification.domain.exceptions import (
     ClaimAlreadyExistsError,
     ClaimAlreadyVerifiedError,
@@ -131,15 +127,12 @@ class VerificationService:
     async def _discard_files(self, evidences: list[Evidence]) -> None:
         """Manda a la cola de borrado los archivos de un envío que no se
         guardó (ADR-0021): ya están en el storage y ningún claim los apunta."""
-        now = _now()
-        deletions = [
-            EvidenceFileDeletion.request(e.file, now) for e in evidences if e.file
-        ]
-        if not deletions:
+        files = [e.file for e in evidences if e.file is not None]
+        if not files:
             return
-        await self._claims.queue_file_deletions(deletions)
+        ids = await self._claims.queue_file_deletions(files)
         if self._delete_files_later is not None:
-            self._delete_files_later([d.id for d in deletions])
+            self._delete_files_later(ids)
 
     async def submit_identity_document(
         self,
