@@ -16,29 +16,30 @@ function NearbyItem({ shift, distanceKm }: { shift: Shift; distanceKm: number | 
   const heroPhoto = shiftHeroPhoto(shift);
   const hasPhoto = Boolean(heroPhoto) && !broken;
   const { Icon, bg, fg } = SKILL_ACCENT[shift.position];
-  const where = [shift.company_name, distanceKm != null ? formatDistance(distanceKm) : null]
+  const donde = [shift.company_name, distanceKm != null ? formatDistance(distanceKm) : null, formatShiftWhenLive(shift)]
     .filter(Boolean)
     .join(" · ");
 
   return (
-    <li className="border-b border-line">
+    <li>
+      {/* Una tecla suave (ADR-0028): blanca, sin filete, con sombra difusa. */}
       <Link
         href={`/turno/${shift.id}`}
         data-testid="feed-nearby-card"
-        className="grid grid-cols-[46px_minmax(0,1fr)_auto] items-center gap-x-3 px-0.5 py-3 transition active:bg-surface"
+        className="tecla flex items-center gap-3 py-2.5 pl-2.5 pr-4"
       >
         {/* Sin foto: el TINTE pálido del rubro y su ícono, el color como
             acento y no como banda saturada. */}
         <span
-          className={`flex h-[46px] w-[46px] items-center justify-center overflow-hidden rounded-[var(--radius-btn)] ${hasPhoto ? "bg-surface" : `rubro-tile ${bg}`}`}
+          className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl ${hasPhoto ? "bg-surface" : `rubro-tile ${bg}`}`}
         >
           {hasPhoto ? (
             // eslint-disable-next-line @next/next/no-img-element -- la optimización la hace Cloudinary (cldThumb), igual que OpportunityCard
             <img
               src={cldThumb(heroPhoto, 160)}
               alt=""
-              width={46}
-              height={46}
+              width={48}
+              height={48}
               onError={() => setBroken(true)}
               loading="lazy"
               decoding="async"
@@ -50,50 +51,44 @@ function NearbyItem({ shift, distanceKm }: { shift: Shift; distanceKm: number | 
             </span>
           )}
         </span>
-        <span className="min-w-0">
-          {/* El puesto no se corta: es lo primero que se lee (a 320 px, con
-              «Urgente» al lado, quedaba «Ayudante …»). */}
-          <span className="block text-body font-semibold text-ink">{SKILL_LABELS[shift.position]}</span>
-          {(where || shift.company_verified) && (
-            <span className="flex items-center gap-1 text-caption text-ink-soft">
-              {/* Forma compacta: sello de `company_verified` con nombre
-                  accesible completo. */}
-              {shift.company_verified && (
-                <span
-                  role="img"
-                  aria-label="Comercio verificado"
-                  title="Comercio verificado"
-                  className="inline-flex shrink-0 text-cielo-text"
-                >
-                  <ShieldIcon size={13} />
-                </span>
-              )}
-              <span className="truncate">{where}</span>
-            </span>
-          )}
-          {/* Si «Urgente» y el horario no entran juntos (320 px), el horario
-              baja de renglón: tampoco se corta. */}
-          <span className="flex flex-wrap items-center gap-x-1.5 text-caption text-ink-soft">
+        <span className="min-w-0 flex-1">
+          {/* El puesto no se corta: es lo primero que se lee. «Urgente» va al
+              lado y, si no entra, baja de renglón en vez de comerse el puesto. */}
+          <span className="flex flex-wrap items-baseline gap-x-2">
+            <span className="text-fila font-bold text-ink">{SKILL_LABELS[shift.position]}</span>
             {shift.urgent && (
-              <span className="inline-flex shrink-0 items-center gap-0.5 font-bold text-danger-text">
+              <span className="inline-flex shrink-0 items-center gap-0.5 text-caption font-bold text-danger-text">
                 <FlameIcon size={11} /> Urgente
               </span>
             )}
-            <span>{formatShiftWhenLive(shift)}</span>
+          </span>
+          <span className="flex items-center gap-1 text-caption text-ink-soft">
+            {/* Forma compacta: sello de `company_verified` con nombre
+                accesible completo. */}
+            {shift.company_verified && (
+              <span
+                role="img"
+                aria-label="Comercio verificado"
+                title="Comercio verificado"
+                className="inline-flex shrink-0 text-cielo-text"
+              >
+                <ShieldIcon size={13} />
+              </span>
+            )}
+            <span className="truncate">{donde}</span>
           </span>
         </span>
-        <span className="text-body font-bold tabular-nums text-ink">{formatPayCompact(shift)}</span>
+        <span className="shrink-0 text-lg font-extrabold tabular-nums text-ink">{formatPayCompact(shift)}</span>
       </Link>
     </li>
   );
 }
 
-/** "Cerca tuyo" del home: una lista con filete fino, ordenada como el resto
+/** "Cerca tuyo" del home: una lista de teclas suaves, ordenada como el resto
  *  del feed. Cada renglón trae la foto del local (o el ícono del rubro), el
  *  puesto, dónde y cuándo, y la paga a la derecha. "Ver todos" lleva a la
- *  lista completa de /buscar. Hasta el 2026-11-18 eran miniaturas de 156 px
- *  en scroll horizontal; con la dirección «con relieve» las listas van
- *  planas y el relieve queda para la comanda de arriba. */
+ *  lista completa de /buscar. Hasta el 2026-11-19 eran renglones planos con
+ *  filete fino. */
 function NearbyRow({
   shifts,
   distanceOf,
@@ -106,16 +101,16 @@ function NearbyRow({
   if (shifts.length === 0) return null;
   return (
     <section aria-label={title}>
-      <div className="mb-2.5 flex items-baseline justify-between">
-        <h2 className="text-h3 font-semibold text-ink">{title}</h2>
+      <div className="mb-3 flex items-baseline justify-between">
+        <h2 className="text-h3 font-bold text-ink">{title}</h2>
         <Link
           href="/buscar"
-          className="inline-flex items-center gap-0.5 text-sm font-semibold text-primary-text"
+          className="inline-flex items-center gap-0.5 text-sm font-semibold text-cielo-text"
         >
           Ver todos <ChevronRightIcon size={15} />
         </Link>
       </div>
-      <ul className="border-t border-line">
+      <ul className="space-y-2.5">
         {shifts.map((shift) => (
           <NearbyItem key={shift.id} shift={shift} distanceKm={distanceOf(shift)} />
         ))}
