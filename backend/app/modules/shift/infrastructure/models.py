@@ -14,6 +14,7 @@ from sqlalchemy import (
     Integer,
     Numeric,
     String,
+    false,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column
@@ -117,6 +118,11 @@ class ShiftModel(Base):
         DateTime(timezone=True), nullable=True
     )
     escalated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Venció con la cuenta del comercio suspendida: fuera de las métricas de
+    # cobertura (ADR-0024, actualización 2026-11-18).
+    not_covered_while_suspended: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=false()
+    )
 
     # Turno reofrecido (U080, migración 0053; ver domain/entities.py).
     reoffered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

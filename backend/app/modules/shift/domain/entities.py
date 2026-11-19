@@ -213,6 +213,12 @@ class Shift:
     # (decisiones 16 y 18). Queda fijo al marcar la llegada; `None` en todo
     # turno que no se reofreció (se paga `pay_amount`). Ver `amount_due`.
     prorated_pay_amount: Decimal | None = None
+    # El turno venció («no cubierto») con la cuenta del comercio suspendida
+    # (ADR-0024, actualización 2026-11-18): estaba oculto, nadie pudo
+    # postularse, así que queda fuera de las métricas de cobertura. Se guarda
+    # en el turno, y no se mira el estado de la cuenta al calcular, porque la
+    # cuenta puede reactivarse después y el turno no tiene que volver a contar.
+    not_covered_while_suspended: bool = False
 
     id: UUID = field(default_factory=uuid4)
     created_at: datetime | None = None
@@ -550,7 +556,7 @@ class Shift:
         self.last_no_show_worker_profile_id = self.worker_profile_id
         return self._reopen(now)
 
-    def mark_not_covered(self) -> None:
+    def mark_not_covered(self, *, company_suspended: bool = False) -> None:
         """PUBLICADO/BUSCANDO_PERSONAL/ASIGNADO → NO_CUBIERTO (ADR-0015):
         el sistema resuelve solo un turno cuyo período de gracia después de
         `start_at` se agotó sin llegar a CONFIRMADO.
@@ -566,7 +572,12 @@ class Shift:
         Conserva quién estaba asignado (si lo había) en
         `last_no_show_worker_profile_id`, mismo campo que usa `no_show()` para
         dejar rastro de quién no llegó a confirmar — aunque acá, otra vez, sin
-        que eso cuente en contra de nadie."""
+        que eso cuente en contra de nadie.
+
+        `company_suspended`: la cuenta del comercio estaba suspendida cuando
+        venció (el turno estaba oculto, ADR-0024). Queda anotado en
+        `not_covered_while_suspended` para dejarlo fuera de las métricas de
+        cobertura, también si la cuenta se reactiva después."""
         if self.status not in UNCOVERED_ELIGIBLE_STATUSES:
             raise InvalidShiftTransitionError(
                 no_se_puede("no_cubierto", self.status)
@@ -575,6 +586,7 @@ class Shift:
             self.last_no_show_worker_profile_id = self.worker_profile_id
         self.worker_profile_id = None
         self.status = ShiftStatus.NO_CUBIERTO
+        self.not_covered_while_suspended = company_suspended
         self._clear_en_route()
 
     def depart(self) -> None:

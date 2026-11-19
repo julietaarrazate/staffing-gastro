@@ -76,6 +76,11 @@ producto que se construyeron encima) en
 >    punta a punta" (`status IN (FINALIZADO, PAGADO)`) — dos métricas
 >    separadas a propósito, después de que la revisión de calidad detectara
 >    que una sola métrica llamada "fill rate" mezclaba ambos conceptos.
+>    Desde 2026-11-18 las métricas de cobertura (tiempo a cubrir, asignación,
+>    finalización y las del período de `GET /admin/period-metrics`) dejan
+>    fuera, del numerador y del denominador, los turnos que vencieron con la
+>    cuenta del comercio suspendida (`shifts.not_covered_while_suspended`,
+>    [ADR-0024](../adr/ADR-0024-efectos-de-una-suspension.md)).
 >    Falta latencia de endpoints y tasa de error (fuera de alcance de esta
 >    ronda: requeriría un middleware de timing, no cubierto todavía).
 > 3. **Alertas propias** sobre el healthcheck y sobre errores capturados por

@@ -48,7 +48,7 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
 - **Turno reofrecido (U080, [ADR-0015](../adr/ADR-0015-turno-no-cubierto.md)).**
   Cuando quien tenía un turno lo deja con el horario ya empezado:
   - **Al comercio, un solo aviso por reapertura**, que dice qué pasó y qué
-    sigue. Si se reofreció (quedan al menos 2 horas), con el tipo de siempre
+    sigue. Si se reofreció (quedan más de 2 horas y 15 minutos), con el tipo de siempre
     (`shift_reopened`; `shift_rejected` si fue un rechazo) y link a
     `/shifts/<id>/candidates`: «<qué pasó> Como ya había empezado, lo
     reofrecimos como urgente hasta las HH:MM; se paga lo que reste desde que
@@ -142,6 +142,11 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
     postulantes.»
   - Los turnos abiertos de un comercio suspendido sólo se ocultan: nadie
     recibe aviso, y tampoco se escalan (sin `urgent_shift_nearby`).
+  - Si a uno de esos turnos ocultos se le pasa el horario, vence igual («no
+    cubierto») pero **no sale `shift_not_covered`** a la cuenta suspendida: ni
+    en la app, ni push, ni mail (decisión 22, 2026-11-18,
+    `ShiftService.mark_not_covered`). Si la cuenta se reactiva después, tampoco:
+    el comercio lo ve como «No cubierto» en su panel.
 - **Un aviso rechazado por la base no rompe la sesión del pedido
   (2026-11-13):** el adaptador (`SqlAlchemyNotificationRepository`) la deja
   usable y propaga el error. Vale para todos los avisos: quien atrapa el

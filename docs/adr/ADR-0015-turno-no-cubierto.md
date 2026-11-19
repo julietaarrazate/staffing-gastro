@@ -272,3 +272,7 @@ Migración `0053`: `shifts.reoffered_at`, `confirmed_at` y
   empezó y todavía no se cerró. No lo ofrece ninguna pantalla. No se tocó
   acá para no cambiar otra regla en el mismo PR; para el turno reofrecido sí
   se rechaza la postulación pasado `end_at`.
+
+## Actualización 2026-11-18 (decisión 22)
+
+El punto 2 dice que `mark_not_covered()` le avisa al comercio. Hay una excepción: si la cuenta del comercio está suspendida cuando el turno vence (estaba oculto, [ADR-0024](./ADR-0024-efectos-de-una-suspension.md)), el turno pasa igual a `NO_CUBIERTO` pero **no sale ningún aviso** y queda marcado (`shifts.not_covered_while_suspended`) para dejarlo **fuera de las métricas de cobertura**, del numerador y del denominador. La marca va en el turno, y no se mira la cuenta al calcular, porque la cuenta puede reactivarse después. El detalle de qué métricas, en la actualización del mismo día del ADR-0024.
