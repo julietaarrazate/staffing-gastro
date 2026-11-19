@@ -79,15 +79,23 @@ export function deContrato<N extends NombreRespuesta>(
   return fundir(base, cambios, "", nombre) as Cuerpo<N>;
 }
 
+/** Opciones de `route.fulfill` (status real, JSON) para guardar en una constante. */
+export function opcionesDeContrato(
+  nombre: NombreRespuesta,
+  cambios?: Objeto | Json[]
+): { status: number; contentType: string; body: string } {
+  return {
+    status: statusDe(nombre),
+    contentType: "application/json",
+    body: JSON.stringify(deContrato(nombre, cambios)),
+  };
+}
+
 /** `route.fulfill` con el status real del escenario y el cuerpo (con cambios). */
 export function fulfillContrato(
   route: Route,
   nombre: NombreRespuesta,
   cambios?: Objeto | Json[]
 ) {
-  return route.fulfill({
-    status: statusDe(nombre),
-    contentType: "application/json",
-    body: JSON.stringify(deContrato(nombre, cambios)),
-  });
+  return route.fulfill(opcionesDeContrato(nombre, cambios));
 }

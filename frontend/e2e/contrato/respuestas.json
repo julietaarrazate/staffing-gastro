@@ -1,4 +1,8 @@
 {
+  "auth_logout": {
+    "body": null,
+    "status": 204
+  },
   "auth_me_admin": {
     "body": {
       "created_at": "2026-11-01T12:00:00+00:00",
@@ -51,24 +55,47 @@
     },
     "status": 200
   },
+  "auth_refresh": {
+    "body": {
+      "access_token": "token-de-prueba",
+      "token_type": "bearer",
+      "two_factor_setup_required": false,
+      "user": {
+        "created_at": "2026-11-01T12:00:00+00:00",
+        "email": "contrato_w1@staffya.com",
+        "full_name": "Trabajador Uno",
+        "id": "user-worker-1",
+        "is_verified": false,
+        "role": "worker",
+        "status": "active"
+      }
+    },
+    "status": 200
+  },
+  "auth_refresh_sin_cookie": {
+    "body": {
+      "detail": "Refresh token inválido"
+    },
+    "status": 401
+  },
   "avisos_comercio": {
     "body": [
       {
         "created_at": "2026-11-01T12:00:00+00:00",
         "id": "notification-1",
         "link": "/shifts/shift-1/candidates",
-        "message": "Trabajador Uno se postuló a tu turno de Mozo/a. Entrá para ver a todos los postulantes y elegir.",
+        "message": "Trabajador Dos se postuló a tu turno de Mozo/a. Entrá para ver a todos los postulantes y elegir.",
         "read": false,
-        "title": "1 postulante para Mozo/a",
+        "title": "2 postulantes para Mozo/a",
         "type": "new_applicant"
       },
       {
         "created_at": "2026-11-01T12:00:00+00:00",
         "id": "notification-2",
         "link": "/shifts/shift-1/candidates",
-        "message": "Trabajador Dos se postuló a tu turno de Mozo/a. Entrá para ver a todos los postulantes y elegir.",
+        "message": "Trabajador Uno se postuló a tu turno de Mozo/a. Entrá para ver a todos los postulantes y elegir.",
         "read": false,
-        "title": "2 postulantes para Mozo/a",
+        "title": "1 postulante para Mozo/a",
         "type": "new_applicant"
       }
     ],
@@ -291,6 +318,15 @@
       }
     },
     "status": 200
+  },
+  "login_cuenta_suspendida": {
+    "body": {
+      "detail": {
+        "code": "account_suspended",
+        "message": "Tu cuenta está suspendida. Si creés que es un error, escribinos a hola@oido.com.ar"
+      }
+    },
+    "status": 403
   },
   "login_mal": {
     "body": {
@@ -573,6 +609,12 @@
       "worker_profile_id": "worker-profile-1"
     },
     "status": 200
+  },
+  "turno_asignar_cuenta_suspendida": {
+    "body": {
+      "detail": "Esta persona no puede tomar turnos por ahora. Elegí a otra."
+    },
+    "status": 409
   },
   "turno_asignar_ya_asignado": {
     "body": {

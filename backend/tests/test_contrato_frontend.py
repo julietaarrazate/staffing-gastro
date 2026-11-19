@@ -27,7 +27,7 @@ import pytest
 from httpx import AsyncClient
 
 from app.core.tz import now_art
-from tests.conftest import current_totp, login, promote_to_admin, register_user
+from tests.conftest import current_totp, login, new_client, promote_to_admin, register_user
 
 pytestmark = pytest.mark.asyncio
 
@@ -369,6 +369,37 @@ async def test_contrato_frontend(client: AsyncClient, session_factory):
         json={"code": current_totp(setup.json()["secret"])}, headers=pendiente)
     verificado = {"Authorization": f"Bearer {conf.json()['access_token']}"}
     cap.guardar("auth_me_admin", await client.get("/api/v1/auth/me", headers=verificado))
+
+    # --- Cuenta suspendida (ADR-0024) ---------------------------------------
+    tok_w3, _wk3 = await _registrar(
+        client, cap, "contrato_w3@staffya.com", "worker", "Trabajador Tres", "user-worker"
+    )
+    perfil_w3 = await client.post(
+        "/api/v1/workers/me/profile", headers=_wk3, json={"skills": ["mozo"]}
+    )
+    cap.norm.nombrar(perfil_w3.json()["id"], "worker-profile")
+    suspendido = await client.post(
+        f"/api/v1/admin/users/{tok_w3['user']['id']}/suspend", headers=verificado
+    )
+    assert suspendido.status_code == 200, suspendido.text
+    cap.guardar("login_cuenta_suspendida", await client.post(
+        "/api/v1/auth/login",
+        json={"email": "contrato_w3@staffya.com", "password": "supersecreta123"}))
+    s3 = await client.post("/api/v1/shifts", headers=emp, json=_payload(**_horario(9)))
+    cap.norm.nombrar(s3.json()["id"], "shift")
+    await client.post(f"/api/v1/shifts/{s3.json()['id']}/publish", headers=emp)
+    cap.guardar("turno_asignar_cuenta_suspendida", await client.post(
+        f"/api/v1/shifts/{s3.json()['id']}/assign", headers=emp,
+        json={"worker_profile_id": perfil_w3.json()["id"]}))
+
+    # --- Renovar y cerrar sesión (cookie httpOnly en un cliente aparte) -------
+    async with new_client() as otro:
+        await otro.post("/api/v1/auth/login", json={
+            "email": "contrato_w1@staffya.com", "password": "supersecreta123"})
+        cap.guardar("auth_refresh", await otro.post("/api/v1/auth/refresh"))
+        cap.guardar("auth_logout", await otro.post("/api/v1/auth/logout"))
+    async with new_client() as sin_cookie:
+        cap.guardar("auth_refresh_sin_cookie", await sin_cookie.post("/api/v1/auth/refresh"))
 
     # --- Compara o escribe ------------------------------------------------
     nuevo = cap.respuestas
