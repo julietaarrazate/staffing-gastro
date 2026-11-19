@@ -81,7 +81,15 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
     Podés publicarlo de nuevo.»
 - **Leídas/no leídas:** se marcan de a una al tocarlas, o todas juntas con
   "Marcar todas como leídas" en el panel de la campanita
-  (`POST /notifications/read-all`).
+  (`POST /notifications/read-all`). El pedido lleva `{"ids": [...]}`, los avisos
+  que la campanita tenía en pantalla, y el servidor marca **sólo esos** (con
+  más de 500 el cliente manda los primeros 500): un aviso que llegó mientras
+  tanto, o que no entró en los 50 de `GET /notifications`, queda sin leer.
+  Los ids ajenos o inexistentes se ignoran; `{"ids": []}` no marca nada. **Sin
+  cuerpo** (la app vieja que quedó en caché de la PWA) marca todos los no
+  leídos de la cuenta, como antes.
+- **La campanita se relee** al volver a primer plano y al volver la red, con el
+  mismo piso de 30 s que la reconexión del socket (`NotificationBell.tsx`).
 - **Turnos cerca (`new_shift_nearby`, `urgent_shift_nearby`):** sólo a quien
   está **dentro del radio** del turno (25 km en el primer aviso, 40 km en la
   escalada; sin distancia que medir, a quien es de su misma ciudad): fuera de
