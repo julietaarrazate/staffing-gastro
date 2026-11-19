@@ -12,29 +12,32 @@ import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
 import { getErrorMessage } from "@/lib/errors";
 import { SKILL_LABELS, Shift, ShiftApplication, ShiftPublic } from "@/lib/types";
-import { SKILL_ACCENT, SKILL_HERO_TONE, heroInk } from "@/lib/skill-style";
 import { cldThumb } from "@/lib/cloudinary";
-import { formatDuration, formatShiftWhenLive, shiftDurationMinutes } from "@/lib/datetime";
+import {
+  formatDuration,
+  formatShiftWhenLive,
+  franjaDelDia,
+  shiftDurationMinutes,
+} from "@/lib/datetime";
 import { formatMoney, payPerHour, payView } from "@/lib/pay";
 import TurnoNoDisponible from "@/components/TurnoNoDisponible";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import SaveShiftButton from "@/components/worker/SaveShiftButton";
 import { useLiveRefresh } from "@/lib/live-refresh";
-import { Badge, Comanda, ComandaFila, Skeleton, textoCartel, useToast } from "@/components/ui";
-import Filete from "@/components/landing/Filete";
-import { LETRAS_APP } from "@/lib/letras";
+import { Skeleton, useToast } from "@/components/ui";
+import { LETRA_TITULOS, LETRAS_APP } from "@/lib/letras";
 import DrawnCheck from "@/components/ui/DrawnCheck";
 import { loginHref, registerHref } from "@/lib/safe-next";
 import { reportShiftHref } from "@/lib/support-reference";
 import { shiftHeroPhoto } from "@/lib/company-photo";
 import {
   ChevronLeftIcon,
-  FileTextIcon,
+  FlameIcon,
+  MoonIcon,
   RouteIcon,
   ShieldIcon,
   SparklesIcon,
-  UtensilsIcon,
-  WalletIcon,
+  SunIcon,
 } from "@/components/icons";
 
 // maplibre pesa ~286 KB comprimidos: el mapa chico se carga aparte, como en
@@ -200,7 +203,6 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
   useLiveRefresh(loadState, { paused: apply === "applying" || !loadedOnce });
 
   const shift: Detail = { ...publicShift, ...(full ?? {}) };
-  const { Icon } = SKILL_ACCENT[shift.position];
   const label = SKILL_LABELS[shift.position];
   const heroPhoto = shiftHeroPhoto(shift);
   const photo = heroPhoto && !photoBroken ? heroPhoto : null;
@@ -242,41 +244,33 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
 
   if (gone) return <TurnoNoDisponible />;
 
-  return (
-    <div className={`${LETRAS_APP} app-container-reading pb-10 md:px-4 md:pt-6`}>
-      {/* Cabecera: foto del local o el tono del rubro — el MISMO de la tarjeta
-          del feed y del panel (`SKILL_HERO_TONE`). Antes era verde bosque para
-          todos los puestos: el bartender se veía vino en la tarjeta y verde al
-          abrirlo, así que la identidad que arma la tarjeta se perdía justo en
-          el paso siguiente. El color de marca queda para el bloque del pago, que es la
-          superficie destacada de la pantalla (v5.0). */}
-      <header
-        className={`relative h-[240px] overflow-hidden md:rounded-[var(--radius-card)] ${!photo && SKILL_HERO_TONE[shift.position] === "bg-brand" ? "bg-glow" : SKILL_HERO_TONE[shift.position]}`}
-      >
-        {photo ? (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element -- la optimización la hace Cloudinary (cldThumb) */}
-            <img
-              src={cldThumb(photo, 900)}
-              alt=""
-              decoding="async"
-              fetchPriority="high"
-              onError={() => setPhotoBroken(true)}
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-black/30" />
-          </>
-        ) : (
-          <Icon size={190} className={`absolute -right-8 -top-4 ${heroInk(shift.position, false).mark}`} aria-hidden />
-        )}
+  const franja = franjaDelDia(shift.start_at);
+  const lugar = [shift.company_name, shift.city].filter(Boolean).join(" · ");
 
-        <div className="relative flex items-start justify-between p-4">
+  return (
+    <div className={`${LETRAS_APP} ${LETRA_TITULOS} estilo-suave app-container-reading pb-10 md:px-4 md:pt-6`}>
+      {/* PRUEBA (2026-11-19, la propuesta «si fuese mía»): arriba el cielo de
+          la hora del turno (de mañana, de tarde o de noche, con estrellas),
+          con el puesto en letra grande y los datos en chips; abajo la hoja con
+          el turno como ticket: el pago grande, el corte troquelado y los
+          renglones. Al postularse, el «¡Oído!» en brocha se pega sobre el
+          ticket. La foto del local pasa a la hoja, debajo del ticket. */}
+      <header className={`cielo-turno cielo-${franja} px-4 pb-14 pt-4 md:rounded-t-[28px] md:px-8`}>
+        {franja === "noche" ? (
+          <div aria-hidden className="estrellas" />
+        ) : (
+          <>
+            <div aria-hidden className="nube" style={{ width: 220, height: 70, left: -60, top: 110 }} />
+            <div aria-hidden className="nube" style={{ width: 180, height: 60, right: -40, top: 40 }} />
+          </>
+        )}
+        <div className="flex items-start justify-between">
           {user ? (
             <button
               type="button"
               onClick={() => (window.history.length > 1 ? router.back() : router.push("/feed"))}
               aria-label="Volver"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-night shadow-sm"
+              className="boton-vidrio h-10 w-10"
             >
               <ChevronLeftIcon size={20} />
             </button>
@@ -285,96 +279,91 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
           )}
           {isWorker && <SaveShiftButton shiftId={shift.id} />}
         </div>
+
+        {/* Señales: lo que cambia la decisión, antes que el puesto. */}
+        {(shift.urgent || shift.pay_band === "por_encima" || shift.company_verified) && (
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            {shift.urgent && (
+              <span className="chip-vidrio">
+                <FlameIcon size={14} /> Urgente
+              </span>
+            )}
+            {shift.company_verified && (
+              <span className="chip-vidrio">
+                <ShieldIcon size={13} /> Comercio verificado
+              </span>
+            )}
+            {shift.pay_band === "por_encima" && (
+              <span className="chip-vidrio">
+                <SparklesIcon size={13} /> Paga más que lo típico
+              </span>
+            )}
+          </div>
+        )}
+
+        {lugar && <p className="mt-5 text-sm font-semibold opacity-85">{lugar}</p>}
+        <h1 className="titulo-turno mt-1 break-words">{label}</h1>
+        {/* Cuándo, una sola vez: en palabras («Mañana · 21:00 – 02:00», «Ya
+            empezó…») y con la duración. */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span className="chip-vidrio">
+            {franja === "noche" ? <MoonIcon size={14} /> : <SunIcon size={14} />}
+            {formatShiftWhenLive(shift)}
+            {minutes != null && pay.kind !== "por_hora" && ` · ${formatDuration(minutes)}`}
+          </span>
+        </div>
       </header>
 
-      {/* El turno como comanda de papel (dirección «con relieve», Julieta
-          2026-11-19): montada sobre el borde de la foto, con el puesto en
-          brocha, los datos en renglones y el pago como último renglón, con el
-          número grande. Antes, título en serif, datos con íconos en mosaico y
-          el pago en una banda celeste aparte. Al postularse recibe la cinta
-          «¡Oído!». Es el objeto con relieve de la pantalla. */}
-      <div className="relative z-[1] -mt-14 px-4 md:-mt-16 md:px-8">
-        <Comanda as="section" aria-label="El turno">
-          {/* Con la cinta, el papel deja lugar abajo para que no tape el
-              renglón del pago. */}
-          <div className={`px-4 pt-4 ${apply === "applied" ? "pb-14" : "pb-3"}`}>
-            {/* Señales: lo que cambia la decisión, antes que el puesto. */}
-            {(shift.urgent || shift.pay_band === "por_encima" || shift.company_verified) && (
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                {shift.urgent && <span className="sello-goma sello-rojo">Urgente</span>}
-                {shift.company_verified && (
-                  <Badge tone="trust" icon={<ShieldIcon size={11} />}>
-                    Comercio verificado
-                  </Badge>
-                )}
-                {shift.pay_band === "por_encima" && (
-                  <span className="inline-flex items-center gap-1 text-xs font-bold text-primary-text">
-                    <SparklesIcon size={12} /> Paga por encima de lo típico
-                  </span>
-                )}
-              </div>
-            )}
-
-            <h1 className="letra-cartel letra-cartel-puesto break-words">{textoCartel(label)}</h1>
-            {(shift.company_name || shift.city) && (
-              <p className="mt-1 text-sm text-ink-soft">
-                {[shift.company_name, shift.city].filter(Boolean).join(" · ")}
+      <div className="hoja -mt-8 px-4 pb-4 pt-8 md:px-8">
+        <section aria-label="El turno" className="ticket">
+          {apply === "applied" && (
+            <span aria-hidden className={`sello-oido${justApplied && !reducedMotion ? " sello-oido-pega" : ""}`}>
+              ¡OÍDO!
+            </span>
+          )}
+          <div className="px-5 pb-4 pt-5">
+            <p className="text-sm font-semibold text-ink-soft">{pay.suffix ? "Pago" : "Pago por la jornada"}</p>
+            <p className="mt-1 text-ink">
+              <span className="plata text-[2.75rem]">{pay.amount}</span>
+              {pay.suffix && <span className="ml-1.5 text-body font-bold">{pay.suffix}</span>}
+            </p>
+            {(shift.tips || pay.note || perHour) && (
+              <p className="mt-1.5 text-sm font-medium text-ink-soft">
+                {[
+                  pay.note ?? (perHour ? `≈ ${formatMoney(perHour, shift.currency)} por hora` : null),
+                  shift.tips ? "+ propinas" : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
               </p>
             )}
-
-            <dl className="mt-3">
-              <ComandaFila rotulo="Cuándo">
-                {formatShiftWhenLive(shift)}
-                {minutes != null && pay.kind !== "por_hora" && (
-                  <span className="font-medium text-ink-soft"> · {formatDuration(minutes)}</span>
-                )}
-              </ComandaFila>
-              <ComandaFila rotulo="Dónde">{where ?? "Zona a confirmar"}</ComandaFila>
-              {shift.quantity != null && shift.quantity > 1 && (
-                <ComandaFila rotulo="Personas">{shift.quantity}</ComandaFila>
-              )}
-              {/* El pago, último renglón y el más grande: es el dato que más
-                  pesa para decidir (Julieta eligió que vaya en la comanda y no
-                  en una banda aparte). */}
-              {/* Si el monto no entra al lado del rótulo (un $ 1.250.000 a
-                  320 px casi pisaba «Pago», revisión del 2026-11-19), baja
-                  entero al renglón de abajo, a la derecha. */}
-              <div className="comanda-fila flex-wrap items-baseline">
-                <dt>Pago</dt>
-                <dd className="ml-auto max-w-full shrink-0">
-                  <span className="text-price font-extrabold tracking-tight">{pay.amount}</span>
-                  {pay.suffix && <span className="ml-1.5 text-body font-bold">{pay.suffix}</span>}
-                  {/* Turno reofrecido (U080): el número ya es por hora (o el
-                      monto que quedó fijo al llegar), y la línea lo explica. */}
-                  {(shift.tips || pay.note || perHour) && (
-                    <span className="block text-sm font-medium text-ink-soft">
-                      {[
-                        shift.tips ? "+ propinas" : null,
-                        pay.note ?? (perHour ? `≈ ${formatMoney(perHour, shift.currency)} por hora` : null),
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </span>
-                  )}
-                </dd>
-              </div>
-            </dl>
           </div>
-          {/* Postulado: la cinta «¡Oído!» pegada sobre el papel, como en la
-              cocina cuando se canta el pedido. Se pega con un golpe sólo si
-              la postulación pasó en esta pantalla (y sin movimiento si así lo
-              pide el sistema); si ya estaba hecha al cargar, ya está pegada. */}
-          {apply === "applied" && (
-            <div aria-hidden className={`cinta-oido${justApplied && !reducedMotion ? " cinta-oido-pega" : ""}`}>
-              <Filete palabra="¡Oído!" tam="cinta" className="block h-auto w-full" />
+          <div aria-hidden className="ticket-corte" />
+          <dl className="ticket-renglones px-5 pt-4">
+            <dt>Dónde</dt>
+            <dd>{where ?? "Zona a confirmar"}</dd>
+            {shift.quantity != null && shift.quantity > 1 && (
+              <>
+                <dt>Personas</dt>
+                <dd>{shift.quantity}</dd>
+              </>
+            )}
+          </dl>
+          {(shift.meal || shift.tips || shift.dress_code) ? (
+            <div className="px-5 pb-5 pt-3">
+              <p className="text-xs font-bold uppercase tracking-[0.06em] text-ink-soft">Qué incluye</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {shift.tips && <span className="chip-suave">Propinas</span>}
+                {shift.meal && <span className="chip-suave">Comida del personal</span>}
+                {shift.dress_code && <span className="chip-suave">Vestimenta: {shift.dress_code}</span>}
+              </div>
             </div>
+          ) : (
+            <div className="pb-5" />
           )}
-        </Comanda>
-      </div>
+        </section>
 
-      <div className="px-4 md:px-0">
-        {/* Acción. Con la cinta colgando del papel, un poco más de aire. */}
-        <div className={apply === "applied" ? "mt-9" : "mt-5"}>
+        <div className="mt-5">
           <PrimaryAction
             loading={loading || (isWorker && apply === "unknown")}
             loggedIn={Boolean(user)}
@@ -387,37 +376,35 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
           />
         </div>
 
-        {/* Condiciones: van también sin sesión — es con lo que alguien que
-            llega por WhatsApp decide si le conviene registrarse. */}
-        {(shift.meal || shift.tips || shift.dress_code) && (
-          <section className="mt-7">
-            <h2 className="text-h3 font-semibold text-ink">Qué incluye</h2>
-            <div className="mt-2.5 flex flex-wrap gap-2">
-              {shift.tips && <Chip icon={<WalletIcon size={14} />}>Propinas</Chip>}
-              {shift.meal && <Chip icon={<UtensilsIcon size={14} />}>Comida del personal</Chip>}
-              {shift.dress_code && <Chip icon={<FileTextIcon size={14} />}>Vestimenta: {shift.dress_code}</Chip>}
-            </div>
-          </section>
+        {photo && (
+          // eslint-disable-next-line @next/next/no-img-element -- la optimización la hace Cloudinary (cldThumb)
+          <img
+            src={cldThumb(photo, 900)}
+            alt=""
+            decoding="async"
+            onError={() => setPhotoBroken(true)}
+            className="mt-6 h-44 w-full rounded-[20px] object-cover"
+          />
         )}
 
         {full?.description && (
           <section className="mt-7">
-            <h2 className="text-h3 font-semibold text-ink">Sobre el turno</h2>
-            <p className="mt-2 whitespace-pre-line text-body leading-relaxed text-ink/75">{full.description}</p>
+            <h2 className="text-h3 font-bold text-ink">Sobre el turno</h2>
+            <p className="mt-2 whitespace-pre-line text-body leading-relaxed text-ink-soft">{full.description}</p>
           </section>
         )}
 
         {hasCoords && (
           <section className="mt-7">
-            <h2 className="text-h3 font-semibold text-ink">Ubicación</h2>
-            <div className="mt-2.5 overflow-hidden rounded-2xl ring-1 ring-line">
+            <h2 className="text-h3 font-bold text-ink">Ubicación</h2>
+            <div className="mt-2.5 overflow-hidden rounded-[20px]">
               <MiniMap latitude={shift.latitude!} longitude={shift.longitude!} className="h-40 w-full" />
             </div>
             <a
               href={`https://www.google.com/maps/dir/?api=1&destination=${shift.latitude},${shift.longitude}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-[var(--radius-relieve)] bg-card text-sm font-semibold text-ink ring-1 ring-line"
+              className="tecla mt-3 flex min-h-[48px] w-full items-center justify-center gap-2 text-sm font-semibold text-ink"
             >
               <RouteIcon size={18} /> Cómo llegar
             </a>
@@ -431,7 +418,7 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
           {isWorker && (
             <Link
               href={reportShiftHref(shift.id)}
-              className="text-sm font-semibold text-ink/50 underline-offset-2 hover:text-ink hover:underline"
+              className="text-sm font-semibold text-ink-soft underline-offset-2 hover:text-ink hover:underline"
             >
               Reportar un problema
             </Link>
@@ -439,15 +426,6 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
         </div>
       </div>
     </div>
-  );
-}
-
-function Chip({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-sm text-ink/80">
-      <span className="text-ink/55">{icon}</span>
-      {children}
-    </span>
   );
 }
 
@@ -528,15 +506,31 @@ function PrimaryAction({
             key="applied"
             {...swap}
             transition={{ duration: 0.18, ease: "easeOut" }}
-            className="flex items-center gap-3 rounded-[var(--radius-card)] bg-success-tint px-4 py-3.5"
+            className="rounded-[20px] bg-[var(--suave-campo)] px-4 py-4"
           >
-            <DrawnCheck size={24} animate={justApplied} className="shrink-0 text-success-text" />
-            <div className="min-w-0 flex-1">
-              <p className="text-body font-semibold text-ink">Ya te postulaste</p>
-              <p className="text-sm text-ink/60">Te avisamos cuando el comercio responda.</p>
-            </div>
-            <Link href="/my-shifts" className="shrink-0 text-sm font-semibold text-primary-text">
-              Ver
+            {/* Lo que sigue, para que quien espera sepa en qué está. */}
+            <ol className="flex flex-col gap-2.5">
+              <li className="flex items-center gap-3">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-text text-card">
+                  <DrawnCheck size={18} animate={justApplied} />
+                </span>
+                <span className="text-body font-bold text-ink">Ya te postulaste</span>
+              </li>
+              <li className="flex items-center gap-3">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full shadow-[inset_0_0_0_2px_var(--color-primary-text)]">
+                  <span className="h-2 w-2 rounded-full bg-primary-text" />
+                </span>
+                <span className="text-body font-semibold text-ink">
+                  El comercio elige <span className="font-medium text-ink-soft">· te avisamos</span>
+                </span>
+              </li>
+              <li className="flex items-center gap-3 text-ink-soft">
+                <span className="h-7 w-7 shrink-0 rounded-full shadow-[inset_0_0_0_2px_currentColor]" />
+                <span className="text-body font-semibold">Confirmás y vas</span>
+              </li>
+            </ol>
+            <Link href="/my-shifts" className="mt-3 inline-block text-sm font-semibold text-primary-text">
+              Ver mis turnos
             </Link>
           </motion.div>
         ) : (
