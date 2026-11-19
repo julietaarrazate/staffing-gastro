@@ -16,10 +16,13 @@ no «Error del servidor»; un «Confirmar» nuevo ya no repite una respuesta vie
   respuesta, como `confirm`, `check-in` y `check-out`. `depart` queda sin
   clave (ruta legada, el cliente no la usa).
 - CON-01: `frontend/app/my-shifts/page.tsx` guarda con la key la posición del
-  primer intento (`recordar`/`recordado`) y la reusa en el reintento.
+  primer intento (`recordar`/`recordado`) y la reusa en el reintento. Tras un
+  409 de carrera o un corte de red, el reintento de los 5 minutos siguientes
+  manda esa misma posición aunque la persona se haya movido: es lo buscado
+  (si no, el servidor lo toma como otro pedido).
 - CON-12: `frontend/lib/idempotency.ts`: la key vence a los 5 minutos
   (`VENTANA_REINTENTO_MS`) y se suelta ante un error definitivo
-  (`clearSiTermino`: 4xx salvo 408 y 409), en Mis turnos y en el panel del
+  (`clearSiTermino`: 4xx salvo 408, 409 y 429), en Mis turnos y en el panel del
   comercio. El almacenamiento con `persistKey` ahora guarda `{k, t, p}` y lee
   el formato viejo.
 - CON-05: los repositorios de postulaciones y de reseñas atrapan el

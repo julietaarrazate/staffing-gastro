@@ -44,7 +44,15 @@ type Entrada = { k: string; t: number; p?: unknown };
  * misma key: el intento terminó (no es red, ni timeout, ni «en curso»). */
 export function esErrorDefinitivo(err: unknown): boolean {
   if (!(err instanceof ApiError)) return false;
-  return err.status >= 400 && err.status < 500 && err.status !== 408 && err.status !== 409;
+  // 408, 409 (carrera del turno) y 429 (límite de frecuencia) se reintentan
+  // con la misma clave: el pedido no llegó a hacerse.
+  return (
+    err.status >= 400 &&
+    err.status < 500 &&
+    err.status !== 408 &&
+    err.status !== 409 &&
+    err.status !== 429
+  );
 }
 
 export function useIdempotencyKeys(persistKey?: string) {

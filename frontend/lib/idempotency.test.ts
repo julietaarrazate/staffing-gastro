@@ -92,3 +92,11 @@ describe("useIdempotencyKeys: reintento tras una respuesta perdida", () => {
     expect(esErrorDefinitivo(new Error("red"))).toBe(false);
   });
 });
+
+describe("esErrorDefinitivo: lo que se reintenta con la misma clave", () => {
+  it("408, 409 y 429 no son definitivos; 400, 404 y 422 sí", () => {
+    const con = (status: number) => new ApiError(status, "x");
+    expect([408, 409, 429].map((s) => esErrorDefinitivo(con(s)))).toEqual([false, false, false]);
+    expect([400, 404, 422].map((s) => esErrorDefinitivo(con(s)))).toEqual([true, true, true]);
+  });
+});
