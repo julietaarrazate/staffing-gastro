@@ -75,6 +75,62 @@ function sameCv(cv: CvValue, saved: CvValue): boolean {
   );
 }
 
+/** Lo que el formulario edita (sin el CV, que se compara con `sameCv`). */
+type FormFields = Pick<
+  WorkerProfileInput,
+  | "city"
+  | "bio"
+  | "skills"
+  | "years_experience"
+  | "languages"
+  | "certifications"
+  | "latitude"
+  | "longitude"
+  | "is_available"
+>;
+
+function fieldsOf(p: WorkerProfile): FormFields {
+  return {
+    city: p.city ?? null,
+    bio: p.bio?.trim() || null,
+    skills: p.skills,
+    years_experience: p.years_experience,
+    languages: p.languages ?? [],
+    certifications: p.certifications ?? [],
+    latitude: p.latitude ?? null,
+    longitude: p.longitude ?? null,
+    is_available: p.is_available,
+  };
+}
+
+/**
+ * Sólo lo que la persona tocó respecto de lo que cargó el formulario. El
+ * resto no se manda: `saveProfilePart` pone lo que tiene el servidor, así un
+ * formulario abierto desde antes no revierte «Disponible» o la zona cambiados
+ * desde el Inicio o el Mapa (ESC-03, 2026-11-19). La zona va junta: ciudad y
+ * coordenadas cambian siempre en un mismo gesto del selector.
+ */
+export function changedFields(now: FormFields, loaded: FormFields): Partial<FormFields> {
+  const out: Partial<FormFields> = {};
+  const differs = (k: keyof FormFields) => JSON.stringify(now[k]) !== JSON.stringify(loaded[k]);
+  for (const k of [
+    "bio",
+    "skills",
+    "years_experience",
+    "languages",
+    "certifications",
+    "is_available",
+  ] as const) {
+    if (differs(k)) (out as Record<string, unknown>)[k] = now[k];
+  }
+  if (differs("city") || differs("latitude") || differs("longitude")) {
+    out.city = now.city;
+    out.latitude = now.latitude;
+    out.longitude = now.longitude;
+  }
+  return out;
+}
+
 export default function WorkerProfileForm() {
   const { token } = useAuth();
   const [exists, setExists] = useState(false);
@@ -96,6 +152,8 @@ export default function WorkerProfileForm() {
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [isAvailable, setIsAvailable] = useState(true);
+  // Lo que se cargó (o se guardó por última vez): contra eso se arma el diff.
+  const [loadedFields, setLoadedFields] = useState<FormFields | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -131,6 +189,7 @@ export default function WorkerProfileForm() {
         setLatitude(p.latitude ?? null);
         setLongitude(p.longitude ?? null);
         setIsAvailable(p.is_available);
+        setLoadedFields(fieldsOf(p));
       })
       .catch((err) => {
         // Sólo un 404 real significa "todavía no hay perfil". Cualquier otro
@@ -166,17 +225,21 @@ export default function WorkerProfileForm() {
       cv_url: cv.file ? null : normalizeUserLink(cv.url),
       cv_filename: cv.file || cv.url.trim() ? cv.fileName : null,
     };
-    const changes = {
+    const current: FormFields = {
       city: city || null,
       bio: bio.trim() || null,
       skills,
       years_experience: parseYears(yearsExperience),
       languages: parseList(languagesText),
       certifications: parseList(certificationsText),
-      ...(exists && sameCv(cv, savedCv) ? {} : cvFields),
       latitude,
       longitude,
       is_available: isAvailable,
+    };
+    // Perfil existente: sólo lo tocado (y el CV si cambió). Perfil nuevo: todo.
+    const changes: Partial<WorkerProfileInput> = {
+      ...(exists && loadedFields ? changedFields(current, loadedFields) : current),
+      ...(exists && sameCv(cv, savedCv) ? {} : cvFields),
     };
     setSubmitting(true);
     try {
@@ -190,7 +253,7 @@ export default function WorkerProfileForm() {
       } else {
         // Todavía no hay perfil: no hay nada que preservar.
         const payload: WorkerProfileInput = {
-          ...changes,
+          ...current,
           ...cvFields,
           photo_url: null,
           birth_date: null,
@@ -198,6 +261,7 @@ export default function WorkerProfileForm() {
         rememberSaved(await api.post<WorkerProfile>("/workers/me/profile", payload, token));
       }
       setExists(true);
+      setLoadedFields(current);
       // Lo guardado es lo que se muestra: un campo vaciado queda en «0».
       setYearsExperience(String(parseYears(yearsExperience)));
       setSaved(true);
