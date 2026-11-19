@@ -316,29 +316,46 @@ el modelo del dominio, un ADR vigente o un texto legal:
   postulante suspendido; se le podía escribir por chat, decisión 23) y uno
   en #629 (el aviso «N postulantes» contaba a los suspendidos). La decisión
   21 quedó hecha el 2026-11-18; la 22, en su PR.
-- **Pasada por clase de error** (propuesta del 2026-11-14; sin empezar, va
-  en una sesión nueva junto con los tests de contrato). Lo que dejó la tanda
-  del 2026-11-18 para tener en cuenta: en tres de cuatro cambios la revisión
-  independiente o la suite completa encontraron algo que los tests del área
-  no veían (una fila nueva que abría el CV, una carrera entre el reporte y el
-  borrado de «va en camino», una sesión de la base rota tras un error
-  atrapado). Las clases «concurrencia» y «privacidad entre roles» son las que
-  más rinden: el reporte
-  externo de Breken encontró en una lectura del código 9 errores que la prueba
-  de punta a punta no vio (claves que se pierden al recargar, datos viejos con
-  la pestaña abierta, guardados que pisan otros datos). La etapa 1 recorrió
-  la app como una persona, las revisiones miran sólo el diff de cada PR, y los
-  e2e simulan la API a mano (en G8 los tests pasaban con un 422 que el
-  servidor nunca manda). Propuesta: un agente por clase (concurrencia e
-  idempotencia; estado viejo con la pestaña abierta; sesión; escrituras que
-  pisan; fechas y zona horaria; privacidad entre roles) sobre las áreas de la
-  beta (turno, postulación, sesión, pagos, avisos), cada hallazgo verificado
-  antes de entrar acá. Y tests de contrato: los mocks del frontend armados
-  con respuestas reales del backend.
+- **Pasada por clase de error**: hecha la auditoría el 2026-11-19; los
+  hallazgos verificados y su estado, en la sección siguiente.
 - **«Mi plan» con el cobro prendido y el tope apagado** (una configuración
   intermedia que la beta no usa): la tarjeta dice «Durante la beta no hay
   tope» y el subtítulo de los planes habla del cobro (salió de la revisión de
   #570).
+
+### Pasada por clase de error (2026-11-19)
+
+Un agente por clase sobre turno, postulación, sesión, pagos y avisos; cada
+hallazgo lo intentó refutar otro agente antes de entrar acá, y casi todos
+tienen un test que fallaba con el código de ese día. El detalle (escenario,
+archivo y línea, test) no vive en este repo, que es público. Los arreglos van
+agrupados por causa, un PR por grupo. Prefijos: CON concurrencia e
+idempotencia, PRI privacidad entre roles, VIE estado viejo con la pestaña
+abierta, SES sesión, ESC escrituras que pisan otros datos, FEC fechas y zona
+horaria.
+
+| Grupo (causa) | Hallazgos | Severidad | Estado |
+|---|---|---|---|
+| Datos de otra persona en la vista del trabajador | PRI-01 (la ausencia de quien tuvo el turno antes), PRI-05 (cuándo se le pagó a otra persona) | menor | 🔵 este PR |
+| Pin desplazado del trabajador | PRI-02 | grave | ⚪ |
+| CV del trabajador | PRI-03 | grave | ⚪ |
+| Renovación de la sesión sin ventana de gracia ni coordinación entre pestañas | CON-02, CON-03, SES-01 | grave | ⚪ |
+| Pedidos repetidos (idempotencia de las acciones del turno, duplicados que dan 500) | CON-01, CON-05, CON-12, CON-14 | menor | ⚪ |
+| Postulación con el estado viejo | VIE-01, CON-04, CON-11 | menor | ⚪ |
+| Socket y lista de avisos | PRI-04, VIE-04, CON-10, ESC-04 | menor | ⚪ |
+| Pantallas sin reloj ni relectura | VIE-02, VIE-03, VIE-05 | menor | ⚪ |
+| Escrituras enteras sin versión | ESC-01 (grave), CON-13, CON-08, ESC-02, ESC-03 | grave | ⚪ |
+| Cobro con Mercado Pago (latente: está apagado) | CON-06, CON-07, CON-09 | menor | ⚪ |
+| Borradores y datos al cambiar de sesión | SES-02, SES-03, SES-04 | menor | ⚪ |
+| Fechas y zona horaria | auditoría en curso | | ⚪ |
+| Esperan una decisión de Julieta | PRI-06 (el registro dice qué emails tienen cuenta), PRI-07 (`/privacidad` dice «nunca la exacta» y «va en camino» manda la exacta), PRI-09 («Ver como» de la admin escribe en nombre de la persona) | menor | ⏸️ |
+| Configuración, sin código | PRI-08: la cuenta invitada es una sola para todos los que tienen el PIN; se cierra vaciando `GUEST_ACCESS_PIN` (decisión 5) | menor | ⏸️ |
+
+Refutado: VIE-06 (los diálogos «No se presentó» y «¿Ya le pagaste?» no
+releen el turno; el dominio impide que la acción caiga sobre otra persona).
+
+**Tests de contrato:** los mocks de los e2e armados con respuestas reales del
+backend (rama aparte, ver su PR).
 
 ### Criterio de Julieta para decidir (2026-11-13)
 
