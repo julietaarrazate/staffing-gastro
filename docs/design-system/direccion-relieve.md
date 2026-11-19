@@ -386,8 +386,9 @@ cada uno, sin tocar la lógica:
 
 ## Identidad por pantalla (2026-11-19, prueba; falta que decida Julieta)
 
-Prueba con diez pantallas, en claro y en noche, enlazadas entre sí:
-https://claude.ai/artifact/WJn8NkYTpvSsa81RpoR2Jg (privada).
+Prueba con dieciséis pantallas, en claro y en noche, enlazadas entre sí:
+https://claude.ai/artifact/WJn8NkYTpvSsa81RpoR2Jg (privada). La tercera fila
+es la segunda vuelta (más abajo).
 
 Con el cielo y la hoja iguales en todas, las pantallas se vuelven a parecer.
 La regla que se propone: **el cielo muestra lo que la pantalla responde y la
@@ -425,3 +426,45 @@ se postularon 4» con las fotos y el tiempo de «Buscando hace 3 min». La cinta
 «¡Oído!» de la prueba está dibujada con CSS; en la app la dibuja
 `components/landing/Filete.tsx`. Las fotos son las de banco de la landing y
 las personas sin foto van con iniciales.
+
+### Segunda vuelta (2026-11-19, misma prueba)
+
+Julieta preguntó si era la mejor versión. No lo era: prolija, pero podía ser
+cualquier app de turnos, sólo mostraba el caso lindo y la promesa (cubrir en
+minutos) no se sentía. Dijo «confío en tu criterio», y se hizo esto:
+
+- **El cielo tiene dos estados con sentido:** celeste cuando no pasa nada y
+  **hondo cuando algo está en marcha** (el comercio buscando; quien trabaja
+  con el turno por empezar). De noche el cielo lleva unas pocas estrellas.
+- **La frase que termina en el número gigante** es la firma de las pantallas
+  de arranque: «Hoy trabajás a las **20:00**», «Empezás en **28 min**»,
+  «Buscamos hace **3 min**». En el Panel reemplaza a «3 turnos para hoy»,
+  que era un dato de tablero. Es tiempo transcurrido, no una cuenta
+  regresiva: no promete los 10 minutos.
+- **La voz de la cocina en los textos, no en los controles:** «Marchando»,
+  «Todavía nadie cantó «oído»», «Cantás el pedido», «¿Te falta alguien
+  hoy?», «Hay turno a la vuelta». La cinta «¡Oído!» aparece dos veces: al
+  postularse y al elegir.
+- **Estados que faltaban:** Inicio con el día libre y con el turno por
+  empezar; Panel el primer día, buscando y sin postulados a los 8 minutos
+  (con tres salidas: subir el pago, invitar a un favorito, cambiar el
+  horario); Candidatos sin fotos (la recomendada con iniciales y tres datos)
+  y un nombre largo cortado.
+- **Buscar y Mapa son una sola pestaña** con un conmutador Lista / Mapa: la
+  barra de quien trabaja queda en cinco. Cambia la navegación de hoy (seis).
+- **Movimiento:** la cinta cae como un sello, las dos fotos llegan de los
+  costados, el punto de «Marchando» late y las nubes derivan apenas. Todo se
+  apaga con `prefers-reduced-motion`.
+- **«Va en camino» a la vista de quien lo prende:** «El bar ve que vas en
+  camino. Sólo tu última posición. Lo apagás cuando quieras.»
+
+Se suma a lo que hay que confirmar contra el producto antes del código: «Ya
+estamos avisando más lejos, hasta 5 km», «en tu zona se paga cerca de
+$ 66.000» (sale del pago de referencia, ADR-0012), invitar a un favorito a un
+turno, «Ya trabajó 3 veces con vos», «Retirar mi postulación» y «8 turnos a
+menos de 3 km». Los textos nuevos son propuesta: no tocan `/terminos`.
+
+Falta: probarla con dos dueños y tres personas que trabajan; celular chico
+(360 px) y letra grande; el vidrio esmerilado en Android de gama baja; y las
+pantallas que no entraron (ingreso y alta, Favoritos, Mi plan, y Buscar,
+Chats y Perfil del comercio).

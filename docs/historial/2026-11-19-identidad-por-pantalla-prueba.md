@@ -4,7 +4,7 @@
 cielo y pidió retomar la identidad de cada pantalla: verlas, que no parezcan
 hechas con IA ni genéricas, y que tampoco queden pesadas ni cargadas.
 
-**Qué cambió:** nada en el código. Hay una prueba con diez pantallas a
+**Qué cambió:** nada en el código. Hay una prueba con dieciséis pantallas a
 390 × 844, en claro y en noche (cada una tiene el interruptor «noche») y
 enlazadas entre sí: https://claude.ai/artifact/WJn8NkYTpvSsa81RpoR2Jg
 (privado). Usa los valores de `frontend/app/globals.css` («La dirección
@@ -16,6 +16,12 @@ que la pantalla responde** y la hoja quede para actuar. El detalle, pantalla
 por pantalla, está en
 [`design-system/direccion-relieve.md`](../design-system/direccion-relieve.md),
 «Identidad por pantalla».
+
+**Segunda vuelta (mismo día):** Julieta preguntó si era la mejor versión
+y, ante la respuesta («prolija, no inconfundible»), dijo «confío en tu
+criterio». Se sumaron los estados de los tres recorridos que cargan el
+producto, la voz de cocina en los textos, el cielo hondo como «algo está en
+marcha», Buscar y Mapa unidos y el movimiento del «¡Oído!».
 
 **Queda abierto:** que Julieta la mire y decida. La prueba propone cambiar
 tres cosas que ya estaban decididas para la dirección «con relieve» (la barra

@@ -54,7 +54,7 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
    la dirección suave** ([ADR-0028](./adr/ADR-0028-direccion-suave.md), «la hoja sobre el cielo»),
    de a una pantalla: ya están «Publicar turno» y «Publicar evento»; el orden de lo que sigue está
    en `design-system/direccion-relieve.md` ([historial](./historial/2026-11-19-publicar-direccion-suave.md)). **Para mirar y decidir:** la
-   prueba de identidad por pantalla, diez pantallas en claro y en noche
+   prueba de identidad por pantalla, dieciséis pantallas en claro y en noche
    (https://claude.ai/artifact/WJn8NkYTpvSsa81RpoR2Jg; qué propone y qué cambia de lo decidido, en
    `direccion-relieve.md`, «Identidad por pantalla»). Julieta eligió el
    2026-11-17 la letra Shrikhand y seguir con el ámbar. El 2026-11-18 eligió,
