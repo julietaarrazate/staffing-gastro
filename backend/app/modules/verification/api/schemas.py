@@ -84,7 +84,15 @@ class SubmitBusinessDocumentInput(BaseModel):
     constancia: BusinessFileInput
 
 
-class RejectClaimInput(BaseModel):
+class DecideClaimInput(BaseModel):
+    """Lo que el admin revisó: el `submitted_at` del envío que tenía en
+    pantalla (el de la cola, tal cual). Si la persona volvió a mandar los
+    documentos después, la decisión no se aplica: 409 (ESC-01)."""
+
+    submitted_at: datetime | None = None
+
+
+class RejectClaimInput(DecideClaimInput):
     reason: str | None = Field(default=None, max_length=500)
 
 

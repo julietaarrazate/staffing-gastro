@@ -22,6 +22,13 @@ class ClaimNotPendingError(VerificationError):
     """Se intentó decidir (aprobar/rechazar) un claim que no está pendiente."""
 
 
+class ClaimChangedError(VerificationError):
+    """El claim cambió desde que se leyó: la persona volvió a mandar los
+    documentos (o se decidió) entre la lectura y el guardado. Lo levanta el
+    repositorio cuando la fila ya no está como se leyó, y la decisión del
+    admin cuando el envío que revisó no es el pendiente (ESC-01)."""
+
+
 class ClaimNotFoundError(VerificationError):
     """No existe el claim buscado (para el sujeto / id dados)."""
 

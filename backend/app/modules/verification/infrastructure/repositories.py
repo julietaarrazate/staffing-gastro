@@ -12,12 +12,17 @@ from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.row_state import unchanged_since_read
+
 from app.modules.verification.domain.entities import (
     Claim,
     Evidence,
     EvidenceFileDeletion,
 )
-from app.modules.verification.domain.exceptions import ClaimAlreadyExistsError
+from app.modules.verification.domain.exceptions import (
+    ClaimAlreadyExistsError,
+    ClaimChangedError,
+)
 from app.modules.verification.domain.repositories import (
     ClaimRepository,
     EvidenceFileDeletionRepository,
@@ -60,6 +65,11 @@ def _evidence_to_entity(model: IdentityEvidenceModel) -> Evidence:
     )
 
 
+def _persisted_state(status: str, submitted_at: datetime | None) -> dict:
+    """La «versión» del claim: estado y envío (ver `Claim.persisted_state`)."""
+    return {"status": status, "submitted_at": submitted_at}
+
+
 def _to_entity(model: IdentityClaimModel) -> Claim:
     return Claim(
         id=model.id,
@@ -76,18 +86,21 @@ def _to_entity(model: IdentityClaimModel) -> Claim:
         expires_at=model.expires_at,
         created_at=model.created_at,
         updated_at=model.updated_at,
+        persisted_state=_persisted_state(model.status, model.submitted_at),
     )
 
 
-def _apply_claim_fields(model: IdentityClaimModel, claim: Claim) -> None:
-    model.status = claim.status.value
-    model.confidence = claim.confidence.value if claim.confidence else None
-    model.method = claim.method.value if claim.method else None
-    model.submitted_at = claim.submitted_at
-    model.decided_at = claim.decided_at
-    model.reviewed_by = claim.reviewed_by
-    model.rejection_reason = claim.rejection_reason
-    model.expires_at = claim.expires_at
+def _claim_values(claim: Claim) -> dict:
+    return {
+        "status": claim.status.value,
+        "confidence": claim.confidence.value if claim.confidence else None,
+        "method": claim.method.value if claim.method else None,
+        "submitted_at": claim.submitted_at,
+        "decided_at": claim.decided_at,
+        "reviewed_by": claim.reviewed_by,
+        "rejection_reason": claim.rejection_reason,
+        "expires_at": claim.expires_at,
+    }
 
 
 def _sync_evidences(model: IdentityClaimModel, claim: Claim) -> None:
@@ -158,9 +171,11 @@ class SqlAlchemyClaimRepository(ClaimRepository):
 
     async def add(self, claim: Claim) -> Claim:
         model = IdentityClaimModel(
-            id=claim.id, user_id=claim.user_id, claim_type=claim.claim_type.value
+            id=claim.id,
+            user_id=claim.user_id,
+            claim_type=claim.claim_type.value,
+            **_claim_values(claim),
         )
-        _apply_claim_fields(model, claim)
         _sync_evidences(model, claim)
         self._session.add(model)
         self._stage_file_deletions(claim)
@@ -178,18 +193,47 @@ class SqlAlchemyClaimRepository(ClaimRepository):
         return _to_entity(model)
 
     async def update(self, claim: Claim) -> Claim:
-        model = await self._session.get(IdentityClaimModel, claim.id)
-        if model is None:
-            raise ValueError("El claim no existe")
-        _apply_claim_fields(model, claim)
+        """Guarda el claim sólo si en la base sigue como se leyó (estado y
+        envío, `Claim.persisted_state`): `UPDATE … WHERE status = <leído> AND
+        submitted_at = <leído>`. Si afectó 0 filas, otro guardado entró en el
+        medio (un reenvío, otra decisión): no se guarda nada y
+        `ClaimChangedError` (ESC-01).
+
+        La fila del claim va primero: en Postgres queda bloqueada hasta el
+        commit, así que un reenvío simultáneo espera, vuelve a evaluar su
+        propia condición y pierde; nunca se mezclan las evidencias de los
+        dos. Recién después se reemplazan las evidencias y se encola el
+        borrado de archivos, en el mismo commit."""
+        if claim.persisted_state is None:
+            raise ValueError("El claim no se leyó de la base")
+        result = await self._session.execute(
+            update(IdentityClaimModel)
+            .where(
+                IdentityClaimModel.id == claim.id,
+                *unchanged_since_read(IdentityClaimModel, claim.persisted_state),
+            )
+            .values(**_claim_values(claim))
+            .execution_options(synchronize_session=False)
+        )
+        if result.rowcount != 1:
+            await self._session.rollback()
+            raise ClaimChangedError(str(claim.id))
+        model = await self._session.get(
+            IdentityClaimModel, claim.id, populate_existing=True
+        )
         _sync_evidences(model, claim)
         self._stage_file_deletions(claim)
         await self._session.commit()
         await self._session.refresh(model)
+        claim.persisted_state = _persisted_state(model.status, model.submitted_at)
         return _to_entity(model)
 
     async def get_by_id(self, claim_id: UUID) -> Claim | None:
-        model = await self._session.get(IdentityClaimModel, claim_id)
+        # Siempre de la base: la copia del identity map puede ser de antes de
+        # un reenvío (ADR-0016 vio lo mismo con el turno).
+        model = await self._session.get(
+            IdentityClaimModel, claim_id, populate_existing=True
+        )
         return _to_entity(model) if model else None
 
     async def get_for_user(
