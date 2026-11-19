@@ -289,7 +289,7 @@ el modelo del dominio, un ADR vigente o un texto legal:
     ausencia y puntualidad se miden desde que confirmó, no desde el inicio;
     el pago se prorratea desde la llegada (valor por hora en el aviso, monto
     fijo al llegar, y las ganancias del trabajador usan ese monto). Cambia
-    el ADR-0008 y el ADR-0015. La próxima migración libre es la 0059.
+    el ADR-0008 y el ADR-0015. La próxima migración libre es la 0060.
 - **Decisiones 21, 22 y 24** (2026-11-18): tres reglas nuevas, un PR cada
   una, con su ADR.
   - ✅ **21** (cerrar turno desde el admin): hecho el 2026-11-18 (ADR-0024
@@ -339,8 +339,8 @@ horaria.
 | Datos de otra persona en la vista del trabajador | PRI-01 (la ausencia de quien tuvo el turno antes), PRI-05 (cuándo se le pagó a otra persona) | menor | ✅ #661 |
 | Pin desplazado del trabajador (se podía deshacer conociendo un punto real de la persona) | PRI-02 | grave | ✅ #665 |
 | CV del trabajador | PRI-03 | grave | ⚪ |
-| Renovación de la sesión sin ventana de gracia ni coordinación entre pestañas | CON-02, CON-03, SES-01 | grave | ⚪ |
-| Pedidos repetidos (idempotencia de las acciones del turno, duplicados que dan 500) | CON-01, CON-05, CON-12, CON-14 | menor | 🔵 este PR |
+| Renovación de la sesión sin ventana de gracia ni coordinación entre pestañas | CON-02, CON-03, SES-01 | grave | 🔵 este PR |
+| Pedidos repetidos (idempotencia de las acciones del turno, duplicados que dan 500) | CON-01, CON-05, CON-12, CON-14 | menor | ✅ #667 |
 | Postulación con el estado viejo | VIE-01, CON-04, CON-11 | menor | ⚪ |
 | Socket y lista de avisos | PRI-04, VIE-04, CON-10, ESC-04 | menor | ⚪ |
 | Pantallas sin reloj ni relectura | VIE-02, VIE-03, VIE-05 | menor | ⚪ |
