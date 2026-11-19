@@ -192,9 +192,12 @@ test("al decidir manda el envío que vio; si la persona reenvió, lo dice y reca
   await expect(page.getByText(resubmitted)).toBeVisible({ timeout: 15_000 });
   expect(bodies).toEqual([{ submitted_at: "2026-10-23T12:00:00Z" }]);
 
+  // «Reintentar» vuelve a pedir la cola (el panel admin también la pide para
+  // su contador, así que se compara contra lo que había, no contra un número).
+  const before = pendingCalls;
   await page.getByRole("button", { name: "Reintentar" }).click();
   await expect(page.getByRole("button", { name: "Aprobar" })).toHaveCount(2);
-  expect(pendingCalls).toBe(2);
+  expect(pendingCalls).toBeGreaterThan(before);
 
   // El rechazo lleva el envío y el motivo.
   await page.getByRole("button", { name: "Rechazar" }).nth(1).click();
