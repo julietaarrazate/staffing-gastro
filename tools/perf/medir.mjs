@@ -392,7 +392,9 @@ async function main() {
   if (OUT) writeFileSync(OUT, JSON.stringify(out, null, 2));
 }
 
-const kb = (b) => (b / 1024).toFixed(0);
+function kb(b) {
+  return (b / 1024).toFixed(0);
+}
 function printScenario(name, s) {
   const js = s.bytes.js ?? { transfer: 0, decoded: 0, n: 0 };
   console.log(
