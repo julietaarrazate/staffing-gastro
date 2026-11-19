@@ -7,6 +7,7 @@ pasos). Ahora se corta (1008) al vencer el token y al revocar en bloque; el
 cliente reconecta con el token renovado."""
 
 import re
+import signal
 import time
 from datetime import timedelta
 from uuid import uuid4
@@ -31,8 +32,19 @@ from tests.test_ws_manager import FakeWebSocket
 
 def _esperar_corte(ws) -> int:
     """El servidor cortó: el próximo `receive` tira la desconexión, con su código."""
-    with pytest.raises(WebSocketDisconnect) as corte:
-        ws.receive_json()
+    # Con el código viejo el servidor no corta y `receive_json` esperaría para
+    # siempre: una alarma de 8 s lo interrumpe y el test falla rápido.
+    def _sin_corte(*_):
+        raise AssertionError("el servidor no cortó el socket con el token vencido")
+
+    anterior = signal.signal(signal.SIGALRM, _sin_corte)
+    signal.alarm(8)
+    try:
+        with pytest.raises(WebSocketDisconnect) as corte:
+            ws.receive_json()
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, anterior)
     return corte.value.code
 
 
