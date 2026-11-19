@@ -290,6 +290,7 @@ async def test_contrato_frontend(client: AsyncClient, session_factory):
         json={"latitude": -34.60, "longitude": -58.40}))
     cap.guardar("turno_confirmar_repetido", await client.post(f"/api/v1/shifts/{shift_id}/confirm", headers=wk))
     cap.guardar("turno_confirmado_trabajador", await client.get(f"/api/v1/shifts/{shift_id}", headers=wk))
+    cap.guardar("turnos_del_comercio_con_asignado", await client.get("/api/v1/shifts/me", headers=emp))
 
     # --- Turno en camino (el comercio ve la posición) -----------------------
     ahora = now_art().replace(tzinfo=None, microsecond=0)
