@@ -324,7 +324,7 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
           <div className="px-5 pb-4 pt-5">
             <p className="text-sm font-semibold text-ink-soft">{pay.suffix ? "Pago" : "Pago por la jornada"}</p>
             <p className="mt-1 text-ink">
-              <span className="plata text-[2.75rem]">{pay.amount}</span>
+              <span className="plata text-display">{pay.amount}</span>
               {pay.suffix && <span className="ml-1.5 text-body font-bold">{pay.suffix}</span>}
             </p>
             {(shift.tips || pay.note || perHour) && (
