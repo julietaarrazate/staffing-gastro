@@ -211,7 +211,9 @@ afuera sin decir por qué; no fue una decisión de dejarlo público.
    crearse una cuenta de trabajador, ponerse ese mismo archivo en su perfil
    y pedir links para siempre (o hacerlo borrar al «sacarlo»). El perfil
    acepta un archivo nuevo sólo si es privado y lleva la marca de esa
-   cuenta; si no, 422.
+   cuenta; si no, 422. La clave del HMAC es `CLOUDINARY_API_SECRET`: si se
+   rota, sólo falla un CV subido y todavía no guardado (se vuelve a subir);
+   los guardados no se vuelven a chequear.
 2. **El perfil guarda la referencia, no una URL.** `worker_profiles` suma
    `cv_public_id`, `cv_resource_type`, `cv_format` y `cv_delivery_type`
    (migración `0060`). `PUT /workers/me/profile` recibe `cv_file` (lo que

@@ -57,7 +57,7 @@ def _to_data(payload: WorkerProfileInput) -> WorkerProfileData:
 
 _CV_NOT_ACCEPTED = HTTPException(
     status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-    detail="No pudimos guardar ese CV. Subilo de nuevo desde tu perfil.",
+    detail="No pudimos guardar ese CV. Subilo de nuevo.",
 )
 
 
