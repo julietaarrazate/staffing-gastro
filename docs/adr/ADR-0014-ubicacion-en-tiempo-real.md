@@ -287,3 +287,53 @@ cuenta que ingrese ahí; no se da de baja cuando la sesión vence sola.
 Descartado: borrar la posición también al salir de la pantalla. El comercio
 perdería de vista a quien sólo abrió el chat para avisar que llega, y la
 decisión 3 habla de cuando la persona lo apaga.
+
+## Actualización 2026-11-19 (pasada de privacidad, PRI-02): el pin ya no se deshace con un punto conocido
+
+**Qué fallaba.** El punto 3 promete que el comercio ve «qué tan lejos», no
+«dónde». El pin desplazado (`fuzz_point`, `backend/app/core/geo.py`) movía
+el punto entre 150 y 350 m, pero con un **vector fijo por trabajador**: la
+semilla era sólo el id del perfil, igual para el domicilio y para cada
+posición de «Disponible ahora». Un comercio que conocía UN punto real de la
+persona (su propio local, si la persona prendió «Disponible ahora» al salir
+de un turno ahí) restaba ese vector al pin del domicilio y quedaba a
+centímetros de la puerta. Lo encontró la pasada por clase de error del
+2026-11-19 y lo confirmó un segundo agente con un test.
+
+**Desde ahora:**
+
+- **El pin sale del centro de una celda**, no del punto: una grilla de
+  0,2 km de lado (`FUZZ_CELL_KM`). Dos lugares de la misma celda dan el mismo
+  pin, así que ni un punto real conocido ni muchas lecturas dicen más que la
+  celda.
+- **El desplazamiento depende de la celda y de una clave del servidor**
+  (HMAC-SHA256 con una clave derivada de `JWT_SECRET_KEY`, separada por
+  propósito; sin variable de entorno nueva). Conocer el vector de una celda
+  no dice nada del de otra, y sin la clave no se calcula desde el id del
+  perfil.
+- **Sigue habiendo al menos 150 m** entre el pin y el punto real, esté donde
+  esté el punto dentro de su celda: el anillo alrededor del centro se corre
+  media diagonal de celda hacia afuera. El pin queda entre 0,15 y ~0,64 km
+  del punto real (antes, entre 0,15 y 0,35). Alcanza igual para decidir a
+  quién contactar; la distancia que ve el comercio se sigue midiendo desde
+  el pin y redondeada a 0,1 km.
+- **El pin se publica redondeado a 4 decimales** (~10 m). Con todos sus
+  decimales delataba la celda: el ángulo y el radio salen de enteros de 32
+  bits del HMAC, y deshaciendo la cuenta desde cada centro de celda
+  candidato sólo el verdadero daba enteros (lo encontró la revisión
+  independiente antes del merge). El anillo se corre 10 m más para que el
+  redondeo no acerque el pin a menos de 150 m.
+- **Sigue siendo determinístico** para el mismo lugar (no invita a promediar
+  recargas). Si se rota `JWT_SECRET_KEY`, los pines se mueven una vez, y
+  cada rotación es otra muestra del pin de la misma celda: cruzando dos o
+  tres se acota la celda. No se rota sin motivo (si se filtró, el riesgo de
+  las sesiones pesa más).
+- **Lo que sigue sabiéndose:** si el domicilio cae en la misma celda que un
+  punto real que el comercio conoce (la persona vive a una o dos cuadras
+  del local), los dos pines son el mismo y el comercio sabe la celda de
+  0,2 km donde vive; no más que eso.
+
+Tests: `backend/tests/test_geo.py` (mínimo de 150 m sobre 3.000 puntos al
+azar, mismo pin en toda la celda, vector distinto entre celdas) y
+`backend/tests/test_pin_desplazado_punto_conocido.py` (el ataque con el punto
+conocido y el de los decimales ya no sirven).

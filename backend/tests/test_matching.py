@@ -287,7 +287,8 @@ async def test_top_candidates_score_does_not_leak_the_real_distance():
     pin = fuzz_point(*home, str(candidate.profile_id))
     # Dos turnos sobre la recta pin→domicilio, a ~2,03 km del pin: uno del
     # lado del domicilio (real ≈ 2,03 − r) y otro del lado opuesto
-    # (real ≈ 2,03 + r), con r = desplazamiento del pin (≥ 0,15 km).
+    # (real ≈ 2,03 + r), con r = desplazamiento del pin (≥ 0,15 km; desde
+    # el 2026-11-19 sale del centro de la celda del domicilio, PRI-02).
     r = haversine_km(*pin, *home)
     k = 2.03 / r
     d_lat, d_lng = home[0] - pin[0], home[1] - pin[1]

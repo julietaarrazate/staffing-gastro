@@ -336,23 +336,25 @@ horaria.
 
 | Grupo (causa) | Hallazgos | Severidad | Estado |
 |---|---|---|---|
-| Datos de otra persona en la vista del trabajador | PRI-01 (la ausencia de quien tuvo el turno antes), PRI-05 (cuándo se le pagó a otra persona) | menor | 🔵 este PR |
-| Pin desplazado del trabajador | PRI-02 | grave | ⚪ |
+| Datos de otra persona en la vista del trabajador | PRI-01 (la ausencia de quien tuvo el turno antes), PRI-05 (cuándo se le pagó a otra persona) | menor | ✅ #661 |
+| Pin desplazado del trabajador (se podía deshacer conociendo un punto real de la persona) | PRI-02 | grave | 🔵 este PR |
 | CV del trabajador | PRI-03 | grave | ⚪ |
 | Renovación de la sesión sin ventana de gracia ni coordinación entre pestañas | CON-02, CON-03, SES-01 | grave | ⚪ |
 | Pedidos repetidos (idempotencia de las acciones del turno, duplicados que dan 500) | CON-01, CON-05, CON-12, CON-14 | menor | ⚪ |
 | Postulación con el estado viejo | VIE-01, CON-04, CON-11 | menor | ⚪ |
 | Socket y lista de avisos | PRI-04, VIE-04, CON-10, ESC-04 | menor | ⚪ |
 | Pantallas sin reloj ni relectura | VIE-02, VIE-03, VIE-05 | menor | ⚪ |
-| Escrituras enteras sin versión | ESC-01 (grave), CON-13, CON-08, ESC-02, ESC-03 | grave | ⚪ |
+| Escrituras enteras sin versión | ESC-01, CON-13, CON-08, ESC-02, ESC-03 | menor | ⚪ |
 | Cobro con Mercado Pago (latente: está apagado) | CON-06, CON-07, CON-09 | menor | ⚪ |
 | Borradores y datos al cambiar de sesión | SES-02, SES-03, SES-04 | menor | ⚪ |
-| Fechas y zona horaria | auditoría en curso | | ⚪ |
+| Hora sin zona leída en la zona del celular (borrador de la IA) | FEC-02 | menor | ⚪ |
 | Esperan una decisión de Julieta | PRI-06 (el registro dice qué emails tienen cuenta), PRI-07 (`/privacidad` dice «nunca la exacta» y «va en camino» manda la exacta), PRI-09 («Ver como» de la admin escribe en nombre de la persona) | menor | ⏸️ |
 | Configuración, sin código | PRI-08: la cuenta invitada es una sola para todos los que tienen el PIN; se cierra vaciando `GUEST_ACCESS_PIN` (decisión 5) | menor | ⏸️ |
 
-Refutado: VIE-06 (los diálogos «No se presentó» y «¿Ya le pagaste?» no
-releen el turno; el dominio impide que la acción caiga sobre otra persona).
+Refutados: VIE-06 (los diálogos «No se presentó» y «¿Ya le pagaste?» no
+releen el turno; el dominio impide que la acción caiga sobre otra persona),
+FEC-01 (fechas fijas en tests: un fixture congela el reloj del horario) y
+FEC-03 («ausencias de hoy» cuenta las marcadas hoy, a propósito).
 
 **Tests de contrato:** los mocks de los e2e armados con respuestas reales del
 backend (rama aparte, ver su PR).
