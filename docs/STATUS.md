@@ -94,9 +94,9 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
    pestañas~~ (hechas el 2026-11-19, con la raya azul hondo;
    [historial](./historial/2026-11-19-pestanas-relieve.md)), ~~los botones
    secundarios~~ (hechos el 2026-11-19, rectos y planos;
-   [historial](./historial/2026-11-19-botones-secundarios-relieve.md)), los
-   pasos tachados a
-   mano (en un renglón), los colores de los sellos y el detalle del turno
+   [historial](./historial/2026-11-19-botones-secundarios-relieve.md)), ~~los
+   pasos tachados a mano~~ (hechos el 2026-11-19, en un renglón;
+   [historial](./historial/2026-11-19-pasos-tachados.md)), los colores de los sellos y el detalle del turno
    (el pago en la comanda). Cómo va cada uno lo decidió Julieta el 2026-11-19
    (`direccion-relieve.md`). Las piezas compartidas ya están
    (`components/ui/Comanda.tsx`, `lib/letras.ts`, `.app-cielo`). Qué tiene, las referencias de Julieta,
