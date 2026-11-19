@@ -125,10 +125,10 @@ class SqlAlchemyUserRepository(UserRepository):
                 .values(**changes)
                 .execution_options(synchronize_session=False)
             )
-            await self._session.commit()
-            # Lo que escribió pasa a ser lo leído: si el caso de uso vuelve a
-            # guardar la misma entidad, no reescribe estos cambios.
-            user.persisted_state = _user_values(user)
+        await self._session.commit()
+        # Lo que escribió pasa a ser lo leído: si el caso de uso vuelve a
+        # guardar la misma entidad, no reescribe estos cambios.
+        user.persisted_state = _user_values(user)
         model = await self._session.get(UserModel, user.id, populate_existing=True)
         if model is None:
             raise ValueError("El usuario no existe")
