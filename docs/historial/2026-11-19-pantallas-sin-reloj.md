@@ -1,0 +1,15 @@
+# Pantallas con estado que vence o se cierra: reloj local y relectura (VIE-02, VIE-03, VIE-05, FEC-02)
+
+**Pedido:** pasada por clase de error del 2026-11-19 (estado viejo y fechas). Cuatro hallazgos menores con una misma causa: una pantalla copia un estado del servidor que vence o se cierra y no lo apaga ni lo vuelve a pedir.
+
+**Qué cambió:**
+- **VIE-02, «Disponible ahora»** (`frontend/lib/use-available-now.ts`): la tarjeta «Estás disponible ahora hasta las HH:MM» se apaga sola al llegar `until` (timeout local, sin pedido) y, al volver a primer plano (`visibilitychange`), compara con la hora y relee `GET /workers/me/available-now`. Si la lectura falla, igual queda apagada si la hora ya pasó. Última lectura gana (`start`/`stop` invalidan las lecturas en vuelo).
+- **VIE-03, turno ya cerrado** (`frontend/components/ShiftDetail.tsx`): un 404 de `GET /shifts/{id}` para quien no es parte ya no se traga: se muestra `TurnoNoDisponible` («Este turno ya no está disponible») en vez de «Postularme». Quien tiene postulación (o la tuvo) sigue viendo el turno. Tras un error al postularse se relee el turno. Lo mismo en Guardados (`app/my-shifts/page.tsx`, `applyToSavedShift` relee tras el error). `app/feed/page.tsx`, `app/buscar/page.tsx` y `app/map/page.tsx` se suscriben a `useLiveRefresh`; sus `load` aceptan `{ silent }` (sin esqueleto, sin pisar lo que se ve con un error pasajero), con pausa durante una carga normal, una postulación o el mazo/ficha abiertos.
+- **VIE-05, «Mi plan»** (`frontend/app/subscription/page.tsx`, `frontend/lib/subscription.ts`): el bloque de arrepentimiento se apaga al terminar el último día del plazo en hora argentina (`endOfArgentinaDay`, inclusive como en el servidor) y al volver a primer plano; si el servidor rechaza «Dar de baja» o «Arrepentirme» (error de API), se cierra el diálogo y se relee la suscripción. Un corte de red deja el diálogo para reintentar.
+- **FEC-02** (`backend/app/core/dt.py`): `parse_iso_datetime` toma como hora argentina (`ARG_TZ`) una hora sin zona que devuelva la IA; si trae offset, lo respeta.
+
+**Por qué así:** reloj local para lo que vence (no hace falta un pedido: el servidor ya lo apagó) y relectura por disparadores que ya existen (aviso, vuelta a la pestaña), nunca una consulta periódica (cada pedido despierta Neon). El 404 de turno cerrado es no-disclosure a propósito: el frontend lo lee como «ya no está», salvo para quien es parte.
+
+**Tests:** vitest `use-available-now.test.tsx` (fake timers), `ShiftDetail.test.tsx` (404, 500, error al postularse, parte con 404), `subscription.test.ts`; e2e `pantallas-sin-reloj.spec.ts` (Buscar se actualiza con el aviso; «Disponible ahora» se apaga con `page.clock`); `backend/tests/test_tz.py`. El mock de `available-now.spec.ts` vencía en 2026-09 y el reloj local lo apagaba: ahora vence a 4 h de la hora real.
+
+**Queda abierto:** `workers/[id]`, `companies/[id]`, favoritos y admin siguen sin `useLiveRefresh` (la pasada no los marcó como errores). El resto de los hallazgos de la pasada es de otras ramas.
