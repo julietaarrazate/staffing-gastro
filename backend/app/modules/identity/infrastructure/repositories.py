@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
-from sqlalchemy import and_, case, delete, desc, func, or_, select
+from sqlalchemy import and_, case, delete, desc, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.identity.domain.entities import (
@@ -211,6 +211,7 @@ def _session_to_entity(model: RefreshSessionModel) -> RefreshSession:
         expires_at=model.expires_at,
         revoked_at=model.revoked_at,
         created_at=model.created_at,
+        rotated_at=model.rotated_at,
     )
 
 
@@ -234,28 +235,61 @@ class SqlAlchemyRefreshSessionRepository(RefreshSessionRepository):
         return _session_to_entity(model)
 
     async def get_by_jti(self, jti: str) -> RefreshSession | None:
-        stmt = select(RefreshSessionModel).where(RefreshSessionModel.jti == jti)
+        # `populate_existing`: la fila puede haber cambiado desde otra conexión
+        # después de una lectura anterior en esta misma sesión (la rotación
+        # que perdió la carrera vuelve a leer, ver `IdentityService.refresh`).
+        stmt = (
+            select(RefreshSessionModel)
+            .where(RefreshSessionModel.jti == jti)
+            .execution_options(populate_existing=True)
+        )
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
         return _session_to_entity(model) if model else None
 
     async def revoke(self, jti: str) -> None:
-        stmt = select(RefreshSessionModel).where(RefreshSessionModel.jti == jti)
-        result = await self._session.execute(stmt)
-        model = result.scalar_one_or_none()
-        if model is not None and model.revoked_at is None:
-            model.revoked_at = datetime.now(timezone.utc)
-            await self._session.commit()
+        await self._session.execute(
+            update(RefreshSessionModel)
+            .where(RefreshSessionModel.jti == jti, RefreshSessionModel.revoked_at.is_(None))
+            .values(revoked_at=datetime.now(timezone.utc))
+            .execution_options(synchronize_session=False)
+        )
+        await self._session.commit()
+
+    async def rotate(self, jti: str, now: datetime) -> bool:
+        # Leer y después escribir dejaba ganar a los dos pedidos (CON-03): la
+        # condición va en el mismo UPDATE y la base decide quién llegó primero.
+        result = await self._session.execute(
+            update(RefreshSessionModel)
+            .where(RefreshSessionModel.jti == jti, RefreshSessionModel.revoked_at.is_(None))
+            .values(revoked_at=now, rotated_at=now)
+            .execution_options(synchronize_session=False)
+        )
+        await self._session.commit()
+        return (result.rowcount or 0) == 1
 
     async def revoke_all_for_user(self, user_id: UUID) -> None:
-        stmt = select(RefreshSessionModel).where(
-            RefreshSessionModel.user_id == user_id,
-            RefreshSessionModel.revoked_at.is_(None),
-        )
-        result = await self._session.execute(stmt)
         now = datetime.now(timezone.utc)
-        for model in result.scalars().all():
-            model.revoked_at = now
+        await self._session.execute(
+            update(RefreshSessionModel)
+            .where(
+                RefreshSessionModel.user_id == user_id,
+                RefreshSessionModel.revoked_at.is_(None),
+            )
+            .values(revoked_at=now)
+            .execution_options(synchronize_session=False)
+        )
+        # Las recién rotadas pierden la gracia: tras una contraseña nueva, una
+        # suspensión o un robo, el token de hace unos segundos tampoco sirve.
+        await self._session.execute(
+            update(RefreshSessionModel)
+            .where(
+                RefreshSessionModel.user_id == user_id,
+                RefreshSessionModel.rotated_at.is_not(None),
+            )
+            .values(rotated_at=None)
+            .execution_options(synchronize_session=False)
+        )
         await self._session.commit()
 
     async def delete_expired_before(self, cutoff: datetime) -> int:

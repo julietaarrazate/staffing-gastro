@@ -9,6 +9,7 @@ import logging
 import secrets
 from dataclasses import replace
 from datetime import date, datetime, timedelta, timezone
+from typing import NoReturn
 from uuid import UUID, uuid4
 
 import jwt
@@ -364,9 +365,16 @@ class IdentityService:
         """Emite un nuevo par de tokens a partir de un refresh token válido.
 
         Rotación (ADR-0002): el refresh usado queda revocado y se emite uno
-        nuevo. Si el `jti` recibido ya estaba revocado, se interpreta como
-        reuso de un token viejo (posible robo): se revocan **todas** las
-        sesiones del usuario y se rechaza la operación.
+        nuevo. La rotación es un UPDATE condicional: de dos pedidos con el
+        mismo token, uno solo la hace (CON-03); el otro se trata como reuso.
+
+        Reuso: si el `jti` recibido ya estaba revocado, se interpreta como un
+        token viejo que circuló fuera de control (posible robo): se revocan
+        **todas** las sesiones del usuario y se rechaza la operación. Salvo
+        que se haya rotado hace `REFRESH_ROTATION_GRACE` o menos (actualización
+        2026-11-19): eso es la segunda pestaña que salió con la misma cookie
+        (CON-02) o el reintento de quien no recibió la respuesta (SES-01), y
+        recibe un par nuevo sin tocar las demás sesiones.
         """
         payload = self._decode_refresh(refresh_token)
         jti = payload["jti"]
@@ -374,16 +382,8 @@ class IdentityService:
         session = await self._sessions.get_by_jti(jti)
         if session is None:
             raise InvalidTokenError()
-        if session.is_revoked:
-            await self._sessions.revoke_all_for_user(session.user_id)
-            # Suspender revoca todas las sesiones (`AdminService.suspend_user`):
-            # quien vuelve con la suya tiene que enterarse de que la cuenta está
-            # suspendida, no de que la sesión venció (ADR-0024, punto 8). La
-            # sesión ya era de esta persona: no se le revela nada nuevo.
-            owner = await self._users.get_by_id(session.user_id)
-            if owner is not None and not owner.is_active:
-                raise InactiveUserError()
-            raise RefreshTokenRevokedError()
+        if session.is_revoked and not session.rotated_within_grace(datetime.now(timezone.utc)):
+            await self._reject_reused_refresh(session)
 
         user = await self._users.get_by_id(session.user_id)
         if user is None:
@@ -391,10 +391,34 @@ class IdentityService:
         if not user.is_active:
             raise InactiveUserError()
 
-        await self._sessions.revoke(jti)
+        if not session.is_revoked and not await self._sessions.rotate(
+            jti, datetime.now(timezone.utc)
+        ):
+            # Otro pedido con el mismo token la rotó (o la revocó) entre la
+            # lectura y acá: es un reuso, con las mismas reglas que arriba.
+            session = await self._sessions.get_by_jti(jti)
+            if session is None:
+                raise InvalidTokenError()
+            if not session.rotated_within_grace(datetime.now(timezone.utc)):
+                await self._reject_reused_refresh(session)
+        if session.is_revoked:
+            logger.info("refresh con un token recién rotado: par nuevo por la ventana de gracia")
         return await self._issue_tokens(
             user, two_factor_verified=payload.get(TWO_FACTOR_CLAIM) is True
         )
+
+    async def _reject_reused_refresh(self, session: RefreshSession) -> NoReturn:
+        """Reuso de un refresh revocado fuera de la ventana de gracia: posible
+        robo (ADR-0002). Corta todas las sesiones de la cuenta y rechaza."""
+        await self._sessions.revoke_all_for_user(session.user_id)
+        # Suspender revoca todas las sesiones (`AdminService.suspend_user`):
+        # quien vuelve con la suya tiene que enterarse de que la cuenta está
+        # suspendida, no de que la sesión venció (ADR-0024, punto 8). La
+        # sesión ya era de esta persona: no se le revela nada nuevo.
+        owner = await self._users.get_by_id(session.user_id)
+        if owner is not None and not owner.is_active:
+            raise InactiveUserError()
+        raise RefreshTokenRevokedError()
 
     async def logout(self, refresh_token: str) -> None:
         """Revoca la sesión asociada al refresh token dado (cierre de sesión)."""

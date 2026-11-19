@@ -9,6 +9,7 @@ from tests.conftest import (
     DEFAULT_PASSWORD,
     login,
     new_client,
+    pasar_la_ventana_de_gracia,
     refresh_with_cookie,
     register_user,
 )
@@ -143,7 +144,7 @@ async def test_login_wrong_password(client: AsyncClient):
     assert login_response.status_code == 401
 
 
-async def test_refresh_rotates_tokens(client: AsyncClient):
+async def test_refresh_rotates_tokens(client: AsyncClient, session_factory):
     """Cada /auth/refresh rota la sesión: el refresh usado deja de servir (ADR-0002)."""
     await register_user(client)
     await login(client, "mozo@staffya.com")
@@ -167,13 +168,17 @@ async def test_refresh_rotates_tokens(client: AsyncClient):
 
     # El refresh token original (ya rotado en el primer /refresh) no debe
     # servir para renovar de nuevo — se reenvía a mano en un cliente nuevo
-    # (el jar de `client` ya avanzó al token rotado).
+    # (el jar de `client` ya avanzó al token rotado). Pasada la ventana de
+    # gracia: dentro de ella vuelve a servir una vez más (ver
+    # `test_renovacion_de_sesion.py`).
+    await pasar_la_ventana_de_gracia(session_factory)
     reused = await refresh_with_cookie(refresh_token)
     assert reused.status_code == 401
 
 
-async def test_refresh_reuse_revokes_all_sessions(client: AsyncClient):
-    """Reusar un refresh token ya rotado se trata como robo: revoca todas las sesiones."""
+async def test_refresh_reuse_revokes_all_sessions(client: AsyncClient, session_factory):
+    """Reusar un refresh token rotado hace más de la ventana de gracia (30 s)
+    se trata como robo: revoca todas las sesiones."""
     await register_user(client)
     await login(client, "mozo@staffya.com")
     token_a = client.cookies.get("staffya_refresh")
@@ -193,7 +198,9 @@ async def test_refresh_reuse_revokes_all_sessions(client: AsyncClient):
         assert refreshed_a.status_code == 200
         rotated_a = client.cookies.get("staffya_refresh")
 
-        # Alguien reusa el refresh token viejo de la sesión A (posible token robado).
+        # Pasada la ventana de gracia, alguien reusa el refresh token viejo de
+        # la sesión A (posible token robado).
+        await pasar_la_ventana_de_gracia(session_factory)
         reuse = await refresh_with_cookie(token_a)
         assert reuse.status_code == 401
 

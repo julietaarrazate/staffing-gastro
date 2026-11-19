@@ -57,6 +57,14 @@ class User:
         self.role = UserRole.ADMIN
 
 
+# Ventana de gracia de un refresh token recién rotado (ADR-0002, actualización
+# 2026-11-19). Si vuelve a llegar dentro de este plazo no es robo: es la
+# segunda pestaña que salió con la misma cookie, o el reintento del celular
+# que no llegó a recibir la respuesta. Se le da un par nuevo sin cortar las
+# demás sesiones. Pasado el plazo, el reuso vuelve a cerrar todo.
+REFRESH_ROTATION_GRACE = timedelta(seconds=30)
+
+
 @dataclass
 class RefreshSession:
     """Sesión de refresh token: registro server-side que permite revocación.
@@ -64,6 +72,10 @@ class RefreshSession:
     Cada refresh token emitido queda identificado por su claim `jti` (único).
     La sesión se revoca al rotar (usarse en `/auth/refresh`), al hacer logout,
     o en bloque si se detecta reuso de un token ya revocado (posible robo).
+
+    `rotated_at` dice cuándo se revocó POR ROTACIÓN (y no por cierre de
+    sesión, contraseña nueva, suspensión o robo). Una revocación en bloque
+    posterior lo borra: después de ella el token viejo ya no tiene gracia.
     """
 
     user_id: UUID
@@ -72,6 +84,7 @@ class RefreshSession:
     id: UUID = field(default_factory=uuid4)
     revoked_at: datetime | None = None
     created_at: datetime | None = None
+    rotated_at: datetime | None = None
 
     @property
     def is_revoked(self) -> bool:
@@ -81,6 +94,13 @@ class RefreshSession:
         """Marca la sesión como revocada (idempotente)."""
         if self.revoked_at is None:
             self.revoked_at = datetime.now(timezone.utc)
+
+    def rotated_within_grace(self, now: datetime) -> bool:
+        """True si se rotó hace `REFRESH_ROTATION_GRACE` o menos y nada la
+        revocó después: volver a usarla no es robo."""
+        if self.rotated_at is None:
+            return False
+        return _naive(now) - _naive(self.rotated_at) <= REFRESH_ROTATION_GRACE
 
 
 @dataclass

@@ -1,7 +1,7 @@
 """Fixtures de pytest: base de datos SQLite en memoria y cliente HTTP async."""
 
 from collections.abc import AsyncGenerator
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 import pytest_asyncio
@@ -200,6 +200,27 @@ async def refresh_with_cookie(cookie_value: str) -> Response:
     la única forma confiable de controlar el valor exacto enviado."""
     async with new_client(cookies={"staffya_refresh": cookie_value}) as ac:
         return await ac.post("/api/v1/auth/refresh")
+
+
+async def pasar_la_ventana_de_gracia(
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    """Corre para atrás las rotaciones ya hechas, como si hubiera pasado más
+    de `REFRESH_ROTATION_GRACE` (ADR-0002, actualización 2026-11-19): desde
+    acá, reusar un refresh rotado vuelve a ser robo."""
+    from sqlalchemy import update
+
+    from app.modules.identity.domain.entities import REFRESH_ROTATION_GRACE
+    from app.modules.identity.infrastructure.models import RefreshSessionModel
+
+    antes = datetime.now(timezone.utc) - REFRESH_ROTATION_GRACE - timedelta(seconds=1)
+    async with session_factory() as session:
+        await session.execute(
+            update(RefreshSessionModel)
+            .where(RefreshSessionModel.rotated_at.is_not(None))
+            .values(rotated_at=antes, revoked_at=antes)
+        )
+        await session.commit()
 
 
 # --- Admin con la verificación en dos pasos (ADR-0023) ----------------------

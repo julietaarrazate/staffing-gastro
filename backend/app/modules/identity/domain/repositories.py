@@ -138,8 +138,17 @@ class RefreshSessionRepository(ABC):
         """Revoca la sesión identificada por `jti` (no-op si no existe o ya lo está)."""
 
     @abstractmethod
+    async def rotate(self, jti: str, now: datetime) -> bool:
+        """Revoca por rotación la sesión `jti` sólo si sigue viva, en un solo
+        paso (UPDATE condicional): de dos pedidos con el mismo token gana uno.
+        Devuelve True si la rotó este pedido; False si otro ya la había
+        rotado o revocado."""
+
+    @abstractmethod
     async def revoke_all_for_user(self, user_id: UUID) -> None:
-        """Revoca todas las sesiones activas de un usuario (reuso detectado = posible robo)."""
+        """Revoca todas las sesiones activas de un usuario (reuso detectado =
+        posible robo, contraseña nueva, suspensión). También les quita la
+        gracia a las recién rotadas: después de esto el token viejo es robo."""
 
     @abstractmethod
     async def delete_expired_before(self, cutoff: datetime) -> int:
