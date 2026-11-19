@@ -1,4 +1,4 @@
-# Privacidad: la vista de un turno para el trabajador, sin datos de otra persona
+# Privacidad: la vista de un turno para el trabajador, sin datos de otra persona (#661)
 
 **Pedido:** Julieta, pasada por clase de error de la beta (etapa 2, punto 1
 del 2026-11-19). La clase «privacidad entre roles» encontró dos casos en que

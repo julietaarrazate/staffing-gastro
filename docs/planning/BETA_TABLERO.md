@@ -340,7 +340,7 @@ horaria.
 | Pin desplazado del trabajador (se podía deshacer conociendo un punto real de la persona) | PRI-02 | grave | ✅ #665 |
 | CV del trabajador | PRI-03 | grave | ⚪ |
 | Renovación de la sesión sin ventana de gracia ni coordinación entre pestañas | CON-02, CON-03, SES-01 | grave | ⚪ |
-| Pedidos repetidos (idempotencia de las acciones del turno, duplicados que dan 500) | CON-01, CON-05, CON-12, CON-14 | menor | ⚪ |
+| Pedidos repetidos (idempotencia de las acciones del turno, duplicados que dan 500) | CON-01, CON-05, CON-12, CON-14 | menor | 🔵 este PR |
 | Postulación con el estado viejo | VIE-01, CON-04, CON-11 | menor | ⚪ |
 | Socket y lista de avisos | PRI-04, VIE-04, CON-10, ESC-04 | menor | ⚪ |
 | Pantallas sin reloj ni relectura | VIE-02, VIE-03, VIE-05 | menor | ⚪ |
