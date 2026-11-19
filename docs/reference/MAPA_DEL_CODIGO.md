@@ -78,7 +78,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Tokens de color, sombras, anchos (`.app-container`, `.app-container-reading`) | `frontend/app/globals.css` |
 | Paleta celeste (v6) y la superficie de marca `bg-brand` | `frontend/app/globals.css`, bloque "PALETA CELESTE" (rige en `:root`) y `@utility bg-brand`; tinta sobre la marca: tokens `on-brand`, `heroInk()`/`heroTile()` en `lib/skill-style.tsx` |
 | Escala tipográfica y su guardia | `frontend/lib/type-scale.test.ts` |
-| Guardar una parte del perfil del trabajador (el `PUT /workers/me/profile` reemplaza el perfil entero) | `frontend/lib/worker-profile.ts` (`saveProfilePart`: lee el perfil del servidor y manda todo con el cambio encima); lo usan la foto, el interruptor «Disponible» del Inicio, el formulario y `/bienvenida`. No armar otro PUT a mano |
+| Guardar una parte del perfil del trabajador (el `PUT /workers/me/profile` reemplaza el perfil entero) | `frontend/lib/worker-profile.ts` (`saveProfilePart`: lee el perfil del servidor y manda todo con el cambio encima); lo usan la foto, el interruptor «Disponible» del Inicio, el formulario (que manda sólo los campos tocados) y `/bienvenida`. No armar otro PUT a mano. Comercio: `frontend/lib/company-profile.ts` (`saveCompanyProfilePart`), mismo patrón |
 | Tema claro/oscuro (clave `oido-theme`) | `frontend/lib/theme.tsx` |
 | Componentes base (Button, Card, Sheet, Modal, IconChip…) | `frontend/components/ui/` |
 | Pila de capas abiertas: Escape cierra sólo la de más arriba (la usan Modal, Sheet, `DiscoverDeck` y `GuidedTour`, prioridad 70, donde Escape = «Saltar recorrido»; ignora la repetición de tecla; una capa nueva con su propio Escape tiene que usarla) | `frontend/lib/use-escape-layer.ts` |

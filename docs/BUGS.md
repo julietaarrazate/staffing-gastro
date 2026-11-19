@@ -521,4 +521,5 @@ captura al arrancar.
 
 - **Encontrado (2026-11):** tres veces. El formulario completo contra la foto (de ahí salió `toWorkerProfileInput`); luego la foto del Perfil y el interruptor «Disponible» del Inicio (hallazgo U053, reporte BK-676ABE51EF2C); y `/bienvenida` al reentrar con perfil existente (PUT corto tras un 409).
 - **Fix:** `saveProfilePart(token, cambios)` en `frontend/lib/worker-profile.ts` lee el perfil del servidor justo antes de escribir y manda el perfil completo con los cambios encima.
+- **Cerrado el caso del formulario completo (2026-11-19, ESC-03):** `WorkerProfileForm` ya no manda lo cargado al abrir: manda sólo lo que la persona tocó (`changedFields`) a `saveProfilePart`. Lo mismo `CompanyProfileForm` con `saveCompanyProfilePart` (`lib/company-profile.ts`, ESC-02).
 - **Cómo evitarlo:** guardar una parte del perfil siempre con `saveProfilePart`; nunca armar el payload en la pantalla ni usar la copia en memoria. Queda abierta la ventana de milisegundos entre leer y escribir: el arreglo de fondo es un guardado parcial (PATCH) en el backend.
