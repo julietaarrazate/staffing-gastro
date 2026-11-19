@@ -621,6 +621,28 @@ async def test_un_refresh_reutilizado_deja_a_la_cuenta_para_el_barrido(
     assert await _devices_of(session_factory, user_id) == []
 
 
+async def test_la_ventana_de_gracia_no_deja_sesiones_huerfanas_para_el_barrido(
+    client: AsyncClient, session_factory
+):
+    """La respuesta de una renovación se perdió y el reintento usó la ventana
+    de gracia: la sucesora que nunca llegó queda revocada. Si después la
+    cuenta cierra sesión, el barrido la ve; antes esa sucesora quedaba viva
+    30 días sin dueño y le dejaba el dispositivo registrado."""
+    headers = await auth_headers(client, "worker", "barrido_ventana@staffya.com")
+    user_id = await _me(client, headers)
+    await _subscribe(client, headers)
+    viejo = client.cookies.get("staffya_refresh")
+    # Renueva y la respuesta no llega: el jar de `client` sigue con la vieja.
+    assert (await refresh_with_cookie(viejo)).status_code == 200
+    # El reintento sale con la vieja y usa la ventana.
+    assert (await client.post(f"{API}/auth/refresh")).status_code == 200
+    assert (await client.post(f"{API}/auth/logout")).status_code == 204
+    await _age_revocations(session_factory)
+
+    assert await sweep_devices_of_revoked_accounts(session_factory) == 1
+    assert await _devices_of(session_factory, user_id) == []
+
+
 class _GoogleDePrueba(GoogleTokenVerifier):
     async def verify(self, id_token: str) -> GoogleIdentity:
         return GoogleIdentity(
@@ -698,7 +720,8 @@ async def test_ningun_ingreso_deja_una_sesion_abierta_sin_fila_viva(
 ):
     """El barrido le borraría el dispositivo a alguien con la sesión abierta
     si algún camino de ingreso no guardara su sesión de refresh. Todos pasan
-    por `IdentityService._issue_tokens`; esto lo fija."""
+    por `IdentityService._issue_tokens`, y la renovación la guarda junto con
+    la rotación (`rotate`); esto lo fija."""
     headers = await ingreso(client, session_factory)
     user_id = await _me(client, headers)
     await _subscribe(client, headers)

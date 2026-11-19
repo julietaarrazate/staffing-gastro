@@ -168,9 +168,10 @@ async def test_refresh_rotates_tokens(client: AsyncClient, session_factory):
 
     # El refresh token original (ya rotado en el primer /refresh) no debe
     # servir para renovar de nuevo — se reenvía a mano en un cliente nuevo
-    # (el jar de `client` ya avanzó al token rotado). Pasada la ventana de
-    # gracia: dentro de ella vuelve a servir una vez más (ver
-    # `test_renovacion_de_sesion.py`).
+    # (el jar de `client` ya avanzó al token rotado). Se reusa pasada la
+    # ventana de gracia de 30 s, el caso de siempre; dentro de ella tampoco
+    # serviría, porque su sucesora ya se rotó con `again` (las reglas de la
+    # ventana están en `test_renovacion_de_sesion.py`).
     await pasar_la_ventana_de_gracia(session_factory)
     reused = await refresh_with_cookie(refresh_token)
     assert reused.status_code == 401
