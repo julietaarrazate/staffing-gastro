@@ -127,10 +127,20 @@ class OverpassPlaceSource(PlaceSource):
         try:
             res = await client.post(url, data={"data": query})
             res.raise_for_status()
-            return res.json()
+            payload = res.json()
+            if not isinstance(payload, dict):
+                raise ValueError("la respuesta no es un objeto JSON")
+            # Overpass a veces responde 200 con un error de ejecución en
+            # `remark` y sin elementos: no es una respuesta válida.
+            remark = payload.get("remark")
+            if (
+                isinstance(remark, str)
+                and "runtime error" in remark.lower()
+                and not payload.get("elements")
+            ):
+                raise ValueError(f"error de ejecución: {remark[:100]}")
+            return payload
         except Exception as exc:
-            if isinstance(exc, asyncio.CancelledError):
-                raise
             # El servidor y el error van en el mensaje: Render no muestra `extra`.
             logger.warning(
                 "lead.overpass_failed servidor=%s error=%s %s",

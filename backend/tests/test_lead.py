@@ -372,3 +372,35 @@ async def test_overpass_gives_up_within_the_total_timeout():
     with pytest.raises(PlaceSourceUnavailableError):
         await source.find_gastronomy("Palermo")
     assert time.monotonic() - start < 3
+
+
+async def test_overpass_runtime_error_remark_does_not_win_the_race():
+    async def handler(request):
+        if request.url.host == "uno.test":
+            return httpx.Response(
+                200,
+                json={"remark": 'runtime error: Query timed out in "query" at line 1', "elements": []},
+            )
+        if request.url.host == "dos.test":
+            await asyncio.sleep(0.2)
+            return httpx.Response(200, json=_ONE_CAFE)
+        await asyncio.sleep(30)
+        return httpx.Response(200, json=_ONE_CAFE)
+
+    source, _ = _source(handler, total_timeout_s=60)
+    places = await source.find_gastronomy("Palermo")
+    assert [p.name for p in places] == ["Café Respaldo"]
+
+
+async def test_overpass_remark_with_elements_is_accepted():
+    payload = {**_ONE_CAFE, "remark": "runtime error: algo parcial"}
+    source, _ = _source(lambda request: httpx.Response(200, json=payload))
+    places = await source.find_gastronomy("Palermo")
+    assert [p.name for p in places] == ["Café Respaldo"]
+
+
+async def test_overpass_discards_a_json_list_response():
+    source, hosts = _source(lambda request: httpx.Response(200, json=[1, 2]))
+    with pytest.raises(PlaceSourceUnavailableError):
+        await source.find_gastronomy("Palermo")
+    assert len(hosts) == 3
