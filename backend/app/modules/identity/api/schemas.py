@@ -107,6 +107,13 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class GuestAccessResponse(BaseModel):
+    """Si el ingreso muestra «Explorar sin cuenta» (hay PIN configurado). No
+    dice nada del PIN."""
+
+    enabled: bool
+
+
 class GuestLoginRequest(BaseModel):
     """Acceso de invitado para la beta ("Explorar sin cuenta"): sólo el PIN y
     qué lado querés probar (trabajador o comercio)."""

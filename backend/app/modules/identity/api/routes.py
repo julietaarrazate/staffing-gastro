@@ -23,6 +23,7 @@ from app.modules.identity.api.schemas import (
     ForgotPasswordResponse,
     GoogleAuthRequest,
     GoogleRoleRequiredResponse,
+    GuestAccessResponse,
     GuestLoginRequest,
     LoginRequest,
     MeResponse,
@@ -292,6 +293,18 @@ def _challenge_response(issued: TwoFactorChallengeIssued) -> TwoFactorChallengeR
     return TwoFactorChallengeResponse(
         challenge_token=issued.challenge_token, expires_in=issued.expires_in
     )
+
+
+@router.get(
+    "/guest",
+    response_model=GuestAccessResponse,
+    summary="Si el acceso de invitado (beta) está prendido",
+)
+async def guest_access() -> GuestAccessResponse:
+    """Para que el ingreso muestre «Explorar sin cuenta» sólo cuando sirve:
+    sin `GUEST_ACCESS_PIN` (la beta abierta, decisión 5) el recuadro no
+    aparece, en vez de pedir un PIN que nadie tiene."""
+    return GuestAccessResponse(enabled=IdentityService.guest_access_enabled())
 
 
 @router.post(

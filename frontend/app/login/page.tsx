@@ -1,11 +1,11 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { destinoTrasIngreso } from "@/lib/perfil-faltante";
-import { ApiError, isAccountSuspended } from "@/lib/api";
+import { api, ApiError, isAccountSuspended } from "@/lib/api";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
 import { Button, TextField } from "@/components/ui";
 import TurnstileWidget, { TurnstileTemprano } from "@/components/TurnstileWidget";
@@ -55,6 +55,21 @@ function LoginForm() {
   const [pin, setPin] = useState("");
   const [guestLoading, setGuestLoading] = useState<"employer" | "worker" | null>(null);
   const [guestRole, setGuestRole] = useState<"employer" | "worker" | null>(null);
+  // Con la beta abierta el PIN se vacía en Render (decisión 5) y el recuadro
+  // desaparece: nadie ve un «Explorar sin cuenta» que pide un PIN que no
+  // tiene. Arranca oculto (un usuario real no lo ve aparecer y desaparecer) y
+  // sólo se muestra si el servidor dice que el acceso está prendido.
+  const [guestEnabled, setGuestEnabled] = useState(false);
+  useEffect(() => {
+    let vigente = true;
+    api
+      .get<{ enabled: boolean }>("/auth/guest")
+      .then((r) => vigente && setGuestEnabled(r.enabled === true))
+      .catch(() => vigente && setGuestEnabled(false));
+    return () => {
+      vigente = false;
+    };
+  }, []);
   // Paso del código (admin con verificación en dos pasos). Queda abierto
   // aunque el desafío ya se haya canjeado: si entró con un código de
   // recuperación, el paso le avisa cuántos le quedan antes de seguir.
@@ -201,83 +216,85 @@ function LoginForm() {
           />
         </div>
 
-        <div className="mt-5 rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
-          <p className="text-center text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">
-            Explorar sin cuenta
-          </p>
-          {guestRole === null ? (
-            <>
-              <p className="mt-2 text-center text-xs text-ink/50">
-                Elegí cómo querés explorar la app.
-              </p>
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                <Button
-                  variant="surface"
-                  size="sm"
-                  fullWidth
-                  onClick={() => {
-                    setError(null);
-                    setGuestRole("employer");
-                  }}
-                >
-                  Soy comercio
-                </Button>
-                <Button
-                  variant="surface"
-                  size="sm"
-                  fullWidth
-                  onClick={() => {
-                    setError(null);
-                    setGuestRole("worker");
-                  }}
-                >
-                  Soy trabajador
-                </Button>
-              </div>
-            </>
-          ) : (
-            <form onSubmit={handleGuestSubmit}>
-              <p className="mt-2 text-center text-xs text-ink/50">
-                Con el PIN de la beta entrás a probar la app como{" "}
-                {guestRole === "employer" ? "comercio" : "trabajador"}.
-              </p>
-              <div className="mt-3">
-                <TextField
-                  label="PIN de acceso"
-                  name="pin"
-                  autoComplete="off"
-                  value={pin}
-                  onChange={setPin}
-                  placeholder="Ingresá el PIN"
-                  inputMode="numeric"
-                />
-              </div>
-              <div className="mt-3 flex gap-3">
-                <Button
-                  type="button"
-                  variant="surface"
-                  size="sm"
-                  onClick={() => {
-                    setError(null);
-                    setGuestRole(null);
-                  }}
-                  disabled={guestLoading !== null}
-                >
-                  Volver
-                </Button>
-                <Button
-                  type="submit"
-                  size="sm"
-                  fullWidth
-                  loading={guestLoading === guestRole}
-                  disabled={guestLoading !== null}
-                >
-                  Entrar
-                </Button>
-              </div>
-            </form>
-          )}
-        </div>
+        {guestEnabled && (
+          <div className="mt-5 rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
+            <p className="text-center text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">
+              Explorar sin cuenta
+            </p>
+            {guestRole === null ? (
+              <>
+                <p className="mt-2 text-center text-xs text-ink/50">
+                  Elegí cómo querés explorar la app.
+                </p>
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <Button
+                    variant="surface"
+                    size="sm"
+                    fullWidth
+                    onClick={() => {
+                      setError(null);
+                      setGuestRole("employer");
+                    }}
+                  >
+                    Soy comercio
+                  </Button>
+                  <Button
+                    variant="surface"
+                    size="sm"
+                    fullWidth
+                    onClick={() => {
+                      setError(null);
+                      setGuestRole("worker");
+                    }}
+                  >
+                    Soy trabajador
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <form onSubmit={handleGuestSubmit}>
+                <p className="mt-2 text-center text-xs text-ink/50">
+                  Con el PIN de la beta entrás a probar la app como{" "}
+                  {guestRole === "employer" ? "comercio" : "trabajador"}.
+                </p>
+                <div className="mt-3">
+                  <TextField
+                    label="PIN de acceso"
+                    name="pin"
+                    autoComplete="off"
+                    value={pin}
+                    onChange={setPin}
+                    placeholder="Ingresá el PIN"
+                    inputMode="numeric"
+                  />
+                </div>
+                <div className="mt-3 flex gap-3">
+                  <Button
+                    type="button"
+                    variant="surface"
+                    size="sm"
+                    onClick={() => {
+                      setError(null);
+                      setGuestRole(null);
+                    }}
+                    disabled={guestLoading !== null}
+                  >
+                    Volver
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    fullWidth
+                    loading={guestLoading === guestRole}
+                    disabled={guestLoading !== null}
+                  >
+                    Entrar
+                  </Button>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
 
         <p className="mt-5 text-center text-sm text-ink/70">
           ¿No tenés cuenta?{" "}
