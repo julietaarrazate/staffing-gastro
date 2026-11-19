@@ -1140,6 +1140,27 @@ body:has([data-landing]) main {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+/* Los pasos del turno tachados a mano (`ShiftLifecycleStepper`): el trazo
+   va encima de la palabra, en azul hondo (celeste de noche fuera del papel),
+   un poco más ancho que ella, como una raya de birome. */
+.pasos-tachados .tacha {
+  position: absolute;
+  left: -3px;
+  top: 50%;
+  width: calc(100% + 6px);
+  height: 8px;
+  margin-top: -3px;
+  overflow: visible;
+  pointer-events: none;
+  color: var(--color-primary-text);
+}
+.pasos-tachados .tacha path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
 /* Lo destacado de una lista (el candidato que se recomienda): blanco, con el
    borde y el relieve del filete. Uno por pantalla. */
 .tarjeta-relieve {

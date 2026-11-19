@@ -399,9 +399,10 @@ export default function ShiftCard({
             tarjeta decía el estado dos veces seguidas. El chip nombra el
             estado; los puntos dicen cuánto falta. El texto del stepper sólo
             vuelve cuando el turno se cortó, porque ahí agrega en qué paso. */}
-        {/* En la comanda la fila puede partirse: a 320 px el sello y los
-            cuatro pasos no entran juntos, y los pasos bajan de renglón. */}
-        <div className={`mt-4 flex items-start gap-3 ${comanda ? "flex-wrap" : ""}`}>
+        {/* La fila puede partirse: los pasos son palabras en un renglón
+            (tachadas a mano, 2026-11-19) y, si no entran al lado del estado,
+            bajan enteros al renglón de abajo en lugar de partirse en dos. */}
+        <div className="mt-4 flex flex-wrap items-start gap-x-3 gap-y-2">
           <span
             data-testid="shift-status"
             className={
@@ -417,7 +418,7 @@ export default function ShiftCard({
               shift={shift}
               perspective={perspective}
               caption="cutShort"
-              className={comanda ? "min-w-[7.5rem] flex-1 pt-0.5" : "min-w-0 flex-1 pt-0.5"}
+              className="flex-auto pt-0.5"
             />
           )}
         </div>
