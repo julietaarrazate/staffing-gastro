@@ -304,8 +304,10 @@ preguntó con opciones puestas sobre las pantallas ya migradas (capturas a
    secundarios~~ (hechos el 2026-11-19,
    [historial](../historial/2026-11-19-botones-secundarios-relieve.md)), ~~los
    pasos tachados a mano~~ (hechos el 2026-11-19,
-   [historial](../historial/2026-11-19-pasos-tachados.md)), los colores
-   de los sellos y el detalle del turno. Cómo va cada uno, en «Decidido por
+   [historial](../historial/2026-11-19-pasos-tachados.md)), ~~los colores
+   de los sellos~~ (hechos el 2026-11-19,
+   [historial](../historial/2026-11-19-colores-de-los-sellos.md)) y el
+   detalle del turno. Cómo va cada uno, en «Decidido por
    Julieta (2026-11-19)».
 
 ## Piezas compartidas de la app (desde el Inicio del trabajador)
@@ -321,7 +323,7 @@ Antes de dibujar algo nuevo en una pantalla, usar éstas:
 | `Apunte`, `.letra-mano` | ídem | Un apunte a mano con óvalo. Uno por pantalla |
 | `Flechita` | ídem | La flechita a mano que acompaña un apunte («el que te recomendamos») |
 | `.tarjeta-relieve` | `globals.css` | Lo destacado de una lista (el candidato recomendado): blanco con el borde y el relieve del filete. Uno por lista |
-| `.sello-goma` | `globals.css` | Un estado como sello de goma (toma el color de la letra) |
+| `.sello-goma` + `.sello-verde` / `-azul` / `-rojo` / `-gris` | `globals.css` | Un estado como sello de goma, sobre el papel. Cuatro tintas fijas (el papel es claro en los dos temas): verde lo que salió bien, azul hondo lo que está en curso, rojo cancelado y «Urgente», gris lo que no arrancó o no se cubrió |
 | `.cartelito` | `globals.css` | «Disponible» como el cartelito de la puerta |
 | `AIAssistantBar recto` | `components/AIAssistantBar.tsx` | El buscador sin píldora ni sombra |
 | `ShiftCard comanda` | `components/ShiftCard.tsx` | La tarjeta de un turno (con sus pasos y acciones) como comanda: puesto en brocha y estado como sello. La usa el panel; «Mis turnos» la toma pasando el prop |

@@ -92,16 +92,19 @@ const DIMMED_STATUSES = new Set(["cancelado", "pagado", "no_cubierto"]);
 // poco es ruido; en uno terminado o cancelado, es ruido sobre historia.
 const PAY_HINT_STATUSES = new Set(["borrador", "publicado", "buscando_personal"]);
 
-// En la comanda (`comanda`), el estado es un sello de goma: toma el color de
-// la letra. Verde para lo que salió bien, rojo sólo para cancelado, gris para
-// lo que no arrancó o no se cubrió, azul hondo para todo lo que está en curso.
+// En la comanda (`comanda`), el estado es un sello de goma con una de sus
+// cuatro tintas (`.sello-*` en globals.css, fijas porque el papel es claro en
+// los dos temas). Verde para lo que salió bien (con «llegó», como en la
+// prueba de la app), rojo sólo para cancelado, gris para lo que no arrancó o
+// no se cubrió, azul hondo para todo lo que está en curso.
 const SELLO_COLORS: Record<string, string> = {
-  borrador: "text-ink-soft",
-  confirmado: "text-success-text",
-  finalizado: "text-success-text",
-  pagado: "text-success-text",
-  cancelado: "text-danger-text",
-  no_cubierto: "text-ink-soft",
+  borrador: "sello-gris",
+  confirmado: "sello-verde",
+  check_in: "sello-verde",
+  finalizado: "sello-verde",
+  pagado: "sello-verde",
+  cancelado: "sello-rojo",
+  no_cubierto: "sello-gris",
 };
 
 export default function ShiftCard({
@@ -171,7 +174,7 @@ export default function ShiftCard({
             <h3 className="letra-cartel letra-cartel-puesto min-w-0 break-words">
               {textoCartel(SKILL_LABELS[shift.position])}
             </h3>
-            {shift.urgent && <span className="sello-goma mt-1 shrink-0 text-danger-text">Urgente</span>}
+            {shift.urgent && <span className="sello-goma sello-rojo mt-1 shrink-0">Urgente</span>}
           </div>
           <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm text-ink-soft">
             {shift.company_name && (
@@ -407,7 +410,7 @@ export default function ShiftCard({
             data-testid="shift-status"
             className={
               comanda
-                ? `sello-goma shrink-0 ${SELLO_COLORS[shift.status] ?? "text-primary-text"}`
+                ? `sello-goma shrink-0 ${SELLO_COLORS[shift.status] ?? "sello-azul"}`
                 : `shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${STATUS_COLORS[shift.status] ?? "bg-surface text-ink/70"}`
             }
           >
