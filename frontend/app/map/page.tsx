@@ -273,28 +273,38 @@ export default function MapPage() {
 
   // `silent` (avisos y vuelta a la pestaña): sin esqueleto, y si falla se deja
   // lo que ya se ve.
+  // Último pedido gana: una respuesta vieja no pisa a la nueva.
+  const latestLoad = useRef(0);
+  // Turnos a los que se postuló desde esta pantalla: una recarga que salió antes
+  // no los vuelve a poner.
+  const postulados = useRef<Set<string>>(new Set());
+
   const load = useCallback(
     async (options?: { silent?: boolean }) => {
-    if (!token) return;
-    const silent = options?.silent === true;
-    if (!silent) setLoading(true);
-    try {
-      const [feed, applied] = await Promise.all([
-        api.get<Shift[]>("/shifts/feed", token),
-        api.get<ShiftApplication[]>("/applications/mine", token).catch(() => []),
-      ]);
-      const appliedIds = appliedShiftIds(applied);
-      const fetched = feed.filter((s) => !appliedIds.has(s.id) && s.latitude != null);
-      fetchedRef.current = fetched;
-      const near = nearbyOnly(fetched, originRef.current);
-      setFarFromHere(near.length < fetched.length);
-      setShifts(sortByDistance(near, originRef.current));
-      setError(null);
-    } catch (err) {
-      if (!silent) setError(err instanceof ApiError ? err.message : "No se pudo cargar el mapa");
-    } finally {
-      if (!silent) setLoading(false);
-    }
+      if (!token) return;
+      const silent = options?.silent === true;
+      const mine = ++latestLoad.current;
+      if (!silent) setLoading(true);
+      try {
+        const [feed, applied] = await Promise.all([
+          api.get<Shift[]>("/shifts/feed", token),
+          api.get<ShiftApplication[]>("/applications/mine", token).catch(() => []),
+        ]);
+        if (mine !== latestLoad.current) return;
+        const appliedIds = appliedShiftIds(applied);
+        const fetched = feed.filter((s) => !appliedIds.has(s.id) && !postulados.current.has(s.id) && s.latitude != null);
+        fetchedRef.current = fetched;
+        const near = nearbyOnly(fetched, originRef.current);
+        setFarFromHere(near.length < fetched.length);
+        setShifts(sortByDistance(near, originRef.current));
+        setError(null);
+      } catch (err) {
+        if (!silent && mine === latestLoad.current) {
+          setError(err instanceof ApiError ? err.message : "No se pudo cargar el mapa");
+        }
+      } finally {
+        if (mine === latestLoad.current) setLoading(false);
+      }
     },
     [token]
   );
@@ -364,6 +374,7 @@ export default function MapPage() {
         keyFor(shift.id)
       );
       clearIdempotencyKey(shift.id);
+      postulados.current.add(shift.id);
       toast("¡Te postulaste! El comercio ya te puede ver");
       setPreviewShift((prev) => (prev?.id === shift.id ? null : prev));
       setJustAppliedId(shift.id);
