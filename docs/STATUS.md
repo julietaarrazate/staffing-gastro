@@ -42,7 +42,7 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
   (`reference/PENDIENTE_OPERATIVO.md`, 5c). La próxima migración libre es
   la 0061. En paralelo, las
   etapas 4 (marca) y 5 (lista de salida: escrita en el tablero, lo de
-  código está salvo TypeScript 7 y falta lo de Julieta para el día que abre). Antes de encender el
+  código está hecho y falta lo de Julieta para el día que abre). Antes de encender el
   cobro: la regla de cambio de plan que decidió Julieta, con U140, U142 y
   U143. Antes del 17/12: revisar la excepción de picomatch (#612).
   Qué está hecho,
@@ -172,6 +172,35 @@ Revisado contra el código y los PRs el 2026-10-03.
    `.github/workflows/ci.yml` y `@types/node` en `frontend/package.json`.
    Dependabot tiene ignoradas las subas mayores de `@types/node` (#375) para
    que los tipos no se adelanten a la versión que corre.
+
+   🟡 **Pasar del todo a TypeScript 7 apenas typescript-eslint lo acepte**
+   (pedido de Julieta, 2026-11-19: «así no me olvido»). Hoy la 7.0 sólo
+   chequea los tipos (`typescript-7`, alias; `npm run typecheck`) y
+   `typescript` sigue en 6 para ESLint y `next build`
+   ([historial](./historial/2026-11-19-typescript-7.md)).
+   - **Cómo saber que ya se puede** (mirarlo en cada sesión que toque el
+     frontend o cuando Dependabot proponga `typescript-7` 7.1):
+     `npm view typescript dist-tags` da `latest` 7.1 o mayor, y
+     `npm view @typescript-eslint/typescript-estree@latest peerDependencies`
+     acepta esa versión **estable** (hoy sólo acepta `typescript` <6.1 y, como
+     `@typescript/native`, la 7.1 en beta o dev).
+   - **Qué hacer**, en un PR, según lo que pida typescript-eslint:
+     - **Si acepta `typescript` 7:** en `frontend/package.json`, `typescript`
+       a `~7.1` y borrar el alias `typescript-7`; script `typecheck` →
+       `tsc --noEmit`; sacar de `.github/dependabot.yml` la regla que ignora
+       la 7 y la 6.1 de `typescript`; docs (`CLAUDE.md`,
+       `reference/TESTING.md`, `foundation/PRINCIPLES.md`,
+       `foundation/ARCHITECTURE.md`) y borrar la receta «`npm run typecheck`,
+       no `npx tsc`» de `reference/SESION_CLOUD.md`. Con `typescript` en 7,
+       `next build` también chequea con la 7 (probado el 2026-11-19: Next
+       16.4 la usa sin cambios).
+     - **Si la pide como `@typescript/native`:** renombrar el alias
+       `typescript-7` a `@typescript/native` (`npm:typescript@~7.1.x`) y
+       apuntar ahí el script `typecheck`; `typescript` queda en 6 (lo sigue
+       usando typescript-eslint) con su regla de Dependabot. Confirmar con
+       el lint que typescript-eslint tome la 7.
+     - En los dos casos: typecheck, lint, test:unit, build, `cf:build` y la
+       e2e completa, y actualizar este ítem.
 6. 🟠 **Cobro real de la suscripción** — **código listo, apagado**
    (ADR-0022, 2026-10-23): un pago por mes con Checkout Pro de Mercado Pago,
    sin débito automático ni tarjeta de crédito; webhook firmado que acredita

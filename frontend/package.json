@@ -9,6 +9,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "node node_modules/typescript-7/bin/tsc --noEmit",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
     "postinstall": "node scripts/patch-opennext.mjs && node scripts/copy-maplibre-worker.mjs",
@@ -48,6 +49,7 @@
     "jsdom": "^30.0.1",
     "tailwindcss": "^4",
     "typescript": "~6.0.3",
+    "typescript-7": "npm:typescript@~7.0.2",
     "vitest": "^5.0.2",
     "wrangler": "^4.150.0"
   },

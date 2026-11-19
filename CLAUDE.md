@@ -31,7 +31,7 @@
 
 ## Calidad — antes de commitear
 
-Backend `pytest -q`. Frontend `npx tsc --noEmit`, `npm run lint`, `npm run test:unit`, `npm run build`. E2E `npm run test:e2e` (Playwright, API mockeada). Reportá el resultado **real**; si citás cuántos tests hay, contalos en el momento.
+Backend `pytest -q`. Frontend `npm run typecheck` (TypeScript 7), `npm run lint`, `npm run test:unit`, `npm run build`. E2E `npm run test:e2e` (Playwright, API mockeada). Reportá el resultado **real**; si citás cuántos tests hay, contalos en el momento.
 
 ## Git y cierre de PR
 

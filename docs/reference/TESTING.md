@@ -24,7 +24,7 @@
 
 ## Frontend
 
-- **Gates:** `npx tsc --noEmit` (tipos) **y** `npm run build` (compila). No hay
+- **Gates:** `npm run typecheck` (tipos, con TypeScript 7) **y** `npm run build` (compila). No hay
   suite de tests unitarios ni e2e todavía.
 - Lint: `eslint` (`npm run lint`).
 

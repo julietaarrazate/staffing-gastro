@@ -269,6 +269,6 @@ sin ADR escrito todavía. No priorizar sin señal real de carga.
 
 - Backend: `pytest` con **SQLite en memoria** (sin DB externa); las tablas se
   crean con `Base.metadata.create_all` desde `tests/conftest.py`.
-- Frontend: Vitest + Testing Library (unitarios) + `npx tsc --noEmit` +
+- Frontend: Vitest + Testing Library (unitarios) + `npm run typecheck` (TypeScript 7) +
   `npm run build` + Playwright (E2E, API mockeada).
 - Ver [TESTING.md](../reference/TESTING.md).
