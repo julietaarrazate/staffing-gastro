@@ -7,7 +7,7 @@ const get = vi.fn();
 const put = vi.fn();
 vi.mock("@/lib/api", () => ({
   ApiError: class ApiError extends Error {},
-  api: { get: (...a: unknown[]) => get(...a), put: (...a: unknown[]) => put(...a) },
+  api: { get: (...a: unknown[]) => get(...a), getFresco: (...a: unknown[]) => get(...a), put: (...a: unknown[]) => put(...a) },
 }));
 vi.mock("@/lib/auth-context", () => ({
   useAuth: () => ({ token: "tok", user: { full_name: "Vera Datos" } }),

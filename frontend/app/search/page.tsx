@@ -322,7 +322,15 @@ function SearchPageContent() {
                 className={`flex gap-3 rounded-[var(--radius-card)] p-4 transition active:scale-[0.99] ${worker.is_live ? "tarjeta-relieve" : "bg-card ring-1 ring-line"}`}
               >
                 {worker.photo_url ? (
-                  <img src={worker.photo_url} alt={worker.full_name} loading="lazy" decoding="async" className="h-14 w-14 rounded-[var(--radius-btn)] object-cover" />
+                  <img
+                    src={worker.photo_url}
+                    alt={worker.full_name}
+                    width={56}
+                    height={56}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-14 w-14 rounded-[var(--radius-btn)] object-cover"
+                  />
                 ) : (
                   <span aria-hidden className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-[var(--radius-btn)] text-xl font-bold ${worker.skills.length > 0 ? heroTile(worker.skills[0]) : "bg-surface text-ink"}`}>
                     {worker.full_name.charAt(0).toUpperCase()}

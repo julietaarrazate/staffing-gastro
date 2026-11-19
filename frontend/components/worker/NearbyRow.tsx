@@ -37,6 +37,8 @@ function NearbyItem({ shift, distanceKm }: { shift: Shift; distanceKm: number | 
             <img
               src={cldThumb(heroPhoto, 160)}
               alt=""
+              width={46}
+              height={46}
               onError={() => setBroken(true)}
               loading="lazy"
               decoding="async"

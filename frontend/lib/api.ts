@@ -370,18 +370,35 @@ function renewOnce(handler: () => Promise<string | null>): Promise<RenewOutcome>
   return renewing;
 }
 
-async function request<T>(
-  path: string,
-  options: RequestInit & {
-    token?: string | null;
-    timeoutMs?: number;
-    idempotencyKey?: string;
-    /** Interno: ya se reintentó una vez tras un 401. */
-    retried?: boolean;
-    /** No avisar a `onTwoFactorGate` (ver `backgroundApi`). */
-    skipTwoFactorGate?: boolean;
-  } = {}
-): Promise<T> {
+type RequestOptions = RequestInit & {
+  token?: string | null;
+  timeoutMs?: number;
+  idempotencyKey?: string;
+  /** Interno: ya se reintentó una vez tras un 401. */
+  retried?: boolean;
+  /** No avisar a `onTwoFactorGate` (ver `backgroundApi`). */
+  skipTwoFactorGate?: boolean;
+};
+
+/**
+ * Cuenta las mutaciones (POST/PUT/PATCH/DELETE) al empezar Y al terminar.
+ * Un GET en vuelo sólo se comparte si no cambió desde que salió
+ * (ver `getDeduplicado`): así ningún GET pedido después de una mutación, ni
+ * durante ella, se cuelga de una lectura que el servidor hizo antes.
+ */
+let epocaMutaciones = 0;
+
+async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  if (!options.method || options.method === "GET") return pedir<T>(path, options);
+  epocaMutaciones++;
+  try {
+    return await pedir<T>(path, options);
+  } finally {
+    epocaMutaciones++;
+  }
+}
+
+async function pedir<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const {
     token: requested,
     headers,
@@ -474,8 +491,54 @@ async function request<T>(
   return res.json() as Promise<T>;
 }
 
+/**
+ * GET idénticos EN VUELO (mismo path, misma cuenta, mismo tope) comparten un
+ * solo pedido: dos componentes que piden `/workers/me/profile` a la vez (o una
+ * pantalla y la campanita) bajan una sola respuesta. Nada se guarda después de
+ * que el pedido termina, así que no hay caché ni dato viejo: el pedido
+ * siguiente va siempre al servidor. Si empezó o terminó una mutación desde que
+ * el GET salió, no se comparte (`epocaMutaciones`). Con más de un interesado,
+ * cada uno recibe su propia copia (si una pantalla la muta, no pisa a la otra);
+ * con uno solo, no se copia nada.
+ */
+type EnVuelo = { promesa: Promise<unknown>; epoca: number; interesados: number };
+const inflightGets = new Map<string, EnVuelo>();
+
+const copiar = <T,>(data: T): T =>
+  data !== null && typeof data === "object" ? structuredClone(data) : data;
+
+function getDeduplicado<T>(path: string, token: string | null | undefined, timeoutMs?: number): Promise<T> {
+  const key = `${resolveToken(token) ?? ""}\n${timeoutMs ?? ""}\n${path}`;
+  const enVuelo = inflightGets.get(key);
+  if (enVuelo && enVuelo.epoca === epocaMutaciones) {
+    enVuelo.interesados++;
+    return (enVuelo.promesa as Promise<T>).then(copiar);
+  }
+  const salir = () => {
+    if (inflightGets.get(key) === entrada) inflightGets.delete(key);
+  };
+  // Lo primero que corre al resolver es sacarlo del mapa: nadie se suma a un
+  // pedido que ya terminó.
+  const promesa = pedir<T>(path, { method: "GET", token, timeoutMs }).then(
+    (data) => {
+      salir();
+      return data;
+    },
+    (err: unknown) => {
+      salir();
+      throw err;
+    }
+  );
+  const entrada: EnVuelo = { promesa, epoca: epocaMutaciones, interesados: 1 };
+  inflightGets.set(key, entrada);
+  return promesa.then((data) => (entrada.interesados > 1 ? copiar(data) : data));
+}
+
 export const api = {
   get: <T>(path: string, token?: string | null, timeoutMs?: number) =>
+    getDeduplicado<T>(path, token, timeoutMs),
+  /** GET que nunca se suma a otro en vuelo: para leer justo antes de escribir. */
+  getFresco: <T>(path: string, token?: string | null, timeoutMs?: number) =>
     request<T>(path, { method: "GET", token, timeoutMs }),
   post: <T>(
     path: string,

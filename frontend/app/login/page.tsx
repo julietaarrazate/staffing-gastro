@@ -8,7 +8,7 @@ import { destinoTrasIngreso } from "@/lib/perfil-faltante";
 import { ApiError, isAccountSuspended } from "@/lib/api";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
 import { Button, TextField } from "@/components/ui";
-import TurnstileWidget from "@/components/TurnstileWidget";
+import TurnstileWidget, { TurnstileTemprano } from "@/components/TurnstileWidget";
 import TwoFactorLoginStep from "@/components/TwoFactorLoginStep";
 import {
   bienvenidaHref,
@@ -294,8 +294,11 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense>
-      <LoginForm />
-    </Suspense>
+    <>
+      <TurnstileTemprano />
+      <Suspense>
+        <LoginForm />
+      </Suspense>
+    </>
   );
 }

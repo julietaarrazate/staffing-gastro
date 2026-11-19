@@ -1,12 +1,10 @@
 """Tests de integración del módulo shift (publicación y ciclo de vida del turno)."""
 
-from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import event
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app.core.config import settings
@@ -20,27 +18,9 @@ from app.modules.verification.domain.entities import Claim
 from app.modules.verification.domain.value_objects import ClaimStatus, ClaimType
 from app.modules.verification.infrastructure.repositories import SqlAlchemyClaimRepository
 from tests.conftest import auth_headers, login, register_user
+from tests.conftest import count_queries as _count_queries
 
 pytestmark = pytest.mark.asyncio
-
-
-@contextmanager
-def _count_queries(session_factory: async_sessionmaker):
-    """Cuenta los `SELECT`/`INSERT`/... efectivamente enviados al motor
-    (`before_cursor_execute`) mientras el bloque `with` está activo. Usado
-    para medir round-trips por endpoint (P3, docs/audits/PERFORMANCE_REPORT.md) sin
-    depender de logs manuales."""
-    counter = {"n": 0}
-    engine = session_factory.kw["bind"]
-
-    def _on_execute(conn, cursor, statement, parameters, context, executemany):
-        counter["n"] += 1
-
-    event.listen(engine.sync_engine, "before_cursor_execute", _on_execute)
-    try:
-        yield counter
-    finally:
-        event.remove(engine.sync_engine, "before_cursor_execute", _on_execute)
 
 
 @pytest.fixture

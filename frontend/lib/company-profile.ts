@@ -27,7 +27,7 @@ export async function saveCompanyProfilePart(
   token: string | null,
   changes: CompanyProfileChanges
 ): Promise<CompanyProfile> {
-  const current = await api.get<CompanyProfile>("/companies/me/profile", token);
+  const current = await api.getFresco<CompanyProfile>("/companies/me/profile", token);
   return api.put<CompanyProfile>(
     "/companies/me/profile",
     {

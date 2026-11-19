@@ -259,6 +259,8 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
             <img
               src={cldThumb(photo, 900)}
               alt=""
+              decoding="async"
+              fetchPriority="high"
               onError={() => setPhotoBroken(true)}
               className="absolute inset-0 h-full w-full object-cover"
             />

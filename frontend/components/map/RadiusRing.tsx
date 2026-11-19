@@ -1,11 +1,29 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Layer, Source } from "@vis.gl/react-maplibre";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Layer, Source, useMap } from "@vis.gl/react-maplibre";
 import { circlePolygonCoordinates } from "@/lib/map/geo";
 
 const SOURCE_ID = "shift-radius-ring";
 const ANIMATION_MS = 1100;
+
+function anillo(center: [number, number], radiusKm: number): GeoJSON.Feature<GeoJSON.Polygon> {
+  return {
+    type: "Feature",
+    properties: {},
+    geometry: { type: "Polygon", coordinates: [circlePolygonCoordinates(center, Math.max(radiusKm, 0.01))] },
+  };
+}
+
+// Constantes de módulo: la animación re-renderiza el anillo en cada cuadro y,
+// con objetos nuevos, `Layer` volvía a comparar y reaplicar el estilo en cada uno.
+const FILL_PAINT = { "fill-color": "#d97706", "fill-opacity": 0.06 };
+const LINE_PAINT = {
+  "line-color": "#d97706",
+  "line-opacity": 0.45,
+  "line-width": 1.5,
+  "line-dasharray": [2, 2],
+};
 
 function prefersReducedMotion(): boolean {
   return (
@@ -27,43 +45,57 @@ export default function RadiusRing({
   center: [number, number];
   radiusKm?: number;
 }) {
-  const [progress, setProgress] = useState(() => (prefersReducedMotion() ? 1 : 0));
+  const { current: map } = useMap();
+  // La animación NO pasa por React: antes cada cuadro era un `setState` y un
+  // render del anillo (~60 commits en la primera segundos de /map). Ahora se
+  // empuja la geometría directo a la fuente del mapa y React sólo se entera
+  // al terminar (`terminado`), cuando el anillo pasa a su tamaño final.
+  const [terminado, setTerminado] = useState(prefersReducedMotion);
+  const centerRef = useRef(center);
+  const radiusRef = useRef(radiusKm);
+  useEffect(() => {
+    centerRef.current = center;
+    radiusRef.current = radiusKm;
+  });
 
   useEffect(() => {
-    if (progress >= 1) return;
+    if (terminado) return;
     let raf = 0;
     const start = performance.now();
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / ANIMATION_MS);
-      setProgress(1 - Math.pow(1 - t, 3)); // easeOutCubic
-      if (t < 1) raf = requestAnimationFrame(tick);
+      if (t >= 1) {
+        setTerminado(true);
+        return;
+      }
+      const progress = 1 - Math.pow(1 - t, 3); // easeOutCubic
+      // La fuente puede no estar todavía (el estilo del mapa carga aparte):
+      // se salta el cuadro y se prueba en el siguiente.
+      const source = map?.getSource(SOURCE_ID) as { setData?: (d: GeoJSON.Feature) => void } | undefined;
+      source?.setData?.(anillo(centerRef.current, radiusRef.current * progress));
+      raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-    // Sólo corre una vez, al montar.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [terminado, map]);
 
-  const geojson = useMemo<GeoJSON.Feature<GeoJSON.Polygon>>(
-    () => ({
-      type: "Feature",
-      properties: {},
-      geometry: {
-        type: "Polygon",
-        coordinates: [circlePolygonCoordinates(center, Math.max(radiusKm * progress, 0.01))],
-      },
-    }),
-    [center, radiusKm, progress]
+  // Antes de terminar, el dato de la prop es el punto inicial (radio 0): la
+  // fuente sólo lo recibe al montar, el resto lo pone la animación.
+  // Mientras anima, `center`/`radiusKm` no entran en las dependencias: si
+  // cambian a mitad, el dato de la fuente se queda quieto y no pisa la animación.
+  const centroFinal = terminado ? center : null;
+  const radioFinal = terminado ? radiusKm : 0;
+  const geojson = useMemo(
+    () => anillo(centroFinal ?? center, radioFinal),
+    // `center` sólo cuenta una vez terminado (ver arriba).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [centroFinal, radioFinal]
   );
 
   return (
     <Source id={SOURCE_ID} type="geojson" data={geojson}>
-      <Layer id={`${SOURCE_ID}-fill`} type="fill" paint={{ "fill-color": "#d97706", "fill-opacity": 0.06 }} />
-      <Layer
-        id={`${SOURCE_ID}-line`}
-        type="line"
-        paint={{ "line-color": "#d97706", "line-opacity": 0.45, "line-width": 1.5, "line-dasharray": [2, 2] }}
-      />
+      <Layer id={`${SOURCE_ID}-fill`} type="fill" paint={FILL_PAINT} />
+      <Layer id={`${SOURCE_ID}-line`} type="line" paint={LINE_PAINT} />
     </Source>
   );
 }

@@ -8,6 +8,7 @@ import Preguntas from "./Preguntas";
 import Cierre from "./Cierre";
 import LandingFooter from "./LandingFooter";
 import { LETRAS_LANDING } from "./letras";
+import PrecargaIngreso from "./PrecargaIngreso";
 
 /**
  * La landing corta (2026-10-12). Reemplaza a la historia fijada al scroll
@@ -41,6 +42,7 @@ export default function LandingCorta() {
     // este subárbol. `overflow-x-clip` y no `hidden`: `hidden` rompería el
     // encabezado `sticky`.
     <div data-landing data-theme="light" data-palette="celeste" className={`${LETRAS_LANDING} overflow-x-clip bg-card text-ink`}>
+      <PrecargaIngreso />
       <LandingHeader heroCtaId={HERO_CTA_ID} />
       <HeroRueda />
       <Comanda />
