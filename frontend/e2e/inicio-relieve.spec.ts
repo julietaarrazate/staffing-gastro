@@ -160,3 +160,34 @@ test("el recomendado muestra la distancia como chip si se puede medir, con foto 
   await expect(page.getByTestId("feed-hero-card")).toBeVisible();
   await expect(page.getByTestId("feed-hero-distancia")).toHaveCount(0);
 });
+
+test("sin foto la portada del recomendado y la miniatura de «Cerca tuyo» son el cielo; con foto, la foto", async ({ page }) => {
+  await page.route("https://fotos.test/**", (r) =>
+    r.fulfill({ status: 200, contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="2"><rect width="8" height="2" fill="#886"/></svg>' })
+  );
+  await inicio(page, [
+    turno("s1", { latitude: -34.5876 }),
+    turno("s2", { position: "barista", latitude: -34.59, company_cover_url: "https://fotos.test/bar.svg" }),
+    turno("s3", { position: "cocinero", latitude: -34.592 }),
+  ]);
+  await page.goto("/feed");
+  const tarjeta = page.getByTestId("feed-hero-card");
+  // Sin foto: la franja de 104 px es la portada del cielo, con el ícono en su círculo y la nube.
+  const portada = tarjeta.locator("[data-portada='portada']");
+  await expect(portada).toHaveCount(1);
+  await expect(portada.locator(".portada-vidrio svg")).toBeVisible();
+  await expect(portada.locator("img.portada-nube")).toHaveAttribute("src", /\/cielo\/nube-[abc]\.webp/);
+  expect((await portada.boundingBox())!.height).toBe(104);
+  expect(await portada.evaluate((el) => getComputedStyle(el).backgroundImage)).toContain("rgb(91, 168, 224)");
+  // «Cerca tuyo»: la sin foto lleva la miniatura; la con foto, su foto.
+  const filas = page.getByTestId("feed-nearby-card");
+  await expect(filas).toHaveCount(2);
+  await expect(filas.locator("[data-portada='mini']")).toHaveCount(1);
+  await expect(filas.locator("[data-portada='mini'] img")).toHaveCount(0);
+  await expect(filas.locator("img[src*='fotos.test']")).toHaveCount(1);
+  // De noche, el degradé hondo (no el celeste).
+  await setTheme(page, "dark");
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  expect(await page.getByTestId("feed-hero-card").locator("[data-portada='portada']").evaluate((el) => getComputedStyle(el).backgroundImage)).toContain("rgb(23, 74, 108)");
+});

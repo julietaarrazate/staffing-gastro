@@ -1307,6 +1307,44 @@ body:has([data-landing]) main {
     radial-gradient(circle 1px at 69% 54%, #cfe6f5 96%, transparent);
 }
 
+/* La portada de un turno sin foto (`components/ui/PortadaCielo.tsx`): el cielo
+   en lugar del bloque de color por rubro. De día el degradé del cielo con su
+   luz; de noche el degradé hondo, con la nube al 30 % y la letra en blanco. */
+.portada-cielo {
+  background:
+    radial-gradient(120% 80% at 88% 0%, var(--app-cielo-luz), transparent 60%),
+    linear-gradient(180deg, #5ba8e0, #84c0ec 50%, #bfe1f6);
+  color: #0f3a5b;
+}
+:root[data-theme="dark"] .portada-cielo {
+  background:
+    radial-gradient(120% 80% at 88% 0%, rgba(120, 180, 225, 0.2), transparent 60%),
+    linear-gradient(180deg, #174a6c, #1f5e88 55%, #2a73a3);
+  color: #ffffff;
+}
+.portada-nube {
+  position: absolute;
+  height: auto;
+  max-width: none;
+  pointer-events: none;
+}
+:root[data-theme="dark"] .portada-nube {
+  opacity: 0.3;
+}
+.portada-vidrio {
+  background: rgba(255, 255, 255, 0.62);
+}
+:root[data-theme="dark"] .portada-vidrio {
+  background: rgba(255, 255, 255, 0.16);
+}
+/* La letra sobre una portada de cielo sigue a su tinta. */
+.portada-tinta {
+  color: #0f3a5b;
+}
+:root[data-theme="dark"] .portada-tinta {
+  color: #ffffff;
+}
+
 /* La banda azul hondo: donde cuelgan las comandas en curso del comercio.
    A todo el ancho en el celular; con esquinas en pantallas anchas. El foco
    de lo que va directo sobre la banda es claro (el de siempre es este azul). */

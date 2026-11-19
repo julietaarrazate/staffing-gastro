@@ -9,16 +9,17 @@ import { payView } from "@/lib/pay";
 import { formatDistance } from "@/lib/format";
 import SaveShiftButton from "@/components/worker/SaveShiftButton";
 import { ChevronRightIcon, ShieldIcon } from "@/components/icons";
-import { Badge } from "@/components/ui";
+import { Badge, PortadaCielo } from "@/components/ui";
+import { SKILL_ACCENT } from "@/lib/skill-style";
 import { shiftHeroPhoto } from "@/lib/company-photo";
 
 /**
  * El turno recomendado del Inicio del trabajador: el primero del feed, como
- * una tarjeta suave (dirección «suave», ADR-0028, 2026-11-19). Arriba la foto
- * del local (si hay) con los avisos como chips blancos encima («Urgente» o
- * «Para hoy»); abajo el puesto, el pago bien grande a la derecha, el local y
- * cuándo. Sin foto es la misma tarjeta sin la franja, y los avisos pasan a
- * chips arriba del puesto. Hasta el 2026-11-19 era una comanda de papel.
+ * una tarjeta suave (dirección «suave», ADR-0028, 2026-11-19). Arriba una
+ * franja de 104 px con la foto del local o, sin foto, el cielo
+ * (`PortadaCielo`), y los avisos como chips blancos encima («Urgente» o
+ * «Para hoy», y la distancia); abajo el puesto, el pago bien grande a la
+ * derecha, el local y cuándo. Hasta el 2026-11-19 era una comanda de papel.
  *
  * Link "estirado": el <a> cubre toda la tarjeta y el contenido va encima con
  * `pointer-events-none`, salvo el botón de guardar. Así la tarjeta entera abre
@@ -31,6 +32,7 @@ function FeedHero({ shift, distanceKm = null }: { shift: Shift; distanceKm?: num
   const label = SKILL_LABELS[shift.position];
   const where = [shift.company_name, shift.city].filter(Boolean).join(" · ");
   const pago = payView(shift);
+  const { Icon } = SKILL_ACCENT[shift.position];
   const hoy = !shift.urgent && isTodayInArgentina(shift.start_at);
   const distancia = distanceKm != null ? formatDistance(distanceKm) : null;
   const hayAviso = shift.urgent || hoy || distancia !== null;
@@ -47,9 +49,11 @@ function FeedHero({ shift, distanceKm = null }: { shift: Shift; distanceKm?: num
       />
 
       <div className="pointer-events-none relative z-[2]">
-        {hasPhoto && (
-          <div className="relative h-[104px] bg-surface">
-            {/* eslint-disable-next-line @next/next/no-img-element -- la optimización la hace Cloudinary (cldThumb), igual que OpportunityCard */}
+        {/* La franja de arriba (104 px): la foto del local o, sin foto, el
+            cielo (`PortadaCielo`). Los avisos van encima como chips blancos. */}
+        <div className="relative h-[104px] overflow-hidden bg-surface">
+          {hasPhoto ? (
+            // eslint-disable-next-line @next/next/no-img-element -- la optimización la hace Cloudinary (cldThumb), igual que OpportunityCard
             <img
               src={cldThumb(heroPhoto, 800)}
               alt=""
@@ -60,39 +64,26 @@ function FeedHero({ shift, distanceKm = null }: { shift: Shift; distanceKm?: num
               decoding="async"
               className="h-full w-full object-cover object-[50%_40%]"
             />
-            {hayAviso && (
-              <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
-                {shift.urgent ? (
-                  <span className="chip-foto chip-foto-urgente">Urgente</span>
-                ) : hoy ? (
-                  <span className="chip-foto">Para hoy</span>
-                ) : null}
-                {distancia && (
-                  <span className="chip-foto" data-testid="feed-hero-distancia">
-                    {distancia}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="px-4 pb-3 pt-3.5">
-          {/* Sin foto, los avisos van acá, como chips de la hoja. */}
-          {!hasPhoto && hayAviso && (
-            <div className="mb-2 flex flex-wrap gap-1.5">
+          ) : (
+            <PortadaCielo id={shift.id} Icon={Icon} />
+          )}
+          {hayAviso && (
+            <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
               {shift.urgent ? (
-                <span className="chip-suave chip-urgente">Urgente</span>
+                <span className="chip-foto chip-foto-urgente">Urgente</span>
               ) : hoy ? (
-                <span className="chip-suave">Para hoy</span>
+                <span className="chip-foto">Para hoy</span>
               ) : null}
               {distancia && (
-                <span className="chip-suave" data-testid="feed-hero-distancia">
+                <span className="chip-foto" data-testid="feed-hero-distancia">
                   {distancia}
                 </span>
               )}
             </div>
           )}
+        </div>
+
+        <div className="px-4 pb-3 pt-3.5">
           <div className="flex items-baseline justify-between gap-3">
             <h3 className="min-w-0 break-words text-puesto font-extrabold leading-tight tracking-[-0.01em] text-ink">
               {label}

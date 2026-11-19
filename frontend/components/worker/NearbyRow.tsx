@@ -9,13 +9,14 @@ import { formatShiftWhenLive } from "@/lib/datetime";
 import { formatPayCompact } from "@/lib/pay";
 import { formatDistance } from "@/lib/format";
 import { ChevronRightIcon, FlameIcon, ShieldIcon } from "@/components/icons";
+import { PortadaCielo } from "@/components/ui";
 import { shiftHeroPhoto } from "@/lib/company-photo";
 
 function NearbyItem({ shift, distanceKm }: { shift: Shift; distanceKm: number | null }) {
   const [broken, setBroken] = useState(false);
   const heroPhoto = shiftHeroPhoto(shift);
   const hasPhoto = Boolean(heroPhoto) && !broken;
-  const { Icon, bg, fg } = SKILL_ACCENT[shift.position];
+  const { Icon } = SKILL_ACCENT[shift.position];
   const donde = [shift.company_name, distanceKm != null ? formatDistance(distanceKm) : null, formatShiftWhenLive(shift)]
     .filter(Boolean)
     .join(" · ");
@@ -28,11 +29,8 @@ function NearbyItem({ shift, distanceKm }: { shift: Shift; distanceKm: number | 
         data-testid="feed-nearby-card"
         className="tecla flex items-center gap-3 py-2.5 pl-2.5 pr-4"
       >
-        {/* Sin foto: el TINTE pálido del rubro y su ícono, el color como
-            acento y no como banda saturada. */}
-        <span
-          className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl ${hasPhoto ? "bg-surface" : `rubro-tile ${bg}`}`}
-        >
+        {/* Sin foto: la miniatura del cielo con el ícono del rubro. */}
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-surface">
           {hasPhoto ? (
             // eslint-disable-next-line @next/next/no-img-element -- la optimización la hace Cloudinary (cldThumb), igual que OpportunityCard
             <img
@@ -46,9 +44,7 @@ function NearbyItem({ shift, distanceKm }: { shift: Shift; distanceKm: number | 
               className="h-full w-full object-cover"
             />
           ) : (
-            <span className={`rubro-tile-icon ${fg}`}>
-              <Icon size={22} />
-            </span>
+            <PortadaCielo id={shift.id} Icon={Icon} mini />
           )}
         </span>
         <span className="min-w-0 flex-1">
