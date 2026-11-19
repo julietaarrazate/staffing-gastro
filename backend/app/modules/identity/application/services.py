@@ -226,6 +226,12 @@ class IdentityService:
             raise InactiveUserError()
         return await self._issue_tokens_or_challenge(user)
 
+    @staticmethod
+    def guest_access_enabled() -> bool:
+        """Si «Explorar sin cuenta» está prendido: hay `GUEST_ACCESS_PIN`.
+        Al abrir la beta se vacía (decisión 5) y el ingreso deja de mostrarlo."""
+        return bool(settings.guest_access_pin)
+
     async def guest_login(self, pin: str, role: UserRole) -> TokenPair:
         """Acceso de invitado (beta): valida el PIN de `GUEST_ACCESS_PIN` y
         entra en la cuenta invitada compartida del rol pedido, creándola la
@@ -233,9 +239,9 @@ class IdentityService:
         credenciales, y la cuenta invitada tiene contraseña imposible (no se
         puede loguear por email/contraseña). Sin PIN configurado, el acceso
         invitado está apagado."""
-        expected_pin = settings.guest_access_pin
-        if not expected_pin:
+        if not self.guest_access_enabled():
             raise GuestAccessDisabledError()
+        expected_pin = settings.guest_access_pin
         if not secrets.compare_digest(pin.encode(), expected_pin.encode()):
             raise InvalidGuestPinError()
 

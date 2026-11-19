@@ -165,8 +165,10 @@ toda vista previa y el sitemap apuntaban ahí.
 > del acceso invitado ("Explorar sin cuenta"). Hasta esa fecha era una
 > constante en el código, pero el repo es público y con ese PIN cualquiera
 > entraba como comercio al mapa de trabajadores. **Sin esta var el acceso
-> invitado está apagado** (`POST /auth/guest` responde 404 y la pantalla
-> muestra "El acceso de invitado no está disponible"). Usar un PIN nuevo de
+> invitado está apagado** (`POST /auth/guest` responde 404 y, desde el
+> 2026-11-19, el ingreso ni muestra el recuadro «Explorar sin cuenta»). **Al
+> abrir la beta se vacía** (decisión 5, lista de salida en
+> `docs/planning/BETA_TABLERO.md`). Usar un PIN nuevo de
 > 8 o más **dígitos**, sin letras: el campo del login abre el teclado
 > numérico (`inputMode="numeric"`) y en el celular no se pueden tipear
 > letras. El viejo quedó en la historia de git y no sirve.

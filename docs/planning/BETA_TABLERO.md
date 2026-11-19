@@ -22,7 +22,7 @@ descuidado.
 | 2 | Arreglar: bloqueantes, después graves | en curso (ver abajo) |
 | 3 | Que nada se vea descuidado (los 60 menores y lo que salió de las revisiones) | ✅ cerrada el 2026-11-17: grupos A a N, las diez decisiones de Julieta, M6 y los pendientes de las tres tandas (ver abajo) |
 | 4 | Identidad, marca e isotipo | 🔵 Julieta eligió Shrikhand y ámbar (2026-11-17); letra, miniatura, vectores, manual en PDF y brand system en el PR de la marca; campanita en #622; ícono «el pinche con oído» (elegido el 2026-11-18, ya en el código); la landing híbrida (letra mixta, relieve, planes como carta, final nuevo) en el código el 2026-11-18. Sigue la dirección «con relieve» en la app, pantalla por pantalla; las cuatro pantallas ya están y siguen las piezas de toda la app (la barra de abajo, las pestañas, los botones secundarios, los pasos tachados, los colores de los sellos y el detalle del turno, hechos el 2026-11-19; siguen las demás pantallas: Buscar del trabajador y del comercio, hechas el mismo día; ver STATUS, ítem 0) |
-| 5 | Lista de salida a beta | ⚪ (incluye la medición de los KRs: ver «Antes de abrir: medir la beta»; y pasar a TypeScript 7, el compilador en Go: PR aparte que sube `typescript` de 6 a 7 y corre tsc, lint, build y e2e; si ESLint con tipos se traba hasta la 7.1, ESLint sigue con TypeScript 6 mientras tanto. Decidido por Julieta el 2026-11-17) |
+| 5 | Lista de salida a beta | 🔵 escrita el 2026-11-19 (ver «Etapa 5: lista de salida a beta»): lo de código está, salvo TypeScript 7; falta lo de Julieta para el día que abre. Detalle original: (incluye la medición de los KRs: ver «Antes de abrir: medir la beta»; y pasar a TypeScript 7, el compilador en Go: PR aparte que sube `typescript` de 6 a 7 y corre tsc, lint, build y e2e; si ESLint con tipos se traba hasta la 7.1, ESLint sigue con TypeScript 6 mientras tanto. Decidido por Julieta el 2026-11-17) |
 | 6 | SEO y GEO | ⚪ |
 
 ## Etapa 2
@@ -720,6 +720,45 @@ Se mide en dos pasos:
 persona). «Elegido por el comercio» queda como dato interno, para ver dónde
 se traba el embudo (elegir rápido y confirmar lento es un problema del lado
 de quien trabaja).
+
+## Etapa 5: lista de salida a beta (escrita el 2026-11-19)
+
+Lo que tiene que estar antes de abrir la beta a comercios y trabajadores
+reales (fecha de la fase 0 del plan de crecimiento: 13/12). Lo de código va
+con su PR; lo operativo lo hace Julieta, o lo pide.
+
+**Código**
+
+| Ítem | Estado |
+|---|---|
+| Serie semanal M7 en Métricas, con las altas de cada semana por origen y rol (ver «Antes de abrir: medir la beta») | ✅ |
+| Datos de demostración apagados: la siembra demo no corre en producción aunque `SEED_DEMO_DATA` quede prendido, y el ingreso muestra «Explorar sin cuenta» sólo si hay `GUEST_ACCESS_PIN` (`GET /auth/guest`) ([historial](../historial/2026-11-19-apagar-datos-de-demostracion.md)) | ✅ |
+| TypeScript 7 (decidido el 2026-11-17, PR aparte: ver la fila de la etapa 5 arriba) | ⚪ |
+
+**Datos de producción (mirados el 2026-11-19, sin tocar nada).** No quedan
+cuentas demo (`@staffya.com`): se purgaron el 2026-10-22. Las cuatro cuentas
+compartidas (invitado y prueba, de comercio y de trabajador) tienen 8 turnos
+de agosto y septiembre, ninguno futuro ni abierto, y ya no cuentan en las
+métricas (M1). No hace falta borrarlas: «Ver como» sigue usando las de
+prueba, y las invitadas quedan sin entrada al vaciar el PIN.
+
+**El día que abre (Julieta)**
+
+- [ ] Vaciar `GUEST_ACCESS_PIN` en Render (decisión 5): el recuadro «Explorar
+  sin cuenta» desaparece solo y `POST /auth/guest` responde 404.
+- [ ] Confirmar en Render `ENVIRONMENT=production` y `SEED_DEMO_DATA=false`.
+- [ ] Backend en Render Starter (decidido el 2026-11-18), para que el
+  scheduler no se duerma.
+- [ ] Verificación en dos pasos de la cuenta admin activada, con los códigos
+  de recuperación guardados fuera del celular.
+- [ ] Clave de Gemini rotada y el error viejo borrado de Sentry.
+- [ ] Un restore de Neon ensayado.
+- [ ] Base inscripta en el Registro Nacional de Bases de Datos (AAIP) y la
+  consulta legal hecha (pestaña «Lanzamiento de beta» del plan).
+- [ ] Las pruebas de persona de arriba («Pruebas que tiene que hacer una
+  persona»).
+- [ ] El cobro sigue apagado: los comercios fundadores no pagan hasta el 28/2
+  (STATUS, ítem 6).
 
 ## Cómo se trabaja (acordado con Julieta el 2026-11-13)
 

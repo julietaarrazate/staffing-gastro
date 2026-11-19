@@ -110,6 +110,11 @@ describe("los tipos del frontend calzan con lo que manda el backend", () => {
     expect(plan.plan_code).toBeTruthy();
   });
 
+  it("ingreso: si «Explorar sin cuenta» está prendido", () => {
+    const acceso: { enabled: boolean } = contrato.acceso_invitado.body;
+    expect(typeof acceso.enabled).toBe("boolean");
+  });
+
   it("métricas: la serie semanal M7", () => {
     const serie: Ensanchar<WeeklyMetrics> = contrato.metricas_semanales.body;
     expect(serie.weeks[0].signups_by_origin.length).toBeGreaterThan(0);

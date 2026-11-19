@@ -370,7 +370,7 @@ Pasos:
 conocida** — correcto para la etapa de demostración, inaceptable con usuarios
 reales. Antes de abrir la beta:
 
-> **Hecho el 2026-10-22:** flag en `false` y las 26 cuentas demo purgadas de Neon (respaldo previo en una rama de Neon). Lo que sigue es cómo funcionaba mientras estuvo prendido.
+> **Hecho el 2026-10-22:** flag en `false` y las 26 cuentas demo purgadas de Neon (respaldo previo en una rama de Neon). **Desde el 2026-11-19 la siembra no corre en producción aunque el flag quede prendido** (`scripts/startup_seed.py` avisa y sigue). Lo que sigue es cómo funcionaba mientras estuvo prendido.
 >
 > **Mientras estuvo prendido (2026-09-22 a 2026-10-22):** Julieta lo prendió para ver la app
 > poblada sin usuarios reales. Cada arranque del backend **repone** los turnos

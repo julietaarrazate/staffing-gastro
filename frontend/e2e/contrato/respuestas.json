@@ -1,4 +1,10 @@
 {
+  "acceso_invitado": {
+    "body": {
+      "enabled": true
+    },
+    "status": 200
+  },
   "auth_logout": {
     "body": null,
     "status": 204

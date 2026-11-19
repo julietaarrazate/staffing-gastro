@@ -63,3 +63,30 @@ def test_si_una_tarea_falla_la_otra_corre_igual_y_no_tumba_el_arranque(monkeypat
 
     assert ran == ["demo", "dispose"]
     assert "fotos de cuentas compartidas omitidas por error: se cayó la base" in capsys.readouterr().out
+
+
+def test_en_produccion_no_siembra_datos_demo_aunque_el_flag_este_prendido(monkeypatch, capsys):
+    """Con la beta abierta, `SEED_DEMO_DATA=true` en producción no vuelve a
+    crear las cuentas demo de contraseña pública: avisa y sigue. Las fotos de
+    las cuentas compartidas sí corren (no dependen del flag)."""
+    ran: list[str] = []
+
+    async def _fotos() -> None:
+        ran.append("fotos")
+
+    async def _demo() -> None:
+        ran.append("demo")
+
+    async def _dispose() -> None:
+        ran.append("dispose")
+
+    monkeypatch.setattr(startup_seed, "seed_shared_account_photos", _fotos)
+    monkeypatch.setattr(startup_seed, "main", _demo)
+    monkeypatch.setattr(startup_seed, "engine", SimpleNamespace(dispose=_dispose))
+    monkeypatch.setenv("SEED_DEMO_DATA", "true")
+    monkeypatch.setenv("ENVIRONMENT", "production")
+
+    startup_seed.run()
+
+    assert ran == ["fotos", "dispose"]
+    assert "NO se siembran cuentas demo en la base real" in capsys.readouterr().out

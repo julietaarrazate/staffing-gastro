@@ -7,7 +7,7 @@ Son DOS cosas distintas, con reglas distintas a propósito:
 1. **Fotos de las 4 cuentas compartidas** (invitado + prueba): corren
    SIEMPRE. No dependen de ningún flag — ver `seed_shared_account_photos`.
 2. **Datos demo** (~26 cuentas con contraseña pública + turnos): sólo con
-   `SEED_DEMO_DATA=true` (ver `render.yaml`).
+   `SEED_DEMO_DATA=true` (ver `render.yaml`) y nunca en producción.
 
 Las dos corren en UN SOLO event loop (`asyncio.run` una vez). El motor de
 `app.core.database` es global y su pool guarda las conexiones de asyncpg
@@ -47,17 +47,19 @@ async def _run_demo_data() -> None:
     if os.getenv("SEED_DEMO_DATA", "").lower() != "true":
         print("[seed] SEED_DEMO_DATA != true: no se siembran datos demo")
         return
-    # PRODUCTION_HARDENING.md: no apaga el seed (esa sigue siendo decisión de
-    # Julieta, ver "Pendiente de la operadora" en la guía del repositorio) — sólo deja un
-    # rastro imposible de pasar por alto en los logs de cada cold start, para
-    # que "quedó prendido sin que nadie se diera cuenta" deje de ser posible.
-    if os.getenv("ENVIRONMENT", "").lower() == "production":
+    # Con la beta abierta (fase 0 del plan de crecimiento, 2026-11-19) la
+    # siembra demo no corre en producción aunque el flag quede prendido: son
+    # ~26 cuentas con contraseña pública conocida y turnos que verían los
+    # usuarios reales. Antes sólo avisaba; el flag ya estaba en `false` desde
+    # el 2026-10-22 (runbook 'Apagar el modo demo' en docs/reference/DEPLOY.md).
+    if os.getenv("ENVIRONMENT", "").strip().lower() == "production":
         print(
             "[seed] ALERTA: SEED_DEMO_DATA=true en ENVIRONMENT=production — "
-            "se están (re)sembrando cuentas demo con contraseña pública "
-            "conocida en la base real. Ver runbook 'Apagar el modo demo' en "
-            "docs/reference/DEPLOY.md antes de onboardear comercios reales."
+            "NO se siembran cuentas demo en la base real. Poné "
+            "SEED_DEMO_DATA=false en Render (ver runbook 'Apagar el modo demo' "
+            "en docs/reference/DEPLOY.md)."
         )
+        return
     try:
         await main()
     except Exception as exc:  # noqa: BLE001 - no queremos tumbar el servidor
