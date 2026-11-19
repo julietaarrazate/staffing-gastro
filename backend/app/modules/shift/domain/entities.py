@@ -166,6 +166,15 @@ class Shift:
     # de arriba: sin él, el scheduler lo reenviaría en cada pasada.
     departure_reminder_sent_at: datetime | None = None
 
+    # Cierre automático (ADR-0008, decisión 24): un turno con la salida
+    # marcada que el comercio no cierra. `finish_reminder_sent_at` es cuándo
+    # se le recordó al comercio que lo cierre (`FINISH_REMINDER_DELAY` desde
+    # `check_out_at`); marca de sistema, la escribe el repositorio sin subir
+    # la versión, como la de arriba. `auto_finished_at` es cuándo lo cerró
+    # Oído solo (`AUTO_FINISH_DELAY`); `None` si lo cerró el comercio.
+    finish_reminder_sent_at: datetime | None = None
+    auto_finished_at: datetime | None = None
+
     # Publicación masiva para un evento (ej. una boda que necesita 3 mozos +
     # 2 bartenders): cada rol sigue siendo un turno propio con quantity=1
     # (ADR-0003 no se toca), pero comparten `event_id` para poder agruparlos
@@ -759,6 +768,13 @@ class Shift:
     def finish(self) -> None:
         """CHECK_OUT → FINALIZADO: cierra el turno trabajado."""
         self._transition(ShiftStatus.CHECK_OUT, ShiftStatus.FINALIZADO, "cerrar")
+
+    def auto_finish(self) -> None:
+        """CHECK_OUT → FINALIZADO sin el comercio (decisión 24): el turno
+        quedó con la salida marcada y nadie lo cerró. Misma transición que
+        `finish`; además deja registrado que lo cerró el sistema."""
+        self.finish()
+        self.auto_finished_at = datetime.now(timezone.utc)
 
     def mark_paid(self) -> None:
         """FINALIZADO → PAGADO: el comercio confirma que pagó el turno."""

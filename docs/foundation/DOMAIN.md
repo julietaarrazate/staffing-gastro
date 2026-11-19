@@ -114,6 +114,13 @@ campos, estados o transiciones. Se documenta la realidad y se marca cada caso.
     finaliza y lo paga, y un problema va por soporte (`Shift.is_cancellable`,
     [ADR-0007](../adr/ADR-0007-no-show-y-cancelacion-tardia.md), actualización
     2026-11-18).
+  - **Cierre automático** ([ADR-0008](../adr/ADR-0008-asistencia-simplificada-y-no-show-automatico.md),
+    actualización 2026-11-18, decisión 24): si el comercio no cierra un turno
+    con la salida marcada, a las 24 h de `check_out_at` se le recuerda una vez
+    (`finish_reminder_sent_at`) y a las 72 h Oído lo cierra solo
+    (`Shift.auto_finish`: `check_out → finalizado`, `auto_finished_at`), con
+    los mismos efectos que el cierre del comercio y la puntualidad ya
+    registrada en la llegada.
   - Aparece en el **feed** sólo si está en estados abiertos
     (`publicado`/`buscando_personal`, `OPEN_STATUSES`) y todavía no empezó; la
     excepción es el turno reofrecido (abajo).
