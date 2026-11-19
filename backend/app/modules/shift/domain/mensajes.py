@@ -5,6 +5,10 @@ el botón), así que van en voseo, sin nombres de estados internos y sin
 flechas. Se dicen por caso —según en qué punto está el turno— y en lo que le
 sirve a esa persona: qué pasó o qué falta, no qué transición se intentó.
 
+Al final, los textos de «Cerrar turno» de la admin (decisión 21): ésos los
+lee la admin, que no es parte del turno, así que hablan del trabajador y del
+comercio en tercera persona.
+
 Sólo textos: cuándo se permite cada acción lo deciden las entidades. Sin
 imports de afuera del dominio."""
 
@@ -213,3 +217,48 @@ for _estado in (S.BORRADOR, S.PUBLICADO, S.BUSCANDO_PERSONAL, S.ASIGNADO):
 def no_se_puede(accion: str, estado: S) -> str:
     """Texto para quien intentó `accion` con el turno en `estado`."""
     return _TEXTOS.get(accion, {}).get(estado, _GENERICO)
+
+
+# --- «Cerrar turno» de la admin (decisión 21, ADR-0024) ----------------------
+# Los lee la admin en la ficha de una cuenta suspendida, cuando la acción no
+# aplica (normalmente porque el turno cambió desde que abrió la ficha).
+
+CIERRE_ADMIN_NINGUNA_SUSPENDIDA = (
+    "Ninguna de las dos cuentas está suspendida: la salida la marca el "
+    "trabajador y el turno lo cierra el comercio, como siempre."
+)
+CIERRE_ADMIN_SALIDA_DEL_TRABAJADOR = (
+    "Falta que el trabajador marque la salida y su cuenta está activa: la "
+    "marca él. Después vas a poder cerrar el turno desde acá."
+)
+# Lo que la admin confirmó en el diálogo ya no es lo que se haría: el turno o
+# alguna de las cuentas cambió desde que abrió la ficha.
+CIERRE_ADMIN_CAMBIO = "El turno cambió: volvé a abrir la ficha."
+CIERRE_ADMIN_CIERRE_DEL_COMERCIO = (
+    "La salida ya está marcada y el comercio tiene la cuenta activa: el turno "
+    "lo cierra el comercio."
+)
+
+_CIERRE_ADMIN_NO_EMPEZO = (
+    "Este turno todavía no empezó: nadie marcó la llegada. «Cerrar turno» es "
+    "sólo para un turno empezado."
+)
+_CIERRE_ADMIN_POR_ESTADO: dict[S, str] = {
+    S.FINALIZADO: "Este turno ya está cerrado.",
+    S.PAGADO: "Este turno ya está cerrado y pagado.",
+    S.CANCELADO: "Este turno está cancelado.",
+    S.NO_CUBIERTO: "Este turno venció sin cubrirse.",
+}
+
+
+def cierre_admin_por_estado(estado: S) -> str:
+    """Por qué la admin no puede cerrar un turno en `estado` (uno que no
+    está empezado ni con la salida marcada)."""
+    return _CIERRE_ADMIN_POR_ESTADO.get(estado, _CIERRE_ADMIN_NO_EMPEZO)
+
+
+def cierre_admin_antes_del_inicio(cuando: str) -> str:
+    """La llegada se marcó antes de hora y el turno todavía no empezó: la
+    salida no se marca antes del inicio (la misma regla que `check_out`).
+    `cuando` es «hoy a las 20:00» (`format_inicio_art`)."""
+    return f"Todavía no se puede marcar la salida: el turno empieza {cuando}."

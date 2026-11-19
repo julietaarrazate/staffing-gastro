@@ -22,11 +22,15 @@ const post = vi.fn();
 
 vi.mock("@/lib/auth-context", () => ({ useAuth: () => auth.value }));
 vi.mock("@/lib/push-prompt-context", () => ({ usePushPrompt: () => ({ requestOptIn: vi.fn() }) }));
-vi.mock("@/components/ui", () => ({
+vi.mock("@/components/ui", async (importOriginal) => ({
+  // La comanda, sus renglones y el sello de confianza son los de verdad.
+  ...(await importOriginal<typeof import("@/components/ui")>()),
   Skeleton: () => <div data-testid="skeleton" />,
   useToast: () => vi.fn(),
 }));
 vi.mock("@/components/MiniMap", () => ({ default: () => null }));
+// La brocha y Mansalva salen de next/font, que no corre en Vitest.
+vi.mock("@/lib/letras", () => ({ LETRAS_APP: "" }));
 vi.mock("@/components/worker/SaveShiftButton", () => ({ default: () => null }));
 vi.mock("@/components/ShareShiftButton", () => ({ default: () => null }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ back: vi.fn(), push: vi.fn() }) }));
@@ -92,6 +96,32 @@ describe("ShiftDetail", () => {
     expect(screen.queryByRole("link", { name: "Postulate en Oído" })).not.toBeInTheDocument();
   });
 
+  it("el turno es una comanda: el puesto, los renglones y el pago como último renglón", () => {
+    render(<ShiftDetail publicShift={SHIFT} />);
+    const comanda = screen.getByRole("region", { name: "El turno" });
+    expect(comanda).toHaveClass("comanda");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveClass("letra-cartel");
+    const rotulos = [...comanda.querySelectorAll("dt")].map((dt) => dt.textContent);
+    expect(rotulos).toEqual(["Cuándo", "Dónde", "Pago"]);
+    expect(comanda).toHaveTextContent("$42.000");
+    // Sin postularse no hay cinta.
+    expect(comanda.querySelector(".cinta-oido")).toBeNull();
+  });
+
+  it("al postularse, la comanda recibe la cinta «¡Oído!» (con el golpe, porque pasó acá)", async () => {
+    auth.value = { user: { role: "worker" }, token: "tok", loading: false };
+    mockGets([]);
+    post.mockResolvedValue({ id: "a1" });
+    const user = userEvent.setup();
+    render(<ShiftDetail publicShift={SHIFT} />);
+    await user.click(await screen.findByRole("button", { name: "Postularme" }));
+    await screen.findByText("Ya te postulaste");
+    const cinta = screen.getByRole("region", { name: "El turno" }).querySelector(".cinta-oido");
+    expect(cinta).not.toBeNull();
+    expect(cinta).toHaveAttribute("aria-hidden", "true");
+    expect(cinta).toHaveClass("cinta-oido-pega");
+  });
+
   it("si ya estaba postulado, no le ofrece postularse de nuevo", async () => {
     auth.value = { user: { role: "worker" }, token: "tok", loading: false };
     mockGets([{ shift_id: "s1", status: "pendiente" }]);
@@ -99,6 +129,10 @@ describe("ShiftDetail", () => {
 
     expect(await screen.findByText("Ya te postulaste")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Postularme" })).not.toBeInTheDocument();
+    // La cinta ya está pegada: sin el golpe, que es para lo que pasa acá.
+    const cinta = screen.getByRole("region", { name: "El turno" }).querySelector(".cinta-oido");
+    expect(cinta).not.toBeNull();
+    expect(cinta).not.toHaveClass("cinta-oido-pega");
   });
 
   it("si tuvo el turno asignado y lo dejó, no le ofrece postularse ni dice que se postuló (G4)", async () => {

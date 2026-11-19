@@ -68,7 +68,11 @@ export default function BottomNav() {
     // forma de distinguirlas (auditoría de navegación, fase H).
     <nav
       aria-label="Secciones"
-      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-chrome backdrop-blur-xl backdrop-saturate-150 pb-[env(safe-area-inset-bottom)] md:hidden"
+      // Con la dirección «con relieve» (2026-11-19, ADR-0027): pegada al
+      // borde, lisa (sin vidrio: `bg-card`, sin desenfoque) y con un filete
+      // arriba. Lo activo es una raya azul hondo sobre la pestaña, el mismo
+      // gesto que las pestañas de las pantallas; la píldora celeste se fue.
+      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-card pb-[env(safe-area-inset-bottom)] md:hidden print:hidden"
     >
       {tabs.map(({ href, label, Icon }) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
@@ -89,30 +93,25 @@ export default function BottomNav() {
             // de pantalla no tenía forma de saber en qué sección está (fase H,
             // mismo criterio que F4/jsx-a11y).
             aria-current={active ? "page" : undefined}
-            className={`flex min-w-0 flex-1 flex-col items-center gap-1 py-2 text-xs font-medium transition-colors ${
-              active ? "text-primary-text" : "text-ink/40"
+            // La raya va como borde de arriba de la pestaña, montada sobre el
+            // filete de la barra (`-mt-px`). Las de reposo en `ink-soft` y no
+            // en `ink/40`, que sobre el blanco daba 2,6 de contraste: el
+            // nombre de una sección es texto y pide 4,5.
+            // El foco de teclado lo dibuja la pestaña por dentro (`foco-propio`,
+            // como las tarjetas del mapa): por fuera lo cortaba el borde de la
+            // pantalla y arriba se fundía con la raya, que es del mismo azul;
+            // y con el contorno global corrido hacia adentro cruzaba las
+            // letras de «Matches» a 360 px (revisión del 2026-11-19). Este
+            // anillo va a 1 px de los costados y 2 px por debajo de la raya.
+            className={`foco-propio relative -mt-px flex min-w-0 flex-1 flex-col items-center gap-1 border-t-[3px] pb-2 pt-2 text-xs font-semibold transition-colors after:pointer-events-none after:absolute after:inset-x-px after:bottom-px after:top-0.5 after:rounded-md focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-(--focus-ring) ${
+              active ? "border-primary-text text-ink" : "border-transparent text-ink-soft"
             }`}
           >
-            {/* Pestaña activa como PILL relleno, no sólo un cambio de color
-                (dirección "lienzo blanco", ref. Pasito): sobre el cromo blanco
-                el ícono suelto se leía poco; el pill le da una masa que ancla
-                la sección y sube la jerarquía de la barra. Desde el
-                2026-10-19 el pill es celeste (`primary-tint`), no ámbar: el
-                ámbar queda para la acción principal de cada pantalla.
-                El `aria-current` de arriba sigue siendo lo que anuncia el
-                lector de pantalla — el pill es refuerzo visual, no el único
-                indicador. El ancho del pill es el de la pestaña, con tope: con
-                seis pestañas (el trabajador) a 360 px, un relleno fijo de 20 px
-                a cada lado hacía que la barra pidiera 372 px y «Perfil» saliera
-                cortada; así el pill se achica y las pestañas se reparten el
-                ancho (a 320 px, 53 px cada una). */}
-            <span
-              className={`flex w-full max-w-[3.875rem] items-center justify-center rounded-full py-1 transition-colors ${
-                active ? "bg-primary-tint" : "bg-transparent"
-              }`}
-            >
-              <Icon size={22} />
-            </span>
+            {/* Antes la activa llevaba una píldora celeste detrás del ícono
+                (2026-10-19). La prueba de la app «con relieve» la cambió por
+                la raya: sin píldoras en la interfaz. `aria-current` sigue
+                siendo lo que anuncia el lector de pantalla. */}
+            <Icon size={22} />
             {label}
           </Link>
         );

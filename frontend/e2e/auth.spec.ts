@@ -1,4 +1,5 @@
 import { test, expect, type Route } from "@playwright/test";
+import { fulfillContrato, statusDe } from "./contrato";
 import {
   blockExternalHosts,
   HAS_SESSION_KEY,
@@ -18,30 +19,11 @@ test("un worker puede loguearse y sale de /login", async ({ page }) => {
   await mockEmptyNotifications(page);
 
   await page.route("**/api/v1/auth/login", (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        access_token: "e2e-access-token",
-        token_type: "bearer",
-      }),
-    })
+    fulfillContrato(route, "login", { user: { role: "worker", full_name: "Mozo Demo" } })
   );
 
   await page.route("**/api/v1/auth/me", (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        id: "user-1",
-        email: "demo.mozo.palermo@staffya.com",
-        full_name: "Mozo Demo",
-        role: "worker",
-        status: "activo",
-        is_active: true,
-        is_verified: true,
-      }),
-    })
+    fulfillContrato(route, "auth_me_worker")
   );
 
   await page.goto("/login");
@@ -67,17 +49,7 @@ for (const theme of ["light", "dark"] as const) {
     await blockExternalHosts(page);
     await mockEmptyNotifications(page);
     await page.route("**/api/v1/auth/login", (route) =>
-      route.fulfill({
-        status: 403,
-        contentType: "application/json",
-        body: JSON.stringify({
-          detail: {
-            code: "account_suspended",
-            message:
-              "Tu cuenta está suspendida. Si creés que es un error, escribinos a hola@oido.com.ar",
-          },
-        }),
-      })
+      fulfillContrato(route, "login_cuenta_suspendida")
     );
 
     await page.goto("/login");
@@ -117,37 +89,14 @@ test("con el access token vencido pero refresh token válido, la sesión se rest
     meCalls += 1;
     if (meCalls === 1) {
       // Primer intento: el access token guardado ya venció.
-      return route.fulfill({
-        status: 401,
-        contentType: "application/json",
-        body: JSON.stringify({ detail: "Token inválido o expirado" }),
-      });
+      return fulfillContrato(route, "error_401_token_invalido");
     }
     // Segundo intento: ya con el access token nuevo (post-refresh).
-    return route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        id: "user-1",
-        email: "demo.mozo.palermo@staffya.com",
-        full_name: "Mozo Demo",
-        role: "worker",
-        status: "activo",
-        is_active: true,
-        is_verified: true,
-      }),
-    });
+    return fulfillContrato(route, "auth_me_worker");
   });
 
   await page.route("**/api/v1/auth/refresh", (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        access_token: "e2e-refreshed-access-token",
-        token_type: "bearer",
-      }),
-    })
+    fulfillContrato(route, "auth_refresh")
   );
 
   await page.goto("/");
@@ -180,19 +129,7 @@ test("cerrar sesión revoca el refresh token en el backend", async ({ page }) =>
   await mockEmptyNotifications(page);
 
   await page.route("**/api/v1/auth/me", (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        id: "user-1",
-        email: "demo.mozo.palermo@staffya.com",
-        full_name: "Mozo Demo",
-        role: "worker",
-        status: "activo",
-        is_active: true,
-        is_verified: true,
-      }),
-    })
+    fulfillContrato(route, "auth_me_worker")
   );
   await page.route("**/api/v1/chats", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
@@ -201,7 +138,7 @@ test("cerrar sesión revoca el refresh token en el backend", async ({ page }) =>
   let logoutCalled = false;
   await page.route("**/api/v1/auth/logout", (route) => {
     logoutCalled = true;
-    return route.fulfill({ status: 204 });
+    return route.fulfill({ status: statusDe("auth_logout") });
   });
 
   await page.goto("/chats");

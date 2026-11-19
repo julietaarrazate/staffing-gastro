@@ -11,7 +11,7 @@ import { SKILL_ACCENT } from "@/lib/skill-style";
 import { cldAttachment, cldThumb } from "@/lib/cloudinary";
 import { safeHttpsUrl } from "@/lib/safe-url";
 import { BADGE_ICONS, BADGE_LABELS, formatPunctuality, hasRate, hasRating, levelLabel } from "@/lib/reputation";
-import { ErrorBanner, Skeleton } from "@/components/ui";
+import { BOTON_LISO, ErrorBanner, Skeleton } from "@/components/ui";
 import RatingOrNew from "@/components/RatingOrNew";
 import WorkerReviews from "@/components/WorkerReviews";
 import { BriefcaseIcon, ChevronLeftIcon, ClipboardIcon, DownloadIcon, HeartIcon, MapPinIcon } from "@/components/icons";
@@ -68,10 +68,10 @@ function FavoriteToggle({ workerProfileId, token }: { workerProfileId: string; t
       onClick={toggle}
       disabled={busy}
       aria-pressed={isFavorite}
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ring-1 transition active:scale-95 disabled:opacity-60 ${
+      className={`inline-flex min-h-[40px] items-center gap-1.5 rounded-[var(--radius-relieve)] px-3 py-1.5 text-sm font-semibold ring-1 transition active:scale-95 disabled:opacity-60 ${
         isFavorite
           ? "bg-primary/10 text-primary-text ring-primary/30"
-          : "bg-card text-ink/60 ring-line hover:bg-surface"
+          : "bg-card text-ink ring-line hover:bg-surface"
       }`}
     >
       <HeartIcon size={16} filled={isFavorite} />
@@ -262,14 +262,14 @@ export default function PublicWorkerProfilePage() {
                 href={cvUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full bg-surface px-4 py-2 text-sm font-semibold text-ink/80 ring-1 ring-line transition hover:bg-line active:scale-95"
+                className={`${BOTON_LISO} gap-2 px-4 py-2 text-sm`}
               >
                 <ClipboardIcon size={16} /> Ver CV
               </a>
               {cvUrl.includes("res.cloudinary.com") && (
                 <a
                   href={cldAttachment(cvUrl)}
-                  className="inline-flex items-center gap-2 rounded-full bg-surface px-4 py-2 text-sm font-semibold text-ink/80 ring-1 ring-line transition hover:bg-line active:scale-95"
+                  className={`${BOTON_LISO} gap-2 px-4 py-2 text-sm`}
                 >
                   <DownloadIcon size={16} /> Descargar
                 </a>

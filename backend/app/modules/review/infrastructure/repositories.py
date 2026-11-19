@@ -3,11 +3,22 @@
 from uuid import UUID
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.review.domain.entities import Review
+from app.modules.review.domain.exceptions import DuplicateReviewError
 from app.modules.review.domain.repositories import ReviewRepository
 from app.modules.review.infrastructure.models import ReviewModel
+
+
+def _es_resena_repetida(exc: IntegrityError) -> bool:
+    """La violación es la de la fila única (turno, calificador): Postgres
+    nombra la restricción; SQLite, las columnas."""
+    texto = str(exc.orig)
+    return "uq_reviews_shift_reviewer" in texto or (
+        "reviews.shift_id" in texto and "reviewer_user_id" in texto
+    )
 
 
 def _to_entity(model: ReviewModel) -> Review:
@@ -36,7 +47,17 @@ class SqlAlchemyReviewRepository(ReviewRepository):
             comment=review.comment,
         )
         self._session.add(model)
-        await self._session.commit()
+        try:
+            await self._session.commit()
+        except IntegrityError as exc:
+            # La sesión queda inválida hasta el `rollback`.
+            await self._session.rollback()
+            # Dos envíos a la vez (dos dispositivos) pasaron el chequeo de
+            # «ya calificó» y la fila única por turno y calificador frenó al
+            # segundo: es el mismo caso que calificar de nuevo, no un 500.
+            if _es_resena_repetida(exc):
+                raise DuplicateReviewError(str(review.shift_id)) from None
+            raise
         await self._session.refresh(model)
         return _to_entity(model)
 

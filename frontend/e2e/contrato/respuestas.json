@@ -1,0 +1,1613 @@
+{
+  "auth_logout": {
+    "body": null,
+    "status": 204
+  },
+  "auth_me_admin": {
+    "body": {
+      "created_at": "2026-11-01T12:00:00+00:00",
+      "email": "contrato_adm@staffya.com",
+      "full_name": "Admin Prueba",
+      "id": "user-admin-1",
+      "is_verified": false,
+      "role": "admin",
+      "status": "active",
+      "two_factor_setup_required": false
+    },
+    "status": 200
+  },
+  "auth_me_admin_sin_dos_pasos": {
+    "body": {
+      "created_at": "2026-11-01T12:00:00+00:00",
+      "email": "contrato_adm@staffya.com",
+      "full_name": "Admin Prueba",
+      "id": "user-admin-1",
+      "is_verified": false,
+      "role": "admin",
+      "status": "active",
+      "two_factor_setup_required": true
+    },
+    "status": 200
+  },
+  "auth_me_employer": {
+    "body": {
+      "created_at": "2026-11-01T12:00:00+00:00",
+      "email": "contrato_emp@staffya.com",
+      "full_name": "Comercio Prueba",
+      "id": "user-employer-1",
+      "is_verified": false,
+      "role": "employer",
+      "status": "active",
+      "two_factor_setup_required": false
+    },
+    "status": 200
+  },
+  "auth_me_worker": {
+    "body": {
+      "created_at": "2026-11-01T12:00:00+00:00",
+      "email": "contrato_w1@staffya.com",
+      "full_name": "Trabajador Uno",
+      "id": "user-worker-1",
+      "is_verified": false,
+      "role": "worker",
+      "status": "active",
+      "two_factor_setup_required": false
+    },
+    "status": 200
+  },
+  "auth_refresh": {
+    "body": {
+      "access_token": "token-de-prueba",
+      "token_type": "bearer",
+      "two_factor_setup_required": false,
+      "user": {
+        "created_at": "2026-11-01T12:00:00+00:00",
+        "email": "contrato_w1@staffya.com",
+        "full_name": "Trabajador Uno",
+        "id": "user-worker-1",
+        "is_verified": false,
+        "role": "worker",
+        "status": "active"
+      }
+    },
+    "status": 200
+  },
+  "auth_refresh_sin_cookie": {
+    "body": {
+      "detail": "Refresh token inválido"
+    },
+    "status": 401
+  },
+  "avisos_comercio": {
+    "body": [
+      {
+        "created_at": "2026-11-01T12:00:00+00:00",
+        "id": "notification-1",
+        "link": "/shifts/shift-1/candidates",
+        "message": "Trabajador Dos se postuló a tu turno de Mozo/a. Entrá para ver a todos los postulantes y elegir.",
+        "read": false,
+        "title": "2 postulantes para Mozo/a",
+        "type": "new_applicant"
+      },
+      {
+        "created_at": "2026-11-01T12:00:00+00:00",
+        "id": "notification-2",
+        "link": "/shifts/shift-1/candidates",
+        "message": "Trabajador Uno se postuló a tu turno de Mozo/a. Entrá para ver a todos los postulantes y elegir.",
+        "read": false,
+        "title": "1 postulante para Mozo/a",
+        "type": "new_applicant"
+      }
+    ],
+    "status": 200
+  },
+  "avisos_trabajador": {
+    "body": [
+      {
+        "created_at": "2026-11-01T12:00:00+00:00",
+        "id": "notification-3",
+        "link": "/turno/shift-1",
+        "message": "Bar Palermo está buscando Mozo/a. Entrá y postulate antes de que lo tomen.",
+        "read": false,
+        "title": "Turno de Mozo/a cerca tuyo",
+        "type": "new_shift_nearby"
+      },
+      {
+        "created_at": "2026-11-01T12:00:00+00:00",
+        "id": "notification-4",
+        "link": null,
+        "message": "Te asignaron el turno \"Mozo/a\". Confirmá tu asistencia.",
+        "read": false,
+        "title": "Te asignaron un turno",
+        "type": "shift_assigned"
+      }
+    ],
+    "status": 200
+  },
+  "candidatos_recomendados": {
+    "body": [
+      {
+        "badges": [],
+        "distance_km": 0.3,
+        "events_completed": 0,
+        "full_name": "Trabajador Dos",
+        "identidad_verificada": false,
+        "level": "bronce",
+        "photo_url": null,
+        "profile_id": "worker-profile-2",
+        "punctuality_rate": 0.0,
+        "rating": 0.0,
+        "score": 0.4,
+        "user_id": "user-worker-2",
+        "years_experience": 2
+      },
+      {
+        "badges": [],
+        "distance_km": 0.3,
+        "events_completed": 0,
+        "full_name": "Trabajador Uno",
+        "identidad_verificada": false,
+        "level": "bronce",
+        "photo_url": null,
+        "profile_id": "worker-profile-1",
+        "punctuality_rate": 0.0,
+        "rating": 0.0,
+        "score": 0.4,
+        "user_id": "user-worker-1",
+        "years_experience": 2
+      }
+    ],
+    "status": 200
+  },
+  "candidatos_turno_ajeno": {
+    "body": {
+      "detail": "Turno no encontrado"
+    },
+    "status": 404
+  },
+  "chat_mensaje_largo": {
+    "body": {
+      "detail": [
+        {
+          "ctx": {
+            "max_length": 2000
+          },
+          "loc": [
+            "body",
+            "body"
+          ],
+          "msg": "String should have at most 2000 characters",
+          "type": "string_too_long"
+        }
+      ]
+    },
+    "status": 422
+  },
+  "error_400_horario": {
+    "body": {
+      "detail": "El turno tiene que terminar después de empezar."
+    },
+    "status": 400
+  },
+  "error_401_sin_sesion": {
+    "body": {
+      "detail": "Not authenticated"
+    },
+    "status": 401
+  },
+  "error_401_token_invalido": {
+    "body": {
+      "detail": "No autorizado"
+    },
+    "status": 401
+  },
+  "error_403_dos_pasos": {
+    "body": {
+      "detail": {
+        "code": "two_factor_setup_required",
+        "message": "Activá la verificación en dos pasos para usar el panel de admin."
+      }
+    },
+    "status": 403
+  },
+  "error_403_rol": {
+    "body": {
+      "detail": "Permisos insuficientes"
+    },
+    "status": 403
+  },
+  "error_404_cancelar_ajeno": {
+    "body": {
+      "detail": "Turno no encontrado"
+    },
+    "status": 404
+  },
+  "error_404_turno": {
+    "body": {
+      "detail": "Turno no encontrado"
+    },
+    "status": 404
+  },
+  "error_422_cantidad": {
+    "body": {
+      "detail": [
+        {
+          "loc": [
+            "body",
+            "quantity"
+          ],
+          "msg": "Value error, Por ahora, un turno = una persona (quantity debe ser 1). Para cubrir varios puestos, creá varios turnos.",
+          "type": "value_error"
+        }
+      ]
+    },
+    "status": 422
+  },
+  "error_422_faltan_campos": {
+    "body": {
+      "detail": [
+        {
+          "loc": [
+            "body",
+            "position"
+          ],
+          "msg": "Field required",
+          "type": "missing"
+        },
+        {
+          "loc": [
+            "body",
+            "start_at"
+          ],
+          "msg": "Field required",
+          "type": "missing"
+        },
+        {
+          "loc": [
+            "body",
+            "end_at"
+          ],
+          "msg": "Field required",
+          "type": "missing"
+        },
+        {
+          "loc": [
+            "body",
+            "pay_amount"
+          ],
+          "msg": "Field required",
+          "type": "missing"
+        }
+      ]
+    },
+    "status": 422
+  },
+  "error_422_id_mal_formado": {
+    "body": {
+      "detail": [
+        {
+          "loc": [
+            "path",
+            "shift_id"
+          ],
+          "msg": "Input should be a valid UUID, invalid character: found `n` at 0",
+          "type": "uuid_parsing"
+        }
+      ]
+    },
+    "status": 422
+  },
+  "feed": {
+    "body": [
+      {
+        "address": "Thames 1234",
+        "check_in_at": null,
+        "check_in_latitude": null,
+        "check_in_longitude": null,
+        "check_out_at": null,
+        "check_out_latitude": null,
+        "check_out_longitude": null,
+        "city": "Palermo",
+        "company_cover_url": null,
+        "company_id": "company-1",
+        "company_logo_url": null,
+        "company_name": "Bar Palermo",
+        "company_verified": false,
+        "confirmed_at": null,
+        "created_at": "2026-11-01T12:00:00+00:00",
+        "currency": "ARS",
+        "description": null,
+        "dress_code": null,
+        "en_route_at": null,
+        "en_route_latitude": null,
+        "en_route_longitude": null,
+        "end_at": "2037-12-21T03:00:00",
+        "event_id": null,
+        "event_name": null,
+        "first_assigned_at": null,
+        "hourly_pay_amount": null,
+        "id": "shift-1",
+        "last_no_show_worker_profile_id": null,
+        "latitude": -34.58,
+        "longitude": -58.43,
+        "meal": false,
+        "no_show_at": null,
+        "paid_at": null,
+        "pay_amount": "70000.00",
+        "pay_band": null,
+        "pending_applicants_count": null,
+        "position": "mozo",
+        "prorated_pay_amount": null,
+        "published_at": "2026-11-01T12:00:00+00:00",
+        "quantity": 1,
+        "reoffered_at": null,
+        "start_at": "2037-12-20T20:00:00",
+        "status": "publicado",
+        "tips": true,
+        "title": null,
+        "urgent": false,
+        "worker_name": null,
+        "worker_profile_id": null
+      }
+    ],
+    "status": 200
+  },
+  "login": {
+    "body": {
+      "access_token": "token-de-prueba",
+      "token_type": "bearer",
+      "two_factor_setup_required": false,
+      "user": {
+        "created_at": "2026-11-01T12:00:00+00:00",
+        "email": "contrato_emp@staffya.com",
+        "full_name": "Comercio Prueba",
+        "id": "user-employer-1",
+        "is_verified": false,
+        "role": "employer",
+        "status": "active"
+      }
+    },
+    "status": 200
+  },
+  "login_cuenta_suspendida": {
+    "body": {
+      "detail": {
+        "code": "account_suspended",
+        "message": "Tu cuenta está suspendida. Si creés que es un error, escribinos a hola@oido.com.ar"
+      }
+    },
+    "status": 403
+  },
+  "login_mal": {
+    "body": {
+      "detail": "Credenciales inválidas"
+    },
+    "status": 401
+  },
+  "perfil_comercio": {
+    "body": {
+      "address": null,
+      "capacity": null,
+      "category": null,
+      "city": "Palermo",
+      "cover_photo_url": null,
+      "created_at": "2026-11-01T12:00:00+00:00",
+      "description": null,
+      "events_published": 0,
+      "id": "company-1",
+      "late_cancellations": 0,
+      "latitude": null,
+      "logo_url": null,
+      "longitude": null,
+      "name": "Bar Palermo",
+      "on_time_payment_rate": 0.0,
+      "opening_hours": null,
+      "owner_full_name": "Comercio Prueba",
+      "payments_recorded": 0,
+      "rating": 0.0,
+      "user_id": "user-employer-1"
+    },
+    "status": 200
+  },
+  "perfil_trabajador": {
+    "body": {
+      "age": null,
+      "badges": [],
+      "bio": null,
+      "birth_date": null,
+      "cancellations": 0,
+      "certifications": [],
+      "city": null,
+      "created_at": "2026-11-01T12:00:00+00:00",
+      "cv_filename": null,
+      "cv_url": null,
+      "events_completed": 0,
+      "full_name": "Trabajador Uno",
+      "id": "worker-profile-1",
+      "identidad_verificada": false,
+      "is_available": true,
+      "languages": [],
+      "latitude": -34.58,
+      "level": "bronce",
+      "longitude": -58.43,
+      "no_shows": 0,
+      "photo_url": null,
+      "punctuality_rate": 0.0,
+      "rating": 0.0,
+      "skills": [
+        "mozo"
+      ],
+      "user_id": "user-worker-1",
+      "years_experience": 2
+    },
+    "status": 200
+  },
+  "perfil_trabajador_sin_crear": {
+    "body": {
+      "detail": "Todavía no creaste tu perfil de trabajador"
+    },
+    "status": 404
+  },
+  "planes": {
+    "body": {
+      "plans": [
+        {
+          "code": "inicial",
+          "features": [
+            "Hasta 5 turnos publicados por mes",
+            "Soporte por email"
+          ],
+          "max_turnos_mes": 5,
+          "name": "Inicial",
+          "price_ars": "9900"
+        },
+        {
+          "code": "basico",
+          "features": [
+            "Hasta 15 turnos publicados por mes",
+            "Soporte prioritario"
+          ],
+          "max_turnos_mes": 15,
+          "name": "Básico",
+          "price_ars": "20000"
+        },
+        {
+          "code": "pro",
+          "features": [
+            "Turnos publicados ilimitados",
+            "Soporte prioritario",
+            "Destacado en el feed"
+          ],
+          "max_turnos_mes": null,
+          "name": "Pro",
+          "price_ars": "45000"
+        }
+      ]
+    },
+    "status": 200
+  },
+  "postulacion_retirar": {
+    "body": {
+      "created_at": "2026-11-01T12:00:00+00:00",
+      "id": "application-2",
+      "motivo": null,
+      "shift": null,
+      "shift_id": "shift-1",
+      "status": "retirada",
+      "worker_profile_id": "worker-profile-2"
+    },
+    "status": 200
+  },
+  "postulacion_retirar_repetida": {
+    "body": {
+      "detail": "No se puede retirar una postulación en estado retirada"
+    },
+    "status": 400
+  },
+  "postulaciones_mias": {
+    "body": [
+      {
+        "created_at": "2026-11-01T12:00:00+00:00",
+        "id": "application-1",
+        "motivo": null,
+        "shift": {
+          "address": "Thames 1234",
+          "check_in_at": null,
+          "check_in_latitude": null,
+          "check_in_longitude": null,
+          "check_out_at": null,
+          "check_out_latitude": null,
+          "check_out_longitude": null,
+          "city": "Palermo",
+          "company_cover_url": null,
+          "company_id": "company-1",
+          "company_logo_url": null,
+          "company_name": "Bar Palermo",
+          "company_verified": false,
+          "confirmed_at": null,
+          "created_at": "2026-11-01T12:00:00+00:00",
+          "currency": "ARS",
+          "description": null,
+          "dress_code": null,
+          "en_route_at": null,
+          "en_route_latitude": null,
+          "en_route_longitude": null,
+          "end_at": "2037-12-21T03:00:00",
+          "event_id": null,
+          "event_name": null,
+          "first_assigned_at": null,
+          "hourly_pay_amount": null,
+          "id": "shift-1",
+          "last_no_show_worker_profile_id": null,
+          "latitude": -34.58,
+          "longitude": -58.43,
+          "meal": false,
+          "no_show_at": null,
+          "paid_at": null,
+          "pay_amount": "70000.00",
+          "pay_band": null,
+          "pending_applicants_count": null,
+          "position": "mozo",
+          "prorated_pay_amount": null,
+          "published_at": "2026-11-01T12:00:00+00:00",
+          "quantity": 1,
+          "reoffered_at": null,
+          "start_at": "2037-12-20T20:00:00",
+          "status": "publicado",
+          "tips": true,
+          "title": null,
+          "urgent": false,
+          "worker_name": null,
+          "worker_profile_id": null
+        },
+        "shift_id": "shift-1",
+        "status": "pendiente",
+        "worker_profile_id": "worker-profile-1"
+      }
+    ],
+    "status": 200
+  },
+  "postulantes": {
+    "body": [
+      {
+        "application_id": "application-2",
+        "badges": [],
+        "created_at": "2026-11-01T12:00:00+00:00",
+        "events_completed": 0,
+        "full_name": "Trabajador Dos",
+        "identidad_verificada": false,
+        "is_available": true,
+        "level": "bronce",
+        "motivo": null,
+        "photo_url": null,
+        "punctuality_rate": 0.0,
+        "rating": 0.0,
+        "status": "pendiente",
+        "worker_profile_id": "worker-profile-2",
+        "years_experience": 2
+      },
+      {
+        "application_id": "application-1",
+        "badges": [],
+        "created_at": "2026-11-01T12:00:00+00:00",
+        "events_completed": 0,
+        "full_name": "Trabajador Uno",
+        "identidad_verificada": false,
+        "is_available": true,
+        "level": "bronce",
+        "motivo": null,
+        "photo_url": null,
+        "punctuality_rate": 0.0,
+        "rating": 0.0,
+        "status": "pendiente",
+        "worker_profile_id": "worker-profile-1",
+        "years_experience": 2
+      }
+    ],
+    "status": 200
+  },
+  "postulantes_de_turno_ajeno": {
+    "body": {
+      "detail": "Turno no encontrado o no disponible para postularse"
+    },
+    "status": 404
+  },
+  "postular": {
+    "body": {
+      "created_at": "2026-11-01T12:00:00+00:00",
+      "id": "application-1",
+      "motivo": null,
+      "shift": null,
+      "shift_id": "shift-1",
+      "status": "pendiente",
+      "worker_profile_id": "worker-profile-1"
+    },
+    "status": 201
+  },
+  "postular_de_nuevo": {
+    "body": {
+      "created_at": "2026-11-01T12:00:00+00:00",
+      "id": "application-2",
+      "motivo": null,
+      "shift": null,
+      "shift_id": "shift-1",
+      "status": "pendiente",
+      "worker_profile_id": "worker-profile-2"
+    },
+    "status": 201
+  },
+  "postular_repetida": {
+    "body": {
+      "detail": "Ya te postulaste a este turno"
+    },
+    "status": 409
+  },
+  "postular_turno_inexistente": {
+    "body": {
+      "detail": "Turno no encontrado o no disponible para postularse"
+    },
+    "status": 404
+  },
+  "publicar_sin_plan_pagado": {
+    "body": {
+      "detail": "Tu plan no está activo. Pagá el mes desde Mi plan para volver a publicar turnos."
+    },
+    "status": 402
+  },
+  "registro_mail_invalido": {
+    "body": {
+      "detail": [
+        {
+          "loc": [
+            "body",
+            "email"
+          ],
+          "msg": "value is not a valid email address: The part after the @-sign is not valid. It should have a period.",
+          "type": "value_error"
+        }
+      ]
+    },
+    "status": 422
+  },
+  "registro_mail_repetido": {
+    "body": {
+      "detail": "El email ya está registrado"
+    },
+    "status": 409
+  },
+  "suscribirse": {
+    "body": {
+      "checkout_url": "https://fake-mp.test/checkout/id-1",
+      "plan_code": "inicial",
+      "status": "pendiente"
+    },
+    "status": 200
+  },
+  "suscripcion_cobro_pendiente": {
+    "body": {
+      "billing_enabled": true,
+      "can_publish": false,
+      "limite_exigido": true,
+      "max_turnos_mes": 5,
+      "paid_until": null,
+      "period_end": "2026-11-01T12:00:00+00:00",
+      "plan_code": "inicial",
+      "price_ars": "9900",
+      "renews": true,
+      "status": "pendiente",
+      "turnos_usados_mes": 0,
+      "withdrawal_until": null
+    },
+    "status": 200
+  },
+  "suscripcion_comercio": {
+    "body": {
+      "billing_enabled": false,
+      "can_publish": true,
+      "limite_exigido": false,
+      "max_turnos_mes": 5,
+      "paid_until": null,
+      "period_end": "2026-11-01T12:00:00+00:00",
+      "plan_code": "inicial",
+      "price_ars": "9900",
+      "renews": true,
+      "status": "activa",
+      "turnos_usados_mes": 3,
+      "withdrawal_until": null
+    },
+    "status": 200
+  },
+  "turno_asignado_comercio": {
+    "body": {
+      "address": "Thames 1234",
+      "check_in_at": null,
+      "check_in_latitude": null,
+      "check_in_longitude": null,
+      "check_out_at": null,
+      "check_out_latitude": null,
+      "check_out_longitude": null,
+      "city": "Palermo",
+      "company_cover_url": null,
+      "company_id": "company-1",
+      "company_logo_url": null,
+      "company_name": "Bar Palermo",
+      "company_verified": false,
+      "confirmed_at": null,
+      "created_at": "2026-11-01T12:00:00+00:00",
+      "currency": "ARS",
+      "description": null,
+      "dress_code": null,
+      "en_route_at": null,
+      "en_route_latitude": null,
+      "en_route_longitude": null,
+      "end_at": "2037-12-21T03:00:00",
+      "event_id": null,
+      "event_name": null,
+      "first_assigned_at": "2026-11-01T12:00:00+00:00",
+      "hourly_pay_amount": null,
+      "id": "shift-1",
+      "last_no_show_worker_profile_id": null,
+      "latitude": -34.58,
+      "longitude": -58.43,
+      "meal": false,
+      "no_show_at": null,
+      "paid_at": null,
+      "pay_amount": "70000.00",
+      "pay_band": null,
+      "pending_applicants_count": null,
+      "position": "mozo",
+      "prorated_pay_amount": null,
+      "published_at": "2026-11-01T12:00:00+00:00",
+      "quantity": 1,
+      "reoffered_at": null,
+      "start_at": "2037-12-20T20:00:00",
+      "status": "asignado",
+      "tips": true,
+      "title": null,
+      "urgent": false,
+      "worker_name": null,
+      "worker_profile_id": "worker-profile-1"
+    },
+    "status": 200
+  },
+  "turno_asignar": {
+    "body": {
+      "address": "Thames 1234",
+      "check_in_at": null,
+      "check_in_latitude": null,
+      "check_in_longitude": null,
+      "check_out_at": null,
+      "check_out_latitude": null,
+      "check_out_longitude": null,
+      "city": "Palermo",
+      "company_cover_url": null,
+      "company_id": "company-1",
+      "company_logo_url": null,
+      "company_name": null,
+      "company_verified": false,
+      "confirmed_at": null,
+      "created_at": "2026-11-01T12:00:00+00:00",
+      "currency": "ARS",
+      "description": null,
+      "dress_code": null,
+      "en_route_at": null,
+      "en_route_latitude": null,
+      "en_route_longitude": null,
+      "end_at": "2037-12-21T03:00:00",
+      "event_id": null,
+      "event_name": null,
+      "first_assigned_at": "2026-11-01T12:00:00+00:00",
+      "hourly_pay_amount": null,
+      "id": "shift-1",
+      "last_no_show_worker_profile_id": null,
+      "latitude": -34.58,
+      "longitude": -58.43,
+      "meal": false,
+      "no_show_at": null,
+      "paid_at": null,
+      "pay_amount": "70000.00",
+      "pay_band": null,
+      "pending_applicants_count": null,
+      "position": "mozo",
+      "prorated_pay_amount": null,
+      "published_at": "2026-11-01T12:00:00+00:00",
+      "quantity": 1,
+      "reoffered_at": null,
+      "start_at": "2037-12-20T20:00:00",
+      "status": "asignado",
+      "tips": true,
+      "title": null,
+      "urgent": false,
+      "worker_name": null,
+      "worker_profile_id": "worker-profile-1"
+    },
+    "status": 200
+  },
+  "turno_asignar_cuenta_suspendida": {
+    "body": {
+      "detail": "Esta persona no puede tomar turnos por ahora. Elegí a otra."
+    },
+    "status": 409
+  },
+  "turno_asignar_ya_asignado": {
+    "body": {
+      "detail": "Este turno ya tiene a alguien asignado."
+    },
+    "status": 400
+  },
+  "turno_borrador_ajeno": {
+    "body": {
+      "detail": "Turno no encontrado"
+    },
+    "status": 404
+  },
+  "turno_borrador_comercio": {
+    "body": {
+      "address": "Thames 1234",
+      "check_in_at": null,
+      "check_in_latitude": null,
+      "check_in_longitude": null,
+      "check_out_at": null,
+      "check_out_latitude": null,
+      "check_out_longitude": null,
+      "city": "Palermo",
+      "company_cover_url": null,
+      "company_id": "company-1",
+      "company_logo_url": null,
+      "company_name": "Bar Palermo",
+      "company_verified": false,
+      "confirmed_at": null,
+      "created_at": "2026-11-01T12:00:00+00:00",
+      "currency": "ARS",
+      "description": null,
+      "dress_code": null,
+      "en_route_at": null,
+      "en_route_latitude": null,
+      "en_route_longitude": null,
+      "end_at": "2037-12-21T03:00:00",
+      "event_id": null,
+      "event_name": null,
+      "first_assigned_at": null,
+      "hourly_pay_amount": null,
+      "id": "shift-1",
+      "last_no_show_worker_profile_id": null,
+      "latitude": -34.58,
+      "longitude": -58.43,
+      "meal": false,
+      "no_show_at": null,
+      "paid_at": null,
+      "pay_amount": "70000.00",
+      "pay_band": null,
+      "pending_applicants_count": null,
+      "position": "mozo",
+      "prorated_pay_amount": null,
+      "published_at": null,
+      "quantity": 1,
+      "reoffered_at": null,
+      "start_at": "2037-12-20T20:00:00",
+      "status": "borrador",
+      "tips": true,
+      "title": null,
+      "urgent": false,
+      "worker_name": null,
+      "worker_profile_id": null
+    },
+    "status": 200
+  },
+  "turno_borrador_otro_comercio": {
+    "body": {
+      "detail": "Turno no encontrado"
+    },
+    "status": 404
+  },
+  "turno_cancelado_ajeno": {
+    "body": {
+      "detail": "Turno no encontrado"
+    },
+    "status": 404
+  },
+  "turno_cancelado_asignar": {
+    "body": {
+      "detail": "Ya cancelaste este turno."
+    },
+    "status": 400
+  },
+  "turno_cancelado_confirmar": {
+    "body": {
+      "detail": "El comercio canceló este turno."
+    },
+    "status": 400
+  },
+  "turno_cancelado_publico": {
+    "body": {
+      "detail": "Este turno ya no está disponible"
+    },
+    "status": 410
+  },
+  "turno_cancelar": {
+    "body": {
+      "address": "Thames 1234",
+      "check_in_at": null,
+      "check_in_latitude": null,
+      "check_in_longitude": null,
+      "check_out_at": null,
+      "check_out_latitude": null,
+      "check_out_longitude": null,
+      "city": "Palermo",
+      "company_cover_url": null,
+      "company_id": "company-1",
+      "company_logo_url": null,
+      "company_name": null,
+      "company_verified": false,
+      "confirmed_at": null,
+      "created_at": "2026-11-01T12:00:00+00:00",
+      "currency": "ARS",
+      "description": null,
+      "dress_code": null,
+      "en_route_at": null,
+      "en_route_latitude": null,
+      "en_route_longitude": null,
+      "end_at": "2037-12-21T03:00:00",
+      "event_id": null,
+      "event_name": null,
+      "first_assigned_at": "2026-11-01T12:00:00+00:00",
+      "hourly_pay_amount": null,
+      "id": "shift-3",
+      "last_no_show_worker_profile_id": null,
+      "latitude": -34.58,
+      "longitude": -58.43,
+      "meal": false,
+      "no_show_at": null,
+      "paid_at": null,
+      "pay_amount": "70000.00",
+      "pay_band": null,
+      "pending_applicants_count": null,
+      "position": "mozo",
+      "prorated_pay_amount": null,
+      "published_at": "2026-11-01T12:00:00+00:00",
+      "quantity": 1,
+      "reoffered_at": null,
+      "start_at": "2037-12-20T20:00:00",
+      "status": "cancelado",
+      "tips": true,
+      "title": null,
+      "urgent": false,
+      "worker_name": null,
+      "worker_profile_id": "worker-profile-2"
+    },
+    "status": 200
+  },
+  "turno_cancelar_repetido": {
+    "body": {
+      "detail": "Ya cancelaste este turno."
+    },
+    "status": 400
+  },
+  "turno_confirmado_trabajador": {
+    "body": {
+      "address": "Thames 1234",
+      "check_in_at": null,
+      "check_in_latitude": null,
+      "check_in_longitude": null,
+      "check_out_at": null,
+      "check_out_latitude": null,
+      "check_out_longitude": null,
+      "city": "Palermo",
+      "company_cover_url": null,
+      "company_id": "company-1",
+      "company_logo_url": null,
+      "company_name": "Bar Palermo",
+      "company_verified": false,
+      "confirmed_at": "2026-11-01T12:00:00+00:00",
+      "created_at": "2026-11-01T12:00:00+00:00",
+      "currency": "ARS",
+      "description": null,
+      "dress_code": null,
+      "en_route_at": null,
+      "en_route_latitude": null,
+      "en_route_longitude": null,
+      "end_at": "2037-12-21T03:00:00",
+      "event_id": null,
+      "event_name": null,
+      "first_assigned_at": "2026-11-01T12:00:00+00:00",
+      "hourly_pay_amount": null,
+      "id": "shift-1",
+      "last_no_show_worker_profile_id": null,
+      "latitude": -34.58,
+      "longitude": -58.43,
+      "meal": false,
+      "no_show_at": null,
+      "paid_at": null,
+      "pay_amount": "70000.00",
+      "pay_band": null,
+      "pending_applicants_count": null,
+      "position": "mozo",
+      "prorated_pay_amount": null,
+      "published_at": "2026-11-01T12:00:00+00:00",
+      "quantity": 1,
+      "reoffered_at": null,
+      "start_at": "2037-12-20T20:00:00",
+      "status": "confirmado",
+      "tips": true,
+      "title": null,
+      "urgent": false,
+      "worker_name": null,
+      "worker_profile_id": "worker-profile-1"
+    },
+    "status": 200
+  },
+  "turno_confirmar": {
+    "body": {
+      "address": "Thames 1234",
+      "check_in_at": null,
+      "check_in_latitude": null,
+      "check_in_longitude": null,
+      "check_out_at": null,
+      "check_out_latitude": null,
+      "check_out_longitude": null,
+      "city": "Palermo",
+      "company_cover_url": null,
+      "company_id": "company-1",
+      "company_logo_url": null,
+      "company_name": null,
+      "company_verified": false,
+      "confirmed_at": "2026-11-01T12:00:00+00:00",
+      "created_at": "2026-11-01T12:00:00+00:00",
+      "currency": "ARS",
+      "description": null,
+      "dress_code": null,
+      "en_route_at": null,
+      "en_route_latitude": null,
+      "en_route_longitude": null,
+      "end_at": "2037-12-21T03:00:00",
+      "event_id": null,
+      "event_name": null,
+      "first_assigned_at": "2026-11-01T12:00:00+00:00",
+      "hourly_pay_amount": null,
+      "id": "shift-1",
+      "last_no_show_worker_profile_id": null,
+      "latitude": -34.58,
+      "longitude": -58.43,
+      "meal": false,
+      "no_show_at": null,
+      "paid_at": null,
+      "pay_amount": "70000.00",
+      "pay_band": null,
+      "pending_applicants_count": null,
+      "position": "mozo",
+      "prorated_pay_amount": null,
+      "published_at": "2026-11-01T12:00:00+00:00",
+      "quantity": 1,
+      "reoffered_at": null,
+      "start_at": "2037-12-20T20:00:00",
+      "status": "confirmado",
+      "tips": true,
+      "title": null,
+      "urgent": false,
+      "worker_name": null,
+      "worker_profile_id": "worker-profile-1"
+    },
+    "status": 200
+  },
+  "turno_confirmar_repetido": {
+    "body": {
+      "detail": "Ya habías confirmado este turno."
+    },
+    "status": 400
+  },
+  "turno_crear": {
+    "body": {
+      "address": "Thames 1234",
+      "check_in_at": null,
+      "check_in_latitude": null,
+      "check_in_longitude": null,
+      "check_out_at": null,
+      "check_out_latitude": null,
+      "check_out_longitude": null,
+      "city": "Palermo",
+      "company_cover_url": null,
+      "company_id": "company-1",
+      "company_logo_url": null,
+      "company_name": null,
+      "company_verified": false,
+      "confirmed_at": null,
+      "created_at": "2026-11-01T12:00:00+00:00",
+      "currency": "ARS",
+      "description": null,
+      "dress_code": null,
+      "en_route_at": null,
+      "en_route_latitude": null,
+      "en_route_longitude": null,
+      "end_at": "2037-12-21T03:00:00",
+      "event_id": null,
+      "event_name": null,
+      "first_assigned_at": null,
+      "hourly_pay_amount": null,
+      "id": "shift-1",
+      "last_no_show_worker_profile_id": null,
+      "latitude": -34.58,
+      "longitude": -58.43,
+      "meal": false,
+      "no_show_at": null,
+      "paid_at": null,
+      "pay_amount": "70000.00",
+      "pay_band": null,
+      "pending_applicants_count": null,
+      "position": "mozo",
+      "prorated_pay_amount": null,
+      "published_at": null,
+      "quantity": 1,
+      "reoffered_at": null,
+      "start_at": "2037-12-20T20:00:00",
+      "status": "borrador",
+      "tips": true,
+      "title": null,
+      "urgent": false,
+      "worker_name": null,
+      "worker_profile_id": null
+    },
+    "status": 201
+  },
+  "turno_en_camino": {
+    "body": {
+      "address": "Thames 1234",
+      "check_in_at": null,
+      "check_in_latitude": null,
+      "check_in_longitude": null,
+      "check_out_at": null,
+      "check_out_latitude": null,
+      "check_out_longitude": null,
+      "city": "Palermo",
+      "company_cover_url": null,
+      "company_id": "company-1",
+      "company_logo_url": null,
+      "company_name": null,
+      "company_verified": false,
+      "confirmed_at": "2026-11-01T12:00:00+00:00",
+      "created_at": "2026-11-01T12:00:00+00:00",
+      "currency": "ARS",
+      "description": null,
+      "dress_code": null,
+      "en_route_at": "2026-11-01T12:00:00+00:00",
+      "en_route_latitude": -34.6,
+      "en_route_longitude": -58.4,
+      "end_at": "2037-12-21T03:00:00",
+      "event_id": null,
+      "event_name": null,
+      "first_assigned_at": "2026-11-01T12:00:00+00:00",
+      "hourly_pay_amount": null,
+      "id": "shift-2",
+      "last_no_show_worker_profile_id": null,
+      "latitude": -34.58,
+      "longitude": -58.43,
+      "meal": false,
+      "no_show_at": null,
+      "paid_at": null,
+      "pay_amount": "70000.00",
+      "pay_band": null,
+      "pending_applicants_count": null,
+      "position": "mozo",
+      "prorated_pay_amount": null,
+      "published_at": "2026-11-01T12:00:00+00:00",
+      "quantity": 1,
+      "reoffered_at": null,
+      "start_at": "2037-12-20T20:00:00",
+      "status": "confirmado",
+      "tips": true,
+      "title": null,
+      "urgent": false,
+      "worker_name": null,
+      "worker_profile_id": "worker-profile-1"
+    },
+    "status": 200
+  },
+  "turno_en_camino_ajeno": {
+    "body": {
+      "detail": "Turno no encontrado"
+    },
+    "status": 404
+  },
+  "turno_en_camino_comercio": {
+    "body": {
+      "address": "Thames 1234",
+      "check_in_at": null,
+      "check_in_latitude": null,
+      "check_in_longitude": null,
+      "check_out_at": null,
+      "check_out_latitude": null,
+      "check_out_longitude": null,
+      "city": "Palermo",
+      "company_cover_url": null,
+      "company_id": "company-1",
+      "company_logo_url": null,
+      "company_name": "Bar Palermo",
+      "company_verified": false,
+      "confirmed_at": "2026-11-01T12:00:00+00:00",
+      "created_at": "2026-11-01T12:00:00+00:00",
+      "currency": "ARS",
+      "description": null,
+      "dress_code": null,
+      "en_route_at": "2026-11-01T12:00:00+00:00",
+      "en_route_latitude": -34.6,
+      "en_route_longitude": -58.4,
+      "end_at": "2037-12-21T03:00:00",
+      "event_id": null,
+      "event_name": null,
+      "first_assigned_at": "2026-11-01T12:00:00+00:00",
+      "hourly_pay_amount": null,
+      "id": "shift-2",
+      "last_no_show_worker_profile_id": null,
+      "latitude": -34.58,
+      "longitude": -58.43,
+      "meal": false,
+      "no_show_at": null,
+      "paid_at": null,
+      "pay_amount": "70000.00",
+      "pay_band": null,
+      "pending_applicants_count": null,
+      "position": "mozo",
+      "prorated_pay_amount": null,
+      "published_at": "2026-11-01T12:00:00+00:00",
+      "quantity": 1,
+      "reoffered_at": null,
+      "start_at": "2037-12-20T20:00:00",
+      "status": "confirmado",
+      "tips": true,
+      "title": null,
+      "urgent": false,
+      "worker_name": null,
+      "worker_profile_id": "worker-profile-1"
+    },
+    "status": 200
+  },
+  "turno_llegada_antes_de_tiempo": {
+    "body": {
+      "detail": "Todavía no podés marcar tu llegada: se habilita desde las 16:30 del domingo (30 minutos antes de que empiece el turno)."
+    },
+    "status": 400
+  },
+  "turno_publicado_comercio": {
+    "body": {
+      "address": "Thames 1234",
+      "check_in_at": null,
+      "check_in_latitude": null,
+      "check_in_longitude": null,
+      "check_out_at": null,
+      "check_out_latitude": null,
+      "check_out_longitude": null,
+      "city": "Palermo",
+      "company_cover_url": null,
+      "company_id": "company-1",
+      "company_logo_url": null,
+      "company_name": "Bar Palermo",
+      "company_verified": false,
+      "confirmed_at": null,
+      "created_at": "2026-11-01T12:00:00+00:00",
+      "currency": "ARS",
+      "description": null,
+      "dress_code": null,
+      "en_route_at": null,
+      "en_route_latitude": null,
+      "en_route_longitude": null,
+      "end_at": "2037-12-21T03:00:00",
+      "event_id": null,
+      "event_name": null,
+      "first_assigned_at": null,
+      "hourly_pay_amount": null,
+      "id": "shift-1",
+      "last_no_show_worker_profile_id": null,
+      "latitude": -34.58,
+      "longitude": -58.43,
+      "meal": false,
+      "no_show_at": null,
+      "paid_at": null,
+      "pay_amount": "70000.00",
+      "pay_band": null,
+      "pending_applicants_count": null,
+      "position": "mozo",
+      "prorated_pay_amount": null,
+      "published_at": "2026-11-01T12:00:00+00:00",
+      "quantity": 1,
+      "reoffered_at": null,
+      "start_at": "2037-12-20T20:00:00",
+      "status": "publicado",
+      "tips": true,
+      "title": null,
+      "urgent": false,
+      "worker_name": null,
+      "worker_profile_id": null
+    },
+    "status": 200
+  },
+  "turno_publicado_trabajador": {
+    "body": {
+      "address": "Thames 1234",
+      "check_in_at": null,
+      "check_in_latitude": null,
+      "check_in_longitude": null,
+      "check_out_at": null,
+      "check_out_latitude": null,
+      "check_out_longitude": null,
+      "city": "Palermo",
+      "company_cover_url": null,
+      "company_id": "company-1",
+      "company_logo_url": null,
+      "company_name": "Bar Palermo",
+      "company_verified": false,
+      "confirmed_at": null,
+      "created_at": "2026-11-01T12:00:00+00:00",
+      "currency": "ARS",
+      "description": null,
+      "dress_code": null,
+      "en_route_at": null,
+      "en_route_latitude": null,
+      "en_route_longitude": null,
+      "end_at": "2037-12-21T03:00:00",
+      "event_id": null,
+      "event_name": null,
+      "first_assigned_at": null,
+      "hourly_pay_amount": null,
+      "id": "shift-1",
+      "last_no_show_worker_profile_id": null,
+      "latitude": -34.58,
+      "longitude": -58.43,
+      "meal": false,
+      "no_show_at": null,
+      "paid_at": null,
+      "pay_amount": "70000.00",
+      "pay_band": null,
+      "pending_applicants_count": null,
+      "position": "mozo",
+      "prorated_pay_amount": null,
+      "published_at": "2026-11-01T12:00:00+00:00",
+      "quantity": 1,
+      "reoffered_at": null,
+      "start_at": "2037-12-20T20:00:00",
+      "status": "publicado",
+      "tips": true,
+      "title": null,
+      "urgent": false,
+      "worker_name": null,
+      "worker_profile_id": null
+    },
+    "status": 200
+  },
+  "turno_publicar": {
+    "body": {
+      "address": "Thames 1234",
+      "check_in_at": null,
+      "check_in_latitude": null,
+      "check_in_longitude": null,
+      "check_out_at": null,
+      "check_out_latitude": null,
+      "check_out_longitude": null,
+      "city": "Palermo",
+      "company_cover_url": null,
+      "company_id": "company-1",
+      "company_logo_url": null,
+      "company_name": null,
+      "company_verified": false,
+      "confirmed_at": null,
+      "created_at": "2026-11-01T12:00:00+00:00",
+      "currency": "ARS",
+      "description": null,
+      "dress_code": null,
+      "en_route_at": null,
+      "en_route_latitude": null,
+      "en_route_longitude": null,
+      "end_at": "2037-12-21T03:00:00",
+      "event_id": null,
+      "event_name": null,
+      "first_assigned_at": null,
+      "hourly_pay_amount": null,
+      "id": "shift-1",
+      "last_no_show_worker_profile_id": null,
+      "latitude": -34.58,
+      "longitude": -58.43,
+      "meal": false,
+      "no_show_at": null,
+      "paid_at": null,
+      "pay_amount": "70000.00",
+      "pay_band": null,
+      "pending_applicants_count": null,
+      "position": "mozo",
+      "prorated_pay_amount": null,
+      "published_at": "2026-11-01T12:00:00+00:00",
+      "quantity": 1,
+      "reoffered_at": null,
+      "start_at": "2037-12-20T20:00:00",
+      "status": "publicado",
+      "tips": true,
+      "title": null,
+      "urgent": false,
+      "worker_name": null,
+      "worker_profile_id": null
+    },
+    "status": 200
+  },
+  "turno_publico": {
+    "body": {
+      "city": "Palermo",
+      "company_cover_url": null,
+      "company_name": "Bar Palermo",
+      "currency": "ARS",
+      "dress_code": null,
+      "end_at": "2037-12-21T03:00:00",
+      "hourly_pay_amount": null,
+      "id": "shift-1",
+      "meal": false,
+      "pay_amount": "70000.00",
+      "position": "mozo",
+      "reoffered_at": null,
+      "start_at": "2037-12-20T20:00:00",
+      "tips": true,
+      "urgent": false
+    },
+    "status": 200
+  },
+  "turnos_asignados_trabajador": {
+    "body": [
+      {
+        "address": "Thames 1234",
+        "check_in_at": null,
+        "check_in_latitude": null,
+        "check_in_longitude": null,
+        "check_out_at": null,
+        "check_out_latitude": null,
+        "check_out_longitude": null,
+        "city": "Palermo",
+        "company_cover_url": null,
+        "company_id": "company-1",
+        "company_logo_url": null,
+        "company_name": "Bar Palermo",
+        "company_verified": false,
+        "confirmed_at": null,
+        "created_at": "2026-11-01T12:00:00+00:00",
+        "currency": "ARS",
+        "description": null,
+        "dress_code": null,
+        "en_route_at": null,
+        "en_route_latitude": null,
+        "en_route_longitude": null,
+        "end_at": "2037-12-21T03:00:00",
+        "event_id": null,
+        "event_name": null,
+        "first_assigned_at": "2026-11-01T12:00:00+00:00",
+        "hourly_pay_amount": null,
+        "id": "shift-1",
+        "last_no_show_worker_profile_id": null,
+        "latitude": -34.58,
+        "longitude": -58.43,
+        "meal": false,
+        "no_show_at": null,
+        "paid_at": null,
+        "pay_amount": "70000.00",
+        "pay_band": null,
+        "pending_applicants_count": null,
+        "position": "mozo",
+        "prorated_pay_amount": null,
+        "published_at": "2026-11-01T12:00:00+00:00",
+        "quantity": 1,
+        "reoffered_at": null,
+        "start_at": "2037-12-20T20:00:00",
+        "status": "asignado",
+        "tips": true,
+        "title": null,
+        "urgent": false,
+        "worker_name": null,
+        "worker_profile_id": "worker-profile-1"
+      }
+    ],
+    "status": 200
+  },
+  "turnos_del_comercio": {
+    "body": [
+      {
+        "address": "Thames 1234",
+        "check_in_at": null,
+        "check_in_latitude": null,
+        "check_in_longitude": null,
+        "check_out_at": null,
+        "check_out_latitude": null,
+        "check_out_longitude": null,
+        "city": "Palermo",
+        "company_cover_url": null,
+        "company_id": "company-1",
+        "company_logo_url": null,
+        "company_name": null,
+        "company_verified": false,
+        "confirmed_at": null,
+        "created_at": "2026-11-01T12:00:00+00:00",
+        "currency": "ARS",
+        "description": null,
+        "dress_code": null,
+        "en_route_at": null,
+        "en_route_latitude": null,
+        "en_route_longitude": null,
+        "end_at": "2037-12-21T03:00:00",
+        "event_id": null,
+        "event_name": null,
+        "first_assigned_at": null,
+        "hourly_pay_amount": null,
+        "id": "shift-1",
+        "last_no_show_worker_profile_id": null,
+        "latitude": -34.58,
+        "longitude": -58.43,
+        "meal": false,
+        "no_show_at": null,
+        "paid_at": null,
+        "pay_amount": "70000.00",
+        "pay_band": null,
+        "pending_applicants_count": 0,
+        "position": "mozo",
+        "prorated_pay_amount": null,
+        "published_at": "2026-11-01T12:00:00+00:00",
+        "quantity": 1,
+        "reoffered_at": null,
+        "start_at": "2037-12-20T20:00:00",
+        "status": "publicado",
+        "tips": true,
+        "title": null,
+        "urgent": false,
+        "worker_name": null,
+        "worker_profile_id": null
+      }
+    ],
+    "status": 200
+  },
+  "turnos_del_comercio_con_asignado": {
+    "body": [
+      {
+        "address": "Thames 1234",
+        "check_in_at": null,
+        "check_in_latitude": null,
+        "check_in_longitude": null,
+        "check_out_at": null,
+        "check_out_latitude": null,
+        "check_out_longitude": null,
+        "city": "Palermo",
+        "company_cover_url": null,
+        "company_id": "company-1",
+        "company_logo_url": null,
+        "company_name": null,
+        "company_verified": false,
+        "confirmed_at": "2026-11-01T12:00:00+00:00",
+        "created_at": "2026-11-01T12:00:00+00:00",
+        "currency": "ARS",
+        "description": null,
+        "dress_code": null,
+        "en_route_at": null,
+        "en_route_latitude": null,
+        "en_route_longitude": null,
+        "end_at": "2037-12-21T03:00:00",
+        "event_id": null,
+        "event_name": null,
+        "first_assigned_at": "2026-11-01T12:00:00+00:00",
+        "hourly_pay_amount": null,
+        "id": "shift-1",
+        "last_no_show_worker_profile_id": null,
+        "latitude": -34.58,
+        "longitude": -58.43,
+        "meal": false,
+        "no_show_at": null,
+        "paid_at": null,
+        "pay_amount": "70000.00",
+        "pay_band": null,
+        "pending_applicants_count": 0,
+        "position": "mozo",
+        "prorated_pay_amount": null,
+        "published_at": "2026-11-01T12:00:00+00:00",
+        "quantity": 1,
+        "reoffered_at": null,
+        "start_at": "2037-12-20T20:00:00",
+        "status": "confirmado",
+        "tips": true,
+        "title": null,
+        "urgent": false,
+        "worker_name": "Trabajador Uno",
+        "worker_profile_id": "worker-profile-1"
+      }
+    ],
+    "status": 200
+  }
+}

@@ -14,20 +14,31 @@ from app.core.dt import naive as _naive
 from app.core.geo import haversine_km
 from app.core.tz import format_desde_art, format_duracion, format_inicio_art
 from app.modules.shift.domain.exceptions import (
+    AdminCloseNotAllowedError,
     InvalidShiftScheduleError,
     InvalidShiftTransitionError,
     OverlappingShiftError,
     ShiftNotEditableError,
     WorkerTooFarFromShiftError,
 )
-from app.modules.shift.domain.mensajes import no_se_puede
+from app.modules.shift.domain.mensajes import (
+    CIERRE_ADMIN_CAMBIO,
+    CIERRE_ADMIN_CIERRE_DEL_COMERCIO,
+    CIERRE_ADMIN_NINGUNA_SUSPENDIDA,
+    CIERRE_ADMIN_SALIDA_DEL_TRABAJADOR,
+    cierre_admin_antes_del_inicio,
+    cierre_admin_por_estado,
+    no_se_puede,
+)
 from app.modules.shift.domain.value_objects import (
+    ADMIN_CHECK_OUT_STATUSES,
     EDITABLE_STATUSES,
     NOT_CANCELLABLE_STATUSES,
     OPEN_STATUSES,
     TAKEN_NOT_STARTED_STATUSES,
     TERMINAL_STATUSES,
     UNCOVERED_ELIGIBLE_STATUSES,
+    AdminClosePlan,
     ShiftStatus,
 )
 from app.modules.worker.domain.value_objects import WorkerSkill
@@ -153,6 +164,13 @@ class Shift:
     # que sin este campo se perdería quién fue marcado ausente.
     no_show_at: datetime | None = None
     last_no_show_worker_profile_id: UUID | None = None
+
+    # «Cerrar turno» de la admin (decisión 21, ADR-0024): cuándo y quién
+    # marcó la salida o cerró el turno en nombre de una cuenta suspendida.
+    # Registro en el propio turno, como `no_show_at`: la marca de salida
+    # (`check_out_at`) no dice quién la hizo.
+    closed_by_admin_at: datetime | None = None
+    closed_by_admin_user_id: UUID | None = None
 
     # Scheduler de asistencia (ADR-0008): cuándo se le mandó al trabajador el
     # recordatorio push de "marcá tu llegada". Sin este campo el scheduler
@@ -764,6 +782,99 @@ class Shift:
         self.check_out_latitude = latitude
         self.check_out_longitude = longitude
         self.check_out_at = now
+
+    def admin_check_out(self, now: datetime | None = None) -> None:
+        """CHECK_IN/TRABAJANDO → CHECK_OUT marcado por la admin en nombre de
+        un trabajador suspendido, que ya no puede entrar a marcarlo (decisión
+        21, ADR-0024). Como `check_out()`, pero sin ubicación (nadie está en
+        el local para informarla) y por lo tanto sin el control de distancia.
+        Sí exige que el turno haya empezado: la salida no se marca antes del
+        inicio. La hora es la de ahora. Quién decide si corresponde es
+        `admin_close_plan`."""
+        if self.status not in ADMIN_CHECK_OUT_STATUSES:
+            raise InvalidShiftTransitionError(no_se_puede("salida", self.status))
+        now = now or datetime.now(timezone.utc)
+        if _naive(now) < _naive(self.start_at):
+            raise InvalidShiftTransitionError(
+                cierre_admin_antes_del_inicio(format_inicio_art(self.start_at, now))
+            )
+        self.status = ShiftStatus.CHECK_OUT
+        self.check_out_latitude = None
+        self.check_out_longitude = None
+        self.check_out_at = now
+
+    def admin_close_plan(
+        self, *, worker_active: bool, company_active: bool, now: datetime
+    ) -> AdminClosePlan:
+        """Qué haría «Cerrar turno» de la admin (decisión 21, ADR-0024), sin
+        cambiar nada. Sólo actúa en nombre de la parte suspendida y sólo en un
+        turno empezado (llegada marcada en adelante):
+
+        - trabajador suspendido, llegada marcada: marca la salida;
+        - comercio suspendido, salida marcada: cierra el turno;
+        - los dos suspendidos, llegada marcada: las dos cosas.
+
+        Si no aplica, `AdminCloseNotAllowedError` con el motivo para la
+        admin: ninguna suspendida, el turno no empezó o ya terminó, la salida
+        todavía no se puede marcar (antes del inicio) o el paso que falta le
+        toca a la parte activa. Lo usa la ficha de la admin para mostrar el
+        botón, y el caso de uso para hacerlo: la regla está una sola vez."""
+        if self.status not in ADMIN_CHECK_OUT_STATUSES | {ShiftStatus.CHECK_OUT}:
+            raise AdminCloseNotAllowedError(cierre_admin_por_estado(self.status))
+        if worker_active and company_active:
+            raise AdminCloseNotAllowedError(CIERRE_ADMIN_NINGUNA_SUSPENDIDA)
+        if self.status == ShiftStatus.CHECK_OUT:
+            if company_active:
+                raise AdminCloseNotAllowedError(CIERRE_ADMIN_CIERRE_DEL_COMERCIO)
+            return AdminClosePlan(
+                check_out=False,
+                finish=True,
+                worker_active=worker_active,
+                company_active=company_active,
+            )
+        if worker_active:
+            raise AdminCloseNotAllowedError(CIERRE_ADMIN_SALIDA_DEL_TRABAJADOR)
+        if _naive(now) < _naive(self.start_at):
+            raise AdminCloseNotAllowedError(
+                cierre_admin_antes_del_inicio(format_inicio_art(self.start_at, now))
+            )
+        return AdminClosePlan(
+            check_out=True,
+            finish=not company_active,
+            worker_active=worker_active,
+            company_active=company_active,
+        )
+
+    def close_for_suspended_account(
+        self,
+        admin_user_id: UUID,
+        *,
+        worker_active: bool,
+        company_active: bool,
+        expected: tuple[bool, bool] | None = None,
+        now: datetime | None = None,
+    ) -> AdminClosePlan:
+        """Hace lo que dice `admin_close_plan` y deja el registro de quién y
+        cuándo (`closed_by_admin_*`). Devuelve el plan, para que el caso de
+        uso sepa qué efectos correr y a quién avisar.
+
+        `expected` es lo que la admin vio y confirmó en el diálogo
+        (`(check_out, finish)`): si el plan de ahora es otro (el turno o una
+        cuenta cambió desde que abrió la ficha), no hace nada y responde
+        `CIERRE_ADMIN_CAMBIO`. Nunca se ejecuta más de lo confirmado."""
+        now = now or datetime.now(timezone.utc)
+        plan = self.admin_close_plan(
+            worker_active=worker_active, company_active=company_active, now=now
+        )
+        if expected is not None and expected != (plan.check_out, plan.finish):
+            raise AdminCloseNotAllowedError(CIERRE_ADMIN_CAMBIO)
+        if plan.check_out:
+            self.admin_check_out(now)
+        if plan.finish:
+            self.finish()
+        self.closed_by_admin_at = now
+        self.closed_by_admin_user_id = admin_user_id
+        return plan
 
     def finish(self) -> None:
         """CHECK_OUT → FINALIZADO: cierra el turno trabajado."""

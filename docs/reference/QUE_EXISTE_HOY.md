@@ -108,7 +108,14 @@ listados más abajo.
   el que ve en la tarjeta y en sus ganancias. A esa persona la ausencia se le
   cuenta desde que confirmó, y su puntualidad no se mueve.
 - **Idempotencia** en mutaciones críticas vía header `Idempotency-Key`
-  (`backend/app/core/idempotency.py`).
+  (`backend/app/core/idempotency.py`). Todas las transiciones del turno la
+  usan (`confirm`, `reject`, `worker-cancel`, `check-in`, `start-working`,
+  `check-out`, `no-show`, `finish`, `mark-paid`...). Del lado del cliente
+  (`frontend/lib/idempotency.ts`) la key es del intento, no de la acción: se
+  suelta al terminar bien o con un error definitivo (4xx, salvo 408 y 409) y
+  vence sola a los 5 minutos; con «Llegué»/«Terminé» se guarda junto a la key
+  la posición del primer intento, porque el servidor rechaza la misma key con
+  otro cuerpo. Postularse o calificar dos veces a la vez da 409, no 500.
 - **Helper de zona horaria Argentina** (`backend/app/core/tz.py`,
   `hoy_art()`/`now_art()`): usar para toda fecha de NEGOCIO (edad, "turnos de
   hoy", cortes de período); los timestamps de auditoría siguen en UTC a
@@ -142,9 +149,11 @@ listados más abajo.
   matching de un turno) mida la distancia desde ahí y no desde su domicilio.
   Dura 4h (`AVAILABLE_NOW_TTL`) o hasta apagarlo. El pin que ve el comercio
   **nunca** es la coordenada exacta, esté o no "Disponible ahora" prendido:
-  `app/core/geo.py::fuzz_point` la desplaza siempre dentro de un anillo de
-  150–350m (TECH_DEBT.md S4) — un desplazamiento determinístico (mismo
-  trabajador, mismo punto en cada render), no aleatorio en cada carga.
+  `app/core/geo.py::fuzz_point` la lleva al centro de una celda de 0,2 km y
+  la desplaza con una clave del servidor, a entre 150 y ~640 m del punto
+  real, redondeada a 4 decimales (TECH_DEBT.md S4; ADR-0014, actualización
+  2026-11-19) — un desplazamiento determinístico (mismo trabajador en el
+  mismo lugar, mismo punto en cada render), no aleatorio en cada carga.
 - **«Cerca» es un límite, no una preferencia** (2026-11-13): el aviso
   «Turno cerca tuyo» sale sólo a quien está a 25 km o menos del turno (40 km
   en la escalada a urgente), y lo mismo los recomendados que ve el comercio.
@@ -194,7 +203,10 @@ listados más abajo.
   MRR y **cuentas de prueba** (trabajador/comercio) creables desde ahí. Las
   cuentas sintéticas se excluyen de las métricas a propósito, y de las de
   cobertura también los turnos que vencieron con la cuenta del comercio
-  suspendida (ADR-0024, actualización 2026-11-18).
+  suspendida (ADR-0024, actualización 2026-11-18). En la ficha de
+  una cuenta suspendida, **«Cerrar turno»** marca la salida o cierra un turno
+  ya empezado en nombre de esa cuenta, con registro; el push sale sólo a la
+  parte activa (decisión 21, ADR-0024).
 - **Design system con tema explícito** (#317/#318): `lib/theme.tsx` es la
   única fuente de verdad y siempre escribe `data-theme="dark"|"light"`. **La
   app no se oscurece sola**: "Sistema" resuelve a claro, por decisión de

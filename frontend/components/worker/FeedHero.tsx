@@ -38,7 +38,7 @@ function FeedHero({ shift }: { shift: Shift }) {
   const label = SKILL_LABELS[shift.position];
   const where = [shift.company_name, shift.city].filter(Boolean).join(" · ");
   const aviso = shift.urgent ? (
-    <span className="sello-goma shrink-0 text-danger-text">Urgente</span>
+    <span className="sello-goma sello-rojo shrink-0">Urgente</span>
   ) : isTodayInArgentina(shift.start_at) ? (
     <Apunte className="mr-1 shrink-0">para hoy</Apunte>
   ) : null;

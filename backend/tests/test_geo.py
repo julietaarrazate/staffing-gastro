@@ -3,20 +3,54 @@
 import math
 
 from app.core.geo import (
+    FUZZ_CELL_KM,
     FUZZ_MAX_RADIUS_KM,
     FUZZ_MIN_RADIUS_KM,
+    _FUZZ_ROUNDING_MARGIN_KM,
+    _fuzz_cell,
     fuzz_point,
     haversine_km,
 )
 
 
-def test_fuzz_point_stays_within_the_ring():
-    lat, lng = fuzz_point(-34.58, -58.43, "worker-1")
-    assert lat is not None and lng is not None
+def test_fuzz_point_is_never_closer_than_the_minimum_to_the_real_point():
+    """El pin sale del centro de la celda (ADR-0014, actualización
+    2026-11-19), pero nunca queda a menos de `FUZZ_MIN_RADIUS_KM` del punto
+    real, esté donde esté el punto dentro de su celda; y a lo sumo a
+    `FUZZ_MAX_RADIUS_KM` más una diagonal de celda, el margen del redondeo
+    y lo que mueve el redondeo (~8 m)."""
+    import random
 
-    distance = haversine_km(-34.58, -58.43, lat, lng)
-    # Margen chico por el redondeo de proyectar km a grados de lat/lng.
-    assert FUZZ_MIN_RADIUS_KM - 0.01 <= distance <= FUZZ_MAX_RADIUS_KM + 0.01
+    azar = random.Random(20261119)
+    maximo = FUZZ_MAX_RADIUS_KM + FUZZ_CELL_KM * math.sqrt(2) + _FUZZ_ROUNDING_MARGIN_KM + 0.008
+    for i in range(3000):
+        lat = azar.uniform(-34.75, -34.50)
+        lng = azar.uniform(-58.55, -58.30)
+        p_lat, p_lng = fuzz_point(lat, lng, f"trabajador-{i % 40}")
+        distancia = haversine_km(lat, lng, p_lat, p_lng)
+        # Margen de un metro por proyectar km a grados.
+        assert FUZZ_MIN_RADIUS_KM - 0.001 <= distancia <= maximo + 0.001, (lat, lng, distancia)
+
+
+def test_fuzz_point_is_the_same_anywhere_in_the_cell():
+    """Dos lugares de la misma celda dan el mismo pin: ni un punto real
+    conocido ni muchas lecturas dicen más que la celda (PRI-02)."""
+    _, _, centro_lat, centro_lng = _fuzz_cell(-34.58, -58.43)
+    cerca = (centro_lat + 0.0005, centro_lng - 0.0005)  # ~70 m del centro
+    assert fuzz_point(centro_lat, centro_lng, "worker-1") == fuzz_point(*cerca, "worker-1")
+
+
+def test_fuzz_point_vector_changes_between_cells():
+    """El desplazamiento no es un vector fijo por trabajador: conocer el de
+    una celda (un punto real donde prendió «Disponible ahora») no sirve para
+    deshacer el de otra (su domicilio)."""
+
+    def vector(lat: float, lng: float) -> tuple[float, float]:
+        _, _, c_lat, c_lng = _fuzz_cell(lat, lng)
+        p_lat, p_lng = fuzz_point(lat, lng, "worker-1")
+        return round(p_lat - c_lat, 9), round(p_lng - c_lng, 9)
+
+    assert vector(-34.5875, -58.4251) != vector(-34.6037, -58.3816)
 
 
 def test_fuzz_point_is_deterministic_for_the_same_seed():

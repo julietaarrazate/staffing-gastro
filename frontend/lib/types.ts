@@ -536,6 +536,9 @@ export interface AdminUserDetail {
     amount_due?: string;
     /** La persona de la ficha faltó a este turno (ya no figura asignada). */
     absent?: boolean;
+    /** «Cerrar turno» (decisión 21): sólo en la ficha de una cuenta
+     * suspendida y en los turnos donde aplica; lo decide el backend. */
+    admin_close?: AdminCloseAction | null;
   }[];
   tickets: { id: string; subject: string; status: string; created_at: string | null }[];
   /** Sólo en la ficha de un comercio (medición de la beta, M6). */
@@ -557,6 +560,24 @@ export interface AdminSubscriptionSummary {
     plan_name: string;
     price_ars: number | string;
   } | null;
+}
+
+/** Qué haría «Cerrar turno» de la admin en un turno empezado de una cuenta
+ * suspendida (decisión 21, ADR-0024). */
+export interface AdminCloseAction {
+  /** Marca la salida en nombre del trabajador suspendido. */
+  check_out: boolean;
+  /** Cierra el turno en nombre del comercio suspendido. */
+  finish: boolean;
+  /** A quién se le avisa: sólo a la parte con la cuenta activa. */
+  notifies: "company" | "worker" | null;
+}
+
+/** Respuesta de `POST /admin/shifts/{id}/close`. */
+export interface AdminShiftClosure extends AdminCloseAction {
+  shift_id: string;
+  status: string;
+  checked_out_at: string | null;
 }
 
 /** Cuántos turnos toca suspender una cuenta (ADR-0024), antes de confirmar. */

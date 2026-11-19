@@ -164,11 +164,14 @@ test("turno confirmado: el ámbar va en la acción que se puede usar ahora (tres
   await expect(page.locator("#turno-lejos").getByText("Se habilita 30 min antes del turno.")).toBeVisible();
   // De 2 h a 30 min: «Voy en camino» ámbar; «Llegué» sigue deshabilitado.
   expect(await esAmbar(boton("camino", "Voy en camino"))).toBe(true);
-  // El paso actual del indicador de etapas va en azul de marca: el ámbar es del botón.
+  // El paso actual del indicador de etapas no va en ámbar (el ámbar es del
+  // botón): desde los pasos tachados a mano (2026-11-19) es la palabra en
+  // negrita y en tinta.
   const pasoActual = page.locator("#turno-camino").locator('[aria-current="step"]');
   await expect(pasoActual).toHaveCount(1);
   expect(await esAmbar(pasoActual)).toBe(false);
-  await expect(pasoActual).toHaveClass(/bg-primary-text/);
+  await expect(pasoActual).toHaveCSS("font-weight", "700");
+  await expect(pasoActual).toHaveClass(/text-ink/);
   expect(await esAmbar(boton("camino", "Llegué"))).toBe(false);
   await expect(boton("camino", "Llegué")).toBeDisabled();
   // Ya compartiendo: ninguno en ámbar.

@@ -64,6 +64,17 @@ class AdminCompanySummaryResponse(BaseModel):
     late_cancellations: int = 0
 
 
+class AdminCloseActionResponse(BaseModel):
+    """Qué haría «Cerrar turno» (decisión 21): marcar la salida, cerrar el
+    turno o las dos cosas, y a quién se avisa (`company`, `worker` o nadie)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    check_out: bool
+    finish: bool
+    notifies: str | None = None
+
+
 class AdminShiftRowResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -77,6 +88,29 @@ class AdminShiftRowResponse(BaseModel):
     # llegada marcada, lo que restaba desde la llegada (U080).
     amount_due: Decimal
     absent: bool = False
+    # Sólo en la ficha de una cuenta suspendida, en los turnos donde aplica.
+    admin_close: AdminCloseActionResponse | None = None
+
+
+class AdminShiftCloseRequest(BaseModel):
+    """Lo que la admin vio y confirmó en el diálogo de «Cerrar turno» (el
+    `admin_close` de la ficha). Si ahora se haría otra cosa, 409."""
+
+    check_out: bool
+    finish: bool
+
+
+class AdminShiftClosureResponse(BaseModel):
+    """Resultado de «Cerrar turno» (`POST /admin/shifts/{id}/close`)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    shift_id: UUID
+    status: str
+    check_out: bool
+    finish: bool
+    notifies: str | None = None
+    checked_out_at: datetime | None = None
 
 
 class AdminTicketRowResponse(BaseModel):

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { deContrato, fulfillContrato } from "./contrato";
 import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./mocks";
 
 /**
@@ -21,49 +22,10 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./moc
  * componentes.
  */
 
-const EMPLOYER_SESSION = {
-  id: "user-1",
-  email: "demo.comercio@staffya.com",
-  full_name: "Comercio Demo",
-  role: "employer",
-  status: "activo",
-  is_active: true,
-  is_verified: true,
-};
-
+// Turno de `GET /shifts/me` (el real manda un turno = una persona: `quantity` es
+// siempre 1) y sesión: respuestas reales del backend (e2e/contrato).
 function shift(overrides: Partial<Record<string, unknown>>) {
-  return {
-    id: "shift-base",
-    company_id: "company-1",
-    position: "mozo",
-    quantity: 2,
-    start_at: "2026-07-20T20:00:00-03:00",
-    end_at: "2026-07-20T23:00:00-03:00",
-    pay_amount: "15000",
-    currency: "ARS",
-    tips: false,
-    dress_code: null,
-    urgent: false,
-    address: null,
-    city: "Palermo, CABA",
-    latitude: null,
-    longitude: null,
-    title: null,
-    description: null,
-    status: "publicado",
-    worker_profile_id: null,
-    check_in_latitude: null,
-    check_in_longitude: null,
-    check_in_at: null,
-    check_out_latitude: null,
-    check_out_longitude: null,
-    check_out_at: null,
-    paid_at: null,
-    created_at: "2026-07-01T12:00:00-03:00",
-    company_name: null,
-    company_logo_url: null,
-    ...overrides,
-  };
+  return deContrato("turnos_del_comercio", [{ id: "shift-base", ...overrides }])[0];
 }
 
 const SHIFTS = [
@@ -75,7 +37,7 @@ const SHIFTS = [
 
 async function mockEmployerShifts(page: Page) {
   await page.route("**/api/v1/auth/me", (route) =>
-    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(EMPLOYER_SESSION) })
+    fulfillContrato(route, "auth_me_employer")
   );
   await page.route("**/api/v1/shifts/me", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(SHIFTS) })
@@ -93,24 +55,27 @@ test("en /shifts los estados se diferencian por color de marca y los cancelados 
   await page.goto("/shifts");
   await expect(page.getByText("Cancelado").first()).toBeVisible();
 
-  // El chip de "Cancelado" usa el token rojo de marca (text-danger), no un
-  // rojo suelto, y la tarjeta que lo contiene queda atenuada (opacity).
+  // El sello de "Cancelado" va en el rojo de los sellos (`.sello-rojo`, la
+  // misma tinta que `danger-text` de claro, fija porque el papel es claro en
+  // los dos temas; 2026-11-19), no un rojo suelto, y la tarjeta que lo
+  // contiene queda apagada.
   const canceladoChip = page.getByText("Cancelado", { exact: true }).first();
-  await expect(canceladoChip).toHaveClass(/text-danger/);
+  await expect(canceladoChip).toHaveClass(/sello-rojo/);
+  await expect(canceladoChip).toHaveCSS("color", "rgb(194, 47, 47)");
   const canceladoCard = page.locator(".no-select", { has: canceladoChip }).first();
   // Apagada: en la comanda (2026-11-18) pierde el relieve en vez de bajar la
   // opacidad, que dejaba el sello por debajo de contraste.
   await expect(canceladoCard).toHaveClass(/comanda-apagada/);
 
-  // "Confirmado" usa el verde de marca (text-secondary), sin atenuar (no es terminal el estilo, sigue activo/vivo).
+  // "Confirmado" va en el verde de los sellos, sin apagar (sigue vivo).
   const confirmadoChip = page.getByText("Confirmado", { exact: true }).first();
-  await expect(confirmadoChip).toHaveClass(/text-success-text/);
+  await expect(confirmadoChip).toHaveClass(/sello-verde/);
   const confirmadoCard = page.locator(".no-select", { has: confirmadoChip }).first();
   await expect(confirmadoCard).not.toHaveClass(/comanda-apagada/);
 
-  // "Publicado" usa el naranja de marca (text-primary) — antes era azul.
+  // "Publicado" va en el azul hondo de los sellos: está en curso.
   const publicadoChip = page.getByText("Publicado", { exact: true }).first();
-  await expect(publicadoChip).toHaveClass(/text-primary/);
+  await expect(publicadoChip).toHaveClass(/sello-azul/);
 
   // Orden: el cancelado (terminal) debe quedar después de los no-terminales
   // en el DOM (bug: se veían mezclados con los turnos vivos).

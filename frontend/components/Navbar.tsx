@@ -100,7 +100,7 @@ export default function Navbar() {
     // real de la pantalla, así que en PWA instalada el header arrancaría
     // DEBAJO de la barra de estado / notch. El padding del inset lo baja a la
     // zona visible, como cualquier app nativa.
-    <header className="safe-top sticky top-0 z-40 border-b border-line bg-chrome backdrop-blur-xl backdrop-saturate-150">
+    <header className="safe-top sticky top-0 z-40 border-b border-line bg-chrome backdrop-blur-xl backdrop-saturate-150 print:hidden">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <Link href="/" aria-label="Inicio">
           <Logo />
@@ -149,7 +149,7 @@ export default function Navbar() {
               onClick={logout}
               aria-label={`Salir (${user.full_name})`}
               title={`Salir (${user.full_name})`}
-              className="hidden whitespace-nowrap rounded-full bg-surface px-3 py-1.5 hover:bg-line md:inline"
+              className="hidden whitespace-nowrap rounded-[var(--radius-relieve)] bg-surface px-3 py-1.5 hover:bg-line md:inline"
             >
               Salir
             </button>
@@ -198,7 +198,7 @@ function AuthLink({
       href={href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "inline-flex h-9 items-center whitespace-nowrap rounded-[var(--radius-btn)] px-3.5 font-semibold transition duration-150 active:scale-95 active:bg-secondary active:text-on-brand",
+        "inline-flex h-9 items-center whitespace-nowrap rounded-[var(--radius-relieve)] px-3.5 font-semibold transition duration-150 active:scale-95 active:bg-secondary active:text-on-brand",
         active
           ? "bg-secondary text-on-brand"
           : outlined

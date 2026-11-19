@@ -1,4 +1,5 @@
 import { test, expect, type Page, type WebSocketRoute } from "@playwright/test";
+import { deContrato, fulfillContrato } from "./contrato";
 import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash } from "./mocks";
 
 /**
@@ -9,33 +10,15 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash }
  *  - Matches → Postulaciones: la tarjeta dice de qué comercio es el turno.
  */
 
+// Turno de `GET /shifts/me` (e2e/contrato): sin datos del comercio, con `worker_name`
+// y la cuenta de postulantes pendientes.
 function shift(overrides: Record<string, unknown>) {
-  return {
-    id: "s1",
-    company_id: "c1",
-    position: "mozo",
-    quantity: 1,
-    start_at: "2030-07-20T20:00:00-03:00",
-    end_at: "2030-07-21T02:00:00-03:00",
-    pay_amount: "148000",
-    currency: "ARS",
-    tips: false,
-    meal: false,
-    dress_code: null,
-    urgent: false,
-    address: null,
-    city: "Palermo, CABA",
-    latitude: null,
-    longitude: null,
-    title: null,
-    description: null,
-    status: "publicado",
-    worker_profile_id: null,
-    created_at: "2030-07-01T12:00:00-03:00",
-    company_name: "Bar La Esquina",
-    company_logo_url: null,
-    ...overrides,
-  };
+  return deContrato("turnos_del_comercio", [{ id: "s1", ...overrides }])[0];
+}
+
+// Un turno dentro de `GET /applications/mine`: lo trae con los datos del comercio.
+function turnoPostulado(overrides: Record<string, unknown>) {
+  return deContrato("postulaciones_mias", [{ shift: overrides }])[0].shift;
 }
 
 function json(body: unknown) {
@@ -51,17 +34,7 @@ async function setup(page: Page, role: "employer" | "worker") {
   );
   await mockEmptyNotifications(page);
   await page.route("**/api/v1/auth/me", (route) =>
-    route.fulfill(
-      json({
-        id: "u1",
-        email: "u@oido.test",
-        full_name: role === "employer" ? "Bar La Esquina" : "Juan Pérez",
-        role,
-        status: "activo",
-        is_active: true,
-        is_verified: true,
-      })
-    )
+    fulfillContrato(route, role === "employer" ? "auth_me_employer" : "auth_me_worker")
   );
   const sockets: WebSocketRoute[] = [];
   await page.routeWebSocket(/\/notifications\/ws/, (ws) => {
@@ -83,15 +56,7 @@ test("«Elegir a alguien» lleva la cantidad y se actualiza sola cuando llega un
   pending = 3;
   await expect.poll(() => sockets.length).toBeGreaterThan(0);
   sockets[0].send(
-    JSON.stringify({
-      id: "n-1",
-      type: "new_application",
-      title: "Nuevo postulante",
-      message: "Alguien se postuló.",
-      read: false,
-      link: null,
-      created_at: "2030-07-01T12:00:00Z",
-    })
+    JSON.stringify(deContrato("avisos_comercio", [{ type: "new_applicant" }])[0])
   );
 
   await expect(lista.getByRole("link", { name: "Elegir a alguien (3)" })).toBeVisible();
@@ -138,7 +103,7 @@ test("Matches → Postulaciones dice de qué comercio es cada turno", async ({ p
           worker_profile_id: "wp1",
           status: "pendiente",
           created_at: "2030-07-02T10:00:00-03:00",
-          shift: shift({ company_name: "Parrilla El Ceibo" }),
+          shift: turnoPostulado({ company_name: "Parrilla El Ceibo" }),
         },
       ])
     )

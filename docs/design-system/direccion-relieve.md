@@ -225,6 +225,29 @@ como exploración abierta):
   «oí» en el código.
 - **Los planes como carta**, y la base de la landing es el híbrido.
 
+## Decidido por Julieta (2026-11-19)
+
+Para lo que es de toda la app. Lo que la prueba de la app no dibujaba se le
+preguntó con opciones puestas sobre las pantallas ya migradas (capturas a
+390 px de las pestañas en el Panel, Mis turnos y Candidatos):
+
+- **Barra de abajo:** como la prueba. Pegada al borde, lisa (sin vidrio ni
+  píldora), con un filete arriba; lo activo lleva una raya azul hondo de 3 px
+  sobre la pestaña y va en tinta, lo demás en `ink-soft`.
+- **Pestañas:** **raya azul hondo** (elegida entre la raya, una pista recta
+  con la activa llena en azul y fichas de carpeta). Texto plano con un filete
+  abajo; la activa en tinta con la raya debajo, el mismo gesto que la barra.
+- **Botones secundarios:** como la prueba (`.btn-liso`): rectos, blancos con
+  filete y planos; el relieve queda para el principal.
+- **Pasos tachados a mano: en un renglón** (no en lista): las cuatro palabras
+  una al lado de la otra, lo hecho tachado a mano en azul hondo, lo actual en
+  negrita y lo que falta apagado. Los hitos y sus nombres no cambian.
+- **Detalle del turno:** sigue siendo página (`/turno/[id]`; hacerla hoja
+  cambiaría la navegación). La foto arriba y el turno como comanda con
+  relieve; **el pago va en la comanda, como último renglón con el número
+  grande** (ya no en una banda celeste aparte). Al postularse, la cinta
+  «¡Oído!» sobre el papel.
+
 ## Falta que decida Julieta
 
 1. Qué le cambia al híbrido (es la base desde el 2026-11-18).
@@ -272,8 +295,25 @@ como exploración abierta):
    [historial](../historial/2026-11-18-candidatos-relieve.md)), ~~Mis
    turnos~~ (hecho el 2026-11-18,
    [historial](../historial/2026-11-18-mis-turnos-relieve.md)); ~~la
-   landing~~ (hecha). La
-   barra de abajo es de toda la app y va aparte. Capturas en claro y oscuro.
+   landing~~ (hecha). Capturas en claro y oscuro.
+4. **Lo que es de toda la app**, un PR cada cosa, en este orden (Julieta,
+   2026-11-19): ~~la barra de abajo~~ (hecha el 2026-11-19,
+   [historial](../historial/2026-11-19-barra-de-abajo-relieve.md)), ~~las
+   pestañas~~ (hechas el 2026-11-19,
+   [historial](../historial/2026-11-19-pestanas-relieve.md)), ~~los botones
+   secundarios~~ (hechos el 2026-11-19,
+   [historial](../historial/2026-11-19-botones-secundarios-relieve.md)), ~~los
+   pasos tachados a mano~~ (hechos el 2026-11-19,
+   [historial](../historial/2026-11-19-pasos-tachados.md)), ~~los colores
+   de los sellos~~ (hechos el 2026-11-19,
+   [historial](../historial/2026-11-19-colores-de-los-sellos.md)) y ~~el
+   detalle del turno~~ (hecho el 2026-11-19,
+   [historial](../historial/2026-11-19-detalle-del-turno-comanda.md)).
+5. **El resto de las pantallas**, un PR cada una (Julieta, 2026-11-19: Buscar
+   y las demás siguen igual). Orden propuesto, a confirmar: Buscar del
+   trabajador, Buscar del comercio, Publicar turno, Chats, Perfil, Mapa, las
+   fichas, Favoritos, Mi plan, y el ingreso, el alta y la bienvenida. Cómo va cada uno, en «Decidido por
+   Julieta (2026-11-19)».
 
 ## Piezas compartidas de la app (desde el Inicio del trabajador)
 
@@ -288,9 +328,11 @@ Antes de dibujar algo nuevo en una pantalla, usar éstas:
 | `Apunte`, `.letra-mano` | ídem | Un apunte a mano con óvalo. Uno por pantalla |
 | `Flechita` | ídem | La flechita a mano que acompaña un apunte («el que te recomendamos») |
 | `.tarjeta-relieve` | `globals.css` | Lo destacado de una lista (el candidato recomendado): blanco con el borde y el relieve del filete. Uno por lista |
-| `.sello-goma` | `globals.css` | Un estado como sello de goma (toma el color de la letra) |
+| `.sello-goma` + `.sello-verde` / `-azul` / `-rojo` / `-gris` | `globals.css` | Un estado como sello de goma, sobre el papel. Cuatro tintas fijas (el papel es claro en los dos temas): verde lo que salió bien, azul hondo lo que está en curso, rojo cancelado y «Urgente», gris lo que no arrancó o no se cubrió |
 | `.cartelito` | `globals.css` | «Disponible» como el cartelito de la puerta |
 | `AIAssistantBar recto` | `components/AIAssistantBar.tsx` | El buscador sin píldora ni sombra |
 | `ShiftCard comanda` | `components/ShiftCard.tsx` | La tarjeta de un turno (con sus pasos y acciones) como comanda: puesto en brocha y estado como sello. La usa el panel; «Mis turnos» la toma pasando el prop |
 | `.app-banda` + `.riel` | `globals.css` | La banda azul hondo donde cuelgan las comandas en curso, y la barra del riel. Sobre la banda el relieve cambia de tono solo |
+| `BOTON_LISO` y `Button` `surface` | `components/ui/Button.tsx` | El secundario: blanco, recto (10 px, el radio del principal), con filete y plano. `BOTON_LISO` es para lo que no puede ser un `Button` (un `Link`, un `<a>`) |
+| `ShiftLifecycleStepper` + `.pasos-tachados` | `components/ShiftLifecycleStepper.tsx`, `globals.css` | Los pasos del turno en un renglón: lo hecho tachado a mano en azul hondo (`.tacha`), lo actual en negrita |
 | `.boton-relieve` | `globals.css` | El relieve del botón principal: borde azul hondo, sombra dura, se aprieta. El fondo lo pone quien lo usa. Desde el 2026-11-18 lo lleva `Button` en su variante `primary` en toda la app (sigue en ámbar): un principal plano al lado de uno con relieve desentona |

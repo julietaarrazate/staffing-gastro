@@ -140,8 +140,11 @@ export default function AdminLiveShiftsPage() {
   // las etiquetas la ensanchan al cargar): se lo trae a la vista.
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
-      const button = filtersRef.current?.querySelector<HTMLElement>('[aria-pressed="true"]');
-      const track = button?.parentElement;
+      // La tira que scrollea es el contenedor (desde las pestañas con raya,
+      // 2026-11-19: las pestañas miden lo que su nombre y el contenedor le
+      // deja aire al contorno de foco), no la fila de botones.
+      const track = filtersRef.current;
+      const button = track?.querySelector<HTMLElement>('[aria-pressed="true"]');
       if (!button || !track) return;
       const overflow = button.getBoundingClientRect().right - track.getBoundingClientRect().right;
       if (overflow > 0) track.scrollLeft += overflow + 4;
@@ -202,9 +205,9 @@ export default function AdminLiveShiftsPage() {
       />
 
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div ref={filtersRef} className="min-w-0">
+        <div ref={filtersRef} className="no-scrollbar -mx-1 -my-1 min-w-0 scroll-px-2 overflow-x-auto px-1 py-1 sm:w-[34rem]">
           <SegmentedControl<Filter>
-            className="no-scrollbar overflow-x-auto sm:w-[34rem]"
+            className="w-max min-w-full"
             value={filter}
             onChange={changeFilter}
             options={[

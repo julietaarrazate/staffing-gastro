@@ -127,3 +127,66 @@ El punto 1 no decía qué pasa cuando al turno oculto se le pasa el horario. Dec
 No cambia qué muestran «Hoy» y «Turnos en vivo» del admin sobre los turnos ocultos que todavía no vencieron.
 
 6. **Con U080:** si quien tenía un turno empezado de un comercio suspendido lo deja (ausencia automática, cancelación, rechazo), el turno queda reofrecido pero oculto: no sale el aviso urgente a quienes están cerca ni el aviso al comercio (`ShiftService._announce_reopen`). Cuando vence, entra por el punto 1, con la marca. Si al reabrirse ya no le quedaba horario y pasa directo a «no cubierto», no lleva la marca (caso raro: un comercio suspendido con un turno empezado que alguien deja con menos de 2 h 15 min por delante).
+
+## Actualización 2026-11-18 (decisión 21): cerrar un turno empezado de una cuenta suspendida
+
+El punto 3 deja los turnos ya empezados como estaban, pero la parte suspendida
+ya no puede entrar: si es el trabajador, nadie marca la salida; si es el
+comercio, nadie cierra el turno. El turno quedaba a medias para siempre.
+
+**Decisión de Julieta:** una acción de la admin, **«Cerrar turno»**, que hace
+el paso que falta **en nombre de la parte suspendida**, con registro.
+
+12. **Sólo en nombre de la parte suspendida y sólo en un turno empezado**
+    (llegada marcada en adelante; la regla es `Shift.admin_close_plan`):
+    - **Trabajador suspendido**, turno con la llegada marcada (`check_in` o
+      `trabajando`): la admin marca la salida, sin ubicación y con la hora de
+      ahora (`Shift.admin_check_out`: sin el control de distancia, pero no
+      antes del inicio, como `check_out`). Después el comercio, activo,
+      cierra como siempre.
+    - **Comercio suspendido**, turno con la salida marcada: la admin lo
+      cierra, con los mismos efectos que el cierre del comercio
+      (`ShiftService._save_finished`: reputación del trabajador con la
+      puntualidad registrada y aviso para calificar).
+    - **Las dos suspendidas**, llegada marcada: marca la salida y cierra en
+      la misma acción (un solo guardado).
+    - En cualquier otro caso (ninguna suspendida, turno no empezado o ya
+      terminado, o el paso que falta le toca a la parte activa): 409 con el
+      motivo para la admin (`shift/domain/mensajes.py`). Turno inexistente: 404.
+    - **No marca pagado:** eso es del comercio; un comercio suspendido lo
+      resuelve por soporte.
+13. **Registro:** `shifts.closed_by_admin_at` y `closed_by_admin_user_id`
+    (migración 0058), más el log de negocio `admin close_shift` con la admin,
+    el turno y qué hizo.
+14. **Push sólo a la parte activa** (a la suspendida, el aviso queda guardado en la app). Trabajador suspendido: al comercio,
+    que Oído marcó la salida de esa persona (a qué hora) porque no
+    pudo marcarla, y que ya puede cerrar (`shift_checked_out`, abre
+    `/shifts`). Como el resto de los avisos de este ADR, no dice que la
+    cuenta está suspendida. Comercio suspendido: al trabajador, el aviso de
+    cierre de siempre (`shift_finished`). A la cuenta suspendida no le llega
+    nada al celular, como a toda cuenta suspendida (punto 4 de la
+    actualización anterior): el aviso que le toque queda guardado en la app.
+15. **Concurrencia:** bloqueo optimista como el resto (ADR-0016). Si el
+    trabajador o el comercio actuó en el medio, 409 «El turno cambió mientras
+    tanto», sin registro ni avisos. Además, el pedido lleva lo que la admin
+    vio y confirmó en el diálogo (`check_out`, `finish`): si ahora se haría
+    otra cosa (por ejemplo, se suspendió también la otra cuenta), 409 «El
+    turno cambió: volvé a abrir la ficha.» sin tocar nada, y la ficha se
+    recarga. Nunca se ejecuta más de lo confirmado.
+16. **Dónde:** `POST /api/v1/admin/shifts/{id}/close` (sólo admin, con la
+    verificación en dos pasos). La ficha de la persona suspendida
+    (`/admin/personas/[id]`) muestra «Cerrar turno» en cada turno donde
+    aplica: además de los recientes, trae sin límite sus turnos empezados
+    (llegada o salida marcada), y `admin_close` por turno (qué haría y a
+    quién avisa), calculado en el backend con la misma regla y sólo donde la
+    persona es parte (el trabajador asignado ahora o el comercio dueño).
+    El diálogo dice qué va a pasar antes de confirmar y el resultado al
+    terminar. El módulo `admin` lo pide por el puerto
+    `SuspendedAccountShiftCloser` (`shift/domain/suspension.py`), que
+    implementa `ShiftService`.
+
+**Descartado:** cerrar solo, sin la admin, al suspender (el turno puede seguir
+trabajándose mientras tanto: la salida tiene que ser la hora real, y la marca
+quien mira el caso); y marcar pagado (el pago pasa fuera de la app y lo
+declara el comercio).
+

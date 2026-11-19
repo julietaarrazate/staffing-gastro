@@ -4,7 +4,7 @@ import { puedeMarcarAusencia } from "@/lib/turno-reofrecido";
 import { useState } from "react";
 import { useNow } from "@/lib/use-now";
 import Link from "next/link";
-import { Button, Sheet } from "@/components/ui";
+import { BOTON_LISO, Button, Sheet } from "@/components/ui";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import { AlertTriangleIcon, CheckCircleIcon, CopyIcon, MessageIcon } from "@/components/icons";
 import { isCancellable } from "@/lib/cancelar-turno";
@@ -86,18 +86,22 @@ export default function ShiftActions({
         </p>
       )}
 
-      <div className="flex items-center gap-2">
+      {/* La fila se parte si no entra: a 320 px «Marcar como pagado» se partía
+          en tres renglones al lado de «Chat» y «Más»; ahora el principal pide
+          11 rem (lo que mide en un renglón) y, si no los tiene, los otros dos
+          bajan (revisión del 2026-11-19). A 390 px entran los tres. */}
+      <div className="flex flex-wrap items-center gap-2">
         {step.action === "candidates" ? (
           <Link
             href={`/shifts/${shift.id}/candidates`}
-            className="boton-relieve flex-1 bg-primary px-4 py-2 text-center text-sm font-semibold text-night"
+            className="boton-relieve flex min-h-[40px] flex-1 basis-44 items-center justify-center bg-primary px-4 py-2 text-center text-sm font-semibold text-night"
           >
             {step.actionLabel}
           </Link>
         ) : step.action ? (
           <Button
             size="sm"
-            fullWidth
+            className="flex-1 basis-44"
             onClick={() =>
               step.action === "markPaid"
                 ? onMarkPaid()
@@ -110,25 +114,30 @@ export default function ShiftActions({
           </Button>
         ) : null}
 
-        {hasWorker && (
-          <Link
-            href={`/chats/${shift.id}`}
-            aria-label="Abrir chat con el trabajador"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-surface px-3 py-2 text-sm font-semibold text-ink/70 ring-1 ring-line transition active:scale-95"
-          >
-            <MessageIcon size={16} /> Chat
-          </Link>
-        )}
+        {/* «Chat» y «Más» van juntos: si no entran al lado del principal,
+            bajan los dos (sueltos, en las tarjetas de la grilla de escritorio
+            bajaba «Más» sola). */}
+        <div className="flex shrink-0 gap-2">
+          {hasWorker && (
+            <Link
+              href={`/chats/${shift.id}`}
+              aria-label="Abrir chat con el trabajador"
+              className={`${BOTON_LISO} shrink-0 px-3 py-2 text-sm`}
+            >
+              <MessageIcon size={16} /> Chat
+            </Link>
+          )}
 
-        <button
-          type="button"
-          aria-label="Más acciones"
-          aria-expanded={menuOpen}
-          onClick={() => setMenuOpen(true)}
-          className="shrink-0 rounded-full bg-surface px-3 py-2 text-sm font-semibold text-ink/70 ring-1 ring-line transition active:scale-95"
-        >
-          Más
-        </button>
+          <button
+            type="button"
+            aria-label="Más acciones"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen(true)}
+            className={`${BOTON_LISO} shrink-0 px-3 py-2 text-sm`}
+          >
+            Más
+          </button>
+        </div>
       </div>
 
       {/* Antes era un dropdown `position: absolute` anclado al botón "Más":

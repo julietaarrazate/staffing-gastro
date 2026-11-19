@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { deContrato, fulfillContrato } from "./contrato";
 import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash } from "./mocks";
 
 /**
@@ -8,56 +9,10 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash }
  * ofreciendo un botón que ya no corresponde.
  */
 
-const SESSION = {
-  id: "user-1",
-  email: "demo@staffya.com",
-  full_name: "Demo",
-  is_active: true,
-  is_verified: true,
-  status: "activo",
-};
-
-function shift(status: string) {
-  return {
-    id: "shift-1",
-    company_id: "company-1",
-    position: "mozo",
-    quantity: 1,
-    start_at: "2026-12-20T20:00:00-03:00",
-    end_at: "2026-12-20T23:00:00-03:00",
-    pay_amount: "15000",
-    currency: "ARS",
-    tips: false,
-    dress_code: null,
-    urgent: false,
-    address: "Thames 1234",
-    city: "Palermo, CABA",
-    latitude: null,
-    longitude: null,
-    title: null,
-    description: null,
-    status,
-    worker_profile_id: "wp-1",
-    worker_name: "Trabajador Demo",
-    en_route_latitude: null,
-    en_route_longitude: null,
-    en_route_at: null,
-    check_in_latitude: null,
-    check_in_longitude: null,
-    check_in_at: null,
-    check_out_latitude: null,
-    check_out_longitude: null,
-    check_out_at: null,
-    paid_at: null,
-    no_show_at: null,
-    last_no_show_worker_profile_id: null,
-    event_id: null,
-    event_name: null,
-    created_at: "2026-12-01T12:00:00-03:00",
-    company_name: null,
-    company_logo_url: null,
-  };
-}
+// Respuestas reales del backend (e2e/contrato): el turno que ve cada parte y el
+// `auth/me` de cada rol. Cambia sólo el estado.
+const shift = (status: string, extra: Record<string, unknown> = {}) =>
+  deContrato("turno_confirmado_trabajador", { status, ...extra });
 
 const json = (body: unknown, status = 200) => ({
   status,
@@ -70,7 +25,9 @@ async function base(page: Page, role: "worker" | "employer") {
   await skipSplash(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
-  await page.route("**/api/v1/auth/me", (r) => r.fulfill(json({ ...SESSION, role })));
+  await page.route("**/api/v1/auth/me", (r) =>
+    fulfillContrato(r, role === "worker" ? "auth_me_worker" : "auth_me_employer")
+  );
   await page.route("**/api/v1/reviews/shifts/*", (r) => r.fulfill(json([])));
 }
 
@@ -87,7 +44,7 @@ test("Trabajador: Confirmar falla porque el comercio canceló; muestra el motivo
   await page.route("**/api/v1/workers/me/profile", (r) => r.fulfill({ status: 404, body: "{}" }));
   await page.route("**/api/v1/shifts/shift-1/confirm", (r) => {
     server.status = "cancelado"; // el comercio canceló mientras la pantalla estaba abierta
-    return r.fulfill(json({ detail: "El comercio canceló este turno." }, 400));
+    return fulfillContrato(r, "turno_cancelado_confirmar"); // 400, texto real del backend
   });
   await page.goto("/my-shifts");
 
@@ -107,14 +64,14 @@ test("Comercio: Cancelar falla porque ya estaba cancelado; muestra el motivo y r
   let listados = 0;
   await page.route("**/api/v1/shifts/me", (r) => {
     listados += 1;
-    return r.fulfill(json([shift(server.status)]));
+    return r.fulfill(json([shift(server.status, { worker_name: "Trabajador Demo" })]));
   });
   await page.route(/\/api\/v1\/shifts\/shift-1$/, (r) =>
-    r.fulfill(json({ ...shift(server.status), worker_name: undefined, company_name: "Bar Palermo" }))
+    r.fulfill(json(shift(server.status)))
   );
   await page.route("**/api/v1/shifts/shift-1/cancel", (r) => {
     server.status = "cancelado";
-    return r.fulfill(json({ detail: "Ya cancelaste este turno." }, 400));
+    return fulfillContrato(r, "turno_cancelar_repetido"); // 400, texto real del backend
   });
   await page.goto("/shifts");
 

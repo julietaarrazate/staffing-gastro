@@ -43,6 +43,7 @@ from app.modules.shift.api.schemas import (
     ShiftInput,
     ShiftPublicResponse,
     ShiftResponse,
+    for_worker,
     without_worker_data,
 )
 from app.modules.shift.application.dtos import EventData, EventRoleData, ShiftData
@@ -364,7 +365,8 @@ async def my_assigned_shifts(
     offset: OffsetDep = 0,
 ):
     shifts = await service.list_worker_shifts(worker_profile_id, limit=limit, offset=offset)
-    return await _with_company_info(shifts, companies, verification)
+    responses = await _with_company_info(shifts, companies, verification)
+    return [for_worker(r, worker_profile_id) for r in responses]
 
 
 @router.post(
@@ -451,6 +453,9 @@ async def get_shift(
     [response] = await _with_company_info([shift], companies, verification)
     [response] = await _with_pay_band([shift], [response], service)
     if await _is_party_to(shift, current_user, companies, workers):
+        if current_user.role == UserRole.WORKER:
+            # Parte, pero no de la ausencia de quien lo tuvo antes (PRI-01).
+            return for_worker(response, shift.worker_profile_id)
         return response
     if shift.status not in OPEN_STATUSES:
         # No-disclosure: un turno ajeno que ya no está abierto no existe
@@ -672,7 +677,7 @@ async def confirm_assignment(
         raise _not_found() from exc
     except (InvalidShiftTransitionError, OverlappingShiftError) as exc:
         raise _bad_request(str(exc)) from exc
-    response = ShiftResponse.model_validate(shift)
+    response = for_worker(ShiftResponse.model_validate(shift), worker_profile_id)
     await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
     return response
 
@@ -683,14 +688,20 @@ async def confirm_assignment(
     summary="Rechazar un turno asignado (trabajador)",
 )
 async def reject_assignment(
-    shift_id: UUID, worker_profile_id: WorkerProfileIdDep, service: ServiceDep
+    shift_id: UUID,
+    worker_profile_id: WorkerProfileIdDep,
+    service: ServiceDep,
+    recorder: RecorderDep,
 ):
     try:
-        return await service.reject_assignment(worker_profile_id, shift_id)
+        shift = await service.reject_assignment(worker_profile_id, shift_id)
     except (ShiftNotFoundError, ShiftNotAssignedToWorkerError) as exc:
         raise _not_found() from exc
     except InvalidShiftTransitionError as exc:
         raise _bad_request(str(exc)) from exc
+    response = for_worker(ShiftResponse.model_validate(shift), worker_profile_id)
+    await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
+    return response
 
 
 @router.post(
@@ -699,14 +710,20 @@ async def reject_assignment(
     summary="Cancelar mi asignación ya confirmada a un turno (trabajador)",
 )
 async def worker_cancel(
-    shift_id: UUID, worker_profile_id: WorkerProfileIdDep, service: ServiceDep
+    shift_id: UUID,
+    worker_profile_id: WorkerProfileIdDep,
+    service: ServiceDep,
+    recorder: RecorderDep,
 ):
     try:
-        return await service.worker_cancel(worker_profile_id, shift_id)
+        shift = await service.worker_cancel(worker_profile_id, shift_id)
     except (ShiftNotFoundError, ShiftNotAssignedToWorkerError) as exc:
         raise _not_found() from exc
     except InvalidShiftTransitionError as exc:
         raise _bad_request(str(exc)) from exc
+    response = for_worker(ShiftResponse.model_validate(shift), worker_profile_id)
+    await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
+    return response
 
 
 @router.post(
@@ -718,11 +735,12 @@ async def depart(
     shift_id: UUID, worker_profile_id: WorkerProfileIdDep, service: ServiceDep
 ):
     try:
-        return await service.depart(worker_profile_id, shift_id)
+        shift = await service.depart(worker_profile_id, shift_id)
     except (ShiftNotFoundError, ShiftNotAssignedToWorkerError) as exc:
         raise _not_found() from exc
     except InvalidShiftTransitionError as exc:
         raise _bad_request(str(exc)) from exc
+    return for_worker(ShiftResponse.model_validate(shift), worker_profile_id)
 
 
 @router.post(
@@ -749,7 +767,7 @@ async def report_en_route(
         raise _not_found() from exc
     except InvalidShiftTransitionError as exc:
         raise _bad_request(str(exc)) from exc
-    return ShiftResponse.model_validate(shift)
+    return for_worker(ShiftResponse.model_validate(shift), worker_profile_id)
 
 
 @router.delete(
@@ -768,7 +786,7 @@ async def stop_en_route(
         shift = await service.stop_en_route(worker_profile_id, shift_id)
     except (ShiftNotFoundError, ShiftNotAssignedToWorkerError) as exc:
         raise _not_found() from exc
-    return ShiftResponse.model_validate(shift)
+    return for_worker(ShiftResponse.model_validate(shift), worker_profile_id)
 
 
 @router.post(
@@ -791,7 +809,7 @@ async def check_in(
         raise _not_found() from exc
     except (InvalidShiftTransitionError, WorkerTooFarFromShiftError) as exc:
         raise _bad_request(str(exc)) from exc
-    response = ShiftResponse.model_validate(shift)
+    response = for_worker(ShiftResponse.model_validate(shift), worker_profile_id)
     await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
     return response
 
@@ -802,14 +820,20 @@ async def check_in(
     summary="Marcar el inicio efectivo del turno (trabajador)",
 )
 async def start_working(
-    shift_id: UUID, worker_profile_id: WorkerProfileIdDep, service: ServiceDep
+    shift_id: UUID,
+    worker_profile_id: WorkerProfileIdDep,
+    service: ServiceDep,
+    recorder: RecorderDep,
 ):
     try:
-        return await service.start_working(worker_profile_id, shift_id)
+        shift = await service.start_working(worker_profile_id, shift_id)
     except (ShiftNotFoundError, ShiftNotAssignedToWorkerError) as exc:
         raise _not_found() from exc
     except InvalidShiftTransitionError as exc:
         raise _bad_request(str(exc)) from exc
+    response = for_worker(ShiftResponse.model_validate(shift), worker_profile_id)
+    await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
+    return response
 
 
 @router.post(
@@ -832,7 +856,7 @@ async def check_out(
         raise _not_found() from exc
     except (InvalidShiftTransitionError, WorkerTooFarFromShiftError) as exc:
         raise _bad_request(str(exc)) from exc
-    response = ShiftResponse.model_validate(shift)
+    response = for_worker(ShiftResponse.model_validate(shift), worker_profile_id)
     await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
     return response
 
@@ -861,13 +885,18 @@ async def mark_no_show(
     response_model=ShiftResponse,
     summary="Cerrar un turno ya trabajado (comercio)",
 )
-async def finish(shift_id: UUID, company_id: CompanyIdDep, service: ServiceDep):
+async def finish(
+    shift_id: UUID, company_id: CompanyIdDep, service: ServiceDep, recorder: RecorderDep
+):
     try:
-        return await service.finish(company_id, shift_id)
+        shift = await service.finish(company_id, shift_id)
     except ShiftNotFoundError as exc:
         raise _not_found() from exc
     except InvalidShiftTransitionError as exc:
         raise _bad_request(str(exc)) from exc
+    response = ShiftResponse.model_validate(shift)
+    await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
+    return response
 
 
 @router.post(
@@ -875,10 +904,15 @@ async def finish(shift_id: UUID, company_id: CompanyIdDep, service: ServiceDep):
     response_model=ShiftResponse,
     summary="Confirmar el pago de un turno finalizado (comercio)",
 )
-async def mark_paid(shift_id: UUID, company_id: CompanyIdDep, service: ServiceDep):
+async def mark_paid(
+    shift_id: UUID, company_id: CompanyIdDep, service: ServiceDep, recorder: RecorderDep
+):
     try:
-        return await service.mark_paid(company_id, shift_id)
+        shift = await service.mark_paid(company_id, shift_id)
     except ShiftNotFoundError as exc:
         raise _not_found() from exc
     except InvalidShiftTransitionError as exc:
         raise _bad_request(str(exc)) from exc
+    response = ShiftResponse.model_validate(shift)
+    await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
+    return response

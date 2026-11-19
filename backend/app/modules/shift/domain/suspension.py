@@ -15,7 +15,9 @@ Quién avisa a quién y en qué orden se guarda lo decide el caso de uso
 
 El puerto `AccountSuspensionEffects` es por donde otro módulo (la
 administración) pide la vista previa y los efectos, sin conocer el caso de
-uso de turnos (PRINCIPLES §6)."""
+uso de turnos (PRINCIPLES §6). Por `SuspendedAccountShiftCloser` pide
+«Cerrar turno» (decisión 21): marcar la salida o cerrar un turno empezado en
+nombre de la parte suspendida, que ya no puede entrar a la app."""
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -24,7 +26,10 @@ from uuid import UUID
 
 from app.core.dt import naive
 from app.modules.shift.domain.entities import Shift
-from app.modules.shift.domain.value_objects import TAKEN_NOT_STARTED_STATUSES
+from app.modules.shift.domain.value_objects import (
+    TAKEN_NOT_STARTED_STATUSES,
+    AdminClosePlan,
+)
 
 
 @dataclass(frozen=True)
@@ -83,3 +88,37 @@ class AccountSuspensionEffects(ABC):
         """Cancela o reabre lo que corresponde y avisa a cada persona afectada.
         Se llama antes de marcar la cuenta como suspendida y otra vez
         después (ver `AdminService.suspend_user`): es idempotente."""
+
+
+@dataclass(frozen=True)
+class AdminCloseResult:
+    """Lo que hizo «Cerrar turno»: el turno como quedó y qué pasos se dieron
+    (marcar la salida, cerrar) con a quién se avisó (`plan.notifies`)."""
+
+    shift: Shift
+    plan: AdminClosePlan
+
+
+class SuspendedAccountShiftCloser(ABC):
+    """Puerto: «Cerrar turno» de la admin sobre un turno empezado de una
+    cuenta suspendida (decisión 21, ADR-0024). La regla es
+    `Shift.admin_close_plan`."""
+
+    @abstractmethod
+    async def admin_close_plans(self, shifts: list[Shift]) -> dict[UUID, AdminClosePlan]:
+        """Para cada turno donde la acción aplica hoy, qué haría. Los demás
+        no figuran. No cambia nada."""
+
+    @abstractmethod
+    async def close_for_suspended_account(
+        self,
+        admin_user_id: UUID,
+        shift_id: UUID,
+        expected: tuple[bool, bool] | None = None,
+    ) -> AdminCloseResult:
+        """Marca la salida y/o cierra en nombre de la parte suspendida, con
+        registro y aviso sólo a la parte activa. `expected` = `(check_out,
+        finish)` que confirmó la admin. `ShiftNotFoundError` si el turno no
+        existe; `AdminCloseNotAllowedError` si no aplica o si el plan ya no es
+        el confirmado;
+        `ShiftConcurrentModificationError` si alguien lo cambió en el medio."""

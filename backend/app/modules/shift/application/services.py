@@ -43,6 +43,7 @@ from app.modules.shift.domain.pay_benchmark import (
     hourly_rate,
 )
 from app.modules.shift.domain.exceptions import (
+    AdminCloseNotAllowedError,
     AssigneeNotFoundError,
     AssigneeUnavailableError,
     InvalidShiftTransitionError,
@@ -60,6 +61,8 @@ from app.modules.shift.domain.schedule import (
 from app.modules.shift.domain.repositories import ShiftRepository
 from app.modules.shift.domain.suspension import (
     AccountSuspensionEffects,
+    AdminCloseResult,
+    SuspendedAccountShiftCloser,
     SuspensionImpact,
     shifts_hidden_by_company_suspension,
     shifts_taken_not_started,
@@ -67,6 +70,7 @@ from app.modules.shift.domain.suspension import (
 from app.modules.shift.domain.value_objects import (
     COMMITTED_STATUSES,
     OPEN_STATUSES,
+    AdminClosePlan,
     ShiftStatus,
     TAKEN_NOT_STARTED_STATUSES,
 )
@@ -177,12 +181,14 @@ def _hora(moment: datetime) -> str:
     return f"{to_art(moment):%H:%M}"
 
 
-class ShiftService(AccountSuspensionEffects):
+class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
     """Servicio de aplicación para gestionar turnos.
 
-    También implementa el puerto `AccountSuspensionEffects` (ADR-0024): la
+    También implementa los puertos `AccountSuspensionEffects` (ADR-0024): la
     administración le pide por ahí qué pasa con los turnos de una cuenta que
-    va a suspender, sin importar este caso de uso."""
+    va a suspender, sin importar este caso de uso; y
+    `SuspendedAccountShiftCloser` (decisión 21): «Cerrar turno» de un turno
+    empezado de una cuenta suspendida."""
 
     def __init__(
         self,
@@ -1775,6 +1781,124 @@ class ShiftService(AccountSuspensionEffects):
         user = await self._users.get_by_id(company.user_id)
         return user is not None and user.is_active
 
+    async def _worker_account_active(self, worker_profile_id: UUID | None) -> bool:
+        """¿La cuenta de este trabajador está activa? El equivalente de
+        `company_account_active`. Sin nadie asignado no hay en nombre de
+        quién actuar: cuenta como activa."""
+        if worker_profile_id is None:
+            return True
+        profile = await self._workers.get_by_id(worker_profile_id)
+        if profile is None:
+            return False
+        user = await self._users.get_by_id(profile.user_id)
+        return user is not None and user.is_active
+
+    async def admin_close_plans(self, shifts: list[Shift]) -> dict[UUID, AdminClosePlan]:
+        """Para la ficha de la admin: en qué turnos aplica «Cerrar turno» y
+        qué haría (decisión 21). Sólo consulta las cuentas de los turnos que
+        ya empezaron; la regla es `Shift.admin_close_plan`."""
+        now = datetime.now(timezone.utc)
+        plans: dict[UUID, AdminClosePlan] = {}
+        for shift in shifts:
+            if shift.status not in (
+                ShiftStatus.CHECK_IN,
+                ShiftStatus.TRABAJANDO,
+                ShiftStatus.CHECK_OUT,
+            ):
+                continue
+            try:
+                plans[shift.id] = shift.admin_close_plan(
+                    worker_active=await self._worker_account_active(shift.worker_profile_id),
+                    company_active=await self.company_account_active(shift.company_id),
+                    now=now,
+                )
+            except AdminCloseNotAllowedError:
+                continue
+        return plans
+
+    async def close_for_suspended_account(
+        self,
+        admin_user_id: UUID,
+        shift_id: UUID,
+        expected: tuple[bool, bool] | None = None,
+    ) -> AdminCloseResult:
+        """«Cerrar turno» de la admin (decisión 21, ADR-0024): un turno ya
+        empezado de una cuenta suspendida no se toca al suspender, pero esa
+        parte ya no puede entrar a marcar la salida o a cerrarlo. La admin lo
+        hace en su nombre, con registro en el turno (`closed_by_admin_*`):
+
+        - trabajador suspendido: marca la salida (sin ubicación, con la hora
+          de ahora) y le avisa al comercio que ya puede cerrar;
+        - comercio suspendido: cierra el turno con los mismos efectos que
+          `finish` (reputación y aviso al trabajador para calificar);
+        - los dos: las dos cosas, sin avisos.
+
+        `expected` es lo que confirmó la admin en el diálogo: si el plan de
+        ahora es otro, 409 sin tocar nada. A la cuenta suspendida no se le
+        avisa nada. No marca pagado. Si el
+        trabajador o el comercio actuaron en el medio, el guardado con versión
+        (ADR-0016) lo frena antes de cualquier efecto."""
+        shift = await self.get_shift(shift_id)
+        worker_profile_id = shift.worker_profile_id
+        plan = shift.close_for_suspended_account(
+            admin_user_id,
+            worker_active=await self._worker_account_active(worker_profile_id),
+            company_active=await self.company_account_active(shift.company_id),
+            expected=expected,
+        )
+        if plan.finish:
+            updated = await self._save_finished(shift)
+        else:
+            updated = await self._shifts.update(shift)
+        logger.info(
+            "shift.closed_by_admin",
+            extra={
+                "shift_id": str(updated.id),
+                "admin_user_id": str(admin_user_id),
+                "check_out": plan.check_out,
+                "finish": plan.finish,
+            },
+        )
+        if plan.notifies == "company" and updated.check_out_at is not None:
+            await self._notify_company_admin_check_out(updated, worker_profile_id)
+        return AdminCloseResult(shift=updated, plan=plan)
+
+    async def _notify_company_admin_check_out(
+        self, shift: Shift, worker_profile_id: UUID | None
+    ) -> None:
+        """Al comercio, cuando Oído marcó la salida de su trabajador
+        suspendido: ya puede cerrar el turno. Best-effort: el turno ya quedó
+        guardado."""
+        name = "la persona asignada"
+        if worker_profile_id is not None:
+            worker = await self._workers.get_by_id(worker_profile_id)
+            if worker is not None:
+                user = await self._users.get_by_id(worker.user_id)
+                if user is not None and user.full_name:
+                    name = user.full_name
+        assert shift.check_out_at is not None
+        # La hora sola, sin «hoy»: el aviso se lee después, quizás otro día, y
+        # la app ya muestra cuándo llegó.
+        cuando = f"a las {to_art(shift.check_out_at):%H:%M}"
+        try:
+            await self._notify_company(
+                shift.company_id,
+                NotificationType.SHIFT_CHECKED_OUT,
+                "Marcamos la salida de un turno",
+                (
+                    f"Oído marcó la salida de {name} en "
+                    f"\"{shift.title or shift.position.label}\" {cuando}, "
+                    "porque no pudo marcarla. Ya podés cerrar el turno."
+                ),
+                link="/shifts",
+            )
+        except Exception:
+            logger.exception(
+                "Aviso de salida marcada por la admin: fallo inesperado, no se "
+                "propaga (shift_id=%s)",
+                shift.id,
+            )
+
     async def preview_account_suspension(self, user_id: UUID) -> SuspensionImpact:
         """Cuántos turnos tocaría suspender esta cuenta, sin cambiar nada. Lo
         ve la admin antes de confirmar (ADR-0024, punto 4)."""
@@ -2173,7 +2297,7 @@ class ShiftService(AccountSuspensionEffects):
             )
         return updated
 
-    async def _save_finished(self, shift: Shift, *, automatic: bool) -> Shift:
+    async def _save_finished(self, shift: Shift, *, automatic: bool = False) -> Shift:
         """Lo común a cerrar un turno trabajado, lo cierre el comercio
         (`finish`) o el sistema (`auto_finish`): guardar con versión y, si
         hubo alguien, sumarle el turno completado a su reputación y avisarle
@@ -2184,7 +2308,12 @@ class ShiftService(AccountSuspensionEffects):
         R2.4: `events_completed` (+1) y `punctuality_rate` (promedio móvil
         simple sobre si el check-in fue hasta 15 min después del horario
         pactado). Mismo patrón que las notificaciones: el efecto vive dentro
-        del caso de uso que cierra el ciclo, no en un job aparte."""
+        del caso de uso que cierra el ciclo, no en un job aparte.
+
+        También lo usa «Cerrar turno» de la admin (decisión 21). A un
+        trabajador con la cuenta suspendida el aviso le queda guardado en la
+        app y no le llega al celular, como todos los avisos a una cuenta
+        suspendida (ADR-0024, actualización del 2026-11-18, punto 4)."""
         updated = await self._shifts.update(shift)
         if updated.worker_profile_id is not None:
             await self._workers.record_completed_shift(

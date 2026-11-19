@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash } from "./mocks";
+import { blockExternalHosts, injectSession, mockEmptyNotifications, setTheme, skipSplash } from "./mocks";
 
 /**
  * La barra de abajo del celular (`components/BottomNav.tsx`): las pestañas de
@@ -114,3 +114,87 @@ test("admin con el alta de dos pasos pendiente: se sabe al abrir la sesión y no
   await expect(page.getByRole("button", { name: "Notificaciones" })).toHaveCount(0);
   expect(pedidos).toEqual([]);
 });
+
+// Con la dirección «con relieve» (2026-11-19, docs/historial/2026-11-19-barra-de-abajo-relieve.md):
+// lisa, sin vidrio ni píldora; lo activo es una raya azul hondo arriba de la
+// pestaña. Los nombres de las secciones se leen (4,5) y la raya se distingue
+// del fondo (3), en claro y de noche.
+for (const theme of ["light", "dark"] as const) {
+  test(`${theme}: la activa lleva la raya azul hondo, sin píldora ni vidrio, y todo se lee`, async ({ page }) => {
+    await setTheme(page, theme);
+    await abrir(page, "worker");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+    const barra = page.getByRole("navigation", { name: "Secciones", exact: true });
+    await expect(barra.getByRole("link", { name: "Inicio" })).toHaveAttribute("aria-current", "page");
+
+    const m = await barra.evaluate((nav) => {
+      const rgb = (s: string) => (s.match(/[\d.]+/g) ?? []).map(Number);
+      const lum = ([r, g, b]: number[]) => {
+        const c = [r, g, b].map((v) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+        return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+      };
+      const ratio = (a: string, b: string) => {
+        const [x, y] = [lum(rgb(a)), lum(rgb(b))].sort((p, q) => q - p);
+        return (x + 0.05) / (y + 0.05);
+      };
+      const n = getComputedStyle(nav);
+      return {
+        fondo: n.backgroundColor,
+        desenfoque: n.backdropFilter,
+        pestanas: [...nav.querySelectorAll("a")].map((a) => {
+          const st = getComputedStyle(a);
+          return {
+            activa: a.getAttribute("aria-current") === "page",
+            raya: st.borderTopWidth,
+            rayaContraste: ratio(st.borderTopColor, n.backgroundColor),
+            letra: ratio(st.color, n.backgroundColor),
+            // La píldora de antes era un fondo detrás del ícono.
+            fondos: [...a.querySelectorAll("*")].filter((el) => {
+              const bg = getComputedStyle(el).backgroundColor;
+              return bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent";
+            }).length,
+          };
+        }),
+      };
+    });
+    // Lisa: fondo opaco y sin desenfoque.
+    expect(rgb4(m.fondo)).toBe(1);
+    expect(m.desenfoque).toBe("none");
+    for (const p of m.pestanas) {
+      expect(p.letra).toBeGreaterThanOrEqual(4.5);
+      expect(p.fondos).toBe(0);
+      expect(p.raya).toBe("3px");
+      if (p.activa) expect(p.rayaContraste).toBeGreaterThanOrEqual(3);
+    }
+    // El foco de teclado va por dentro de la pestaña: por fuera lo cortaba el
+    // borde de la pantalla y arriba se fundía con la raya.
+    const inicio = barra.getByRole("link", { name: "Inicio" });
+    await inicio.focus();
+    const foco = await inicio.evaluate((a) => {
+      const caja = a.getBoundingClientRect();
+      const anillo = getComputedStyle(a, "::after");
+      return {
+        visible: a.matches(":focus-visible"),
+        // Un solo indicador: el contorno global apagado y el anillo de adentro.
+        contorno: getComputedStyle(a).outlineStyle,
+        anillo: anillo.boxShadow.includes("inset"),
+        arriba: parseFloat(anillo.top),
+        costados: [parseFloat(anillo.left), parseFloat(anillo.right)],
+        alto: caja.height,
+      };
+    });
+    expect(foco.visible).toBe(true);
+    expect(foco.contorno).toBe("none");
+    expect(foco.anillo).toBe(true);
+    // Por debajo de la raya (que es el borde de arriba, fuera de esta caja) y
+    // sin pegarse a los costados.
+    expect(foco.arriba).toBeGreaterThanOrEqual(2);
+    expect(Math.min(...foco.costados)).toBeGreaterThanOrEqual(1);
+  });
+}
+
+// Alfa de un color computado (1 si es rgb() sin alfa).
+function rgb4(color: string): number {
+  const partes = color.match(/[\d.]+/g) ?? [];
+  return partes.length === 4 ? Number(partes[3]) : 1;
+}

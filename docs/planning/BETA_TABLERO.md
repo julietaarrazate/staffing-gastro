@@ -21,7 +21,7 @@ descuidado.
 | 1 | Probar de punta a punta, sin arreglar | ✅ cerrada: 142 hallazgos (3 bloqueantes, 79 graves, 60 menores). Entorno de prueba (`tools/e2e-local/`) y estado escrito en #527 |
 | 2 | Arreglar: bloqueantes, después graves | en curso (ver abajo) |
 | 3 | Que nada se vea descuidado (los 60 menores y lo que salió de las revisiones) | ✅ cerrada el 2026-11-17: grupos A a N, las diez decisiones de Julieta, M6 y los pendientes de las tres tandas (ver abajo) |
-| 4 | Identidad, marca e isotipo | 🔵 Julieta eligió Shrikhand y ámbar (2026-11-17); letra, miniatura, vectores, manual en PDF y brand system en el PR de la marca; campanita en #622; ícono «el pinche con oído» (elegido el 2026-11-18, ya en el código); la landing híbrida (letra mixta, relieve, planes como carta, final nuevo) en el código el 2026-11-18. Sigue la dirección «con relieve» en la app, pantalla por pantalla (ver STATUS, ítem 0) |
+| 4 | Identidad, marca e isotipo | 🔵 Julieta eligió Shrikhand y ámbar (2026-11-17); letra, miniatura, vectores, manual en PDF y brand system en el PR de la marca; campanita en #622; ícono «el pinche con oído» (elegido el 2026-11-18, ya en el código); la landing híbrida (letra mixta, relieve, planes como carta, final nuevo) en el código el 2026-11-18. Sigue la dirección «con relieve» en la app, pantalla por pantalla; las cuatro pantallas ya están y siguen las piezas de toda la app (la barra de abajo, las pestañas, los botones secundarios, los pasos tachados, los colores de los sellos y el detalle del turno, hechos el 2026-11-19; ver STATUS, ítem 0) |
 | 5 | Lista de salida a beta | ⚪ (incluye la medición de los KRs: ver «Antes de abrir: medir la beta»; y pasar a TypeScript 7, el compilador en Go: PR aparte que sube `typescript` de 6 a 7 y corre tsc, lint, build y e2e; si ESLint con tipos se traba hasta la 7.1, ESLint sigue con TypeScript 6 mientras tanto. Decidido por Julieta el 2026-11-17) |
 | 6 | SEO y GEO | ⚪ |
 
@@ -278,9 +278,9 @@ el modelo del dominio, un ADR vigente o un texto legal:
   - ✅ **U081** en `main` (#632, ADR-0007 actualizado).
   - ✅ **U072** en `main` (#633; migración 0052, ADR-0014 actualizado,
     versión legal `2026-11-18-1`; Julieta aprobó el texto, decisión 20).
-  - ✅ **U080** escrito y revisado (rama `claude/u080-reofrecer`, ADR-0015
-    y ADR-0008 actualizados, migración 0053; tras la revisión, un turno
-    común confirmado tarde vuelve a medirse desde el inicio). El diseño: marca
+  - ✅ **U080** en `main` (#647; ADR-0015 y ADR-0008 actualizados,
+    migración 0053; se reofrece con más de 2 horas y 15 minutos de horario;
+    un turno común confirmado tarde se sigue midiendo desde el inicio). El diseño: marca
     `reoffered_at` en el turno; el Inicio, la página pública y postularse lo
     aceptan mientras le queden 2 horas de horario (decisión 19, subida a 2
     horas el mismo día); «no cubierto» pasa a cuando le quedan menos de 2
@@ -289,17 +289,22 @@ el modelo del dominio, un ADR vigente o un texto legal:
     ausencia y puntualidad se miden desde que confirmó, no desde el inicio;
     el pago se prorratea desde la llegada (valor por hora en el aviso, monto
     fijo al llegar, y las ganancias del trabajador usan ese monto). Cambia
-    el ADR-0008 y el ADR-0015. La próxima migración libre es la 0053.
+    el ADR-0008 y el ADR-0015. La próxima migración libre es la 0059.
 - **Decisiones 21, 22 y 24** (2026-11-18): tres reglas nuevas, un PR cada
   una, con su ADR.
-  - ⚪ **21** (cerrar turno desde el admin): sin escribir.
+  - ✅ **21** (cerrar turno desde el admin): hecho el 2026-11-18 (ADR-0024
+    actualizado, migración 0058). La ficha de la cuenta suspendida muestra
+    «Cerrar turno» en sus turnos empezados; a la cuenta suspendida el aviso
+    le queda guardado en la app, sin push, como el resto.
   - ✅ **22** (los turnos ocultos vencen sin aviso y fuera de las métricas de
-    cobertura): hecho el 2026-11-18 (ADR-0024 y ADR-0015 actualizados).
+    cobertura): en `main` (#649; ADR-0024 y ADR-0015 actualizados).
     Para que lo sepa Julieta: la marca toma el estado de la cuenta **cuando
     el turno vence**; un turno que estuvo a la vista sin cubrirse y cuyo
     comercio se suspende ya empezado también sale de las métricas (caso raro).
-  - ⚪ **24** (recordatorio a las 24 h y cierre automático a las 72): sin
-    escribir.
+  - ✅ **24** (recordatorio a las 24 h y cierre automático a las 72): #651
+    (ADR-0008 actualizado, migración 0056). Marcar pagado después del cierre
+    automático sigue contando como pago tardío, y los avisos lo dicen antes
+    (Julieta, 2026-11-18).
 - **P1 a P5**, las mejoras de producto aprobadas. Sin empezar: van en una
   sesión nueva, en el orden del tablero.
 - ✅ **Una segunda mirada a G6** (cuentas suspendidas, ADR-0024), hecha el
@@ -309,32 +314,54 @@ el modelo del dominio, un ADR vigente o un texto legal:
   suspendido; el socket de avisos y los push seguían saliendo; «Mis
   postulaciones» mostraba el turno oculto; el asistente de IA encontraba al
   postulante suspendido; se le podía escribir por chat, decisión 23) y uno
-  en #629 (el aviso «N postulantes» contaba a los suspendidos). **Quedan sin
-  escribir** las decisiones 21 y 22 (cerrar un turno empezado de una cuenta
-  suspendida; los turnos ocultos que vencen sin aviso).
-- **Pasada por clase de error** (propuesta del 2026-11-14; sin empezar, va
-  en una sesión nueva junto con los tests de contrato). Lo que dejó la tanda
-  del 2026-11-18 para tener en cuenta: en tres de cuatro cambios la revisión
-  independiente o la suite completa encontraron algo que los tests del área
-  no veían (una fila nueva que abría el CV, una carrera entre el reporte y el
-  borrado de «va en camino», una sesión de la base rota tras un error
-  atrapado). Las clases «concurrencia» y «privacidad entre roles» son las que
-  más rinden: el reporte
-  externo de Breken encontró en una lectura del código 9 errores que la prueba
-  de punta a punta no vio (claves que se pierden al recargar, datos viejos con
-  la pestaña abierta, guardados que pisan otros datos). La etapa 1 recorrió
-  la app como una persona, las revisiones miran sólo el diff de cada PR, y los
-  e2e simulan la API a mano (en G8 los tests pasaban con un 422 que el
-  servidor nunca manda). Propuesta: un agente por clase (concurrencia e
-  idempotencia; estado viejo con la pestaña abierta; sesión; escrituras que
-  pisan; fechas y zona horaria; privacidad entre roles) sobre las áreas de la
-  beta (turno, postulación, sesión, pagos, avisos), cada hallazgo verificado
-  antes de entrar acá. Y tests de contrato: los mocks del frontend armados
-  con respuestas reales del backend.
+  en #629 (el aviso «N postulantes» contaba a los suspendidos). La decisión
+  21 quedó hecha el 2026-11-18; la 22, en su PR.
+- **Pasada por clase de error**: hecha la auditoría el 2026-11-19; los
+  hallazgos verificados y su estado, en la sección siguiente.
 - **«Mi plan» con el cobro prendido y el tope apagado** (una configuración
   intermedia que la beta no usa): la tarjeta dice «Durante la beta no hay
   tope» y el subtítulo de los planes habla del cobro (salió de la revisión de
   #570).
+
+### Pasada por clase de error (2026-11-19)
+
+Un agente por clase sobre turno, postulación, sesión, pagos y avisos; cada
+hallazgo lo intentó refutar otro agente antes de entrar acá, y casi todos
+tienen un test que fallaba con el código de ese día. El detalle (escenario,
+archivo y línea, test) no vive en este repo, que es público. Los arreglos van
+agrupados por causa, un PR por grupo. Prefijos: CON concurrencia e
+idempotencia, PRI privacidad entre roles, VIE estado viejo con la pestaña
+abierta, SES sesión, ESC escrituras que pisan otros datos, FEC fechas y zona
+horaria.
+
+| Grupo (causa) | Hallazgos | Severidad | Estado |
+|---|---|---|---|
+| Datos de otra persona en la vista del trabajador | PRI-01 (la ausencia de quien tuvo el turno antes), PRI-05 (cuándo se le pagó a otra persona) | menor | ✅ #661 |
+| Pin desplazado del trabajador (se podía deshacer conociendo un punto real de la persona) | PRI-02 | grave | ✅ #665 |
+| CV del trabajador | PRI-03 | grave | ⚪ |
+| Renovación de la sesión sin ventana de gracia ni coordinación entre pestañas | CON-02, CON-03, SES-01 | grave | ⚪ |
+| Pedidos repetidos (idempotencia de las acciones del turno, duplicados que dan 500) | CON-01, CON-05, CON-12, CON-14 | menor | 🔵 este PR |
+| Postulación con el estado viejo | VIE-01, CON-04, CON-11 | menor | ⚪ |
+| Socket y lista de avisos | PRI-04, VIE-04, CON-10, ESC-04 | menor | ⚪ |
+| Pantallas sin reloj ni relectura | VIE-02, VIE-03, VIE-05 | menor | ⚪ |
+| Escrituras enteras sin versión | ESC-01, CON-13, CON-08, ESC-02, ESC-03 | menor | ⚪ |
+| Cobro con Mercado Pago (latente: está apagado) | CON-06, CON-07, CON-09 | menor | ⚪ |
+| Borradores y datos al cambiar de sesión | SES-02, SES-03, SES-04 | menor | ⚪ |
+| Hora sin zona leída en la zona del celular (borrador de la IA) | FEC-02 | menor | ⚪ |
+| Esperan una decisión de Julieta | PRI-06 (el registro dice qué emails tienen cuenta), PRI-07 (`/privacidad` dice «nunca la exacta» y «va en camino» manda la exacta), PRI-09 («Ver como» de la admin escribe en nombre de la persona) | menor | ⏸️ |
+| Configuración, sin código | PRI-08: la cuenta invitada es una sola para todos los que tienen el PIN; se cierra vaciando `GUEST_ACCESS_PIN` (decisión 5) | menor | ⏸️ |
+
+Refutados: VIE-06 (los diálogos «No se presentó» y «¿Ya le pagaste?» no
+releen el turno; el dominio impide que la acción caiga sobre otra persona),
+FEC-01 (fechas fijas en tests: un fixture congela el reloj del horario) y
+FEC-03 («ausencias de hoy» cuenta las marcadas hoy, a propósito).
+
+**Tests de contrato:** ✅ #666. Los mocks de los e2e se arman con
+respuestas reales del backend (`frontend/e2e/contrato/`): un test del backend
+guarda la forma de cada respuesta y falla si cambia; los specs no pueden
+inventar campos. Al migrar 16 specs aparecieron 8 mocks que mandaban cosas
+que el backend no manda (un 409 que es 400, `status: "activo"` que es
+`"active"`, un tipo de aviso con otro nombre, entre otros).
 
 ### Criterio de Julieta para decidir (2026-11-13)
 

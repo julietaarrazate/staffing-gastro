@@ -143,7 +143,13 @@ campos, estados o transiciones. Se documenta la realidad y se marca cada caso.
     verse si se reactiva); los suyos `asignado`/`confirmado`/`en_camino` se
     cancelan sin cancelación tardía. Los de un trabajador suspendido en esos
     estados vuelven a `buscando_personal` (`release_worker`) sin sumarle una
-    cancelación. Desde `check_in` no se toca nada. Un turno oculto al que se
+    cancelación. Desde `check_in` no se toca nada al suspender; si la parte
+    suspendida ya no puede marcar la salida o cerrar, la admin lo hace en su
+    nombre con «Cerrar turno» (`Shift.admin_close_plan`,
+    `close_for_suspended_account`: salida sin ubicación y con la hora de ahora,
+    cierre con los efectos de `finish`, nunca pagado; registro en
+    `closed_by_admin_at`/`closed_by_admin_user_id`; decisión 21).
+    Un turno oculto al que se
     le pasa el horario vence igual (`no_cubierto`), sin aviso a la cuenta
     suspendida y con `not_covered_while_suspended` en verdadero: queda fuera
     de las métricas de cobertura aunque la cuenta se reactive después

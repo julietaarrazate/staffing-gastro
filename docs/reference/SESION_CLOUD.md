@@ -91,6 +91,17 @@ sólo los archivos del área, y la completa una vez antes del push. No uses
   `main` quedó en rojo: un test de una marcaba la salida antes del inicio, que
   la otra pasó a rechazar (#555). Tras cada merge, a la rama que sigue se le
   trae `main` y se espera su CI, aunque el merge sea limpio.
+- **Los mocks de los e2e se arman con respuestas reales del backend**
+  (`frontend/e2e/contrato.ts`, `deContrato` / `fulfillContrato`), no con
+  objetos escritos a mano: `frontend/e2e/contrato/respuestas.json` lo escribe
+  `backend/tests/test_contrato_frontend.py`. Si un spec nuevo mockea la
+  sesión, un turno o un error del backend, usá eso (README en
+  `frontend/e2e/contrato/`). Si cambiás un schema o un texto de error del
+  backend, ese test falla: regenerá con `ACTUALIZAR_CONTRATO=1` desde
+  `backend/` y revisá el diff del JSON, que es lo que cambia para el frontend.
+  Al migrar los primeros 16 specs (2026-11-19) aparecieron mocks que mandaban
+  un 409 donde el backend manda 400, `quantity: 2`, tipos de aviso
+  inexistentes y un campo (`limite_exigido`) que el backend siempre manda.
 - `npm run lint` da **0 errores y unos mil warnings**. Es lo normal; CI
   falla sólo con errores.
 - Si el build falla bajando Google Fonts por el proxy, probá
@@ -140,6 +151,12 @@ cd frontend && npm run build && npx playwright test e2e/zz-captura.spec.ts
   ningún error. Para esas pantallas hay que buildear con
   `NEXT_PUBLIC_API_URL=http://localhost:<puerto>/api/v1` y servir un mock en
   ese puerto. El `/api/v1` del final es obligatorio.
+- **El id de `/turno/[id]` tiene que ser un UUID** (`lib/turno-publico.ts`):
+  con `s1` la página contesta «no encontrada» sin pedirle nada a la API y la
+  captura sale vacía sin error (visto el 2026-11-19). La API simulada puede
+  ser un `http.createServer` de 20 líneas que conteste
+  `GET /api/v1/shifts/<uuid>/public`; lo del navegador (con sesión) se sigue
+  simulando con `page.route` sobre esa misma dirección.
 - **Una pantalla que sale de `notFound()` se dibuja en el navegador**, no en
   el servidor: llega un HTML vacío (`<html id="__next_error__">`) y el layout
   se arma del lado del cliente, así que el `<script>` anti-flash del tema no
@@ -163,6 +180,18 @@ cd frontend && npm run build && npx playwright test e2e/zz-captura.spec.ts
   más con todas las ramas mergeadas (sin pushear) y el arnés sobre ese árbol.
   El ítem que espera un «sí» va último: mientras su PR está abierto la rama
   queda tomada.
+- **Varias ramas con migración: el número se fija al integrar** (visto el
+  2026-11-18 con 0053, 0055, 0056 y la de la decisión 21, que terminó en 0058 porque otra sesión mergeó una 0057 en el medio). Cada rama nace con
+  `down_revision` en la última de `main`; al pasar la segunda encima de la
+  primera, se re-encadena y, si el orden de merge cambió, se renumera el
+  archivo (`test_cadena_migraciones.py` exige que el nombre coincida con la
+  revisión y una sola cabeza). Mientras tanto, cada prueba en la app usa su
+  propia base (`E1_DB=oido_<tema>`) para no mover la compartida.
+- **Dos ramas que tocan el mismo método chocan aunque el resto se mezcle
+  solo.** Al pasar una rama encima de otra, el `rebase` frena commit por
+  commit en el mismo lugar; resolver cada vez quedándose con lo de las dos y
+  correr la suite completa sobre el resultado (el 2026-11-18, la
+  integración de la decisión 22 sobre U080 encontró un aviso que sobraba).
 - **El aviso de «CI falló» puede ser de un commit viejo.** Cada push corta la
   corrida anterior y esa llega como falla. Mirá el `head_sha` del aviso contra
   `git rev-parse HEAD` antes de investigar.
@@ -172,6 +201,11 @@ cd frontend && npm run build && npx playwright test e2e/zz-captura.spec.ts
   (`create_pull_request`, `pull_request_read` con `get_check_runs`).
 - **No se pueden borrar ramas remotas desde la sesión.** `git push --delete`
   corta con *"unexpected disconnect"*. Hay que pedírselo a Julieta.
+- **gitleaks también toma una contraseña de prueba** que mezcla mayúsculas,
+  minúsculas y números después de `"new_password":` (cortó #646 el
+  2026-11-18). En tests, claves y contraseñas como strings con guiones
+  (`"la-clave-nueva-del-barrido"`). **Y no copies el literal que lo disparó
+  en un doc**: también lo toma (cortó #655 el mismo día).
 - **gitleaks escanea el historial de TODAS las ramas** (`--log-opts=--all`),
   y toma como `generic-api-key` un literal con forma de UUID o token en un
   test (visto el 2026-11-17 con `Idempotency-Key` en `test_support.py`). Un
@@ -245,6 +279,13 @@ E1_AGENT=smoke node tools/e2e-local/smoke.mjs   # prueba de humo (borra lo que c
   corra un solo agente.
 
 ## 8. Trabajo largo con muchos subagentes: el límite de uso y los reinicios
+
+El 2026-11-18 el cupo se cortó tres veces con cinco agentes a la vez (dos de
+Fable y uno de Opus). Lo que anduvo: **tres agentes como mucho**, commits
+chicos (lo commiteado sobrevive al corte) y retomarlos con un mensaje
+(`SendMessage`) en vez de relanzarlos. Si un modelo se queda sin cupo y la
+sesión pasa a otro, los agentes nuevos se lanzan con el modelo nuevo; los
+que se retoman siguen con el suyo.
 
 Pasó tres veces el 2026-11-11, en una prueba de 16 recorridos en paralelo:
 

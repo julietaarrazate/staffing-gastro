@@ -63,6 +63,21 @@ siguen válidos; los tokens soft/mute son la versión nombrada del board.)*
 | danger | `#EF4444` | `#FEF2F2` | `#C22F2F` | Error, cancelado, no-show. |
 | info | `#3B82F6` | `#DBEAFE` | `#1D4ED8` | Informativo, "va en camino", tips. |
 
+**Las tintas de los sellos** (`.sello-verde` `#166534`, `.sello-azul`
+`#1C5478`, `.sello-rojo` `#C22F2F`, `.sello-gris` `#4B5563`; desde el
+2026-11-19): el estado de un turno como sello de goma sobre el papel de la
+comanda, que es claro en los dos temas, así que no cambian con el tema. Dan
+7,1 / 8,1 / 5,6 / 7,6 sobre el papel de día y 6,4 / 7,3 / 5,0 / 6,8 sobre el
+de noche (`#EEF3F6`). El verde de antes (`success-text`) daba 4,49 sobre el
+papel de noche.
+
+**Relleno de botón con letra blanca** (`--color-success-strong` `#15803D` y
+`--color-danger-strong` `#C22F2F`, iguales en los dos temas; desde el
+2026-11-19): el `Button` verde (`secondary`) y el rojo (`danger`). La base
+(`#16A34A`, `#EF4444`) daba 3,3 y 3,8 con el blanco; éstos, 5,0 y 5,6. La base
+sigue para lo que no lleva letra encima (el punto de «disponible», el
+interruptor).
+
 ## Modo oscuro
 
 Es un **modo oscuro real** (v5.0): el lienzo se oscurece, no sólo las tarjetas
