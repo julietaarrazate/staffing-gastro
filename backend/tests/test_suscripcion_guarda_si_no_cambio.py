@@ -10,15 +10,22 @@ cada caso de uso relee y vuelve a aplicar su regla si perdió. Las carreras
 se simulan con dos sesiones de base, cada una con su lectura.
 """
 
+import asyncio
 from datetime import UTC, datetime, timedelta
+from uuid import UUID, uuid4
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import update
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+from app.core.database import Base
 
 from app.modules.subscription.application.services import SubscriptionService
 from app.modules.subscription.domain.entities import GRACE_PERIOD
 from app.modules.subscription.domain.exceptions import SubscriptionChangedError
 from app.modules.subscription.domain.repositories import change_subscription
+from app.modules.subscription.infrastructure.models import SubscriptionModel
 from app.modules.subscription.infrastructure.repositories import (
     SqlAlchemySubscriptionPaymentRepository,
     SqlAlchemySubscriptionRepository,
@@ -130,24 +137,86 @@ async def test_dos_publicaciones_a_la_vez_cuentan_las_dos(client: AsyncClient, m
         assert created.status_code == 201, created.text
         turnos.append(created.json()["id"])
 
-    original = SqlAlchemySubscriptionRepository.update
+    original = SqlAlchemySubscriptionRepository.register_publication
     otra_publicacion = True
 
-    async def update(self, subscription):
+    async def register_publication(self, company_id, now):
         nonlocal otra_publicacion
         if otra_publicacion:
             otra_publicacion = False
-            # La primera publicación ya leyó el contador; antes de que guarde,
-            # se publica el otro turno del mismo comercio.
+            # La primera publicación ya leyó la suscripción; antes de que
+            # sume, se publica el otro turno del mismo comercio.
             res = await client.post(f"/api/v1/shifts/{turnos[1]}/publish", headers=headers)
             assert res.status_code == 200, res.text
-        return await original(self, subscription)
+        return await original(self, company_id, now)
 
-    monkeypatch.setattr(SqlAlchemySubscriptionRepository, "update", update)
+    monkeypatch.setattr(
+        SqlAlchemySubscriptionRepository, "register_publication", register_publication
+    )
     res = await client.post(f"/api/v1/shifts/{turnos[0]}/publish", headers=headers)
     assert res.status_code == 200, res.text
 
     assert (await _sub(client, headers))["turnos_usados_mes"] == 2
+
+
+async def _company_with_subscription(client: AsyncClient, factory, email: str):
+    headers = await _employer_with_company(client, email)
+    company_id = (await client.get("/api/v1/companies/me/profile", headers=headers)).json()["id"]
+    async with factory() as s:
+        await SqlAlchemySubscriptionRepository(s).get_or_create(UUID(company_id))
+    return UUID(company_id)
+
+
+async def test_cinco_publicaciones_simultaneas_en_sesiones_reales_suman_cinco(tmp_path):
+    """Cinco sesiones con su propia conexión (SQLite en archivo) suman a la
+    vez: con leer, sumar y guardar se perdía alguna; en la base no."""
+    engine = create_async_engine(
+        f"sqlite+aiosqlite:///{tmp_path}/contador.db", connect_args={"timeout": 30}
+    )
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    factory = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+    company_id = uuid4()
+    async with factory() as s:
+        await SqlAlchemySubscriptionRepository(s).get_or_create(company_id)
+
+    async def publicar():
+        async with factory() as s:
+            await SqlAlchemySubscriptionRepository(s).register_publication(
+                company_id, datetime.now(UTC)
+            )
+
+    await asyncio.gather(*(publicar() for _ in range(5)))
+    async with factory() as s:
+        sub = await SqlAlchemySubscriptionRepository(s).get_by_company_id(company_id)
+    await engine.dispose()
+    assert sub.turnos_usados_mes == 5
+
+
+async def test_la_publicacion_que_encuentra_la_ventana_vencida_abre_una_nueva(
+    client: AsyncClient, session_factory
+):
+    company_id = await _company_with_subscription(client, session_factory, "con08_ventana@staffya.com")
+    ahora = datetime.now(UTC)
+    async with session_factory() as s:
+        await s.execute(
+            update(SubscriptionModel)
+            .where(SubscriptionModel.company_id == company_id)
+            .values(
+                period_start=ahora - timedelta(days=40),
+                period_end=ahora - timedelta(days=10),
+                turnos_usados_mes=7,
+            )
+        )
+        await s.commit()
+
+    async with session_factory() as s:
+        repo = SqlAlchemySubscriptionRepository(s)
+        await repo.register_publication(company_id, ahora)
+        await repo.register_publication(company_id, ahora)
+        sub = await repo.get_by_company_id(company_id)
+    assert sub.turnos_usados_mes == 2
+    assert sub.period_end.replace(tzinfo=None) > ahora.replace(tzinfo=None)
 
 
 async def test_una_lectura_vieja_no_se_guarda_y_change_subscription_relee(
@@ -206,3 +275,4 @@ async def test_si_pierde_todas_las_veces_responde_409_sin_guardar(
     assert baja.json()["detail"] == "Tu plan cambió mientras tanto. Actualizá y volvé a intentar."
     monkeypatch.undo()
     assert (await _sub(client, headers))["renews"] is True
+

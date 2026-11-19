@@ -78,14 +78,10 @@ from app.core.config import settings
 from app.modules.subscription.domain.entities import Subscription
 from app.modules.subscription.domain.exceptions import (
     PublishingNotAllowedError,
-    SubscriptionChangedError,
     SubscriptionNotActiveError,
 )
 from app.modules.subscription.domain.plans import get_plan
-from app.modules.subscription.domain.repositories import (
-    SubscriptionRepository,
-    change_subscription,
-)
+from app.modules.subscription.domain.repositories import SubscriptionRepository
 from app.modules.subscription.domain.value_objects import SubscriptionStatus
 from app.modules.worker.domain.repositories import WorkerProfileRepository
 from app.modules.worker.domain.value_objects import WorkerSkill
@@ -908,8 +904,9 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
 
     async def _publication_subscription(self, company_id: UUID, now: datetime) -> Subscription:
         """La suscripción del comercio con la ventana de uso al día. No guarda
-        nada: si la ventana venció, la nueva queda en la entidad y se persiste
-        recién cuando se cuenta una publicación."""
+        nada: si la ventana venció, la nueva queda en la entidad, y en la base
+        la abre recién la publicación que se cuenta
+        (`SubscriptionRepository.register_publication`)."""
         # ADR-0022: con el cobro real exigido (`billing_enforced` = tope
         # prendido + credenciales de Mercado Pago) un comercio nuevo arranca
         # `pendiente`. Con el cobro apagado arranca `activa` (la beta).
@@ -960,23 +957,12 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         no publicó nada no llega hasta acá y no cambia el contador. El uso se
         registra también con el tope apagado, para tener el dato cuando se
         encienda."""
-        # Lee, suma y guarda sólo si nadie la cambió en el medio: dos
-        # publicaciones a la vez del mismo comercio, o un pago, releen y
-        # suman sobre lo nuevo en vez de comerse un turno del contador
-        # (CON-08). Si aun así pierde todas las veces, el turno ya quedó
-        # publicado: se avisa en el log en vez de responder un error.
+        # La suma va en la base (`turnos_usados_mes + 1`), sin leer y
+        # reescribir: dos publicaciones a la vez del mismo comercio cuentan
+        # las dos (CON-08). La lectura sólo asegura que la suscripción exista.
         now = datetime.now(timezone.utc)
-        try:
-            await change_subscription(
-                self._subscriptions,
-                lambda: self._publication_subscription(company_id, now),
-                lambda subscription: subscription.register_publication(),
-            )
-        except SubscriptionChangedError:
-            logger.error(
-                "subscription.publication_not_counted",
-                extra={"company_id": str(company_id)},
-            )
+        await self._publication_subscription(company_id, now)
+        await self._subscriptions.register_publication(company_id, now)
 
     async def cancel_shift(self, company_id: UUID, shift_id: UUID) -> Shift:
         """El comercio cancela el turno (terminal, cualquier estado no

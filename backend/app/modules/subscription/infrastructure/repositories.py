@@ -152,6 +152,27 @@ class SqlAlchemySubscriptionRepository(SubscriptionRepository):
         )
         return _to_entity(model)
 
+    async def register_publication(self, company_id: UUID, now: datetime) -> None:
+        # Dos UPDATE en la misma transacción. El primero abre la ventana nueva
+        # sólo si venció (el WHERE lo hace una sola vez aunque dos lleguen
+        # juntas); el segundo suma en la base, así que ninguna suma se pierde.
+        await self._session.execute(
+            update(SubscriptionModel)
+            .where(
+                SubscriptionModel.company_id == company_id,
+                SubscriptionModel.period_end <= now,
+            )
+            .values(period_start=now, period_end=now + PERIOD_LENGTH, turnos_usados_mes=0)
+            .execution_options(synchronize_session=False)
+        )
+        await self._session.execute(
+            update(SubscriptionModel)
+            .where(SubscriptionModel.company_id == company_id)
+            .values(turnos_usados_mes=SubscriptionModel.turnos_usados_mes + 1)
+            .execution_options(synchronize_session=False)
+        )
+        await self._session.commit()
+
     async def get_by_company_id(self, company_id: UUID) -> Subscription | None:
         stmt = select(SubscriptionModel).where(SubscriptionModel.company_id == company_id)
         result = await self._session.execute(stmt)

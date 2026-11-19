@@ -42,6 +42,14 @@ class SubscriptionRepository(ABC):
         """Busca la suscripción de un comercio."""
 
     @abstractmethod
+    async def register_publication(self, company_id: UUID, now: datetime) -> None:
+        """Suma un turno publicado al contador del período, de una y en la
+        base (`turnos_usados_mes + 1`), sin leer antes: publicaciones a la
+        vez suman todas (CON-08). Si la ventana de uso ya venció, primero
+        abre una nueva con el contador en cero, con la misma regla que
+        `Subscription.roll_period_if_expired`."""
+
+    @abstractmethod
     async def get_or_create(
         self,
         company_id: UUID,
@@ -145,7 +153,8 @@ async def change_subscription(
     cambio de los dos queda, y la regla se evalúa con el estado real (p. ej.
     «Dar de baja» sobre un plan que ya venció levanta `NothingToCancelError`).
     Después de `SUBSCRIPTION_SAVE_ATTEMPTS` choques seguidos, el error sube.
-    Lo usan los casos de uso de `subscription` y la publicación de `shift`."""
+    Lo usan los casos de uso de `subscription`; el contador de publicaciones
+    no lo necesita (`register_publication` suma en la base)."""
     for attempt in range(SUBSCRIPTION_SAVE_ATTEMPTS):
         subscription = await load()
         change(subscription)
