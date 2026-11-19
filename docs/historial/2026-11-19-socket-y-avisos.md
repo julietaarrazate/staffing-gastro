@@ -1,4 +1,4 @@
-# El canal de avisos sigue el estado de la sesión y lo que la persona vio
+# El canal de avisos sigue el estado de la sesión y lo que la persona vio (#670)
 
 **Pedido:** pasada por clase de error del 2026-11-19 (hallazgos PRI-04, VIE-04, CON-10 y ESC-04, que son la misma causa que CON-10). Una causa común: el socket y la lista de avisos no seguían ni el estado de la sesión ni lo que la persona había visto.
 
