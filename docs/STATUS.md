@@ -109,11 +109,12 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
    detalle del turno~~ (hecho el 2026-11-19, el pago en la comanda;
    [historial](./historial/2026-11-19-detalle-del-turno-comanda.md)). Cómo
    va cada uno lo decidió Julieta el 2026-11-19 (`direccion-relieve.md`).
-   **Sigue (Julieta, 2026-11-19: «las otras pantallas, Buscar por ejemplo,
-   siguen igual»): el resto de las pantallas**, un PR cada una. Orden
-   propuesto, a confirmar con ella: Buscar del trabajador (`/buscar`, con
-   `OpportunityCard`, que también usan la grilla del Inicio en compu y
-   «Descubrir rápido»), Buscar del comercio (`/search`), Publicar turno,
+   **Sigue (Julieta, 2026-11-19: «todas las pantallas tienen que tener la
+   misma estética, no puede quedar a medias»): el resto de las pantallas**,
+   un PR cada una, mostrándole antes las opciones sobre la pantalla real. Orden:
+   ~~Buscar del trabajador~~ (hecho el 2026-11-19, cada turno como comanda;
+   [historial](./historial/2026-11-19-buscar-trabajador-relieve.md)), Buscar
+   del comercio (`/search`), Publicar turno,
    Chats, Perfil (los dos roles), Mapa, las fichas (comercio y trabajador),
    Favoritos, Mi plan, y el ingreso, el alta y la bienvenida.
    Queda, de lo que no entró en estos PRs: el encabezado de la app sigue de
