@@ -21,6 +21,7 @@ le reinicien los turnos).
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from typing import Any
 from uuid import UUID, uuid4
 
 from app.core.dt import naive as _naive
@@ -86,6 +87,15 @@ class Subscription:
     id: UUID = field(default_factory=uuid4)
     created_at: datetime | None = None
     updated_at: datetime | None = None
+    # Cómo estaba guardada cuando se leyó: lo arma el repositorio, que guarda
+    # sólo si en la base sigue igual (si no, `SubscriptionChangedError` y el
+    # caso de uso relee). Así la pasada de vencimiento no pisa un pago que
+    # entró en el medio, ni dos publicaciones se comen una del contador
+    # (CON-08). El dominio sólo lo transporta, como la versión del turno
+    # (ADR-0016).
+    persisted_state: dict[str, Any] | None = field(
+        default=None, compare=False, repr=False
+    )
 
     # --- Medición de la beta (M6) ------------------------------------------
 

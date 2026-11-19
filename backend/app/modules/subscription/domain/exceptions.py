@@ -79,3 +79,13 @@ class BillingGatewayError(SubscriptionError):
             "No pudimos conectar con Mercado Pago. Probá de nuevo en unos minutos."
         )
         self.detail = detail
+
+
+class SubscriptionChangedError(SubscriptionError):
+    """La suscripción cambió desde que se leyó (un pago, una baja, otra
+    publicación entraron en el medio): no se guardó nada. El caso de uso
+    vuelve a leer y a aplicar su regla sobre lo nuevo (CON-08)."""
+
+    def __init__(self, subscription_id: str = "") -> None:
+        self.subscription_id = subscription_id
+        super().__init__("Tu plan cambió mientras tanto. Actualizá y volvé a intentar.")

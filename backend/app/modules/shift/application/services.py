@@ -78,10 +78,14 @@ from app.core.config import settings
 from app.modules.subscription.domain.entities import Subscription
 from app.modules.subscription.domain.exceptions import (
     PublishingNotAllowedError,
+    SubscriptionChangedError,
     SubscriptionNotActiveError,
 )
 from app.modules.subscription.domain.plans import get_plan
-from app.modules.subscription.domain.repositories import SubscriptionRepository
+from app.modules.subscription.domain.repositories import (
+    SubscriptionRepository,
+    change_subscription,
+)
 from app.modules.subscription.domain.value_objects import SubscriptionStatus
 from app.modules.worker.domain.repositories import WorkerProfileRepository
 from app.modules.worker.domain.value_objects import WorkerSkill
@@ -956,11 +960,23 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         no publicó nada no llega hasta acá y no cambia el contador. El uso se
         registra también con el tope apagado, para tener el dato cuando se
         encienda."""
-        subscription = await self._publication_subscription(
-            company_id, datetime.now(timezone.utc)
-        )
-        subscription.register_publication()
-        await self._subscriptions.update(subscription)
+        # Lee, suma y guarda sólo si nadie la cambió en el medio: dos
+        # publicaciones a la vez del mismo comercio, o un pago, releen y
+        # suman sobre lo nuevo en vez de comerse un turno del contador
+        # (CON-08). Si aun así pierde todas las veces, el turno ya quedó
+        # publicado: se avisa en el log en vez de responder un error.
+        now = datetime.now(timezone.utc)
+        try:
+            await change_subscription(
+                self._subscriptions,
+                lambda: self._publication_subscription(company_id, now),
+                lambda subscription: subscription.register_publication(),
+            )
+        except SubscriptionChangedError:
+            logger.error(
+                "subscription.publication_not_counted",
+                extra={"company_id": str(company_id)},
+            )
 
     async def cancel_shift(self, company_id: UUID, shift_id: UUID) -> Shift:
         """El comercio cancela el turno (terminal, cualquier estado no

@@ -32,6 +32,7 @@ from app.modules.subscription.domain.exceptions import (
     BillingDisabledError,
     BillingGatewayError,
     NothingToCancelError,
+    SubscriptionChangedError,
     UnknownPlanError,
     WithdrawalNotAvailableError,
 )
@@ -142,6 +143,8 @@ async def subscribe(
         ) from exc
     except BillingGatewayError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+    except SubscriptionChangedError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     response = SubscribeResponse(
         plan_code=result.plan_code, status=result.status, checkout_url=result.checkout_url
     )
@@ -174,7 +177,7 @@ async def register_chosen_plan(
 async def cancel_renewal(company_id: CompanyIdDep, service: ServiceDep):
     try:
         await service.cancel_renewal(company_id)
-    except (BillingDisabledError, NothingToCancelError) as exc:
+    except (BillingDisabledError, NothingToCancelError, SubscriptionChangedError) as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     return _subscription_response(await service.get_overview(company_id))
 
@@ -187,7 +190,11 @@ async def cancel_renewal(company_id: CompanyIdDep, service: ServiceDep):
 async def withdraw(company_id: CompanyIdDep, service: ServiceDep):
     try:
         await service.withdraw(company_id)
-    except (BillingDisabledError, WithdrawalNotAvailableError) as exc:
+    except (
+        BillingDisabledError,
+        WithdrawalNotAvailableError,
+        SubscriptionChangedError,
+    ) as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except BillingGatewayError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
