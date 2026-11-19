@@ -11,6 +11,9 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./moc
  *    zona del perfil (sin badge).
  */
 
+// Vence en el futuro: una hora ya pasada se muestra apagada (el reloj local).
+const hastaDentroDe4Horas = () => new Date(Date.now() + 4 * 3600_000).toISOString();
+
 const WORKER_SESSION = {
   id: "user-1",
   email: "disp@staffya.com",
@@ -88,7 +91,7 @@ test("el trabajador prende y apaga 'Disponible ahora' desde su perfil", async ({
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ active, until: active ? "2026-09-16T22:00:00Z" : null }),
+        body: JSON.stringify({ active, until: active ? hastaDentroDe4Horas() : null }),
       });
     } else if (method === "POST") {
       postedBody = route.request().postDataJSON();
@@ -96,7 +99,7 @@ test("el trabajador prende y apaga 'Disponible ahora' desde su perfil", async ({
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ active: true, until: "2026-09-16T22:00:00Z" }),
+        body: JSON.stringify({ active: true, until: hastaDentroDe4Horas() }),
       });
     } else if (method === "DELETE") {
       active = false;

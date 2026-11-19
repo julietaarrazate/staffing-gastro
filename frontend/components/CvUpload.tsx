@@ -2,7 +2,9 @@
 
 import { useRef, useState } from "react";
 import { uploadCv } from "@/lib/cloudinary";
+import { CV_OPEN_ERROR } from "@/lib/cv";
 import { getErrorMessage } from "@/lib/errors";
+import type { CvFileRef } from "@/lib/types";
 import { TextField } from "@/components/ui";
 import { FileTextIcon, TrashIcon, UploadIcon } from "@/components/icons";
 import { safeHttpsUrl } from "@/lib/safe-url";
@@ -10,30 +12,48 @@ import { checkUploadFile } from "@/lib/upload-validation";
 
 const ACCEPT = ".pdf,.doc,.docx,image/*";
 
+/** Lo que el formulario guarda del CV. */
+export interface CvValue {
+  /** El CV subido: privado (ADR-0021, actualización 2026-11-19). */
+  file: CvFileRef | null;
+  /** Link pegado a mano, o la URL de un CV viejo todavía público. */
+  url: string;
+  /** Nombre original del archivo subido (F1, auditoría 2026-08-10): el
+   * `public_id` de Cloudinary es un hash, no sirve para mostrar. `null` con un
+   * link pegado a mano. */
+  fileName: string | null;
+}
+
+export const NO_CV: CvValue = { file: null, url: "", fileName: null };
+
+/** ¿Es la URL de un CV subido antes del 2026-11-19 (público, de Cloudinary)? */
+function isOldUpload(url: string): boolean {
+  const safe = safeHttpsUrl(url);
+  return Boolean(safe && new URL(safe).host === "res.cloudinary.com");
+}
+
 /**
- * CV del trabajador: antes sólo había un campo de texto para pegar un link
- * (Drive, LinkedIn) — pedido real de Julieta de poder arrastrar un PDF o una
- * foto directo, más simple que ir a buscar un link. Sube con firma del
- * servidor (`uploadCv`, C.2(b) auditoría 2026-08-10: evita el bloqueo de
- * Cloudinary a la entrega de PDF subido sin firmar) y sigue guardando una
- * URL en `cv_url` — el campo de texto queda como alternativa para quien ya
- * tiene el link a mano.
+ * CV del trabajador: arrastrar un PDF, un Word o una foto (pedido de
+ * Julieta), o pegar un link (Drive, LinkedIn) para quien ya lo tiene a mano.
+ *
+ * Desde el 2026-11-19 el archivo sube PRIVADO (`uploadCv`): trae teléfono,
+ * email y domicilio, y antes quien vio el link una vez lo abría para siempre.
+ * No hay URL que lo muestre: se abre con un link que vence que da el backend
+ * (`onOpen`), y eso sólo para el CV ya guardado; uno recién subido se puede
+ * abrir después de tocar «Guardar».
  */
 export default function CvUpload({
   value,
-  fileName,
   token,
   onChange,
+  onOpen,
 }: {
-  value: string;
-  /** Nombre original del archivo subido (F1, auditoría 2026-08-10): el
-   * `public_id` de Cloudinary es un hash, no sirve para mostrar. `null`
-   * cuando `value` es un link pegado a mano, o un archivo subido antes de
-   * este campo existir (en ese caso se cae al nombre derivado de la URL). */
-  fileName: string | null;
+  value: CvValue;
   /** Necesario para firmar la subida server-side (`POST /uploads/sign-cv`). */
   token: string | null;
-  onChange: (url: string, fileName: string | null) => void;
+  onChange: (next: CvValue) => void;
+  /** Abre el CV guardado con un link que vence; `false` si no se pudo. */
+  onOpen?: () => Promise<boolean>;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -51,13 +71,19 @@ export default function CvUpload({
     }
     setUploading(true);
     try {
-      const url = await uploadCv(file, token);
-      onChange(url, file.name);
+      const ref = await uploadCv(file, token);
+      onChange({ file: ref, url: "", fileName: file.name });
     } catch (err) {
       setError(getErrorMessage(err, "No se pudo subir el archivo"));
     } finally {
       setUploading(false);
     }
+  }
+
+  async function open() {
+    if (!onOpen) return;
+    setError(null);
+    if (!(await onOpen())) setError(CV_OPEN_ERROR);
   }
 
   function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
@@ -73,13 +99,11 @@ export default function CvUpload({
     if (file) upload(file);
   }
 
-  // Si `value` ya es un archivo que subimos nosotros (Cloudinary), mostramos
-  // el nombre de archivo en vez de la URL completa (más legible). Preferimos
-  // el `fileName` guardado (nombre real); si no está (perfil viejo, de antes
-  // de este campo), caemos al nombre derivado de la URL como antes.
-  const uploadedUrl = safeHttpsUrl(value);
-  const isUploadedFile = Boolean(uploadedUrl && new URL(uploadedUrl).host === "res.cloudinary.com");
-  const displayName = isUploadedFile ? (fileName ?? value.split("/").pop() ?? null) : null;
+  // Un archivo subido (o un CV viejo de Cloudinary) se muestra por su nombre;
+  // si no hay nombre guardado (perfil viejo), el de la URL o uno genérico.
+  const isUploadedFile = Boolean(value.file) || isOldUpload(value.url);
+  const displayName =
+    value.fileName ?? (value.file ? "CV subido" : (value.url.split("/").pop() ?? "CV subido"));
 
   return (
     <div>
@@ -94,14 +118,20 @@ export default function CvUpload({
       {isUploadedFile ? (
         <div className="mt-2 flex items-center gap-2.5 rounded-[var(--radius-input)] bg-surface px-3.5 py-2.5 ring-1 ring-line">
           <FileTextIcon size={18} className="shrink-0 text-ink/50" />
-          <a
-            href={uploadedUrl ?? undefined}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="min-w-0 flex-1 truncate text-sm font-medium text-primary-text underline decoration-transparent hover:decoration-current"
-          >
-            {displayName}
-          </a>
+          {onOpen ? (
+            <button
+              type="button"
+              onClick={() => void open()}
+              title="Ver tu CV"
+              className="min-w-0 flex-1 truncate text-left text-sm font-medium text-primary-text underline decoration-transparent hover:decoration-current"
+            >
+              {displayName}
+            </button>
+          ) : (
+            <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink/80">
+              {displayName}
+            </span>
+          )}
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
@@ -113,7 +143,7 @@ export default function CvUpload({
           <button
             type="button"
             aria-label="Quitar CV"
-            onClick={() => onChange("", null)}
+            onClick={() => onChange(NO_CV)}
             className="shrink-0 text-ink/40 hover:text-danger-text"
           >
             <TrashIcon size={16} />
@@ -152,8 +182,8 @@ export default function CvUpload({
         <div className="mt-2">
           <TextField
             label="O pegá un link"
-            value={value}
-            onChange={(v) => onChange(v, null)}
+            value={value.url}
+            onChange={(v) => onChange({ file: null, url: v, fileName: null })}
             placeholder="Link a tu CV (Drive, PDF, LinkedIn)"
             inputMode="text"
           />

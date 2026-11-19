@@ -107,7 +107,7 @@ Hasta el 2026-11-12 sólo respondía 200 en `publicado` y todo lo demás era 404
 |--------|------|----------|
 | GET | `/notifications` | Listar avisos del usuario — **paginado** |
 | POST | `/{notification_id}/read` | Marcar leído |
-| POST | `/read-all` | Marcar leídos todos los no leídos propios (un solo `UPDATE`); devuelve `{"marked": n}` |
+| POST | `/read-all` | Marcar leídos los avisos de `{"ids": [...]}` (hasta 500, los que la campanita mostró; un solo `UPDATE`); sin cuerpo, todos los no leídos propios (cliente viejo); devuelve `{"marked": n}` |
 | WS | `/notifications/ws` | Avisos en vivo |
 
 ### `notification` — `/push` (Web Push, ver [ACCESO_MODERNO.md](./ACCESO_MODERNO.md))
@@ -212,6 +212,16 @@ Dos canales, autenticados por token:
   asignada hoy; si el turno se reasigna, la conexión abierta se corta
   ([CHAT.md](./CHAT.md)).
 - **Notificaciones:** `WS /api/v1/notifications/ws` — avisos del propio usuario.
+
+Un socket autoriza **una sola vez, al conectarse**. Para que no siga entregando
+con una sesión que ya no vale: (1) se corta con código 1008 cuando vence el
+access token con el que se conectó (`app/core/ws_vigencia.py`; el cliente
+renueva el token con un pedido liviano y reconecta, `frontend/lib/useWebSocket.ts`);
+(2) se corta cuando se revocan todas las sesiones de la cuenta (contraseña
+nueva, reclamo por Google, alta de dos pasos) por el puerto `LiveConnectionCloser`
+de identity (`IdentityService._revoke_everything`), como ya hacía la suspensión.
+Un access token no se revoca (dura 15 min): quien reconecta antes de que venza
+el suyo vuelve a entrar hasta entonces; el corte por vencimiento lo acota.
 
 El registro de conexiones es **en memoria** (`app/core/ws_manager.py`): un solo
 worker las ve todas; escalar horizontalmente requeriría pub/sub (Redis) y un

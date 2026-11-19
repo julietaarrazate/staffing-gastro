@@ -1,4 +1,5 @@
 import { test, expect, type Page, type WebSocketRoute } from "@playwright/test";
+import { deContrato, fulfillContrato } from "./contrato";
 import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash } from "./mocks";
 
 /**
@@ -8,45 +9,19 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash }
  *  - El comercio cancela y «Matches» del trabajador deja de ofrecer «Llegué».
  */
 
+// Turno del trabajador asignado, aviso y sesión: respuestas reales del backend
+// (e2e/contrato). `shift` sirve para `/shifts/me`, `/shifts/mine` y `/shifts/s1`.
 function shift(status: string) {
-  return {
-    id: "s1",
-    company_id: "c1",
-    position: "mozo",
-    quantity: 1,
-    start_at: "2030-07-20T20:00:00-03:00",
-    end_at: "2030-07-21T02:00:00-03:00",
-    pay_amount: "148000",
-    currency: "ARS",
-    tips: false,
-    meal: false,
-    dress_code: null,
-    urgent: false,
-    address: null,
-    city: "Palermo, CABA",
-    latitude: null,
-    longitude: null,
-    title: null,
-    description: null,
-    status,
-    worker_profile_id: "wp1",
-    worker_name: "Juan Pérez",
-    created_at: "2030-07-01T12:00:00-03:00",
-    company_name: "Bar La Esquina",
-    company_logo_url: null,
-  };
+  return deContrato("turnos_del_comercio_con_asignado", [
+    { id: "s1", status, worker_name: "Juan Pérez", company_name: "Bar La Esquina" },
+  ])[0];
 }
 
 function aviso(type: string) {
-  return {
-    id: `n-${type}`,
-    type,
-    title: "Novedad en tu turno",
-    message: "Algo cambió.",
-    read: false,
-    link: null,
-    created_at: "2030-07-01T12:00:00Z",
-  };
+  const [real] = deContrato("avisos_trabajador", [
+    { id: `n-${type}`, type, title: "Novedad en tu turno", message: "Algo cambió.", link: null },
+  ]);
+  return real;
 }
 
 async function setup(page: Page, role: "employer" | "worker") {
@@ -60,19 +35,7 @@ async function setup(page: Page, role: "employer" | "worker") {
   );
   await mockEmptyNotifications(page);
   await page.route("**/api/v1/auth/me", (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        id: "u1",
-        email: "u@oido.test",
-        full_name: role === "employer" ? "Bar La Esquina" : "Juan Pérez",
-        role,
-        status: "activo",
-        is_active: true,
-        is_verified: true,
-      }),
-    })
+    fulfillContrato(route, role === "employer" ? "auth_me_employer" : "auth_me_worker")
   );
   // Guarda el socket de la campanita para mandarle un aviso después de cargar.
   const sockets: WebSocketRoute[] = [];
@@ -93,17 +56,18 @@ test("el trabajador confirma y el panel del comercio pasa solo a «Confirmado»"
     })
   );
   await page.goto("/shifts");
-  const lista = page.getByTestId("shifts-panel-list");
-  await expect(lista.getByText("Asignado", { exact: true })).toBeVisible();
-  await expect(lista.getByText("Confirmado", { exact: true })).toHaveCount(0);
+  // El estado se mira en el sello: desde los pasos tachados (2026-11-19)
+  // «Asignado» también es una palabra de los pasos, y sigue ahí (tachada o
+  // actual) después de confirmar.
+  const estado = page.getByTestId("shifts-panel-list").getByTestId("shift-status");
+  await expect(estado).toHaveText("Asignado");
 
   // Pasa en el servidor y llega el aviso: la pantalla no se recarga.
   status = "confirmado";
   await expect.poll(() => sockets.length).toBeGreaterThan(0);
   sockets[0].send(JSON.stringify(aviso("shift_confirmed")));
 
-  await expect(lista.getByText("Confirmado", { exact: true })).toBeVisible();
-  await expect(lista.getByText("Asignado", { exact: true })).toHaveCount(0);
+  await expect(estado).toHaveText("Confirmado");
 });
 
 test("el comercio cancela y «Matches» deja de ofrecer «Llegué»", async ({ page }) => {

@@ -10,6 +10,7 @@ from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import case, func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.application.domain.entities import (
@@ -17,6 +18,7 @@ from app.modules.application.domain.entities import (
     EnrichedApplicant,
     ShiftApplication,
 )
+from app.modules.application.domain.exceptions import AlreadyAppliedError
 from app.modules.application.domain.repositories import (
     ApplicationStats,
     ShiftApplicationRepository,
@@ -31,6 +33,15 @@ from app.modules.identity.infrastructure.models import UserModel
 from app.modules.shift.infrastructure.models import ShiftModel
 from app.modules.worker.domain.value_objects import GamificationLevel, WorkerBadge
 from app.modules.worker.infrastructure.models import WorkerProfileModel
+
+
+def _es_postulacion_repetida(exc: IntegrityError) -> bool:
+    """La violación es la de la fila única (turno, trabajador): Postgres
+    nombra la restricción; SQLite, las columnas."""
+    texto = str(exc.orig)
+    return "uq_shift_applications_shift_worker" in texto or (
+        "shift_applications.shift_id" in texto and "worker_profile_id" in texto
+    )
 
 
 def _to_entity(model: ShiftApplicationModel) -> ShiftApplication:
@@ -76,7 +87,18 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
             se_postulo=application.se_postulo,
         )
         self._session.add(model)
-        await self._commit_or_reset()
+        try:
+            await self._commit_or_reset()
+        except IntegrityError as exc:
+            # Dos pedidos a la vez (otra pantalla, otro dispositivo) leyeron
+            # «no hay postulación» y los dos insertaron: la fila única por
+            # turno y trabajador frenó al segundo. Para la persona es lo mismo
+            # que postularse de nuevo: «ya te postulaste», no un 500. Cualquier
+            # otra violación (una clave foránea) se propaga. `_commit_or_reset`
+            # ya hizo el `rollback`: la sesión queda usable.
+            if _es_postulacion_repetida(exc):
+                raise AlreadyAppliedError(str(application.shift_id)) from None
+            raise
         await self._session.refresh(model)
         return _to_entity(model)
 
@@ -97,7 +119,11 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
         return _to_entity(model)
 
     async def get_by_id(self, application_id: UUID) -> ShiftApplication | None:
-        model = await self._session.get(ShiftApplicationModel, application_id)
+        # `populate_existing`: siempre lo que hay en la base (CON-04 relee la
+        # postulación después de que otro pedido pudo cambiarla).
+        model = await self._session.get(
+            ShiftApplicationModel, application_id, populate_existing=True
+        )
         return _to_entity(model) if model else None
 
     async def get_by_shift_and_worker(

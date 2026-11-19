@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { deContrato } from "./contrato";
 import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./mocks";
 
 /**
@@ -15,66 +16,20 @@ const json = (body: unknown, status = 200) => ({
   body: JSON.stringify(body),
 });
 
-const EMPLOYER = {
-  id: "user-1",
-  email: "demo.comercio@staffya.com",
-  full_name: "Comercio Demo",
-  role: "employer",
-  status: "activo",
-  is_active: true,
-  is_verified: true,
-};
+// Sesión, postulante y candidato: respuestas reales del backend (e2e/contrato).
+const EMPLOYER = deContrato("auth_me_employer");
 
-const APPLICANT = {
-  application_id: "app-1",
-  worker_profile_id: "wp-1",
-  full_name: "Lucía Postulada",
-  photo_url: null,
-  rating: 4.8,
-  is_available: true,
-  status: "pendiente",
-  created_at: "2026-11-10T12:00:00-03:00",
-  events_completed: 12,
-  punctuality_rate: 0.95,
-  years_experience: 3,
-  badges: [],
-  level: "bronce",
-};
+const [APPLICANT] = deContrato("postulantes", [
+  { application_id: "application-1", worker_profile_id: "wp-1", full_name: "Lucía Postulada", rating: 4.8, events_completed: 12, punctuality_rate: 0.95, years_experience: 3 },
+]);
 
-const CANDIDATE = {
-  profile_id: "wp-2",
-  full_name: "Mateo Sugerido",
-  photo_url: null,
-  rating: 4.5,
-  distance_km: 2,
-  score: 80,
-};
+const [CANDIDATE] = deContrato("candidatos_recomendados", [
+  { profile_id: "worker-profile-2", full_name: "Mateo Sugerido", rating: 4.5, distance_km: 2, score: 80 },
+]);
 
+// Turno del comercio dueño, publicado y sin asignar, como lo manda el backend.
 function shift(status: string) {
-  return {
-    id: "shift-1",
-    company_id: "c1",
-    position: "mozo",
-    quantity: 1,
-    start_at: "2026-12-10T20:00:00-03:00",
-    end_at: "2026-12-10T23:00:00-03:00",
-    pay_amount: "50000",
-    currency: "ARS",
-    tips: false,
-    dress_code: null,
-    urgent: false,
-    address: null,
-    city: "Palermo",
-    latitude: null,
-    longitude: null,
-    title: null,
-    description: null,
-    status,
-    worker_profile_id: null,
-    created_at: "2026-11-01T12:00:00-03:00",
-    company_name: "Bar Demo",
-    company_logo_url: null,
-  };
+  return deContrato("turno_publicado_comercio", { status });
 }
 
 async function setupCandidatos(page: Page, status: string) {

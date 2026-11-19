@@ -16,13 +16,16 @@ from fastapi import (
 from app.core.config import settings as app_settings
 from app.core.rate_limit import RateLimiter
 from app.core.ws_manager import ws_manager
-from app.modules.identity.api.dependencies import get_current_user, get_current_user_ws
+from app.core.ws_vigencia import receive_text_until
+from app.modules.identity.api.dependencies import get_current_user, get_current_ws_session
+from app.modules.identity.application.dtos import AuthenticatedSession
 from app.modules.identity.domain.entities import User
 from app.modules.notification.api.dependencies import (
     get_notification_service,
     get_push_service,
 )
 from app.modules.notification.api.schemas import (
+    MarkAllReadRequest,
     MarkAllReadResponse,
     NotificationResponse,
     PushPublicKeyResponse,
@@ -77,9 +80,15 @@ async def my_notifications(
     summary="Marcar todas mis notificaciones como leídas",
 )
 async def mark_all_as_read(
-    current_user: CurrentUserDep, service: ServiceDep
+    current_user: CurrentUserDep,
+    service: ServiceDep,
+    payload: MarkAllReadRequest | None = None,
 ) -> MarkAllReadResponse:
-    return MarkAllReadResponse(marked=await service.mark_all_read(current_user.id))
+    """Marca como leídos los avisos de `ids` (lo que la campanita mostró). Sin
+    cuerpo, todos los no leídos de la cuenta: compatibilidad con la app
+    vieja que quedó en caché; el cliente actual siempre manda `ids`."""
+    ids = None if payload is None else payload.ids
+    return MarkAllReadResponse(marked=await service.mark_all_read(current_user.id, ids))
 
 
 @router.post(
@@ -102,9 +111,13 @@ async def mark_as_read(
 @router.websocket("/ws")
 async def notifications_stream(
     websocket: WebSocket,
-    current_user: Annotated[User, Depends(get_current_user_ws)],
+    auth: Annotated[AuthenticatedSession, Depends(get_current_ws_session)],
 ):
-    """Push en tiempo real de notificaciones nuevas para el usuario autenticado."""
+    """Push en tiempo real de notificaciones nuevas para el usuario autenticado.
+
+    Se corta (1008) cuando vence el token con el que se conectó (PRI-04): el
+    cliente reconecta con el token renovado."""
+    current_user = auth.user
     await websocket.accept()
     if not ws_manager.connect_notification(current_user.id, websocket):
         # Tope de conexiones concurrentes por usuario (PRODUCTION_HARDENING.md).
@@ -112,7 +125,9 @@ async def notifications_stream(
         return
     try:
         while True:
-            await websocket.receive_text()
+            if await receive_text_until(websocket, auth.token_expires_at) is None:
+                await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+                break
             try:
                 _ws_frame_rate_limit.check(str(current_user.id))
             except HTTPException:

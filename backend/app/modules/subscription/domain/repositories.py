@@ -7,12 +7,20 @@ desde ahí, nunca la capa de aplicación de `subscription` (ver
 """
 
 from abc import ABC, abstractmethod
+from collections.abc import Awaitable, Callable
 from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
 from app.modules.subscription.domain.entities import Subscription, SubscriptionPayment
+from app.modules.subscription.domain.exceptions import SubscriptionChangedError
 from app.modules.subscription.domain.value_objects import SubscriptionStatus
+
+# Cuántas veces un caso de uso relee y vuelve a aplicar su cambio si otro
+# guardó la suscripción en el medio (CON-08). Hace falta que entren tres
+# escrituras a la misma suscripción en la misma ventana de milisegundos para
+# agotarlas.
+SUBSCRIPTION_SAVE_ATTEMPTS = 3
 
 
 class SubscriptionRepository(ABC):
@@ -24,11 +32,22 @@ class SubscriptionRepository(ABC):
 
     @abstractmethod
     async def update(self, subscription: Subscription) -> Subscription:
-        """Actualiza una suscripción existente y la devuelve."""
+        """Guarda la suscripción sólo si en la base sigue como se leyó
+        (`Subscription.persisted_state`) y la devuelve. Si otro la guardó en
+        el medio, no escribe nada y levanta `SubscriptionChangedError`: para
+        eso está `change_subscription`."""
 
     @abstractmethod
     async def get_by_company_id(self, company_id: UUID) -> Subscription | None:
         """Busca la suscripción de un comercio."""
+
+    @abstractmethod
+    async def register_publication(self, company_id: UUID, now: datetime) -> None:
+        """Suma un turno publicado al contador del período, de una y en la
+        base (`turnos_usados_mes + 1`), sin leer antes: publicaciones a la
+        vez suman todas (CON-08). Si la ventana de uso ya venció, primero
+        abre una nueva con el contador en cero, con la misma regla que
+        `Subscription.roll_period_if_expired`."""
 
     @abstractmethod
     async def get_or_create(
@@ -121,3 +140,27 @@ class SubscriptionPaymentRepository(ABC):
     async def list_approved_by_company(self, company_id: UUID) -> list[SubscriptionPayment]:
         """Pagos aprobados o reembolsados del comercio, del más viejo al más
         nuevo (para el arrepentimiento)."""
+
+
+async def change_subscription(
+    subscriptions: SubscriptionRepository,
+    load: Callable[[], Awaitable[Subscription]],
+    change: Callable[[Subscription], object],
+) -> Subscription:
+    """Lee la suscripción, le aplica `change` (la regla del dominio) y la
+    guarda. Si otro la guardó en el medio (un pago, una baja, otra
+    publicación), vuelve a leer y a aplicar la regla sobre lo nuevo: el
+    cambio de los dos queda, y la regla se evalúa con el estado real (p. ej.
+    «Dar de baja» sobre un plan que ya venció levanta `NothingToCancelError`).
+    Después de `SUBSCRIPTION_SAVE_ATTEMPTS` choques seguidos, el error sube.
+    Lo usan los casos de uso de `subscription`; el contador de publicaciones
+    no lo necesita (`register_publication` suma en la base)."""
+    for attempt in range(SUBSCRIPTION_SAVE_ATTEMPTS):
+        subscription = await load()
+        change(subscription)
+        try:
+            return await subscriptions.update(subscription)
+        except SubscriptionChangedError:
+            if attempt == SUBSCRIPTION_SAVE_ATTEMPTS - 1:
+                raise
+    raise AssertionError("inalcanzable")  # pragma: no cover

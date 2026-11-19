@@ -540,7 +540,10 @@ decisiones pendientes) porque **el problema no dependía de esa aprobación**.
 pseudo-aleatorio pero **determinístico** (hash del `profile_id`, no
 `random`/`hash()` — ambos varían entre procesos) dentro de un anillo de
 150–350 m: alcanza para decidir a quién contactar, no para ir a golpear una
-puerta. Se aplica en `MatchingService.search_workers` (el único lugar que
+puerta. (Desde el 2026-11-19 ya no es un vector fijo por `profile_id`: el
+pin sale del centro de una celda de 0,2 km con un vector por celda y una
+clave del servidor, y se publica redondeado; ver ADR-0014, actualización
+2026-11-19.) Se aplica en `MatchingService.search_workers` (el único lugar que
 arma `WorkerMapResult`, usado tanto por el mapa del comercio como por el del
 admin, mismo endpoint). Desde el 2026-10-20 la distancia también se mide
 desde el punto desplazado (y el filtro por radio usa esa misma distancia):
@@ -907,8 +910,10 @@ perfil"). Ver el ADR para el resto de la implementación.
 - **Descripción:** las fotos (perfil, logo, portada, DNI/selfie), el CV y la
   constancia viven en Cloudinary, con subida firmada (#437) y
   transformaciones en la URL (`frontend/lib/cloudinary.ts`: `f_auto,q_auto`,
-  `w_<n>,c_limit,dpr_auto`; `c_fill,g_auto` en las imágenes para compartir;
-  `fl_attachment` para descargar el CV). Hoy entra en el plan gratis.
+  `w_<n>,c_limit,dpr_auto`; `c_fill,g_auto` en las imágenes para compartir).
+  El DNI, la selfie, la constancia y (desde el 2026-11-19) el CV son
+  privados y se ven con un link de descarga que vence (ADR-0021). Hoy entra
+  en el plan gratis.
 - **Por qué migrar después:** Cloudinary cobra por créditos (1 crédito = 1 GB
   guardado, 1 GB descargado o 1.000 transformaciones; 25 gratis por mes) y
   el plan siguiente (Plus) sale unos 89 a 99 USD por mes según fuentes
@@ -934,11 +939,12 @@ perfil"). Ver el ADR para el resto de la implementación.
      reemplazando los parámetros de `lib/cloudinary.ts`.
   3. Copiar los archivos existentes y reescribir las URLs guardadas en la
      base (`photo_url`, `logo_url`, `cover_photo_url`, `cv_url` y `data_url`
-     del módulo `verification`, con los archivos de verificación).
+     del módulo `verification`) y las referencias a archivos privados
+     (`file_*` de las evidencias y `cv_*` del perfil del trabajador).
   4. Ajustar la CSP (`next.config.ts`) y apagar Cloudinary.
 
-  El DNI y la selfie necesitan acceso privado (URL firmada de lectura), no
-  un bucket público.
+  El DNI, la selfie, la constancia y el CV necesitan acceso privado (URL
+  firmada de lectura que vence), no un bucket público.
 
 ---
 

@@ -104,6 +104,37 @@ por mes** con Mercado Pago, con el medio más barato posible.
   (WAF, bot fight), Mercado Pago reintenta y el pago no se acredita hasta
   que pase: probarlo con la "Simulación" del panel de Mercado Pago.
 
+## Actualización 2026-11-19: escrituras que no se pisan (CON-08)
+
+La suscripción se guardaba entera desde la copia leída, sin versión: la
+pasada de vencimiento dejaba `vencida` a un comercio que pagó mientras
+corría, una baja y un pago simultáneos perdían uno de los dos, y dos
+publicaciones a la vez sumaban una sola al contador del plan (este último
+pasa hoy, con el cobro apagado).
+
+- `SubscriptionRepository.update` guarda sólo si la fila sigue como se leyó
+  (`WHERE` sobre las columnas que escribe; `chosen_plan_*` y
+  `payment_commitment_*` siguen con sus UPDATE propios). Si no,
+  `SubscriptionChangedError` y no se guarda nada.
+- Cada caso de uso (pago del webhook, cambio de plan, baja,
+  arrepentimiento) relee y vuelve a aplicar su regla hasta 3 veces
+  (`change_subscription` en `domain/repositories.py`). Si pierde las 3, la
+  baja, el arrepentimiento y el cambio de plan responden 409 «Tu plan cambió
+  mientras tanto. Actualizá y volvé a intentar.».
+- **Camino nuevo hacia CON-06:** si después de `try_approve` la suscripción
+  pierde los 3 intentos, el webhook responde 500 y el reintento de Mercado
+  Pago contesta «duplicado» (el pago ya quedó aprobado): el mes no se
+  acredita. Se arregla con CON-06, aparte.
+- Un arrepentimiento que quedó a medias (se devolvió todo, pero el plan no
+  llegó a cortarse) sigue ofreciendo «Arrepentirme», y el reintento termina
+  la baja sin volver a reembolsar.
+- El contador de turnos publicados suma en la base (`turnos_usados_mes =
+  turnos_usados_mes + 1`, abriendo antes la ventana nueva si venció), sin
+  leer ni reintentar: publicaciones a la vez suman todas
+  (`SubscriptionRepository.register_publication`).
+- La pasada de vencimiento saltea la suscripción que cambió (no la vence ni
+  avisa) y la vuelve a mirar en la próxima pasada, enseguida.
+
 ## Referencias (documentación oficial de Mercado Pago, consultada el 2026-10-23)
 
 Desde el entorno de esta sesión el dominio de Mercado Pago no resolvía, así

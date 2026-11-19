@@ -101,15 +101,17 @@ class IdentityEvidenceModel(Base):
 
 
 class EvidenceFileDeletionModel(Base):
-    """Un archivo de evidencia pendiente de borrar en Cloudinary (ADR-0021).
+    """Un archivo de evidencia (o, desde el 2026-11-19, un CV) que hay que
+    borrar en Cloudinary (ADR-0021).
 
     Sin FK al claim ni a la evidencia a propósito: si el claim o la cuenta
-    se borran, el archivo igual se tiene que borrar."""
+    se borran, el archivo igual se tiene que borrar. Con `deleted_at` el
+    borrado ya se confirmó: la fila queda como constancia (migración 0060)."""
 
     __tablename__ = "identity_evidence_file_deletions"
 
     id: Mapped[uuid.UUID] = mapped_column(GUID(), primary_key=True, default=uuid.uuid4)
-    public_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    public_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     resource_type: Mapped[str] = mapped_column(String(10), nullable=False)
     file_format: Mapped[str] = mapped_column(String(10), nullable=False, default="")
     delivery_type: Mapped[str] = mapped_column(String(20), nullable=False)
@@ -119,3 +121,4 @@ class EvidenceFileDeletionModel(Base):
     )
     attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     last_error: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

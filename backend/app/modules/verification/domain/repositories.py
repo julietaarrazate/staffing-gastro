@@ -42,6 +42,11 @@ class ClaimRepository(ABC):
         """Todos los claims del sujeto (para calcular su nivel de garantía)."""
 
     @abstractmethod
+    async def queue_file_deletions(self, files: list[EvidenceFile]) -> list[UUID]:
+        """Manda a la cola de borrado archivos que ningún claim apunta (un
+        envío que no se guardó) y devuelve los ids de los pedidos."""
+
+    @abstractmethod
     async def get_by_evidence_id(self, evidence_id: UUID) -> Claim | None:
         """El claim dueño de esa evidencia, o None si no existe."""
 
@@ -81,11 +86,19 @@ class EvidenceFileDeletionRepository(ABC):
 
     @abstractmethod
     async def next_attempt_at(self) -> datetime | None:
-        """El `next_attempt_at` más temprano de la cola, o None si está vacía."""
+        """El `next_attempt_at` más temprano de los pendientes, o None si no
+        queda ninguno."""
 
     @abstractmethod
-    async def remove(self, deletion_id: UUID) -> None:
-        """El storage confirmó el borrado: se olvida la referencia."""
+    async def mark_deleted(self, deletion_id: UUID, now: datetime) -> None:
+        """El storage confirmó el borrado: el pedido sale de la cola, pero la
+        fila queda como constancia (`deleted_at`). Así se sabe que ese
+        archivo ya se mandó a borrar y nadie lo puede volver a poner (un
+        formulario viejo con un CV que la persona ya cambió, 2026-11-19)."""
+
+    @abstractmethod
+    async def was_requested(self, public_id: str) -> bool:
+        """¿Ese archivo ya se mandó a borrar (pendiente o ya borrado)?"""
 
     @abstractmethod
     async def save_failure(self, deletion: EvidenceFileDeletion) -> None:

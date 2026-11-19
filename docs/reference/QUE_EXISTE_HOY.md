@@ -108,7 +108,14 @@ listados más abajo.
   el que ve en la tarjeta y en sus ganancias. A esa persona la ausencia se le
   cuenta desde que confirmó, y su puntualidad no se mueve.
 - **Idempotencia** en mutaciones críticas vía header `Idempotency-Key`
-  (`backend/app/core/idempotency.py`).
+  (`backend/app/core/idempotency.py`). Todas las transiciones del turno la
+  usan (`confirm`, `reject`, `worker-cancel`, `check-in`, `start-working`,
+  `check-out`, `no-show`, `finish`, `mark-paid`...). Del lado del cliente
+  (`frontend/lib/idempotency.ts`) la key es del intento, no de la acción: se
+  suelta al terminar bien o con un error definitivo (4xx, salvo 408 y 409) y
+  vence sola a los 5 minutos; con «Llegué»/«Terminé» se guarda junto a la key
+  la posición del primer intento, porque el servidor rechaza la misma key con
+  otro cuerpo. Postularse o calificar dos veces a la vez da 409, no 500.
 - **Helper de zona horaria Argentina** (`backend/app/core/tz.py`,
   `hoy_art()`/`now_art()`): usar para toda fecha de NEGOCIO (edad, "turnos de
   hoy", cortes de período); los timestamps de auditoría siguen en UTC a
@@ -142,9 +149,11 @@ listados más abajo.
   matching de un turno) mida la distancia desde ahí y no desde su domicilio.
   Dura 4h (`AVAILABLE_NOW_TTL`) o hasta apagarlo. El pin que ve el comercio
   **nunca** es la coordenada exacta, esté o no "Disponible ahora" prendido:
-  `app/core/geo.py::fuzz_point` la desplaza siempre dentro de un anillo de
-  150–350m (TECH_DEBT.md S4) — un desplazamiento determinístico (mismo
-  trabajador, mismo punto en cada render), no aleatorio en cada carga.
+  `app/core/geo.py::fuzz_point` la lleva al centro de una celda de 0,2 km y
+  la desplaza con una clave del servidor, a entre 150 y ~640 m del punto
+  real, redondeada a 4 decimales (TECH_DEBT.md S4; ADR-0014, actualización
+  2026-11-19) — un desplazamiento determinístico (mismo trabajador en el
+  mismo lugar, mismo punto en cada render), no aleatorio en cada carga.
 - **«Cerca» es un límite, no una preferencia** (2026-11-13): el aviso
   «Turno cerca tuyo» sale sólo a quien está a 25 km o menos del turno (40 km
   en la escalada a urgente), y lo mismo los recomendados que ve el comercio.
@@ -181,14 +190,22 @@ listados más abajo.
   número de CUIT** (la constancia se purga al decidir, como el DNI), y un
   comercio verificado **no** sube el nivel de garantía personal de su dueño.
 - **Documentos de identidad privados y borrados al decidir** (ADR-0021): DNI,
-  selfie y constancia suben a Cloudinary como `private` y la base guarda la
-  referencia, no una URL. El admin los ve con un link que vence a los 5
+  selfie y constancia suben a Cloudinary como `authenticated` (desde el
+  2026-11-19; antes `private`, que dejaba ver sin firma las versiones
+  transformadas) y la base guarda la referencia, no una URL. El admin los ve con un link que vence a los 5
   minutos (`GET /identity/evidences/{id}/link`); nadie más los puede bajar,
   ni el dueño. Al aprobar o rechazar, **los archivos se borran de
   Cloudinary** después de responder; si Cloudinary falla, quedan en una cola
   (`identity_evidence_file_deletions`) y el scheduler reintenta. Los subidos
   antes se privatizan (pendientes) o se borran (ya decididos) con
   `backend/scripts/privatize_identity_evidence.py`.
+- **CV privado** (ADR-0021, actualización 2026-11-19): el CV sube
+  `authenticated`, con la marca de la cuenta que lo sube en el nombre. Lo ve
+  el dueño, admin o un comercio con un turno o una postulación de esa
+  persona, con un link que vence a los 5 minutos
+  (`GET /workers/{id}/cv-link`); el perfil no trae una URL. Al cambiarlo o
+  sacarlo, el archivo viejo se borra por la misma cola. Los subidos antes se
+  protegen o se borran con `backend/scripts/privatize_worker_cvs.py`.
 - **Encuesta para locales** (`/encuesta`, ADR-0025): pública y sin cuenta, mide cómo usan personal eventual los locales y junta interesados en la beta. Módulo propio (no un lead), sin IP guardada, rol, nombre del local y barrio obligatorios, contacto opcional con consentimiento, guardado mientras dure la beta y el lanzamiento, que la admin borra por respuesta («Borrar contacto») o de todas con `backend/scripts/clear_survey_contacts.py` (el nombre del local queda); el resumen cuenta sólo dueños y encargados; los resultados están en `/admin/leads` → «Encuesta».
 - **Panel de admin** con métricas del dashboard, estadísticas de suscripción/
   MRR y **cuentas de prueba** (trabajador/comercio) creables desde ahí. Las

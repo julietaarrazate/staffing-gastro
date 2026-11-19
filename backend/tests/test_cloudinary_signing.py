@@ -4,11 +4,16 @@ endpoint HTTP.
 """
 
 import hashlib
+from uuid import UUID, uuid4
 
 import pytest
 from httpx import AsyncClient
 
-from app.core.cloudinary import CloudinaryNotConfiguredError, sign_cv_upload
+from app.core.cloudinary import (
+    CloudinaryNotConfiguredError,
+    is_cv_upload_of,
+    sign_cv_upload,
+)
 from app.core.config import settings
 from tests.conftest import auth_headers
 
@@ -27,11 +32,11 @@ def configured_cloudinary():
 def test_sign_cv_upload_raises_when_not_configured():
     assert settings.cloudinary_api_key == ""
     with pytest.raises(CloudinaryNotConfiguredError):
-        sign_cv_upload()
+        sign_cv_upload(uuid4())
 
 
 def test_sign_cv_upload_produces_a_valid_cloudinary_signature(configured_cloudinary):
-    result = sign_cv_upload()
+    result = sign_cv_upload(uuid4())
     assert result["api_key"] == "test-api-key"
     assert result["allowed_formats"] == "pdf,doc,docx,jpg,jpeg,png"
     assert result["timestamp"].isdigit()
@@ -39,10 +44,12 @@ def test_sign_cv_upload_produces_a_valid_cloudinary_signature(configured_cloudin
     # Recalculado a mano con el algoritmo documentado de Cloudinary: params
     # (menos file/cloud_name/resource_type/api_key) ordenados, unidos
     # `k=v&k2=v2`, `api_secret` pegado al final, SHA-1 hex.
+    # Desde el 2026-11-19 el CV sube protegido (`authenticated`, ADR-0021):
+    # `type` va firmado.
     to_sign = (
         "allowed_formats=pdf,doc,docx,jpg,jpeg,png"
         f"&folder=oido/cv&overwrite=false&public_id={result['public_id']}"
-        f"&timestamp={result['timestamp']}"
+        f"&timestamp={result['timestamp']}&type=authenticated"
     )
     expected = hashlib.sha1(f"{to_sign}test-api-secret".encode()).hexdigest()
     assert result["signature"] == expected
@@ -66,6 +73,9 @@ async def test_sign_cv_endpoint_returns_signature_when_configured(
     assert body["api_key"] == "test-api-key"
     assert body["signature"]
     assert body["timestamp"]
+    assert body["type"] == "authenticated"
+    me = await client.get("/api/v1/auth/me", headers=worker)
+    assert is_cv_upload_of(body["public_id"], UUID(me.json()["id"]))
 
 
 @pytest.mark.asyncio

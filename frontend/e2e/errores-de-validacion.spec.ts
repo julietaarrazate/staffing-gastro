@@ -1,11 +1,12 @@
 import { test, expect, type Page } from "@playwright/test";
+import { deContrato, fulfillContrato } from "./contrato";
 import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash } from "./mocks";
 
 /**
  * Errores de validación que se entienden (G8, U030/U031): un 422 de Pydantic
  * (lista `[{type, loc, msg, ctx}]`) se muestra en castellano, nunca como
- * «Error inesperado» ni con el mensaje en inglés. Los cuerpos son la forma
- * exacta que devuelve el backend.
+ * «Error inesperado» ni con el mensaje en inglés. Los cuerpos y los status son
+ * los que devuelve el backend (`e2e/contrato`), no escritos a mano.
  */
 
 const json = (status: number, body: unknown) => ({
@@ -19,17 +20,7 @@ test("registro con un mail sin dominio dice que tiene que ser un mail válido", 
   await blockExternalHosts(page);
   await page.route("**/api/v1/**", (route) => route.fulfill(json(401, {})));
   await page.route("**/api/v1/auth/register", (route) =>
-    route.fulfill(
-      json(422, {
-        detail: [
-          {
-            type: "value_error",
-            loc: ["body", "email"],
-            msg: "value is not a valid email address: The part after the @-sign is not valid. It should have a period.",
-          },
-        ],
-      })
-    )
+    fulfillContrato(route, "registro_mail_invalido")
   );
   await page.goto("/register");
 
@@ -58,68 +49,22 @@ async function setupChat(page: Page) {
     route.request().method() === "GET" ? route.fulfill(json(200, [])) : route.continue()
   );
   await mockEmptyNotifications(page);
-  await page.route("**/api/v1/auth/me", (route) =>
-    route.fulfill(
-      json(200, {
-        id: "u1",
-        email: "u@oido.test",
-        full_name: "Juan Pérez",
-        role: "worker",
-        status: "activo",
-        is_active: true,
-        is_verified: true,
-      })
-    )
-  );
+  await page.route("**/api/v1/auth/me", (route) => fulfillContrato(route, "auth_me_worker"));
 }
 
-const shift = {
-  id: "s1",
-  company_id: "c1",
-  position: "mozo",
-  quantity: 1,
-  start_at: "2030-07-20T20:00:00-03:00",
-  end_at: "2030-07-21T02:00:00-03:00",
-  pay_amount: "148000",
-  currency: "ARS",
-  tips: false,
-  meal: false,
-  dress_code: null,
-  urgent: false,
-  address: null,
-  city: "Palermo, CABA",
-  latitude: null,
-  longitude: null,
-  title: null,
-  description: null,
-  status: "confirmado",
-  worker_profile_id: "wp1",
-  worker_name: "Juan Pérez",
-  created_at: "2030-07-01T12:00:00-03:00",
-  company_name: "Bar La Esquina",
-  company_logo_url: null,
-};
+// El turno confirmado del trabajador, tal como lo manda el backend; `id` y
+// `status` ya son los de la URL que usan los tests.
+const shift = deContrato("turno_confirmado_trabajador", { id: "shift-1" });
 
 test("chat: el mensaje demasiado largo se explica en castellano y el campo ya trae el límite", async ({ page }) => {
   await setupChat(page);
-  await page.route("**/api/v1/shifts/s1", (route) => route.fulfill(json(200, shift)));
-  await page.route("**/api/v1/chats/s1/messages", (route) =>
+  await page.route("**/api/v1/shifts/shift-1", (route) => route.fulfill(json(200, shift)));
+  await page.route("**/api/v1/chats/shift-1/messages", (route) =>
     route.request().method() === "POST"
-      ? route.fulfill(
-          json(422, {
-            detail: [
-              {
-                type: "string_too_long",
-                loc: ["body", "body"],
-                msg: "String should have at most 2000 characters",
-                ctx: { max_length: 2000 },
-              },
-            ],
-          })
-        )
+      ? fulfillContrato(route, "chat_mensaje_largo")
       : route.fulfill(json(200, []))
   );
-  await page.goto("/chats/s1");
+  await page.goto("/chats/shift-1");
 
   const campo = page.getByPlaceholder("Escribí un mensaje...");
   await expect(campo).toHaveAttribute("maxlength", "2000");
@@ -140,13 +85,14 @@ test("«Llegué» que el servidor rechaza avisa con un aviso flotante, no con un
   await setupChat(page);
   await page.route("**/api/v1/shifts/mine", (route) => route.fulfill(json(200, [{ ...shift, start_at: new Date(Date.now() + 10 * 60 * 1000).toISOString() }]))
   );
-  await page.route("**/api/v1/shifts/s1/check-in", (route) =>
-    route.fulfill(json(409, { detail: "Todavía falta para marcar tu llegada" }))
+  await page.route("**/api/v1/shifts/shift-1/check-in", (route) =>
+    fulfillContrato(route, "turno_llegada_antes_de_tiempo") // 400, no 409: el backend usa 400 para esto
+  
   );
   await page.goto("/my-shifts");
   await page.getByRole("button", { name: "Llegué" }).click();
 
-  await expect(page.getByText("Todavía falta para marcar tu llegada")).toBeVisible();
+  await expect(page.getByText(/Todavía no podés marcar tu llegada/)).toBeVisible();
   // Es un aviso flotante (no el banner con «Reintentar» de arriba de la lista).
   await expect(page.getByRole("button", { name: "Reintentar" })).toHaveCount(0);
 });

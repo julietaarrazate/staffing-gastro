@@ -21,7 +21,7 @@ descuidado.
 | 1 | Probar de punta a punta, sin arreglar | ✅ cerrada: 142 hallazgos (3 bloqueantes, 79 graves, 60 menores). Entorno de prueba (`tools/e2e-local/`) y estado escrito en #527 |
 | 2 | Arreglar: bloqueantes, después graves | en curso (ver abajo) |
 | 3 | Que nada se vea descuidado (los 60 menores y lo que salió de las revisiones) | ✅ cerrada el 2026-11-17: grupos A a N, las diez decisiones de Julieta, M6 y los pendientes de las tres tandas (ver abajo) |
-| 4 | Identidad, marca e isotipo | 🔵 Julieta eligió Shrikhand y ámbar (2026-11-17); letra, miniatura, vectores, manual en PDF y brand system en el PR de la marca; campanita en #622; ícono «el pinche con oído» (elegido el 2026-11-18, ya en el código); la landing híbrida (letra mixta, relieve, planes como carta, final nuevo) en el código el 2026-11-18. Sigue la dirección «con relieve» en la app, pantalla por pantalla; las cuatro pantallas ya están y siguen las piezas de toda la app (la barra de abajo, hecha el 2026-11-19; ver STATUS, ítem 0) |
+| 4 | Identidad, marca e isotipo | 🔵 Julieta eligió Shrikhand y ámbar (2026-11-17); letra, miniatura, vectores, manual en PDF y brand system en el PR de la marca; campanita en #622; ícono «el pinche con oído» (elegido el 2026-11-18, ya en el código); la landing híbrida (letra mixta, relieve, planes como carta, final nuevo) en el código el 2026-11-18. Sigue la dirección «con relieve» en la app, pantalla por pantalla; las cuatro pantallas ya están y siguen las piezas de toda la app (la barra de abajo, las pestañas, los botones secundarios, los pasos tachados, los colores de los sellos y el detalle del turno, hechos el 2026-11-19; ver STATUS, ítem 0) |
 | 5 | Lista de salida a beta | ⚪ (incluye la medición de los KRs: ver «Antes de abrir: medir la beta»; y pasar a TypeScript 7, el compilador en Go: PR aparte que sube `typescript` de 6 a 7 y corre tsc, lint, build y e2e; si ESLint con tipos se traba hasta la 7.1, ESLint sigue con TypeScript 6 mientras tanto. Decidido por Julieta el 2026-11-17) |
 | 6 | SEO y GEO | ⚪ |
 
@@ -289,7 +289,7 @@ el modelo del dominio, un ADR vigente o un texto legal:
     ausencia y puntualidad se miden desde que confirmó, no desde el inicio;
     el pago se prorratea desde la llegada (valor por hora en el aviso, monto
     fijo al llegar, y las ganancias del trabajador usan ese monto). Cambia
-    el ADR-0008 y el ADR-0015. La próxima migración libre es la 0059.
+    el ADR-0008 y el ADR-0015. La próxima migración libre es la 0061.
 - **Decisiones 21, 22 y 24** (2026-11-18): tres reglas nuevas, un PR cada
   una, con su ADR.
   - ✅ **21** (cerrar turno desde el admin): hecho el 2026-11-18 (ADR-0024
@@ -316,29 +316,78 @@ el modelo del dominio, un ADR vigente o un texto legal:
   postulante suspendido; se le podía escribir por chat, decisión 23) y uno
   en #629 (el aviso «N postulantes» contaba a los suspendidos). La decisión
   21 quedó hecha el 2026-11-18; la 22, en su PR.
-- **Pasada por clase de error** (propuesta del 2026-11-14; sin empezar, va
-  en una sesión nueva junto con los tests de contrato). Lo que dejó la tanda
-  del 2026-11-18 para tener en cuenta: en tres de cuatro cambios la revisión
-  independiente o la suite completa encontraron algo que los tests del área
-  no veían (una fila nueva que abría el CV, una carrera entre el reporte y el
-  borrado de «va en camino», una sesión de la base rota tras un error
-  atrapado). Las clases «concurrencia» y «privacidad entre roles» son las que
-  más rinden: el reporte
-  externo de Breken encontró en una lectura del código 9 errores que la prueba
-  de punta a punta no vio (claves que se pierden al recargar, datos viejos con
-  la pestaña abierta, guardados que pisan otros datos). La etapa 1 recorrió
-  la app como una persona, las revisiones miran sólo el diff de cada PR, y los
-  e2e simulan la API a mano (en G8 los tests pasaban con un 422 que el
-  servidor nunca manda). Propuesta: un agente por clase (concurrencia e
-  idempotencia; estado viejo con la pestaña abierta; sesión; escrituras que
-  pisan; fechas y zona horaria; privacidad entre roles) sobre las áreas de la
-  beta (turno, postulación, sesión, pagos, avisos), cada hallazgo verificado
-  antes de entrar acá. Y tests de contrato: los mocks del frontend armados
-  con respuestas reales del backend.
+- **Pasada por clase de error**: hecha la auditoría el 2026-11-19; los
+  hallazgos verificados y su estado, en la sección siguiente.
 - **«Mi plan» con el cobro prendido y el tope apagado** (una configuración
   intermedia que la beta no usa): la tarjeta dice «Durante la beta no hay
   tope» y el subtítulo de los planes habla del cobro (salió de la revisión de
   #570).
+
+### Pasada por clase de error (2026-11-19)
+
+Un agente por clase sobre turno, postulación, sesión, pagos y avisos; cada
+hallazgo lo intentó refutar otro agente antes de entrar acá, y casi todos
+tienen un test que fallaba con el código de ese día. El detalle (escenario,
+archivo y línea, test) no vive en este repo, que es público. Los arreglos van
+agrupados por causa, un PR por grupo. Prefijos: CON concurrencia e
+idempotencia, PRI privacidad entre roles, VIE estado viejo con la pestaña
+abierta, SES sesión, ESC escrituras que pisan otros datos, FEC fechas y zona
+horaria.
+
+| Grupo (causa) | Hallazgos | Severidad | Estado |
+|---|---|---|---|
+| Datos de otra persona en la vista del trabajador | PRI-01 (la ausencia de quien tuvo el turno antes), PRI-05 (cuándo se le pagó a otra persona) | menor | ✅ #661 |
+| Pin desplazado del trabajador (se podía deshacer conociendo un punto real de la persona) | PRI-02 | grave | ✅ #665 |
+| CV del trabajador y documentos de identidad (archivos con acceso que no vencía) | PRI-03 | grave | ✅ #669 (falta que Julieta corra los scripts y la prueba de los 6 minutos en producción, `PENDIENTE_OPERATIVO` 5c) |
+| Renovación de la sesión sin ventana de gracia ni coordinación entre pestañas | CON-02, CON-03, SES-01 | grave | ✅ #668 |
+| Pedidos repetidos (idempotencia de las acciones del turno, duplicados que dan 500) | CON-01, CON-05, CON-12, CON-14 | menor | ✅ #667 |
+| Postulación con el estado viejo | VIE-01, CON-04, CON-11 | menor | ✅ #671 |
+| Socket y lista de avisos | PRI-04, VIE-04, CON-10, ESC-04 | menor | ✅ #670 |
+| Pantallas sin reloj ni relectura | VIE-02, VIE-03, VIE-05 | menor | ✅ #673 |
+| Escrituras enteras sin versión (backend) | ESC-01, CON-13, CON-08 | menor | ✅ #674 |
+| Formularios que mandan la copia de cuando se abrieron | ESC-02, ESC-03 | menor | 🔵 este PR |
+| Cobro con Mercado Pago (latente: está apagado) | CON-06, CON-07, CON-09 | menor | ⚪ próxima sesión, antes de prender el cobro |
+| Borradores y datos al cambiar de sesión | SES-02, SES-03, SES-04 | menor | ✅ #672 |
+| Hora sin zona leída en la zona del celular (borrador de la IA) | FEC-02 | menor | ✅ #673 |
+| Esperan una decisión de Julieta | PRI-06 (el registro dice qué emails tienen cuenta), PRI-07 (`/privacidad` dice «nunca la exacta» y «va en camino» manda la exacta), PRI-09 («Ver como» de la admin escribe en nombre de la persona) | menor | ⏸️ |
+| Configuración, sin código | PRI-08: la cuenta invitada es una sola para todos los que tienen el PIN; se cierra vaciando `GUEST_ACCESS_PIN` (decisión 5) | menor | ⏸️ |
+
+Refutados: VIE-06 (los diálogos «No se presentó» y «¿Ya le pagaste?» no
+releen el turno; el dominio impide que la acción caiga sobre otra persona),
+FEC-01 (fechas fijas en tests: un fixture congela el reloj del horario) y
+FEC-03 («ausencias de hoy» cuenta las marcadas hoy, a propósito).
+
+**Tests de contrato:** ✅ #666. Los mocks de los e2e se arman con
+respuestas reales del backend (`frontend/e2e/contrato/`): un test del backend
+guarda la forma de cada respuesta y falla si cambia; los specs no pueden
+inventar campos. Al migrar 16 specs aparecieron 8 mocks que mandaban cosas
+que el backend no manda (un 409 que es 400, `status: "activo"` que es
+`"active"`, un tipo de aviso con otro nombre, entre otros).
+
+**Para la próxima sesión** (anotado el 2026-11-19, al cerrar la pasada):
+
+- El cobro latente (CON-06, CON-07, CON-09), antes de prender el cobro: el
+  reclamo y la acreditación de un pago en transacciones separadas, un pago
+  rechazado y otro aprobado del mismo checkout a la vez, y el arrepentimiento
+  que no se reanuda si falla a mitad (el #674 ya cubre el caso de la
+  suscripción que pierde la carrera).
+- Seguimientos que dejaron las revisiones, ninguno bloqueante:
+  - un access token sigue valiendo hasta 15 minutos después de una
+    revocación (también reconecta el socket); atarlo a la sesión es un ADR;
+  - un candado por cuenta en la rotación, la ventana de gracia y
+    `revoke_all_for_user` cerraría el límite conocido del ADR-0002;
+  - el candado de confirmar (CON-11) no cubre asignar ni la reasignación;
+  - `workers/[id]`, `companies/[id]`, favoritos y admin siguen sin
+    `useLiveRefresh`; el auto-retiro de U123 no refresca la lista del
+    comercio;
+  - el texto de «Arrepentirme» cuando quedó a medias (caso latente y raro);
+  - el PUT del comercio en `/bienvenida` no se revisó contra la copia vieja.
+- El e2e `admin-grupo-m.spec.ts:121` («Ver como») falló bajo carga en
+  corridas locales de cuatro ramas distintas (timeout de 5 s buscando
+  «Hoy»); pasa solo y en CI. Mirarlo si aparece en CI.
+- `/privacidad`: el texto sobre el CV (quién lo ve, cuánto se guarda) está
+  propuesto en el ADR-0021; va junto con PRI-07, con una sola subida de la
+  versión legal.
 
 ### Criterio de Julieta para decidir (2026-11-13)
 
@@ -438,8 +487,21 @@ implemente.
 
 ### Decisiones que esperan a Julieta
 
-Ninguna al 2026-11-18 (las de la segunda mirada a G6, U081, U080 y U072 se
-tomaron ese día: ver «Decisiones tomadas el 2026-11-18»). El ingreso de invitado (decisión 5) se apaga al abrir
+Del 2026-11-19 (pasada por clase de error), con opciones y recomendación en
+la conversación de ese día:
+
+- **PRI-06:** el registro dice qué emails ya tienen cuenta. Recomendado:
+  dejarlo así en la beta (Turnstile y el límite de intentos ya frenan la
+  consulta masiva) y revisarlo con las passkeys.
+- **PRI-07:** `/privacidad` dice que el comercio nunca ve la ubicación
+  exacta, y «va en camino» se la muestra en vivo (a propósito). Recomendado:
+  corregir el texto (sube la versión legal), junto con el texto del CV.
+- **PRI-09:** «Ver como» de la admin entrega una sesión común (marca chats
+  como vistos, puede escribir). Recomendado: que sea sólo para mirar, con
+  registro de cada uso.
+
+Las de antes (la segunda mirada a G6, U081, U080 y U072) se tomaron el
+2026-11-18: ver «Decisiones tomadas el 2026-11-18». El ingreso de invitado (decisión 5) se apaga al abrir
 la beta, en la lista de salida (etapa 5): hasta entonces sirve para mostrar y
 probar la app.
 

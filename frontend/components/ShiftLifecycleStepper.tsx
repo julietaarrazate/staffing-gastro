@@ -1,5 +1,5 @@
 import type { Shift, ShiftStatus } from "@/lib/types";
-import { CheckIcon, ClockIcon, CloseIcon } from "@/components/icons";
+import { ClockIcon, CloseIcon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 
 export type ShiftStepperPerspective = "employer" | "worker";
@@ -68,11 +68,12 @@ function inferDeathStep(shift: ShiftForStepper): number {
 }
 
 /**
- * Stepper horizontal compacto del ciclo de vida del turno:
- * numeritos en círculo unidos por una línea, paso actual resaltado, pasos
- * completados con check. Cancelado: se corta (línea punteada) y el hito
- * donde murió se reemplaza por un marcador rojo "Cancelado" — no se agrega
- * un 5º paso.
+ * Los pasos del turno en un renglón, tachados a mano como en el pase de la
+ * cocina (dirección «con relieve», Julieta 2026-11-19): lo hecho tachado en
+ * azul hondo, lo actual en negrita, lo que falta en la letra suave.
+ * Cancelado: el hito donde murió va en rojo con una cruz y los que siguen
+ * quedan sin tachar — no se agrega un 5º paso. No cubierto: lo mismo, con un
+ * reloj y sin el rojo.
  */
 export default function ShiftLifecycleStepper({
   shift,
@@ -111,9 +112,17 @@ export default function ShiftLifecycleStepper({
       ? `No se cubrió en el paso ${currentStep + 1} de ${labels.length} (${labels[currentStep]})`
       : `Paso ${currentStep + 1} de ${labels.length}: ${labels[currentStep]}`;
 
+  // Con la dirección «con relieve» (Julieta, 2026-11-19): los cuatro hitos
+  // en un renglón, como en el pase de la cocina. Lo hecho se tacha a mano en
+  // azul hondo, lo actual va en negrita y lo que falta queda en la letra
+  // suave. Antes eran circulitos numerados unidos por una línea; los hitos,
+  // sus nombres y en qué paso está cada estado no cambiaron.
   return (
     <div className={cn("flex flex-col gap-1", className)}>
-      <div role="list" aria-label={caption} className="flex items-center">
+      {/* `role="list"` explícito: sin viñetas, Safari le saca a la lista su
+          rol de lista. */}
+      {/* eslint-disable-next-line jsx-a11y/no-redundant-roles */}
+      <ol role="list" aria-label={caption} className="pasos-tachados flex flex-wrap items-baseline gap-x-3 gap-y-1">
         {labels.map((label, i) => {
           const state: "completed" | "current" | "future" | "death" | "uncovered" | "cutoff" =
             isCancelled
@@ -133,50 +142,41 @@ export default function ShiftLifecycleStepper({
                   : i === currentStep
                     ? "current"
                     : "future";
-
           return (
-            <div key={label} role="listitem" className="flex flex-1 items-center last:flex-none">
-              <span
-                aria-current={
-                  state === "current" || state === "death" || state === "uncovered"
-                    ? "step"
-                    : undefined
-                }
-                className={cn(
-                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-colors",
-                  state === "completed" && "bg-primary-tint text-primary-text",
-                  state === "current" && "bg-primary-text text-card ring-2 ring-primary-text/20",
-                  state === "future" && "bg-surface text-ink/35",
-                  state === "death" && "bg-danger text-white ring-2 ring-danger/20",
-                  state === "uncovered" && "bg-surface text-ink/60 ring-2 ring-line",
-                  state === "cutoff" && "bg-surface text-ink/20"
-                )}
-              >
-                {state === "completed" && <CheckIcon size={12} />}
-                {state === "death" && <CloseIcon size={12} />}
-                {state === "uncovered" && <ClockIcon size={12} />}
-                {(state === "current" || state === "future" || state === "cutoff") && i + 1}
-              </span>
-              {i < labels.length - 1 && (
-                <span
-                  className={cn(
-                    "mx-1 h-0 flex-1 border-t-2 transition-colors",
-                    i < currentStep
-                      ? "border-solid border-primary-text/40"
-                      : isCutShort
-                        ? "border-dashed border-line"
-                        : "border-solid border-line"
-                  )}
-                />
+            <li
+              key={label}
+              data-paso={state}
+              aria-current={state === "current" || state === "death" || state === "uncovered" ? "step" : undefined}
+              className={cn(
+                "inline-flex items-center gap-1 whitespace-nowrap text-xs",
+                state === "completed" && "font-medium text-ink-soft",
+                state === "current" && "font-bold text-ink",
+                (state === "future" || state === "cutoff") && "font-medium text-ink-soft",
+                state === "death" && "font-bold text-danger-text",
+                state === "uncovered" && "font-bold text-ink-soft",
               )}
-            </div>
+            >
+              {state === "death" && <CloseIcon size={12} aria-hidden />}
+              {state === "uncovered" && <ClockIcon size={12} aria-hidden />}
+              <span className="relative">
+                {label}
+                {state === "completed" && (
+                  <>
+                    <svg className="tacha" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true">
+                      <path d="M2 6C20 2 40 8 60 4S90 3 98 6" />
+                    </svg>
+                    <span className="sr-only"> (hecho)</span>
+                  </>
+                )}
+              </span>
+            </li>
           );
         })}
-      </div>
+      </ol>
       {(captionMode === "always" || isCutShort) && (
         <p
           aria-hidden="true"
-          className={cn("text-label font-semibold", isCancelled ? "text-danger-text" : "text-ink/55")}
+          className={cn("text-label font-semibold", isCancelled ? "text-danger-text" : "text-ink-soft")}
         >
           {caption}
         </p>

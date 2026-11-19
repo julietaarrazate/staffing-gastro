@@ -7,6 +7,7 @@ y resuelve el usuario autenticado a partir del token Bearer.
 import logging
 from collections.abc import Callable
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import Depends, HTTPException, Query, Request, WebSocket, WebSocketException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -15,7 +16,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings as app_settings
 from app.core.database import get_session
 from app.core.edge import client_ip
+from app.core.ws_manager import ws_manager
 from app.modules.identity.application.dtos import AuthenticatedSession
+from app.modules.identity.application.ports import LiveConnectionCloser
 from app.modules.identity.application.services import GUEST_ACCOUNT_EMAILS, IdentityService
 from app.modules.identity.application.two_factor import TwoFactorService
 from app.modules.identity.domain.entities import User
@@ -45,6 +48,13 @@ from app.modules.notification.domain.email_sender import EmailSender
 
 _bearer_scheme = HTTPBearer(auto_error=True)
 logger = logging.getLogger(__name__)
+
+
+class _WsConnectionCloser(LiveConnectionCloser):
+    """Adaptador del puerto sobre el administrador de WebSockets."""
+
+    async def close_for_user(self, user_id: UUID) -> int:
+        return await ws_manager.close_user_connections(user_id)
 
 
 def get_google_verifier() -> GoogleTokenVerifier:
@@ -80,6 +90,7 @@ def get_identity_service(
         email_verification_tokens,
         SqlAlchemyTermsAcceptanceRepository(session),
         two_factor,
+        _WsConnectionCloser(),
     )
 
 
@@ -145,13 +156,16 @@ async def get_current_user_allow_pending_2fa(
     return session.user
 
 
-async def get_current_user_ws(
+async def get_current_ws_session(
     websocket: WebSocket,
     service: Annotated[IdentityService, Depends(get_identity_service)],
     session: Annotated[AsyncSession, Depends(get_session)],
     token: Annotated[str | None, Query()] = None,
-) -> User:
-    """Resuelve el usuario autenticado en un handshake WebSocket.
+) -> AuthenticatedSession:
+    """Resuelve la sesión autenticada en un handshake WebSocket, con el
+    vencimiento del token (`token_expires_at`): el socket autoriza sólo al
+    conectarse, así que cada ruta se corta sola al vencer (PRI-04, ver
+    `app/core/ws_vigencia.py`).
 
     No hay header Authorization disponible en un WebSocket del navegador,
     así que el access token viaja como query param (`?token=...`).
@@ -181,6 +195,13 @@ async def get_current_user_ws(
     # Mismo candado que `get_current_user` (ADR-0023).
     if auth.gate is not AdminGate.GRANTED:
         raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
+    return auth
+
+
+async def get_current_user_ws(
+    auth: Annotated[AuthenticatedSession, Depends(get_current_ws_session)],
+) -> User:
+    """Sólo el usuario de `get_current_ws_session`."""
     return auth.user
 
 

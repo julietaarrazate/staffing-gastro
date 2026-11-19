@@ -4,14 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { AI_EVENT_DRAFT_STORAGE_KEY, AI_SHIFT_DRAFT_STORAGE_KEY } from "@/lib/cambio-de-cuenta";
 import { getErrorMessage } from "@/lib/errors";
 import { AssistantQueryResponse, ParsedShiftDraft } from "@/lib/types";
 import { useVoiceDictation } from "@/lib/use-voice-dictation";
 
 /** Claves de sessionStorage para pasarle el draft ya parseado al wizard
  * correspondiente (ver los efectos de handoff en esas páginas). */
-export const AI_SHIFT_DRAFT_STORAGE_KEY = "staffya_ai_shift_draft";
-export const AI_EVENT_DRAFT_STORAGE_KEY = "staffya_ai_event_draft";
+export { AI_SHIFT_DRAFT_STORAGE_KEY, AI_EVENT_DRAFT_STORAGE_KEY };
 
 /** Draft de evento (`crear_evento`): comparte un único `pay_amount`/horario
  * para todos los roles — cada uno se puede ajustar a mano en el wizard. */

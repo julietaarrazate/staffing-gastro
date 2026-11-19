@@ -91,6 +91,17 @@ sólo los archivos del área, y la completa una vez antes del push. No uses
   `main` quedó en rojo: un test de una marcaba la salida antes del inicio, que
   la otra pasó a rechazar (#555). Tras cada merge, a la rama que sigue se le
   trae `main` y se espera su CI, aunque el merge sea limpio.
+- **Los mocks de los e2e se arman con respuestas reales del backend**
+  (`frontend/e2e/contrato.ts`, `deContrato` / `fulfillContrato`), no con
+  objetos escritos a mano: `frontend/e2e/contrato/respuestas.json` lo escribe
+  `backend/tests/test_contrato_frontend.py`. Si un spec nuevo mockea la
+  sesión, un turno o un error del backend, usá eso (README en
+  `frontend/e2e/contrato/`). Si cambiás un schema o un texto de error del
+  backend, ese test falla: regenerá con `ACTUALIZAR_CONTRATO=1` desde
+  `backend/` y revisá el diff del JSON, que es lo que cambia para el frontend.
+  Al migrar los primeros 16 specs (2026-11-19) aparecieron mocks que mandaban
+  un 409 donde el backend manda 400, `quantity: 2`, tipos de aviso
+  inexistentes y un campo (`limite_exigido`) que el backend siempre manda.
 - `npm run lint` da **0 errores y unos mil warnings**. Es lo normal; CI
   falla sólo con errores.
 - Si el build falla bajando Google Fonts por el proxy, probá
@@ -140,6 +151,12 @@ cd frontend && npm run build && npx playwright test e2e/zz-captura.spec.ts
   ningún error. Para esas pantallas hay que buildear con
   `NEXT_PUBLIC_API_URL=http://localhost:<puerto>/api/v1` y servir un mock en
   ese puerto. El `/api/v1` del final es obligatorio.
+- **El id de `/turno/[id]` tiene que ser un UUID** (`lib/turno-publico.ts`):
+  con `s1` la página contesta «no encontrada» sin pedirle nada a la API y la
+  captura sale vacía sin error (visto el 2026-11-19). La API simulada puede
+  ser un `http.createServer` de 20 líneas que conteste
+  `GET /api/v1/shifts/<uuid>/public`; lo del navegador (con sesión) se sigue
+  simulando con `page.route` sobre esa misma dirección.
 - **Una pantalla que sale de `notFound()` se dibuja en el navegador**, no en
   el servidor: llega un HTML vacío (`<html id="__next_error__">`) y el layout
   se arma del lado del cliente, así que el `<script>` anti-flash del tema no
@@ -307,6 +324,30 @@ chicos (lo commiteado sobrevive al corte) y retomarlos con un mensaje
 (`SendMessage`) en vez de relanzarlos. Si un modelo se queda sin cupo y la
 sesión pasa a otro, los agentes nuevos se lanzan con el modelo nuevo; los
 que se retoman siguen con el suyo.
+
+El 2026-11-19 (la pasada por clase de error, doce PRs en una sesión) anduvo
+así, sin un solo corte de cupo:
+
+- **Una línea de montaje con tres agentes:** auditor → verificador → quien
+  arregla → revisor, cada uno distinto; quien coordina integra, prueba en la
+  app y mergea de a un PR. Las revisiones encontraron algo serio en la mitad
+  de los arreglos (una ventana de gracia reusable, archivos `private` de
+  Cloudinary con versiones transformadas públicas, un pin que delataba su
+  celda por los decimales): **no se saltea la revisión aunque el arreglo
+  «se vea bien»**.
+- **Devolver el trabajo con `SendMessage` al mismo agente** que lo escribió
+  (o al mismo revisor para la segunda vuelta) ahorra releer todo.
+- **Un agente que «espera su trabajo en segundo plano» reenvía su informe**
+  cada vez que algo suyo termina. Si ya se leyó el informe, `TaskStop`.
+- **Ramas que se tocan:** al integrar, un árbol aparte con todas mergeadas
+  para la prueba en la app (`tools/e2e-local` sobre ese árbol); el choque
+  conocido se resuelve con un script en el scratchpad y se reusa en cada
+  rebase. El contrato (#666) avisó solo cuando una rama nacida antes cambió
+  la forma del perfil.
+- **`main` se mueve cada 20 minutos** cuando otra sesión trabaja a la vez:
+  antes de cada merge, traer `main` y mirar su CI (`actions_list` con
+  `branch: main`); si el PR quedó atrás y toca lo mismo, mergear `main` en la
+  rama y esperar el CI otra vez.
 
 Pasó tres veces el 2026-11-11, en una prueba de 16 recorridos en paralelo:
 

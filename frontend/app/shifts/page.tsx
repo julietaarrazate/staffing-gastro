@@ -32,6 +32,7 @@ import { noShowConfirmCopy } from "@/lib/turno-reofrecido";
 import GuidedTour, { type TourStep } from "@/components/GuidedTour";
 import { EmptyPanelIllustration } from "@/components/illustrations";
 import {
+  BOTON_LISO,
   Button,
   CardSkeletons,
   EmptyState,
@@ -221,7 +222,7 @@ function MyShiftsPanel() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [planLimitMessage, setPlanLimitMessage] = useState<string | null>(null);
-  const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
+  const { keyFor, clear: clearIdempotencyKey, clearSiTermino } = useIdempotencyKeys();
   // Guarda contra el toque de más (ver `lib/use-tap-guard.ts`): el botón
   // principal de cada tarjeta está siempre en el mismo lugar y cambia de
   // acción con el estado. Un segundo toque después de «Cerrar turno» no
@@ -348,6 +349,7 @@ function MyShiftsPanel() {
         await load();
         if (action === "publish") setJustPublishedId(id);
       } catch (err) {
+        clearSiTermino(key, err);
         if (action === "publish" && isPlanLimitError(err)) {
           setPlanLimitMessage(getErrorMessage(err));
         } else {
@@ -563,7 +565,7 @@ function MyShiftsPanel() {
         </Link>
         <Link
           href="/shifts/new-event"
-          className="flex items-center justify-center gap-1.5 rounded-[var(--radius-relieve)] bg-card px-4 py-3 text-sm font-semibold text-ink/75 ring-1 ring-line transition active:scale-95"
+          className={`${BOTON_LISO} px-4 py-3 text-sm`}
         >
           <CalendarPlusIcon size={17} /> Evento
         </Link>
@@ -629,15 +631,15 @@ function MyShiftsPanel() {
 
       {!loading && !error && !sinPerfil && shifts.length > 0 && (
         <>
-          {/* Control segmentado por familia de estado. En 390px de ancho 5
-              segmentos con conteo no entran sin achicar el texto a ilegible
-              — el `min-w` fuerza el ancho real del control y el contenedor
-              scrollea horizontal (mismo patrón que un tab bar nativo). */}
-          <div className="-mx-4 mt-4 overflow-x-auto px-4 no-scrollbar" data-tour="shifts-tabs">
+          {/* Pestañas por familia de estado. En 390 px las cinco con su
+              conteo no entran: `w-max` les deja su ancho real y el contenedor
+              scrollea en horizontal (mismo patrón que un tab bar nativo);
+              `min-w-full` lleva el filete hasta el borde aunque entren. */}
+          <div className="-mx-4 -mb-1 mt-3 scroll-px-4 overflow-x-auto px-4 py-1 no-scrollbar" data-tour="shifts-tabs">
             <SegmentedControl<Tab>
               value={tab}
               onChange={setTab}
-              className="min-w-[540px]"
+              className="w-max min-w-full"
               options={[
                 { value: "todos", label: "Todos" },
                 { value: "buscando", label: `Buscando (${families.buscando.length})` },

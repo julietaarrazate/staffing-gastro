@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+from collections.abc import Collection
 from datetime import datetime, timezone
 from uuid import UUID
 
@@ -28,6 +29,11 @@ from app.modules.notification.infrastructure.models import (
 from app.modules.notification.infrastructure.push_tasks import spawn_push_task
 
 logger = logging.getLogger(__name__)
+
+
+# Cuadro del socket de avisos que NO es un aviso: sin id ni texto, sólo le dice
+# a la pantalla que vuelva a pedir lo suyo. El cliente lo reconoce por `type`.
+LIVE_REFRESH_FRAME = "live_refresh"
 
 
 def _to_entity(model: NotificationModel) -> Notification:
@@ -115,6 +121,9 @@ class SqlAlchemyNotificationRepository(NotificationRepository):
             )
         return entity
 
+    async def request_live_refresh(self, user_id: UUID) -> None:
+        await ws_manager.broadcast_notification(user_id, {"type": LIVE_REFRESH_FRAME})
+
     async def add_many(self, notifications: list[Notification]) -> list[Notification]:
         if not notifications:
             return []
@@ -169,17 +178,20 @@ class SqlAlchemyNotificationRepository(NotificationRepository):
         await self._session.refresh(model)
         return _to_entity(model)
 
-    async def mark_all_read(self, user_id: UUID) -> int:
+    async def mark_all_read(
+        self, user_id: UUID, ids: Collection[UUID] | None = None
+    ) -> int:
         # Un solo UPDATE: la campanita quedaba en "9+" para siempre porque
         # cada aviso se marcaba de a uno (había cuentas con 86 sin leer).
-        result = await self._session.execute(
-            update(NotificationModel)
-            .where(
-                NotificationModel.user_id == user_id,
-                NotificationModel.read.is_(False),
-            )
-            .values(read=True)
+        stmt = update(NotificationModel).where(
+            NotificationModel.user_id == user_id,
+            NotificationModel.read.is_(False),
         )
+        if ids is not None:
+            if not ids:
+                return 0
+            stmt = stmt.where(NotificationModel.id.in_(ids))
+        result = await self._session.execute(stmt.values(read=True))
         await self._session.commit()
         return result.rowcount or 0
 

@@ -58,6 +58,12 @@ class RefreshSessionModel(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+    # Cuándo se revocó por rotación, mientras la ventana de gracia del token
+    # siga sin usar (migración 0059). Usarla, o `revoke_all_for_user` dentro
+    # del plazo, lo borra.
+    rotated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # El `jti` de la sesión que la reemplazó al rotarla (o al usar la ventana).
+    replaced_by: Mapped[str | None] = mapped_column(String(36), nullable=True)
 
 
 class PasswordResetTokenModel(Base):

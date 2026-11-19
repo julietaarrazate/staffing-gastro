@@ -9,6 +9,7 @@ import logging
 import secrets
 from dataclasses import replace
 from datetime import date, datetime, timedelta, timezone
+from typing import NoReturn
 from uuid import UUID, uuid4
 
 import jwt
@@ -34,6 +35,7 @@ from app.modules.identity.application.dtos import (
     RegisterCommand,
     TokenPair,
 )
+from app.modules.identity.application.ports import LiveConnectionCloser
 from app.modules.identity.application.two_factor import (
     TwoFactorChallengeIssued,
     TwoFactorLoginVerified,
@@ -158,6 +160,7 @@ class IdentityService:
         email_verification_tokens: EmailVerificationTokenRepository | None = None,
         terms_acceptances: TermsAcceptanceRepository | None = None,
         two_factor: TwoFactorService | None = None,
+        live_connections: LiveConnectionCloser | None = None,
     ) -> None:
         self._users = users
         self._sessions = sessions
@@ -170,6 +173,17 @@ class IdentityService:
         # (scripts que sólo registran usuarios) no se emiten desafíos, y un
         # admin queda sin acceso a lo de admin: falla cerrado.
         self._two_factor = two_factor
+        # Cortar los sockets abiertos cuando se revocan todas las sesiones de
+        # una cuenta (PRI-04). Sin él (scripts), sólo se revoca.
+        self._live_connections = live_connections
+
+    async def _revoke_everything(self, user_id: UUID) -> None:
+        """Revoca todas las sesiones de la cuenta y corta lo que tenga abierto
+        en vivo (avisos y chat): un socket autoriza sólo al conectarse, y
+        sin esto seguiría entregando hasta que venza su token."""
+        await self._sessions.revoke_all_for_user(user_id)
+        if self._live_connections is not None:
+            await self._live_connections.close_for_user(user_id)
 
     async def register(self, command: RegisterCommand) -> User:
         """Registra un nuevo usuario. Falla si el email ya existe.
@@ -325,7 +339,7 @@ class IdentityService:
         user.verify()
         user.hashed_password = await _google_local_password()
         await self._users.update(user)
-        await self._sessions.revoke_all_for_user(user.id)
+        await self._revoke_everything(user.id)
         logger.info("google.claimed_unverified_account", extra={"user_id": str(user.id)})
         await self._send_claimed_account_email(user)
 
@@ -363,38 +377,81 @@ class IdentityService:
     async def refresh(self, refresh_token: str) -> TokenPair:
         """Emite un nuevo par de tokens a partir de un refresh token válido.
 
-        Rotación (ADR-0002): el refresh usado queda revocado y se emite uno
-        nuevo. Si el `jti` recibido ya estaba revocado, se interpreta como
-        reuso de un token viejo (posible robo): se revocan **todas** las
-        sesiones del usuario y se rechaza la operación.
+        Rotación (ADR-0002): el refresh usado queda revocado, con su sucesora
+        anotada (`replaced_by`), y se emite uno nuevo. La rotación es un UPDATE
+        condicional: de dos pedidos con el mismo token, uno solo la hace
+        (CON-03); el otro se trata como reuso.
+
+        Reuso: si el `jti` recibido ya estaba revocado, se interpreta como un
+        token viejo que circuló fuera de control (posible robo): se revocan
+        **todas** las sesiones del usuario y se rechaza la operación. Salvo
+        (actualización 2026-11-19) que se haya rotado hace
+        `REFRESH_ROTATION_GRACE` o menos, que la ventana siga sin usar y que la
+        sucesora siga viva: eso es la segunda pestaña que salió con la misma
+        cookie (CON-02) o el reintento de quien no recibió la respuesta
+        (SES-01). Recibe un par nuevo una sola vez, y la sucesora que no le
+        llegó se revoca; las demás sesiones no se tocan.
         """
         payload = self._decode_refresh(refresh_token)
         jti = payload["jti"]
+        two_factor_verified = payload.get(TWO_FACTOR_CLAIM) is True
 
         session = await self._sessions.get_by_jti(jti)
         if session is None:
             raise InvalidTokenError()
         if session.is_revoked:
-            await self._sessions.revoke_all_for_user(session.user_id)
-            # Suspender revoca todas las sesiones (`AdminService.suspend_user`):
-            # quien vuelve con la suya tiene que enterarse de que la cuenta está
-            # suspendida, no de que la sesión venció (ADR-0024, punto 8). La
-            # sesión ya era de esta persona: no se le revela nada nuevo.
-            owner = await self._users.get_by_id(session.user_id)
-            if owner is not None and not owner.is_active:
-                raise InactiveUserError()
-            raise RefreshTokenRevokedError()
+            return await self._refresh_within_grace(session, two_factor_verified)
 
+        user = await self._active_session_owner(session)
+        successor = self._new_refresh_session(user)
+        if await self._sessions.rotate(jti, datetime.now(timezone.utc), successor):
+            return self._token_pair(user, successor, two_factor_verified=two_factor_verified)
+        # Otro pedido con el mismo token la rotó (o la revocó) entre la lectura
+        # y acá: es un reuso, con las mismas reglas.
+        session = await self._sessions.get_by_jti(jti)
+        if session is None:
+            raise InvalidTokenError()
+        return await self._refresh_within_grace(session, two_factor_verified)
+
+    async def _refresh_within_grace(
+        self, session: RefreshSession, two_factor_verified: bool
+    ) -> TokenPair:
+        """Un refresh ya revocado: par nuevo por la ventana de gracia si
+        corresponde (una vez, con la sucesora todavía viva), o robo."""
+        now = datetime.now(timezone.utc)
+        if not session.rotated_within_grace(now):
+            await self._reject_reused_refresh(session)
+        user = await self._active_session_owner(session)
+        successor = self._new_refresh_session(user)
+        if not await self._sessions.use_rotation_grace(session, now, successor):
+            await self._reject_reused_refresh(session)
+        logger.info(
+            "refresh con un token recién rotado: par nuevo por la ventana de gracia user_id=%s",
+            user.id,
+        )
+        return self._token_pair(user, successor, two_factor_verified=two_factor_verified)
+
+    async def _active_session_owner(self, session: RefreshSession) -> User:
         user = await self._users.get_by_id(session.user_id)
         if user is None:
             raise UserNotFoundError()
         if not user.is_active:
             raise InactiveUserError()
+        return user
 
-        await self._sessions.revoke(jti)
-        return await self._issue_tokens(
-            user, two_factor_verified=payload.get(TWO_FACTOR_CLAIM) is True
-        )
+    async def _reject_reused_refresh(self, session: RefreshSession) -> NoReturn:
+        """Reuso de un refresh revocado fuera de la ventana de gracia: posible
+        robo (ADR-0002). Corta todas las sesiones de la cuenta, y también lo
+        que tenga abierto en vivo, y rechaza."""
+        await self._revoke_everything(session.user_id)
+        # Suspender revoca todas las sesiones (`AdminService.suspend_user`):
+        # quien vuelve con la suya tiene que enterarse de que la cuenta está
+        # suspendida, no de que la sesión venció (ADR-0024, punto 8). La
+        # sesión ya era de esta persona: no se le revela nada nuevo.
+        owner = await self._users.get_by_id(session.user_id)
+        if owner is not None and not owner.is_active:
+            raise InactiveUserError()
+        raise RefreshTokenRevokedError()
 
     async def logout(self, refresh_token: str) -> None:
         """Revoca la sesión asociada al refresh token dado (cierre de sesión)."""
@@ -425,8 +482,9 @@ class IdentityService:
             raise UserNotFoundError()
         if not user.is_active:
             raise InactiveUserError()
+        expires_at = payload.get("exp")
         if not TwoFactorService.applies_to(user) or self._two_factor is None:
-            return AuthenticatedSession(user=user)
+            return AuthenticatedSession(user=user, token_expires_at=expires_at)
         # Se mira en cada pedido de un admin (una consulta por clave
         # primaria; hay un admin): si soporte desactiva la verificación, sus
         # tokens verificados dejan de servir para lo de admin en el acto.
@@ -434,6 +492,7 @@ class IdentityService:
             user=user,
             two_factor_enabled=await self._two_factor.is_enabled(user.id),
             two_factor_verified=payload.get(TWO_FACTOR_CLAIM) is True,
+            token_expires_at=expires_at,
         )
 
     async def complete_two_factor_login(
@@ -465,7 +524,7 @@ class IdentityService:
         codes = await self._two_factor.confirm_enrollment(
             session.user, code, session_verified=session.two_factor_verified
         )
-        await self._sessions.revoke_all_for_user(session.user.id)
+        await self._revoke_everything(session.user.id)
         tokens = await self._issue_tokens(session.user, two_factor_verified=True)
         return tokens, codes
 
@@ -555,7 +614,7 @@ class IdentityService:
         # Al cambiar la contraseña se revocan todas las sesiones de refresh
         # activas (OWASP): si alguien tenía una sesión robada, no sobrevive
         # al reset. El usuario vuelve a loguearse con la contraseña nueva.
-        await self._sessions.revoke_all_for_user(user.id)
+        await self._revoke_everything(user.id)
 
     async def _send_verification_email(self, user: User) -> None:
         """Genera un token nuevo y manda el email de verificación —
@@ -682,13 +741,26 @@ class IdentityService:
 
     async def _issue_tokens(self, user: User, *, two_factor_verified: bool = False) -> TokenPair:
         """Emite un par de tokens y persiste la sesión del refresh (ADR-0002)."""
-        jti = str(uuid4())
-        expires_at = datetime.now(timezone.utc) + timedelta(
-            days=settings.refresh_token_expire_days
+        session = self._new_refresh_session(user)
+        await self._sessions.add(session)
+        return self._token_pair(user, session, two_factor_verified=two_factor_verified)
+
+    @staticmethod
+    def _new_refresh_session(user: User) -> RefreshSession:
+        """Sesión de refresh nueva, todavía sin guardar."""
+        return RefreshSession(
+            user_id=user.id,
+            jti=str(uuid4()),
+            expires_at=datetime.now(timezone.utc)
+            + timedelta(days=settings.refresh_token_expire_days),
         )
-        await self._sessions.add(
-            RefreshSession(user_id=user.id, jti=jti, expires_at=expires_at)
-        )
+
+    @staticmethod
+    def _token_pair(
+        user: User, session: RefreshSession, *, two_factor_verified: bool
+    ) -> TokenPair:
+        """El par de tokens de una sesión de refresh ya guardada."""
+        jti = session.jti
         claims: dict[str, object] = {"role": user.role.value}
         refresh_claims: dict[str, object] = {}
         if two_factor_verified:

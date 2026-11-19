@@ -31,12 +31,14 @@ from app.modules.subscription.domain.entities import (
 )
 from app.modules.subscription.domain.exceptions import (
     BillingDisabledError,
+    SubscriptionChangedError,
     WithdrawalNotAvailableError,
 )
 from app.modules.subscription.domain.plans import Plan, get_plan, list_plans
 from app.modules.subscription.domain.repositories import (
     SubscriptionPaymentRepository,
     SubscriptionRepository,
+    change_subscription,
 )
 from app.modules.subscription.domain.value_objects import (
     ExpiryNotice,
@@ -192,9 +194,11 @@ class SubscriptionService:
                 plan_code=plan.code, status="pendiente", checkout_url=checkout.checkout_url
             )
 
-        subscription = await self._subscriptions.get_or_create(company_id)
-        subscription.change_plan(plan.code)
-        subscription = await self._subscriptions.update(subscription)
+        subscription = await change_subscription(
+            self._subscriptions,
+            lambda: self._subscriptions.get_or_create(company_id),
+            lambda s: s.change_plan(plan.code),
+        )
         return SubscribeResult(
             plan_code=subscription.plan_code,
             status=subscription.status.value,
@@ -260,9 +264,11 @@ class SubscriptionService:
         if not won:
             return WebhookOutcome("duplicado")
 
-        subscription = await self._subscriptions.get_or_create(intent.company_id)
-        subscription.apply_payment(intent.plan_code, now)
-        subscription = await self._subscriptions.update(subscription)
+        subscription = await change_subscription(
+            self._subscriptions,
+            lambda: self._subscriptions.get_or_create(intent.company_id),
+            lambda s: s.apply_payment(intent.plan_code, now),
+        )
         logger.info(
             "subscription.payment.approved",
             extra={"company_id": str(intent.company_id), "plan": intent.plan_code},
@@ -285,20 +291,30 @@ class SubscriptionService:
         final del mes pago (no hay débito que cortar, ADR-0022)."""
         if not self._billing.enabled:
             raise BillingDisabledError()
-        subscription = await self.get_my_subscription(company_id)
-        subscription.cancel_renewal(datetime.now(UTC))
-        return await self._subscriptions.update(subscription)
+        return await change_subscription(
+            self._subscriptions,
+            lambda: self.get_my_subscription(company_id),
+            lambda s: s.cancel_renewal(datetime.now(UTC)),
+        )
 
     async def _withdrawal_until(self, company_id: UUID) -> date | None:
-        """Último día para arrepentirse, o `None` si ya no corresponde."""
+        """Último día para arrepentirse, o `None` si ya no corresponde.
+
+        Un arrepentimiento que quedó a medias (se devolvió todo lo pagado
+        pero el plan no llegó a cortarse, porque la suscripción perdió la
+        carrera de guardado las tres veces) sigue disponible aunque ya haya
+        un pago reembolsado: el reintento termina la baja sin volver a
+        reembolsar (CON-08)."""
         assert self._payments is not None
         paid = await self._payments.list_approved_by_company(company_id)
-        if not paid or any(p.status == PaymentStatus.REEMBOLSADO for p in paid):
+        if not paid or paid[0].approved_at is None:
             return None
-        first = paid[0]
-        if first.approved_at is None:
+        deadline = withdrawal_deadline(paid[0].approved_at)
+        if all(p.status == PaymentStatus.REEMBOLSADO for p in paid):
+            subscription = await self.get_my_subscription(company_id)
+            return deadline if subscription.status == SubscriptionStatus.ACTIVA else None
+        if any(p.status == PaymentStatus.REEMBOLSADO for p in paid):
             return None
-        deadline = withdrawal_deadline(first.approved_at)
         return deadline if hoy_art() <= deadline else None
 
     async def withdraw(self, company_id: UUID) -> Subscription:
@@ -322,9 +338,11 @@ class SubscriptionService:
             payment.status = PaymentStatus.REEMBOLSADO
             payment.refunded_at = now
             await self._payments.update(payment)
-        subscription = await self.get_my_subscription(company_id)
-        subscription.withdraw(now)
-        subscription = await self._subscriptions.update(subscription)
+        subscription = await change_subscription(
+            self._subscriptions,
+            lambda: self.get_my_subscription(company_id),
+            lambda s: s.withdraw(now),
+        )
         logger.info("subscription.withdrawn", extra={"company_id": str(company_id)})
         await self._notify(
             company_id,
@@ -338,6 +356,22 @@ class SubscriptionService:
 
     # --- Vencimiento (lo corre el scheduler) ---------------------------------
 
+    async def _save_from_expiry_check(self, subscription: Subscription) -> bool:
+        """Guarda lo que decidió la pasada de vencimiento, si nadie cambió la
+        suscripción desde que la leyó. Si cambió (pagó, dio de baja, publicó
+        un turno), no la toca ni avisa: decidía sobre una copia vieja. Se
+        saltea como el turno que pierde en el scheduler (ADR-0016) y la
+        próxima pasada, enseguida, la vuelve a mirar (CON-08)."""
+        try:
+            await self._subscriptions.update(subscription)
+        except SubscriptionChangedError:
+            logger.info(
+                "subscription.expiry_check.changed",
+                extra={"company_id": str(subscription.company_id)},
+            )
+            return False
+        return True
+
     async def run_expiry_check(self, now: datetime | None = None) -> datetime | None:
         """Una pasada del chequeo de vencimiento. Devuelve la próxima
         deadline futura (naive UTC, para que el scheduler sepa cuánto dormir).
@@ -346,7 +380,8 @@ class SubscriptionService:
         - `paid_until`: aviso "tu plan venció hoy, tenés 3 días de gracia".
         - `paid_until + 3 días`: pasa a `vencida` (o `cancelada` si dio de
           baja) y deja de poder publicar.
-        A quien dio de baja no se le recuerda pagar.
+        A quien dio de baja no se le recuerda pagar. La que cambió mientras
+        tanto (un pago, una baja) se saltea y se mira en la próxima pasada.
         """
         now = now or datetime.now(UTC)
         now_n = _naive(now)
@@ -367,7 +402,9 @@ class SubscriptionService:
 
             if now_n >= expire_at:
                 subscription.expire()
-                await self._subscriptions.update(subscription)
+                if not await self._save_from_expiry_check(subscription):
+                    earlier(now_n)
+                    continue
                 logger.info(
                     "subscription.expired",
                     extra={
@@ -393,7 +430,9 @@ class SubscriptionService:
             if now_n >= paid_until:
                 if subscription.expiry_notice != ExpiryNotice.VENCIO:
                     subscription.expiry_notice = ExpiryNotice.VENCIO
-                    await self._subscriptions.update(subscription)
+                    if not await self._save_from_expiry_check(subscription):
+                        earlier(now_n)
+                        continue
                     await self._notify(
                         subscription.company_id,
                         NotificationType.SUBSCRIPTION_EXPIRING,
@@ -405,7 +444,9 @@ class SubscriptionService:
             elif now_n >= remind_at:
                 if subscription.expiry_notice is None:
                     subscription.expiry_notice = ExpiryNotice.POR_VENCER
-                    await self._subscriptions.update(subscription)
+                    if not await self._save_from_expiry_check(subscription):
+                        earlier(now_n)
+                        continue
                     await self._notify(
                         subscription.company_id,
                         NotificationType.SUBSCRIPTION_EXPIRING,

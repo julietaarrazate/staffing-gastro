@@ -8,10 +8,10 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { SKILL_LABELS, WorkerProfile } from "@/lib/types";
 import IdentityVerifiedBadge from "@/components/IdentityVerifiedBadge";
 import { SKILL_ACCENT } from "@/lib/skill-style";
-import { cldAttachment, cldThumb } from "@/lib/cloudinary";
-import { safeHttpsUrl } from "@/lib/safe-url";
+import { cldThumb } from "@/lib/cloudinary";
+import { CV_OPEN_ERROR, openCv } from "@/lib/cv";
 import { BADGE_ICONS, BADGE_LABELS, formatPunctuality, hasRate, hasRating, levelLabel } from "@/lib/reputation";
-import { ErrorBanner, Skeleton } from "@/components/ui";
+import { BOTON_LISO, ErrorBanner, Skeleton } from "@/components/ui";
 import RatingOrNew from "@/components/RatingOrNew";
 import WorkerReviews from "@/components/WorkerReviews";
 import { BriefcaseIcon, ChevronLeftIcon, ClipboardIcon, DownloadIcon, HeartIcon, MapPinIcon } from "@/components/icons";
@@ -68,10 +68,10 @@ function FavoriteToggle({ workerProfileId, token }: { workerProfileId: string; t
       onClick={toggle}
       disabled={busy}
       aria-pressed={isFavorite}
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ring-1 transition active:scale-95 disabled:opacity-60 ${
+      className={`inline-flex min-h-[40px] items-center gap-1.5 rounded-[var(--radius-relieve)] px-3 py-1.5 text-sm font-semibold ring-1 transition active:scale-95 disabled:opacity-60 ${
         isFavorite
           ? "bg-primary/10 text-primary-text ring-primary/30"
-          : "bg-card text-ink/60 ring-line hover:bg-surface"
+          : "bg-card text-ink ring-line hover:bg-surface"
       }`}
     >
       <HeartIcon size={16} filled={isFavorite} />
@@ -105,6 +105,7 @@ export default function PublicWorkerProfilePage() {
   const [profile, setProfile] = useState<WorkerProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [cvError, setCvError] = useState<string | null>(null);
   // Sin historial (entrada directa, notificación, pestaña nueva) `back()` no
   // hace nada: se cae a Buscar, el origen razonable del comercio.
   const goBack = () => {
@@ -147,7 +148,14 @@ export default function PublicWorkerProfilePage() {
   if (!profile) return null;
 
   const name = profile.full_name ?? "Trabajador/a";
-  const cvUrl = safeHttpsUrl(profile.cv_url);
+  // El CV se abre con un link que vence que se pide al tocar (ADR-0021): el
+  // perfil no trae una URL que sirva sola. `cv_kind` sólo llega a quien hoy
+  // lo puede ver (la persona, un admin o un comercio con un turno o una
+  // postulación de ella).
+  const abrirCv = async (download: boolean) => {
+    setCvError(null);
+    if (!(await openCv(profile.id, token, download))) setCvError(CV_OPEN_ERROR);
+  };
 
   return (
     <div className="app-container px-4 py-8">
@@ -256,23 +264,31 @@ export default function PublicWorkerProfilePage() {
             </div>
           )}
 
-          {cvUrl && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              <a
-                href={cvUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full bg-surface px-4 py-2 text-sm font-semibold text-ink/80 ring-1 ring-line transition hover:bg-line active:scale-95"
-              >
-                <ClipboardIcon size={16} /> Ver CV
-              </a>
-              {cvUrl.includes("res.cloudinary.com") && (
-                <a
-                  href={cldAttachment(cvUrl)}
-                  className="inline-flex items-center gap-2 rounded-full bg-surface px-4 py-2 text-sm font-semibold text-ink/80 ring-1 ring-line transition hover:bg-line active:scale-95"
+          {profile.cv_kind && (
+            <div className="mt-4">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => void abrirCv(false)}
+                  className={`${BOTON_LISO} gap-2 px-4 py-2 text-sm`}
                 >
-                  <DownloadIcon size={16} /> Descargar
-                </a>
+                  <ClipboardIcon size={16} /> Ver CV
+                </button>
+                {/* Un link pegado a mano (Drive, LinkedIn) no se descarga desde acá. */}
+                {profile.cv_kind === "file" && (
+                  <button
+                    type="button"
+                    onClick={() => void abrirCv(true)}
+                    className={`${BOTON_LISO} gap-2 px-4 py-2 text-sm`}
+                  >
+                    <DownloadIcon size={16} /> Descargar
+                  </button>
+                )}
+              </div>
+              {cvError && (
+                <p role="alert" className="mt-2 text-sm text-danger-text">
+                  {cvError}
+                </p>
               )}
             </div>
           )}

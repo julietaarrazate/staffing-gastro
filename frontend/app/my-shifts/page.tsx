@@ -26,6 +26,7 @@ import CompareShiftsModal from "@/components/worker/CompareShiftsModal";
 import EnRouteToggle from "@/components/worker/EnRouteToggle";
 import { ShiftCoveredIllustration } from "@/components/illustrations";
 import {
+  BOTON_LISO,
   Button,
   CardSkeletons,
   EmptyState,
@@ -153,7 +154,13 @@ function MatchesContent() {
   );
   // Reloj para saber si el turno ya empezó ("Me fui" recién desde ahí).
   const [now, setNow] = useState(() => new Date());
-  const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
+  const {
+    keyFor,
+    clear: clearIdempotencyKey,
+    clearSiTermino,
+    recordar,
+    recordado,
+  } = useIdempotencyKeys();
   // Un toque que cae sobre un botón recién aparecido no cuenta (U004): tras
   // "Llegué" la lista se redibuja y "Me fui" queda justo bajo el dedo.
   const tapGuard = useTapGuard();
@@ -276,8 +283,16 @@ function MatchesContent() {
     const key = `${id}:${path}`;
     setBusy(key);
     try {
-      let body: { latitude: number; longitude: number } | undefined;
-      if (geo) {
+      // Idempotencia (product/IDEMPOTENCIA_SPEC.md): mismo intento (mismo
+      // turno+acción) = misma key mientras no haya terminado.
+      const idemKey = keyFor(key);
+      type Posicion = { latitude: number; longitude: number };
+      let body: Posicion | undefined = geo ? recordado<Posicion>(key) : undefined;
+      // En un reintento (la respuesta se perdió) se manda la posición del
+      // primer intento: leer el GPS de nuevo cambia los decimales, el cuerpo
+      // ya no coincide con el de la key y el servidor contesta «pedido
+      // distinto» aunque la llegada sí quedó registrada (CON-01).
+      if (geo && !body) {
         // La geolocalización tiene sus propios mensajes en español (ver
         // lib/geolocation.ts): los conservamos tal cual, sin pasarlos por
         // getErrorMessage (que los pisaría con el genérico de red). El busy
@@ -285,6 +300,7 @@ function MatchesContent() {
         // un doble-tap durante esos segundos.
         try {
           body = await getCurrentPosition();
+          recordar(key, body);
         } catch (err) {
           // Para resolverlo hay que ir a los permisos del navegador: el aviso
           // queda más tiempo a la vista.
@@ -292,13 +308,14 @@ function MatchesContent() {
           return;
         }
       }
-      // Idempotencia (product/IDEMPOTENCIA_SPEC.md): mismo intento (mismo
-      // turno+acción) = misma key mientras no haya terminado bien.
-      await api.post(`/shifts/${id}/${path}`, body, token, undefined, keyFor(key));
+      await api.post(`/shifts/${id}/${path}`, body, token, undefined, idemKey);
       clearIdempotencyKey(key);
       if (path === "confirm") setJustConfirmedId(id);
       await load();
     } catch (err) {
+      // Un error definitivo cierra el intento; uno de red lo deja abierto
+      // para que el reintento sea el mismo.
+      clearSiTermino(key, err);
       toast(getErrorMessage(err, "No se pudo completar la acción"), "error");
       // También al fallar: el turno pudo cambiar (el comercio lo canceló, ya
       // estaba confirmado) y la pantalla no puede seguir ofreciendo el botón.
@@ -408,6 +425,9 @@ function MatchesContent() {
         return;
       }
       toast(getErrorMessage(err, "No se pudo enviar tu postulación"), "error");
+      // Si el turno ya se cubrió o se canceló, la lista de guardados se relee
+      // para que deje de ofrecerlo (VIE-03).
+      void load({ silent: true });
     } finally {
       setApplyingSaved(null);
     }
@@ -450,7 +470,7 @@ function MatchesContent() {
                   <div className="mb-2 flex flex-wrap gap-2">
                     <Link
                       href={`/chats/${shift.id}`}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-sm font-semibold text-ink/70 ring-1 ring-line"
+                      className={`${BOTON_LISO} px-3 py-1.5 text-sm`}
                     >
                       <MessageIcon size={16} /> Chatear
                     </Link>
@@ -761,10 +781,10 @@ function MatchesContent() {
                   <button
                     type="button"
                     onClick={() => (compareMode ? exitCompareMode() : setCompareMode(true))}
-                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ring-1 transition active:scale-95 ${
+                    className={`inline-flex min-h-[40px] items-center gap-1.5 rounded-[var(--radius-relieve)] px-3 py-1.5 text-sm font-semibold ring-1 transition active:scale-95 ${
                       compareMode
                         ? "bg-primary/10 text-primary-text ring-primary/30"
-                        : "bg-card text-ink/60 ring-line hover:bg-surface"
+                        : "bg-card text-ink ring-line hover:bg-surface"
                     }`}
                   >
                     <ScaleIcon size={14} />

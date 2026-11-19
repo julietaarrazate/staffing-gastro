@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import type { WorkerProfile } from "@/lib/types";
+import type { CvFileRef, WorkerProfile } from "@/lib/types";
 
 /** Mail de la cuenta invitada del trabajador (`GUEST_ACCOUNTS` en
  *  `backend/app/modules/identity/application/services.py`). Se decide por la
@@ -29,6 +29,10 @@ export interface WorkerProfileInput {
   years_experience: number;
   languages: string[];
   certifications: string[];
+  /** El CV subido (privado). Si no va, el backend conserva el que había
+   * (lo que pasa con una versión vieja de la app); `null` lo saca. */
+  cv_file?: CvFileRef | null;
+  /** Link pegado a mano. Con `cv_file`, se ignora. */
   cv_url: string | null;
   cv_filename: string | null;
   is_available: boolean;
@@ -59,6 +63,9 @@ export function toWorkerProfileInput(
     years_experience: profile.years_experience,
     languages: profile.languages,
     certifications: profile.certifications,
+    // La referencia del CV vuelve tal cual la mandó el servidor. Si el perfil
+    // no la trae (respuesta vieja), no se manda: así no se borra el archivo.
+    ...(profile.cv_file !== undefined ? { cv_file: profile.cv_file } : {}),
     cv_url: profile.cv_url,
     cv_filename: profile.cv_filename,
     is_available: profile.is_available,

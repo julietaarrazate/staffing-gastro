@@ -360,7 +360,7 @@ function WorkerOnboarding({ next }: { next: string | null }) {
               type="button"
               disabled={skippingAll}
               onClick={skipAll}
-              className="min-h-[48px] w-full rounded-[var(--radius-btn)] font-semibold text-ink/50 transition active:scale-[0.98] disabled:opacity-60"
+              className="min-h-[48px] w-full rounded-[var(--radius-relieve)] font-semibold text-ink-soft transition active:scale-[0.98] disabled:opacity-60"
             >
               {skippingAll ? "Guardando…" : "Dejar para después"}
             </button>
@@ -404,7 +404,7 @@ function WorkerOnboarding({ next }: { next: string | null }) {
             <button
               type="button"
               onClick={() => volverA("zona")}
-              className="min-h-[48px] w-full rounded-[var(--radius-btn)] font-semibold text-ink/50 transition active:scale-[0.98]"
+              className="min-h-[48px] w-full rounded-[var(--radius-relieve)] font-semibold text-ink-soft transition active:scale-[0.98]"
             >
               Volver
             </button>
@@ -451,7 +451,7 @@ function WorkerOnboarding({ next }: { next: string | null }) {
             <button
               type="button"
               onClick={() => volverA("oficio")}
-              className="min-h-[48px] w-full rounded-[var(--radius-btn)] font-semibold text-ink/50 transition active:scale-[0.98]"
+              className="min-h-[48px] w-full rounded-[var(--radius-relieve)] font-semibold text-ink-soft transition active:scale-[0.98]"
             >
               Volver
             </button>
@@ -649,7 +649,7 @@ function EmployerOnboarding({ next }: { next: string | null }) {
               type="button"
               disabled={skippingAll}
               onClick={skipAll}
-              className="min-h-[48px] w-full rounded-[var(--radius-btn)] font-semibold text-ink/50 transition active:scale-[0.98] disabled:opacity-60"
+              className="min-h-[48px] w-full rounded-[var(--radius-relieve)] font-semibold text-ink-soft transition active:scale-[0.98] disabled:opacity-60"
             >
               {skippingAll ? "Guardando…" : "Omitir por ahora"}
             </button>
@@ -722,14 +722,14 @@ function EmployerOnboarding({ next }: { next: string | null }) {
               type="button"
               disabled={skipping}
               onClick={skipLocation}
-              className="min-h-[48px] w-full rounded-[var(--radius-btn)] font-semibold text-ink/50 transition active:scale-[0.98] disabled:opacity-60"
+              className="min-h-[48px] w-full rounded-[var(--radius-relieve)] font-semibold text-ink-soft transition active:scale-[0.98] disabled:opacity-60"
             >
               {skipping ? "Guardando…" : "Cargar la ubicación después"}
             </button>
             <button
               type="button"
               onClick={() => volverA("nombre")}
-              className="min-h-[48px] w-full rounded-[var(--radius-btn)] font-semibold text-ink/35 transition active:scale-[0.98]"
+              className="min-h-[48px] w-full rounded-[var(--radius-relieve)] font-semibold text-ink-soft transition active:scale-[0.98]"
             >
               Volver
             </button>

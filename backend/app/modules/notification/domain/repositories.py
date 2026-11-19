@@ -1,6 +1,7 @@
 """Puertos de los repositorios del módulo notification."""
 
 from abc import ABC, abstractmethod
+from collections.abc import Collection
 from datetime import datetime
 from uuid import UUID
 
@@ -21,6 +22,13 @@ class NotificationRepository(ABC):
         trabajadores de la zona."""
 
     @abstractmethod
+    async def request_live_refresh(self, user_id: UUID) -> None:
+        """Le pide a las pantallas abiertas del usuario que se pongan al día
+        (`lib/live-refresh.ts`), SIN dejar un aviso: no se guarda, no suma a la
+        campanita ni sale push. Sólo llega a quien tiene la app abierta;
+        el resto se pone al día al entrar o al volver a la pestaña."""
+
+    @abstractmethod
     async def list_by_user(
         self, user_id: UUID, *, limit: int = 50, offset: int = 0
     ) -> list[Notification]:
@@ -34,9 +42,16 @@ class NotificationRepository(ABC):
         """
 
     @abstractmethod
-    async def mark_all_read(self, user_id: UUID) -> int:
-        """Marca como leídas TODAS las notificaciones no leídas del usuario,
-        en una sola operación, y devuelve cuántas marcó (0 si no había)."""
+    async def mark_all_read(
+        self, user_id: UUID, ids: Collection[UUID] | None = None
+    ) -> int:
+        """Marca como leídas, en una sola operación, las notificaciones no
+        leídas del usuario y devuelve cuántas marcó (0 si no había).
+
+        Con `ids`, sólo las de esa lista (lo que la persona tenía en pantalla):
+        un aviso que llegó después, o que no entró en la lista que se cargó,
+        no se toca. Los ids ajenos o inexistentes se ignoran. Sin `ids`
+        (`None`), todas las del usuario (cliente viejo)."""
 
     @abstractmethod
     async def delete_read_before(self, cutoff: datetime) -> int:
