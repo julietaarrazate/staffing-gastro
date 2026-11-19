@@ -39,6 +39,7 @@ import {
   PrinterIcon,
 } from "@/components/icons";
 import { plural } from "@/lib/format";
+import { downloadCsv } from "@/lib/csv";
 
 type Filter = LeadStatus | "todos";
 
@@ -168,15 +169,8 @@ function ComerciosACaptar() {
     }
   };
 
-  const exportCsv = () => {
-    const blob = new Blob([leadsToCsv(leads)], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `comercios-${barrio.toLowerCase().replace(/\s+/g, "-")}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  const exportCsv = () =>
+    downloadCsv(leadsToCsv(leads), `comercios-${barrio.toLowerCase().replace(/\s+/g, "-")}.csv`);
 
   return (
     <>

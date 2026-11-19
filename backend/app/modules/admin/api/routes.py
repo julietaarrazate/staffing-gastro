@@ -27,6 +27,7 @@ from app.modules.admin.api.schemas import (
     SubscriptionStatsResponse,
     TestAccountResponse,
     TodayCountsResponse,
+    WeeklyMetricsResponse,
 )
 from app.modules.admin.application.exceptions import (
     CannotImpersonateAdminError,
@@ -34,7 +35,7 @@ from app.modules.admin.application.exceptions import (
     TargetCompanyNotFoundError,
     TargetUserNotFoundError,
 )
-from app.modules.admin.application.periods import METRICS_PERIODS
+from app.modules.admin.application.periods import MAX_WEEKS, METRICS_PERIODS
 from app.modules.admin.application.services import AdminService
 from app.modules.identity.api.dependencies import require_roles
 from app.modules.identity.domain.entities import User
@@ -98,6 +99,21 @@ async def period_metrics(
             detail="El período tiene que ser de 7 o 30 días",
         )
     return await service.get_period_metrics(period)
+
+
+@router.get(
+    "/weekly-metrics",
+    response_model=WeeklyMetricsResponse,
+    summary="Serie semanal (lunes a domingo, hora argentina) para el reporte y el deck",
+)
+async def weekly_metrics(
+    _: AdminDep,
+    service: ServiceDep,
+    weeks: Annotated[
+        int, Query(ge=1, le=MAX_WEEKS, description="Semanas, la de hoy incluida")
+    ] = 12,
+):
+    return await service.get_weekly_metrics(weeks)
 
 
 @router.get(

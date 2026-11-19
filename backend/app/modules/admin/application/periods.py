@@ -15,6 +15,11 @@ from app.core.tz import ARG_TZ, to_art
 # Períodos que ofrece "Métricas" (pedido de Julieta, 2026-10-20).
 METRICS_PERIODS: tuple[int, ...] = (7, 30)
 
+# Serie semanal M7 (docs/planning/BETA_TABLERO.md): cuántas semanas se
+# pueden pedir. Un año alcanza para la lámina de tracción y mantiene acotada
+# la consulta (una columna por semana y por indicador).
+MAX_WEEKS = 52
+
 
 @dataclass(frozen=True)
 class PeriodBounds:
@@ -53,3 +58,22 @@ def period_bounds(days: int, now: datetime) -> PeriodBounds:
         current_start=_midnight_utc(current_day),
         end=_midnight_utc(end_day),
     )
+
+
+def week_bounds(weeks: int, now: datetime) -> list[tuple[datetime, datetime]]:
+    """Las últimas `weeks` semanas argentinas, de lunes a domingo, de la más
+    vieja a la de hoy (que va incluida, en curso). Cada una es `[lunes, lunes
+    siguiente)` en UTC. Lunes porque el reporte semanal se arma los lunes con
+    la semana que terminó."""
+    if not 1 <= weeks <= MAX_WEEKS:
+        raise ValueError(f"La serie tiene que tener entre 1 y {MAX_WEEKS} semanas")
+    today = to_art(now).date()
+    this_monday = today - timedelta(days=today.weekday())
+    first_monday = this_monday - timedelta(weeks=weeks - 1)
+    return [
+        (
+            _midnight_utc(first_monday + timedelta(weeks=i)),
+            _midnight_utc(first_monday + timedelta(weeks=i + 1)),
+        )
+        for i in range(weeks)
+    ]

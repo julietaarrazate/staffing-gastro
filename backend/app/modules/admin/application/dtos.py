@@ -347,3 +347,43 @@ class PeriodMetrics:
     # Altas del período actual por origen y rol (fase 0 del plan de
     # crecimiento): las que más traen primero, «sin dato» al final.
     signups_by_origin: list[SignupsByOrigin] = field(default_factory=list)
+
+
+@dataclass
+class WeekSummary:
+    """Una semana de la serie M7 (`[start, end)`, de lunes a lunes en hora
+    argentina). Mismas definiciones que `PeriodSummary` (cubierto = la
+    persona confirmó; cumplido = cubierto y con llegada al local), contando
+    los turnos por la semana en que se publicaron. `in_progress`: es la
+    semana de hoy, todavía no terminó."""
+
+    start: datetime
+    end: datetime
+    in_progress: bool
+    shifts_published: int
+    shifts_covered: int
+    covered_pct: float | None
+    fulfilled: int
+    fulfilled_pct: float | None
+    median_minutes_to_cover: float | None
+    short_notice_covered: int
+    short_notice_under_10_min_pct: float | None
+    active_companies: int
+    companies_with_covered: int
+    # Altas de la semana por origen y rol, como en «Métricas».
+    signups_by_origin: list[SignupsByOrigin] = field(default_factory=list)
+
+    @property
+    def signups_workers(self) -> int:
+        return sum(s.workers for s in self.signups_by_origin)
+
+    @property
+    def signups_companies(self) -> int:
+        return sum(s.companies for s in self.signups_by_origin)
+
+
+@dataclass
+class WeeklyMetrics:
+    """Serie semanal M7: de la semana más vieja a la de hoy."""
+
+    weeks: list[WeekSummary]

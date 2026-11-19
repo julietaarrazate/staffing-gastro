@@ -34,6 +34,8 @@ from app.modules.admin.application.dtos import (
     SubscriptionStats,
     TestAccount,
     TodayCounts,
+    WeeklyMetrics,
+    WeekSummary,
 )
 from app.modules.admin.application.exceptions import (
     CannotImpersonateAdminError,
@@ -41,7 +43,7 @@ from app.modules.admin.application.exceptions import (
     TargetCompanyNotFoundError,
     TargetUserNotFoundError,
 )
-from app.modules.admin.application.periods import day_bounds, period_bounds
+from app.modules.admin.application.periods import day_bounds, period_bounds, week_bounds
 from app.modules.application.domain.repositories import ShiftApplicationRepository
 from app.modules.company.domain.repositories import CompanyProfileRepository
 from app.modules.identity.application.services import GUEST_ACCOUNT_EMAILS
@@ -580,8 +582,12 @@ class AdminService:
             "current_start": bounds.current_start,
             "end": bounds.end,
         }
-        current, previous = await self._shifts.count_period_stats(
-            **window, exclude_company_emails=GUEST_ACCOUNT_EMAILS | TEST_ACCOUNT_EMAILS
+        current, previous = await self._shifts.count_window_stats(
+            windows=[
+                (bounds.current_start, bounds.end),
+                (bounds.previous_start, bounds.current_start),
+            ],
+            exclude_company_emails=GUEST_ACCOUNT_EMAILS | TEST_ACCOUNT_EMAILS,
         )
         apps_current, apps_previous = await self._applications.count_created_by_period(**window)
         signup_rows = await self._users.count_signups_by_origin(
@@ -619,6 +625,48 @@ class AdminService:
             previous=_summary(bounds.previous_start, bounds.current_start, previous, apps_previous),
             signups_by_origin=_signups_by_origin(signup_rows),
         )
+
+    async def get_weekly_metrics(
+        self, weeks: int, *, now: datetime | None = None
+    ) -> WeeklyMetrics:
+        """Serie semanal M7 (docs/planning/BETA_TABLERO.md): las últimas
+        `weeks` semanas de lunes a domingo en hora argentina, la de hoy
+        incluida, con las mismas definiciones que `get_period_metrics` y las
+        altas de cada semana por origen y rol. Sin las cuentas de prueba ni
+        las invitadas. Los turnos salen de una consulta para todas las
+        semanas; las altas, de una por semana (pocas filas cada una)."""
+        now = now or now_art()
+        windows = week_bounds(weeks, now)
+        excluded = GUEST_ACCOUNT_EMAILS | TEST_ACCOUNT_EMAILS
+        stats = await self._shifts.count_window_stats(
+            windows=windows, exclude_company_emails=excluded
+        )
+        result = []
+        for (start, end), s in zip(windows, stats, strict=True):
+            signup_rows = await self._users.count_signups_by_origin(
+                start=start, end=end, exclude_emails=excluded
+            )
+            result.append(
+                WeekSummary(
+                    start=start,
+                    end=end,
+                    in_progress=start <= now < end,
+                    shifts_published=s.published,
+                    shifts_covered=s.covered,
+                    covered_pct=_rate_pct(s.covered, s.published),
+                    fulfilled=s.fulfilled,
+                    fulfilled_pct=_rate_pct(s.fulfilled, s.covered),
+                    median_minutes_to_cover=s.median_minutes_to_cover,
+                    short_notice_covered=s.short_notice_covered,
+                    short_notice_under_10_min_pct=_rate_pct(
+                        s.short_notice_under_10_min, s.short_notice_covered
+                    ),
+                    active_companies=s.active_companies,
+                    companies_with_covered=s.companies_with_covered,
+                    signups_by_origin=_signups_by_origin(signup_rows),
+                )
+            )
+        return WeeklyMetrics(weeks=result)
 
     async def get_or_create_test_accounts(self) -> list[TestAccount]:
         """Devuelve las cuentas de prueba (trabajador y comercio) para que la

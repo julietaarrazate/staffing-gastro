@@ -810,25 +810,23 @@ class SqlAlchemyShiftRepository(ShiftRepository):
             no_shows_today=row.no_shows_today or 0,
         )
 
-    async def count_period_stats(
+    async def count_window_stats(
         self,
         *,
-        previous_start: datetime,
-        current_start: datetime,
-        end: datetime,
+        windows: Sequence[tuple[datetime, datetime]],
         exclude_company_emails: frozenset[str] = frozenset(),
-    ) -> tuple[ShiftPeriodStats, ShiftPeriodStats]:
+    ) -> list[ShiftPeriodStats]:
+        if not windows:
+            return []
         published = ShiftModel.published_at
         confirmed = ShiftModel.first_confirmed_at
         dialect = self._session.get_bind().dialect.name
         minutes = _minutes_between(dialect, published, confirmed)
         notice_minutes = _minutes_between(dialect, published, ShiftModel.start_at)
-        windows = {
-            "cur": (published >= current_start) & (published < end),
-            "prev": (published >= previous_start) & (published < current_start),
-        }
+        in_windows = [(published >= start) & (published < end) for start, end in windows]
         columns = []
-        for key, in_window in windows.items():
+        for i, in_window in enumerate(in_windows):
+            key = f"w{i}"
             # Publicados y cubiertos, sin los que vencieron con la cuenta
             # suspendida. «Locales activos» (más abajo) sí los mira: es
             # actividad (el comercio publicó), no cobertura.
@@ -839,7 +837,7 @@ class SqlAlchemyShiftRepository(ShiftRepository):
                 func.sum(case((counted, 1), else_=0)).label(f"{key}_published"),
                 func.sum(case((covered, 1), else_=0)).label(f"{key}_covered"),
                 func.sum(case((covered & (minutes <= 10), 1), else_=0)).label(f"{key}_fast"),
-                # AVG ignora los NULL: sólo promedia los cubiertos del período.
+                # AVG ignora los NULL: sólo promedia los cubiertos de la ventana.
                 func.avg(case((covered, minutes), else_=None)).label(f"{key}_avg"),
                 func.sum(case((short_notice, 1), else_=0)).label(f"{key}_short"),
                 func.sum(case((short_notice & (minutes <= 10), 1), else_=0)).label(
@@ -857,33 +855,37 @@ class SqlAlchemyShiftRepository(ShiftRepository):
                 ),
             ]
         excluded = _not_from_companies_of(exclude_company_emails)
-        stmt = select(*columns).where(published >= previous_start, published < end, excluded)
+        first = min(start for start, _ in windows)
+        last = max(end for _, end in windows)
+        in_range = (published >= first) & (published < last)
+        stmt = select(*columns).where(in_range, excluded)
         row = (await self._session.execute(stmt)).one()
 
         # La mediana no se puede sacar con SUM/CASE (en Postgres sería
         # `percentile_cont`, que SQLite no tiene): se traen sólo los minutos de
-        # los cubiertos de las dos ventanas y se calcula en Python. Con el
-        # volumen de la beta (cientos de turnos por período) alcanza; si
-        # creciera a decenas de miles, pasar a `percentile_cont` en Postgres.
-        in_current = case((windows["cur"], 1), else_=0)
+        # los cubiertos de las ventanas, con el número de ventana, y se calcula
+        # en Python. Con el volumen de la beta (cientos de turnos por período)
+        # alcanza; si creciera a decenas de miles, pasar a `percentile_cont`.
+        window_index = case(*[(w, i) for i, w in enumerate(in_windows)], else_=None)
         median_rows = (
             await self._session.execute(
-                select(in_current, minutes).where(
-                    published >= previous_start,
-                    published < end,
+                select(window_index, minutes).where(
+                    in_range,
                     confirmed.is_not(None),
                     excluded,
                     _counts_for_coverage(),
                 )
             )
         ).all()
-        sample = {"cur": [], "prev": []}
-        for is_current, mins in median_rows:
-            sample["cur" if is_current else "prev"].append(float(mins))
+        sample: list[list[float]] = [[] for _ in windows]
+        for index, mins in median_rows:
+            if index is not None:
+                sample[index].append(float(mins))
 
-        def _stats(key: str) -> ShiftPeriodStats:
+        def _stats(i: int) -> ShiftPeriodStats:
+            key = f"w{i}"
             avg = getattr(row, f"{key}_avg")
-            mins = sample[key]
+            mins = sample[i]
             return ShiftPeriodStats(
                 published=getattr(row, f"{key}_published") or 0,
                 covered=getattr(row, f"{key}_covered") or 0,
@@ -897,7 +899,7 @@ class SqlAlchemyShiftRepository(ShiftRepository):
                 companies_with_covered=getattr(row, f"{key}_companies_covered") or 0,
             )
 
-        return _stats("cur"), _stats("prev")
+        return [_stats(i) for i in range(len(windows))]
 
     async def count_return_stats(
         self,
