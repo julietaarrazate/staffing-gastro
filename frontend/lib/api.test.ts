@@ -399,3 +399,62 @@ describe("errores del servidor y sin conexión (U113, U144)", () => {
     expect(err.message).toBe("Esperá 15 minutos y volvé a probar.");
   });
 });
+
+describe("GET idénticos en vuelo", () => {
+  const fetchMock = vi.fn();
+
+  beforeEach(() => {
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock.mockReset();
+    bindSessionToken(null);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("dos pedidos iguales a la vez salen una sola vez y cada uno recibe su copia", async () => {
+    fetchMock.mockImplementation(async () => jsonResponse(200, { id: 1, items: [1, 2] }));
+
+    const [a, b] = await Promise.all([
+      api.get<{ items: number[] }>("/workers/me/profile", "t1"),
+      api.get<{ items: number[] }>("/workers/me/profile", "t1"),
+    ]);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    a.items.push(3);
+    expect(b.items).toEqual([1, 2]);
+  });
+
+  it("no comparte entre cuentas ni entre rutas, y no guarda nada una vez resuelto", async () => {
+    fetchMock.mockImplementation(async () => jsonResponse(200, { ok: true }));
+
+    await Promise.all([api.get("/auth/me", "t1"), api.get("/auth/me", "t2"), api.get("/otra", "t1")]);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+
+    await api.get("/auth/me", "t1");
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
+  it("una mutación en el medio corta el compartido: el GET siguiente va al servidor", async () => {
+    fetchMock.mockImplementation(async () => jsonResponse(200, { ok: true }));
+
+    const antes = api.get("/shifts/me", "t1");
+    await api.post("/shifts", { x: 1 }, "t1");
+    const despues = api.get("/shifts/me", "t1");
+    await Promise.all([antes, despues]);
+
+    expect(fetchMock.mock.calls.filter((c) => (c[1] as RequestInit).method === "GET")).toHaveLength(2);
+  });
+
+  it("si falla, el error les llega a todos y el siguiente pedido reintenta", async () => {
+    fetchMock.mockImplementationOnce(async () => jsonResponse(500, { detail: "boom" }));
+    fetchMock.mockImplementation(async () => jsonResponse(200, { ok: true }));
+
+    const resultados = await Promise.allSettled([api.get("/x", "t1"), api.get("/x", "t1")]);
+    expect(resultados.map((r) => r.status)).toEqual(["rejected", "rejected"]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await expect(api.get("/x", "t1")).resolves.toEqual({ ok: true });
+  });
+});

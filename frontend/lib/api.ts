@@ -391,6 +391,7 @@ async function request<T>(
     ...rest
   } = options;
   const token = resolveToken(requested);
+  if (rest.method && rest.method !== "GET") inflightGets.clear();
 
   // Timeout opcional vía AbortController: sin esto, un backend dormido
   // (cold start de Render) cuelga el fetch indefinidamente. Sólo se aplica
@@ -473,9 +474,36 @@ async function request<T>(
   return res.json() as Promise<T>;
 }
 
+/**
+ * GET idénticos EN VUELO (mismo path, misma cuenta, mismo tope) comparten un
+ * solo pedido: dos componentes que piden `/workers/me/profile` a la vez (o una
+ * pantalla y la campanita) bajan una sola respuesta. Nada se guarda después de
+ * que el pedido termina, así que no hay caché ni dato viejo: el pedido
+ * siguiente va siempre al servidor. Cada quien recibe su propia copia del
+ * resultado (si una pantalla lo muta, no pisa al otro). Cualquier mutación
+ * suelta los pedidos en vuelo: un GET posterior no puede colgarse de una
+ * respuesta que salió antes del cambio.
+ */
+const inflightGets = new Map<string, Promise<unknown>>();
+
+function getDeduplicado<T>(path: string, token: string | null | undefined, timeoutMs?: number) {
+  const key = `${resolveToken(token) ?? ""}\n${timeoutMs ?? ""}\n${path}`;
+  let pedido = inflightGets.get(key) as Promise<T> | undefined;
+  if (!pedido) {
+    const nuevo: Promise<T> = request<T>(path, { method: "GET", token, timeoutMs }).finally(() => {
+      if (inflightGets.get(key) === nuevo) inflightGets.delete(key);
+    });
+    inflightGets.set(key, nuevo);
+    pedido = nuevo;
+  }
+  return pedido.then((data) =>
+    data !== null && typeof data === "object" ? structuredClone(data) : data
+  );
+}
+
 export const api = {
   get: <T>(path: string, token?: string | null, timeoutMs?: number) =>
-    request<T>(path, { method: "GET", token, timeoutMs }),
+    getDeduplicado<T>(path, token, timeoutMs),
   post: <T>(
     path: string,
     body?: unknown,
