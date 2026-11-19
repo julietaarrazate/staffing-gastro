@@ -164,6 +164,17 @@ class AdminCompanySummary:
 
 
 @dataclass
+class AdminCloseAction:
+    """Qué haría «Cerrar turno» de la admin en un turno empezado de una
+    cuenta suspendida (decisión 21, ADR-0024): marcar la salida, cerrarlo o
+    las dos cosas, y a quién se le avisa (`"company"`, `"worker"` o nadie)."""
+
+    check_out: bool
+    finish: bool
+    notifies: str | None
+
+
+@dataclass
 class AdminShiftRow:
     """Turno reciente de la persona (como trabajador asignado o como comercio)."""
 
@@ -178,6 +189,21 @@ class AdminShiftRow:
     amount_due: Decimal
     # La persona de la ficha faltó a este turno (ya no figura como asignada).
     absent: bool = False
+    # «Cerrar turno» (decisión 21): sólo en la ficha de una cuenta suspendida
+    # y sólo en los turnos donde aplica; si no, `None`.
+    admin_close: AdminCloseAction | None = None
+
+
+@dataclass
+class AdminShiftClosure:
+    """Resultado de «Cerrar turno»: cómo quedó el turno y qué se hizo."""
+
+    shift_id: UUID
+    status: str
+    check_out: bool
+    finish: bool
+    notifies: str | None
+    checked_out_at: datetime | None
 
 
 @dataclass

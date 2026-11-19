@@ -103,6 +103,14 @@ class ShiftModel(Base):
         nullable=True,
     )
 
+    # «Cerrar turno» de la admin en nombre de una cuenta suspendida (decisión
+    # 21, migración 0058). Sin FK a `users`: es un registro, y no tiene que
+    # impedir borrar la cuenta de la admin.
+    closed_by_admin_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    closed_by_admin_user_id: Mapped[uuid.UUID | None] = mapped_column(GUID(), nullable=True)
+
     checkin_reminder_sent_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

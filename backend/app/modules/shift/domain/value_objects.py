@@ -1,5 +1,6 @@
 """Objetos de valor del dominio de turnos."""
 
+from dataclasses import dataclass
 from enum import Enum
 
 
@@ -109,3 +110,38 @@ TAKEN_NOT_STARTED_STATUSES: frozenset[ShiftStatus] = frozenset(
         ShiftStatus.EN_CAMINO,
     }
 )
+
+
+# Estados de un turno empezado que la admin puede cerrar en nombre de una
+# cuenta suspendida (decisión 21, ADR-0024): con la llegada marcada falta la
+# salida; con la salida marcada falta cerrarlo.
+ADMIN_CHECK_OUT_STATUSES: frozenset[ShiftStatus] = frozenset(
+    {ShiftStatus.CHECK_IN, ShiftStatus.TRABAJANDO}
+)
+
+
+@dataclass(frozen=True)
+class AdminClosePlan:
+    """Qué hace «Cerrar turno» de la admin sobre un turno empezado de una
+    cuenta suspendida (decisión 21, ADR-0024). Lo decide
+    `Shift.admin_close_plan`; lo lee la ficha de la admin antes de confirmar.
+
+    - `check_out`: marca la salida en nombre del trabajador suspendido.
+    - `finish`: cierra el turno en nombre del comercio suspendido.
+    - `worker_active` / `company_active`: cómo estaban las cuentas al decidir.
+      `notifies` es a quién le llega el aviso al celular (la parte activa);
+      a una cuenta suspendida el aviso le queda guardado, sin push."""
+
+    check_out: bool
+    finish: bool
+    worker_active: bool
+    company_active: bool
+
+    @property
+    def notifies(self) -> str | None:
+        """A quién se le avisa: `"company"` si se marcó la salida y el
+        comercio tiene que cerrar, `"worker"` si se cerró y el trabajador
+        puede calificar, `None` si las dos cuentas están suspendidas."""
+        if self.finish:
+            return "worker" if self.worker_active else None
+        return "company" if self.company_active else None

@@ -75,4 +75,6 @@ def get_admin_service(
         device_remover=_PushDeviceRemover(
             PushService(SqlAlchemyPushSubscriptionRepository(session))
         ),
+        # Puerto `SuspendedAccountShiftCloser` (decisión 21): «Cerrar turno».
+        shift_closer=shift_service,
     )
