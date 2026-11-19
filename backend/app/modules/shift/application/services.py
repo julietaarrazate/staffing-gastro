@@ -904,8 +904,9 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
 
     async def _publication_subscription(self, company_id: UUID, now: datetime) -> Subscription:
         """La suscripción del comercio con la ventana de uso al día. No guarda
-        nada: si la ventana venció, la nueva queda en la entidad y se persiste
-        recién cuando se cuenta una publicación."""
+        nada: si la ventana venció, la nueva queda en la entidad, y en la base
+        la abre recién la publicación que se cuenta
+        (`SubscriptionRepository.register_publication`)."""
         # ADR-0022: con el cobro real exigido (`billing_enforced` = tope
         # prendido + credenciales de Mercado Pago) un comercio nuevo arranca
         # `pendiente`. Con el cobro apagado arranca `activa` (la beta).
@@ -956,11 +957,12 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         no publicó nada no llega hasta acá y no cambia el contador. El uso se
         registra también con el tope apagado, para tener el dato cuando se
         encienda."""
-        subscription = await self._publication_subscription(
-            company_id, datetime.now(timezone.utc)
-        )
-        subscription.register_publication()
-        await self._subscriptions.update(subscription)
+        # La suma va en la base (`turnos_usados_mes + 1`), sin leer y
+        # reescribir: dos publicaciones a la vez del mismo comercio cuentan
+        # las dos (CON-08). La lectura sólo asegura que la suscripción exista.
+        now = datetime.now(timezone.utc)
+        await self._publication_subscription(company_id, now)
+        await self._subscriptions.register_publication(company_id, now)
 
     async def cancel_shift(self, company_id: UUID, shift_id: UUID) -> Shift:
         """El comercio cancela el turno (terminal, cualquier estado no

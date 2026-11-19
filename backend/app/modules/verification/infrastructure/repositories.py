@@ -5,19 +5,24 @@ Mapea el agregado `Claim` (con sus `Evidence`) a/desde las tablas
 manda a borrar a `identity_evidence_file_deletions` (ADR-0021).
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.row_state import unchanged_since_read
+
 from app.modules.verification.domain.entities import (
     Claim,
     Evidence,
     EvidenceFileDeletion,
 )
-from app.modules.verification.domain.exceptions import ClaimAlreadyExistsError
+from app.modules.verification.domain.exceptions import (
+    ClaimAlreadyExistsError,
+    ClaimChangedError,
+)
 from app.modules.verification.domain.repositories import (
     ClaimRepository,
     EvidenceFileDeletionRepository,
@@ -60,6 +65,11 @@ def _evidence_to_entity(model: IdentityEvidenceModel) -> Evidence:
     )
 
 
+def _persisted_state(status: str, submitted_at: datetime | None) -> dict:
+    """La «versión» del claim: estado y envío (ver `Claim.persisted_state`)."""
+    return {"status": status, "submitted_at": submitted_at}
+
+
 def _to_entity(model: IdentityClaimModel) -> Claim:
     return Claim(
         id=model.id,
@@ -76,18 +86,21 @@ def _to_entity(model: IdentityClaimModel) -> Claim:
         expires_at=model.expires_at,
         created_at=model.created_at,
         updated_at=model.updated_at,
+        persisted_state=_persisted_state(model.status, model.submitted_at),
     )
 
 
-def _apply_claim_fields(model: IdentityClaimModel, claim: Claim) -> None:
-    model.status = claim.status.value
-    model.confidence = claim.confidence.value if claim.confidence else None
-    model.method = claim.method.value if claim.method else None
-    model.submitted_at = claim.submitted_at
-    model.decided_at = claim.decided_at
-    model.reviewed_by = claim.reviewed_by
-    model.rejection_reason = claim.rejection_reason
-    model.expires_at = claim.expires_at
+def _claim_values(claim: Claim) -> dict:
+    return {
+        "status": claim.status.value,
+        "confidence": claim.confidence.value if claim.confidence else None,
+        "method": claim.method.value if claim.method else None,
+        "submitted_at": claim.submitted_at,
+        "decided_at": claim.decided_at,
+        "reviewed_by": claim.reviewed_by,
+        "rejection_reason": claim.rejection_reason,
+        "expires_at": claim.expires_at,
+    }
 
 
 def _sync_evidences(model: IdentityClaimModel, claim: Claim) -> None:
@@ -146,8 +159,11 @@ class SqlAlchemyClaimRepository(ClaimRepository):
 
     def _stage_file_deletions(self, claim: Claim) -> None:
         """Los archivos que la operación mandó a borrar entran a la cola en el
-        mismo commit que la purga del puntero (ADR-0021)."""
-        self._session.add_all(_deletion_to_model(d) for d in claim.files_to_delete)
+        mismo commit que la purga del puntero (ADR-0021), por la misma puerta
+        que el resto (`add_pending`)."""
+        SqlAlchemyEvidenceFileDeletionRepository(self._session).add_pending(
+            claim.files_to_delete
+        )
 
     async def _exists(self, user_id: UUID, claim_type: ClaimType) -> bool:
         stmt = select(IdentityClaimModel.id).where(
@@ -158,9 +174,11 @@ class SqlAlchemyClaimRepository(ClaimRepository):
 
     async def add(self, claim: Claim) -> Claim:
         model = IdentityClaimModel(
-            id=claim.id, user_id=claim.user_id, claim_type=claim.claim_type.value
+            id=claim.id,
+            user_id=claim.user_id,
+            claim_type=claim.claim_type.value,
+            **_claim_values(claim),
         )
-        _apply_claim_fields(model, claim)
         _sync_evidences(model, claim)
         self._session.add(model)
         self._stage_file_deletions(claim)
@@ -178,18 +196,47 @@ class SqlAlchemyClaimRepository(ClaimRepository):
         return _to_entity(model)
 
     async def update(self, claim: Claim) -> Claim:
-        model = await self._session.get(IdentityClaimModel, claim.id)
-        if model is None:
-            raise ValueError("El claim no existe")
-        _apply_claim_fields(model, claim)
+        """Guarda el claim sólo si en la base sigue como se leyó (estado y
+        envío, `Claim.persisted_state`): `UPDATE … WHERE status = <leído> AND
+        submitted_at = <leído>`. Si afectó 0 filas, otro guardado entró en el
+        medio (un reenvío, otra decisión): no se guarda nada y
+        `ClaimChangedError` (ESC-01).
+
+        La fila del claim va primero: en Postgres queda bloqueada hasta el
+        commit, así que un reenvío simultáneo espera, vuelve a evaluar su
+        propia condición y pierde; nunca se mezclan las evidencias de los
+        dos. Recién después se reemplazan las evidencias y se encola el
+        borrado de archivos, en el mismo commit."""
+        if claim.persisted_state is None:
+            raise ValueError("El claim no se leyó de la base")
+        result = await self._session.execute(
+            update(IdentityClaimModel)
+            .where(
+                IdentityClaimModel.id == claim.id,
+                *unchanged_since_read(IdentityClaimModel, claim.persisted_state),
+            )
+            .values(**_claim_values(claim))
+            .execution_options(synchronize_session=False)
+        )
+        if result.rowcount != 1:
+            await self._session.rollback()
+            raise ClaimChangedError(str(claim.id))
+        model = await self._session.get(
+            IdentityClaimModel, claim.id, populate_existing=True
+        )
         _sync_evidences(model, claim)
         self._stage_file_deletions(claim)
         await self._session.commit()
         await self._session.refresh(model)
+        claim.persisted_state = _persisted_state(model.status, model.submitted_at)
         return _to_entity(model)
 
     async def get_by_id(self, claim_id: UUID) -> Claim | None:
-        model = await self._session.get(IdentityClaimModel, claim_id)
+        # Siempre de la base: la copia del identity map puede ser de antes de
+        # un reenvío (ADR-0016 vio lo mismo con el turno).
+        model = await self._session.get(
+            IdentityClaimModel, claim_id, populate_existing=True
+        )
         return _to_entity(model) if model else None
 
     async def get_for_user(
@@ -207,6 +254,13 @@ class SqlAlchemyClaimRepository(ClaimRepository):
         stmt = select(IdentityClaimModel).where(IdentityClaimModel.user_id == user_id)
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
+
+    async def queue_file_deletions(self, files: list[EvidenceFile]) -> list[UUID]:
+        # La misma puerta que el CV (`queue_file_deletions`, sin commit); acá
+        # confirma porque el envío que se descarta no guarda nada más.
+        ids = queue_file_deletions(self._session, files)
+        await self._session.commit()
+        return ids
 
     async def get_by_evidence_id(self, evidence_id: UUID) -> Claim | None:
         stmt = select(IdentityEvidenceModel.claim_id).where(
@@ -236,6 +290,21 @@ class SqlAlchemyClaimRepository(ClaimRepository):
         )
         result = await self._session.execute(stmt)
         return {row[0] for row in result.all()}
+
+
+def queue_file_deletions(
+    session: AsyncSession, files: list[EvidenceFile], now: datetime | None = None
+) -> list[UUID]:
+    """La puerta de la cola de borrado para archivos sueltos: el CV que se
+    cambió o se sacó, o los archivos de un envío de verificación que no se
+    guardó. Los pedidos entran pendientes (`deleted_at` vacío) en la sesión
+    de quien llama y se confirman con su commit; devuelve los ids para
+    `delete_released_files` después de responder. Las decisiones sobre un
+    claim usan `add_pending` directo, con los pedidos que ya armó el dominio."""
+    now = now or datetime.now(UTC)
+    deletions = [EvidenceFileDeletion.request(file, now) for file in files]
+    SqlAlchemyEvidenceFileDeletionRepository(session).add_pending(deletions)
+    return [deletion.id for deletion in deletions]
 
 
 class SqlAlchemyEvidenceFileDeletionRepository(EvidenceFileDeletionRepository):

@@ -25,7 +25,10 @@ from app.modules.verification.application.dtos import (
 from app.modules.verification.domain.entities import Claim, Evidence
 from app.modules.verification.domain.exceptions import (
     ClaimAlreadyExistsError,
+    ClaimAlreadyVerifiedError,
+    ClaimChangedError,
     ClaimNotFoundError,
+    ClaimNotPendingError,
     EvidenceNotFoundError,
 )
 from app.modules.verification.domain.repositories import (
@@ -47,6 +50,10 @@ from app.modules.verification.domain.value_objects import (
 
 # Cuánto dura el link de una evidencia privada (ADR-0021).
 EVIDENCE_LINK_TTL = timedelta(minutes=5)
+
+# Cuántas veces un envío relee y se vuelve a aplicar si otro guardado le ganó
+# (un envío simultáneo o una decisión del admin).
+CLAIM_SUBMIT_ATTEMPTS = 3
 
 # Desde cuántos intentos fallidos un borrado deja de ser un aviso y pasa a
 # error (llega a Sentry): con los reintentos espaciados, unas 4 horas.
@@ -92,19 +99,40 @@ class VerificationService:
         leen «no hay claim» y el segundo alta choca con la restricción única,
         se relee el claim que ganó y se reenvía sobre él por el camino normal
         (a la cola de borrado van sólo los archivos que el envío nuevo
-        reemplaza, no los que sigue usando). Un solo reintento."""
-        for attempt in range(2):
+        reemplaza, no los que sigue usando). Lo mismo si otro guardado cambió
+        el claim entre la lectura y este (`ClaimChangedError`): se relee y se
+        reenvía sobre lo nuevo. Hasta `CLAIM_SUBMIT_ATTEMPTS` intentos.
+
+        Si el claim ya está verificado (también si la aprobación entró en el
+        medio), el envío no corresponde: sus archivos ya están subidos y nada
+        los apunta, así que van a la cola de borrado (ADR-0021) antes de
+        `ClaimAlreadyVerifiedError`."""
+        for attempt in range(CLAIM_SUBMIT_ATTEMPTS):
             claim = await self._claims.get_for_user(user_id, claim_type)
             is_new = claim is None
             if claim is None:
                 claim = Claim(user_id=user_id, claim_type=claim_type)
-            claim.submit(evidences, VerificationMethod.ADMIN_MANUAL, _now())
+            try:
+                claim.submit(evidences, VerificationMethod.ADMIN_MANUAL, _now())
+            except ClaimAlreadyVerifiedError:
+                await self._discard_files(evidences)
+                raise
             try:
                 return await self._save(claim, is_new=is_new)
-            except ClaimAlreadyExistsError:
-                if attempt == 1:
+            except (ClaimAlreadyExistsError, ClaimChangedError):
+                if attempt == CLAIM_SUBMIT_ATTEMPTS - 1:
                     raise
         raise AssertionError("inalcanzable")  # pragma: no cover
+
+    async def _discard_files(self, evidences: list[Evidence]) -> None:
+        """Manda a la cola de borrado los archivos de un envío que no se
+        guardó (ADR-0021): ya están en el storage y ningún claim los apunta."""
+        files = [e.file for e in evidences if e.file is not None]
+        if not files:
+            return
+        ids = await self._claims.queue_file_deletions(files)
+        if self._delete_files_later is not None:
+            self._delete_files_later(ids)
 
     async def submit_identity_document(
         self,
@@ -169,25 +197,58 @@ class VerificationService:
 
         return await self._submit(user_id, ClaimType.NEGOCIO_VERIFICADO, evidences)
 
-    async def approve_claim(self, claim_id: UUID, admin_id: UUID) -> Claim:
+    async def approve_claim(
+        self,
+        claim_id: UUID,
+        admin_id: UUID,
+        reviewed_submission: datetime | None = None,
+    ) -> Claim:
         """Un admin aprueba un claim pendiente (purga la evidencia sensible y
-        borra sus archivos después de responder)."""
-        claim = await self._claims.get_by_id(claim_id)
-        if claim is None:
-            raise ClaimNotFoundError(str(claim_id))
-        claim.approve(admin_id, _now())
-        return await self._save(claim)
+        borra sus archivos después de responder). `reviewed_submission` es
+        el `submitted_at` del envío que revisó: si la persona reenvió
+        después, `ClaimChangedError` y no se decide nada (ESC-01)."""
+        return await self._decide(
+            claim_id,
+            lambda claim: claim.approve(
+                admin_id, _now(), reviewed_submission=reviewed_submission
+            ),
+        )
 
     async def reject_claim(
-        self, claim_id: UUID, admin_id: UUID, reason: str | None
+        self,
+        claim_id: UUID,
+        admin_id: UUID,
+        reason: str | None,
+        reviewed_submission: datetime | None = None,
     ) -> Claim:
         """Un admin rechaza un claim pendiente (purga la evidencia sensible y
-        borra sus archivos después de responder)."""
+        borra sus archivos después de responder). Igual que `approve_claim`
+        con `reviewed_submission`."""
+        return await self._decide(
+            claim_id,
+            lambda claim: claim.reject(
+                admin_id, reason, _now(), reviewed_submission=reviewed_submission
+            ),
+        )
+
+    async def _decide(self, claim_id: UUID, decide: Callable[[Claim], None]) -> Claim:
+        """Lee el claim, aplica la decisión del dominio y la guarda sólo si
+        nadie lo cambió en el medio. Si perdió la carrera, relee para decir
+        por qué: otra decisión (ya no está pendiente) o un reenvío (hay que
+        revisarlo de nuevo)."""
         claim = await self._claims.get_by_id(claim_id)
         if claim is None:
             raise ClaimNotFoundError(str(claim_id))
-        claim.reject(admin_id, reason, _now())
-        return await self._save(claim)
+        decide(claim)
+        try:
+            return await self._save(claim)
+        except ClaimChangedError:
+            current = await self._claims.get_by_id(claim_id)
+            if current is None:
+                raise ClaimNotFoundError(str(claim_id)) from None
+            if not current.is_pending:
+                raise ClaimNotPendingError(str(current.claim_type)) from None
+            raise
 
     async def list_pending(self) -> list[PendingClaimItem]:
         """Cola de revisión del admin. Dice qué evidencias hay, pero no dónde

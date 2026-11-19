@@ -178,13 +178,18 @@ export default function IdentityReviewQueue() {
     load();
   }, [load]);
 
-  async function decide(claimId: string, action: "approve" | "reject") {
+  async function decide(claim: PendingClaim, action: "approve" | "reject") {
     if (!token) return;
+    const claimId = claim.claim_id;
     setBusy(`${claimId}:${action}`);
     try {
+      // El envío que se revisó, tal cual vino de la cola: si la persona
+      // volvió a mandar los documentos después, el servidor no decide nada y
+      // responde 409; «Reintentar» recarga la cola con lo nuevo (ESC-01).
+      const reviewed = { submitted_at: claim.submitted_at };
       await api.post(
         `/identity/claims/${claimId}/${action}`,
-        action === "reject" ? { reason: reason.trim() || null } : undefined,
+        action === "reject" ? { ...reviewed, reason: reason.trim() || null } : reviewed,
         token
       );
       setRejecting(null);
@@ -268,7 +273,7 @@ export default function IdentityReviewQueue() {
                   size="sm"
                   variant="danger"
                   loading={busy === `${claim.claim_id}:reject`}
-                  onClick={() => decide(claim.claim_id, "reject")}
+                  onClick={() => decide(claim, "reject")}
                 >
                   Confirmar rechazo
                 </Button>
@@ -291,7 +296,7 @@ export default function IdentityReviewQueue() {
                 variant="secondary"
                 disabled={busy !== null}
                 loading={busy === `${claim.claim_id}:approve`}
-                onClick={() => decide(claim.claim_id, "approve")}
+                onClick={() => decide(claim, "approve")}
               >
                 Aprobar
               </Button>

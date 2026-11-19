@@ -389,3 +389,44 @@ decir «el CV lo ve el comercio con el que tenés un turno o una postulación,
 con un link que vence a los minutos; si lo cambiás o lo sacás, lo
 borramos». Cambiar ese texto necesita el sí de Julieta y subir
 `LEGAL_TERMS_VERSION` y `frontend/lib/legal.ts`.
+
+## Actualización 2026-11-19: la decisión es sobre el envío revisado (ESC-01)
+
+El guardado del pedido reescribía estado y evidencias desde la copia leída
+al empezar la decisión. Si la persona reenviaba en ese momento, la admin
+aprobaba la evidencia vieja y los archivos del reenvío quedaban en el
+storage sin evidencia que los apunte y fuera de la cola de borrado: el
+borrado de este ADR dejaba de cumplirse.
+
+- El guardado es condicional: `UPDATE … WHERE status = <leído> AND
+  submitted_at = <leído>` (cada cambio del pedido mueve uno de los dos, así
+  que sirve de versión sin columna nueva). Si otro guardó en el medio, no se
+  escribe nada, ni las evidencias ni la cola.
+- Aprobar y rechazar llevan el `submitted_at` que la cola le mostró a la
+  admin. Si la persona volvió a mandar los documentos después, **409 «La
+  persona volvió a mandar los documentos. Revisalos de nuevo.»** y la cola
+  se recarga con el envío nuevo. Sin ese dato (un cliente viejo) se decide
+  sobre el envío pendiente, como antes, pero igual con el guardado
+  condicional.
+- Un reenvío que choca con una decisión relee y reintenta (hasta 3 veces;
+  si pierde las 3, 409 «No pudimos guardar tu envío porque cambió mientras
+  tanto. Probá de nuevo.» sin tocar nada). Si lo que entró fue una
+  aprobación, 409 «Tu identidad ya está verificada» (o «Tu comercio ya está
+  verificado»), y los archivos de ese envío, que ya estaban subidos y nada
+  apunta, van a la cola de borrado (lo mismo si alguien ya verificado
+  reenvía). Con el 409 no corre el borrado de después de responder: los
+  borra el scheduler en su próxima pasada.
+- `scripts/privatize_identity_evidence.py` cambia el puntero de las
+  evidencias pendientes (de la URL pública, o de `file_delivery_type`
+  `private`, a `authenticated`) sin mover el estado ni `submitted_at`, así
+  que el guardado condicional del pedido no lo ve. Una decisión o un
+  reenvío mientras corre el script trabaja con lo que leyó antes: encola el
+  borrado con el tipo viejo (o, con la URL pública, no encola nada),
+  Cloudinary contesta que ese archivo no existe, el pedido cuenta como
+  borrado y el archivo `authenticated` queda huérfano hasta volver a correr
+  el script (su paso 2 borra lo que nada apunta). Por eso el script se
+  corre **sin pedidos abiertos** (decidir antes los pendientes de
+  `/admin/verificacion` y no aprobar ni rechazar mientras corre) y **se
+  vuelve a correr al terminar** (es idempotente). Está en
+  `PENDIENTE_OPERATIVO.md`, ítem 5c.
+

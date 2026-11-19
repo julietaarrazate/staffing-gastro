@@ -19,7 +19,7 @@ Dos entradas, el mismo caso de uso (`EvidenceFileCleaner`):
 """
 
 import logging
-from datetime import UTC, datetime
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -28,30 +28,16 @@ from app.core.database import AsyncSessionLocal
 from app.core.dt import naive
 from app.modules.verification.application.dtos import FileCleanupReport
 from app.modules.verification.application.services import EvidenceFileCleaner
-from app.modules.verification.domain.entities import EvidenceFileDeletion
 from app.modules.verification.domain.repositories import EvidenceFileStorage
-from app.modules.verification.domain.value_objects import EvidenceFile
 from app.modules.verification.infrastructure.evidence_file_storage import (
     CloudinaryEvidenceFileStorage,
 )
 from app.modules.verification.infrastructure.repositories import (
     SqlAlchemyEvidenceFileDeletionRepository,
+    queue_file_deletions,  # la puerta de la cola; la importan otros módulos desde acá
 )
 
 logger = logging.getLogger(__name__)
-
-
-def queue_file_deletions(
-    session: AsyncSession, files: list[EvidenceFile], now: datetime | None = None
-) -> list[UUID]:
-    """Puerta de la cola para otro módulo que guarda archivos privados en el
-    mismo storage (el CV del trabajador). Los pedidos entran en la sesión de
-    quien llama y se confirman con su commit; devuelve los ids para
-    `delete_released_files` después de responder."""
-    now = now or datetime.now(UTC)
-    deletions = [EvidenceFileDeletion.request(file, now) for file in files]
-    SqlAlchemyEvidenceFileDeletionRepository(session).add_pending(deletions)
-    return [deletion.id for deletion in deletions]
 
 
 async def file_deletion_requested(session: AsyncSession, public_id: str) -> bool:
