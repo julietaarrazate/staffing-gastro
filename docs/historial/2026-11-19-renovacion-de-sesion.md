@@ -1,4 +1,4 @@
-# Sesión: dos pestañas o una respuesta perdida ya no cierran la cuenta en todos lados
+# Sesión: dos pestañas o una respuesta perdida ya no cierran la cuenta en todos lados (#668)
 
 **Pedido:** tres hallazgos de la pasada por clase de error del 2026-11-19 (CON-02 grave, CON-03, SES-01), todos en la renovación de la sesión. Diseño decidido por quien coordina la beta; la revisión de seguridad lo aprobó con cambios (ventana de un solo uso que revoca la sucesora), ya incluidos.
 
