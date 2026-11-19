@@ -1296,15 +1296,16 @@ body:has([data-landing]) main {
   filter: none;
   pointer-events: none;
   opacity: 0.75;
-  /* Seis estrellas, sólo en la franja derecha (x >= 62 %) y a media altura:
-     lejos del chip, del saludo, del título, de la zona y del buscador. */
+  /* Seis estrellas pegadas al borde derecho (en px desde la derecha, todas
+     en los últimos 60) y en alto dentro de la franja del título: no caen
+     sobre el título a 320 px ni cerca del chip o de la zona. */
   background:
-    radial-gradient(circle 1.2px at 66% 30%, #cfe6f5 96%, transparent),
-    radial-gradient(circle 1px at 88% 27%, #cfe6f5 96%, transparent),
-    radial-gradient(circle 1.4px at 75% 38%, #cfe6f5 96%, transparent),
-    radial-gradient(circle 1px at 94% 42%, #cfe6f5 96%, transparent),
-    radial-gradient(circle 1.2px at 82% 50%, #cfe6f5 96%, transparent),
-    radial-gradient(circle 1px at 69% 54%, #cfe6f5 96%, transparent);
+    radial-gradient(circle 1.2px at calc(100% - 18px) 88px, #cfe6f5 96%, transparent),
+    radial-gradient(circle 1px at calc(100% - 46px) 104px, #cfe6f5 96%, transparent),
+    radial-gradient(circle 1.4px at calc(100% - 26px) 120px, #cfe6f5 96%, transparent),
+    radial-gradient(circle 1px at calc(100% - 56px) 130px, #cfe6f5 96%, transparent),
+    radial-gradient(circle 1.2px at calc(100% - 14px) 142px, #cfe6f5 96%, transparent),
+    radial-gradient(circle 1px at calc(100% - 40px) 152px, #cfe6f5 96%, transparent);
 }
 
 /* La portada de un turno sin foto (`components/ui/PortadaCielo.tsx`): el cielo
@@ -3316,6 +3317,11 @@ body:has([data-landing]) main {
   background: var(--suave-tecla);
   box-shadow: var(--suave-sombra-alta);
 }
+/* Los esqueletos de carga dentro de la hoja: en oscuro el `surface` no se
+   distingue de la hoja, así que usan el tono del campo. */
+.estilo-suave .hoja .animate-pulse {
+  background-color: var(--suave-campo);
+}
 /* El buscador sobre el cielo: un campo de vidrio, sin borde. */
 .campo-vidrio {
   border-radius: 16px;
@@ -3343,6 +3349,9 @@ body:has([data-landing]) main {
 :root[data-theme="dark"] .chip-vidrio {
   background: rgba(255, 255, 255, 0.1);
   color: #e6eef4;
+}
+.chip-vidrio.chip-disponible {
+  background: rgba(255, 255, 255, 0.82);
 }
 .chip-suave {
   background: var(--suave-campo);

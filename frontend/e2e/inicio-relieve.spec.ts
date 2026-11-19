@@ -70,6 +70,8 @@ test("el recomendado es una tarjeta: puesto, pago, local y cuándo, y «Para hoy
   await expect(page.getByText("Hola, Sofía.", { exact: true })).toBeVisible();
   const titulo = page.getByRole("heading", { level: 1 });
   await expect(titulo).toHaveText(/Hay turno\s*a la vuelta/);
+  // También en `textContent` (lectores y buscadores): un espacio antes del corte.
+  expect(await titulo.evaluate((el) => el.textContent)).toBe("Hay turno a la vuelta");
   const medidas = await titulo.evaluate((el) => ({ size: getComputedStyle(el).fontSize, peso: getComputedStyle(el).fontWeight, alto: getComputedStyle(el).lineHeight }));
   expect(medidas).toEqual({ size: "46px", peso: "800", alto: "46px" });
   const tarjeta = page.getByTestId("feed-hero-card");
@@ -110,9 +112,11 @@ test("un turno urgente lleva el aviso «Urgente» y no «Para hoy», y la tarjet
 test("el chip «Disponible» dice su estado, avisa a los lectores de pantalla y mide 44 px", async ({ page }) => {
   await inicio(page, [turno("s1", {})]);
   await page.goto("/feed");
-  const chip = page.getByRole("button", { name: "Cambiar disponibilidad" });
+  const chip = page.getByRole("button", { name: /: cambiar disponibilidad$/ });
   await expect(chip).toHaveAttribute("aria-pressed", "true");
   await expect(chip).toHaveText("Disponible");
+  // El nombre accesible empieza con el texto visible.
+  await expect(chip).toHaveAccessibleName("Disponible: cambiar disponibilidad");
   const caja = await chip.boundingBox();
   expect(caja!.height).toBeGreaterThanOrEqual(44);
 });

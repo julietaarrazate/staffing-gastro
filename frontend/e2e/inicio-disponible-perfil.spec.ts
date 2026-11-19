@@ -98,7 +98,7 @@ test("tocar «Disponible» cambia sólo la disponibilidad y no pisa lo guardado 
   });
 
   await page.goto("/feed");
-  const interruptor = page.getByRole("button", { name: "Cambiar disponibilidad" });
+  const interruptor = page.getByRole("button", { name: /: cambiar disponibilidad$/ });
   await expect(interruptor).toBeVisible();
   await expect(page.getByText("Disponible", { exact: true })).toBeVisible();
 
@@ -162,7 +162,7 @@ test("tocar «Disponible» con el refresco del Inicio en vuelo: la pantalla se q
   });
 
   await page.goto("/feed");
-  const interruptor = page.getByRole("button", { name: "Cambiar disponibilidad" });
+  const interruptor = page.getByRole("button", { name: /: cambiar disponibilidad$/ });
   await expect(interruptor).toBeVisible();
   await interruptor.click();
   await expect(page.getByText("No disponible", { exact: true })).toBeVisible();
@@ -235,7 +235,7 @@ test("si el guardado falla con la carga del Inicio en vuelo, la pantalla toma el
   });
 
   await page.goto("/feed");
-  const interruptor = page.getByRole("button", { name: "Cambiar disponibilidad" });
+  const interruptor = page.getByRole("button", { name: /: cambiar disponibilidad$/ });
   await expect(interruptor).toBeVisible();
   await interruptor.click();
   await expect.poll(() => puts).toBe(1);
@@ -321,7 +321,7 @@ test("si el guardado falla sin conexión, el Inicio conserva los turnos y sólo 
 
   await page.goto("/feed");
   await expect(page.getByText("Bar Demo Palermo").first()).toBeVisible();
-  const interruptor = page.getByRole("button", { name: "Cambiar disponibilidad" });
+  const interruptor = page.getByRole("button", { name: /: cambiar disponibilidad$/ });
   await expect(interruptor).toBeVisible();
   const feedAntes = pedidosFeed;
 
@@ -349,7 +349,7 @@ test("si todavía no hay perfil, tocar «Disponible» explica que falta completa
 
   await page.goto("/feed");
   await expect(page.getByText("Bar Demo Palermo").first()).toBeVisible();
-  const interruptor = page.getByRole("button", { name: "Cambiar disponibilidad" });
+  const interruptor = page.getByRole("button", { name: /: cambiar disponibilidad$/ });
   await expect(interruptor).toBeVisible();
   const feedAntes = pedidosFeed;
 

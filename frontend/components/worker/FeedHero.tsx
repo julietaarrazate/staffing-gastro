@@ -84,21 +84,21 @@ function FeedHero({ shift, distanceKm = null }: { shift: Shift; distanceKm?: num
         </div>
 
         <div className="px-4 pb-3 pt-3.5">
-          <div className="flex items-baseline justify-between gap-3">
-            <h3 className="min-w-0 break-words text-puesto font-extrabold leading-tight tracking-[-0.01em] text-ink">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <h3 className="min-w-0 flex-1 basis-[6rem] break-words text-puesto font-extrabold leading-tight tracking-[-0.01em] text-ink">
               {label}
             </h3>
-            <p className="shrink-0 text-right text-pago font-extrabold leading-none tabular-nums text-ink">
+            <p className="ml-auto shrink-0 text-right text-[length:min(var(--text-pago),9vw)] font-extrabold leading-none tabular-nums text-ink">
               {pago.amount}
             </p>
           </div>
-          <div className="mt-1 flex items-start justify-between gap-3">
-            <div className="min-w-0 text-sm text-ink-soft">
+          <div className="mt-1 flex flex-wrap items-start justify-between gap-x-3 gap-y-0.5">
+            <div className="min-w-0 flex-1 basis-[8rem] text-sm text-ink-soft">
               {where && <p className="break-words">{where}</p>}
               <p>{formatShiftWhenLive(shift)}</p>
             </div>
             {(pago.suffix || shift.tips) && (
-              <p className="shrink-0 text-right text-sm text-ink-soft">
+              <p className="ml-auto shrink-0 text-right text-sm text-ink-soft">
                 {[pago.suffix, shift.tips ? "+ propinas" : null].filter(Boolean).join(" ")}
               </p>
             )}

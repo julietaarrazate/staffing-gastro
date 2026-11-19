@@ -5,9 +5,11 @@
  * además lleva `.cielo-limpio` para apagar las manchas viejas.
  *
  * Pocas y con intención: una grande que asoma por el borde y a lo sumo una
- * chica «de lejos» (`lejos`, más tenue). Nunca detrás de un texto: la
- * posición es de quien las usa. Derivan muy despacio (se apaga con
- * `prefers-reduced-motion`) y de noche no se ven (quedan las estrellas).
+ * chica «de lejos» (`lejos`, más tenue). De día una nube puede quedar detrás
+ * de un texto en tinta (se lee mejor sobre el blanco que sobre el celeste);
+ * lo que no puede es tapar nada ni ir detrás de letra blanca. La posición es
+ * de quien las usa. Derivan muy despacio (se apaga con `prefers-reduced-motion`)
+ * y de noche no se ven (quedan las estrellas).
  */
 type Forma = "a" | "b" | "c";
 
@@ -20,12 +22,14 @@ const TAMANO: Record<Forma, { w: number; h: number }> = {
 
 export interface NubeCielo {
   forma: Forma;
-  /** Ancho en px de pantalla; el alto sale de la proporción. */
-  ancho: number;
+  /** Ancho (px o una expresión CSS); el alto sale de la proporción. */
+  ancho: number | string;
   /** Posición dentro del cielo (`right`, `top`, `left`, `bottom`; px o CSS). */
   pos: { top?: number | string; right?: number | string; bottom?: number | string; left?: number | string };
   /** Chica y más tenue: una nube «de lejos». */
   lejos?: boolean;
+  /** Clases extra (por ejemplo, ocultarla en pantallas angostas). */
+  className?: string;
 }
 
 export default function NubesCielo({ nubes }: { nubes: NubeCielo[] }) {
@@ -43,7 +47,7 @@ export default function NubesCielo({ nubes }: { nubes: NubeCielo[] }) {
           loading="eager"
           decoding="async"
           draggable={false}
-          className={`nube-cielo${n.lejos ? " nube-cielo-lejos" : ""}`}
+          className={`nube-cielo${n.lejos ? " nube-cielo-lejos" : ""}${n.className ? ` ${n.className}` : ""}`}
           style={{ width: n.ancho, ...n.pos }}
         />
       ))}

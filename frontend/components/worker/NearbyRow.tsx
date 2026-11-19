@@ -17,7 +17,9 @@ function NearbyItem({ shift, distanceKm }: { shift: Shift; distanceKm: number | 
   const heroPhoto = shiftHeroPhoto(shift);
   const hasPhoto = Boolean(heroPhoto) && !broken;
   const { Icon } = SKILL_ACCENT[shift.position];
-  const donde = [shift.company_name, distanceKm != null ? formatDistance(distanceKm) : null, formatShiftWhenLive(shift)]
+  // Cuándo y distancia nunca se cortan: si no entran al lado, bajan de
+  // renglón. Lo único que se trunca es el nombre del local.
+  const cuando = [distanceKm != null ? formatDistance(distanceKm) : null, formatShiftWhenLive(shift)]
     .filter(Boolean)
     .join(" · ");
 
@@ -27,10 +29,10 @@ function NearbyItem({ shift, distanceKm }: { shift: Shift; distanceKm: number | 
       <Link
         href={`/turno/${shift.id}`}
         data-testid="feed-nearby-card"
-        className="tecla flex items-center gap-3 py-2.5 pl-2.5 pr-4"
+        className="tecla flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 pl-2.5 pr-4"
       >
         {/* Sin foto: la miniatura del cielo con el ícono del rubro. */}
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-surface">
+        <span className="flex h-[48px] w-[48px] shrink-0 items-center justify-center overflow-hidden rounded-xl bg-surface">
           {hasPhoto ? (
             // eslint-disable-next-line @next/next/no-img-element -- la optimización la hace Cloudinary (cldThumb), igual que OpportunityCard
             <img
@@ -47,7 +49,7 @@ function NearbyItem({ shift, distanceKm }: { shift: Shift; distanceKm: number | 
             <PortadaCielo id={shift.id} Icon={Icon} mini />
           )}
         </span>
-        <span className="min-w-0 flex-1">
+        <span className="min-w-0 flex-1 basis-[4rem]">
           {/* El puesto no se corta: es lo primero que se lee. «Urgente» va al
               lado y, si no entra, baja de renglón en vez de comerse el puesto. */}
           <span className="flex flex-wrap items-baseline gap-x-2">
@@ -58,23 +60,30 @@ function NearbyItem({ shift, distanceKm }: { shift: Shift; distanceKm: number | 
               </span>
             )}
           </span>
-          <span className="flex items-center gap-1 text-caption text-ink-soft">
-            {/* Forma compacta: sello de `company_verified` con nombre
-                accesible completo. */}
-            {shift.company_verified && (
-              <span
-                role="img"
-                aria-label="Comercio verificado"
-                title="Comercio verificado"
-                className="inline-flex shrink-0 text-cielo-text"
-              >
-                <ShieldIcon size={13} />
-              </span>
-            )}
-            <span className="truncate">{donde}</span>
+          {/* El local: lo único que se corta con «…». */}
+          {(shift.company_name || shift.company_verified) && (
+            <span className="flex items-center gap-1 text-caption text-ink-soft">
+              {/* Forma compacta: sello de `company_verified` con nombre
+                  accesible completo. */}
+              {shift.company_verified && (
+                <span
+                  role="img"
+                  aria-label="Comercio verificado"
+                  title="Comercio verificado"
+                  className="inline-flex shrink-0 text-cielo-text"
+                >
+                  <ShieldIcon size={13} />
+                </span>
+              )}
+              <span className="truncate">{shift.company_name}</span>
+            </span>
+          )}
+          {/* Cuándo y distancia, enteros: 13 px/600 en tinta. */}
+          <span data-testid="feed-nearby-cuando" className="block text-caption font-semibold text-ink">
+            {cuando}
           </span>
         </span>
-        <span className="shrink-0 text-lg font-extrabold tabular-nums text-ink">{formatPayCompact(shift)}</span>
+        <span className="ml-auto shrink-0 text-[length:min(1.125rem,6vw)] font-extrabold tabular-nums text-ink">{formatPayCompact(shift)}</span>
       </Link>
     </li>
   );
