@@ -30,10 +30,9 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
   «para revisar con Fable», el 2026-11-18 entraron G4, U081, U072, la
   segunda mirada a G6, los dos arreglos chicos de la baja del dispositivo y
   del panel sin mapa, U080 (turno reofrecido) y las decisiones 21, 22 y 24.
-  Sigue, en una sesión nueva y en este orden: la pasada por clase de error
-  con los tests de contrato (punto 6 del pedido del 2026-11-18: un agente
-  por clase, empezando por concurrencia y privacidad entre roles), y P1 a
-  P5. La próxima migración libre es la 0059. En paralelo, las
+  La pasada por clase de error se auditó el 2026-11-19: los arreglos van por
+  grupo, con su estado en el tablero («Pasada por clase de error»). Después,
+  P1 a P5. La próxima migración libre es la 0059. En paralelo, las
   etapas 4 (marca) y 5 (lista de salida, con M7). Antes de encender el
   cobro: la regla de cambio de plan que decidió Julieta, con U140, U142 y
   U143. Antes del 17/12: revisar la excepción de picomatch (#612).
@@ -224,22 +223,13 @@ Revisado contra el código y los PRs el 2026-10-03.
      código ya no manda la clave en la URL, Sentry filtra secretos y los logs
      de uvicorn tapan `?token=`. Falta lo de Julieta: rotar la clave y borrar
      `STAFFYA-BACKEND-7` (ver "Pendiente de Julieta").
-   - **Alta — distancia exacta en `/matching/search`**
-     (`modules/matching/application/services.py`): el pin se desplaza pero
-     `distance_km` sale exacto. Devolverla redondeada en bandas.
-   - **Media — `cv_url` visible para cualquier usuario autenticado**
-     (`modules/worker/api/routes.py`, `schemas.py`): mostrarlo sólo al
-     dueño, a admin o a un comercio con postulación/asignación.
-   - **Media — suscripción push** (`modules/notification/`): validar que el
-     `endpoint` sea `https` de un servicio push conocido, `timeout` en
-     `webpush`, y que el `DELETE` filtre por usuario.
    - **Media — cuota de Gemini:** tope global diario además del de usuario,
      y email verificado para usar la IA (`modules/assistant/api/routes.py`,
      `modules/shift/api/routes.py`).
-   - **Baja:** emails en logs (`notification/infrastructure/*email_sender.py`,
-     `admin/`), login sin hash de relleno si el email no existe y sin límite
-     por cuenta (`identity/`), `DELETE /push/subscribe` sin dueño (va con el
-     de push), CSP con `unsafe-inline`.
+   - **Baja:** CSP con `unsafe-inline`. (La distancia de `/matching/search`,
+     el `cv_url`, la suscripción push, los emails en los logs y el login sin
+     hash de relleno ya estaban resueltos en el código: lo confirmó la pasada
+     de privacidad del 2026-11-19.)
    - **Limpieza chica:** `frontend/.env.production`, `frontend/lib/api.ts` y
      `frontend/next.config.ts` siguen con `staffya-backend.onrender.com`
      como valor por defecto. En producción no afecta, porque Workers Builds
