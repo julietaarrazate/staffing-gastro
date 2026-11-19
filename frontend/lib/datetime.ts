@@ -232,3 +232,17 @@ export function formatShiftRange(startIso: string, endIso: string): string {
   }
   return `${date} ${formatShiftTime(startIso)} → ${formatShiftDate(endIso)} ${formatShiftTime(endIso)}`;
 }
+
+/**
+ * En qué parte del día empieza un turno, en hora de Argentina: «mañana» de
+ * 6 a 12, «tarde» de 13 a 18 y «noche» el resto. Pinta el cielo del detalle
+ * del turno (la propuesta del 2026-11-19): de un vistazo se ve si es de noche.
+ */
+export function franjaDelDia(iso: string): "manana" | "tarde" | "noche" {
+  const hora = Number(
+    new Intl.DateTimeFormat("en-US", { timeZone: AR_TIMEZONE, hour: "numeric", hourCycle: "h23" }).format(new Date(iso))
+  );
+  if (hora >= 6 && hora <= 12) return "manana";
+  if (hora >= 13 && hora <= 18) return "tarde";
+  return "noche";
+}
