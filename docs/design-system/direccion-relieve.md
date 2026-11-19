@@ -484,8 +484,9 @@ manchas blancas desenfocadas, cortadas por los bordes. Cambió esto:
   de los botones de vidrio, y a lo sumo una chica y más tenue «de lejos».
   Nunca detrás de un texto. En las pantallas «¡Oído!», un banco de nubes
   abajo, como el cierre de la landing.
-- **Sobre el cielo hondo y de noche** van al 30 % y al 16 %: se leen como
-  nubes en penumbra y no compiten con la letra blanca.
+- **Sobre el cielo hondo** van al 30 %: se leen como nubes en penumbra y no
+  compiten con la letra blanca. **De noche no hay nubes, sólo estrellas:**
+  al 16 % parecían humo.
 - **El cielo, un poco más vivo:** `#5BA8E0` → `#84C0EC` → `#BFE1F6` (antes
   `#6FB0DF` → `#8CC2E7` → `#B4D8EF`), con una luz suave arriba a la derecha.
   La tinta `#0F3A5B` da 4,6 sobre el tono más oscuro. Es un cambio de valores
@@ -494,3 +495,10 @@ manchas blancas desenfocadas, cortadas por los bordes. Cambió esto:
 
 Para el código: las nubes van como imagen (`<img>` decorativo, `alt=""`),
 no como filtro ni `backdrop-filter`, así no pesan en Android de gama baja.
+
+**Criterio (Julieta, 2026-11-19):** «siempre lo que estéticamente quede mejor
+con el producto; yo sólo estoy tirando ideas y referencias». Las referencias
+son insumo, no pedido: lo que no suma se dice y no se hace. Con eso queda:
+el celeste más vivo (hay que llevarlo a la app y a la landing juntas), la
+noche sin nubes, y **afuera** los objetos 3D flotando, el mapa en relieve y
+el vidrio en todos lados.
