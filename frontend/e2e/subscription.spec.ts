@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { deContrato, fulfillContrato, opcionesDeContrato } from "./contrato";
 import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash, enDias } from "./mocks";
 
 /**
@@ -9,39 +10,10 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash, 
  * publicar un turno pega contra el límite del plan.
  */
 
-const EMPLOYER_ME = {
-  id: "user-2",
-  email: "demo.palermo@staffya.com",
-  full_name: "Comercio Demo",
-  role: "employer",
-  status: "activo",
-  is_active: true,
-  is_verified: true,
-};
-
-const PLANS = [
-  {
-    code: "inicial",
-    name: "Inicial",
-    price_ars: 9900,
-    max_turnos_mes: 5,
-    features: ["Hasta 5 turnos por mes", "Chat con postulantes", "Soporte por email"],
-  },
-  {
-    code: "basico",
-    name: "Básico",
-    price_ars: 20000,
-    max_turnos_mes: 15,
-    features: ["Hasta 15 turnos por mes", "Chat con postulantes", "Soporte prioritario"],
-  },
-  {
-    code: "pro",
-    name: "Pro",
-    price_ars: 45000,
-    max_turnos_mes: null,
-    features: ["Turnos ilimitados", "Chat con postulantes", "Soporte prioritario", "Insignia destacada"],
-  },
-];
+// Sesión, planes y suscripción: respuestas reales del backend (e2e/contrato).
+// OJO: `price_ars` llega como texto ("9900"), es un Decimal en el backend.
+const sub = (cambios: Record<string, unknown>) =>
+  deContrato("suscripcion_comercio", cambios);
 
 async function mockAuthAndSession(page: import("@playwright/test").Page) {
   await injectSession(page);
@@ -49,13 +21,13 @@ async function mockAuthAndSession(page: import("@playwright/test").Page) {
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
   await page.route("**/api/v1/auth/me", (route) =>
-    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(EMPLOYER_ME) })
+    fulfillContrato(route, "auth_me_employer")
   );
 }
 
 async function mockPlans(page: import("@playwright/test").Page) {
   await page.route("**/api/v1/subscription/plans", (route) =>
-    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ plans: PLANS }) })
+    fulfillContrato(route, "planes")
   );
 }
 
@@ -64,18 +36,15 @@ test("pantalla de planes: muestra las 3 tarjetas con el plan actual marcado", as
   await mockPlans(page);
   await page.route("**/api/v1/subscription", (route) => {
     if (route.request().method() !== "GET") return route.continue();
-    return route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
+    return route.fulfill(opcionesDeContrato("suscripcion_comercio", {
         plan_code: "basico",
         status: "activa",
         period_end: "2026-08-01T00:00:00Z",
-        price_ars: 20000,
+        price_ars: "20000",
         max_turnos_mes: 15,
         turnos_usados_mes: 3,
-      }),
-    });
+        limite_exigido: true, // el backend siempre manda este campo (en la beta, false)
+    }));
   });
 
   await page.goto("/subscription");
@@ -94,18 +63,15 @@ test("estado del plan: avisa cuando quedan pocos turnos, con CTA a mejorar", asy
   await mockPlans(page);
   await page.route("**/api/v1/subscription", (route) => {
     if (route.request().method() !== "GET") return route.continue();
-    return route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
+    return route.fulfill(opcionesDeContrato("suscripcion_comercio", {
         plan_code: "basico",
         status: "activa",
         period_end: "2026-08-01T00:00:00Z",
-        price_ars: 20000,
+        price_ars: "20000",
         max_turnos_mes: 15,
         turnos_usados_mes: 13,
-      }),
-    });
+        limite_exigido: true,
+    }));
   });
 
   await page.goto("/subscription");
@@ -121,11 +87,7 @@ test("publicar turno al límite del plan: muestra el mensaje con CTA, no un erro
 
   await page.route("**/api/v1/shifts", (route) => {
     if (route.request().method() === "POST") {
-      return route.fulfill({
-        status: 201,
-        contentType: "application/json",
-        body: JSON.stringify({ id: "shift-new-1" }),
-      });
+      return fulfillContrato(route, "turno_crear", { id: "shift-new-1" });
     }
     return route.continue();
   });
@@ -133,12 +95,8 @@ test("publicar turno al límite del plan: muestra el mensaje con CTA, no un erro
   // El endpoint de publicar turno devuelve 402 con el mensaje del backend
   // cuando el comercio llegó al límite de turnos de su plan (contrato congelado).
   await page.route("**/api/v1/shifts/shift-new-1/publish", (route) =>
-    route.fulfill({
-      status: 402,
-      contentType: "application/json",
-      body: JSON.stringify({
-        detail: "Llegaste al límite de 15 turnos de tu plan Básico este mes.",
-      }),
+    fulfillContrato(route, "publicar_sin_plan_pagado", {
+      detail: "Llegaste al límite de 15 turnos de tu plan Básico este mes.",
     })
   );
 
@@ -176,31 +134,22 @@ function mockSubscription(page: import("@playwright/test").Page, body: Record<st
   });
 }
 
-const PENDING_SUB = {
-  plan_code: "inicial",
-  status: "pendiente",
-  period_end: "2026-11-22T00:00:00Z",
-  price_ars: 9900,
-  max_turnos_mes: 5,
-  turnos_usados_mes: 0,
-  billing_enabled: true,
-  paid_until: null,
-  renews: true,
-  can_publish: false,
-  withdrawal_until: null,
-};
+const FECHA_REAL = "2026-11-22T00:00:00+00:00";
 
-const PAID_SUB = {
-  ...PENDING_SUB,
+// Cobro prendido y comercio sin pagar, tal cual lo manda el backend.
+const PENDING_SUB = deContrato("suscripcion_cobro_pendiente", { period_end: FECHA_REAL });
+
+const PAID_SUB = deContrato("suscripcion_cobro_pendiente", {
   plan_code: "basico",
   status: "activa",
-  price_ars: 20000,
+  period_end: FECHA_REAL,
+  price_ars: "20000",
   max_turnos_mes: 15,
   turnos_usados_mes: 2,
   paid_until: "2099-11-22T15:00:00Z",
   can_publish: true,
   withdrawal_until: "2099-11-02",
-};
+});
 
 test("cobro prendido, comercio sin pagar: pide el primer mes y lleva a Mercado Pago", async ({ page }) => {
   await mockAuthAndSession(page);
@@ -209,14 +158,8 @@ test("cobro prendido, comercio sin pagar: pide el primer mes y lleva a Mercado P
   let subscribeBody: unknown = null;
   await page.route("**/api/v1/subscription/subscribe", (route) => {
     subscribeBody = route.request().postDataJSON();
-    return route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        plan_code: "inicial",
-        status: "pendiente",
-        checkout_url: "https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=test",
-      }),
+    return fulfillContrato(route, "suscribirse", {
+      checkout_url: "https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=test",
     });
   });
   await page.route("https://www.mercadopago.com.ar/**", (route) =>
@@ -260,11 +203,7 @@ test("plan pago: muestra hasta cuándo, permite renovar, dar de baja y arrepenti
   let cancelled = false;
   await page.route("**/api/v1/subscription/cancel-renewal", (route) => {
     cancelled = true;
-    return route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ ...PAID_SUB, renews: false }),
-    });
+    return route.fulfill(opcionesDeContrato("suscripcion_cobro_pendiente", { ...PAID_SUB, renews: false }));
   });
 
   await page.goto("/subscription");
@@ -290,18 +229,14 @@ test("arrepentimiento: confirma y deja el plan cancelado", async ({ page }) => {
   await mockPlans(page);
   await mockSubscription(page, PAID_SUB);
   await page.route("**/api/v1/subscription/withdraw", (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        ...PAID_SUB,
+    route.fulfill(opcionesDeContrato("suscripcion_cobro_pendiente", {
+      ...PAID_SUB,
         status: "cancelada",
         renews: false,
         can_publish: false,
         paid_until: "2026-10-23T12:00:00Z",
         withdrawal_until: null,
-      }),
-    })
+    }))
   );
 
   await page.goto("/subscription");
@@ -317,19 +252,7 @@ test("arrepentimiento: confirma y deja el plan cancelado", async ({ page }) => {
 test("cobro apagado: la pantalla sigue como en la beta (sin baja ni pagos)", async ({ page }) => {
   await mockAuthAndSession(page);
   await mockPlans(page);
-  await mockSubscription(page, {
-    plan_code: "inicial",
-    status: "activa",
-    period_end: "2026-11-22T00:00:00Z",
-    price_ars: 9900,
-    max_turnos_mes: 5,
-    turnos_usados_mes: 1,
-    billing_enabled: false,
-    paid_until: null,
-    renews: true,
-    can_publish: true,
-    withdrawal_until: null,
-  });
+  await mockSubscription(page, sub({ period_end: FECHA_REAL, turnos_usados_mes: 1, limite_exigido: true }));
 
   await page.goto("/subscription");
 
@@ -343,18 +266,12 @@ test("publicar sin plan pago: modal propio con CTA a pagar", async ({ page }) =>
   await mockAuthAndSession(page);
   await page.route("**/api/v1/shifts", (route) => {
     if (route.request().method() === "POST") {
-      return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ id: "shift-new-2" }) });
+      return fulfillContrato(route, "turno_crear", { id: "shift-new-2" });
     }
     return route.continue();
   });
   await page.route("**/api/v1/shifts/shift-new-2/publish", (route) =>
-    route.fulfill({
-      status: 402,
-      contentType: "application/json",
-      body: JSON.stringify({
-        detail: "Tu plan no está activo. Pagá el mes desde Mi plan para volver a publicar turnos.",
-      }),
-    })
+    fulfillContrato(route, "publicar_sin_plan_pagado")
   );
   await page.route("**/api/v1/shifts/me", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: "[]" })
@@ -374,24 +291,13 @@ test("publicar sin plan pago: modal propio con CTA a pagar", async ({ page }) =>
   await expect(page.getByRole("button", { name: "Ir a pagar el mes" })).toBeVisible();
 });
 
-const SUB_BASE = {
-  plan_code: "inicial",
-  status: "activa",
-  period_end: "2026-12-01T00:00:00Z",
-  price_ars: 9900,
-  max_turnos_mes: 5,
-  turnos_usados_mes: 9,
-};
+const SUB_BASE = { period_end: "2026-12-01T00:00:00+00:00", turnos_usados_mes: 9 };
 
 test("G11 · con el tope sin exigir (beta): uso sin alarma, línea de la beta y sin oferta", async ({ page }) => {
   await mockAuthAndSession(page);
   await mockPlans(page);
   await page.route("**/api/v1/subscription", (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ ...SUB_BASE, limite_exigido: false }),
-    })
+    route.fulfill(opcionesDeContrato("suscripcion_comercio", { ...SUB_BASE, limite_exigido: false }))
   );
 
   await page.goto("/subscription");
@@ -410,11 +316,7 @@ test("G11 · con el tope exigido: todo como siempre", async ({ page }) => {
   await mockAuthAndSession(page);
   await mockPlans(page);
   await page.route("**/api/v1/subscription", (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ ...SUB_BASE, turnos_usados_mes: 5, limite_exigido: true }),
-    })
+    route.fulfill(opcionesDeContrato("suscripcion_comercio", { ...SUB_BASE, turnos_usados_mes: 5, limite_exigido: true }))
   );
 
   await page.goto("/subscription");
@@ -432,10 +334,7 @@ test("G11 · «Pagado hasta» se vuelve a pedir al volver a la pestaña, sin esq
   await mockPlans(page);
   let pagadoHasta = "2026-12-10T12:00:00Z";
   await page.route("**/api/v1/subscription", (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
+    route.fulfill(opcionesDeContrato("suscripcion_comercio", {
         ...SUB_BASE,
         turnos_usados_mes: 1,
         billing_enabled: true,
@@ -443,8 +342,7 @@ test("G11 · «Pagado hasta» se vuelve a pedir al volver a la pestaña, sin esq
         renews: true,
         can_publish: true,
         limite_exigido: true,
-      }),
-    })
+      }))
   );
 
   await page.goto("/subscription");

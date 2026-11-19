@@ -27,6 +27,10 @@ import pytest
 from httpx import AsyncClient
 
 from app.core.tz import now_art
+from app.core.config import settings
+from app.main import app
+from app.modules.subscription.api.dependencies import get_billing_gateway
+from app.modules.subscription.infrastructure.fake_billing_gateway import FakeBillingGateway
 from tests.conftest import current_totp, login, new_client, promote_to_admin, register_user
 
 pytestmark = pytest.mark.asyncio
@@ -91,11 +95,6 @@ class Normalizador:
             self._por_forma(v)
             return {k: self.valor(x, k) for k, x in v.items()}
         if isinstance(v, list):
-            if v and all(isinstance(x, dict) for x in v):
-                # Mismo `created_at` en cada fila: el orden entre corridas no es
-                # estable. Se ordena ANTES de nombrar los UUID (los ids salen en
-                # orden de aparición), por los textos propios de cada fila.
-                v = sorted(v, key=_clave_de_orden)
             return [self.valor(x, clave) for x in v]
         if isinstance(v, float) and clave in _AL_AZAR:
             return _AL_AZAR[clave]  # la posición del perfil se difumina al azar
@@ -169,12 +168,18 @@ class Captura:
         self.norm = Normalizador()
         self.respuestas: dict = {}
 
-    def guardar(self, nombre: str, resp) -> dict:
+    def guardar(self, nombre: str, resp, *, ordenar: bool = False) -> dict:
+        """`ordenar`: filas con el mismo `created_at` (postulantes, candidatos,
+        avisos) vuelven en cualquier orden entre corridas. Se ordenan ANTES de
+        nombrar los UUID (los ids salen en orden de aparición), por los textos
+        propios de cada fila."""
         assert nombre not in self.respuestas, nombre
         try:
             cuerpo = resp.json()
         except ValueError:
             cuerpo = None
+        if ordenar and isinstance(cuerpo, list):
+            cuerpo = sorted(cuerpo, key=_clave_de_orden)
         self.respuestas[nombre] = {
             "status": resp.status_code,
             "body": self.norm.valor(cuerpo),
@@ -294,16 +299,14 @@ async def test_contrato_frontend(client: AsyncClient, session_factory):
     cap.guardar("postular_turno_inexistente", await client.post(
         "/api/v1/applications/shifts/00000000-0000-4000-8000-000000000000", headers=wk))
     cap.guardar("postulaciones_mias", await client.get("/api/v1/applications/mine", headers=wk))
-    # Mismo created_at: el orden de los postulantes no es estable entre corridas.
-    lista = await client.get(f"/api/v1/applications/shifts/{shift_id}", headers=emp)
-    cap.guardar("postulantes", lista)
-    cap.respuestas["postulantes"]["body"].sort(key=lambda p: p["full_name"])
+    cap.guardar("postulantes", await client.get(
+        f"/api/v1/applications/shifts/{shift_id}", headers=emp), ordenar=True)
     cap.guardar("postulantes_de_turno_ajeno", await client.get(
         f"/api/v1/applications/shifts/{shift_id}", headers=otro_emp))
-    cap.guardar("avisos_comercio", await client.get("/api/v1/notifications", headers=emp))
+    cap.guardar("avisos_comercio", await client.get("/api/v1/notifications", headers=emp), ordenar=True)
 
     cap.guardar("candidatos_recomendados", await client.get(
-        f"/api/v1/shifts/{shift_id}/candidates", headers=emp))
+        f"/api/v1/shifts/{shift_id}/candidates", headers=emp), ordenar=True)
     cap.guardar("candidatos_turno_ajeno", await client.get(
         f"/api/v1/shifts/{shift_id}/candidates", headers=otro_emp))
 
@@ -315,7 +318,7 @@ async def test_contrato_frontend(client: AsyncClient, session_factory):
     cap.guardar("turno_asignar_ya_asignado", await client.post(
         f"/api/v1/shifts/{shift_id}/assign", headers=emp,
         json={"worker_profile_id": perfil_w2.json()["id"]}))
-    cap.guardar("avisos_trabajador", await client.get("/api/v1/notifications", headers=wk))
+    cap.guardar("avisos_trabajador", await client.get("/api/v1/notifications", headers=wk), ordenar=True)
 
     cap.guardar("turno_confirmar", await client.post(f"/api/v1/shifts/{shift_id}/confirm", headers=wk))
     cap.guardar("turno_llegada_antes_de_tiempo", await client.post(
@@ -386,6 +389,34 @@ async def test_contrato_frontend(client: AsyncClient, session_factory):
 
     # --- Suscripción ------------------------------------------------------
     cap.guardar("suscripcion_comercio", await client.get("/api/v1/subscription", headers=emp))
+
+    cap.guardar("planes", await client.get("/api/v1/subscription/plans", headers=emp))
+
+    # --- Cobro prendido: comercio sin pagar (402 al publicar) ------------------
+    previo = (settings.mercadopago_access_token, settings.mercadopago_webhook_secret,
+              settings.subscriptions_enforced)
+    settings.mercadopago_access_token = "TEST-token"
+    settings.mercadopago_webhook_secret = "clave-de-prueba"
+    settings.subscriptions_enforced = True
+    app.dependency_overrides[get_billing_gateway] = lambda: FakeBillingGateway(enabled_=True)
+    try:
+        _, cobro = await _registrar(
+            client, cap, "contrato_cobro@staffya.com", "employer", "Comercio Cobro", "user-employer"
+        )
+        await client.post("/api/v1/companies/me/profile", headers=cobro,
+                          json={"name": "Bar Cobro", "city": "Palermo"})
+        cap.guardar("suscripcion_cobro_pendiente", await client.get(
+            "/api/v1/subscription", headers=cobro))
+        sin_pagar = await client.post("/api/v1/shifts", headers=cobro, json=_payload())
+        cap.norm.nombrar(sin_pagar.json()["id"], "shift")
+        cap.guardar("publicar_sin_plan_pagado", await client.post(
+            f"/api/v1/shifts/{sin_pagar.json()['id']}/publish", headers=cobro))
+        cap.guardar("suscribirse", await client.post(
+            "/api/v1/subscription/subscribe", headers=cobro, json={"plan_code": "inicial"}))
+    finally:
+        app.dependency_overrides.pop(get_billing_gateway, None)
+        (settings.mercadopago_access_token, settings.mercadopago_webhook_secret,
+         settings.subscriptions_enforced) = previo
 
     # --- Admin sin el segundo paso (403 con `code`) -----------------------
     await register_user(client, email="contrato_adm@staffya.com", role="employer",

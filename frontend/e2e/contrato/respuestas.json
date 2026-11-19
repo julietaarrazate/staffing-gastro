@@ -384,6 +384,44 @@
     },
     "status": 401
   },
+  "planes": {
+    "body": {
+      "plans": [
+        {
+          "code": "inicial",
+          "features": [
+            "Hasta 5 turnos publicados por mes",
+            "Soporte por email"
+          ],
+          "max_turnos_mes": 5,
+          "name": "Inicial",
+          "price_ars": "9900"
+        },
+        {
+          "code": "basico",
+          "features": [
+            "Hasta 15 turnos publicados por mes",
+            "Soporte prioritario"
+          ],
+          "max_turnos_mes": 15,
+          "name": "Básico",
+          "price_ars": "20000"
+        },
+        {
+          "code": "pro",
+          "features": [
+            "Turnos publicados ilimitados",
+            "Soporte prioritario",
+            "Destacado en el feed"
+          ],
+          "max_turnos_mes": null,
+          "name": "Pro",
+          "price_ars": "45000"
+        }
+      ]
+    },
+    "status": 200
+  },
   "postulaciones_mias": {
     "body": [
       {
@@ -516,6 +554,12 @@
     },
     "status": 404
   },
+  "publicar_sin_plan_pagado": {
+    "body": {
+      "detail": "Tu plan no está activo. Pagá el mes desde Mi plan para volver a publicar turnos."
+    },
+    "status": 402
+  },
   "registro_mail_invalido": {
     "body": {
       "detail": [
@@ -536,6 +580,31 @@
       "detail": "El email ya está registrado"
     },
     "status": 409
+  },
+  "suscribirse": {
+    "body": {
+      "checkout_url": "https://fake-mp.test/checkout/id-1",
+      "plan_code": "inicial",
+      "status": "pendiente"
+    },
+    "status": 200
+  },
+  "suscripcion_cobro_pendiente": {
+    "body": {
+      "billing_enabled": true,
+      "can_publish": false,
+      "limite_exigido": true,
+      "max_turnos_mes": 5,
+      "paid_until": null,
+      "period_end": "2026-11-01T12:00:00+00:00",
+      "plan_code": "inicial",
+      "price_ars": "9900",
+      "renews": true,
+      "status": "pendiente",
+      "turnos_usados_mes": 0,
+      "withdrawal_until": null
+    },
+    "status": 200
   },
   "suscripcion_comercio": {
     "body": {
