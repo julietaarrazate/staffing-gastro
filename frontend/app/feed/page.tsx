@@ -239,6 +239,9 @@ function WorkerFeedPanel() {
   // antes de postularse trae al turno todavía sin postular: no tiene que
   // borrar la marca «Postulado» ni volver a ofrecerlo.
   const gridApplies = useRef(0);
+  // Turnos descartados con «pass» en esta pantalla: una recarga (aviso, vuelta
+  // a la pestaña) no los vuelve a mostrar.
+  const descartados = useRef<Set<string>>(new Set());
 
   // `silent` (avisos y vuelta a la pestaña): sin esqueleto, y si falla se deja
   // lo que ya se ve en vez de pisarlo con un error pasajero.
@@ -267,7 +270,7 @@ function WorkerFeedPanel() {
       if (mine !== latestLoad.current) return;
       setError(null);
       const appliedIds = appliedShiftIds(applied);
-      const visible = feed.filter((s) => !appliedIds.has(s.id));
+      const visible = feed.filter((s) => !appliedIds.has(s.id) && !descartados.current.has(s.id));
       setShifts(visible);
       // La próxima carga ya trae a los postulados filtrados: la marca de la
       // grilla termina su trabajo (y si se retiró una postulación, el turno
@@ -377,7 +380,10 @@ function WorkerFeedPanel() {
     // "pass" es un descarte local: no hay red de por medio, así que siempre
     // se considera procesado.
     if (decision === "pass" || !token) {
-      if (decision === "pass") dropFromCache(shift.id);
+      if (decision === "pass") {
+        descartados.current.add(shift.id);
+        dropFromCache(shift.id);
+      }
       return true;
     }
     try {
