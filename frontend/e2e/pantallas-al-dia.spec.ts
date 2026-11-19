@@ -93,17 +93,18 @@ test("el trabajador confirma y el panel del comercio pasa solo a «Confirmado»"
     })
   );
   await page.goto("/shifts");
-  const lista = page.getByTestId("shifts-panel-list");
-  await expect(lista.getByText("Asignado", { exact: true })).toBeVisible();
-  await expect(lista.getByText("Confirmado", { exact: true })).toHaveCount(0);
+  // El estado se mira en el sello: desde los pasos tachados (2026-11-19)
+  // «Asignado» también es una palabra de los pasos, y sigue ahí (tachada o
+  // actual) después de confirmar.
+  const estado = page.getByTestId("shifts-panel-list").getByTestId("shift-status");
+  await expect(estado).toHaveText("Asignado");
 
   // Pasa en el servidor y llega el aviso: la pantalla no se recarga.
   status = "confirmado";
   await expect.poll(() => sockets.length).toBeGreaterThan(0);
   sockets[0].send(JSON.stringify(aviso("shift_confirmed")));
 
-  await expect(lista.getByText("Confirmado", { exact: true })).toBeVisible();
-  await expect(lista.getByText("Asignado", { exact: true })).toHaveCount(0);
+  await expect(estado).toHaveText("Confirmado");
 });
 
 test("el comercio cancela y «Matches» deja de ofrecer «Llegué»", async ({ page }) => {
