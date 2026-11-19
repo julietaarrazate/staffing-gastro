@@ -13,6 +13,11 @@
 > `isotipo-oi*` son el «oí» anterior, que queda de archivo), más el manual en
 > PDF para el diseñador (`oido-manual-de-marca.pdf`, todavía con el «oí»).
 
+> **2026-11-19:** la app pasa, pantalla por pantalla, a la **dirección suave**
+> ([ADR-0028](../adr/ADR-0028-direccion-suave.md)): el cielo arriba y una hoja
+> blanca encima, teclas y campos suaves, el título en letra normal grande y la
+> brocha sólo para la marca. Las reglas de color de abajo siguen.
+
 ## En una frase
 
 **Celeste y blanco con un solo ámbar**, porteña y gastronómica: el cielo de

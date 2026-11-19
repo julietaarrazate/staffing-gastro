@@ -105,9 +105,14 @@ test("cada campo confirma el día en palabras, no sólo en números", async ({ p
   await campos.nth(1).fill("2026-09-20T04:00");
 
   // El 19/09/2026 es sábado y el 20 domingo: el nombre del día es el dato que
-  // evita el error, porque nadie piensa "el 19" — piensa "el sábado".
-  await expect(page.getByText(/sábado.*19 de septiembre/i)).toBeVisible();
-  await expect(page.getByText(/domingo.*20 de septiembre/i)).toBeVisible();
+  // evita el error, porque nadie piensa "el 19" — piensa "el sábado". Se busca
+  // debajo de cada campo: en la compu, la vista previa del costado también
+  // dice el día (desde el 2026-11-19, ADR-0028).
+  const etiquetas = page.locator("label").filter({ has: page.locator('input[type="datetime-local"]') });
+  const campoInicio = etiquetas.nth(0);
+  const campoFin = etiquetas.nth(1);
+  await expect(campoInicio.getByText(/sábado.*19 de septiembre/i)).toBeVisible();
+  await expect(campoFin.getByText(/domingo.*20 de septiembre/i)).toBeVisible();
 
   // Y la duración derivada, que no está en ningún otro lado.
   await expect(page.getByText("Jornada de 7 h")).toBeVisible();

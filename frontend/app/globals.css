@@ -330,6 +330,7 @@
   --text-display--line-height: 1.05;
   --text-h1: 1.75rem; /* 28px — título de pantalla */
   --text-h1--line-height: 1.15;
+  --text-pantalla: 2rem; /* 32px — título de pantalla sobre el cielo (`.titulo-pantalla`, ADR-0028) */
   --text-h2: 1.375rem; /* 22px — encabezado de sección */
   --text-h2--line-height: 1.2;
   --text-h3: 1.125rem; /* 18px — título de tarjeta */
@@ -3091,4 +3092,212 @@ body:has([data-landing]) main {
   body {
     background: #ffffff;
   }
+}
+
+/* ===== La dirección suave: «la hoja sobre el cielo» (ADR-0028, 2026-11-19) =====
+   Julieta, sobre «Publicar turno»: la dirección «con relieve» (recta, filete
+   azul y sombra dura) se veía «plana», «muy dura», con todo «del mismo tono».
+   La nueva, tomada de sus referencias: el cielo arriba, una hoja blanca que
+   sube encima, controles que se tocan como teclas suaves (sin borde, con
+   sombra difusa), campos con relleno, el título en letra normal grande y la
+   brocha sólo para la marca.
+
+   Entra de a una pantalla: la que se migra lleva `.estilo-suave` en su raíz, y
+   los componentes compartidos (el botón, el campo, el sí/no) se ven suaves
+   sólo adentro. Cuando estén todas, estas reglas pasan a `:root` y se borra lo
+   de «con relieve» (lo dice el ADR). */
+.estilo-suave {
+  --suave-campo: #edf4f8;
+  --suave-tecla: #ffffff;
+  --suave-sombra: 0 1px 2px rgba(15, 58, 91, 0.06), 0 6px 16px rgba(15, 58, 91, 0.08);
+  --suave-sombra-alta: 0 14px 30px rgba(15, 58, 91, 0.16), 0 0 0 1px rgba(15, 58, 91, 0.05);
+  /* Lo elegido: azul hondo en degradé; la letra blanca da 5,2 sobre el tono
+     más claro. */
+  --suave-elegido: linear-gradient(180deg, #2a73a3, #1c5478);
+  /* El borde de la casilla sin marcar: 3,8 con la tecla blanca (3:1 mínimo
+     para el contorno de un control; el #9fb6c6 de la prueba daba 2,1). */
+  --suave-casilla-borde: #6f8797;
+  --suave-ayuda: linear-gradient(135deg, #dcedf8, #eef7fc);
+  --radio-suave: 18px;
+}
+:root[data-theme="dark"] .estilo-suave {
+  --suave-campo: #243241;
+  --suave-tecla: #1d2833;
+  --suave-sombra: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 16px rgba(0, 0, 0, 0.25);
+  --suave-sombra-alta: 0 14px 30px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --suave-casilla-borde: #7b93a5;
+  --suave-ayuda: linear-gradient(135deg, rgba(154, 201, 231, 0.12), rgba(154, 201, 231, 0.06));
+}
+/* La hoja blanca que sube sobre el cielo, con las esquinas de arriba bien
+   redondeadas (en la compu, todas). */
+.hoja {
+  position: relative;
+  z-index: 1;
+  background: var(--color-card);
+  border-radius: 28px 28px 0 0;
+  box-shadow: 0 -10px 30px rgba(15, 58, 91, 0.1);
+}
+@media (min-width: 768px) {
+  .hoja {
+    border-radius: 28px;
+  }
+}
+/* El título de la pantalla en letra normal, grande y negrita (la brocha
+   queda para la marca). Toma el color de donde va (la tinta del cielo). */
+.titulo-pantalla {
+  font-size: var(--text-pantalla);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+/* El botón redondo de vidrio sobre el cielo (volver). */
+.boton-vidrio {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--app-cielo-tinta);
+  backdrop-filter: blur(8px);
+}
+:root[data-theme="dark"] .boton-vidrio {
+  background: rgba(255, 255, 255, 0.1);
+}
+/* Lo que se toca: una tecla blanca con sombra difusa; al apretarla se achica
+   apenas, y la elegida se llena de azul hondo. */
+.estilo-suave .tecla {
+  border-radius: var(--radio-suave);
+  background: var(--suave-tecla);
+  box-shadow: var(--suave-sombra);
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease,
+    background-color 0.15s ease;
+}
+.estilo-suave .tecla:active:not(:disabled) {
+  transform: scale(0.98);
+  box-shadow: 0 1px 2px rgba(15, 58, 91, 0.06);
+}
+.estilo-suave .tecla[aria-pressed="true"] {
+  background: var(--suave-elegido);
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(28, 84, 120, 0.3);
+}
+@media (prefers-reduced-motion: reduce) {
+  .estilo-suave .tecla {
+    transition: none;
+  }
+}
+/* El sí/no (`Toggle`): la fila es una tecla y el estado, una casilla redonda
+   que al marcarse se llena de azul hondo con el tilde. Fuera de la dirección
+   suave sigue el interruptor de antes. */
+.casilla {
+  display: none;
+}
+.estilo-suave .interruptor {
+  display: none;
+}
+.estilo-suave .casilla {
+  display: flex;
+  border-radius: 999px;
+  background: var(--suave-campo);
+  box-shadow: inset 0 0 0 1.5px var(--suave-casilla-borde);
+}
+.estilo-suave [aria-checked="true"] .casilla {
+  background: var(--suave-elegido);
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(28, 84, 120, 0.3);
+}
+/* Donde se escribe: relleno suave, sin borde; en foco pasa a blanco (el
+   contorno de foco es el de siempre, uno solo). */
+.estilo-suave .campo {
+  border-radius: 14px;
+  background: var(--suave-campo);
+  box-shadow: none;
+}
+.estilo-suave .campo:focus,
+.estilo-suave .campo:focus-within {
+  background: var(--color-card);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+}
+/* El texto de ejemplo, en `ink-soft`: el gris al 50 % de siempre daba 3,4
+   sobre el relleno. */
+.estilo-suave .campo::placeholder,
+.estilo-suave .campo input::placeholder {
+  color: var(--color-ink-soft);
+}
+.estilo-suave .campo[aria-invalid="true"],
+.estilo-suave .campo:has([aria-invalid="true"]) {
+  box-shadow: inset 0 0 0 2px var(--color-danger);
+}
+/* Una tarjeta suave que agrupa (un rol del evento). */
+.estilo-suave .tarjeta-suave {
+  border-radius: 20px;
+  background: var(--color-card);
+  box-shadow: var(--suave-sombra);
+}
+/* La ayuda opcional (la IA que completa): celeste, sin borde. */
+.nota-ayuda {
+  border-radius: 20px;
+  background: var(--suave-ayuda);
+}
+.nota-ayuda .campo {
+  background: var(--color-card);
+}
+/* Los botones, redondeados. El principal: ámbar en degradé con sombra de su
+   color, sin borde ni canto. */
+.estilo-suave .boton {
+  border-radius: 16px;
+}
+.estilo-suave .boton-relieve {
+  border-radius: 18px;
+  background: linear-gradient(180deg, #f6a92a, #e58e0f);
+  box-shadow: 0 10px 24px rgba(217, 119, 6, 0.28);
+}
+.estilo-suave .boton-relieve:active {
+  box-shadow: 0 4px 10px rgba(217, 119, 6, 0.22);
+}
+.estilo-suave .boton-relieve:disabled {
+  background: var(--suave-campo);
+  box-shadow: none;
+}
+/* El pedido: la tarjeta del turno con el cielo arriba y el pago grande. */
+.pedido-tarjeta {
+  overflow: hidden;
+  border-radius: 24px;
+  /* La tecla y no la tarjeta: de noche la hoja y la tarjeta eran del mismo
+     tono y el pago se fundía con la hoja (revisión del 2026-11-19). */
+  background: var(--suave-tecla);
+  box-shadow: var(--suave-sombra-alta);
+}
+.chip-vidrio,
+.chip-suave {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.chip-vidrio {
+  background: rgba(255, 255, 255, 0.62);
+  color: var(--app-cielo-tinta);
+  backdrop-filter: blur(6px);
+}
+:root[data-theme="dark"] .chip-vidrio {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e6eef4;
+}
+.chip-suave {
+  background: var(--suave-campo);
+  color: var(--color-ink);
+}
+/* «Urgente» sobre el vidrio del cielo: un rojo más hondo de día (el
+   `danger-text` daba 4,3) y uno claro de noche. */
+.chip-urgente {
+  color: #9b1c1c;
+}
+:root[data-theme="dark"] .chip-urgente {
+  color: #fca5a5;
 }
