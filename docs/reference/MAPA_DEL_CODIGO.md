@@ -74,6 +74,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Busco… | Está en |
 |---|---|
 | Color de cada rubro (mozo, bartender, cocina…) | `frontend/lib/skill-style.tsx` |
+| Mocks de los e2e con respuestas reales del backend (turno, sesión, errores, planes…); cómo regenerarlos | `frontend/e2e/contrato/README.md`; `frontend/e2e/contrato.ts` (`deContrato`, `fulfillContrato`), `frontend/e2e/contrato/respuestas.json` (lo escribe `backend/tests/test_contrato_frontend.py` con `ACTUALIZAR_CONTRATO=1`), `frontend/lib/contrato.test.ts` (tipos vs. respuestas) |
 | Tokens de color, sombras, anchos (`.app-container`, `.app-container-reading`) | `frontend/app/globals.css` |
 | Paleta celeste (v6) y la superficie de marca `bg-brand` | `frontend/app/globals.css`, bloque "PALETA CELESTE" (rige en `:root`) y `@utility bg-brand`; tinta sobre la marca: tokens `on-brand`, `heroInk()`/`heroTile()` en `lib/skill-style.tsx` |
 | Escala tipográfica y su guardia | `frontend/lib/type-scale.test.ts` |
