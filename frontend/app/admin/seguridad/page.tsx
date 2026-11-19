@@ -29,7 +29,13 @@ import { Button, Card, ErrorBanner, Skeleton, TextField } from "@/components/ui"
 import { CheckIcon, CopyIcon, ShieldIcon, SmartphoneIcon } from "@/components/icons";
 import { AdminHeading } from "@/components/admin/AdminStats";
 import RecoveryCodesPanel from "@/components/admin/RecoveryCodesPanel";
-import TotpQr from "@/components/admin/TotpQr";
+import dynamic from "next/dynamic";
+
+// `uqr` (~27 KB) sólo hace falta en el paso del QR; el hueco reserva los 200 px.
+const TotpQr = dynamic(() => import("@/components/admin/TotpQr"), {
+  ssr: false,
+  loading: () => <div className="h-[200px] w-[200px] animate-pulse rounded-xl bg-surface" />,
+});
 
 type Phase =
   | { name: "loading" }

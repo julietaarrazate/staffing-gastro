@@ -62,6 +62,8 @@ function FeedHero({ shift }: { shift: Shift }) {
             <img
               src={cldThumb(heroPhoto, 200)}
               alt=""
+              width={64}
+              height={64}
               onError={() => setBroken(true)}
               loading="eager"
               decoding="async"

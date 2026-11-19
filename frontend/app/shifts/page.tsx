@@ -29,7 +29,9 @@ import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import ShiftPublishedNextSteps from "@/components/ShiftPublishedNextSteps";
 import { payView } from "@/lib/pay";
 import { noShowConfirmCopy } from "@/lib/turno-reofrecido";
-import GuidedTour, { type TourStep } from "@/components/GuidedTour";
+import dynamic from "next/dynamic";
+import type { TourStep } from "@/components/GuidedTour";
+import { useTourPendiente } from "@/lib/use-tour-pendiente";
 import { EmptyPanelIllustration } from "@/components/illustrations";
 import {
   Button,
@@ -50,6 +52,9 @@ import {
   SearchIcon,
   XCircleIcon,
 } from "@/components/icons";
+
+// Recorrido de una sola vez: se baja sólo si hay algo que mostrar.
+const GuidedTour = dynamic(() => import("@/components/GuidedTour"), { ssr: false });
 
 // Familias de estado del panel (bug de la operadora, docs/planning/PULIDO_ROADMAP.md
 // batch "panel-por-estados": "activos 2 pero abajo la lista completa con
@@ -218,6 +223,7 @@ function MyShiftsPanel() {
   // La cuenta del comercio todavía no tiene perfil (se cortó la bienvenida):
   // en vez del error del backend, el cartel que lleva a completarlo.
   const [sinPerfil, setSinPerfil] = useState(false);
+  const tourPendiente = useTourPendiente("staffya_tour_employer_panel");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [planLimitMessage, setPlanLimitMessage] = useState<string | null>(null);
@@ -881,7 +887,7 @@ function MyShiftsPanel() {
         </div>
       </Modal>
 
-      {!loading && <GuidedTour steps={EMPLOYER_PANEL_TOUR} storageKey="staffya_tour_employer_panel" />}
+      {!loading && tourPendiente && <GuidedTour steps={EMPLOYER_PANEL_TOUR} storageKey="staffya_tour_employer_panel" />}
     </div>
   );
 }
