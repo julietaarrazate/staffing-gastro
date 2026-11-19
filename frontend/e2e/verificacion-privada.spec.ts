@@ -167,11 +167,6 @@ test("al decidir manda el envío que vio; si la persona reenvió, lo dice y reca
   // persona volvió a mandar los documentos, el servidor responde 409 y no
   // decide nada; «Reintentar» trae la cola con el envío nuevo.
   await mockAdmin(page, []);
-  let pendingCalls = 0;
-  await page.route("**/api/v1/identity/claims/pending", (route) => {
-    pendingCalls += 1;
-    return route.fulfill(json(PENDING));
-  });
   const bodies: unknown[] = [];
   const resubmitted = "La persona volvió a mandar los documentos. Revisalos de nuevo.";
   await page.route("**/api/v1/identity/claims/*/approve", (route) => {
@@ -192,12 +187,13 @@ test("al decidir manda el envío que vio; si la persona reenvió, lo dice y reca
   await expect(page.getByText(resubmitted)).toBeVisible({ timeout: 15_000 });
   expect(bodies).toEqual([{ submitted_at: "2026-10-23T12:00:00Z" }]);
 
-  // «Reintentar» vuelve a pedir la cola (el panel admin también la pide para
-  // su contador, así que se compara contra lo que había, no contra un número).
-  const before = pendingCalls;
+  // «Reintentar» vuelve a pedir la cola. Se espera el pedido mismo: la
+  // tarjeta vuelve a verse antes de que llegue la respuesta (sigue en el
+  // estado), así que contar botones no alcanza.
+  const recarga = page.waitForRequest("**/api/v1/identity/claims/pending");
   await page.getByRole("button", { name: "Reintentar" }).click();
+  await recarga;
   await expect(page.getByRole("button", { name: "Aprobar" })).toHaveCount(2);
-  expect(pendingCalls).toBeGreaterThan(before);
 
   // El rechazo lleva el envío y el motivo.
   await page.getByRole("button", { name: "Rechazar" }).nth(1).click();
