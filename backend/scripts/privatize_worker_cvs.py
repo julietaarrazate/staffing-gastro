@@ -31,9 +31,12 @@ un link que vence; este script arregla lo de antes:
    - de la carpeta `oido/cv/` (de cualquier tipo): CV que se cambiaron o
      sacaron antes de este cambio (el archivo viejo quedaba) y subidas que
      nunca se guardaron. Se **borran** (`destroy`, `invalidate=true`);
-   - **sin carpeta** (los CV de antes de las carpetas, 2026-10-15): los Word
-     (`raw`) y los PDF se **borran**, salvo que los use otra cosa (eso se
-     lista); las fotos (jpg, png…) que nada usa se **listan para mirarlas a
+   - **sin carpeta** (los CV de antes de las carpetas): los Word (`raw`) y
+     los PDF subidos antes del 2026-10-16 se **borran**, salvo que los use
+     otra cosa (eso se lista). Desde ese día toda subida de la app trae
+     carpeta: un documento sin carpeta más nuevo no es de la app (alguien lo
+     subió a mano, por ejemplo un `media_kit.pdf`) y se lista sin tocarlo.
+     Las fotos (jpg, png…) que nada usa también se **listan para mirarlas a
      mano** y no se tocan: pueden ser un CV en imagen o una foto vieja.
 
 **Es idempotente:** un perfil ya migrado no se vuelve a tocar, un archivo que
@@ -82,6 +85,12 @@ from scripts.privatize_identity_evidence import (
 
 PROTECTED = cld.PROTECTED_DELIVERY_TYPE
 CV_FOLDER = cld.FOLDERS["cv"]
+# Desde este día toda firma de subida de la app trae carpeta (auditoría de
+# seguridad del 2026-10-14, desplegada el 15). Un documento sin carpeta más
+# nuevo no lo subió la app: no se borra, se lista. Medianoche UTC del 16 (las
+# 21 h del 15 en Argentina): ante la duda, se lista en vez de borrar.
+APP_FOLDERS_SINCE = datetime(2026, 10, 16, tzinfo=UTC)
+
 # Las otras carpetas de la app: un archivo de ahí pegado como CV no es un CV.
 OTHER_FOLDERS = tuple(folder for kind, folder in cld.FOLDERS.items() if kind != "cv")
 
@@ -318,7 +327,7 @@ async def run(
             if not recent(asset):
                 delete(asset, "CV que nadie usa")
 
-    # 2b) Sin carpeta (los CV de antes del 2026-10-15).
+    # 2b) Sin carpeta (los CV de antes de las carpetas).
     for resource_type in RESOURCE_TYPES:
         for asset in candidates(admin.list_root(resource_type)):
             in_use = asset.public_id in other_uses
@@ -338,8 +347,18 @@ async def run(
                     "carpeta que usa otra cosa (una evidencia); no se toca"
                 )
                 continue
-            if not recent(asset):
-                delete(asset, "documento sin carpeta que nadie usa (CV viejo)")
+            if recent(asset):
+                continue
+            if asset.created_at >= APP_FOLDERS_SINCE:
+                # Sin carpeta y de cuando la app ya usaba carpetas: no es de la
+                # app (algo subido a mano a la cuenta). No se borra.
+                report.to_review.append(
+                    f"{asset.public_id} ({asset.resource_type}, {asset.type}): documento sin "
+                    f"carpeta subido el {asset.created_at:%Y-%m-%d}, cuando la app ya usaba "
+                    "carpetas; no es de la app, no se toca"
+                )
+                continue
+            delete(asset, "documento sin carpeta que nadie usa (CV viejo)")
 
     out(summary(report, apply, "perfiles migrados"))
     for problem in report.problems:

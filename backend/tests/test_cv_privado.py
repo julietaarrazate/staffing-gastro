@@ -32,7 +32,7 @@ from app.modules.worker.infrastructure.models import WorkerProfileModel
 from scripts import privatize_worker_cvs as script
 from tests.conftest import make_admin
 from tests.test_attendance import _employer_with_company, _worker_with_profile
-from tests.test_evidencias_privadas import AHORA, FakeAdmin, _asset
+from tests.test_evidencias_privadas import AHORA, VIEJO, FakeAdmin, _asset
 from tests.test_privacidad_datos_trabajador import _published_shift_near_start
 
 pytestmark = pytest.mark.asyncio
@@ -384,6 +384,8 @@ async def _set_legacy_cv(session_factory, profile_id: str, url: str) -> None:
 
 
 VIEJO_URL = "https://res.cloudinary.com/oido-test/image/upload/v17/oido/cv/{}.pdf"
+# Antes de las carpetas (`APP_FOLDERS_SINCE`); `VIEJO` (2026-10-20) ya es después.
+ANTES = datetime(2026, 9, 1, tzinfo=UTC)
 
 
 async def test_un_cv_viejo_publico_se_sigue_viendo_hasta_migrarlo(
@@ -510,8 +512,9 @@ async def test_el_script_protege_un_cv_private(client, session_factory, cloudina
 async def test_el_script_recorre_la_raiz_los_cv_de_antes_de_las_carpetas(
     client, session_factory, cloudinary_on
 ):
-    """Antes del 2026-10-15 los CV subían sin carpeta. Un Word o un PDF que
-    nadie usa se borra; una foto que nadie usa se lista para mirarla a mano;
+    """Antes de las carpetas (2026-10-15) los CV subían sin carpeta. Un Word o
+    un PDF de entonces que nadie usa se borra; uno sin carpeta más nuevo no es
+    de la app (se lista); una foto que nadie usa se lista para mirarla a mano;
     lo que usa otra cosa no se toca."""
     _, viejo = await _worker_with_profile(client, "cvs_raiz@test.com")
     await _set_legacy_cv(
@@ -526,8 +529,11 @@ async def test_el_script_recorre_la_raiz_los_cv_de_antes_de_las_carpetas(
     admin = FakeAdmin(
         [
             _asset("cvraiz.docx", "", rt="raw"),  # CV viejo de un perfil: se protege
-            _asset("huerfano.docx", "", rt="raw"),  # Word que nadie usa: se borra
-            _asset("huerfano", "pdf"),  # PDF que nadie usa: se borra
+            _asset("huerfano.docx", "", rt="raw", created_at=ANTES),  # Word viejo: se borra
+            _asset("huerfano", "pdf", created_at=ANTES),  # PDF viejo que nadie usa: se borra
+            # Revisión del 2026-11-19: un PDF sin carpeta de cuando la app ya
+            # usaba carpetas lo subió alguien a mano. Se lista, no se borra.
+            _asset("media_kit", "pdf", created_at=VIEJO),
             _asset("fotoperfil"),  # foto de perfil en uso: ni se toca ni se lista
             _asset("suelta", "png"),  # foto que nadie usa: se lista
             _asset("reciente", "pdf", created_at=AHORA),  # recién subido: no se toca
@@ -538,12 +544,12 @@ async def test_el_script_recorre_la_raiz_los_cv_de_antes_de_las_carpetas(
 
     assert admin.protected == ["cvraiz.docx"]
     assert sorted(admin.deleted) == ["huerfano", "huerfano.docx"]
-    assert len(report.to_review) == 1 and "suelta" in report.to_review[0]
+    assert sorted(item.split(" ")[0] for item in report.to_review) == ["media_kit", "suelta"]
     assert report.recent_skipped == 1
     assert (await _profile(session_factory, viejo)).cv_public_id == "cvraiz.docx"
 
     # En modo «mira» no se toca nada.
-    admin2 = FakeAdmin([_asset("otro.docx", "", rt="raw")])
+    admin2 = FakeAdmin([_asset("otro.docx", "", rt="raw", created_at=ANTES)])
     dry = await _run(session_factory, admin2, apply=False)
     assert dry.orphans_deleted == 1 and admin2.deleted == []
 
