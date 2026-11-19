@@ -24,7 +24,7 @@ mandaba). Acá los mocks salen de respuestas reales.
 
 ```bash
 cd backend
-ACTUALIZAR_CONTRATO=1 /tmp/claude-0/venv311/bin/python -m pytest -q tests/test_contrato_frontend.py
+ACTUALIZAR_CONTRATO=1 python -m pytest -q tests/test_contrato_frontend.py   # con el venv del backend
 ```
 
 Sin la variable, el test **compara la forma** (claves recursivas, tipo JSON de
@@ -68,3 +68,7 @@ escribir el objeto a mano.
   tipo de `types.ts` se revisa con `Ensanchar<T>` y las uniones, a mano.
 - Errores que el backend no genera (5xx, 429, corte de red) siguen escritos a
   mano en cada spec: no hay respuesta real que copiar.
+- El horario de los turnos del archivo es fijo y lejano (20/12/2037, un
+  domingo) para que no deje de ser futuro (ver `docs/BUGS.md`, «Una fecha
+  "futura" hardcodeada en un test»). Un spec que necesita «hoy» o «ya
+  empezó» lo pone en `cambios`.

@@ -51,7 +51,7 @@ _AL_AZAR = {"distance_km": 0.3, "score": 0.4}
 _VOLATIL_OTROS = {"slug", "share_token"}
 # Horario fijo del turno en el archivo (el real se calcula desde hoy, porque el
 # feed y la página pública sólo muestran turnos que todavía no empezaron).
-_HORARIO_FIJO = {"start_at": "2026-12-20T20:00:00", "end_at": "2026-12-21T03:00:00"}
+_HORARIO_FIJO = {"start_at": "2037-12-20T20:00:00", "end_at": "2037-12-21T03:00:00"}
 
 
 class Normalizador:
@@ -155,9 +155,13 @@ def _diferencias(esperada, actual, ruta="") -> list[str]:
                 out += _diferencias(esperada[k], actual[k], donde)
         return out
     if isinstance(esperada, list) and isinstance(actual, list):
-        if esperada != actual:
-            return [f"{ruta or '(raíz)'}: la forma de los elementos cambió: {esperada} -> {actual}"]
-        return []
+        if esperada == actual:
+            return []
+        if len(esperada) == len(actual) == 1:
+            # Lo común: todos los elementos con la misma forma. Se baja a ella
+            # para decir qué clave cambió (`feed[].meal`), no los dos dicts.
+            return _diferencias(esperada[0], actual[0], f"{ruta or '(raíz)'}[]")
+        return [f"{ruta or '(raíz)'}: la forma de los elementos cambió: {esperada} -> {actual}"]
     if esperada != actual:
         return [f"{ruta or '(raíz)'}: tipo {esperada} -> {actual}"]
     return []
@@ -414,6 +418,7 @@ async def test_contrato_frontend(client: AsyncClient, session_factory):
     settings.mercadopago_access_token = "TEST-token"
     settings.mercadopago_webhook_secret = "clave-de-prueba"
     settings.subscriptions_enforced = True
+    override_previo = app.dependency_overrides.get(get_billing_gateway)
     app.dependency_overrides[get_billing_gateway] = lambda: FakeBillingGateway(enabled_=True)
     try:
         _, cobro = await _registrar(
@@ -430,7 +435,10 @@ async def test_contrato_frontend(client: AsyncClient, session_factory):
         cap.guardar("suscribirse", await client.post(
             "/api/v1/subscription/subscribe", headers=cobro, json={"plan_code": "inicial"}))
     finally:
-        app.dependency_overrides.pop(get_billing_gateway, None)
+        if override_previo is None:
+            app.dependency_overrides.pop(get_billing_gateway, None)
+        else:
+            app.dependency_overrides[get_billing_gateway] = override_previo
         (settings.mercadopago_access_token, settings.mercadopago_webhook_secret,
          settings.subscriptions_enforced) = previo
 
