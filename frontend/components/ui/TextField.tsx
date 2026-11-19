@@ -89,7 +89,7 @@ export default function TextField({
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
           className={cn(
-            "min-h-[48px] w-full rounded-[var(--radius-input)] bg-surface px-4 text-body text-ink outline-none ring-1 ring-line transition",
+            "campo min-h-[48px] w-full rounded-[var(--radius-input)] bg-surface px-4 text-body text-ink outline-none ring-1 ring-line transition",
             Boolean(leftIcon) && "pl-11",
             isPassword && "pr-12",
             error && "ring-2 ring-danger"

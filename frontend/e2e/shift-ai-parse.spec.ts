@@ -103,7 +103,8 @@ test("describir el turno con texto precarga el wizard, sin publicar nada solo", 
   // el horario no se muestra ahí (sólo en el paso "Cuándo", que en este
   // caso se salteó) — se verifica al publicar, más abajo.
   await expect(page.getByRole("heading", { name: "¿Dónde es?" })).toBeVisible();
-  await expect(page.getByText("Calle Falsa 123, Palermo")).toBeVisible();
+  // `.first()`: la dirección está en la tarjeta del local y en la del pedido.
+  await expect(page.getByText("Calle Falsa 123, Palermo").first()).toBeVisible();
   await expect(page.getByText("Mozo/a").first()).toBeVisible();
   await expect(page.getByText("$45.000", { exact: false }).first()).toBeVisible();
 

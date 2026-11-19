@@ -92,7 +92,9 @@ export default function Button({
       className={cn(
         // Todos rectos, con el radio del principal (`--radius-relieve`, 10 px):
         // al lado del principal, un secundario de 6 px se veía de otra familia.
-        "inline-flex items-center justify-center rounded-[var(--radius-relieve)] font-semibold transition-[filter,background-color] outline-none disabled:opacity-50 disabled:pointer-events-none",
+        // `boton`: el gancho de la dirección suave (ADR-0028), que adentro de
+        // `.estilo-suave` los redondea.
+        "boton inline-flex items-center justify-center rounded-[var(--radius-relieve)] font-semibold transition-[filter,background-color] outline-none disabled:opacity-50 disabled:pointer-events-none",
         VARIANTS[variant],
         SIZES[size],
         fullWidth && "w-full",

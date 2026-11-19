@@ -74,7 +74,7 @@ import LocationPicker, { type LocationSelection } from "@/components/LocationPic
 import type { MapAddressSelection } from "@/components/map/MapAddressPicker";
 import ImageUpload from "@/components/ImageUpload";
 import Logo from "@/components/Logo";
-import { Button, TextField } from "@/components/ui";
+import { Button, PasosTachados, TextField } from "@/components/ui";
 import { CheckIcon, MapPinIcon } from "@/components/icons";
 import { LETRAS_APP } from "@/lib/letras";
 import { LIMITES } from "@/lib/limites";
@@ -157,40 +157,6 @@ function Shell({ children }: { children: React.ReactNode }) {
         {children}
       </div>
     </div>
-  );
-}
-
-/**
- * Los pasos de la bienvenida en un renglón, como los pasos de un turno
- * (`ShiftLifecycleStepper`): lo hecho tachado a mano en azul hondo, lo
- * actual en negrita, lo que falta en la letra suave. Antes eran barritas en
- * ámbar, y el ámbar es sólo la acción.
- */
-function StepDots({ active, labels }: { active: number; labels: readonly string[] }) {
-  return (
-    // `role="list"` explícito: sin viñetas, Safari le saca a la lista su rol.
-    // eslint-disable-next-line jsx-a11y/no-redundant-roles
-    <ol role="list" aria-label={`Paso ${active + 1} de ${labels.length}: ${labels[active]}`} className="pasos-tachados mt-6 flex flex-wrap items-baseline gap-x-4 gap-y-1">
-      {labels.map((label, i) => (
-        <li
-          key={label}
-          aria-current={i === active ? "step" : undefined}
-          className={`text-sm ${i === active ? "font-bold text-ink" : "font-medium text-ink-soft"}`}
-        >
-          <span className="relative">
-            {label}
-            {i < active && (
-              <>
-                <svg className="tacha" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true">
-                  <path d="M2 6C20 2 40 8 60 4S90 3 98 6" />
-                </svg>
-                <span className="sr-only"> (hecho)</span>
-              </>
-            )}
-          </span>
-        </li>
-      ))}
-    </ol>
   );
 }
 
@@ -345,7 +311,7 @@ function WorkerOnboarding({ next }: { next: string | null }) {
 
   return (
     <Shell>
-      <StepDots active={stepIndex} labels={["Zona", "Oficio", "Tus datos"]} />
+      <PasosTachados active={stepIndex} labels={["Zona", "Oficio", "Tus datos"]} className="mt-6" />
 
       {step === "zona" ? (
         <section className="mt-8 flex flex-1 flex-col">
@@ -625,7 +591,7 @@ function EmployerOnboarding({ next }: { next: string | null }) {
 
   return (
     <Shell>
-      <StepDots active={step === "nombre" ? 0 : 1} labels={["Tu comercio", "Ubicación"]} />
+      <PasosTachados active={step === "nombre" ? 0 : 1} labels={["Tu comercio", "Ubicación"]} className="mt-6" />
 
       {step === "nombre" ? (
         <section className="mt-8 flex flex-1 flex-col">
