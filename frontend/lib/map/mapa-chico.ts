@@ -47,10 +47,14 @@ export type Mosaico = { x: number; y: number; left: number; top: number };
 
 const PARQUES = new Set(["park", "grass", "garden", "playground", "dog_park", "pitch", "forest", "recreation_ground"]);
 
+/** El borde norte y sur de Web Mercator: más allá, `y` se va al infinito. */
+const LATITUD_MAXIMA = 85.0511;
+
 /** Latitud y longitud a píxeles del mundo, a `ZOOM` (Web Mercator). */
 export function aPixel(latitude: number, longitude: number): Punto {
   const mundo = LADO * 2 ** ZOOM;
-  const seno = Math.sin((latitude * Math.PI) / 180);
+  const lat = Math.max(-LATITUD_MAXIMA, Math.min(LATITUD_MAXIMA, latitude));
+  const seno = Math.sin((lat * Math.PI) / 180);
   return {
     x: ((longitude + 180) / 360) * mundo,
     y: (0.5 - Math.log((1 + seno) / (1 - seno)) / (4 * Math.PI)) * mundo,
@@ -59,7 +63,7 @@ export function aPixel(latitude: number, longitude: number): Punto {
 
 /** Los mosaicos que tapan un recuadro de `w`×`h` centrado en `centro`, con su lugar en el recuadro. */
 export function mosaicosVisibles(centro: Punto, w: number, h: number): Mosaico[] {
-  if (w <= 0 || h <= 0) return [];
+  if (w <= 0 || h <= 0 || !Number.isFinite(centro.x) || !Number.isFinite(centro.y)) return [];
   const lista: Mosaico[] = [];
   const x0 = Math.floor((centro.x - w / 2) / LADO);
   const x1 = Math.floor((centro.x + w / 2) / LADO);
@@ -176,15 +180,27 @@ export function elegirRotulos(
 let plantilla = MOSAICOS_DE_RESPALDO;
 let plantillaRenovada: Promise<string> | null = null;
 
-/** La dirección de los mosaicos que trae el estilo de CARTO hoy (una vez por sesión). */
+/** Un pedido colgado no deja esperando a las demás tarjetas del barrio. */
+const TOPE_MS = 10_000;
+const conTope = (): RequestInit =>
+  typeof AbortSignal !== "undefined" && "timeout" in AbortSignal ? { signal: AbortSignal.timeout(TOPE_MS) } : {};
+
+/**
+ * La dirección de los mosaicos que trae el estilo de CARTO hoy. Se lee una
+ * vez por sesión si sale bien; si falla (sin red), se puede volver a leer
+ * más adelante.
+ */
 function plantillaDelEstilo(): Promise<string> {
-  plantillaRenovada ??= fetch(MAP_STYLE_URL)
+  plantillaRenovada ??= fetch(MAP_STYLE_URL, conTope())
     .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
     .then((estilo: { sources?: Record<string, { type?: string; tiles?: string[] }> }) => {
       const fuente = Object.values(estilo.sources ?? {}).find((s) => s.type === "vector" && s.tiles?.length);
       return fuente?.tiles?.[0] ?? plantilla;
     })
-    .catch(() => plantilla);
+    .catch(() => {
+      plantillaRenovada = null;
+      return plantilla;
+    });
   return plantillaRenovada;
 }
 
@@ -204,7 +220,7 @@ export function pedirTrazos(x: number, y: number): Promise<Trazos | null> {
   let pedido = cache.get(clave);
   if (!pedido) {
     const bajar = async (base: string) => {
-      const r = await fetch(url(base, x, y));
+      const r = await fetch(url(base, x, y), conTope());
       if (!r.ok) throw new Error(String(r.status));
       return leerTrazos(await r.arrayBuffer());
     };

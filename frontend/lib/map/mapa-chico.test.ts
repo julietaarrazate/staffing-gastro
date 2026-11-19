@@ -74,6 +74,15 @@ describe("cuentas del mapa chico", () => {
     expect(m.top + (centro.y - m.y * LADO)).toBeCloseTo(56);
   });
 
+  it("una latitud de polo (±90) no cuelga la pestaña: se acota al borde del mapa", () => {
+    for (const lat of [90, -90, 1e9]) {
+      const p = aPixel(lat, 0);
+      expect(Number.isFinite(p.y)).toBe(true);
+      expect(mosaicosVisibles(p, 326, 112).length).toBeLessThanOrEqual(4);
+    }
+    expect(mosaicosVisibles({ x: 0, y: Infinity }, 326, 112)).toEqual([]);
+  });
+
   it("sin tamaño todavía, no pide mosaicos", () => {
     expect(mosaicosVisibles({ x: 0, y: 0 }, 0, 112)).toEqual([]);
   });
@@ -182,6 +191,22 @@ describe("pedirTrazos", () => {
     fetchMock.mockReset();
     fetchMock.mockResolvedValue(ok(buf));
     expect((await pedirTrazos(3, 4))?.calles).toBe("M0 0L5 5");
+  });
+
+  it("si leer el estilo falla una vez (sin red), se vuelve a leer en el próximo intento", async () => {
+    const { pedirTrazos } = await import("./mapa-chico");
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.includes("style.json")) throw new Error("sin conexión");
+      return { ok: false, status: 404 };
+    });
+    expect(await pedirTrazos(7, 8)).toBeNull();
+    fetchMock.mockReset();
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.includes("style.json")) return ok({ sources: { s: { type: "vector", tiles: ["https://otra.test/{z}/{x}/{y}.mvt"] } } });
+      if (url.startsWith("https://otra.test/")) return ok(buf);
+      return { ok: false, status: 404 };
+    });
+    expect((await pedirTrazos(7, 8))?.calles).toBe("M0 0L5 5");
   });
 
   it("dos tarjetas en el mismo barrio comparten el pedido", async () => {

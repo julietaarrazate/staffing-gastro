@@ -748,7 +748,9 @@
      colores de siempre de un mapa (gris claro, avenidas amarillas, plazas
      verdes), elegido por Julieta el 2026-11-19 sobre una versión celeste. El
      local va en azul hondo con relieve. Es papel claro también de noche,
-     como la comanda donde va: estos tokens no cambian con el tema. */
+     como la comanda donde va: estos tokens no cambian con el tema. El
+     amarillo pálido de las avenidas es el de un mapa, no el ámbar de las
+     acciones: no cuenta para «un solo ámbar por pantalla». */
   --mapa-fondo: #f2f0eb;
   --mapa-parque: #cde8c1;
   --mapa-agua: #a8d4f5;
@@ -759,6 +761,10 @@
   --mapa-rotulo: #5f6368;
   --mapa-local: #1c5478;
   --mapa-local-relieve: #0f3a5b;
+  --mapa-papel: #ffffff;
+  --mapa-etiqueta-borde: rgb(28 84 120 / 0.35);
+  --mapa-credito-fondo: rgb(255 255 255 / 0.75);
+  --mapa-credito-tinta: rgb(17 17 17 / 0.6);
   /* El cielo de arriba de una pantalla de la app (`.app-cielo`) y la tinta
      que se lee encima; el azul de los títulos en brocha (`.letra-cartel`). */
   --app-cielo-0: #6fb0df;
@@ -1252,7 +1258,7 @@ body:has([data-landing]) main {
   width: 14px;
   height: 14px;
   transform: translate(-50%, -50%);
-  border: 2px solid #fff;
+  border: 2px solid var(--mapa-papel);
   border-radius: 3px;
   background: var(--mapa-local);
   box-shadow: 2px 2px 0 var(--mapa-local-relieve);
@@ -1267,8 +1273,8 @@ body:has([data-landing]) main {
   overflow: hidden;
   padding: 2px 7px;
   border-radius: 4px;
-  background: #fff;
-  box-shadow: 0 0 0 1px rgb(28 84 120 / 0.35);
+  background: var(--mapa-papel);
+  box-shadow: 0 0 0 1px var(--mapa-etiqueta-borde);
   color: var(--mapa-local);
   font-size: 11px;
   font-weight: 600;
@@ -1283,8 +1289,8 @@ body:has([data-landing]) main {
   z-index: 3;
   padding: 1px 5px;
   border-radius: 4px;
-  background: rgb(255 255 255 / 0.75);
-  color: rgb(17 17 17 / 0.6);
+  background: var(--mapa-credito-fondo);
+  color: var(--mapa-credito-tinta);
   font-size: 9px;
   line-height: 1.3;
 }

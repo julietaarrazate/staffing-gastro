@@ -19,7 +19,7 @@ import {
  *
  * Hasta el 2026-11-19 era un `MapView` de MapLibre: cada tarjeta bajaba el
  * motor entero y abría su propio WebGL. Ahora no hay MapLibre en las
- * pantallas que sólo muestran esta foto (Mis turnos bajó de 623 a 335 KB de
+ * pantallas que sólo muestran esta foto (Mis turnos bajó de 634 a 343 KB de
  * JS). Cómo se dibuja: `lib/map/mapa-chico.ts`; números en
  * docs/reference/RENDIMIENTO.md.
  */
@@ -44,6 +44,7 @@ export default function MiniMap({
     if (!el) return;
     const medir = () => setTam({ w: el.clientWidth, h: el.clientHeight });
     medir();
+    if (typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver(medir);
     ro.observe(el);
     return () => ro.disconnect();
@@ -66,9 +67,11 @@ export default function MiniMap({
     };
   }, [mosaicos]);
 
-  const { barrio, avenida } = tam
-    ? elegirRotulos(mosaicos, (m) => trazos[`${m.x}/${m.y}`], tam.w, tam.h)
-    : { barrio: null, avenida: null };
+  const { barrio, avenida } = useMemo(
+    () =>
+      tam ? elegirRotulos(mosaicos, (m) => trazos[`${m.x}/${m.y}`], tam.w, tam.h) : { barrio: null, avenida: null },
+    [mosaicos, trazos, tam],
+  );
 
   return (
     <div ref={caja} className={`mapa-chico ${className} rounded-2xl`} aria-hidden>
