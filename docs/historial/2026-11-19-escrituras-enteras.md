@@ -17,9 +17,11 @@ versión ni condición, y pisaban lo que otro pedido escribió en el medio.
   `SqlAlchemyClaimRepository.update` hace `UPDATE … WHERE status = <leído>
   AND submitted_at = <leído>` antes de tocar evidencias y cola; si afectó 0
   filas, `ClaimChangedError` (`backend/app/modules/verification/`). El
-  reenvío que choca relee y reintenta; si lo que entró fue una aprobación,
-  responde «ya está verificada». Frontend:
-  `frontend/components/admin/IdentityReviewQueue.tsx`.
+  reenvío que choca relee y reintenta hasta 3 veces (si pierde las 3, 409
+  «No pudimos guardar tu envío porque cambió mientras tanto. Probá de
+  nuevo.»); si lo que entró fue una aprobación, responde «ya está
+  verificada» y manda a la cola de borrado los archivos de ese envío, que ya
+  estaban subidos. Frontend: `frontend/components/admin/IdentityReviewQueue.tsx`.
 - **Usuario (CON-13).** Cambiarse el nombre mientras la admin suspendía la
   cuenta la dejaba activa (y una contraseña restablecida durante una
   suspensión volvía a la vieja). `SqlAlchemyUserRepository.update` escribe
@@ -32,7 +34,11 @@ versión ni condición, y pisaban lo que otro pedido escribió en el medio.
   sigue como se leyó, y cada caso de uso relee y vuelve a aplicar su regla
   (`change_subscription` en `subscription/domain/repositories.py`, hasta 3
   veces; si pierde las 3, 409 «Tu plan cambió mientras tanto…»). La pasada
-  de vencimiento saltea la que cambió y la mira en la próxima.
+  de vencimiento saltea la que cambió y la mira en la próxima. El contador
+  de turnos publicados suma en la base (`turnos_usados_mes + 1`,
+  `register_publication`), sin leer ni reintentar. Un arrepentimiento que
+  quedó a medias (reembolsado, plan sin cortar) se termina al reintentar,
+  sin reembolsar dos veces.
 - La entidad lleva cómo estaba la fila al leerla (`persisted_state`, lo arma
   el repositorio) y los dos modos de guardar están en
   `backend/app/core/row_state.py`.
@@ -56,5 +62,9 @@ ADR-0016) y una versión en `users` (habría hecho fallar el cambio de nombre
 en vez de guardar los dos). ADR-0021 y ADR-0022 suman una actualización.
 
 **Queda abierto:** los otros hallazgos del cobro (CON-06, CON-07, CON-09)
-van aparte. Si el webhook pierde la carrera 3 veces seguidas responde error,
-y que el reintento de Mercado Pago acredite ese mes es justamente CON-06.
+van aparte. Si el webhook pierde la carrera 3 veces seguidas después de
+aprobar el pago responde 500, y el reintento de Mercado Pago contesta
+«duplicado»: es un camino nuevo hacia CON-06. Los tests de
+`test_verification_envio_repetido.py` (anteriores a este cambio) usan un
+`user_id` inventado y fallan en Postgres por la clave foránea; los de este
+cambio crean la cuenta.

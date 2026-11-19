@@ -116,14 +116,22 @@ pasa hoy, con el cobro apagado).
   (`WHERE` sobre las columnas que escribe; `chosen_plan_*` y
   `payment_commitment_*` siguen con sus UPDATE propios). Si no,
   `SubscriptionChangedError` y no se guarda nada.
-- Cada caso de uso (pago del webhook, cambio de plan, baja, arrepentimiento,
-  publicación) relee y vuelve a aplicar su regla hasta 3 veces
+- Cada caso de uso (pago del webhook, cambio de plan, baja,
+  arrepentimiento) relee y vuelve a aplicar su regla hasta 3 veces
   (`change_subscription` en `domain/repositories.py`). Si pierde las 3, la
   baja, el arrepentimiento y el cambio de plan responden 409 «Tu plan cambió
-  mientras tanto. Actualizá y volvé a intentar.»; la publicación no falla
-  (el turno ya quedó publicado) y lo deja en el log; el webhook responde
-  error, y que el reintento de Mercado Pago acredite el mes es el hallazgo
-  CON-06 de la misma pasada (aparte).
+  mientras tanto. Actualizá y volvé a intentar.».
+- **Camino nuevo hacia CON-06:** si después de `try_approve` la suscripción
+  pierde los 3 intentos, el webhook responde 500 y el reintento de Mercado
+  Pago contesta «duplicado» (el pago ya quedó aprobado): el mes no se
+  acredita. Se arregla con CON-06, aparte.
+- Un arrepentimiento que quedó a medias (se devolvió todo, pero el plan no
+  llegó a cortarse) sigue ofreciendo «Arrepentirme», y el reintento termina
+  la baja sin volver a reembolsar.
+- El contador de turnos publicados suma en la base (`turnos_usados_mes =
+  turnos_usados_mes + 1`, abriendo antes la ventana nueva si venció), sin
+  leer ni reintentar: publicaciones a la vez suman todas
+  (`SubscriptionRepository.register_publication`).
 - La pasada de vencimiento saltea la suscripción que cambió (no la vence ni
   avisa) y la vuelve a mirar en la próxima pasada, enseguida.
 

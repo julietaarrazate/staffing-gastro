@@ -408,6 +408,18 @@ borrado de este ADR dejaba de cumplirse.
   se recarga con el envío nuevo. Sin ese dato (un cliente viejo) se decide
   sobre el envío pendiente, como antes, pero igual con el guardado
   condicional.
-- Un reenvío que choca con una decisión relee: si fue una aprobación, 409
-  «Tu identidad ya está verificada» (o «Tu comercio ya está verificado»).
+- Un reenvío que choca con una decisión relee y reintenta (hasta 3 veces;
+  si pierde las 3, 409 «No pudimos guardar tu envío porque cambió mientras
+  tanto. Probá de nuevo.» sin tocar nada). Si lo que entró fue una
+  aprobación, 409 «Tu identidad ya está verificada» (o «Tu comercio ya está
+  verificado»), y los archivos de ese envío, que ya estaban subidos y nada
+  apunta, van a la cola de borrado (lo mismo si alguien ya verificado
+  reenvía). Con el 409 no corre el borrado de después de responder: los
+  borra el scheduler en su próxima pasada.
+- `scripts/privatize_identity_evidence.py` cambia el puntero de las
+  evidencias (de la URL pública al archivo privado) sin mover el estado ni
+  `submitted_at`, así que el guardado condicional no lo ve. Una decisión que
+  corra justo a la vez guarda las evidencias que leyó antes, con la URL
+  vieja, y ese archivo no entra a la cola de borrado; lo borra el paso 2 del
+  script al volver a correrlo (es idempotente).
 
