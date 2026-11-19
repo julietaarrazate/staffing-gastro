@@ -161,6 +161,7 @@ test("Imprimir llama a window.print y en papel sólo queda la lista", async ({ p
   await page.getByRole("button", { name: "Imprimir" }).click();
   expect(await page.evaluate(() => (window as unknown as { __prints: number }).__prints)).toBe(1);
 
+  await page.evaluate(() => window.dispatchEvent(new Event("beforeprint")));
   await page.emulateMedia({ media: "print" });
   await expect(hoja).toBeVisible();
   await expect(hoja.getByRole("heading", { name: "Comercios a captar · Palermo" })).toBeVisible();
@@ -184,7 +185,10 @@ for (const theme of ["light", "dark"] as const) {
     await page.goto("/admin/leads");
     await expect(page.getByText("Café Tranquilo").first()).toBeVisible();
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+    // El navegador dispara `beforeprint` antes de pintar la hoja.
+    await page.evaluate(() => window.dispatchEvent(new Event("beforeprint")));
     await page.emulateMedia({ media: "print" });
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
     await expect(page.getByTestId("comercios-imprimir")).toBeVisible();
     await page.screenshot({
       path: `test-results/admin-leads-imprimir-${theme}.png`,

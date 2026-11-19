@@ -2984,58 +2984,13 @@ body:has([data-landing]) main {
   transform: translateY(-0.3em);
 }
 
-/* ──────────────────────────────────────────────────────────────────────────
- * IMPRESIÓN (lista de comercios a captar, `ComerciosImprimir`). En papel va
- * siempre en claro, aunque la app esté en oscuro: acá se reaplican los
- * valores claros de los tokens que el bloque oscuro pisa (los mismos del
- * subárbol `[data-theme="light"]`). Si se agrega un token al bloque oscuro,
- * va también acá. */
+/* IMPRESIÓN (lista de comercios a captar, `ComerciosImprimir`): el tema claro
+ * lo fuerza el componente con `beforeprint`/`afterprint`, sin duplicar tokens. */
 @page {
   margin: 12mm;
 }
 @media print {
-  :root[data-theme="dark"] {
-    color-scheme: light;
-    --background: #ffffff;
-    --foreground: #111111;
-    --wash: none;
-    --line: #deecf0;
-    --color-line: #deecf0;
-    --color-card: #ffffff;
-    --color-surface: #e5eef1;
-    --color-focus: #141118;
-    --color-focus-ink: #ffffff;
-    --color-raised: #ffffff;
-    --color-chrome: #ffffff;
-    --color-paper: #e5eef1;
-    --color-ink: #111111;
-    --color-ink-soft: #4b5563;
-    --color-ink-mute: #686572;
-    --color-primary-text: #1c5478;
-    --color-secondary: #c4e3ed;
-    --color-secondary-text: #1c5478;
-    --color-accent-text: #1c5478;
-    --color-success-text: #15803d;
-    --color-danger-text: #c22f2f;
-    --color-warning-text: #92660a;
-    --color-info-text: #1d4ed8;
-    --color-trust: #1e4a47;
-    --color-trust-text: #1e4a47;
-    --color-trust-tint: #e8f1f0;
-    --color-manteca-tint: #deecf0;
-    --color-manteca-text: #1c5478;
-    --color-cielo-tint: #e8f1ff;
-    --color-cielo-text: #1c4b87;
-    --color-primary-tint: #deecf0;
-    --color-secondary-tint: #deecf0;
-    --color-accent-tint: #deecf0;
-    --color-success-tint: #f0fdf4;
-    --color-danger-tint: #fef2f2;
-    --color-warning-tint: #fffbeb;
-    --color-info-tint: #dbeafe;
-    --color-toast: #141118;
-    --color-toast-ink: #ffffff;
-  }
+  /* Sin el cielo celeste ni el lienzo tintado: papel blanco. */
   body {
     background: #ffffff;
   }

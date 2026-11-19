@@ -1,12 +1,44 @@
 // Versión para papel de la lista de «Comercios a captar»: la ruta de visitas
 // para llevar impresa o guardar como PDF desde el diálogo de impresión del
-// navegador. Va oculta en pantalla y sólo se ve al imprimir; en `globals.css`
-// (`@media print`) los tokens vuelven al tema claro aunque la app esté oscura.
+// navegador. Va oculta en pantalla y sólo se ve al imprimir. Al imprimir la
+// página pasa a tema claro (`beforeprint`) y después vuelve al que tenía
+// (`afterprint`), así sale letra oscura sobre blanco aunque la app esté oscura
+// sin duplicar los tokens de la paleta en el CSS.
 
+"use client";
+
+import { useEffect } from "react";
 import type { Lead } from "@/lib/types";
 import { LEAD_KIND_LABELS, LEAD_STATUS_LABELS } from "@/lib/leads";
 import { formatShiftDate } from "@/lib/datetime";
 import { plural } from "@/lib/format";
+
+function useTemaClaroAlImprimir() {
+  useEffect(() => {
+    const root = document.documentElement;
+    let guardado: string | null = null;
+    let activo = false;
+    const antes = () => {
+      if (activo) return;
+      activo = true;
+      guardado = root.getAttribute("data-theme");
+      root.setAttribute("data-theme", "light");
+    };
+    const despues = () => {
+      if (!activo) return;
+      activo = false;
+      if (guardado === null) root.removeAttribute("data-theme");
+      else root.setAttribute("data-theme", guardado);
+    };
+    window.addEventListener("beforeprint", antes);
+    window.addEventListener("afterprint", despues);
+    return () => {
+      window.removeEventListener("beforeprint", antes);
+      window.removeEventListener("afterprint", despues);
+      despues();
+    };
+  }, []);
+}
 
 export default function ComerciosImprimir({
   leads,
@@ -18,6 +50,7 @@ export default function ComerciosImprimir({
   /** Etiqueta del filtro de estado ya elegido ("Todos", "Nuevo", …). */
   filtro: string;
 }) {
+  useTemaClaroAlImprimir();
   // Fecha de hoy en hora de Argentina (dd/mm/aaaa).
   const hoy = formatShiftDate(new Date().toISOString());
   return (
@@ -56,7 +89,7 @@ export default function ComerciosImprimir({
                 <span className="block text-[8.5pt] text-ink-soft">{LEAD_KIND_LABELS[lead.kind]}</span>
               </td>
               <td className="py-2 pr-2">{lead.address ?? ""}</td>
-              <td className="py-2 pr-2">{lead.phone ?? ""}</td>
+              <td className="whitespace-nowrap py-2 pr-2">{lead.phone ?? ""}</td>
               <td className="py-2 pr-2 break-all">{lead.instagram ?? ""}</td>
               <td className="py-2 pr-2">{LEAD_STATUS_LABELS[lead.status]}</td>
               <td className="h-14 py-2" />
