@@ -312,7 +312,7 @@ function FilterChip({
       aria-pressed={active}
       className={
         active
-          ? // Mismo activo que `SegmentedControl` (bg-raised + text-ink), con un
+          ? // Chip de filtro (no pestaña): `bg-raised` + `text-ink`, con un
             // anillo de tinta: `bg-night` se perdía sobre el lienzo oscuro.
             "rounded-full bg-raised px-3 py-1.5 text-xs font-semibold text-ink shadow-[var(--shadow-soft)] ring-1 ring-ink/50"
           : "rounded-full bg-surface px-3 py-1.5 text-xs font-semibold text-ink/60 ring-1 ring-line transition hover:bg-line"
