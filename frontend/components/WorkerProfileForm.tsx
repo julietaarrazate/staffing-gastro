@@ -60,10 +60,19 @@ function parseList(text: string): string[] {
     .filter(Boolean);
 }
 
-/** ¿Lo que se ve del CV es lo que está guardado? (Sólo ése tiene link.) */
-function cvIsSaved(cv: CvValue, saved: CvValue): boolean {
-  if (cv.file || saved.file) return cv.file?.public_id === saved.file?.public_id;
-  return Boolean(cv.url) && cv.url === saved.url;
+/**
+ * ¿El CV del formulario es el mismo que se cargó? Si lo es, al guardar no se
+ * mandan sus campos: `saveProfilePart` pone el que tiene el servidor en ese
+ * momento. Así un formulario abierto desde antes no repone un CV que la
+ * persona ya cambió o sacó en otro lado (revisión del 2026-11-19: el perfil
+ * quedaba apuntando a un archivo borrado). Y sólo el guardado tiene link.
+ */
+function sameCv(cv: CvValue, saved: CvValue): boolean {
+  return (
+    (cv.file?.public_id ?? null) === (saved.file?.public_id ?? null) &&
+    cv.url.trim() === saved.url.trim() &&
+    cv.fileName === saved.fileName
+  );
 }
 
 export default function WorkerProfileForm() {
@@ -150,6 +159,13 @@ export default function WorkerProfileForm() {
     e.preventDefault();
     setError(null);
     setSaved(false);
+    // El archivo subido va como referencia (protegido); el link pegado,
+    // aparte. Sólo si la persona tocó el CV en este formulario (`sameCv`).
+    const cvFields = {
+      cv_file: cv.file,
+      cv_url: cv.file ? null : normalizeUserLink(cv.url),
+      cv_filename: cv.file || cv.url.trim() ? cv.fileName : null,
+    };
     const changes = {
       city: city || null,
       bio: bio.trim() || null,
@@ -157,10 +173,7 @@ export default function WorkerProfileForm() {
       years_experience: parseYears(yearsExperience),
       languages: parseList(languagesText),
       certifications: parseList(certificationsText),
-      // El archivo subido va como referencia (privado); el link pegado, aparte.
-      cv_file: cv.file,
-      cv_url: cv.file ? null : normalizeUserLink(cv.url),
-      cv_filename: cv.file || cv.url.trim() ? cv.fileName : null,
+      ...(exists && sameCv(cv, savedCv) ? {} : cvFields),
       latitude,
       longitude,
       is_available: isAvailable,
@@ -178,6 +191,7 @@ export default function WorkerProfileForm() {
         // Todavía no hay perfil: no hay nada que preservar.
         const payload: WorkerProfileInput = {
           ...changes,
+          ...cvFields,
           photo_url: null,
           birth_date: null,
         };
@@ -327,7 +341,7 @@ export default function WorkerProfileForm() {
         token={token}
         onChange={setCv}
         onOpen={
-          profileId && cvIsSaved(cv, savedCv)
+          profileId && (cv.file || cv.url) && sameCv(cv, savedCv)
             ? () => openCv(profileId, token)
             : undefined
         }

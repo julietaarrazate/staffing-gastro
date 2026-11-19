@@ -17,7 +17,7 @@ const REF = {
   public_id: `oido/cv/${"d".repeat(64)}`,
   resource_type: "image",
   format: "pdf",
-  type: "private" as const,
+  type: "authenticated" as const,
 };
 
 function makeFile(name: string, sizeInBytes: number, type = "application/pdf") {

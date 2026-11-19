@@ -70,7 +70,7 @@ describe("saveProfilePart", () => {
   });
 
   it("manda de vuelta la referencia del CV privado tal cual (si no, lo borraría)", async () => {
-    const cv = { public_id: `oido/cv/${"c".repeat(64)}`, resource_type: "image", format: "pdf", type: "private" as const };
+    const cv = { public_id: `oido/cv/${"c".repeat(64)}`, resource_type: "image", format: "pdf", type: "authenticated" as const };
     get.mockResolvedValue(perfil({ cv_url: null, cv_file: cv }));
     put.mockResolvedValue(perfil());
 

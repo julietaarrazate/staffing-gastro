@@ -61,13 +61,15 @@ export async function uploadImage(file: File, token: string, kind: ImageKind): P
  * constancia de AFIP o CV. No es una URL — no hay URL pública que lo muestre.
  * Se manda tal cual al backend; se vuelve a ver sólo con un link que vence a
  * los 5 minutos (el DNI y la constancia, un admin; el CV, quien hoy lo puede
- * ver).
+ * ver). El tipo de entrega es `authenticated`: ni el original ni una versión
+ * transformada se ven sin firma (`private` dejaba ver las transformadas,
+ * revisión del 2026-11-19).
  */
 export interface PrivateFileRef {
   public_id: string;
   resource_type: string;
   format: string;
-  type: "private";
+  type: "authenticated";
 }
 
 /** Sube el DNI o la selfie, privados (ADR-0021). */
@@ -112,16 +114,16 @@ interface UploadResult {
 }
 
 function toPrivateRef(result: UploadResult): PrivateFileRef {
-  if (result.type !== "private") {
-    // El backend firmó `type=private`; si Cloudinary contesta otra cosa, el
-    // archivo quedó público y no hay que mandarlo como si fuera privado.
+  if (result.type !== "authenticated") {
+    // El backend firmó `type=authenticated`; si Cloudinary contesta otra cosa,
+    // el archivo no quedó protegido y no hay que mandarlo como si lo fuera.
     throw new Error("No se pudo subir el archivo de forma privada. Probá de nuevo.");
   }
   return {
     public_id: result.public_id,
     resource_type: result.resource_type,
     format: result.format ?? "",
-    type: "private",
+    type: "authenticated",
   };
 }
 
@@ -158,7 +160,7 @@ async function uploadSigned(
   formData.append("folder", folder);
   formData.append("public_id", public_id);
   formData.append("overwrite", overwrite);
-  // Documentos de identidad y CV: `private`, también firmado (ADR-0021).
+  // Documentos de identidad y CV: `authenticated`, también firmado (ADR-0021).
   if (type) formData.append("type", type);
 
   const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {

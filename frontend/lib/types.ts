@@ -334,7 +334,7 @@ export interface CvFileRef {
   public_id: string;
   resource_type: string;
   format: string;
-  type: "private";
+  type: "authenticated";
 }
 
 export interface WorkerProfile {

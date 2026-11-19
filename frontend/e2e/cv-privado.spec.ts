@@ -40,7 +40,7 @@ const CV_FILE = {
   public_id: `oido/cv/${"e".repeat(64)}`,
   resource_type: "image",
   format: "pdf",
-  type: "private",
+  type: "authenticated",
 };
 
 const LINK = "https://cv.oido.test/abrir?vence=300";
@@ -183,6 +183,34 @@ test("el trabajador ve su CV, lo abre con un link que vence y al guardar manda l
   await page.getByRole("button", { name: /Guardar/ }).click();
   await expect.poll(() => puts.length).toBe(2);
   expect(puts[1]).toMatchObject({ cv_file: null, cv_url: null, cv_filename: null });
+});
+
+test("un formulario abierto desde antes no repone un CV que la persona ya cambió en otro lado", async ({ page }) => {
+  // Revisión del 2026-11-19: el formulario se abrió con el CV A; después, en
+  // otro dispositivo, la persona lo cambió por B (A se borra). Guardar otra
+  // cosa desde el formulario viejo no tiene que volver a poner A.
+  const puts: Record<string, unknown>[] = [];
+  const nuevo = { ...CV_FILE, public_id: `oido/cv/${"f".repeat(64)}` };
+  let lecturas = 0;
+  await base(page, WORKER);
+  await page.route("**/api/v1/workers/me/profile", (r) => {
+    if (r.request().method() === "PUT") {
+      const body = r.request().postDataJSON() as Record<string, unknown>;
+      puts.push(body);
+      return r.fulfill(json(perfil({ ...body, cv_kind: "file" })));
+    }
+    lecturas += 1;
+    const cv = lecturas === 1 ? CV_FILE : nuevo;
+    return r.fulfill(json(perfil({ cv_file: cv, cv_filename: "CV-Vera.pdf", cv_kind: "file", bio: null })));
+  });
+  await page.route("**/api/v1/identity/me", (r) => r.fulfill(json({ claims: [] })));
+  await page.goto("/profile/edit");
+  await expect(page.getByRole("button", { name: "CV-Vera.pdf" })).toBeVisible({ timeout: 15_000 });
+
+  await page.getByPlaceholder(/Mozo con 5 años/).fill("Mozo con experiencia en eventos");
+  await page.getByRole("button", { name: /Guardar/ }).click();
+  await expect.poll(() => puts.length).toBe(1);
+  expect(puts[0]).toMatchObject({ bio: "Mozo con experiencia en eventos", cv_file: nuevo });
 });
 
 for (const theme of ["light", "dark"] as const) {
