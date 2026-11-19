@@ -1,6 +1,6 @@
 # ADR-0021 — Documentos de identidad privados en Cloudinary, con link que vence
 
-**Estado:** aceptado · **Fecha:** 2026-10-23 · **Ampliado:** 2026-10-23, «Borrado al decidir» · **Complementa a:** ADR-0010 (§4, retención), ADR-0013 (constancia de AFIP)
+**Estado:** aceptado · **Fecha:** 2026-10-23 · **Ampliado:** 2026-10-23, «Borrado al decidir»; 2026-11-19, «el CV también» · **Complementa a:** ADR-0010 (§4, retención), ADR-0013 (constancia de AFIP)
 
 ## Contexto
 
@@ -20,8 +20,9 @@ sólo el puntero en la base: el archivo seguía público
    `type=private` a los parámetros firmados de la subida (`app/core/cloudinary.py`,
    `sign_image_upload("identity")` y `sign_business_document_upload`): el
    cliente no puede subirlos públicos sin invalidar la firma. Foto de perfil,
-   logo y portada siguen públicos (se muestran a todos). El CV queda fuera de
-   este ADR.
+   logo y portada siguen públicos (se muestran a todos). El CV quedó fuera de
+   este ADR, y fue una omisión: desde el 2026-11-19 también es privado (ver
+   «Actualización 2026-11-19: el CV también»).
 2. **La base guarda la referencia, no una URL.** `identity_evidences` suma
    `file_public_id`, `file_resource_type`, `file_format` y
    `file_delivery_type` (migración `0039`). El envío
@@ -187,3 +188,110 @@ cola) y lo borra el paso 2.
   Cloudinary sin que la base lo apunte. No hay un barrido periódico: listar
   las carpetas usa la Admin API, que en el plan gratis tiene un tope por
   hora. Volver a correr el script (es idempotente) los borra.
+
+## Actualización 2026-11-19: el CV también
+
+**Qué fallaba** (PRI-03, pasada de privacidad del 2026-11-19, grave). El CV
+del trabajador trae teléfono, email y domicilio, y subía a Cloudinary como
+archivo **público y sin vencimiento**: `sign_cv_upload` no firmaba `type`, y
+el perfil guardaba la URL de `res.cloudinary.com`. El candado de
+`GET /workers/{id}` (sólo el dueño, admin o un comercio con un turno o una
+postulación de esa persona reciben el CV) era de una sola vez: quien vio el
+link lo seguía abriendo para siempre, aunque la persona cambiara o sacara el
+CV, porque el archivo viejo no se borraba. Este ADR había dejado el CV
+afuera sin decir por qué; no fue una decisión de dejarlo público.
+
+**Qué cambia.** El mismo modelo que los documentos de identidad:
+
+1. **Sube privado, con la marca de quien lo sube.** `sign_cv_upload(user_id)`
+   firma `type=private` y un `public_id` de 64 hex: 32 al azar y 32 de un
+   HMAC de la cuenta (`app/core/cloudinary.py`, `cv_public_id_for` e
+   `is_cv_upload_of`). La marca hace falta porque el link que vence muestra
+   el `public_id`: sin ella, un comercio que abrió el CV una vez podía
+   crearse una cuenta de trabajador, ponerse ese mismo archivo en su perfil
+   y pedir links para siempre (o hacerlo borrar al «sacarlo»). El perfil
+   acepta un archivo nuevo sólo si es privado y lleva la marca de esa
+   cuenta; si no, 422.
+2. **El perfil guarda la referencia, no una URL.** `worker_profiles` suma
+   `cv_public_id`, `cv_resource_type`, `cv_format` y `cv_delivery_type`
+   (migración `0060`). `PUT /workers/me/profile` recibe `cv_file` (lo que
+   devuelve Cloudinary al subir). `cv_url` queda para un **link pegado a
+   mano** (Drive, LinkedIn: lo controla la persona, no es un archivo nuestro)
+   y para los CV viejos hasta correr el script. Un link de Cloudinary ya no
+   entra como «link pegado»; si es privado y de esa cuenta (lo que manda una
+   versión vieja de la app después de subir), se toma como el archivo.
+3. **Se ve con un link que vence, sólo a quien hoy puede verlo.**
+   `GET /workers/{id}/cv-link` da un `private_download_url` de 5 minutos (con
+   `download=true`, como adjunto, para «Descargar»). La regla de quién es la
+   de siempre (`_sees_contact` en `worker/api/routes.py`: el dueño, admin o
+   un comercio con `EmployerWorkerRelation`); perfil inexistente, sin CV o
+   ajeno → 404 igual. El perfil ajeno ya no trae `cv_url` ni la referencia:
+   dice qué CV hay (`cv_kind`: `file` o `link`) y el nombre del archivo.
+   Sólo el dueño recibe `cv_file` (para mandarlo de vuelta al guardar el
+   perfil, que reemplaza y no parchea) y `cv_url`.
+4. **El archivo viejo se borra.** Al cambiar o sacar el CV, el archivo que
+   se deja de usar entra a la **misma cola** de «Borrado al decidir»
+   (`identity_evidence_file_deletions`, por
+   `file_cleanup_job.queue_file_deletions`) en el mismo commit que el
+   perfil, se borra después de responder y, si Cloudinary falla, lo
+   reintenta el scheduler. No hace falta tabla ni chequeo nuevo: la cola
+   guarda referencias de archivos, no de evidencias. Puertos `CvFileStorage`
+   y `CvFileDeletionQueue` en `worker/domain/repositories.py`; adaptadores en
+   `worker/infrastructure/cv_files.py`.
+5. **Una versión vieja de la app no borra el CV.** Un pedido que trae
+   `cv_url` y no `cv_file` (la PWA en caché no conoce el campo) conserva el
+   archivo que ya estaba. Sin esto, cambiar la foto desde esa versión
+   mandaba `cv_url: null` y borraba el CV.
+
+**Lo que no se borra desde la app.** Un CV viejo (URL pública en `cv_url`)
+que se cambia antes de correr el script no se borra en el momento: desde la
+URL no se puede saber con certeza que sea un CV (antes de las carpetas,
+alguien podría haber pegado la URL de una foto). Lo borra el script, que
+mira la carpeta.
+
+**La regla de quién ve el CV no cambia.** Un comercio con un turno o una
+postulación de la persona, **también pasada**, sigue pudiendo pedir el link
+(es la regla vigente desde la revisión del 2026-10-20). Lo que cambia es que
+tiene que cumplirla cada vez que lo abre, que un link reenviado deja de
+andar a los 5 minutos, y que cuando la persona cambia o saca el CV el
+archivo viejo deja de existir. Si se quisiera que el vínculo «termine»
+(por ejemplo, que una postulación retirada deje de contar), es un cambio de
+la regla del producto, aparte.
+
+**Qué tiene que hacer Julieta** (también en
+[`PENDIENTE_OPERATIVO.md`](../reference/PENDIENTE_OPERATIVO.md), ítem 5c):
+después del deploy (Render corre la `0060`; `CLOUDINARY_CLOUD_NAME` tiene
+que estar cargada), correr una vez, desde una compu con el repo y las mismas
+variables que el script de los documentos:
+
+```bash
+cd backend
+python -m scripts.privatize_worker_cvs          # mira y lista
+python -m scripts.privatize_worker_cvs --apply  # privatiza y borra
+python -m scripts.privatize_worker_cvs          # perfiles, a privado y huérfanos en 0
+```
+
+El script (`backend/scripts/privatize_worker_cvs.py`) es idempotente y por
+defecto no cambia nada:
+
+1. Para cada perfil con un CV viejo (URL de Cloudinary en `cv_url`), pasa el
+   archivo a `private` (`rename`, `to_type=private`, `invalidate=true`) y
+   guarda la referencia en el perfil, vaciando `cv_url`. No toca —y lo lista
+   para mirarlo a mano— un archivo de otra carpeta de la app (una foto
+   pegada como CV: pasarla a privada rompería la foto), uno que apuntan dos
+   perfiles (si uno lo cambia se le borraría al otro) ni una URL de otra
+   cuenta de Cloudinary.
+2. Recorre `oido/cv/` y **borra** los archivos que ningún perfil apunta: los
+   CV cambiados o sacados antes de este cambio y las subidas que nunca se
+   guardaron. No toca lo subido hace menos de 24 h.
+
+Entre el deploy y la corrida, los CV viejos se siguen viendo: `cv-link`
+devuelve su URL vieja (sin vencimiento) a quien puede verlos.
+
+**`/privacidad` no se tocó.** Hoy no dice que el comercio con un turno o una
+postulación ve el CV, ni cuánto se guarda el CV. Con este cambio se podría
+decir «el CV lo ve el comercio con el que tenés un turno o una postulación,
+con un link que vence a los minutos; si lo cambiás o lo sacás, lo
+borramos». Cambiar ese texto necesita el sí de Julieta y subir
+`LEGAL_TERMS_VERSION` y `frontend/lib/legal.ts`.
+

@@ -89,6 +89,25 @@ toda vista previa y el sitemap apuntaban ahí.
    Detalle en
    [`../adr/ADR-0021-documentos-de-identidad-privados.md`](../adr/ADR-0021-documentos-de-identidad-privados.md)
    ("Migración").
+5c. 🟠 **Los CV ya subidos, a privados** (nuevo 2026-11-19, PRI-03; ADR-0021,
+   «Actualización 2026-11-19: el CV también»). Desde ese deploy el CV sube
+   privado y se ve con un link que vence, pero los que ya estaban siguen
+   públicos (quien vio el link lo sigue abriendo) y los que la gente cambió
+   o sacó antes siguen en Cloudinary. Después del deploy (Render corre la
+   migración `0060`; `CLOUDINARY_CLOUD_NAME` tiene que estar cargada, ítem
+   5b), correr **una vez**, desde una compu con el repo y las mismas
+   variables de arriba:
+
+   ```bash
+   cd backend
+   python -m scripts.privatize_worker_cvs          # mira: no cambia nada
+   python -m scripts.privatize_worker_cvs --apply  # pasa a privado los CV de los perfiles y borra los que nadie usa
+   python -m scripts.privatize_worker_cvs          # perfiles, a privado y huérfanos en 0
+   ```
+
+   Lo que el script lista como problema («no parece un CV», «lo apuntan 2
+   perfiles», «otra cuenta») no lo toca: hay que mirarlo a mano en
+   Cloudinary. Detalle en el ADR-0021.
 6. 🟠 **`GEMINI_API_KEY`** (Render, nueva 2026-08-10, P2 auditoría de
    producto): habilita "Describí el turno" en `/shifts/new` — el comercio
    escribe algo como "necesito un mozo el sábado a la noche, se paga
