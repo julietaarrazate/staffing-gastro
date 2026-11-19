@@ -633,7 +633,7 @@ function MyShiftsPanel() {
               conteo no entran: `w-max` les deja su ancho real y el contenedor
               scrollea en horizontal (mismo patrón que un tab bar nativo);
               `min-w-full` lleva el filete hasta el borde aunque entren. */}
-          <div className="-mx-4 -mb-1 mt-3 overflow-x-auto px-4 py-1 no-scrollbar" data-tour="shifts-tabs">
+          <div className="-mx-4 -mb-1 mt-3 scroll-px-4 overflow-x-auto px-4 py-1 no-scrollbar" data-tour="shifts-tabs">
             <SegmentedControl<Tab>
               value={tab}
               onChange={setTab}

@@ -205,7 +205,7 @@ export default function AdminLiveShiftsPage() {
       />
 
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div ref={filtersRef} className="no-scrollbar -mx-1 -my-1 min-w-0 overflow-x-auto px-1 py-1 sm:w-[34rem]">
+        <div ref={filtersRef} className="no-scrollbar -mx-1 -my-1 min-w-0 scroll-px-2 overflow-x-auto px-1 py-1 sm:w-[34rem]">
           <SegmentedControl<Filter>
             className="w-max min-w-full"
             value={filter}

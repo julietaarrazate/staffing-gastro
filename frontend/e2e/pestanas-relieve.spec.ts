@@ -120,3 +120,41 @@ test("en el Panel las cinco scrollean, el filete llega al borde y el foco no que
   expect(holgura.arriba).toBeGreaterThanOrEqual(4);
   expect(holgura.abajo).toBeGreaterThanOrEqual(4);
 });
+
+test("en el Panel, la pestaña que recibe el foco se trae entera a la vista", async ({ page }) => {
+  await abrir(page, "light", EMPLOYER);
+  await page.route("**/api/v1/shifts/me", (r) => r.fulfill(json([turno("s1", "publicado", "mozo")])));
+  await page.goto("/shifts");
+  await expect(page.locator('[data-shift-id="s1"]')).toBeVisible();
+  const contenedor = page.locator('[data-tour="shifts-tabs"]');
+  // Corrida al final: «Todos» queda fuera o asomando a medias.
+  await contenedor.evaluate((c) => (c.scrollLeft = c.scrollWidth));
+  const todos = page.getByRole("button", { name: "Todos" });
+  await todos.focus();
+  await expect
+    .poll(() =>
+      todos.evaluate((b) => {
+        const c = b.closest('[data-tour="shifts-tabs"]') as HTMLElement;
+        // Lo que asoma del contorno (2 px a 2 px de la pestaña) por la izquierda.
+        return b.getBoundingClientRect().left - 4 - c.getBoundingClientRect().left;
+      }),
+    )
+    .toBeGreaterThanOrEqual(0);
+});
+
+test("a 320 px, Mis turnos con contadores de una cifra muestra los tres nombres enteros", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 });
+  await abrir(page, "light", WORKER);
+  await page.route("**/api/v1/shifts/mine**", (r) => r.fulfill(json([turno("s1", "confirmado", "bartender"), turno("s2", "confirmado", "mozo")])));
+  await page.route("**/api/v1/applications/mine**", (r) =>
+    r.fulfill(json([1, 2, 3].map((i) => ({ id: `a${i}`, shift_id: `p${i}`, worker_profile_id: "wp-1", status: "pendiente", created_at: isoEnDias(-1), shift: turno(`p${i}`, "publicado", "mozo") })))),
+  );
+  await page.route("**/api/v1/saved-shifts", (r) => (r.request().method() === "GET" ? r.fulfill(json([turno("g1", "publicado", "barista"), turno("g2", "publicado", "cocinero")])) : r.continue()));
+  await page.goto("/my-shifts");
+  await expect(page.locator('[data-shift-id="s1"]')).toBeVisible();
+  for (const name of [/^Asignados/, /^Postulaciones/, /^Guardados/]) {
+    const boton = page.locator("[data-pestanas]").getByRole("button", { name });
+    await expect(boton).toBeVisible();
+    expect(await boton.locator(".truncate").evaluate((el) => el.scrollWidth > el.clientWidth), String(name)).toBe(false);
+  }
+});

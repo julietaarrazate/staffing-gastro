@@ -43,7 +43,10 @@ export default function SegmentedControl<T extends string>({
     // Donde scrollean (el Panel, el «En vivo» del admin), el contenedor lleva
     // `-my-1 py-1`: sin ese aire el contorno de foco, que va 4 px por fuera,
     // quedaba cortado arriba y abajo.
-    <div data-pestanas className={cn("flex gap-4 shadow-[inset_0_-1px_0_var(--color-line)] sm:gap-6", className)}>
+    // `gap-3` en el celular: con 16 px entre pestañas, a 320 las tres de Mis
+    // turnos se recortaban aun con contadores de una cifra (revisión del
+    // 2026-11-19).
+    <div data-pestanas className={cn("flex gap-3 shadow-[inset_0_-1px_0_var(--color-line)] sm:gap-6", className)}>
       {options.map((o) => {
         const active = o.value === value;
         return (
@@ -53,6 +56,12 @@ export default function SegmentedControl<T extends string>({
             aria-pressed={active}
             aria-label={o.count ? `${o.label} (${o.count})` : undefined}
             onClick={() => onChange(o.value)}
+            // Donde las pestañas scrollean (el Panel, el «En vivo»), la que
+            // recibe el foco de teclado se trae entera a la vista: si quedaba
+            // asomando a medias, el navegador no la movía y el contorno salía
+            // cortado (revisión del 2026-11-19). El aire lo da el
+            // `scroll-padding` del contenedor.
+            onFocus={(e) => e.currentTarget.scrollIntoView({ block: "nearest", inline: "nearest" })}
             // `whitespace-nowrap`: un nombre largo («Postulaciones» con su
             // número) no se parte en dos renglones (Julieta, captura
             // 2026-08-17: una pestaña más alta que las otras). Debajo de `sm`,
@@ -77,7 +86,7 @@ export default function SegmentedControl<T extends string>({
             >
               <span className="truncate">{o.label}</span>
               {o.count ? (
-                <span className="ml-1 shrink-0 text-xs font-bold tabular-nums">{o.count}</span>
+                <span className="ml-0.5 shrink-0 text-xs font-bold tabular-nums sm:ml-1">{o.count}</span>
               ) : null}
             </span>
           </button>

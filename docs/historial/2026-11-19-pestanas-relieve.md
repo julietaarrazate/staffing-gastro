@@ -48,5 +48,22 @@ elegido a la vista mide contra él. Spec nuevo: `e2e/pestanas-relieve.spec.ts`.
 - **Los chips de filtro** del admin («Comercios a captar») no son pestañas y
   siguen como estaban.
 
+**Revisión independiente** (otro agente; nueve pantallas, claro y oscuro, a
+320, 360, 390 y 1280 px, con teclado, contadores de hasta cuatro cifras y
+«reducir movimiento»): aprobada con dos arreglos, hechos acá.
+
+- En el «En vivo» del admin a 360 px, con `?filtro=ausencias`, «Todos» quedaba
+  asomando a medias y al llegarle con el teclado el navegador no la movía: el
+  contorno salía cortado. Ahora la pestaña que recibe el foco se trae entera a
+  la vista, con aire (`scroll-padding`) en los dos contenedores que scrollean.
+- En Mis turnos a 320 px los tres nombres se recortaban con «…» aun con
+  contadores de una cifra: entre pestañas van 12 px en el celular (no 16) y el
+  número va más pegado. Con contadores de dos cifras a 320 sigue el «…», con
+  el número a la vista, como antes.
+
+Anotó además que el filete del Panel termina a 16 px del borde, alineado con
+el contenido, y que en «Métricas» la página mide de más hasta que cargan las
+tarjetas (no es de las pestañas).
+
 **Queda abierto:** los botones secundarios, los pasos tachados a mano, los
 colores de los sellos y el detalle del turno (ítem 0 de `STATUS.md`).
