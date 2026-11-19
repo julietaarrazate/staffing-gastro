@@ -1169,7 +1169,15 @@ body:has([data-landing]) main {
     inset 0 0 0 1.5px var(--relieve),
     var(--shadow-relieve-md);
 }
-/* Un estado como sello de goma: borde del color de la letra, apenas torcido. */
+/* Un estado como sello de goma: borde del color de la letra, apenas torcido.
+   Va siempre sobre el papel de la comanda, que es claro en los dos temas
+   (blanco de día, `#eef3f6` de noche): sus cuatro tintas son fijas y se
+   eligieron para dar 4,5 o más sobre los dos papeles (2026-11-19; el verde
+   de antes, `success-text`, daba 4,49 sobre el papel de noche).
+   - verde: lo que salió bien (confirmado, llegó, finalizado, pagado);
+   - azul hondo: lo que está en curso (publicado, asignado, en camino…);
+   - rojo: cancelado y «Urgente»;
+   - gris: lo que no arrancó o no se cubrió (borrador, no cubierto). */
 .sello-goma {
   display: inline-block;
   padding: 3px 7px;
@@ -1181,6 +1189,18 @@ body:has([data-landing]) main {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   transform: rotate(-3deg);
+}
+.sello-verde {
+  color: #166534;
+}
+.sello-azul {
+  color: #1c5478;
+}
+.sello-rojo {
+  color: #c22f2f;
+}
+.sello-gris {
+  color: #4b5563;
 }
 
 /* El cielo de arriba de una pantalla: celeste pleno con dos nubes de día,
