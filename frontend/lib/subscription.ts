@@ -53,6 +53,16 @@ export function formatPlainDate(isoDate: string): string {
   return `${d}/${m}/${y}`;
 }
 
+/**
+ * Cuándo vence una fecha de negocio (`withdrawal_until`): el último instante de
+ * ese día en hora argentina, porque el servidor la cuenta inclusive
+ * (`hoy_art() <= deadline`). `null` si la fecha no se puede leer.
+ */
+export function endOfArgentinaDay(isoDate: string): number | null {
+  const ms = Date.parse(`${isoDate.slice(0, 10)}T23:59:59.999-03:00`);
+  return Number.isNaN(ms) ? null : ms;
+}
+
 /** Línea de la beta: mientras el tope no se exige, «Mi plan» no promete uno. */
 export const BETA_SIN_TOPE_TEXT = "Durante la beta no hay tope de turnos.";
 
