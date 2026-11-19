@@ -21,7 +21,7 @@ nada lo apunte, y la app vieja no lo puede mostrar). También borra
 antes de bajar hay que sacarlas (`DELETE … WHERE deleted_at IS NOT NULL`).
 
 Revision ID: 0060
-Revises: 0058 (la 0059 es de otra rama: al integrar, re-encadenar)
+Revises: 0059
 """
 
 from collections.abc import Sequence
@@ -31,7 +31,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "0060"
-down_revision: str | None = "0058"
+down_revision: str | None = "0059"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
