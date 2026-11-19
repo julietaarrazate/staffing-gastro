@@ -2,6 +2,8 @@
 
 - `/subscription/plans/public`: configuración igual para todos, sin base de
   datos → cacheable 5 minutos.
+- `/push/public-key`: la clave VAPID pública, igual para todos → cacheable
+  5 minutos.
 - `/shifts/{id}/public`: un turno se cubre en minutos y desde ahí da 410 («ya
   no disponible») → sin caché (la página compartida ya tiene su caché corta en
   el borde).
@@ -43,3 +45,9 @@ async def test_turno_publico_no_se_cachea(client: AsyncClient):
     gone = await client.get(f"/api/v1/shifts/{shift_id}/public")
     assert gone.status_code == 410
     assert gone.headers["cache-control"] == "no-cache"
+
+
+async def test_clave_publica_de_push_se_cachea_5_minutos(client: AsyncClient):
+    response = await client.get("/api/v1/push/public-key")
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "public, max-age=300"

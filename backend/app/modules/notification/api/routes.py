@@ -8,6 +8,7 @@ from fastapi import (
     Depends,
     HTTPException,
     Query,
+    Response,
     WebSocket,
     WebSocketDisconnect,
     status,
@@ -147,10 +148,14 @@ async def notifications_stream(
     response_model=PushPublicKeyResponse,
     summary="Clave pública VAPID (para suscribirse desde el browser)",
 )
-async def push_public_key() -> PushPublicKeyResponse:
+async def push_public_key(response: Response) -> PushPublicKeyResponse:
     """Sin autenticar a propósito: es una clave pública, la necesita el
     frontend antes de saber si conviene mostrar el toggle de notificaciones
-    (`vapid_public_key=None` = push desactivado en este servidor)."""
+    (`vapid_public_key=None` = push desactivado en este servidor).
+
+    Igual para todos y fija mientras no se rote la clave: cacheable 5 minutos
+    (mismo criterio que `/subscription/plans/public`)."""
+    response.headers["Cache-Control"] = "public, max-age=300"
     return PushPublicKeyResponse(vapid_public_key=app_settings.vapid_public_key or None)
 
 

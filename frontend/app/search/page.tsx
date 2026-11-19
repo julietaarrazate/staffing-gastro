@@ -333,6 +333,8 @@ function SearchPageContent() {
                   <img
                     src={worker.photo_url}
                     alt={worker.full_name}
+                    width={64}
+                    height={64}
                     loading="lazy"
                     decoding="async"
                     className="h-16 w-16 rounded-[var(--radius-chip)] object-cover ring-1 ring-line"

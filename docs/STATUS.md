@@ -245,6 +245,15 @@ Revisado contra el código y los PRs el 2026-10-03.
      inyecta `NEXT_PUBLIC_API_URL=https://api.oido.com.ar/api/v1`. Pero si
      esa variable faltara, el frontend llamaría a una API que responde 403.
      El límite de intentos con IP real ya está (etapa 3, 2026-10-15).
+12. 🟢 **Rendimiento: lo que quedó abierto** (pasada medida del 2026-11-19;
+    método, números y medidores en
+    [`reference/RENDIMIENTO.md`](./reference/RENDIMIENTO.md)). Decisión de
+    Julieta: el mapa chico de cada turno aceptado en Mis turnos baja maplibre
+    (~1 MB) al abrir la pantalla; se evita mostrándolo al tocar o como
+    imagen estática. Código: `/matching/search` filtra y ordena en Python
+    sobre el punto desplazado (ADR-0014, va con el ítem de la distancia
+    exacta de arriba) y `/admin/stats` gasta ~140 ms en Python con volumen.
+    Falta mirar Sentry (no estaba conectado en la sesión).
 
 Deuda técnica priorizada: [`TECH_DEBT.md`](./TECH_DEBT.md). Bugs que ya
 pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
