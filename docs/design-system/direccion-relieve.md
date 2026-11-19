@@ -342,7 +342,7 @@ Antes de dibujar algo nuevo en una pantalla, usar éstas:
 | `Flechita` | ídem | La flechita a mano que acompaña un apunte («el que te recomendamos») |
 | `.tarjeta-relieve` | `globals.css` | Lo destacado de una lista (el candidato recomendado): blanco con el borde y el relieve del filete. Uno por lista |
 | `.sello-goma` + `.sello-verde` / `-azul` / `-rojo` / `-gris` | `globals.css` | Un estado como sello de goma, sobre el papel. Cuatro tintas fijas (el papel es claro en los dos temas): verde lo que salió bien, azul hondo lo que está en curso, rojo cancelado y «Urgente», gris lo que no arrancó o no se cubrió |
-| `.cartelito` | `globals.css` | «Disponible» como el cartelito de la puerta |
+| ~~`.cartelito`~~ | — | Se borró el 2026-11-19: «Disponible» es un chip de vidrio en el Inicio suave |
 | `AIAssistantBar recto` | `components/AIAssistantBar.tsx` | El buscador sin píldora ni sombra |
 | `ShiftCard comanda` | `components/ShiftCard.tsx` | La tarjeta de un turno (con sus pasos y acciones) como comanda: puesto en brocha y estado como sello. La usa el panel; «Mis turnos» la toma pasando el prop |
 | `.app-banda` + `.riel` | `globals.css` | La banda azul hondo donde cuelgan las comandas en curso, y la barra del riel. Sobre la banda el relieve cambia de tono solo |
@@ -374,6 +374,8 @@ componentes compartidos se ven suaves sólo adentro. Orden propuesto, un PR
 cada uno, sin tocar la lógica:
 
 1. «Publicar turno» y «Publicar evento» (hecho el 2026-11-19).
+   **El Inicio de quien trabaja** también está (2026-11-19, adelantado: es la
+   primera de la prueba de identidad): piel sola, sin tocar la lógica.
 2. Lo compartido de toda la app: la barra de abajo, el encabezado, las
    pestañas y las hojas (`BottomSheet`, «¡Turno publicado!»).
 3. La bienvenida y el ingreso/alta.
@@ -383,3 +385,154 @@ cada uno, sin tocar la lógica:
 6. Chats, Perfil, Mapa, fichas, Favoritos y Mi plan.
 7. Las reglas de `.estilo-suave` pasan a `:root` y se borra lo de «con
    relieve» que quede en la app.
+
+## Identidad por pantalla (2026-11-19, prueba; falta que decida Julieta)
+
+Prueba con dieciséis pantallas, en claro y en noche, enlazadas entre sí:
+https://claude.ai/artifact/WJn8NkYTpvSsa81RpoR2Jg (privada). La tercera fila
+es la segunda vuelta (más abajo).
+
+Con el cielo y la hoja iguales en todas, las pantallas se vuelven a parecer.
+La regla que se propone: **el cielo muestra lo que la pantalla responde y la
+hoja es donde se actúa**. Cambian cuatro cosas, siempre dentro de la paleta:
+el alto del cielo, lo que vive en él, cómo se encuentra con la hoja y si es
+el cielo de día o el hondo.
+
+| Pantalla | Pregunta | El cielo | Lo propio |
+|---|---|---|---|
+| Inicio (trabaja) | ¿Qué tengo hoy? | Alto, con nubes | La frase que termina en la hora gigante («Hoy trabajás a las 20:00») y el ámbar sobre el cielo |
+| Buscar (trabaja) | ¿Qué turno tomo? | Corto, con el buscador de vidrio | El pago en grande en cada fila; la marca («Urgente», «Paga más») al final del renglón |
+| Mapa | ¿Qué hay cerca? | El mapa es el cielo (se funde arriba) | El pago en el pin; el elegido, en azul hondo |
+| El turno | ¿Me conviene? | La foto del local es el cielo | El pago es el número más grande de la hoja |
+| Mis turnos | ¿Qué tengo y en qué anda? | Medio, con la semana | La tarjeta de hoy lleva su propio cielo y los cuatro pasos |
+| Chats | ¿Quién me escribió? | Corto y liso, sin nubes | Cada chat cuelga de su turno |
+| Perfil (trabaja) | ¿Cómo me ven? | Medio; la foto a caballo de la hoja | La reputación como número grande y una reseña |
+| Panel (comercio) | ¿Está cubierto? | **Hondo** (el servicio en marcha) | El número de turnos de hoy y sus tres estados |
+| Candidatos | ¿A quién elijo? | Corto | La recomendada como tarjeta de foto con el nombre encima |
+| «¡Oído!» | Listo | Entero, sin hoja | El único momento de marca: la cinta y las dos fotos |
+
+Lo que la prueba cambia de lo ya decidido (hay que decidirlo de nuevo):
+
+1. **Barra de abajo:** flota sobre la hoja, blanca y con sombra difusa (la
+   decidida el 2026-11-19 va pegada al borde con una raya azul).
+2. **Pestañas:** una pista hundida con la elegida como tecla (la decidida
+   es texto con raya azul).
+3. **«Publicar turno» del comercio:** un «+» redondo azul hondo al lado de
+   la barra. No va en ámbar: el ámbar queda para la acción de cada pantalla.
+4. **El cielo hondo** para el Panel (sale de la banda azul hondo de la
+   dirección anterior).
+
+Antes de llevarla al código hay que confirmar contra el producto: «Empieza en
+2 h 40 min», «puntual en 31», la calificación del comercio en el turno, «Ya
+se postularon 4» con las fotos y el tiempo de «Buscando hace 3 min». La cinta
+«¡Oído!» de la prueba está dibujada con CSS; en la app la dibuja
+`components/landing/Filete.tsx`. Las fotos son las de banco de la landing y
+las personas sin foto van con iniciales.
+
+### Segunda vuelta (2026-11-19, misma prueba)
+
+Julieta preguntó si era la mejor versión. No lo era: prolija, pero podía ser
+cualquier app de turnos, sólo mostraba el caso lindo y la promesa (cubrir en
+minutos) no se sentía. Dijo «confío en tu criterio», y se hizo esto:
+
+- **El cielo tiene dos estados con sentido:** celeste cuando no pasa nada y
+  **hondo cuando algo está en marcha** (el comercio buscando; quien trabaja
+  con el turno por empezar). De noche el cielo lleva unas pocas estrellas.
+- **La frase que termina en el número gigante** es la firma de las pantallas
+  de arranque: «Hoy trabajás a las **20:00**», «Empezás en **28 min**»,
+  «Buscamos hace **3 min**». En el Panel reemplaza a «3 turnos para hoy»,
+  que era un dato de tablero. Es tiempo transcurrido, no una cuenta
+  regresiva: no promete los 10 minutos.
+- **La voz de la cocina en los textos, no en los controles:** «Marchando»,
+  «Todavía nadie cantó «oído»», «Cantás el pedido», «¿Te falta alguien
+  hoy?», «Hay turno a la vuelta». La cinta «¡Oído!» aparece dos veces: al
+  postularse y al elegir.
+- **Estados que faltaban:** Inicio con el día libre y con el turno por
+  empezar; Panel el primer día, buscando y sin postulados a los 8 minutos
+  (con tres salidas: subir el pago, invitar a un favorito, cambiar el
+  horario); Candidatos sin fotos (la recomendada con iniciales y tres datos)
+  y un nombre largo cortado.
+- **Buscar y Mapa son una sola pestaña** con un conmutador Lista / Mapa: la
+  barra de quien trabaja queda en cinco. Cambia la navegación de hoy (seis).
+- **Movimiento:** la cinta cae como un sello, las dos fotos llegan de los
+  costados, el punto de «Marchando» late y las nubes derivan apenas. Todo se
+  apaga con `prefers-reduced-motion`.
+- **«Va en camino» a la vista de quien lo prende:** «El bar ve que vas en
+  camino. Sólo tu última posición. Lo apagás cuando quieras.»
+
+Se suma a lo que hay que confirmar contra el producto antes del código: «Ya
+estamos avisando más lejos, hasta 5 km», «en tu zona se paga cerca de
+$ 66.000» (sale del pago de referencia, ADR-0012), invitar a un favorito a un
+turno, «Ya trabajó 3 veces con vos», «Retirar mi postulación» y «8 turnos a
+menos de 3 km». Los textos nuevos son propuesta: no tocan `/terminos`.
+
+Falta: probarla con dos dueños y tres personas que trabajan; celular chico
+(360 px) y letra grande; el vidrio esmerilado en Android de gama baja; y las
+pantallas que no entraron (ingreso y alta, Favoritos, Mi plan, y Buscar,
+Chats y Perfil del comercio).
+
+### Tercera vuelta: el cielo (2026-11-19, misma prueba)
+
+Julieta mandó más referencias (nubes con volumen, cielos más limpios) y
+dijo que el cielo «no termina de ser muy cool como pusiste las nubes»: eran
+manchas blancas desenfocadas, cortadas por los bordes. Cambió esto:
+
+- **Nubes modeladas, no manchas:** una masa blanda con luz de arriba a la
+  izquierda y sombra celeste abajo, como de arcilla. Son tres formas (cúmulo,
+  chica y banco largo) guardadas como imagen con transparencia (unos 10 KB
+  cada una en WebP), dibujadas por nosotros con un mapa de altura; no son de
+  banco ni generadas con IA.
+- **Pocas y con intención:** una grande que asoma arriba a la derecha, detrás
+  de los botones de vidrio, y a lo sumo una chica y más tenue «de lejos».
+  Nunca detrás de un texto. En las pantallas «¡Oído!», un banco de nubes
+  abajo, como el cierre de la landing.
+- **Sobre el cielo hondo** van al 30 %: se leen como nubes en penumbra y no
+  compiten con la letra blanca. **De noche no hay nubes, sólo estrellas:**
+  al 16 % parecían humo.
+- **El cielo, un poco más vivo:** `#5BA8E0` → `#84C0EC` → `#BFE1F6` (antes
+  `#6FB0DF` → `#8CC2E7` → `#B4D8EF`), con una luz suave arriba a la derecha.
+  La tinta `#0F3A5B` da 4,6 sobre el tono más oscuro. Es un cambio de valores
+  de la marca: si queda, hay que llevarlo a `globals.css` y a
+  `color-system.md` en el PR de la primera pantalla.
+
+Para el código: las nubes van como imagen (`<img>` decorativo, `alt=""`),
+no como filtro ni `backdrop-filter`, así no pesan en Android de gama baja.
+
+**Criterio (Julieta, 2026-11-19):** «siempre lo que estéticamente quede mejor
+con el producto; yo sólo estoy tirando ideas y referencias». Las referencias
+son insumo, no pedido: lo que no suma se dice y no se hace. Con eso queda:
+el celeste más vivo (hay que llevarlo a la app y a la landing juntas), la
+noche sin nubes, y **afuera** los objetos 3D flotando, el mapa en relieve y
+el vidrio en todos lados.
+
+### En el código (2026-11-19): el Inicio de quien trabaja
+
+Piezas nuevas, para usar en las pantallas que siguen (antes de dibujar otra):
+
+| Pieza | Dónde | Para qué |
+|---|---|---|
+| `NubesCielo` + `.cielo-limpio` | `components/ui/NubesCielo.tsx`, `globals.css` | Las nubes con volumen adentro de un `.app-cielo`. `.cielo-limpio` apaga las manchas viejas y de noche deja sólo estrellas (a la derecha, lejos de los textos) |
+| `PortadaCielo` | `components/ui/PortadaCielo.tsx` | La portada de un turno **sin foto**: el cielo, una nube (varía con el id, estable) y el ícono del rubro en un círculo de vidrio; de noche, el azul hondo. `mini` para miniaturas. Reemplaza al bloque marrón |
+| `build-nubes.mjs` | `frontend/scripts/` | Escribe `public/cielo/nube-{a,b,c}.webp` (mapa de altura y luz, en Node con `sharp`) |
+| `.campo-vidrio`, `.chip-foto` | `globals.css` | El buscador sobre el cielo y el chip blanco sobre una foto o una portada |
+| `--text-titular`, `--text-puesto`, `--text-pago`, `--text-fila` | `globals.css` | Los tamaños de la dirección suave (46, 19, 26 y 15 px) |
+
+El cielo de la app pasó a `#5BA8E0` → `#84C0EC` → `#BFE1F6` con la luz arriba
+a la derecha (`--app-cielo-*`, `--app-cielo-luz`), para todas las pantallas
+con `.app-cielo`. **La landing sigue con el anterior** (`--l-*`) hasta su PR.
+
+Queda de este paso:
+
+1. **La hora gigante** («Hoy trabajás a las 20:00», «Empezás en 28 min»): es
+   una función nueva, no piel. Los datos ya llegan al Inicio: `GET
+   /applications/mine` trae las postulaciones con el turno embebido; la
+   asignada es `status === "aceptada"`, la hora `shift.start_at` y «hoy»
+   `isTodayInArgentina`. Falta confirmar que `shift` viene siempre poblado.
+2. **El marrón que queda** (sale de `SKILL_HERO_TONE` en `lib/skill-style.tsx`,
+   con letra blanca encima, así que se cambia pieza por pieza):
+   `components/ShiftCard.tsx` (panel del comercio y Mis turnos),
+   `components/ShiftDetail.tsx` (cabecera del detalle), los cuadraditos de
+   `app/map/page.tsx` y de `app/search/page.tsx`.
+3. **En escritorio**, la grilla de `OpportunityCard` sigue con la letra y los
+   botones de antes (varios «Postularme» ámbar): es una pieza de otra etapa.
+4. El cielo nuevo en la landing; el encabezado y la barra de abajo.

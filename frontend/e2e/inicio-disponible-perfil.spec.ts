@@ -98,14 +98,14 @@ test("tocar «Disponible» cambia sólo la disponibilidad y no pisa lo guardado 
   });
 
   await page.goto("/feed");
-  const interruptor = page.getByRole("button", { name: "Cambiar disponibilidad" });
+  const interruptor = page.getByRole("button", { name: /: cambiar disponibilidad$/ });
   await expect(interruptor).toBeVisible();
   await expect(page.getByText("Disponible", { exact: true })).toBeVisible();
 
   guardadoEnOtraPestana = true;
   await interruptor.click();
 
-  await expect(page.getByText("No disp.")).toBeVisible();
+  await expect(page.getByText("No disponible", { exact: true })).toBeVisible();
   await expect.poll(() => putBody).not.toBeNull();
   expect(putBody).toMatchObject({
     is_available: false,
@@ -162,17 +162,17 @@ test("tocar «Disponible» con el refresco del Inicio en vuelo: la pantalla se q
   });
 
   await page.goto("/feed");
-  const interruptor = page.getByRole("button", { name: "Cambiar disponibilidad" });
+  const interruptor = page.getByRole("button", { name: /: cambiar disponibilidad$/ });
   await expect(interruptor).toBeVisible();
   await interruptor.click();
-  await expect(page.getByText("No disp.")).toBeVisible();
+  await expect(page.getByText("No disponible", { exact: true })).toBeVisible();
   await expect.poll(() => puts.length).toBe(1);
 
   // Recién ahora termina la carga que arrancó antes del toque: no puede
   // deshacer lo guardado.
   soltarFeed();
   await page.waitForTimeout(500);
-  await expect(page.getByText("No disp.")).toBeVisible();
+  await expect(page.getByText("No disponible", { exact: true })).toBeVisible();
   expect(puts).toHaveLength(1);
   expect(puts[0]).toMatchObject({ is_available: false, cv_filename: "CV-Vera-Datos-2026.pdf" });
 
@@ -186,7 +186,7 @@ test("tocar «Disponible» con el refresco del Inicio en vuelo: la pantalla se q
   feedDemorado = new Promise<void>((res) => (soltarFeed = res));
   await page.getByRole("link", { name: "Inicio" }).first().click();
   await expect(page).toHaveURL("/feed");
-  await expect(page.getByText("No disp.")).toBeVisible();
+  await expect(page.getByText("No disponible", { exact: true })).toBeVisible();
   soltarFeed();
 });
 
@@ -235,7 +235,7 @@ test("si el guardado falla con la carga del Inicio en vuelo, la pantalla toma el
   });
 
   await page.goto("/feed");
-  const interruptor = page.getByRole("button", { name: "Cambiar disponibilidad" });
+  const interruptor = page.getByRole("button", { name: /: cambiar disponibilidad$/ });
   await expect(interruptor).toBeVisible();
   await interruptor.click();
   await expect.poll(() => puts).toBe(1);
@@ -246,7 +246,7 @@ test("si el guardado falla con la carga del Inicio en vuelo, la pantalla toma el
   await page.waitForTimeout(500);
   soltarPut();
   await expect(page.getByText("No se pudo actualizar tu disponibilidad")).toBeVisible();
-  await expect(page.getByText("No disp.")).toBeVisible();
+  await expect(page.getByText("No disponible", { exact: true })).toBeVisible();
 });
 
 const TURNO = {
@@ -321,7 +321,7 @@ test("si el guardado falla sin conexión, el Inicio conserva los turnos y sólo 
 
   await page.goto("/feed");
   await expect(page.getByText("Bar Demo Palermo").first()).toBeVisible();
-  const interruptor = page.getByRole("button", { name: "Cambiar disponibilidad" });
+  const interruptor = page.getByRole("button", { name: /: cambiar disponibilidad$/ });
   await expect(interruptor).toBeVisible();
   const feedAntes = pedidosFeed;
 
@@ -349,7 +349,7 @@ test("si todavía no hay perfil, tocar «Disponible» explica que falta completa
 
   await page.goto("/feed");
   await expect(page.getByText("Bar Demo Palermo").first()).toBeVisible();
-  const interruptor = page.getByRole("button", { name: "Cambiar disponibilidad" });
+  const interruptor = page.getByRole("button", { name: /: cambiar disponibilidad$/ });
   await expect(interruptor).toBeVisible();
   const feedAntes = pedidosFeed;
 

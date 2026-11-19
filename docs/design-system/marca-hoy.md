@@ -141,6 +141,7 @@ capa). Lo cuida `frontend/e2e/un-solo-foco.spec.ts`.
 | Celeste / fuerte / tinte | `#C4E3ED` / `#9AC9E7` / `#DEECF0` | velo celeste 12–14 % / `#9AC9E7` |
 | Azul hondo (links, letra sobre celeste) | `#1C5478` | `#9AC9E7` |
 | Ámbar (acción) / como texto | `#D97706` / `#B45309` | `#D97706` / `#E8920F` |
+| Cielo de la app (desde el 2026-11-19; `--app-cielo-*`): de arriba a abajo, con una luz suave arriba a la derecha; tinta | `#5BA8E0` → `#84C0EC` → `#BFE1F6`; `#0F3A5B` (4,6 sobre el tono más oscuro) | `#0B1A28` → `#0F2233` → `#12283B`, con estrellas y sin nubes; `#EEF3F6` |
 | Landing (2026-11-13; variables `--l-*` en `globals.css`): cielo de arriba a abajo, celeste plano, noche, azul de la marca plana | `#6FB0DF` → `#8CC2E7` → `#B4D8EF` → `#DCEDF7`, `#E2EEF6`, `#0D131A`, `#0F3A5B` | igual (la landing es siempre clara) |
 | Filete, la letra (desde el 2026-10-23): cara crema, filete interior blanco, borde y relieve azul hondo, canto dorado | `#FFF9DC` → `#F2DC9A`, `#FFFFFF`, `#14456A` / `#1C5478`, `#C98A1A` | igual |
 | Filete, los adornos (desde el 2026-11-18; sólo adentro del dibujo): volutas celestes, relieve, filete dorado, flor roja, flor rosa, botón | `#D6EEFC` → `#74B8E8` → `#2B7CC0`, `#0F3A5B`, `#FBE69A` → `#EEBB4A` → `#C98A1A`, `#F2685F` → `#D8262F` → `#8F1420`, `#FDE3E8` → `#F29BB0` → `#C9486B`, `#9AC9E7` → `#1C5478` | igual |

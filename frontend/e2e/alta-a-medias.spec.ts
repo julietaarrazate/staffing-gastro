@@ -129,7 +129,7 @@ test.describe("Inicio y panel", () => {
 
     perfil = PERFIL_TRABAJADOR;
     await page.goto("/feed");
-    await expect(page.getByRole("heading", { name: /^Hola/ })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: /Hay turno/ })).toBeVisible();
     await expect(page.getByTestId("perfil-faltante")).toHaveCount(0);
   });
 

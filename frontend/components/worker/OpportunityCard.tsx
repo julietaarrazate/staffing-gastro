@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useState } from "react";
 import { SKILL_LABELS, Shift } from "@/lib/types";
-import { SKILL_ACCENT, SKILL_HERO_TONE, heroInk } from "@/lib/skill-style";
+import { SKILL_ACCENT, heroInk } from "@/lib/skill-style";
 import { formatMoney, payPerHour, payView } from "@/lib/pay";
-import { Avatar, Badge } from "@/components/ui";
+import { Avatar, Badge, PortadaCielo } from "@/components/ui";
 import { CheckIcon, ClockIcon, CloseIcon, FlameIcon, MapPinIcon, RouteIcon, ShareIcon, ShieldIcon } from "@/components/icons";
 import { shareShift } from "@/lib/shift-share";
 import { formatDuration, formatShiftWhenLive, shiftDurationMinutes } from "@/lib/datetime";
@@ -69,11 +69,14 @@ export default function OpportunityCard({
 }) {
   const { Icon } = SKILL_ACCENT[shift.position];
   const Title = preview ? "p" : "h2";
-  const heroFallback = SKILL_HERO_TONE[shift.position];
   const [broken, setBroken] = useState(false);
   const heroPhoto = shiftHeroPhoto(shift);
   const hasPhoto = Boolean(heroPhoto) && !broken;
-  const ink = heroInk(shift.position, hasPhoto);
+  // Sin foto la portada es el cielo (`PortadaCielo`): la letra va en su tinta
+  // (tinta de día, blanco de noche), no en la del tono por rubro.
+  const ink = hasPhoto
+    ? heroInk(shift.position, true)
+    : { strong: "portada-tinta", soft: "portada-tinta", softer: "portada-tinta" };
   const minutes = shiftDurationMinutes(shift.start_at, shift.end_at);
   const perHour = payPerHour(shift);
   const pay = payView(shift);
@@ -134,27 +137,10 @@ export default function OpportunityCard({
             className="absolute inset-0 h-full w-full object-cover"
           />
         ) : (
-          // Banner sin foto, en tres iteraciones (Julieta, 2026-08-16):
-          // arrancó con el tinte pálido de SKILL_ACCENT a toda la tarjeta
-          // ("muy beige, plano" — y además contra el propio comentario de
-          // skill-style.tsx: "nunca como banda de color a toda la tarjeta");
-          // pasó a un único gradiente naranja de marca (mejor, pero todas
-          // las tarjetas iguales); después a un gradiente saturado por
-          // rubro; desde el DS v5.0 es un tono profundo y plano por rubro
-          // (SKILL_HERO_TONE): dos turnos seguidos siguen distinguiéndose,
-          // sin que el banner compita con el ámbar.
-          <div className={`absolute inset-0 overflow-hidden ${heroFallback}`}>
-            {/* Marca de agua en la ESQUINA y al 15%, igual que `ShiftCard`
-                (auditoría de iconografía, 2026-09-10). Antes iba centrado a
-                120px y al 90% de blanco: eso no es una marca de agua, es un
-                elemento que compite — y como el título del turno se apoya
-                abajo del hero, el ícono le caía justo encima. Medido en un
-                render a 390×844: el glifo se cruzaba con "Mozo/a" y el título
-                quedaba ilegible. Es el mismo defecto que la inicial y la
-                cámara pisándose en el avatar (fase L): dos cosas dibujadas en
-                el mismo lugar porque cada una se posicionó por su cuenta. */}
-            <Icon size={132} className={`absolute -right-5 -top-6 ${ink.mark}`} />
-          </div>
+          // Banner sin foto: el cielo (ADR-0028, 2026-11-19; Julieta no quería
+          // el bloque de color plano por rubro). El ícono del rubro va en un
+          // círculo de vidrio y la nube cambia según el turno.
+          <PortadaCielo id={shift.id} Icon={Icon} iconoEn="centro-izq" nubeEn="medio" />
         )}
         {/* Velo para legibilidad del texto sobre la foto */}
         {hasPhoto && (

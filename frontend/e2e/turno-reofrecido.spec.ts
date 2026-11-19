@@ -121,8 +121,9 @@ test("Inicio del trabajador: el turno reofrecido dice que ya empezó y cuánto p
 
   const comanda = page.getByTestId("feed-hero-card");
   await expect(comanda).toContainText("Bar Lavalle");
-  await expect(comanda.locator("dl")).toContainText(`Ya empezó · hasta las ${hhmm(reofrecido.end_at)}`);
-  await expect(comanda.locator("dl")).toContainText("$10.000 por hora");
+  await expect(comanda).toContainText(`Ya empezó · hasta las ${hhmm(reofrecido.end_at)}`);
+  await expect(comanda).toContainText("$10.000");
+  await expect(comanda).toContainText("por hora");
   // Nunca el monto del turno entero: el total depende de cuándo llegue.
   await expect(comanda).not.toContainText("$40.000");
 

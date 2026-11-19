@@ -22,10 +22,10 @@ export default function PerfilFaltanteCard({
     <section
       aria-label={title}
       data-testid="perfil-faltante"
-      className="mt-4 rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line"
+      className="tarjeta-suave mt-4 rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line [.estilo-suave_&]:mt-0 [.estilo-suave_&]:ring-0"
     >
       <h2 className="text-base font-bold text-ink">{title}</h2>
-      {body && <p className="mt-1 text-sm leading-relaxed text-ink/60">{body}</p>}
+      {body && <p className="mt-1 text-sm leading-relaxed text-ink-soft">{body}</p>}
       <Link
         href={href}
         className="mt-3 flex min-h-[44px] items-center justify-center boton-relieve bg-primary px-4 text-sm font-bold text-night"
