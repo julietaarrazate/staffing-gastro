@@ -62,7 +62,7 @@ const dia = (dias, hora) => {
   );
   return `${d}T${hora}:00-03:00`;
 };
-const PUESTOS = ["mozo", "bartender", "cocina", "barista", "runner", "bachero"];
+const PUESTOS = ["mozo", "bartender", "cocinero", "barista", "runner", "cajero"];
 const turno = (i, extra = {}) => ({
   id: `s${i}`,
   company_id: `c${i % 4}`,
@@ -131,15 +131,19 @@ function apiResponse(role, path) {
   return [];
 }
 
+// Toque sin esperar "accionable" (alcanza con que el botón exista): lo que se
+// mide son los renders que dispara el onClick, no el scroll ni las capas.
+const tap = (locator) => locator.dispatchEvent("click");
+
 const SCENARIOS = [
   { name: "landing", path: "/", role: null },
-  { name: "feed", path: "/feed", role: "worker" },
-  { name: "buscar", path: "/buscar", role: "worker" },
+  { name: "feed", path: "/feed", role: "worker", interact: async (page) => { await tap(page.getByRole("button", { name: /Cambiar disponibilidad/ })); await page.waitForTimeout(500); } },
+  { name: "buscar", path: "/buscar", role: "worker", interact: async (page) => { await tap(page.getByRole("switch", { name: /Urgentes/ })); await page.waitForTimeout(300); await tap(page.getByRole("button", { name: /Mejores pagos/ })); await page.waitForTimeout(300); } },
   { name: "mis-turnos", path: "/my-shifts", role: "worker" },
   { name: "mapa", path: "/map", role: "worker" },
   { name: "perfil", path: "/profile", role: "worker" },
-  { name: "panel", path: "/shifts", role: "employer" },
-  { name: "publicar", path: "/shifts/new", role: "employer" },
+  { name: "panel", path: "/shifts", role: "employer", interact: async (page) => { for (const t of [/^Buscando/, /^En marcha/, /^Terminados/, /^Todos/]) { await tap(page.getByRole("button", { name: t }).first()); await page.waitForTimeout(250); } } },
+  { name: "publicar", path: "/shifts/new", role: "employer", interact: async (page) => { await page.locator("input[type=text], textarea").first().pressSequentially("Mozo para evento", { delay: 40 }); await page.waitForTimeout(300); } },
 ];
 
 // ------------------------------------------------------------ script en página
@@ -153,7 +157,7 @@ function initScript() {
   try {
     performance.setResourceTimingBufferSize(2000);
   } catch {}
-  const m = (window.__perf = { lcp: 0, cls: 0, longtasks: [], phase: "load", renders: { load: 0, idle: 0 }, commits: { load: 0, idle: 0 }, byName: { load: {}, idle: {} } });
+  const m = (window.__perf = { lcp: 0, cls: 0, longtasks: [], phase: "load", renders: { load: 0, idle: 0, inter: 0 }, commits: { load: 0, idle: 0, inter: 0 }, byName: { load: {}, idle: {}, inter: {} } });
   try {
     new PerformanceObserver((l) => {
       for (const e of l.getEntries()) m.lcp = e.startTime;
@@ -236,6 +240,7 @@ async function runScenario(browser, sc) {
     { role: sc.role },
   );
 
+  if (process.env.MEDIR_DEBUG) page.on("pageerror", (e) => console.error("pageerror:", e.message.split("\n")[0]));
   const api = [];
   // Nada sale del contenedor: la API se simula y cualquier otro host externo
   // se corta (el build apunta a la API de producción si no se define
@@ -250,7 +255,7 @@ async function runScenario(browser, sc) {
         const path = url.pathname.slice(i + 7);
         api.push(`${req.method()} ${path}${url.search}`);
         await new Promise((r) => setTimeout(r, 100)); // latencia de la API
-        const body = req.method() === "GET" ? apiResponse(sc.role, path) : {};
+        const body = req.method() === "GET" ? apiResponse(sc.role, path) : path === "/workers/me/profile" ? WORKER_PROFILE : {};
         return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
       }
       if (/\/style\.json(\?.*)?$/.test(url.pathname + url.search)) {
@@ -259,7 +264,7 @@ async function runScenario(browser, sc) {
       return route.abort();
     },
   );
-  await page.routeWebSocket(/.*/, (ws) => ws.close());
+  await page.routeWebSocket(/.*/, () => {}); // el socket de avisos queda abierto y callado, como en uso real
 
   const cdp = await context.newCDPSession(page);
   await cdp.send("Performance.enable");
@@ -285,6 +290,14 @@ async function runScenario(browser, sc) {
     window.__perf.loadEnd = performance.now();
   });
   await page.waitForTimeout(IDLE_MS);
+  // Interacción opcional del escenario: renders de esa fase aparte (`inter`).
+  let interError = null;
+  if (sc.interact) {
+    await page.evaluate(() => { window.__perf.phase = "inter"; });
+    page.setDefaultTimeout(4000);
+    await sc.interact(page).catch(async (e) => { interError = e.message.split("\n")[0]; await page.screenshot({ path: `/tmp/claude-0/perf-render/err-${sc.name}.png` }).catch(() => {}); });
+    await page.evaluate(() => { window.__perf.phase = "idle"; });
+  }
 
   const perf = await page.evaluate(() => {
     const m = window.__perf;
@@ -315,7 +328,7 @@ async function runScenario(browser, sc) {
     return {
       fcp, lcp: m.lcp, tbt, cls: m.cls, bytes, bytesTotal,
       commits: m.commits, renders: m.renders,
-      topLoad: top(m.byName.load), topIdle: top(m.byName.idle),
+      topLoad: top(m.byName.load), topIdle: top(m.byName.idle), topInter: top(m.byName.inter),
     };
   });
   const { metrics } = await cdp.send("Performance.getMetrics");
@@ -327,6 +340,7 @@ async function runScenario(browser, sc) {
   const dup = Object.entries(counts).filter(([, n]) => n > 1);
   return {
     ...perf,
+    interError,
     loadMs,
     scriptMs: Math.round(metric("ScriptDuration") * 1000),
     taskMs: Math.round(metric("TaskDuration") * 1000),
@@ -369,6 +383,8 @@ async function main() {
       api: last.api,
       topLoad: last.topLoad,
       topIdle: last.topIdle,
+      topInter: last.topInter,
+      interError: last.interError,
     };
     printScenario(sc.name, out.scenarios[sc.name]);
   }
@@ -382,12 +398,12 @@ function printScenario(name, s) {
   console.log(
     `${name.padEnd(11)} JS ${kb(js.transfer)} KB (${kb(js.decoded)} KB sin comprimir, ${js.n} archivos) · ` +
       `FCP ${s.fcp} · LCP ${s.lcp} · TBT ${s.tbt} · script ${s.scriptMs} ms · ` +
-      `renders ${s.renders.load}+${s.renders.idle} quietos · API ${s.api.load} (${s.api.duplicated.length} repetidos)`,
+      `renders ${s.renders.load}+${s.renders.idle} quietos` + (s.renders.inter ? ` +${s.renders.inter} interacción (${s.commits.inter} commits)` : "") + (s.interError ? ` [interacción falló: ${s.interError}]` : "") + ` · API ${s.api.load} (${s.api.duplicated.length} repetidos)`,
   );
 }
 
 function compare(a, b) {
-  const rows = [["escenario", "JS transf. (KB)", "JS sin compr. (KB)", "JS con precarga (KB)", "fuentes (KB)", "FCP (ms)", "LCP (ms)", "TBT (ms)", "script (ms)", "renders carga", "renders quietos", "pedidos API", "repetidos"]];
+  const rows = [["escenario", "JS transf. (KB)", "JS sin compr. (KB)", "JS con precarga (KB)", "fuentes (KB)", "FCP (ms)", "LCP (ms)", "TBT (ms)", "script (ms)", "renders carga", "renders quietos", "renders interacción", "pedidos API", "repetidos"]];
   const pair = (x, y) => (x === y ? `${x}` : `${x} → ${y}`);
   for (const name of Object.keys(b.scenarios)) {
     const x = a.scenarios[name];
@@ -406,6 +422,7 @@ function compare(a, b) {
       pair(x.scriptMs, y.scriptMs),
       pair(x.renders.load, y.renders.load),
       pair(x.renders.idle, y.renders.idle),
+      pair(x.renders.inter ?? 0, y.renders.inter ?? 0),
       pair(x.api.load, y.api.load),
       pair(x.api.duplicated.length, y.api.duplicated.length),
     ]);
