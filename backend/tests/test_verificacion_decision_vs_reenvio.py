@@ -21,6 +21,9 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 
+from app.modules.identity.domain.entities import User
+from app.modules.identity.domain.value_objects import UserRole
+from app.modules.identity.infrastructure.repositories import SqlAlchemyUserRepository
 from app.modules.verification.application.services import VerificationService
 from app.modules.verification.domain.entities import Claim, Evidence
 from app.modules.verification.domain.exceptions import (
@@ -58,13 +61,32 @@ def _file() -> EvidenceFile:
     )
 
 
-async def _pending_constancia(session_factory, archivo: EvidenceFile) -> tuple[UUID, UUID]:
-    user_id = uuid4()
+async def _usuario(session_factory, role: UserRole) -> UUID:
+    """Una cuenta de verdad: el pedido y quien lo decide son claves foráneas
+    a `users` (en Postgres, un id inventado no se puede guardar)."""
+    async with session_factory() as s:
+        user = await SqlAlchemyUserRepository(s).add(
+            User(
+                email=f"{role.value}-{uuid4().hex[:8]}@test.com",
+                hashed_password="hash-de-prueba",
+                role=role,
+                full_name="Cuenta de prueba",
+            )
+        )
+    return user.id
+
+
+async def _pending_constancia(
+    session_factory, archivo: EvidenceFile
+) -> tuple[UUID, UUID, UUID]:
+    """Comercio con la constancia pendiente; devuelve (comercio, pedido, admin)."""
+    user_id = await _usuario(session_factory, UserRole.EMPLOYER)
+    admin_id = await _usuario(session_factory, UserRole.ADMIN)
     async with session_factory() as s:
         claim = await VerificationService(
             SqlAlchemyClaimRepository(s)
         ).submit_business_document(user_id, archivo)
-    return user_id, claim.id
+    return user_id, claim.id, admin_id
 
 
 async def _estado(session_factory) -> tuple[str, set[str], set[str]]:
@@ -85,7 +107,7 @@ async def _estado(session_factory) -> tuple[str, set[str], set[str]]:
 @pytest.mark.parametrize("decision", ["aprobar", "rechazar"])
 async def test_decidir_con_una_lectura_vieja_no_pisa_el_reenvio(session_factory, decision):
     vieja, nueva = _file(), _file()
-    user_id, claim_id = await _pending_constancia(session_factory, vieja)
+    user_id, claim_id, admin_id = await _pending_constancia(session_factory, vieja)
 
     async with session_factory() as admin, session_factory() as comercio:
         # El admin lee el pedido (la constancia vieja)...
@@ -96,9 +118,9 @@ async def test_decidir_con_una_lectura_vieja_no_pisa_el_reenvio(session_factory,
         )
         # ...y el admin guarda su decisión con lo que leyó.
         if decision == "aprobar":
-            leido.approve(uuid4(), datetime.now(timezone.utc))
+            leido.approve(admin_id, datetime.now(timezone.utc))
         else:
-            leido.reject(uuid4(), "ilegible", datetime.now(timezone.utc))
+            leido.reject(admin_id, "ilegible", datetime.now(timezone.utc))
         with pytest.raises(ClaimChangedError):
             await SqlAlchemyClaimRepository(admin).update(leido)
 
@@ -116,14 +138,14 @@ async def test_un_reenvio_con_una_lectura_vieja_no_deshace_la_aprobacion(session
     recién después llega el reenvío. El reenvío pierde, relee y ve que ya
     está verificada."""
     vieja, nueva = _file(), _file()
-    user_id, claim_id = await _pending_constancia(session_factory, vieja)
+    user_id, claim_id, admin_id = await _pending_constancia(session_factory, vieja)
 
     async with session_factory() as s:
         comercio = SqlAlchemyClaimRepository(s)
         leido = await comercio.get_for_user(user_id, ClaimType.NEGOCIO_VERIFICADO)
         async with session_factory() as admin:
             await VerificationService(SqlAlchemyClaimRepository(admin)).approve_claim(
-                claim_id, uuid4()
+                claim_id, admin_id
             )
         leido.submit(
             [Evidence(evidence_type=EvidenceType.CONSTANCIA_CUIT, file=nueva)],
@@ -146,7 +168,7 @@ async def test_aprobar_mientras_la_persona_reenvia_responde_que_reenvio(
     session_factory, monkeypatch
 ):
     vieja, nueva = _file(), _file()
-    user_id, claim_id = await _pending_constancia(session_factory, vieja)
+    user_id, claim_id, admin_id = await _pending_constancia(session_factory, vieja)
 
     original = SqlAlchemyClaimRepository.get_by_id
     reenvio = {"pendiente": True}
@@ -170,7 +192,7 @@ async def test_aprobar_mientras_la_persona_reenvia_responde_que_reenvio(
             SqlAlchemyClaimRepository(s), delete_files_later=borrados.append
         )
         with pytest.raises(ClaimChangedError):
-            await service.approve_claim(claim_id, uuid4())
+            await service.approve_claim(claim_id, admin_id)
 
     estado, vigentes, cola = await _estado(session_factory)
     assert estado == ClaimStatus.PENDIENTE.value
@@ -182,7 +204,7 @@ async def test_aprobar_mientras_la_persona_reenvia_responde_que_reenvio(
 async def test_dos_decisiones_a_la_vez_la_segunda_ve_que_ya_no_esta_pendiente(
     session_factory, monkeypatch
 ):
-    _, claim_id = await _pending_constancia(session_factory, _file())
+    _, claim_id, admin_id = await _pending_constancia(session_factory, _file())
 
     original = SqlAlchemyClaimRepository.get_by_id
     otra_decision = {"pendiente": True}
@@ -193,7 +215,7 @@ async def test_dos_decisiones_a_la_vez_la_segunda_ve_que_ya_no_esta_pendiente(
             otra_decision["pendiente"] = False
             async with session_factory() as otra:
                 await VerificationService(SqlAlchemyClaimRepository(otra)).reject_claim(
-                    claim_id, uuid4(), "ilegible"
+                    claim_id, admin_id, "ilegible"
                 )
         return claim
 
@@ -201,7 +223,7 @@ async def test_dos_decisiones_a_la_vez_la_segunda_ve_que_ya_no_esta_pendiente(
     async with session_factory() as s:
         with pytest.raises(ClaimNotPendingError):
             await VerificationService(SqlAlchemyClaimRepository(s)).approve_claim(
-                claim_id, uuid4()
+                claim_id, admin_id
             )
 
     estado, _, _ = await _estado(session_factory)
@@ -212,7 +234,7 @@ async def test_el_reenvio_que_choca_con_una_aprobacion_dice_que_ya_esta_verifica
     session_factory, monkeypatch
 ):
     vieja, nueva = _file(), _file()
-    user_id, claim_id = await _pending_constancia(session_factory, vieja)
+    user_id, claim_id, admin_id = await _pending_constancia(session_factory, vieja)
 
     original = SqlAlchemyClaimRepository.get_for_user
     aprobacion = {"pendiente": True}
@@ -223,7 +245,7 @@ async def test_el_reenvio_que_choca_con_una_aprobacion_dice_que_ya_esta_verifica
             aprobacion["pendiente"] = False
             async with session_factory() as admin:
                 await VerificationService(SqlAlchemyClaimRepository(admin)).approve_claim(
-                    claim_id, uuid4()
+                    claim_id, admin_id
                 )
         return claim
 
