@@ -17,9 +17,11 @@ import { NetworkError, TIMEOUT_MESSAGE } from "@/lib/api";
 export const CANDADO_RENOVACION = "oido-renovar-sesion";
 
 /** Corre `renovar` con el candado tomado. Si el candado no se libera en
- * `esperaMaxMs` (una pestaña colgada), no se renueva y se contesta como un
- * servidor que no respondió: no se da la sesión por terminada, y la próxima
- * renovación vuelve a intentar. */
+ * `esperaMaxMs` (una pestaña colgada; en iOS, una pestaña suspendida con el
+ * candado), no se renueva y se contesta como un servidor que no respondió
+ * («Reconectando…» al abrir la app, «sin conexión» en una pantalla): la
+ * sesión no se da por terminada y la próxima renovación vuelve a intentar. Si el pedido del candado falla por
+ * otra cosa, se renueva sin candado, como antes. */
 export function conCandadoDeRenovacion<T>(
   renovar: () => Promise<T>,
   esperaMaxMs: number
@@ -29,15 +31,25 @@ export function conCandadoDeRenovacion<T>(
 
   const espera = new AbortController();
   const tope = setTimeout(() => espera.abort(), esperaMaxMs);
-  return locks
-    .request(CANDADO_RENOVACION, { signal: espera.signal }, () => {
+  let renovando = false;
+  let pedido: Promise<T>;
+  try {
+    pedido = locks.request(CANDADO_RENOVACION, { signal: espera.signal }, () => {
       clearTimeout(tope);
+      renovando = true;
       return renovar();
-    })
+    });
+  } catch {
+    clearTimeout(tope);
+    return renovar();
+  }
+  return pedido
     .catch((err: unknown) => {
+      // El error es de la renovación misma: pasa tal cual.
+      if (renovando) throw err;
       // Sólo el tope de la espera aborta, y sólo antes de tomar el candado.
       if (espera.signal.aborted) throw new NetworkError(TIMEOUT_MESSAGE);
-      throw err;
+      return renovar();
     })
     .finally(() => clearTimeout(tope));
 }

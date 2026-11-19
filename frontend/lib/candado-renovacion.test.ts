@@ -50,16 +50,33 @@ describe("conCandadoDeRenovacion", () => {
     expect(CANDADO_RENOVACION).toBe("oido-renovar-sesion");
   });
 
-  it("la que espera sale aunque la primera haya fallado", async () => {
+  it("la que espera sale aunque la primera haya fallado, y el error no repite la renovación", async () => {
     candado = instalarCandadoDeMentira();
     const rechazo = new ApiError(401, "Tu sesión venció.");
+    const primera = vi.fn(() => Promise.reject(rechazo));
     const segunda = vi.fn(async () => "token-de-la-segunda");
 
-    const pestana1 = conCandadoDeRenovacion(() => Promise.reject(rechazo), 1_000);
+    const pestana1 = conCandadoDeRenovacion(primera, 1_000);
     const pestana2 = conCandadoDeRenovacion(segunda, 1_000);
 
     await expect(pestana1).rejects.toBe(rechazo);
     await expect(pestana2).resolves.toBe("token-de-la-segunda");
+    expect(primera).toHaveBeenCalledTimes(1);
+  });
+
+  it("si el pedido del candado falla por otra cosa, renueva sin candado", async () => {
+    const renovar = vi.fn(async () => "token-nuevo");
+    for (const request of [
+      () => Promise.reject(new DOMException("No disponible.", "SecurityError")),
+      () => {
+        throw new DOMException("No disponible.", "SecurityError");
+      },
+    ]) {
+      Object.defineProperty(navigator, "locks", { value: { request }, configurable: true });
+      await expect(conCandadoDeRenovacion(renovar, 1_000)).resolves.toBe("token-nuevo");
+    }
+    delete (navigator as { locks?: unknown }).locks;
+    expect(renovar).toHaveBeenCalledTimes(2);
   });
 
   it("si otra pestaña no suelta el candado, no renueva y contesta como servidor que no respondió", async () => {

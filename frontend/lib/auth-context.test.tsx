@@ -1152,6 +1152,31 @@ describe("AuthProvider: la app siempre sabe si hay sesión", () => {
       expect(result.current.sessionEnded).toBeNull();
     });
 
+    it("si mientras esperaba otra pestaña ingresó con otra cuenta, no renueva aunque el aviso no haya llegado", async () => {
+      const auth = await mountApp();
+      await loginAs(auth, TRABAJADORA, "token-trabajadora");
+      backend["GET /shifts/mine"] = [401, { detail: "No autorizado" }];
+      backend["POST /auth/refresh"] = [200, { access_token: "token-de-la-otra-cuenta" }];
+      const otra = candado.tomarComoOtraPestana(CANDADO_RENOVACION);
+
+      let pedido: Promise<unknown> = Promise.resolve();
+      await act(async () => {
+        pedido = api.get("/shifts/mine", auth().token).catch((err) => err);
+        await vi.advanceTimersByTimeAsync(1_000);
+      });
+      await act(async () => {
+        // La otra pestaña escribió su cuenta; el evento `storage` todavía no llegó.
+        localStorage.setItem("staffya_session_user", ADMIN.id);
+        otra.soltar();
+        await vi.advanceTimersByTimeAsync(100);
+        await pedido;
+      });
+
+      expect(refreshes()).toBe(0);
+      expect(auth().token).toBe("token-trabajadora");
+      expect(resolveToken("token-trabajadora")).toBe("token-trabajadora");
+    });
+
     it("si mientras esperaba otra pestaña cerró la sesión, no renueva", async () => {
       const otra = candado.tomarComoOtraPestana(CANDADO_RENOVACION);
       localStorage.setItem("staffya_has_session", "1");
