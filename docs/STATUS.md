@@ -42,7 +42,7 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
   (`reference/PENDIENTE_OPERATIVO.md`, 5c). La próxima migración libre es
   la 0061. En paralelo, las
   etapas 4 (marca) y 5 (lista de salida: escrita en el tablero, lo de
-  código está salvo TypeScript 7 y falta lo de Julieta para el día que abre). Antes de encender el
+  código está hecho y falta lo de Julieta para el día que abre). Antes de encender el
   cobro: la regla de cambio de plan que decidió Julieta, con U140, U142 y
   U143. Antes del 17/12: revisar la excepción de picomatch (#612).
   Qué está hecho,

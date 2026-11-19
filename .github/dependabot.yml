@@ -21,6 +21,13 @@ updates:
       # runtime no existen. Se sube a mano cuando se sube Node.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      # `typescript` queda en 6 para typescript-eslint, que todavía no acepta
+      # la 7 (sólo la 7.1, bajo el nombre `@typescript/native`). La 7 ya
+      # chequea los tipos como `typescript-7` (alias) y ése sí se actualiza.
+      # Tampoco la 6.1: typescript-eslint acepta `typescript` <6.1.
+      # Sacar cuando typescript-eslint soporte la 7 (historial 2026-11-19).
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
 
   - package-ecosystem: github-actions
     directory: /

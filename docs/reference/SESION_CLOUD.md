@@ -102,6 +102,10 @@ sólo los archivos del área, y la completa una vez antes del push. No uses
   Al migrar los primeros 16 specs (2026-11-19) aparecieron mocks que mandaban
   un 409 donde el backend manda 400, `quantity: 2`, tipos de aviso
   inexistentes y un campo (`limite_exigido`) que el backend siempre manda.
+- **Tipos: `npm run typecheck`, no `npx tsc`** (desde el 2026-11-19). Hay
+  dos TypeScript instalados: la 7 (`typescript-7`, la que chequea) y la 6
+  (`typescript`, la que usan ESLint y `next build`). Los dos traen un `tsc` y
+  `npx tsc` puede ser la 6 o la 7, según cómo lo haya enlazado npm.
 - `npm run lint` da **0 errores y unos mil warnings**. Es lo normal; CI
   falla sólo con errores.
 - Si el build falla bajando Google Fonts por el proxy, probá
