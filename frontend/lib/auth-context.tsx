@@ -26,7 +26,11 @@ import {
 import { restartAtHome } from "@/lib/restart-at-home";
 import { isSessionEndReason, loginHref, type SessionEndReason } from "@/lib/safe-next";
 import { clearAllCached } from "@/lib/screen-cache";
-import { borrarBorradores } from "@/lib/almacen-sesion";
+import {
+  esOtraCuenta,
+  limpiarDeLaCuentaAnterior,
+  recordarUltimaCuenta,
+} from "@/lib/cambio-de-cuenta";
 import { borrarOrigen, origenGuardado } from "@/lib/origen-alta";
 import {
   isTwoFactorChallenge,
@@ -168,6 +172,11 @@ const HAS_SESSION_KEY = "staffya_has_session";
 // «cerró sesión» (van a la landing) de «la sesión venció» (van al ingreso con
 // el motivo). Se escribe antes de borrar la marca y se limpia al ingresar.
 const SESSION_END_KEY = "staffya_session_end";
+// «Salir» a propósito, para las otras pestañas: sólo entonces limpian lo que
+// guardaron de esa cuenta (borradores, etc.). Quitar `HAS_SESSION_KEY` sin
+// esta marca (una recuperación que falló, la puerta de los dos pasos) no es
+// una salida: la misma cuenta puede volver y retomar. Se limpia al ingresar.
+const SESSION_LOGOUT_KEY = "staffya_session_logout";
 // De qué cuenta es la sesión de este navegador (su id, que no es un
 // secreto). La cookie de renovación es una sola para todas las pestañas: si
 // otra pestaña ingresa con otra cuenta, la cookie pasa a ser de esa cuenta y
@@ -236,6 +245,7 @@ function persistAccessToken(access: string) {
   localStorage.setItem("staffya_token", access);
   localStorage.setItem(HAS_SESSION_KEY, "1");
   localStorage.removeItem(SESSION_END_KEY);
+  localStorage.removeItem(SESSION_LOGOUT_KEY);
 }
 
 /** Qué dice el servidor al rechazar una renovación. */
@@ -254,8 +264,9 @@ function clearSession() {
   localStorage.removeItem(HAS_SESSION_KEY);
   localStorage.removeItem(SESSION_USER_KEY);
   forgetImpersonation();
-  // Borradores de la pestaña (publicar, bienvenida): no pasan a la próxima cuenta.
-  borrarBorradores();
+  // Los borradores de la pestaña NO se tocan acá: si la sesión vence, la misma
+  // cuenta los retoma. Se limpian al salir a propósito o al entrar otra cuenta
+  // (`limpiarDeLaCuentaAnterior`).
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -279,9 +290,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [resuming, setResuming] = useState(false);
 
   function rememberSessionUser(account: User) {
+    // Una recuperación (no sólo un ingreso) también puede ser de otra cuenta:
+    // A venció acá, B entró en otra pestaña y esta se restaura como B.
+    if (esOtraCuenta(account.id)) limpiarDeLaCuentaAnterior();
     restoredAccount.current = account;
     sessionUserId.current = account.id;
     localStorage.setItem(SESSION_USER_KEY, account.id);
+    recordarUltimaCuenta(account.id);
   }
 
   /** Al recuperar la sesión guardada: si mientras se esperaba al servidor
@@ -645,6 +660,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Las pantallas pintan primero lo cacheado: sin esto, se veía un instante
     // el feed o el perfil de la admin como si fueran del usuario impersonado.
     clearAllCached();
+    // `staffya_ultima_cuenta` queda con la admin a propósito: «ver como» no es
+    // un cambio de cuenta (no se limpia nada) y al volver a la admin tampoco.
     setToken(data.access_token);
     setUser(data.user);
   }
@@ -804,7 +821,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       sessionEpoch.current += 1;
       sessionUserId.current = null;
-      clearAllCached();
+      // Salida a propósito en otra pestaña: lo de esa cuenta no queda acá.
+      // Sin la marca (recuperación fallida, puerta de dos pasos) sólo se
+      // cierra: la misma cuenta puede volver a sus borradores.
+      if (localStorage.getItem(SESSION_LOGOUT_KEY)) limpiarDeLaCuentaAnterior();
+      else clearAllCached();
       impersonatingRef.current = false;
       forgetImpersonation();
       setImpersonating(null);
@@ -897,6 +918,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // al /auth/me sólo si no vino `user` — cubre el skew de deploy (frontend
     // nuevo contra backend viejo que todavía no lo embebe) y no rompe el login.
     const account = tokens.user ?? (await api.get<User>("/auth/me", tokens.access_token));
+    // Otra cuenta sin haber cerrado sesión (o tras un vencimiento): nada de la
+    // anterior pasa a ésta. La misma cuenta conserva sus borradores.
+    setPendingTwoFactor(null);
     setUser(account);
     rememberSessionUser(account);
     // Se sabe acá, antes de que monten las pantallas (la campanita no pide
@@ -1085,8 +1109,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // limpia en la respuesta.
     sessionEpoch.current += 1;
     sessionUserId.current = null;
+    // Antes de quitar la marca de sesión: las otras pestañas lo leen al enterarse.
+    localStorage.setItem(SESSION_LOGOUT_KEY, "1");
     clearSession();
-    clearAllCached();
+    limpiarDeLaCuentaAnterior();
     setJustLoggedOut(true);
     setSessionEnded(null);
     setReconnecting(false);

@@ -341,12 +341,12 @@ horaria.
 | CV del trabajador y documentos de identidad (archivos con acceso que no vencía) | PRI-03 | grave | ✅ #669 (falta que Julieta corra los scripts y la prueba de los 6 minutos en producción, `PENDIENTE_OPERATIVO` 5c) |
 | Renovación de la sesión sin ventana de gracia ni coordinación entre pestañas | CON-02, CON-03, SES-01 | grave | ✅ #668 |
 | Pedidos repetidos (idempotencia de las acciones del turno, duplicados que dan 500) | CON-01, CON-05, CON-12, CON-14 | menor | ✅ #667 |
-| Postulación con el estado viejo | VIE-01, CON-04, CON-11 | menor | 🔵 este PR |
+| Postulación con el estado viejo | VIE-01, CON-04, CON-11 | menor | ✅ #671 |
 | Socket y lista de avisos | PRI-04, VIE-04, CON-10, ESC-04 | menor | ✅ #670 |
 | Pantallas sin reloj ni relectura | VIE-02, VIE-03, VIE-05 | menor | ⚪ |
 | Escrituras enteras sin versión | ESC-01, CON-13, CON-08, ESC-02, ESC-03 | menor | ⚪ |
 | Cobro con Mercado Pago (latente: está apagado) | CON-06, CON-07, CON-09 | menor | ⚪ |
-| Borradores y datos al cambiar de sesión | SES-02, SES-03, SES-04 | menor | ⚪ |
+| Borradores y datos al cambiar de sesión | SES-02, SES-03, SES-04 | menor | 🔵 este PR |
 | Hora sin zona leída en la zona del celular (borrador de la IA) | FEC-02 | menor | ⚪ |
 | Esperan una decisión de Julieta | PRI-06 (el registro dice qué emails tienen cuenta), PRI-07 (`/privacidad` dice «nunca la exacta» y «va en camino» manda la exacta), PRI-09 («Ver como» de la admin escribe en nombre de la persona) | menor | ⏸️ |
 | Configuración, sin código | PRI-08: la cuenta invitada es una sola para todos los que tienen el PIN; se cierra vaciando `GUEST_ACCESS_PIN` (decisión 5) | menor | ⏸️ |
