@@ -127,7 +127,7 @@ pasa hoy, con el cobro apagado).
 - La pasada de vencimiento saltea la suscripción que cambió (no la vence ni
   avisa) y la vuelve a mirar en la próxima pasada, enseguida.
 
-, consultada el 2026-10-23)
+## Referencias (documentación oficial de Mercado Pago, consultada el 2026-10-23)
 
 Desde el entorno de esta sesión el dominio de Mercado Pago no resolvía, así
 que se confirmó por los resultados de búsqueda de las páginas oficiales;
