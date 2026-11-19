@@ -2983,3 +2983,15 @@ body:has([data-landing]) main {
   opacity: 0.35;
   transform: translateY(-0.3em);
 }
+
+/* IMPRESIÓN (lista de comercios a captar, `ComerciosImprimir`): el tema claro
+ * lo fuerza el componente con `beforeprint`/`afterprint`, sin duplicar tokens. */
+@page {
+  margin: 12mm;
+}
+@media print {
+  /* Sin el cielo celeste ni el lienzo tintado: papel blanco. */
+  body {
+    background: #ffffff;
+  }
+}
