@@ -389,3 +389,25 @@ decir «el CV lo ve el comercio con el que tenés un turno o una postulación,
 con un link que vence a los minutos; si lo cambiás o lo sacás, lo
 borramos». Cambiar ese texto necesita el sí de Julieta y subir
 `LEGAL_TERMS_VERSION` y `frontend/lib/legal.ts`.
+
+## Actualización 2026-11-19: la decisión es sobre el envío revisado (ESC-01)
+
+El guardado del pedido reescribía estado y evidencias desde la copia leída
+al empezar la decisión. Si la persona reenviaba en ese momento, la admin
+aprobaba la evidencia vieja y los archivos del reenvío quedaban en el
+storage sin evidencia que los apunte y fuera de la cola de borrado: el
+borrado de este ADR dejaba de cumplirse.
+
+- El guardado es condicional: `UPDATE … WHERE status = <leído> AND
+  submitted_at = <leído>` (cada cambio del pedido mueve uno de los dos, así
+  que sirve de versión sin columna nueva). Si otro guardó en el medio, no se
+  escribe nada, ni las evidencias ni la cola.
+- Aprobar y rechazar llevan el `submitted_at` que la cola le mostró a la
+  admin. Si la persona volvió a mandar los documentos después, **409 «La
+  persona volvió a mandar los documentos. Revisalos de nuevo.»** y la cola
+  se recarga con el envío nuevo. Sin ese dato (un cliente viejo) se decide
+  sobre el envío pendiente, como antes, pero igual con el guardado
+  condicional.
+- Un reenvío que choca con una decisión relee: si fue una aprobación, 409
+  «Tu identidad ya está verificada» (o «Tu comercio ya está verificado»).
+

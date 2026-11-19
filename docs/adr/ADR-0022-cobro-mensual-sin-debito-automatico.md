@@ -104,7 +104,30 @@ por mes** con Mercado Pago, con el medio más barato posible.
   (WAF, bot fight), Mercado Pago reintenta y el pago no se acredita hasta
   que pase: probarlo con la "Simulación" del panel de Mercado Pago.
 
-## Referencias (documentación oficial de Mercado Pago, consultada el 2026-10-23)
+## Actualización 2026-11-19: escrituras que no se pisan (CON-08)
+
+La suscripción se guardaba entera desde la copia leída, sin versión: la
+pasada de vencimiento dejaba `vencida` a un comercio que pagó mientras
+corría, una baja y un pago simultáneos perdían uno de los dos, y dos
+publicaciones a la vez sumaban una sola al contador del plan (este último
+pasa hoy, con el cobro apagado).
+
+- `SubscriptionRepository.update` guarda sólo si la fila sigue como se leyó
+  (`WHERE` sobre las columnas que escribe; `chosen_plan_*` y
+  `payment_commitment_*` siguen con sus UPDATE propios). Si no,
+  `SubscriptionChangedError` y no se guarda nada.
+- Cada caso de uso (pago del webhook, cambio de plan, baja, arrepentimiento,
+  publicación) relee y vuelve a aplicar su regla hasta 3 veces
+  (`change_subscription` en `domain/repositories.py`). Si pierde las 3, la
+  baja, el arrepentimiento y el cambio de plan responden 409 «Tu plan cambió
+  mientras tanto. Actualizá y volvé a intentar.»; la publicación no falla
+  (el turno ya quedó publicado) y lo deja en el log; el webhook responde
+  error, y que el reintento de Mercado Pago acredite el mes es el hallazgo
+  CON-06 de la misma pasada (aparte).
+- La pasada de vencimiento saltea la suscripción que cambió (no la vence ni
+  avisa) y la vuelve a mirar en la próxima pasada, enseguida.
+
+, consultada el 2026-10-23)
 
 Desde el entorno de esta sesión el dominio de Mercado Pago no resolvía, así
 que se confirmó por los resultados de búsqueda de las páginas oficiales;
