@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { resolveToken } from "@/lib/api";
+import { api, resolveToken } from "@/lib/api";
 
 const HTTP_API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "https://staffya-backend.onrender.com/api/v1";
@@ -12,6 +12,17 @@ const MAX_RETRY_DELAY_MS = 15_000;
  *  servidor acepta y cierra enseguida (tope de conexiones por usuario, límite
  *  de frames), el backoff sigue creciendo en vez de volver a ~1 s. */
 export const WS_STABLE_AFTER_MS = 5_000;
+
+/** ¿El access token ya venció (o vence en segundos)? Un token que no se puede
+ *  leer cuenta como vigente: el servidor decide. */
+export function tokenVencido(jwt: string, ahoraMs = Date.now()): boolean {
+  try {
+    const payload = JSON.parse(atob(jwt.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return typeof payload.exp === "number" && payload.exp * 1000 <= ahoraMs + 5_000;
+  } catch {
+    return false;
+  }
+}
 
 export type WebSocketStatus = "connecting" | "open" | "closed";
 
@@ -60,12 +71,26 @@ export function useWebSocket<T>(
     let attempt = 0;
     let openedAt: number | null = null;
 
-    function connect() {
+    async function connect() {
       setStatus("connecting");
       // `resolveToken`: cada (re)conexión sale con el access token vigente,
       // no con el que había al montar (el contexto ya no cambia al renovarlo,
       // ver `lib/api.ts`); sin esto, reconectar después de 15 min fallaba.
-      const current = resolveToken(token) ?? token!;
+      let current = resolveToken(token) ?? token!;
+      if (tokenVencido(current)) {
+        // El servidor corta el socket (1008) cuando vence el token con el que
+        // se conectó (PRI-04), y el access token sólo se renueva con un pedido
+        // HTTP: sin esto, reconectar con el vencido sería rechazado en cada
+        // intento hasta que alguna pantalla pidiera algo. Un pedido liviano
+        // dispara la renovación; si falla, se intenta igual y el backoff sigue.
+        try {
+          await api.get("/auth/me", token);
+        } catch {
+          // La sesión terminó o no hay red: el cierre/reintento lo maneja el resto.
+        }
+        if (closedByCleanup) return;
+        current = resolveToken(token) ?? token!;
+      }
       socket = new WebSocket(`${WS_BASE_URL}${path}?token=${encodeURIComponent(current)}`);
 
       socket.onopen = () => {
@@ -91,13 +116,13 @@ export function useWebSocket<T>(
         openedAt = null;
         const delay = Math.min(1000 * 2 ** attempt, MAX_RETRY_DELAY_MS);
         attempt += 1;
-        retryTimeout = setTimeout(connect, delay);
+        retryTimeout = setTimeout(() => void connect(), delay);
       };
 
       socket.onerror = () => socket?.close();
     }
 
-    connect();
+    void connect();
 
     return () => {
       closedByCleanup = true;

@@ -35,6 +35,7 @@ from app.modules.identity.application.dtos import (
     RegisterCommand,
     TokenPair,
 )
+from app.modules.identity.application.ports import LiveConnectionCloser
 from app.modules.identity.application.two_factor import (
     TwoFactorChallengeIssued,
     TwoFactorLoginVerified,
@@ -159,6 +160,7 @@ class IdentityService:
         email_verification_tokens: EmailVerificationTokenRepository | None = None,
         terms_acceptances: TermsAcceptanceRepository | None = None,
         two_factor: TwoFactorService | None = None,
+        live_connections: LiveConnectionCloser | None = None,
     ) -> None:
         self._users = users
         self._sessions = sessions
@@ -171,6 +173,17 @@ class IdentityService:
         # (scripts que sólo registran usuarios) no se emiten desafíos, y un
         # admin queda sin acceso a lo de admin: falla cerrado.
         self._two_factor = two_factor
+        # Cortar los sockets abiertos cuando se revocan todas las sesiones de
+        # una cuenta (PRI-04). Sin él (scripts), sólo se revoca.
+        self._live_connections = live_connections
+
+    async def _revoke_everything(self, user_id: UUID) -> None:
+        """Revoca todas las sesiones de la cuenta y corta lo que tenga abierto
+        en vivo (avisos y chat): un socket autoriza sólo al conectarse, y
+        sin esto seguiría entregando hasta que venza su token."""
+        await self._sessions.revoke_all_for_user(user_id)
+        if self._live_connections is not None:
+            await self._live_connections.close_for_user(user_id)
 
     async def register(self, command: RegisterCommand) -> User:
         """Registra un nuevo usuario. Falla si el email ya existe.
@@ -326,7 +339,7 @@ class IdentityService:
         user.verify()
         user.hashed_password = await _google_local_password()
         await self._users.update(user)
-        await self._sessions.revoke_all_for_user(user.id)
+        await self._revoke_everything(user.id)
         logger.info("google.claimed_unverified_account", extra={"user_id": str(user.id)})
         await self._send_claimed_account_email(user)
 
@@ -468,8 +481,9 @@ class IdentityService:
             raise UserNotFoundError()
         if not user.is_active:
             raise InactiveUserError()
+        expires_at = payload.get("exp")
         if not TwoFactorService.applies_to(user) or self._two_factor is None:
-            return AuthenticatedSession(user=user)
+            return AuthenticatedSession(user=user, token_expires_at=expires_at)
         # Se mira en cada pedido de un admin (una consulta por clave
         # primaria; hay un admin): si soporte desactiva la verificación, sus
         # tokens verificados dejan de servir para lo de admin en el acto.
@@ -477,6 +491,7 @@ class IdentityService:
             user=user,
             two_factor_enabled=await self._two_factor.is_enabled(user.id),
             two_factor_verified=payload.get(TWO_FACTOR_CLAIM) is True,
+            token_expires_at=expires_at,
         )
 
     async def complete_two_factor_login(
@@ -508,7 +523,7 @@ class IdentityService:
         codes = await self._two_factor.confirm_enrollment(
             session.user, code, session_verified=session.two_factor_verified
         )
-        await self._sessions.revoke_all_for_user(session.user.id)
+        await self._revoke_everything(session.user.id)
         tokens = await self._issue_tokens(session.user, two_factor_verified=True)
         return tokens, codes
 
@@ -598,7 +613,7 @@ class IdentityService:
         # Al cambiar la contraseña se revocan todas las sesiones de refresh
         # activas (OWASP): si alguien tenía una sesión robada, no sobrevive
         # al reset. El usuario vuelve a loguearse con la contraseña nueva.
-        await self._sessions.revoke_all_for_user(user.id)
+        await self._revoke_everything(user.id)
 
     async def _send_verification_email(self, user: User) -> None:
         """Genera un token nuevo y manda el email de verificación —

@@ -1,8 +1,19 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useWebSocket, WS_STABLE_AFTER_MS } from "./useWebSocket";
+import { tokenVencido, useWebSocket, WS_STABLE_AFTER_MS } from "./useWebSocket";
 
-vi.mock("@/lib/api", () => ({ resolveToken: (t: string) => t }));
+const apiGet = vi.fn();
+const live = vi.hoisted(() => ({ token: null as string | null }));
+vi.mock("@/lib/api", () => ({
+  resolveToken: (t: string) => live.token ?? t,
+  api: { get: (...a: unknown[]) => apiGet(...a) },
+}));
+
+function jwtQueVence(enSegundos: number): string {
+  const b64 = (o: object) => btoa(JSON.stringify(o)).replace(/=+$/, "");
+  const exp = Math.floor(Date.now() / 1000) + enSegundos;
+  return `${b64({ alg: "HS256" })}.${b64({ exp })}.firma`;
+}
 
 class FakeSocket {
   static all: FakeSocket[] = [];
@@ -18,6 +29,8 @@ class FakeSocket {
 
 beforeEach(() => {
   vi.useFakeTimers();
+  apiGet.mockReset();
+  live.token = null;
   FakeSocket.all = [];
   vi.stubGlobal("WebSocket", FakeSocket);
 });
@@ -63,5 +76,61 @@ describe("useWebSocket: backoff", () => {
     act(() => ws.onclose?.());
     act(() => vi.advanceTimersByTime(1000));
     expect(FakeSocket.all.length).toBe(before + 1);
+  });
+});
+
+describe("useWebSocket: token vencido (PRI-04)", () => {
+  it("tokenVencido: vencido o por vencer sí; vigente o ilegible no", () => {
+    expect(tokenVencido(jwtQueVence(-60))).toBe(true);
+    expect(tokenVencido(jwtQueVence(2))).toBe(true);
+    expect(tokenVencido(jwtQueVence(600))).toBe(false);
+    expect(tokenVencido("tok")).toBe(false);
+  });
+
+  it("si el servidor lo cortó por vencimiento, renueva con un pedido antes de reconectar", async () => {
+    const viejo = jwtQueVence(600);
+    const nuevo = jwtQueVence(900);
+    renderHook(() => useWebSocket("/x", viejo, () => {}));
+    expect(FakeSocket.all).toHaveLength(1);
+    expect(FakeSocket.all[0].url).toContain(encodeURIComponent(viejo));
+
+    // Pasa el tiempo: el token del socket venció y el servidor lo cortó.
+    const ws = FakeSocket.all[0];
+    act(() => ws.onopen?.());
+    live.token = viejo;
+    vi.setSystemTime(Date.now() + 700_000);
+    apiGet.mockImplementation(async () => {
+      live.token = nuevo; // lo que hace el 401 + refresh de `lib/api.ts`
+    });
+    act(() => ws.onclose?.());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+
+    expect(apiGet).toHaveBeenCalledTimes(1);
+    expect(apiGet).toHaveBeenCalledWith("/auth/me", viejo);
+    expect(FakeSocket.all).toHaveLength(2);
+    expect(FakeSocket.all[1].url).toContain(encodeURIComponent(nuevo));
+  });
+
+  it("con el token vigente reconecta sin pedir nada", async () => {
+    const vigente = jwtQueVence(600);
+    renderHook(() => useWebSocket("/x", vigente, () => {}));
+    act(() => FakeSocket.all[0].onopen?.());
+    act(() => FakeSocket.all[0].onclose?.());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(apiGet).not.toHaveBeenCalled();
+    expect(FakeSocket.all).toHaveLength(2);
+  });
+
+  it("si la renovación falla, reconecta igual (el backoff sigue)", async () => {
+    const viejo = jwtQueVence(-60);
+    apiGet.mockRejectedValue(new Error("sin red"));
+    renderHook(() => useWebSocket("/x", viejo, () => {}));
+    await act(async () => {});
+    expect(apiGet).toHaveBeenCalledTimes(1);
+    expect(FakeSocket.all).toHaveLength(1);
   });
 });

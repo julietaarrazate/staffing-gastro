@@ -25,13 +25,20 @@ class ConnectionManager:
         # es del comercio con UNA persona asignada; si el turno se reasigna,
         # las conexiones que quedaron abiertas son de otro hilo.
         self._chat: dict[UUID, dict[WebSocket, UUID]] = defaultdict(dict)
+        # De quién es cada conexión de chat (la persona que se conectó, no el
+        # hilo): para cortarlas cuando se revocan sus sesiones (PRI-04).
+        self._chat_users: dict[WebSocket, UUID] = {}
         self._notifications: dict[UUID, set[WebSocket]] = defaultdict(set)
         # Cierres en curso de conexiones de un hilo anterior (ver
         # `_close_stale_chat`): la referencia evita que la tarea se pierda.
         self._closing: set[asyncio.Task[None]] = set()
 
     def connect_chat(
-        self, shift_id: UUID, worker_user_id: UUID, websocket: WebSocket
+        self,
+        shift_id: UUID,
+        worker_user_id: UUID,
+        websocket: WebSocket,
+        user_id: UUID | None = None,
     ) -> bool:
         """Registra la conexión sobre el hilo del turno con `worker_user_id`.
 
@@ -46,9 +53,12 @@ class ConnectionManager:
         if on_thread >= MAX_CONNECTIONS_PER_KEY:
             return False
         self._chat[shift_id][websocket] = worker_user_id
+        if user_id is not None:
+            self._chat_users[websocket] = user_id
         return True
 
     def disconnect_chat(self, shift_id: UUID, websocket: WebSocket) -> None:
+        self._chat_users.pop(websocket, None)
         self._chat[shift_id].pop(websocket, None)
         if not self._chat[shift_id]:
             del self._chat[shift_id]
@@ -102,9 +112,17 @@ class ConnectionManager:
                 self.disconnect_notification(user_id, ws)
 
     async def close_user_connections(self, user_id: UUID) -> int:
-        """Corta los sockets de avisos abiertos de este usuario (cuenta
-        suspendida, ADR-0024) y los saca del registro. Devuelve cuántos."""
+        """Corta los sockets abiertos de este usuario, de avisos y de chat, y
+        los saca del registro: cuenta suspendida (ADR-0024) o sesiones
+        revocadas en bloque (PRI-04). Devuelve cuántos."""
         sockets = list(self._notifications.pop(user_id, ()))
+        for ws, owner in list(self._chat_users.items()):
+            if owner != user_id:
+                continue
+            for shift_id in [s for s, conns in self._chat.items() if ws in conns]:
+                self.disconnect_chat(shift_id, ws)
+            self._chat_users.pop(ws, None)
+            sockets.append(ws)
         if sockets:
             await asyncio.gather(*(_close_quietly(ws) for ws in sockets))
         return len(sockets)
