@@ -306,8 +306,13 @@ preguntó con opciones puestas sobre las pantallas ya migradas (capturas a
    pasos tachados a mano~~ (hechos el 2026-11-19,
    [historial](../historial/2026-11-19-pasos-tachados.md)), ~~los colores
    de los sellos~~ (hechos el 2026-11-19,
-   [historial](../historial/2026-11-19-colores-de-los-sellos.md)) y el
-   detalle del turno. Cómo va cada uno, en «Decidido por
+   [historial](../historial/2026-11-19-colores-de-los-sellos.md)) y ~~el
+   detalle del turno~~ (hecho el 2026-11-19,
+   [historial](../historial/2026-11-19-detalle-del-turno-comanda.md)).
+5. **El resto de las pantallas**, un PR cada una (Julieta, 2026-11-19: Buscar
+   y las demás siguen igual). Orden propuesto, a confirmar: Buscar del
+   trabajador, Buscar del comercio, Publicar turno, Chats, Perfil, Mapa, las
+   fichas, Favoritos, Mi plan, y el ingreso, el alta y la bienvenida. Cómo va cada uno, en «Decidido por
    Julieta (2026-11-19)».
 
 ## Piezas compartidas de la app (desde el Inicio del trabajador)
