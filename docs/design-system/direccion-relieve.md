@@ -342,7 +342,7 @@ Antes de dibujar algo nuevo en una pantalla, usar éstas:
 | `Flechita` | ídem | La flechita a mano que acompaña un apunte («el que te recomendamos») |
 | `.tarjeta-relieve` | `globals.css` | Lo destacado de una lista (el candidato recomendado): blanco con el borde y el relieve del filete. Uno por lista |
 | `.sello-goma` + `.sello-verde` / `-azul` / `-rojo` / `-gris` | `globals.css` | Un estado como sello de goma, sobre el papel. Cuatro tintas fijas (el papel es claro en los dos temas): verde lo que salió bien, azul hondo lo que está en curso, rojo cancelado y «Urgente», gris lo que no arrancó o no se cubrió |
-| `.cartelito` | `globals.css` | «Disponible» como el cartelito de la puerta |
+| ~~`.cartelito`~~ | — | Se borró el 2026-11-19: «Disponible» es un chip de vidrio en el Inicio suave |
 | `AIAssistantBar recto` | `components/AIAssistantBar.tsx` | El buscador sin píldora ni sombra |
 | `ShiftCard comanda` | `components/ShiftCard.tsx` | La tarjeta de un turno (con sus pasos y acciones) como comanda: puesto en brocha y estado como sello. La usa el panel; «Mis turnos» la toma pasando el prop |
 | `.app-banda` + `.riel` | `globals.css` | La banda azul hondo donde cuelgan las comandas en curso, y la barra del riel. Sobre la banda el relieve cambia de tono solo |
@@ -374,6 +374,8 @@ componentes compartidos se ven suaves sólo adentro. Orden propuesto, un PR
 cada uno, sin tocar la lógica:
 
 1. «Publicar turno» y «Publicar evento» (hecho el 2026-11-19).
+   **El Inicio de quien trabaja** también está (2026-11-19, adelantado: es la
+   primera de la prueba de identidad): piel sola, sin tocar la lógica.
 2. Lo compartido de toda la app: la barra de abajo, el encabezado, las
    pestañas y las hojas (`BottomSheet`, «¡Turno publicado!»).
 3. La bienvenida y el ingreso/alta.
@@ -502,3 +504,35 @@ son insumo, no pedido: lo que no suma se dice y no se hace. Con eso queda:
 el celeste más vivo (hay que llevarlo a la app y a la landing juntas), la
 noche sin nubes, y **afuera** los objetos 3D flotando, el mapa en relieve y
 el vidrio en todos lados.
+
+### En el código (2026-11-19): el Inicio de quien trabaja
+
+Piezas nuevas, para usar en las pantallas que siguen (antes de dibujar otra):
+
+| Pieza | Dónde | Para qué |
+|---|---|---|
+| `NubesCielo` + `.cielo-limpio` | `components/ui/NubesCielo.tsx`, `globals.css` | Las nubes con volumen adentro de un `.app-cielo`. `.cielo-limpio` apaga las manchas viejas y de noche deja sólo estrellas (a la derecha, lejos de los textos) |
+| `PortadaCielo` | `components/ui/PortadaCielo.tsx` | La portada de un turno **sin foto**: el cielo, una nube (varía con el id, estable) y el ícono del rubro en un círculo de vidrio; de noche, el azul hondo. `mini` para miniaturas. Reemplaza al bloque marrón |
+| `build-nubes.mjs` | `frontend/scripts/` | Escribe `public/cielo/nube-{a,b,c}.webp` (mapa de altura y luz, en Node con `sharp`) |
+| `.campo-vidrio`, `.chip-foto` | `globals.css` | El buscador sobre el cielo y el chip blanco sobre una foto o una portada |
+| `--text-titular`, `--text-puesto`, `--text-pago`, `--text-fila` | `globals.css` | Los tamaños de la dirección suave (46, 19, 26 y 15 px) |
+
+El cielo de la app pasó a `#5BA8E0` → `#84C0EC` → `#BFE1F6` con la luz arriba
+a la derecha (`--app-cielo-*`, `--app-cielo-luz`), para todas las pantallas
+con `.app-cielo`. **La landing sigue con el anterior** (`--l-*`) hasta su PR.
+
+Queda de este paso:
+
+1. **La hora gigante** («Hoy trabajás a las 20:00», «Empezás en 28 min»): es
+   una función nueva, no piel. Los datos ya llegan al Inicio: `GET
+   /applications/mine` trae las postulaciones con el turno embebido; la
+   asignada es `status === "aceptada"`, la hora `shift.start_at` y «hoy»
+   `isTodayInArgentina`. Falta confirmar que `shift` viene siempre poblado.
+2. **El marrón que queda** (sale de `SKILL_HERO_TONE` en `lib/skill-style.tsx`,
+   con letra blanca encima, así que se cambia pieza por pieza):
+   `components/ShiftCard.tsx` (panel del comercio y Mis turnos),
+   `components/ShiftDetail.tsx` (cabecera del detalle), los cuadraditos de
+   `app/map/page.tsx` y de `app/search/page.tsx`.
+3. **En escritorio**, la grilla de `OpportunityCard` sigue con la letra y los
+   botones de antes (varios «Postularme» ámbar): es una pieza de otra etapa.
+4. El cielo nuevo en la landing; el encabezado y la barra de abajo.
