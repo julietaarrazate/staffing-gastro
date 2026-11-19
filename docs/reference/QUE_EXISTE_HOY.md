@@ -208,7 +208,10 @@ listados más abajo.
   protegen o se borran con `backend/scripts/privatize_worker_cvs.py`.
 - **Encuesta para locales** (`/encuesta`, ADR-0025): pública y sin cuenta, mide cómo usan personal eventual los locales y junta interesados en la beta. Módulo propio (no un lead), sin IP guardada, rol, nombre del local y barrio obligatorios, contacto opcional con consentimiento, guardado mientras dure la beta y el lanzamiento, que la admin borra por respuesta («Borrar contacto») o de todas con `backend/scripts/clear_survey_contacts.py` (el nombre del local queda); el resumen cuenta sólo dueños y encargados; los resultados están en `/admin/leads` → «Encuesta».
 - **Panel de admin** con métricas del dashboard, estadísticas de suscripción/
-  MRR y **cuentas de prueba** (trabajador/comercio) creables desde ahí. Las
+  MRR y **cuentas de prueba** (trabajador/comercio) creables desde ahí.
+  «Métricas» compara los últimos 7 o 30 días con el período anterior, muestra
+  las altas por origen y rol (#650) y la **serie semanal** de lunes a domingo
+  con CSV para el reporte y el deck (M7, #677). Las
   cuentas sintéticas se excluyen de las métricas a propósito, y de las de
   cobertura también los turnos que vencieron con la cuenta del comercio
   suspendida (ADR-0024, actualización 2026-11-18). En la ficha de

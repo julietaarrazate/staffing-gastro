@@ -1,4 +1,4 @@
-# Datos de demostración apagados y lista de salida a beta (etapa 5)
+# Datos de demostración apagados y lista de salida a beta (etapa 5) (#679)
 
 **Pedido:** Julieta, 2026-11-19 (fase 0 del plan de crecimiento, entrega del 13/12): apagar los datos de demostración y cerrar la lista de salida a beta del tablero (etapa 5). Si apagarlos borraba o cambiaba datos de producción, preguntar antes.
 

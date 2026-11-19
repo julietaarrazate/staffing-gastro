@@ -1,4 +1,4 @@
-# Recetas de la sesión cloud: migraciones en paralelo, logs de Render y Dependabot
+# Recetas de la sesión cloud: migraciones en paralelo, logs de Render y Dependabot (#659)
 
 **Pedido:** Julieta, 2026-11-19: dejar escrito lo que se aprendió en la tanda del 18 y 19/11 (fase 0 del plan de crecimiento), para que la próxima sesión no lo redescubra.
 

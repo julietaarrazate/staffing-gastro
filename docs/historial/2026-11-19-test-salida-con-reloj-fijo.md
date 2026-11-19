@@ -1,4 +1,4 @@
-# Tests de «Cerrar turno»: un «ahora» fijo en vez del reloj real
+# Tests de «Cerrar turno»: un «ahora» fijo en vez del reloj real (#657)
 
 **Pedido:** Julieta, 2026-11-19. `test_la_salida_no_se_marca_antes_del_inicio` (llegó con #655) armaba un turno que empezaba en 20 minutos con el reloj real y esperaba «el turno empieza hoy»: fallaba si la suite corría entre las 23:40 y las 00:00 de Argentina (le pasó a #514).
 
