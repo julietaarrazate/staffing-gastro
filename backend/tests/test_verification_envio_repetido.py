@@ -43,7 +43,7 @@ def _file(prefix: str = "oido/identidad") -> EvidenceFile:
         public_id=f"{prefix}/{uuid4().hex}",
         resource_type="image",
         format="jpg",
-        delivery_type="private",
+        delivery_type="authenticated",
     )
 
 

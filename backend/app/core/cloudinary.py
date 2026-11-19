@@ -44,12 +44,22 @@ FOLDERS = {
 }
 
 
-# Tipo de entrega de los documentos de identidad (DNI, selfie, constancia de
-# AFIP), ADR-0021. `private`: el original NO se puede bajar con una URL de
-# `res.cloudinary.com`; sólo con un link de la API de descarga firmado por el
-# servidor y con vencimiento (`private_download_url`). Antes subían como
-# `upload` (público): cualquiera con el link los veía para siempre.
-PRIVATE_DELIVERY_TYPE = "private"
+# Tipo de entrega de los archivos con datos personales: DNI, selfie,
+# constancia de AFIP y CV (ADR-0021, actualización 2026-11-19).
+# `authenticated`: ni el original ni NINGUNA versión transformada se entregan
+# por `res.cloudinary.com` sin una firma del servidor. Quien puede verlos
+# recibe un link de la API de descarga firmado y con vencimiento
+# (`private_download_url`). Antes subían como `upload` (público): cualquiera
+# con el link los veía para siempre.
+PROTECTED_DELIVERY_TYPE = "authenticated"
+
+# El tipo que usó el ADR-0021 del 2026-10-23 al 2026-11-19. `private` protege
+# sólo el ORIGINAL: Cloudinary entrega sin firma cualquier versión
+# transformada (`…/image/private/w_2000/<public_id>.jpg`, o `pg_1` para cada
+# página de un PDF). Las evidencias pendientes de entonces lo siguen teniendo
+# hasta correr `scripts/privatize_identity_evidence.py`, que las pasa a
+# `authenticated`.
+OLD_PRIVATE_DELIVERY_TYPE = "private"
 
 # Cuánto dura el link que ve el admin al revisar una evidencia (ADR-0021).
 # Alcanza para mirar la foto o abrir el PDF; si se filtra, vence enseguida.
@@ -81,9 +91,9 @@ def sign_upload(
     el servidor (`public_id`) y `overwrite=false`: el cliente no puede elegir
     dónde ni con qué nombre guarda, ni pisar un archivo que ya existe.
 
-    Con `delivery_type` (`private` para documentos de identidad, ADR-0021)
-    también viaja firmado el `type`: el cliente no puede subir un DNI como
-    público sin invalidar la firma.
+    Con `delivery_type` (`authenticated` para los documentos de identidad y
+    el CV, ADR-0021) también viaja firmado el `type`: el cliente no puede
+    subir un DNI como público sin invalidar la firma.
 
     `public_id` lo pasa quien necesita un nombre con marca (el CV,
     `cv_public_id_for`); si no, es uno al azar."""
@@ -107,16 +117,16 @@ def sign_upload(
 
 
 def sign_cv_upload(owner_id: UUID) -> dict[str, str]:
-    """Firma para el CV del trabajador. Privado, como los documentos de
-    identidad (ADR-0021, actualización 2026-11-19): el CV trae teléfono,
-    email y domicilio. El nombre del archivo lleva la marca de quien lo sube
-    (`cv_public_id_for`)."""
+    """Firma para el CV del trabajador. Protegido (`authenticated`), como los
+    documentos de identidad (ADR-0021, actualización 2026-11-19): el CV trae
+    teléfono, email y domicilio. El nombre del archivo lleva la marca de quien
+    lo sube (`cv_public_id_for`)."""
     if not settings.cloudinary_api_key or not settings.cloudinary_api_secret:
         raise CloudinaryNotConfiguredError()
     return sign_upload(
         ALLOWED_CV_FORMATS,
         FOLDERS["cv"],
-        PRIVATE_DELIVERY_TYPE,
+        PROTECTED_DELIVERY_TYPE,
         public_id=cv_public_id_for(owner_id),
     )
 
@@ -159,21 +169,21 @@ def is_cv_upload_of(public_id: str, owner_id: UUID) -> bool:
 
 
 def sign_business_document_upload() -> dict[str, str]:
-    """Firma para la constancia de AFIP del comercio (ADR-0013). Privada
-    (ADR-0021)."""
+    """Firma para la constancia de AFIP del comercio (ADR-0013). Protegida
+    (`authenticated`, ADR-0021)."""
     return sign_upload(
         ALLOWED_BUSINESS_DOC_FORMATS,
         FOLDERS["business_document"],
-        PRIVATE_DELIVERY_TYPE,
+        PROTECTED_DELIVERY_TYPE,
     )
 
 
 def sign_image_upload(kind: str) -> dict[str, str]:
     """Firma para una foto: `profile` (perfil o logo), `cover` (portada del
-    comercio) o `identity` (DNI y selfie). Las de identidad suben privadas
-    (ADR-0021); perfil y portada son públicas a propósito (se muestran a
-    todos)."""
-    delivery_type = PRIVATE_DELIVERY_TYPE if kind == "identity" else None
+    comercio) o `identity` (DNI y selfie). Las de identidad suben protegidas
+    (`authenticated`, ADR-0021); perfil y portada son públicas a propósito
+    (se muestran a todos)."""
+    delivery_type = PROTECTED_DELIVERY_TYPE if kind == "identity" else None
     return sign_upload(ALLOWED_IMAGE_FORMATS, FOLDERS[kind], delivery_type)
 
 
@@ -209,7 +219,9 @@ def private_download_url(
     attachment: bool = False,
 ) -> str:
     """Link firmado a la API de descarga de Cloudinary que entrega el
-    ORIGINAL de un archivo privado y deja de andar en `expires_at` (Unix).
+    ORIGINAL de un archivo protegido (`authenticated`, o `private` en las
+    evidencias de antes del 2026-11-19) y deja de andar en `expires_at`
+    (Unix).
 
     Equivale a `cloudinary.utils.private_download_url` del SDK oficial
     (`GET /v1_1/<cloud>/<resource_type>/download` con `public_id`, `format`,
@@ -294,7 +306,7 @@ def destroy_request(
 ) -> tuple[str, dict[str, str]]:
     """URL y parámetros firmados para borrar un archivo con `destroy` de la
     Upload API (`POST /v1_1/<cloud>/<resource_type>/destroy`): `public_id`,
-    `type` (el de entrega: `private` para los documentos de identidad) e
+    `type` (el de entrega: `authenticated` para los documentos y el CV) e
     `invalidate=true`, para que el CDN deje de servir una copia en caché.
     Mismos parámetros que `cloudinary.uploader.destroy` del SDK oficial. Es
     de la Upload API a propósito: la Admin API tiene un tope por hora en el
