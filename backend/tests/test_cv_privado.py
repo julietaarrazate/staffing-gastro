@@ -4,12 +4,14 @@ ADR-0021, «Actualización 2026-11-19: el CV también»).
 El CV trae teléfono, email y domicilio. Subía a Cloudinary como archivo
 público y sin vencimiento: quien vio el link una vez lo seguía abriendo para
 siempre, aunque el vínculo terminara o la persona cambiara o sacara el CV (el
-archivo viejo no se borraba). Ahora sube privado, se ve con un link que vence
-y sólo a quien hoy lo puede ver, y el archivo que se deja de usar se borra.
+archivo viejo no se borraba). Ahora sube `authenticated` (ni el original ni
+una versión transformada se ven sin firma), se ve con un link que vence y
+sólo a quien hoy lo puede ver, y el archivo que se deja de usar se borra.
 """
 
 import hashlib
 import time
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from urllib.parse import parse_qs, urlparse
 from uuid import UUID, uuid4
@@ -18,6 +20,7 @@ import httpx
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
+from sqlalchemy import update as sa_update
 
 from app.core.cloudinary import cv_public_id_for, is_cv_upload_of, sign_cv_upload
 from app.core.config import settings
@@ -60,9 +63,14 @@ def _cv(user_id: str, *, raw: bool = False) -> dict:
             "public_id": f"{public_id}.docx",
             "resource_type": "raw",
             "format": "",
-            "type": "private",
+            "type": "authenticated",
         }
-    return {"public_id": public_id, "resource_type": "image", "format": "pdf", "type": "private"}
+    return {
+        "public_id": public_id,
+        "resource_type": "image",
+        "format": "pdf",
+        "type": "authenticated",
+    }
 
 
 async def _me(client: AsyncClient, headers: dict) -> dict:
@@ -90,17 +98,22 @@ async def _link(client: AsyncClient, profile_id: str, headers: dict, **params) -
 
 
 async def _queue(session_factory) -> list[EvidenceFileDeletionModel]:
+    """Los pedidos de borrado pendientes (los confirmados quedan marcados)."""
     async with session_factory() as session:
-        return list((await session.execute(select(EvidenceFileDeletionModel))).scalars())
+        stmt = select(EvidenceFileDeletionModel).where(
+            EvidenceFileDeletionModel.deleted_at.is_(None)
+        )
+        return list((await session.execute(stmt)).scalars())
 
 
 # --- La subida ----------------------------------------------------------------
 
 
-def test_el_cv_sube_privado_como_los_documentos(cloudinary_on):
+def test_el_cv_sube_protegido_como_los_documentos(cloudinary_on):
     """El repro de PRI-03: la firma del CV no traía `type`, y Cloudinary lo
-    guardaba público (`upload`)."""
-    assert sign_cv_upload(uuid4())["type"] == "private"
+    guardaba público (`upload`). Y no `private`: deja ver sin firma las
+    versiones transformadas (revisión del 2026-11-19)."""
+    assert sign_cv_upload(uuid4())["type"] == "authenticated"
 
 
 def test_el_nombre_del_cv_lleva_la_marca_de_quien_lo_sube(cloudinary_on):
@@ -141,7 +154,7 @@ async def test_el_perfil_ya_no_trae_una_url_y_el_link_vence(client, cloudinary_o
     )
     params = {k: v[0] for k, v in parse_qs(url.query).items()}
     assert params["public_id"] == cv["public_id"]
-    assert params["type"] == "private"
+    assert params["type"] == "authenticated"
     assert "attachment" not in params
     assert antes + 290 <= int(params["expires_at"]) <= int(time.time()) + 310
     assert body["expires_at"] is not None
@@ -219,6 +232,11 @@ async def test_un_archivo_que_no_subio_esa_cuenta_no_entra(client, cloudinary_on
         assert "Subilo de nuevo" in resp.json()["detail"]
     assert (await _me(client, thief))["cv_kind"] is None
     assert (await _me(client, victim))["cv_file"] == cv
+    # Un archivo `private` propio tampoco: deja ver sin firma sus versiones
+    # transformadas (revisión del 2026-11-19).
+    propio = _cv((await _me(client, thief))["user_id"])
+    resp = await _put_cv(client, thief, cv_file={**propio, "type": "private"})
+    assert resp.status_code == 422
 
 
 async def test_un_link_pegado_a_mano_sigue_andando(client, cloudinary_on):
@@ -259,7 +277,7 @@ async def test_cambiar_o_sacar_el_cv_borra_el_archivo_viejo(
 
     assert (await _put_cv(client, worker, cv_file=second, cv_filename="CV.docx")).status_code == 200
     assert [(f.public_id, f.delivery_type) for f in evidence_storage.deleted] == [
-        (first["public_id"], "private")
+        (first["public_id"], "authenticated")
     ]
     assert (await _me(client, worker))["cv_file"] == second
 
@@ -290,14 +308,50 @@ async def test_guardar_otra_parte_del_perfil_no_toca_el_cv(
     assert evidence_storage.deleted == []
 
 
+async def test_un_formulario_abierto_desde_antes_no_vuelve_a_poner_un_cv_cambiado(
+    client, evidence_storage, cloudinary_on
+):
+    """Revisión del 2026-11-19: con el formulario abierto en A, la persona
+    cambia a B en otro lado (A se borra). Si el formulario viejo manda A, el
+    perfil quedaba apuntando a un archivo borrado y B se mandaba a borrar."""
+    worker, _, a = await _worker_with_cv(client, "cvp_viejo_form@test.com")
+    user_id = (await _me(client, worker))["user_id"]
+    b = _cv(user_id)
+    assert (await _put_cv(client, worker, cv_file=b)).status_code == 200
+
+    resp = await _put_cv(client, worker, cv_file=a, bio="desde el formulario viejo")
+    assert resp.status_code == 409
+    assert "Volvé a abrir tu perfil" in resp.json()["detail"]
+    assert (await _me(client, worker))["cv_file"] == b
+    assert [f.public_id for f in evidence_storage.deleted] == [a["public_id"]]
+
+    # Tampoco mientras el borrado está pendiente (Cloudinary caído).
+    evidence_storage.fail = True
+    assert (await _put_cv(client, worker, cv_file=_cv(user_id))).status_code == 200
+    assert (await _put_cv(client, worker, cv_file=b)).status_code == 409
+
+
+async def test_el_mismo_archivo_con_otro_formato_no_lo_manda_a_borrar(
+    client, evidence_storage, cloudinary_on
+):
+    """Revisión del 2026-11-19: el mismo `public_id` con otro `format` se
+    tomaba como otro archivo y mandaba a borrar el que estaba en uso."""
+    worker, _, cv = await _worker_with_cv(client, "cvp_formato@test.com")
+    resp = await _put_cv(client, worker, cv_file={**cv, "format": "jpg"})
+    assert resp.status_code == 200
+    assert evidence_storage.deleted == []
+    assert (await _me(client, worker))["cv_file"] == cv  # queda el guardado
+
+
 async def test_una_version_vieja_de_la_app_que_sube_el_cv_lo_guarda_privado(
     client, evidence_storage, cloudinary_on
 ):
-    """La versión vieja manda la firma tal cual (con `type=private`) y guarda
-    la URL que le devuelve Cloudinary: se toma como el archivo."""
+    """La versión vieja manda la firma tal cual (con `type=authenticated`) y
+    guarda la URL (firmada) que le devuelve Cloudinary: se toma como el
+    archivo, sin guardar esa URL."""
     worker, _ = await _worker_with_profile(client, "cvp_pwa@test.com")
     cv = _cv((await _me(client, worker))["user_id"], raw=True)
-    url = f"https://res.cloudinary.com/oido-test/raw/private/v17/{cv['public_id']}"
+    url = f"https://res.cloudinary.com/oido-test/raw/authenticated/s--abcd1234--/v17/{cv['public_id']}"
     assert (await _put_cv(client, worker, cv_url=url, cv_filename="CV.docx")).status_code == 200
     mine = await _me(client, worker)
     assert (mine["cv_file"], mine["cv_url"], mine["cv_filename"]) == (cv, None, "CV.docx")
@@ -368,8 +422,8 @@ async def test_el_script_por_defecto_solo_mira(client, session_factory, cloudina
 
     report = await _run(session_factory, admin, apply=False)
 
-    assert (report.rows_migrated, report.files_made_private, report.orphans_deleted) == (1, 1, 1)
-    assert (admin.made_private, admin.deleted) == ([], [])
+    assert (report.rows_migrated, report.files_protected, report.orphans_deleted) == (1, 1, 1)
+    assert (admin.protected, admin.deleted) == ([], [])
     row = await _profile(session_factory, profile_id)
     assert (row.cv_url, row.cv_public_id) == (VIEJO_URL.format("bbb"), None)
 
@@ -393,15 +447,15 @@ async def test_el_script_pasa_a_privado_lo_que_apunta_un_perfil_y_borra_lo_demas
         [
             _asset("oido/cv/ccc", "pdf"),  # CV viejo de un perfil: a privado
             _asset("oido/perfiles/f"),  # una foto pegada como CV: no se toca
-            _asset(nuevo["public_id"], "pdf", "private"),  # CV nuevo: no se toca
+            _asset(nuevo["public_id"], "pdf", "authenticated"),  # CV nuevo: no se toca
             _asset("oido/cv/cambiado", "pdf"),  # CV que se cambió antes: se borra
-            _asset("oido/cv/sacado.docx", "", "private", rt="raw"),  # ídem
-            _asset("oido/cv/recien", "pdf", "private", created_at=AHORA),  # sin guardar
+            _asset("oido/cv/sacado.docx", "", "authenticated", rt="raw"),  # ídem
+            _asset("oido/cv/recien", "pdf", "authenticated", created_at=AHORA),  # sin guardar
         ]
     )
     report = await _run(session_factory, admin, apply=True)
 
-    assert admin.made_private == ["oido/cv/ccc"]
+    assert admin.protected == ["oido/cv/ccc"]
     assert sorted(admin.deleted) == ["oido/cv/cambiado", "oido/cv/sacado.docx"]
     assert report.recent_skipped == 1
     assert len(report.problems) == 1 and "oido/perfiles" in report.problems[0]
@@ -413,12 +467,12 @@ async def test_el_script_pasa_a_privado_lo_que_apunta_un_perfil_y_borra_lo_demas
         "image",
         "pdf",
     )
-    assert migrated.cv_delivery_type == "private"
+    assert migrated.cv_delivery_type == "authenticated"
     assert (await _profile(session_factory, pegado)).cv_url == "https://drive.example/cv"
     assert (await _profile(session_factory, foto)).cv_public_id is None
 
     again = await _run(session_factory, admin, apply=True)
-    assert (again.rows_migrated, again.files_made_private, again.orphans_deleted) == (0, 0, 0)
+    assert (again.rows_migrated, again.files_protected, again.orphans_deleted) == (0, 0, 0)
 
 
 async def test_el_script_no_toca_un_archivo_que_apuntan_dos_perfiles(
@@ -431,5 +485,123 @@ async def test_el_script_no_toca_un_archivo_que_apuntan_dos_perfiles(
 
     report = await _run(session_factory, admin, apply=True)
 
-    assert (admin.made_private, admin.deleted) == ([], [])
+    assert (admin.protected, admin.deleted) == ([], [])
     assert len(report.problems) == 2
+
+
+async def test_el_script_protege_un_cv_private(client, session_factory, cloudinary_on):
+    """Un CV con referencia `private` (no debería haber en producción, pero el
+    script los pasa igual): queda `authenticated`."""
+    _, profile_id = await _worker_with_profile(client, "cvs_private@test.com")
+    async with session_factory() as session:
+        row = await session.get(WorkerProfileModel, UUID(profile_id))
+        row.cv_public_id, row.cv_resource_type = "oido/cv/priv", "image"
+        row.cv_format, row.cv_delivery_type = "pdf", "private"
+        await session.commit()
+    admin = FakeAdmin([_asset("oido/cv/priv", "pdf", "private")])
+
+    report = await _run(session_factory, admin, apply=True)
+
+    assert admin.protected == ["oido/cv/priv"]
+    assert report.rows_migrated == 1
+    assert (await _profile(session_factory, profile_id)).cv_delivery_type == "authenticated"
+
+
+async def test_el_script_recorre_la_raiz_los_cv_de_antes_de_las_carpetas(
+    client, session_factory, cloudinary_on
+):
+    """Antes del 2026-10-15 los CV subían sin carpeta. Un Word o un PDF que
+    nadie usa se borra; una foto que nadie usa se lista para mirarla a mano;
+    lo que usa otra cosa no se toca."""
+    _, viejo = await _worker_with_profile(client, "cvs_raiz@test.com")
+    await _set_legacy_cv(
+        session_factory, viejo, "https://res.cloudinary.com/oido-test/raw/upload/v1/cvraiz.docx"
+    )
+    foto_worker, foto_id = await _worker_with_profile(client, "cvs_raiz_foto@test.com")
+    async with session_factory() as session:
+        row = await session.get(WorkerProfileModel, UUID(foto_id))
+        row.photo_url = "https://res.cloudinary.com/oido-test/image/upload/v1/fotoperfil.jpg"
+        await session.commit()
+
+    admin = FakeAdmin(
+        [
+            _asset("cvraiz.docx", "", rt="raw"),  # CV viejo de un perfil: se protege
+            _asset("huerfano.docx", "", rt="raw"),  # Word que nadie usa: se borra
+            _asset("huerfano", "pdf"),  # PDF que nadie usa: se borra
+            _asset("fotoperfil"),  # foto de perfil en uso: ni se toca ni se lista
+            _asset("suelta", "png"),  # foto que nadie usa: se lista
+            _asset("reciente", "pdf", created_at=AHORA),  # recién subido: no se toca
+            _asset("dinamica", "pdf", folder="oido/perfiles"),  # tiene carpeta
+        ]
+    )
+    report = await _run(session_factory, admin, apply=True)
+
+    assert admin.protected == ["cvraiz.docx"]
+    assert sorted(admin.deleted) == ["huerfano", "huerfano.docx"]
+    assert len(report.to_review) == 1 and "suelta" in report.to_review[0]
+    assert report.recent_skipped == 1
+    assert (await _profile(session_factory, viejo)).cv_public_id == "cvraiz.docx"
+
+    # En modo «mira» no se toca nada.
+    admin2 = FakeAdmin([_asset("otro.docx", "", rt="raw")])
+    dry = await _run(session_factory, admin2, apply=False)
+    assert dry.orphans_deleted == 1 and admin2.deleted == []
+
+
+async def test_el_script_no_toca_un_archivo_sin_carpeta_que_es_una_foto(
+    client, session_factory, cloudinary_on
+):
+    """Revisión del 2026-11-19: un archivo de antes de las carpetas pegado
+    como CV que también es la foto de perfil (o un logo, o una portada) de
+    alguien. Protegerlo rompía la foto."""
+    url = "https://res.cloudinary.com/oido-test/image/upload/v1/legacyfoto.jpg"
+    _, perfil = await _worker_with_profile(client, "cvs_foto_raiz@test.com")
+    async with session_factory() as session:
+        row = await session.get(WorkerProfileModel, UUID(perfil))
+        row.cv_url = url
+        row.photo_url = url
+        await session.commit()
+    admin = FakeAdmin([_asset("legacyfoto", "jpg")])
+
+    report = await _run(session_factory, admin, apply=True)
+
+    assert (admin.protected, admin.deleted) == ([], [])
+    assert len(report.problems) == 1 and "legacyfoto" in report.problems[0]
+    assert (await _profile(session_factory, perfil)).cv_url == url
+
+
+async def test_el_script_no_pisa_un_cv_que_cambio_mientras_corria(
+    client, session_factory, cloudinary_on
+):
+    """Revisión del 2026-11-19: entre que el script lee el perfil y lo
+    escribe, la persona pega otro CV. La escritura es condicional: no se pisa."""
+    _, profile_id = await _worker_with_profile(client, "cvs_carrera@test.com")
+    await _set_legacy_cv(session_factory, profile_id, VIEJO_URL.format("carrera"))
+    nuevo = "https://drive.example/cv-nuevo"
+
+    @asynccontextmanager
+    async def con_carrera():
+        async with session_factory() as session:
+            original = session.execute
+
+            async def execute(statement, *args, **kwargs):
+                if getattr(statement, "is_update", False):
+                    # La persona guarda su perfil justo antes.
+                    await original(
+                        sa_update(WorkerProfileModel)
+                        .where(WorkerProfileModel.id == UUID(profile_id))
+                        .values(cv_url=nuevo)
+                    )
+                return await original(statement, *args, **kwargs)
+
+            session.execute = execute
+            yield session
+
+    admin = FakeAdmin([_asset("oido/cv/carrera", "pdf")])
+    report = await script.run(con_carrera, admin, apply=True, out=lambda _: None, now=AHORA)
+
+    row = await _profile(session_factory, profile_id)
+    assert (row.cv_url, row.cv_public_id) == (nuevo, None)
+    assert report.rows_migrated == 0
+    assert any("cambió mientras corría" in p for p in report.problems)
+
