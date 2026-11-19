@@ -31,7 +31,7 @@ export default function Toggle({
       // con el tilde; afuera, el interruptor de siempre.
       className="tecla flex items-center justify-between gap-3 rounded-2xl bg-surface px-4 py-3 text-left ring-1 ring-line outline-none"
     >
-      <span className="inline-flex items-center gap-2 text-sm font-semibold text-ink">
+      <span className="inline-flex items-center gap-2 text-sm font-semibold text-ink/80">
         {icon} {label}
       </span>
       <span aria-hidden className="casilla h-6 w-6 shrink-0 items-center justify-center">

@@ -714,7 +714,9 @@ function NewShiftWizard() {
 
       {/* Pasos */}
       <div className="hoja -mx-4 -mt-8 flex flex-1 flex-col px-4 pb-4 pt-1 md:mx-0 md:-mt-8 md:px-6">
-      <div className="relative flex-1 overflow-hidden pt-5">
+      {/* `-mx-4 px-4 pb-6`: la caja recorta (la animación de un paso al otro) y
+          cortaba las sombras de las teclas y de la tarjeta. */}
+      <div className="relative -mx-4 flex-1 overflow-hidden px-4 pb-6 pt-5">
         <AnimatePresence mode="wait" custom={dir}>
           <motion.div
             key={step}
@@ -738,7 +740,7 @@ function NewShiftWizard() {
                     <textarea
                       value={describeText}
                       onChange={(e) => setDescribeText(e.target.value)}
-                      rows={2}
+                      rows={3}
                       maxLength={LIMITES.pedidoAsistente}
                       placeholder="Ej: necesito un mozo el sábado a la noche, se paga 45000"
                       className={`campo w-full resize-none rounded-[var(--radius-input)] px-3.5 py-2.5 text-sm text-ink outline-none ${
@@ -1035,7 +1037,7 @@ function NewShiftWizard() {
                 : null
             }
             durationMinutes={durationMinutes}
-            place={city || null}
+            place={(usingCompanyPlace && companyPlace ? companyPlace.label : city) || null}
             quantity={quantity}
             payAmount={Number(payAmount) > 0 ? Number(payAmount) : null}
             tips={tips}

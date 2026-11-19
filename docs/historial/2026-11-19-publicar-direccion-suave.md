@@ -50,6 +50,21 @@ que fuera de `.estilo-suave` se ven como antes. Componentes nuevos:
 también la bienvenida en lugar de su `StepDots`). Spec nuevo:
 `e2e/publicar-suave.spec.ts`.
 
+**Revisión independiente** (320, 390 y 1280, claro y oscuro): aprobada, sin
+bloqueantes. Se corrigió lo que marcó:
+- el borde de la casilla sin marcar (2,1 → 3,8);
+- «Así lo van a ver» (3,6 → la tinta del cielo);
+- el chip «Urgente» (4,3 → un rojo más hondo);
+- los textos de ejemplo de los campos, en `ink-soft`;
+- los chips vacíos de la vista previa, sin transparencia;
+- las sombras que se cortaban contra la caja del paso;
+- de noche, la tarjeta del pedido, que se fundía con la hoja;
+- el lugar de la vista previa, que ahora es el mismo que en el último paso;
+- el cuadro de la IA, con un renglón más a 320.
+
+Fuera de estas pantallas no cambió nada: medido en el perfil, el ingreso y la
+bienvenida.
+
 **Por qué así:**
 
 - **De a una pantalla y sin mezclar dentro de una:** cambiar el botón, el

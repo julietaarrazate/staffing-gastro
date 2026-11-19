@@ -54,15 +54,15 @@ export default function PedidoTarjeta({
   return (
     <section aria-label={ariaLabel} className={cn("pedido-tarjeta", className)}>
       <div className="app-cielo px-5 pb-5 pt-4">
-        {apunte && <p className="letra-mano text-lg">{apunte}</p>}
+        {/* En la tinta del cielo: el azul hondo de `.letra-mano` daba 3,6 sobre
+            el celeste (revisión del 2026-11-19). */}
+        {apunte && <p className="letra-mano text-lg text-[color:var(--app-cielo-tinta)]">{apunte}</p>}
         <div className={cn("flex items-start justify-between gap-3", apunte && "mt-1")}>
           <h2 className="min-w-0 break-words text-h1 font-extrabold leading-tight tracking-tight">
             {position ? SKILL_LABELS[position] : <span className="opacity-60">¿Qué puesto?</span>}
           </h2>
           {urgent && (
-            // El color va en línea: `.chip-vidrio` pone la tinta del cielo y le
-            // gana a una utilidad.
-            <span className="chip-vidrio mt-1 shrink-0" style={{ color: "var(--color-danger-text)" }}>
+            <span className="chip-vidrio chip-urgente mt-1 shrink-0">
               <FlameIcon size={14} /> Urgente
             </span>
           )}
@@ -81,11 +81,11 @@ export default function PedidoTarjeta({
               </span>
             </>
           ) : (
-            <span className="chip-vidrio opacity-70">
+            <span className="chip-vidrio">
               <CalendarIcon size={14} /> Cuándo: todavía sin definir
             </span>
           )}
-          <span className={cn("chip-vidrio", !place && "opacity-70")}>
+          <span className="chip-vidrio">
             <MapPinIcon size={14} />
             {place ?? "Dónde: todavía sin definir"}
           </span>

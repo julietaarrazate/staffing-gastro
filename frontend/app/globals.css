@@ -3114,16 +3114,18 @@ body:has([data-landing]) main {
   /* Lo elegido: azul hondo en degradé; la letra blanca da 5,2 sobre el tono
      más claro. */
   --suave-elegido: linear-gradient(180deg, #2a73a3, #1c5478);
-  --suave-casilla-borde: #9fb6c6;
+  /* El borde de la casilla sin marcar: 3,8 con la tecla blanca (3:1 mínimo
+     para el contorno de un control; el #9fb6c6 de la prueba daba 2,1). */
+  --suave-casilla-borde: #6f8797;
   --suave-ayuda: linear-gradient(135deg, #dcedf8, #eef7fc);
   --radio-suave: 18px;
 }
 :root[data-theme="dark"] .estilo-suave {
-  --suave-campo: #1f2b37;
+  --suave-campo: #243241;
   --suave-tecla: #1d2833;
   --suave-sombra: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 16px rgba(0, 0, 0, 0.25);
   --suave-sombra-alta: 0 14px 30px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.04);
-  --suave-casilla-borde: #4d6273;
+  --suave-casilla-borde: #7b93a5;
   --suave-ayuda: linear-gradient(135deg, rgba(154, 201, 231, 0.12), rgba(154, 201, 231, 0.06));
 }
 /* La hoja blanca que sube sobre el cielo, con las esquinas de arriba bien
@@ -3218,6 +3220,12 @@ body:has([data-landing]) main {
   background: var(--color-card);
   box-shadow: inset 0 0 0 1px var(--color-line);
 }
+/* El texto de ejemplo, en `ink-soft`: el gris al 50 % de siempre daba 3,4
+   sobre el relleno. */
+.estilo-suave .campo::placeholder,
+.estilo-suave .campo input::placeholder {
+  color: var(--color-ink-soft);
+}
 .estilo-suave .campo[aria-invalid="true"],
 .estilo-suave .campo:has([aria-invalid="true"]) {
   box-shadow: inset 0 0 0 2px var(--color-danger);
@@ -3257,7 +3265,9 @@ body:has([data-landing]) main {
 .pedido-tarjeta {
   overflow: hidden;
   border-radius: 24px;
-  background: var(--color-card);
+  /* La tecla y no la tarjeta: de noche la hoja y la tarjeta eran del mismo
+     tono y el pago se fundía con la hoja (revisión del 2026-11-19). */
+  background: var(--suave-tecla);
   box-shadow: var(--suave-sombra-alta);
 }
 .chip-vidrio,
@@ -3282,4 +3292,12 @@ body:has([data-landing]) main {
 .chip-suave {
   background: var(--suave-campo);
   color: var(--color-ink);
+}
+/* «Urgente» sobre el vidrio del cielo: un rojo más hondo de día (el
+   `danger-text` daba 4,3) y uno claro de noche. */
+.chip-urgente {
+  color: #9b1c1c;
+}
+:root[data-theme="dark"] .chip-urgente {
+  color: #fca5a5;
 }
