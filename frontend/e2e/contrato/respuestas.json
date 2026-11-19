@@ -88,6 +88,24 @@
     ],
     "status": 200
   },
+  "chat_mensaje_largo": {
+    "body": {
+      "detail": [
+        {
+          "ctx": {
+            "max_length": 2000
+          },
+          "loc": [
+            "body",
+            "body"
+          ],
+          "msg": "String should have at most 2000 characters",
+          "type": "string_too_long"
+        }
+      ]
+    },
+    "status": 422
+  },
   "error_400_horario": {
     "body": {
       "detail": "El turno tiene que terminar después de empezar."
@@ -411,6 +429,27 @@
       "detail": "Turno no encontrado o no disponible para postularse"
     },
     "status": 404
+  },
+  "registro_mail_invalido": {
+    "body": {
+      "detail": [
+        {
+          "loc": [
+            "body",
+            "email"
+          ],
+          "msg": "value is not a valid email address: The part after the @-sign is not valid. It should have a period.",
+          "type": "value_error"
+        }
+      ]
+    },
+    "status": 422
+  },
+  "registro_mail_repetido": {
+    "body": {
+      "detail": "El email ya está registrado"
+    },
+    "status": 409
   },
   "suscripcion_comercio": {
     "body": {
@@ -965,6 +1004,12 @@
       "worker_profile_id": "worker-profile-1"
     },
     "status": 200
+  },
+  "turno_llegada_antes_de_tiempo": {
+    "body": {
+      "detail": "Todavía no podés marcar tu llegada: se habilita desde las 16:30 del domingo (30 minutos antes de que empiece el turno)."
+    },
+    "status": 400
   },
   "turno_publicado_comercio": {
     "body": {

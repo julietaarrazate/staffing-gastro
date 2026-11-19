@@ -38,6 +38,7 @@ _UUID = re.compile(
     r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
 )
 _JWT = re.compile(r"eyJ[\w-]+\.[\w-]+\.[\w-]+")
+_DIA = re.compile(r"(\d{2}:\d{2} del )(?:lunes|martes|miércoles|jueves|viernes|sábado|domingo)")
 _FECHA = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}")
 # Campos de fecha que dependen del reloj del momento de correr el test.
 _FECHA_FIJA = "2026-11-01T12:00:00+00:00"
@@ -70,6 +71,7 @@ class Normalizador:
         return self.alias[clave]
 
     def texto(self, s: str) -> str:
+        s = _DIA.sub(r"\1domingo", s)  # «desde las 16:30 del <día de hoy + 3>»
         return _JWT.sub("token-de-prueba", _UUID.sub(self._uuid, s))
 
     def _por_forma(self, d: dict) -> None:
@@ -283,6 +285,9 @@ async def test_contrato_frontend(client: AsyncClient, session_factory):
     cap.guardar("avisos_trabajador", await client.get("/api/v1/notifications", headers=wk))
 
     cap.guardar("turno_confirmar", await client.post(f"/api/v1/shifts/{shift_id}/confirm", headers=wk))
+    cap.guardar("turno_llegada_antes_de_tiempo", await client.post(
+        f"/api/v1/shifts/{shift_id}/check-in", headers=wk,
+        json={"latitude": -34.60, "longitude": -58.40}))
     cap.guardar("turno_confirmar_repetido", await client.post(f"/api/v1/shifts/{shift_id}/confirm", headers=wk))
     cap.guardar("turno_confirmado_trabajador", await client.get(f"/api/v1/shifts/{shift_id}", headers=wk))
 
@@ -336,6 +341,14 @@ async def test_contrato_frontend(client: AsyncClient, session_factory):
         json=_payload(start_at=_horario(3)["end_at"], end_at=_horario(3)["start_at"])))
     cap.guardar("login_mal", await client.post(
         "/api/v1/auth/login", json={"email": "contrato_emp@staffya.com", "password": "otra-clave-mal"}))
+
+    # --- Chat y registro (422 de Pydantic con ctx) ---------------------------
+    cap.guardar("chat_mensaje_largo", await client.post(
+        f"/api/v1/chats/{shift_id}/messages", headers=wk, json={"body": "x" * 2001}))
+    cap.guardar("registro_mail_invalido", await register_user(
+        client, email="lucia@bar", full_name="Lucia Gomez", role="worker"))
+    cap.guardar("registro_mail_repetido", await register_user(
+        client, email="contrato_w1@staffya.com", full_name="Trabajador Uno", role="worker"))
 
     # --- Suscripción ------------------------------------------------------
     cap.guardar("suscripcion_comercio", await client.get("/api/v1/subscription", headers=emp))
