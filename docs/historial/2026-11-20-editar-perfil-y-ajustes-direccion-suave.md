@@ -38,9 +38,10 @@ final de `app/globals.css` (`.cv-soltar`, `.apariencia`);
 **Piezas compartidas:** `components/LocationPicker.tsx` (los dos
 desplegables) y `components/CvUpload.tsx` recibieron sólo nombres de clase
 (`campo`, `cv-soltar`), que fuera de `.estilo-suave` no hacen nada: la
-bienvenida no cambia. **Sí cambia, apenas, «Publicar evento»**, que ya era
-suave y usa el mismo selector de zona: sus dos desplegables pasan a verse
-como los demás campos de esa pantalla (relleno, sin filete).
+bienvenida no cambia (verificado renderizado). **Sí cambian, apenas,
+«Publicar turno» (el paso de la zona) y «Publicar evento»**, que ya eran
+suaves y usan el mismo selector de zona: sus dos desplegables pasan a verse
+como los demás campos de esas pantallas (relleno, sin filete).
 
 **Por qué así:**
 
@@ -53,7 +54,28 @@ como los demás campos de esa pantalla (relleno, sin filete).
 - **«Guardar cambios» sigue al final del formulario**, no fijo abajo: fijarlo
   cambia cómo se usa la pantalla.
 
+**Revisión independiente** (otro agente, intentando romperlo: de 320 a
+1280 px, claro y oscuro, los tres roles, datos difíciles, los estados de las
+notificaciones, contraste medido, teclado, letra al 200 %, la bienvenida y
+las dos pantallas de Publicar renderizadas, y la lógica comparada con la de
+`main`). Aprobó con detalles y se arreglaron: el foco por teclado de las
+filas de Ajustes se veía recortado (ahora va hacia adentro, también en el
+Perfil); el texto y el ícono de la caja del CV daban 2,6 de contraste (van en
+`ink-soft`); al arrastrar un archivo sobre la caja ya no se notaba; y un error
+del servidor con una palabra larguísima desbordaba (venía de antes).
+
+**Prueba en la app** (`tools/e2e-local`, backend real): dos cuentas nuevas de
+quien trabaja (celular claro y compu oscuro) y una de comercio. Eligió una
+habilidad, escribió «Sobre mí» e idiomas y guardó (PUT 200, «Perfil guardado»,
+los datos quedaron en la base); volvió al Perfil con el botón de vidrio;
+cambió la apariencia (cambia el tema); entró a Soporte; cerró sesión. El
+comercio cambió su nombre y guardó (PUT 200). Sin errores de consola ni de red.
+
 **Queda abierto:**
+
+- La fila del CV ya subido («Reemplazar» mide 32 px de alto y el tacho 16):
+  venía de antes; con la letra al 200 % a 320 px el nombre del archivo
+  desaparece.
 
 - En «Datos del comercio», el recuadro del mapa de la dirección, el buscador
   de direcciones y las dos fotos (`MapAddressPicker`, las subidas) siguen con

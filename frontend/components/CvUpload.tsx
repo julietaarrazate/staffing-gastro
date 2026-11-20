@@ -111,7 +111,7 @@ export default function CvUpload({
           campo de texto alternativo, no un único control fijo asociable —
           jsx-a11y/label-has-associated-control, TECH_DEBT.md F4. */}
       <p className="block text-sm font-medium text-ink/70">CV</p>
-      <p className="mt-0.5 text-xs text-ink/50">
+      <p className="cv-ayuda mt-0.5 text-xs text-ink/50">
         Opcional. Un CV le da más seguridad al comercio a la hora de elegir.
       </p>
 
@@ -160,6 +160,7 @@ export default function CvUpload({
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
           disabled={uploading}
+          data-arrastrando={dragOver || undefined}
           className={`cv-soltar mt-2 flex w-full flex-col items-center gap-1.5 rounded-[var(--radius-input)] border-2 border-dashed px-4 py-5 text-center transition disabled:opacity-60 ${
             dragOver ? "border-primary bg-primary-tint" : "border-line hover:bg-surface"
           }`}

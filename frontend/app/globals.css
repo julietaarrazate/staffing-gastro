@@ -4483,3 +4483,22 @@ body:has([data-landing]) main {
   color: #ffffff;
   box-shadow: 0 6px 14px rgba(28, 84, 120, 0.28);
 }
+/* El texto y el ícono de la caja del CV, en `ink-soft` (el gris al 40 % daba
+   2,6 sobre el relleno), y la ayuda de arriba también. */
+.estilo-suave .cv-soltar span,
+.estilo-suave .cv-soltar svg,
+.estilo-suave .cv-ayuda {
+  color: var(--color-ink-soft);
+}
+/* Al arrastrar un archivo encima, la caja lo sigue mostrando. */
+.estilo-suave .cv-soltar[data-arrastrando] {
+  border-style: solid;
+  border-color: var(--color-primary-text);
+  background: var(--color-card);
+}
+/* El foco por teclado de una fila suave va hacia adentro: el grupo recorta lo
+   que sale (`overflow: hidden`) y el contorno se veía cortado. También en el
+   Perfil, que usa las mismas filas. */
+.estilo-suave .perfil-filas :is(a, button):focus-visible {
+  outline-offset: -3px;
+}

@@ -408,7 +408,7 @@ export default function WorkerProfileForm() {
       />
 
       {error && (
-        <p role="alert" className="text-sm text-danger-text">
+        <p role="alert" className="break-words text-sm text-danger-text">
           {error}
         </p>
       )}
