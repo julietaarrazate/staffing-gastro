@@ -56,9 +56,9 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
    [`planning/DIRECCION_SUAVE_PANTALLAS.md`](./planning/DIRECCION_SUAVE_PANTALLAS.md)**: el PR de cada
    pantalla edita ahí su renglón y **no este párrafo** (era lo que hacía chocar a las sesiones en
    paralelo). Hechas al 2026-11-20: Publicar turno y evento, el Inicio de quien trabaja, el turno,
-   Candidatos y el «¡Oído!» al elegir. Siguen, en tandas en paralelo y con la maqueta del lienzo: Mis
-   turnos, Buscar y Chats; después el Panel del comercio (no en paralelo con Mis turnos: comparten
-   `ShiftCard`), Perfil y Mapa; y al final la barra de abajo y el encabezado. De paso se saca el marrón
+   Candidatos y el «¡Oído!» al elegir, y la primera tanda en paralelo: Mis turnos, Chats y Buscar de
+   quien trabaja. En curso, la segunda tanda: el Panel del comercio, el Perfil y el Mapa. Después, solos,
+   la barra de abajo y el encabezado, y lo que todavía no tiene maqueta. De paso se saca el marrón
    que queda en `ShiftCard`, el mapa y Buscar del comercio. **Para mirar y decidir:** la
    prueba de identidad por pantalla, dieciséis pantallas en claro y en noche
    (https://claude.ai/artifact/WJn8NkYTpvSsa81RpoR2Jg; qué propone y qué cambia de lo decidido, en
