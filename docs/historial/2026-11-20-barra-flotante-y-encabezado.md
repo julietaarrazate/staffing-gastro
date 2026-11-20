@@ -69,6 +69,37 @@ que sea útil, estético, simple y quede mejor en la app»: quedó lo recomendad
   Inicio y del Panel, que pueden ser hondos).
 - `Logo` suma `sobreCielo` (toma la tinta del cielo).
 
+**Lo que encontró la revisión independiente y la suite (arreglado en el PR):**
+
+- *Avisos de la cuenta anterior a la vista.* El proveedor no se desmonta al
+  cerrar sesión (la campanita de antes sí): quien entraba después en el mismo
+  equipo veía la lista y la cuenta de la otra persona hasta que respondía su
+  pedido. Ahora la lista tiene dueño (la cuenta, no el token, que también
+  cambia al renovarse la sesión): se vacía al cambiar, no se muestra en el
+  render intermedio y una respuesta que llega tarde se descarta
+  (`lib/avisos.cambio-de-cuenta.test.tsx`).
+- *Avisos pedidos antes de confirmar la sesión.* El token guardado llega antes
+  que `/auth/me`: el admin con el alta de dos pasos pendiente pedía avisos que
+  el backend rechaza (lo cortó `barra-de-abajo.spec.ts`). El proveedor espera a
+  `user`, como hacía la campanita.
+- *Las pestañas sin foco de teclado* (quedaba `foco-propio` sin su anillo): el
+  foco va por dentro de la pestaña.
+- *El comercio sin cuenta de avisos en Publicar y Candidatos:* la pestaña Panel
+  está activa en esas pantallas pero no hay campanita; la cuenta se oculta
+  sólo en el Panel mismo.
+- *El recorrido guiado* perdía el paso «Publicar turno» con a quién elegir:
+  el «+» y el botón de la compu llevan el ancla, y `GuidedTour` toma la que
+  está a la vista (`anclaVisible`).
+- La bienvenida no lleva `data-cromo` (sumaba dos veces la zona segura), y lo
+  que pasa por detrás de la barra de arriba de la compu se esfuma en el lienzo.
+
+**Cómo se probó:** la suite e2e completa y los unitarios; todas las pantallas
+renderizadas en claro y oscuro, celular y compu; y la app real en local
+(`tools/e2e-local`) con un comercio, una trabajadora y un admin: el aviso llega
+en vivo a la pestaña sin recargar (postulación → Panel, asignación → Inicio),
+la hoja de avisos abre y lleva a la pantalla del aviso, «Postularme» queda
+arriba de la barra, y al cerrar sesión vuelve la landing.
+
 **Por qué así:**
 
 - *La cuenta en la pestaña y no la campanita en todos los cielos:* es lo que

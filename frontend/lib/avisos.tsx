@@ -81,8 +81,10 @@ export function AvisosProvider({ children }: { children: ReactNode }) {
   const cuenta = token ? (user?.id ?? null) : null;
   const [duenio, setDuenio] = useState<string | null>(null);
   const cuentaRef = useRef<string | null>(cuenta);
-  cuentaRef.current = cuenta;
+  // Va antes que el efecto que carga: los efectos corren en orden, así que el
+  // pedido de la cuenta nueva ya sale con la referencia al día.
   useEffect(() => {
+    cuentaRef.current = cuenta;
     setNotifications([]);
     setError(null);
     setLoading(true);

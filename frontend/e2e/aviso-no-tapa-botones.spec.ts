@@ -4,8 +4,8 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash, 
 /**
  * El aviso flotante (toast) no tapa los botones de acción (prueba de punta a
  * punta 2026-11, U009): al terminar «Completar» con la IA aparecía el aviso
- * «Completamos todo…» sobre «Publicar turno». Ahora va arriba, bajo el
- * encabezado, en todos los anchos, y no se cruza con el botón: ni en celular
+ * «Completamos todo…» sobre «Publicar turno». Ahora va arriba (bajo el
+ * encabezado en la compu; en el celular, sin encabezado, dentro de la pantalla), en todos los anchos, y no se cruza con el botón: ni en celular
  * (390×844) ni en escritorio con la ventana baja (1280×560, donde el botón
  * queda a media pantalla y un aviso abajo lo pisaba).
  *
@@ -143,10 +143,15 @@ for (const vp of VIEWPORTS) {
         false,
       );
 
-      // Va arriba, debajo del encabezado (Navbar, 64 px) y dentro de la pantalla.
-      const navbar = await page.locator("header").first().boundingBox();
-      expect(navbar).not.toBeNull();
-      expect(avisoCaja!.y).toBeGreaterThanOrEqual(navbar!.y + navbar!.height);
+      // Va arriba, dentro de la pantalla: en la compu, debajo del encabezado
+      // (Navbar); en el celular el comercio ya no tiene encabezado, así que
+      // alcanza con que no se salga por arriba (y ≥ 0).
+      const encabezado = page.locator("header").first();
+      const bajoEncabezado = (await encabezado.isVisible())
+        ? (await encabezado.boundingBox())!
+        : null;
+      const tope = bajoEncabezado ? bajoEncabezado.y + bajoEncabezado.height : 0;
+      expect(avisoCaja!.y).toBeGreaterThanOrEqual(tope);
       expect(avisoCaja!.y + avisoCaja!.height).toBeLessThan(caja!.y);
       expect(avisoCaja!.x).toBeGreaterThanOrEqual(0);
       expect(avisoCaja!.x + avisoCaja!.width).toBeLessThanOrEqual(vp.width);

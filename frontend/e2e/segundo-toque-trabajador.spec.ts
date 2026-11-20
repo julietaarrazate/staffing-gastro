@@ -115,7 +115,7 @@ test("publicar: el segundo toque de «Continuar» no publica el turno", async ({
   await page.waitForTimeout(1200);
   const { x, y } = await centro(page, page.getByRole("button", { name: "Continuar" }));
   await page.mouse.click(x, y);
-  await expect(page.getByText("Publicar turno")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Publicar turno" })).toBeVisible();
   await page.waitForTimeout(700);
   await page.mouse.click(x, y);
   await page.waitForTimeout(500);

@@ -50,14 +50,17 @@ test.describe("arriba del panel", () => {
   });
 
   test("sin la tarjeta 'Turnos activos' ni la fila de accesos rápidos", async ({ page }) => {
-    await expect(page.getByRole("link", { name: "Publicar turno" })).toBeVisible();
+    // En el cielo del panel (en el celular el «+» de la barra de abajo también
+    // lleva a publicar: es la misma acción, fuera del cielo).
+    await expect(page.getByTestId("panel-cielo").getByRole("link", { name: "Publicar turno" })).toBeVisible();
     await expect(page.getByText("Turnos activos")).toHaveCount(0);
     await expect(page.getByRole("navigation", { name: "Acciones rápidas" })).toHaveCount(0);
   });
 
   test("una sola acción lleva el acento de marca", async ({ page }) => {
-    const publicar = page.getByRole("link", { name: "Publicar turno" });
-    const evento = page.getByRole("link", { name: "Evento" });
+    const cielo = page.getByTestId("panel-cielo");
+    const publicar = cielo.getByRole("link", { name: "Publicar turno" });
+    const evento = cielo.getByRole("link", { name: "Evento" });
     await expect(publicar).toBeVisible();
     // El acento se mide por el color REAL, no por la clase. Con la dirección
     // suave (2026-11-20) el ámbar es un degradé: `#f6a92a` → `#e58e0f`.
@@ -66,6 +69,9 @@ test.describe("arriba del panel", () => {
     expect(await evento.evaluate(fondo)).not.toContain("rgb(246, 169, 42)");
   });
 
+  // Las pestañas de la píldora no repiten estos destinos. El «+» de «Publicar
+  // turno» que flota al lado de la píldora (no es una pestaña) sí lleva a
+  // publicar, a propósito.
   test("ninguna de las dos repite un destino del nav de abajo", async ({ page }) => {
     const nav = page.getByRole("navigation", { name: "Secciones" });
     await expect(nav.getByRole("link").first()).toBeVisible();

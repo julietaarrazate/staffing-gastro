@@ -44,11 +44,13 @@ const GAP = 14;
  *  barra de abajo en el celular y en la barra de arriba en la compu) y sólo
  *  una está a la vista en cada ancho. */
 function anclaVisible(selector: string): Element | null {
-  for (const el of document.querySelectorAll(selector)) {
+  const anclas = document.querySelectorAll(selector);
+  for (const el of anclas) {
     const caja = el.getBoundingClientRect();
     if (caja.width > 0 && caja.height > 0) return el;
   }
-  return null;
+  // Ninguna tiene tamaño (o el entorno no mide): la primera, como antes.
+  return anclas[0] ?? null;
 }
 
 export default function GuidedTour({ steps, storageKey }: GuidedTourProps) {
