@@ -323,6 +323,14 @@ E1_AGENT=smoke node tools/e2e-local/smoke.mjs   # prueba de humo (borra lo que c
   y el árbol sin U110). Mirá la línea de alembic antes de probar; con varias
   ramas con migraciones, mergeá en el árbol de prueba todas las que la base
   ya vio.
+- **La suite e2e simulada (`npm run test:e2e`) no se corre sobre el build del
+  arnés.** `setup.sh --build` compila con `NEXT_PUBLIC_API_URL` apuntando al
+  backend local, y `playwright.config.ts` se engancha al frontend del arnés
+  si está en 3100: los specs que no simulan todos sus pedidos le pegan al
+  backend de verdad y fallan de a decenas (97 el 2026-11-20, sin que el
+  cambio tuviera nada). Orden que anda: suite simulada sobre `npm run build`
+  → `setup.sh --build` y la prueba en la app → `stop_all.sh frontend` y
+  `npm run build` otra vez antes de la corrida final.
 - Para la corrida con el límite de intentos y el tope del plan:
   `RATE_LIMIT_ENABLED=true SUBSCRIPTIONS_ENFORCED=true tools/e2e-local/restart_backend.sh`.
   Con el límite prendido todas las cuentas salen de `127.0.0.1`: conviene que
