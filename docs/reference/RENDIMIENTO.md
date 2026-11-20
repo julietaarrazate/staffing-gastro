@@ -142,12 +142,36 @@ Lo que queda (~2,7 s desde el iframe) es la verificación de Cloudflare.
   cambian. Sí se deduplican los GET idénticos **en vuelo**
   (`lib/api.ts`, `getDeduplicado`): nada queda guardado después.
 
+### El mapa chico, sin MapLibre (segunda vuelta, 2026-11-19)
+
+Era lo único grande que había quedado: cada turno aceptado con dirección
+muestra un mapa chico, y para esa foto de 112 px que no se toca Mis turnos
+bajaba MapLibre entero. Ahora `MiniMap` es un dibujo en SVG con los mismos
+mosaicos vectoriales de CARTO (`lib/map/mapa-chico.ts`; Julieta eligió los
+colores de un mapa de siempre y el nombre del local junto al cuadradito, sobre
+una versión celeste y otra con nota a mano). `main` contra la rama, con la
+máquina quieta, dos veces por lado:
+
+| Mis turnos | Antes | Después |
+|---|---|---|
+| JS de carga (transferido) | 634 KB | **343 KB** |
+| JS sin comprimir | 2,14 MB | **1,07 MB** |
+| TBT | 827 / 887 ms | **290 / 367 ms** |
+| LCP | 3.292 / 3.276 ms | 3.280 / 3.392 ms (igual) |
+| Lo que baja de CARTO con 3 turnos aceptados | 326 KB (estilo, íconos, letras y mosaicos) | **192 KB** (sólo mosaicos) |
+
+- **Los mosaicos-imagen de CARTO ahora piden clave** (devuelven un cartel de
+  «API KEY REQUIRED»): por eso no es una imagen de CARTO sino un dibujo propio
+  con los datos vectoriales, que siguen libres. La dirección de los mosaicos
+  lleva una versión; si CARTO la cambia, se lee la vigente de su estilo y se
+  reintenta. Si nada anda, queda el fondo con el local, sin romperse.
+- La guardia del error de «el mapa no responde» (`reuseMaps`, en
+  `e2e/map-interactivity.spec.ts`) pasó al camino que sigue vivo: el mapa de
+  «va en camino» del comercio y después Buscar. Se verificó que el test falla
+  si se saca el arreglo.
+
 ## Abierto (necesita una decisión, no es sólo código)
 
-- **El mapa chico de Mis turnos baja maplibre (~1 MB sin comprimir).** Cada
-  turno aceptado con dirección muestra un mapa, así que la librería se baja
-  al abrir la pantalla: `/my-shifts` pesa el doble que las demás. Para no
-  bajarla habría que mostrar el mapa al tocar, o una imagen estática.
 - **`/matching/search`** filtra por radio y ordena en Python (~50 ms con
   5.000 trabajadores, 3 ms de SQL), sobre el punto desplazado a propósito
   (ADR-0014). Bajarlo a SQL toca esa regla de privacidad.
