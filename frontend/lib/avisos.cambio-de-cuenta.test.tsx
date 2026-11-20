@@ -16,6 +16,7 @@ vi.mock("@/lib/api", () => ({
     post: vi.fn(),
   },
 }));
+vi.mock("@/lib/errors", () => ({ getErrorMessage: (_e: unknown, porDefecto: string) => porDefecto }));
 let auth: Record<string, unknown>;
 vi.mock("@/lib/auth-context", () => ({ useAuth: () => auth }));
 vi.mock("@/lib/useWebSocket", () => ({ useWebSocket: () => undefined }));
