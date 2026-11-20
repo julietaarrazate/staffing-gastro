@@ -4,7 +4,7 @@ import { puedeMarcarAusencia } from "@/lib/turno-reofrecido";
 import { useState } from "react";
 import { useNow } from "@/lib/use-now";
 import Link from "next/link";
-import { BOTON_LISO, Button, Sheet } from "@/components/ui";
+import { Button, Sheet } from "@/components/ui";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import { AlertTriangleIcon, CheckCircleIcon, CopyIcon, MessageIcon } from "@/components/icons";
 import { isCancellable } from "@/lib/cancelar-turno";
@@ -23,7 +23,15 @@ import type { Shift } from "@/lib/types";
  * turno» pasa a ser «Marcar como pagado»). Por eso los botones se apagan con
  * `locked` (la guarda de `lib/use-tap-guard.ts`: una acción en curso o la
  * lista recién redibujada) y no sólo mientras carga el propio.
+ *
+ * Con la dirección suave (ADR-0028, 2026-11-20) la acción de la fila va en
+ * azul hondo (`.boton-hondo`) y «Chat» y «Más», quietos: el único ámbar del
+ * panel es el del cielo.
  */
+
+/** «Chat» y «Más»: quietos (relleno del campo, letra azul hondo). */
+const QUIETO =
+  "boton boton-quieto inline-flex min-h-[40px] shrink-0 items-center justify-center gap-1.5 px-3 py-2 text-sm font-semibold transition active:scale-95";
 
 // Sólo tiene sentido marcar no-show mientras el trabajador confirmado
 // todavía no se presentó (antes del check-in) — ADR-0007.
@@ -77,7 +85,7 @@ export default function ShiftActions({
   return (
     <div className="flex flex-col gap-2.5">
       {step.hint && (
-        <p className="text-sm text-ink/60">
+        <p className="text-sm text-ink-soft">
           {shift.status === "pagado" && (
             <CheckCircleIcon size={15} className="mr-1 inline-block align-[-2px] text-success-text" />
           )}
@@ -94,14 +102,15 @@ export default function ShiftActions({
         {step.action === "candidates" ? (
           <Link
             href={`/shifts/${shift.id}/candidates`}
-            className="boton-relieve flex min-h-[40px] flex-1 basis-44 items-center justify-center bg-primary px-4 py-2 text-center text-sm font-semibold text-night"
+            className="boton boton-hondo flex min-h-[40px] flex-1 basis-44 items-center justify-center px-4 py-2 text-center text-sm font-semibold transition active:scale-[0.98]"
           >
             {step.actionLabel}
           </Link>
         ) : step.action ? (
           <Button
             size="sm"
-            className="flex-1 basis-44"
+            variant="surface"
+            className="boton-hondo flex-1 basis-44"
             onClick={() =>
               step.action === "markPaid"
                 ? onMarkPaid()
@@ -122,7 +131,7 @@ export default function ShiftActions({
             <Link
               href={`/chats/${shift.id}`}
               aria-label="Abrir chat con el trabajador"
-              className={`${BOTON_LISO} shrink-0 px-3 py-2 text-sm`}
+              className={QUIETO}
             >
               <MessageIcon size={16} /> Chat
             </Link>
@@ -133,7 +142,7 @@ export default function ShiftActions({
             aria-label="Más acciones"
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen(true)}
-            className={`${BOTON_LISO} shrink-0 px-3 py-2 text-sm`}
+            className={QUIETO}
           >
             Más
           </button>

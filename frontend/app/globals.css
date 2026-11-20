@@ -1619,21 +1619,6 @@ body:has([data-landing]) main {
   text-align: right;
 }
 
-/* Un turno de Buscar como comanda (`OportunidadComanda`). Es contenedor de
-   su propio ancho: el puesto en brocha achica la letra con la comanda (el 8 %
-   del ancho, entre 22 y 30 px: unos 29 a 390 px y 23 a 320), así
-   «Recepcionista» no se parte. El papel ocupa todo el alto de la
-   celda de la grilla, para que las acciones queden todas abajo. */
-.comanda-oportunidad {
-  container-type: inline-size;
-}
-.comanda-oportunidad > .comanda-papel {
-  height: 100%;
-}
-.comanda-oportunidad .letra-cartel-puesto {
-  font-size: clamp(1.375rem, 8cqi, 1.875rem);
-}
-
 /* La cinta «¡Oído!» del detalle del turno, cuando la persona se postuló:
    pegada sobre el borde de arriba de la hoja, a la derecha, torcida y
    asomando sobre la foto. Se pega con un golpe sólo si la postulación pasó en
@@ -3869,6 +3854,113 @@ body:has([data-landing]) main {
   .oido-sello {
     animation: none;
   }
+}
+
+/* ===== El panel del comercio con la dirección suave (2026-11-20, maquetas `C-Panel*`) ===== */
+/* Sobre el cielo hondo el foco va en blanco: el azul hondo de siempre no se
+   ve. En el cielo de día (tinta sobre celeste) queda el de siempre. */
+.panel-cielo.cielo-hondo {
+  --focus-ring: #ffffff;
+}
+/* Algo está en marcha: el punto de «Marchando» late. */
+.pulso-cielo {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: currentColor;
+  animation: pulsoCielo 1.8s ease-out infinite;
+}
+@keyframes pulsoCielo {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.55);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pulso-cielo {
+    animation: none;
+  }
+}
+/* Un botón de vidrio con texto sobre el cielo («Publicar turno» cuando el
+   ámbar es otro, «Evento»): el vidrio del chip, con el tamaño de un botón. */
+.chip-vidrio.boton-cielo {
+  justify-content: center;
+  min-height: 52px;
+  padding: 0 18px;
+  border-radius: 18px;
+  font-size: 1rem;
+  font-weight: 700;
+  transition: transform 0.15s ease;
+}
+.chip-vidrio.boton-cielo:active {
+  transform: scale(0.97);
+}
+/* El turno que espera que el comercio elija, sobre el cielo hondo: una caja
+   de vidrio con su ámbar adentro. */
+.panel-vidrio {
+  padding: 14px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.13);
+}
+/* La acción de una fila o de una caja de la hoja cuando el ámbar de la
+   pantalla es otro: azul hondo, letra blanca (5,2 sobre el tono más claro).
+   La usan las filas del panel (`ShiftActions`) y «Enviar calificación»
+   (`ReviewBox`, también en Mis turnos). */
+.estilo-suave .boton-hondo,
+.estilo-suave .boton-hondo:hover {
+  background: var(--suave-elegido);
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(28, 84, 120, 0.22);
+}
+.estilo-suave .boton-hondo:hover {
+  filter: brightness(1.06);
+}
+.estilo-suave .boton-hondo:disabled {
+  background: var(--suave-campo);
+  color: var(--color-ink-mute);
+  box-shadow: none;
+  filter: none;
+}
+/* Apagado no se pierde contra su fondo: sobre el relleno del campo (la caja
+   de la calificación, una fila apagada) va del color de la tarjeta, y en la
+   caja de una fila apagada (que es de la tarjeta), del campo. */
+.estilo-suave .caja-resena .boton-hondo:disabled,
+.estilo-suave .turno-apagado .boton-hondo:disabled {
+  background: var(--color-card);
+}
+.estilo-suave .turno-apagado .caja-resena .boton-hondo:disabled {
+  background: var(--suave-campo);
+}
+/* La caja de la calificación (`ReviewBox`) y la nota de «última señal»:
+   relleno del campo, sin el crema de antes; adentro de una fila apagada (que
+   ya es del color del campo) pasa al de la tarjeta. */
+.estilo-suave .caja-resena {
+  border-radius: 14px;
+  background: var(--suave-campo);
+}
+.estilo-suave .caja-resena textarea {
+  border-color: transparent;
+  border-radius: 12px;
+  background: var(--color-card);
+  color: var(--color-ink);
+}
+.estilo-suave .caja-resena textarea::placeholder {
+  color: var(--color-ink-soft);
+}
+.estilo-suave .turno-apagado .caja-resena {
+  background: var(--color-card);
+}
+.estilo-suave .turno-apagado .caja-resena textarea {
+  background: var(--suave-campo);
+}
+/* El asistente en la hoja del panel: un campo con relleno, sin filete. */
+.estilo-suave .panel-asistente > button {
+  border-radius: 16px;
+  background: var(--suave-campo);
+  box-shadow: none;
 }
 
 /* ===== Chats con la dirección suave (2026-11-20) ===== */
