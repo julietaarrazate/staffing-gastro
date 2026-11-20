@@ -1,4 +1,4 @@
-# El Mapa sin turnos: la tarjeta ya no tapa el mapa (#PR)
+# El Mapa sin turnos: la tarjeta ya no tapa el mapa (#709)
 
 **Pedido:** Julieta, 2026-11-20, mirando `/map` en su celular después del
 #707: «esa tarjeta gigante lo tapa».
