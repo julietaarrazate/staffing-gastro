@@ -33,7 +33,7 @@ qué responde cada pantalla está en
 
 - ⬜ **Buscar, de quien trabaja** (`T-Buscar`) · `app/buscar/page.tsx`
 
-- ⬜ **Chats** (`Chats`) · `app/chats/`
+- ✅ **Chats** (`Chats`) · #701 · [historial](../historial/2026-11-20-chats-direccion-suave.md) · sin las secciones por fecha del turno ni «Vos:» (piden datos que `GET /chats` no manda)
 
 - ⬜ **Panel del comercio** (`C-Panel`, `C-Panel-vacio`, `C-Panel-nadie`) · `app/shifts/page.tsx`, `components/ShiftCard.tsx` · después de Mis turnos
 

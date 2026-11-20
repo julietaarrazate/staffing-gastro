@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import type { Conversation } from "@/lib/types";
+import { SKILL_LABELS, type Conversation } from "@/lib/types";
 
 /**
  * La lista de conversaciones que ya cargó `layout.tsx`, para que la
@@ -29,4 +29,14 @@ export const ConversationsControlContext = createContext<{ reload: () => void; r
 
 export function useConversationsControl(): { reload: () => void; ready: boolean } {
   return useContext(ConversationsControlContext);
+}
+
+/**
+ * El turno del que cuelga un chat, como se lee en el resto de la app. Sin
+ * título propio, el backend manda el puesto tal cual lo guarda ("mozo"): acá
+ * pasa a su nombre ("Mozo/a"), igual que en el encabezado de una conversación
+ * todavía sin mensajes.
+ */
+export function shiftLabel(shiftTitle: string): string {
+  return (SKILL_LABELS as Record<string, string>)[shiftTitle] ?? shiftTitle;
 }

@@ -3812,6 +3812,121 @@ body:has([data-landing]) main {
   }
 }
 
+/* ===== Chats con la dirección suave (2026-11-20) ===== */
+/* En el celular la conversación abierta trae su propio cielo y su hoja; en la
+   compu el cielo y la hoja son los de la pantalla (`app/chats/layout.tsx`) y
+   la conversación va adentro, al lado de la lista. Por eso el cielo de la
+   conversación se apaga desde `md`, y la hoja se reparte en dos clases: la de
+   la conversación sólo en el celular y la del marco sólo en la compu. Los
+   valores son los de `.hoja`. */
+@media (min-width: 768px) {
+  .app-cielo.cielo-celular {
+    overflow: visible;
+    background: none;
+    color: var(--color-ink);
+  }
+  /* La vuelta a la lista sólo hace falta en el celular (`.boton-vidrio` fija
+     su `display`, así que no alcanza con `md:hidden`). */
+  .app-cielo.cielo-celular > .boton-vidrio {
+    display: none;
+  }
+  .hoja-compu {
+    position: relative;
+    z-index: 1;
+    border-radius: 28px;
+    background: var(--color-card);
+    box-shadow: 0 -10px 30px rgba(15, 58, 91, 0.1);
+  }
+}
+@media (max-width: 767.98px) {
+  .hoja-celular {
+    position: relative;
+    z-index: 1;
+    border-radius: 28px 28px 0 0;
+    background: var(--color-card);
+    box-shadow: 0 -10px 30px rgba(15, 58, 91, 0.1);
+  }
+}
+.estilo-suave .hoja-compu [data-skeleton],
+.estilo-suave .hoja-celular [data-skeleton] {
+  background-color: var(--suave-campo);
+}
+/* Una fila de la lista: la raya que la separa de la anterior arranca después
+   de la foto. La conversación abierta (en la compu) lleva el relleno del
+   campo. */
+.chat-fila + .chat-fila {
+  position: relative;
+}
+.chat-fila + .chat-fila::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 84px;
+  height: 1px;
+  background: var(--color-line);
+}
+.estilo-suave .chat-fila a[aria-current="page"] {
+  background: var(--suave-campo);
+}
+/* Con la fila rellena, el chip del turno pasa al tono de la hoja para no
+   fundirse. */
+.estilo-suave .chat-fila a[aria-current="page"] .chip-suave {
+  background: var(--color-card);
+}
+/* El relleno al pasar por encima, sólo donde hay puntero: en el celular
+   quedaba pegado después del toque. */
+@media (hover: hover) {
+  .estilo-suave .chat-fila a:hover {
+    background: var(--suave-campo);
+  }
+  .estilo-suave .chat-fila a:hover .chip-suave {
+    background: var(--color-card);
+  }
+}
+/* La fila va de borde a borde de una lista que se desplaza: el contorno de
+   foco va por dentro, o la lista le recorta los costados. */
+.chat-fila a:focus-visible {
+  outline-offset: -2px;
+}
+/* Cuántos mensajes sin leer: azul hondo con letra blanca (5,2 sobre el tono
+   más claro del degradé). No es ámbar: el ámbar es de «Enviar». */
+.chat-sin-leer {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--suave-elegido);
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+/* Las burbujas (`components/ui/MessageBubble.tsx`): lo propio en celeste y lo
+   ajeno con el relleno del campo, las dos sin borde. La hora, en `ink-soft`
+   (el gris al 45 % daba menos de 4,5 sobre el celeste). */
+.estilo-suave .burbuja {
+  border-radius: 20px;
+  box-shadow: none;
+}
+.estilo-suave .burbuja-mia {
+  border-bottom-right-radius: 6px;
+  background: #d3e8f5;
+}
+:root[data-theme="dark"] .estilo-suave .burbuja-mia {
+  background: #1f4460;
+}
+.estilo-suave .burbuja-ajena {
+  border-bottom-left-radius: 6px;
+  background: var(--suave-campo);
+}
+.estilo-suave .burbuja-meta {
+  color: var(--color-ink-soft);
+}
+
 /* ===== Mis turnos con la dirección suave (2026-11-20, maqueta `T-Mis-turnos`) ===== */
 /* La semana en el cielo: hoy es un círculo blanco (igual de día y de noche,
    `#0f3a5b` sobre blanco da más de 10) y el día con turno lleva un punto. */
