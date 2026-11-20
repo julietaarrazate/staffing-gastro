@@ -523,14 +523,28 @@ export default function MapPage() {
       <div className="md:hidden">
       {!loading && shifts.length === 0 ? (
         <div className="absolute inset-x-0 bottom-4 z-10 px-4">
-          <div className="mapa-tarjeta p-2">
-            <EmptyState
-              icon={<CalendarIcon size={28} />}
-              title={emptyTitle}
-              subtitle={emptySubtitle}
-              primaryAction={emptyPrimary}
-              secondaryAction={emptySecondary}
-            />
+          {/* Compacta (2026-11-20, Julieta: «esa tarjeta gigante lo tapa»): sin
+              la ilustración y con los dos botones en un renglón, para que el
+              mapa se siga viendo. En la compu el vacío va en el panel, con el
+              `EmptyState` de siempre. */}
+          <div className="mapa-tarjeta p-4" data-testid="mapa-vacio">
+            <h2 className="text-base font-extrabold leading-tight tracking-[-0.01em] text-ink">{emptyTitle}</h2>
+            <p className="mt-1 text-sm leading-snug text-ink-soft">{emptySubtitle}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button size="sm" className="min-h-[44px] min-w-0 flex-1 basis-[8rem]" onClick={emptyPrimary.onClick}>
+                {emptyPrimary.label}
+              </Button>
+              {emptySecondary && (
+                <Button
+                  size="sm"
+                  variant="surface"
+                  className="boton-quieto min-h-[44px] min-w-0 flex-1 basis-[8rem]"
+                  onClick={emptySecondary.onClick}
+                >
+                  {emptySecondary.label}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       ) : (

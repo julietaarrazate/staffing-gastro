@@ -163,3 +163,23 @@ test("de noche el mapa base se apaga (sólo el lienzo, no los pines); de día no
   await page.evaluate(() => document.documentElement.setAttribute("data-theme", "light"));
   await expect(page.locator(".maplibregl-canvas").first()).toHaveCSS("filter", "none");
 });
+
+test("sin turnos, en el celular el aviso es una tarjeta baja que deja ver el mapa, con sus dos acciones", async ({ page }) => {
+  await setTheme(page, "light");
+  await injectSession(page);
+  await skipSplash(page);
+  await blockExternalHosts(page);
+  await page.route("**/api/v1/**", (r) => (r.request().method() === "GET" ? r.fulfill(json([])) : r.continue()));
+  await mockEmptyNotifications(page);
+  await page.route("**/api/v1/auth/me", (r) => r.fulfill(opcionesDeContrato("auth_me_worker")));
+  await page.goto("/map");
+  const vacio = page.getByTestId("mapa-vacio");
+  await expect(vacio.getByRole("heading", { level: 2, name: "No hay turnos cerca" })).toBeVisible();
+  // Antes medía unos 370 px (la mitad de la pantalla); ahora, menos de 200.
+  expect((await vacio.boundingBox())?.height).toBeLessThan(200);
+  for (const name of ["Actualizar", "Ver todos en Buscar"]) {
+    const caja = await vacio.getByRole("button", { name }).boundingBox();
+    expect(caja?.height).toBeGreaterThanOrEqual(44);
+  }
+  expect(await ambares(page)).toBe(1);
+});
