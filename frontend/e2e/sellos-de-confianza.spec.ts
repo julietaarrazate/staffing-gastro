@@ -149,7 +149,7 @@ test("Inicio en celular: hero de comercio sin verificar no lleva sello", async (
   await expect(page.getByRole("img", { name: "Comercio verificado" })).toHaveCount(1);
 });
 
-test("postulantes con nombre largo: el sello se adapta al ancho, sin desborde y sin pisar «Asignar»", async ({ page }) => {
+test("postulantes con nombre largo: el sello entra a cualquier ancho, sin desborde y sin pisar «Elegir»", async ({ page }) => {
   const largo = "Maximiliano Alejandro Fernandez de la Cruz Sanchez Villa";
   await base(page, EMPLOYER);
   await page.route("**/api/v1/shifts/shift-1", (r) =>
@@ -160,46 +160,40 @@ test("postulantes con nombre largo: el sello se adapta al ancho, sin desborde y 
   );
   await page.route("**/api/v1/shifts/shift-1/candidates", (r) => r.fulfill(json([])));
 
-  // Desde 390 px el chip entero; de 360 a 389 px «Verificada» con el escudo;
-  // por debajo de 360 px el escudo solo. En los tres casos el nombre accesible
-  // es «Identidad verificada» y en el árbol hay uno solo por tarjeta.
-  const casos = [
-    { width: 390, visible: "Identidad verificada", imgs: 0 },
-    { width: 389, visible: "Verificada", imgs: 2 },
-    { width: 360, visible: "Verificada", imgs: 2 },
-    { width: 359, visible: null, imgs: 2 },
-    { width: 320, visible: null, imgs: 2 },
-  ];
-  for (const { width, visible, imgs } of casos) {
+  // Con la dirección suave (2026-11-20): en la tarjeta de la destacada el
+  // sello va entero, «Identidad verificada»; en las filas es el escudo solo,
+  // a cualquier ancho, con el mismo nombre accesible. Uno por persona.
+  for (const width of [390, 360, 320]) {
     await page.setViewportSize({ width, height: 800 });
     await page.goto("/shifts/shift-1/candidates");
     await expect(page.getByText(largo, { exact: true }).first()).toBeVisible({ timeout: 15_000 });
 
-    const textoEntero = page.locator("text=Identidad verificada").locator("visible=true");
-    const textoCorto = page.getByText("Verificada", { exact: true }).locator("visible=true");
-    await expect(textoEntero).toHaveCount(visible === "Identidad verificada" ? 2 : 0);
-    await expect(textoCorto).toHaveCount(visible === "Verificada" ? 2 : 0);
-    await expect(page.getByRole("img", { name: "Identidad verificada" })).toHaveCount(imgs);
+    await expect(page.locator("[data-destacado]").getByText("Identidad verificada")).toBeVisible();
+    await expect(page.getByText("Identidad verificada")).toHaveCount(1);
+    const fila = page.locator("[data-fila-candidato]");
+    await expect(fila).toHaveCount(1);
+    await expect(fila.getByRole("img", { name: "Identidad verificada" })).toBeVisible();
+    await expect(page.getByRole("img", { name: "Identidad verificada" })).toHaveCount(1);
+
     const m = await page.evaluate(() => {
       const rect = (e: Element) => e.getBoundingClientRect();
+      const f = document.querySelector("[data-fila-candidato]")!;
+      const d = document.querySelector("[data-destacado]")!;
       return {
         scrollW: document.documentElement.scrollWidth,
-        cards: Array.from(document.querySelectorAll("div.no-select")).map((c) => {
-          const chip = Array.from(c.querySelectorAll("span"))
-            .filter((e) => /^(Identidad )?verificada$/i.test((e.textContent ?? "").trim()) || e.getAttribute("role") === "img")
-            .map(rect)
-            .find((r) => r.width > 0)!;
-          const btn = rect(c.querySelector("button")!);
-          const card = rect(c);
-          return { chipRight: chip.right, btnLeft: btn.left, btnRight: btn.right, cardRight: card.right };
-        }),
+        escudoRight: rect(f.querySelector('[role="img"]')!).right,
+        btnLeft: rect(f.querySelector("button")!).left,
+        btnRight: rect(f.querySelector("button")!).right,
+        filaRight: rect(f).right,
+        destacadaRight: rect(d).right,
+        principalRight: rect(d.querySelector("button")!).right,
+        nombreRight: rect(d.querySelector("[data-nombre-candidato]")!).right,
       };
     });
     expect(m.scrollW, `scroll horizontal a ${width}px`).toBeLessThanOrEqual(width);
-    expect(m.cards).toHaveLength(2);
-    for (const c of m.cards) {
-      expect(c.chipRight, `el sello no pisa «Asignar» a ${width}px`).toBeLessThanOrEqual(c.btnLeft);
-      expect(c.btnRight).toBeLessThanOrEqual(c.cardRight);
-    }
+    expect(m.escudoRight, `el sello no pisa «Elegir» a ${width}px`).toBeLessThanOrEqual(m.btnLeft);
+    expect(m.btnRight).toBeLessThanOrEqual(m.filaRight);
+    expect(m.principalRight).toBeLessThanOrEqual(m.destacadaRight);
+    expect(m.nombreRight, `el nombre no se sale de la tarjeta a ${width}px`).toBeLessThanOrEqual(m.destacadaRight);
   }
 });

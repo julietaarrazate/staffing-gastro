@@ -3514,3 +3514,125 @@ body:has([data-landing]) main {
 .estilo-suave .empty-state-icono svg [stroke]:not([stroke="none"]) {
   stroke: var(--color-primary-text);
 }
+
+/* ===== Candidatos y «¡Oído!» con la dirección suave (2026-11-20) ===== */
+/* El título de una sección de la hoja. */
+.titulo-seccion {
+  font-size: 1.125rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+}
+/* La persona destacada de Candidatos (`CandidatoDestacado`): con foto, la
+   foto es la tarjeta y el nombre va encima, sobre un velo que oscurece sólo
+   el tramo de la letra; sin foto, una tarjeta con el cielo hondo arriba y
+   sus datos en grande abajo. */
+.estilo-suave .foto-destacada {
+  background: var(--suave-campo);
+  box-shadow: var(--suave-sombra-alta);
+}
+.foto-destacada-velo {
+  background: linear-gradient(180deg, rgba(10, 25, 38, 0) 18%, rgba(10, 25, 38, 0.58) 42%, rgba(10, 25, 38, 0.9) 78%);
+}
+.foto-destacada a {
+  text-shadow:
+    0 1px 2px rgba(10, 25, 38, 0.5),
+    0 2px 16px rgba(10, 25, 38, 0.6);
+}
+/* El contorno de foco azul hondo no se ve sobre el velo oscuro ni sobre el
+   cielo hondo: ahí va blanco (mismo grosor y separación que el global). */
+.foto-destacada a:focus-visible,
+.tarjeta-destacada .cielo-hondo a:focus-visible {
+  outline-color: #ffffff;
+}
+/* El chip sobre una foto muy clara no se funde. */
+.foto-destacada .chip-foto {
+  box-shadow: 0 1px 3px rgba(10, 25, 38, 0.28);
+}
+.estilo-suave .tarjeta-destacada {
+  overflow: hidden;
+  border-radius: 24px;
+  background: var(--suave-tecla);
+  box-shadow: var(--suave-sombra-alta);
+}
+/* Las columnas se acomodan solas (con la letra grande pasan a menos). La
+   raya va a la izquierda de cada cifra y la grilla se corre 13 px: el
+   contenedor con overflow hidden recorta la de la primera columna de cada
+   renglón. */
+.cifras-destacada {
+  grid-template-columns: repeat(auto-fit, minmax(4.75rem, 1fr));
+  row-gap: 0.75rem;
+  margin-left: -13px;
+}
+.cifras-destacada > div {
+  padding-left: 12px;
+  border-left: 1px solid var(--color-line);
+}
+/* «Elegir» en una fila: quieto (relleno del campo, letra azul hondo), para
+   que el único ámbar sea el de la destacada. */
+.estilo-suave .boton-quieto {
+  background: var(--suave-campo);
+  color: var(--color-primary-text);
+  box-shadow: none;
+}
+.estilo-suave .boton-quieto:hover {
+  filter: brightness(0.97);
+}
+.estilo-suave .boton-quieto:disabled {
+  color: var(--color-ink-mute);
+}
+/* «¡Oído!» al elegir (`OidoElegido`): las dos fotos llegan de los costados y
+   la cinta cae como un sello. Con «reducir movimiento» no se mueve nada. */
+.oido-retrato {
+  border: 5px solid #ffffff;
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 18px 34px rgba(15, 58, 91, 0.28);
+}
+.oido-tilde {
+  box-shadow: 0 10px 22px rgba(15, 58, 91, 0.3);
+}
+.oido-llega-izq {
+  animation: oidoLlegaIzq 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+.oido-llega-der {
+  animation: oidoLlegaDer 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) 0.08s both;
+}
+@keyframes oidoLlegaIzq {
+  from {
+    opacity: 0;
+    translate: -70px 0;
+  }
+}
+@keyframes oidoLlegaDer {
+  from {
+    opacity: 0;
+    translate: 70px 0;
+  }
+}
+.oido-sello {
+  transform: rotate(-4deg);
+  animation: oidoSello 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.25) 0.35s both;
+}
+@keyframes oidoSello {
+  0% {
+    opacity: 0;
+    transform: rotate(-14deg) scale(1.7);
+  }
+  60% {
+    opacity: 1;
+    transform: rotate(-3deg) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(-4deg) scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .oido-llega-izq,
+  .oido-llega-der,
+  .oido-sello {
+    animation: none;
+  }
+}

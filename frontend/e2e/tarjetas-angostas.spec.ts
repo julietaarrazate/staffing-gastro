@@ -130,7 +130,7 @@ async function mockCandidatos(page: Page) {
   );
 }
 
-test("postulantes: nombre de 60 letras, sin desborde y con «Asignar» entero", async ({ page }) => {
+test("postulantes: nombre de 60 letras, sin desborde y con «Elegir» entero", async ({ page }) => {
   await mockCandidatos(page);
   for (const ancho of ANCHOS) {
     await page.setViewportSize({ width: ancho, height: 800 });
@@ -140,7 +140,7 @@ test("postulantes: nombre de 60 letras, sin desborde y con «Asignar» entero", 
   }
 });
 
-test("recomendados: nombre de 60 letras, sin desborde y con «Asignar» entero", async ({ page }) => {
+test("recomendados: nombre de 60 letras, sin desborde y con «Elegir» entero", async ({ page }) => {
   await mockCandidatos(page);
   for (const ancho of ANCHOS) {
     await page.setViewportSize({ width: ancho, height: 800 });

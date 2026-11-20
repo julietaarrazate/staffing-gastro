@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { CandidateMatch } from "@/lib/types";
-import { Avatar, Button, Flechita } from "@/components/ui";
+import { Avatar, Button } from "@/components/ui";
 import IdentityVerifiedBadge from "@/components/IdentityVerifiedBadge";
 import { BoltIcon } from "@/components/icons";
 import {
@@ -10,7 +10,10 @@ import {
 } from "@/components/candidate/CandidateSignals";
 
 /**
- * Tarjeta de candidato recomendado por el matching. El primero del ranking se
+ * Tarjeta de candidato recomendado por el matching. Desde el 2026-11-20 la
+ * usa sólo la landing vieja de `/historia` (`ActoOido`): la pantalla de
+ * Candidatos pasó a `candidate/CandidatoDestacado` y `CandidatoFila`
+ * (dirección suave, ADR-0028). El primero del ranking se
  * muestra `recommended`, con un "por qué te lo recomendamos" en vez de un
  * score numérico opaco. El resto va en tarjeta sobria
  * con los mismos chips de confianza.
@@ -51,7 +54,6 @@ export default function CandidateCard({
   recommended = false,
   preview = false,
   canAssign = true,
-  relieve = false,
 }: {
   candidate: CandidateMatch;
   onAssign: () => void;
@@ -62,14 +64,8 @@ export default function CandidateCard({
   preview?: boolean;
   /** Falso cuando el turno ya no admite asignar: se oculta «Asignar». */
   canAssign?: boolean;
-  /** Dirección «con relieve» (2026-11-18, la pantalla de Candidatos): el
-   *  recomendado va en blanco con el relieve del filete y el apunte a mano
-   *  «el que te recomendamos», en lugar del bloque de color; los demás,
-   *  planos. La landing vieja de /historia sigue con la de siempre. */
-  relieve?: boolean;
 }) {
-  // En la versión con relieve el recomendado ya no va sobre color.
-  const sobreColor = recommended && !relieve;
+  const sobreColor = recommended;
   const perfil = preview ? null : `/workers/${candidate.profile_id}`;
   return (
     // `.no-select`: tarjeta de chrome (rating, chips) — mismo criterio C0 #2
@@ -77,21 +73,9 @@ export default function CandidateCard({
     <div
       data-recomendado={recommended || undefined}
       className={`no-select min-w-0 overflow-hidden rounded-[var(--radius-card)] transition active:scale-[0.99] ${
-        relieve
-          ? recommended
-            ? "tarjeta-relieve"
-            : "bg-card ring-1 ring-line"
-          : recommended
-            ? "bg-brand shadow-[var(--shadow-float)]"
-            : "bg-card shadow-[var(--shadow-soft)] ring-1 ring-line"
+        recommended ? "bg-brand shadow-[var(--shadow-float)]" : "bg-card shadow-[var(--shadow-soft)] ring-1 ring-line"
       }`}
     >
-      {recommended && relieve && (
-        <p className="letra-mano flex items-end gap-1 px-5 pt-4 text-xl">
-          el que te recomendamos
-          <Flechita className="translate-y-2" />
-        </p>
-      )}
       {sobreColor && (
         <div className="flex items-center gap-2 px-5 pt-5">
           <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-primary text-night">

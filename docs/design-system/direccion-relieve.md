@@ -381,7 +381,8 @@ cada uno, sin tocar la lógica:
 3. La bienvenida y el ingreso/alta.
 4. Buscar, del trabajador y del comercio.
 5. El Inicio, el detalle del turno, Mis turnos, el Panel y Candidatos (las
-   comandas pasan a la tarjeta del turno).
+   comandas pasan a la tarjeta del turno). **Candidatos y el «¡Oído!» al
+   elegir** están desde el 2026-11-20 (más abajo, «En el código»).
 6. Chats, Perfil, Mapa, fichas, Favoritos y Mi plan.
 7. Las reglas de `.estilo-suave` pasan a `:root` y se borra lo de «con
    relieve» que quede en la app.
@@ -544,3 +545,38 @@ Queda de este paso:
 grueso):** se toma el brillo, no el cristal. Dentro de `.estilo-suave` el
 botón ámbar lleva una luz arriba y una sombra fina abajo, y el vidrio sobre el
 cielo un borde de luz. Nada de reflejos tornasolados ni de vidrio sobre blanco.
+
+### En el código (2026-11-20): Candidatos y el «¡Oído!» al elegir
+
+Sobre las maquetas `C-Candidatos`, `C-Candidatos-sin-fotos` y `C-Oido` de la
+prueba. Piezas nuevas:
+
+| Pieza | Dónde | Para qué |
+|---|---|---|
+| `CandidatoDestacado` | `components/candidate/` | La primera de la lista: la foto como tarjeta con el nombre encima y sus datos en chips; sin foto, el cielo hondo con las iniciales y hasta tres datos en grande. Debajo, «Elegir a <nombre>» (el único ámbar) |
+| `CandidatoFila` | ídem | Los demás: una tecla con la foto o la inicial, el nombre, sus datos en un renglón y «Elegir» quieto (`.boton-quieto`) |
+| `OidoElegido` | ídem | «¡Oído!» a pantalla completa: el cielo entero con el banco de nubes, las dos fotos que llegan de los costados (`.oido-llega-*`), el tilde y la cinta de `Filete.tsx` que cae como un sello (`.oido-sello`). Es un diálogo: foco adentro, Escape vuelve al panel |
+| `datosCandidato` | `components/candidate/CandidateSignals.tsx` | Los datos de una persona en pocas palabras y en orden de peso (nota, turnos, distancia, puntualidad, oficio), con las mismas reglas de «sin reseñas no es cero» |
+| `.cielo-hondo` (ya estaba, del Inicio) | `globals.css` | Acá es el fondo de quien no tiene foto: la tarjeta de la destacada y las fotos de «¡Oído!». Va siempre sobre un `.app-cielo` |
+| `.titulo-seccion` | ídem | El título de una sección de la hoja (18 px, 800) |
+
+Lo que la maqueta tenía y el producto no, y cómo quedó:
+
+- **«Julia toma el turno»** no es cierto todavía: la persona tiene que
+  confirmar. Dice «Elegiste a Julia» y «Ya le avisamos: falta que confirme».
+- **«Ya trabajó 3 veces con vos»** y **«de 38 reseñas»**: no llegan en la
+  respuesta. La tarjeta sin foto muestra lo que sí llega (nota, turnos hechos
+  y distancia o puntualidad).
+- **«La que te recomendamos»**: no se sabe el género. Los rótulos son
+  «Mejor calificación» (postulantes, sólo con turnos hechos) y «Recomendación
+  de Oído» (recomendados).
+- **Las filas llevan a algún lado y además se puede elegir:** en la maqueta
+  eran sólo un link. La fila lleva al perfil y suma «Elegir» a la derecha.
+- **Siguen las dos pestañas** (Postulantes y Recomendados), con la raya de
+  siempre: la pista hundida de la prueba es de toda la app y no está decidida.
+
+Queda de este paso: `CandidateCard` (la tarjeta de antes) sigue sólo en la
+landing vieja de `/historia`; `Flechita` y `.tarjeta-relieve` quedaron sin uso
+en Candidatos (la segunda sigue en Buscar del comercio) y se van con la
+limpieza final del ADR-0028. La «Garantía Oído» y las pestañas son de toda la
+app y siguen como estaban.

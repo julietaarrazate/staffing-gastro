@@ -131,7 +131,8 @@ test("candidatos: la persona nueva dice «Nuevo en Oído» y la veterana muestra
   await expect(page.getByText("Nueva Sinhistoria")).toBeVisible();
   await expect(page.getByText("Nuevo en Oído")).toHaveCount(1);
   await expect(page.getByText("4,6")).toBeVisible();
-  await expect(page.getByText("95% puntual")).toBeVisible();
+  // La veterana va en la tarjeta grande: la puntualidad, en número y rótulo.
+  await expect(page.locator("[data-destacado]")).toContainText("95%");
   const cuerpo = await page.locator("main").innerText();
   expect(cuerpo).not.toMatch(/0[.,]0\b|\b0%/);
 });

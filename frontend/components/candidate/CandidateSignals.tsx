@@ -8,7 +8,7 @@ import {
   StarIcon,
   type IconProps,
 } from "@/components/icons";
-import { BADGE_ICONS, badgeLabel, formatPunctuality, hasRate, hasRating, levelLabel, NEW_LABEL } from "@/lib/reputation";
+import { BADGE_ICONS, badgeLabel, formatPunctuality, formatRating, hasRate, hasRating, levelLabel, NEW_LABEL } from "@/lib/reputation";
 import { formatDistance, plural } from "@/lib/format";
 
 /**
@@ -57,6 +57,60 @@ export function topReasons(s: CandidateSignals, max = 3): Reason[] {
     reasons.push({ Icon: AwardIcon, label: `${s.years_experience} años de oficio` });
   }
   return reasons.slice(0, max);
+}
+
+export type ClaveDato = "nota" | "nuevo" | "turnos" | "distancia" | "puntual" | "oficio";
+
+export interface DatoCandidato {
+  clave: ClaveDato;
+  /** Corto, para un chip o un renglón: «4,9», «41 turnos», «A 1,2 km». */
+  texto: string;
+  /** Partido en número y rótulo, para mostrarlo grande: «41» / «turnos hechos». */
+  numero: string;
+  rotulo: string;
+}
+
+/**
+ * Los datos de una persona en pocas palabras y en orden de peso, para la
+ * tarjeta de la recomendada y las filas de Candidatos (dirección suave,
+ * ADR-0028). Mismas reglas que `CandidateStatChips`: sólo lo que tiene dato
+ * (sin turnos hechos no hay nota ni puntualidad; se dice «Nuevo en Oído»).
+ */
+export function datosCandidato(s: CandidateSignals): DatoCandidato[] {
+  const datos: DatoCandidato[] = [];
+  const conHistorial = s.events_completed > 0;
+  if (hasRating(s.rating)) {
+    const nota = formatRating(s.rating);
+    datos.push({ clave: "nota", texto: nota, numero: nota, rotulo: "de calificación" });
+  } else if (!conHistorial) {
+    datos.push({ clave: "nuevo", texto: NEW_LABEL, numero: "", rotulo: NEW_LABEL });
+  }
+  if (conHistorial) {
+    datos.push({
+      clave: "turnos",
+      texto: plural(s.events_completed, "turno", "turnos"),
+      numero: String(s.events_completed),
+      rotulo: s.events_completed === 1 ? "turno hecho" : "turnos hechos",
+    });
+  }
+  if (s.distance_km != null) {
+    const distancia = formatDistance(s.distance_km);
+    datos.push({ clave: "distancia", texto: `A ${distancia}`, numero: distancia, rotulo: "de tu local" });
+  }
+  if (hasRate(s.events_completed)) {
+    const puntual = formatPunctuality(s.punctuality_rate);
+    datos.push({ clave: "puntual", texto: `${puntual} puntual`, numero: puntual, rotulo: "puntual" });
+  }
+  if (s.years_experience > 0) {
+    const anios = s.years_experience === 1 ? "año" : "años";
+    datos.push({
+      clave: "oficio",
+      texto: `${s.years_experience} ${anios} exp.`,
+      numero: String(s.years_experience),
+      rotulo: `${anios} de oficio`,
+    });
+  }
+  return datos;
 }
 
 /** Chips factuales de confianza (neutros, un solo acento por pantalla). Sólo

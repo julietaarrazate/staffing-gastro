@@ -4,7 +4,7 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./moc
 
 /**
  * VIE-01: el comercio tiene la lista de candidatos abierta, la persona retira
- * su postulación y el comercio le toca «Asignar» sobre la tarjeta vieja. Si el
+ * su postulación y el comercio le toca «Elegir» sobre la tarjeta vieja. Si el
  * servidor falla (o no), la pantalla vuelve a pedir la lista y la tarjeta
  * vieja desaparece, en vez de quedarse con lo de antes.
  */
@@ -44,7 +44,7 @@ test("si asignar falla, la lista se vuelve a pedir y la tarjeta que ya no está 
   await page.goto("/shifts/shift-1/candidates");
   await expect(page.getByText("Lucía Postulada")).toBeVisible();
 
-  await page.getByRole("button", { name: "Asignar" }).click();
+  await page.getByRole("button", { name: /^Elegir/ }).click();
   await expect(page.getByText("Lucía Postulada")).toHaveCount(0);
   await expect(page.getByText("Todavía nadie se postuló")).toBeVisible();
 });
