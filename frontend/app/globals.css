@@ -4601,6 +4601,21 @@ body:has([data-landing]) main {
   font-weight: 600;
   color: var(--color-ink-mute);
 }
+/* Celular angosto (menos de 360 px): con seis pestañas, «Matches» medía lo
+   mismo que su pestaña y según la letra del equipo se salía medio píxel (lo
+   cortó CI). La píldora se acerca a los bordes y la letra se aprieta apenas. */
+@media (max-width: 359.98px) {
+  .barra-app {
+    gap: 8px;
+    padding-inline: 12px;
+  }
+  .barra-app-pildora {
+    padding-inline: 2px;
+  }
+  .barra-app-pestana {
+    letter-spacing: -0.02em;
+  }
+}
 /* El foco de teclado va por dentro: la píldora es angosta y por fuera se
    pisaba con la pestaña de al lado. */
 .barra-app-pestana:focus-visible {
