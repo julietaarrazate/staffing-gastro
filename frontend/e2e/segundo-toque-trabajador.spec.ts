@@ -266,7 +266,9 @@ test("retirar: con otro error la postulación vuelve a su lugar, no al principio
   await expect(dialog.getByRole("button", { name: "Sí, cancelar" })).toBeEnabled();
   await dialog.getByRole("button", { name: "Sí, cancelar" }).click();
   await expect(page.getByText("Error del servidor")).toBeVisible();
-  const empresas = page.locator("text=/^Bar (Uno|Dos)$/");
+  // El nombre de cada local, sin la etiqueta del mapa chico (`MiniMap`, que lo
+  // repite junto al cuadradito): lo que se mira es el orden de las tarjetas.
+  const empresas = page.locator("text=/^Bar (Uno|Dos)$/").and(page.locator(":not(.mapa-chico-etiqueta)"));
   await expect(empresas).toHaveCount(2);
   await expect(empresas.nth(0)).toHaveText("Bar Uno");
   await expect(empresas.nth(1)).toHaveText("Bar Dos");

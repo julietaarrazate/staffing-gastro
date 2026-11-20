@@ -29,7 +29,7 @@ qué responde cada pantalla está en
 
 - ✅ **Candidatos y «¡Oído!» al elegir** (`C-Candidatos`, `C-Oido`) · #698 · [historial](../historial/2026-11-20-candidatos-y-oido-direccion-suave.md)
 
-- ⬜ **Mis turnos** (`T-Mis-turnos`) · `app/my-shifts/page.tsx`, `components/ShiftCard.tsx` · antes que el Panel
+- ✅ **Mis turnos** (`T-Mis-turnos`) · #703 · [historial](../historial/2026-11-20-mis-turnos-direccion-suave.md) · con una pieza propia (`components/worker/TurnoSuave.tsx`); `ShiftCard` no se tocó
 
 - ⬜ **Buscar, de quien trabaja** (`T-Buscar`) · `app/buscar/page.tsx`
 
