@@ -1,4 +1,4 @@
-# Chats con la dirección suave (#PR_NUM)
+# Chats con la dirección suave (#701)
 
 **Pedido:** Julieta, 2026-11-20: seguir la migración a la dirección suave
 (ADR-0028) con Chats, sobre la maqueta `Chats` de la prueba de identidad por
