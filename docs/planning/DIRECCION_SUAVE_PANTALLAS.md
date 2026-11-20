@@ -57,4 +57,8 @@ qué responde cada pantalla está en
 
 - ⬜ **Fichas, Favoritos, Mi plan, Soporte**
 
+- ⬜ **Perfil del comercio** (`app/profile/page.tsx`, la vista del comercio) · quedó afuera cuando se migró el Perfil de quien trabaja (#705) y no tenía renglón
+
+- ⬜ **Administración** (`app/admin/`: Hoy, Turnos en vivo, Personas, Verificación, Soporte, Métricas, Crecimiento, Herramientas, Seguridad) · **decidido por Julieta el 2026-11-20:** toda la app pasa a la misma dirección, el admin también. Hoy conserva arriba el logo y la campanita en el celular porque sus pantallas no tienen cielo (#712); al migrarlo se decide si lleva cielo
+
 - ⬜ **Cierre:** las reglas de `.estilo-suave` pasan a `:root` y se borra lo «con relieve» que quede en la app (ADR-0028, punto 6)
