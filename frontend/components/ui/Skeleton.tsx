@@ -1,9 +1,10 @@
 import { cn } from "@/lib/cn";
 
-/** Bloque de carga (shimmer) para skeleton loaders. */
+/** Bloque de carga (shimmer) para skeleton loaders. `data-skeleton` lo marca
+ *  para que la dirección suave le dé su tono sin tocar otros `animate-pulse`. */
 export default function Skeleton({ className }: { className?: string }) {
   return (
-    <div className={cn("animate-pulse rounded-2xl bg-surface", className)} aria-hidden />
+    <div data-skeleton className={cn("animate-pulse rounded-2xl bg-surface", className)} aria-hidden />
   );
 }
 

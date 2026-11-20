@@ -135,9 +135,9 @@ export function formatDuration(minutes: number): string {
 /** ¿Este ISO cae hoy, en el día de Argentina? Compara fechas "YYYY-MM-DD"
  * (formato `en-CA`, mismo truco que `argentinaISOToLocalInput`) en vez de
  * timestamps — evita el desfasaje de comparar contra la medianoche UTC. */
-export function isTodayInArgentina(iso: string): boolean {
+export function isTodayInArgentina(iso: string, now: Date = new Date()): boolean {
   const fmt = new Intl.DateTimeFormat("en-CA", { timeZone: AR_TIMEZONE });
-  return fmt.format(new Date(iso)) === fmt.format(new Date());
+  return fmt.format(new Date(iso)) === fmt.format(now);
 }
 
 /**

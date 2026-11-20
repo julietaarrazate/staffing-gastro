@@ -25,15 +25,19 @@ import { SparklesIcon } from "@/components/icons";
 /** `recto`: la versión de la dirección «con relieve» (2026-11-18), plana y
  *  con esquinas de botón en lugar de píldora con sombra. La usan las
  *  pantallas que ya migraron; las demás siguen con la de siempre. */
-export default function AIAssistantBar({ recto = false }: { recto?: boolean }) {
+/** `vidrio`: la versión de la dirección suave (ADR-0028, 2026-11-19) para el
+ *  cielo: campo de vidrio, sin borde ni sombra. Misma navegación. */
+export default function AIAssistantBar({ recto = false, vidrio = false }: { recto?: boolean; vidrio?: boolean }) {
   const router = useRouter();
 
   return (
     <button
       type="button"
       onClick={() => router.push("/assistant")}
-      className={`flex w-full items-center gap-3 bg-card px-4 py-3.5 text-left ring-1 ring-line transition active:scale-[0.99] ${
-        recto ? "rounded-[var(--radius-relieve)]" : "rounded-full shadow-[var(--shadow-soft)]"
+      className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition active:scale-[0.99] ${
+        vidrio
+          ? "campo-vidrio"
+          : `bg-card ring-1 ring-line ${recto ? "rounded-[var(--radius-relieve)]" : "rounded-full shadow-[var(--shadow-soft)]"}`
       }`}
     >
       {/* Sin tile naranja ni isotipo (2026-09, reporte de Julieta sobre el
@@ -46,8 +50,8 @@ export default function AIAssistantBar({ recto = false }: { recto?: boolean }) {
           "un solo acento naranja por pantalla".
           El logo identifica a la app, no a una función dentro de la app: acá va
           el ícono convencional de asistente, en tinta, sin fondo propio. */}
-      <SparklesIcon size={18} className="shrink-0 text-ink/45" />
-      <span className="text-sm font-medium text-ink/60">¿Qué necesitás?</span>
+      <SparklesIcon size={18} className={`shrink-0 ${vidrio ? "text-ink-soft" : "text-ink/45"}`} />
+      <span className={`text-sm font-medium ${vidrio ? "text-ink-soft" : "text-ink/60"}`}>¿Qué necesitás?</span>
     </button>
   );
 }

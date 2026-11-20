@@ -22,9 +22,12 @@ import { BookmarkIcon } from "@/components/icons";
 export default function SaveShiftButton({
   shiftId,
   className = "",
+  iconSize = 16,
 }: {
   shiftId: string;
   className?: string;
+  /** Tamaño del marcador: 16 en las tarjetas, 20 en el botón de 44 px del detalle. */
+  iconSize?: number;
 }) {
   const { token } = useAuth();
   const toast = useToast();
@@ -75,7 +78,7 @@ export default function SaveShiftButton({
         isSaved ? "text-primary" : "text-ink/60"
       } ${className}`}
     >
-      <BookmarkIcon size={16} filled={isSaved} />
+      <BookmarkIcon size={iconSize} filled={isSaved} />
     </button>
   );
 }

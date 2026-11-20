@@ -331,6 +331,11 @@
   --text-h1: 1.75rem; /* 28px — título de pantalla */
   --text-h1--line-height: 1.15;
   --text-pantalla: 2rem; /* 32px — título de pantalla sobre el cielo (`.titulo-pantalla`, ADR-0028) */
+  --text-titular: 2.875rem; /* 46px — la frase grande del cielo del Inicio (ADR-0028) */
+  --text-puesto: 1.1875rem; /* 19px — el puesto de la tarjeta del turno */
+  --text-pago: 1.625rem; /* 26px — el pago de la tarjeta del turno */
+  --text-pago-grande: 3rem; /* 48px — el pago en el detalle del turno: el número más grande de la pantalla */
+  --text-fila: 0.9375rem; /* 15px — el puesto en una fila de lista */
   --text-h2: 1.375rem; /* 22px — encabezado de sección */
   --text-h2--line-height: 1.2;
   --text-h3: 1.125rem; /* 18px — título de tarjeta */
@@ -504,6 +509,7 @@
   --app-cielo-1: #0f2233;
   --app-cielo-2: #12283b;
   --app-cielo-nube: 0.08;
+  --app-cielo-luz: rgba(154, 201, 231, 0.06);
   --app-cielo-tinta: #eef3f6;
   --color-cartel: #eef3f6;
   --app-banda: #0f3a5b;
@@ -767,10 +773,11 @@
   --mapa-credito-tinta: rgb(17 17 17 / 0.6);
   /* El cielo de arriba de una pantalla de la app (`.app-cielo`) y la tinta
      que se lee encima; el azul de los títulos en brocha (`.letra-cartel`). */
-  --app-cielo-0: #6fb0df;
-  --app-cielo-1: #8cc2e7;
-  --app-cielo-2: #b4d8ef;
+  --app-cielo-0: #5ba8e0;
+  --app-cielo-1: #84c0ec;
+  --app-cielo-2: #bfe1f6;
   --app-cielo-nube: 0.85;
+  --app-cielo-luz: rgba(255, 255, 255, 0.2);
   --app-cielo-tinta: #0f3a5b;
   --color-cartel: #0f3a5b;
   /* La banda azul hondo (`.app-banda`): el fondo del riel del comercio. */
@@ -1334,7 +1341,10 @@ body:has([data-landing]) main {
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  background: linear-gradient(180deg, var(--app-cielo-0), var(--app-cielo-1) 45%, var(--app-cielo-2));
+  /* Una luz suave arriba a la derecha sobre el degradé (2026-11-19). */
+  background:
+    radial-gradient(120% 80% at 88% 0%, var(--app-cielo-luz), transparent 60%),
+    linear-gradient(180deg, var(--app-cielo-0), var(--app-cielo-1) 50%, var(--app-cielo-2));
   color: var(--app-cielo-tinta);
 }
 .app-cielo::before,
@@ -1359,6 +1369,136 @@ body:has([data-landing]) main {
   bottom: -40px;
   width: 300px;
   height: 90px;
+}
+
+/* Nubes con volumen (`components/ui/NubesCielo.tsx`): la pantalla que las usa
+   apaga las manchas de arriba con `.cielo-limpio`. Las demás pantallas siguen
+   con las manchas hasta su PR (ADR-0028). */
+.app-cielo.cielo-limpio::after {
+  content: none;
+}
+.app-cielo.cielo-limpio::before {
+  content: none;
+}
+/* El cielo hondo (2026-11-19): cuando algo está en marcha (el turno por
+   empezar o en curso). Letra blanca, nubes al 30 %; de noche, el azul hondo.
+   Lo que va encima (zona, buscador, chip) se lee en blanco sobre vidrio al
+   16 % con un velo azul noche detrás: el vidrio solo daba 4,0 sobre el
+   tramo claro del degradé. */
+.app-cielo.cielo-hondo {
+  --app-cielo-tinta: #ffffff;
+  background:
+    radial-gradient(120% 80% at 88% 0%, rgba(120, 180, 225, 0.2), transparent 60%),
+    linear-gradient(180deg, #174a6c, #1f5e88 55%, #2a73a3);
+  color: #ffffff;
+}
+:root[data-theme="dark"] .app-cielo.cielo-hondo {
+  background:
+    radial-gradient(120% 80% at 88% 0%, rgba(120, 180, 225, 0.2), transparent 60%),
+    linear-gradient(180deg, #0b1a28, #10304a 55%, #17466a);
+}
+.cielo-hondo .nube-cielo,
+.cielo-hondo .nube-cielo-lejos {
+  opacity: 0.3;
+}
+/* La hora o los minutos gigantes del Inicio: el número es el título. */
+.numero-gigante {
+  font-size: min(5.75rem, 24vw);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 0.95;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.nube-cielo {
+  position: absolute;
+  z-index: -1;
+  height: auto;
+  max-width: none;
+  pointer-events: none;
+  animation: nubeDeriva 46s ease-in-out infinite alternate;
+}
+.nube-cielo-lejos {
+  opacity: 0.8;
+  animation-duration: 70s;
+}
+@keyframes nubeDeriva {
+  from {
+    translate: 0 0;
+  }
+  to {
+    translate: 22px 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nube-cielo {
+    animation: none;
+  }
+}
+/* De noche no hay nubes (en penumbra parecían humo): quedan unas pocas
+   estrellas, que son el `::before` del cielo limpio. */
+:root[data-theme="dark"] .nube-cielo {
+  display: none;
+}
+:root[data-theme="dark"] .app-cielo.cielo-limpio::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  filter: none;
+  pointer-events: none;
+  opacity: 0.75;
+  /* Seis estrellas pegadas al borde derecho (en px desde la derecha, todas
+     en los últimos 60) y en alto dentro de la franja del título: no caen
+     sobre el título a 320 px ni cerca del chip o de la zona. */
+  background:
+    radial-gradient(circle 1.2px at calc(100% - 18px) 88px, #cfe6f5 96%, transparent),
+    radial-gradient(circle 1px at calc(100% - 46px) 104px, #cfe6f5 96%, transparent),
+    radial-gradient(circle 1.4px at calc(100% - 26px) 120px, #cfe6f5 96%, transparent),
+    radial-gradient(circle 1px at calc(100% - 56px) 130px, #cfe6f5 96%, transparent),
+    radial-gradient(circle 1.2px at calc(100% - 14px) 142px, #cfe6f5 96%, transparent),
+    radial-gradient(circle 1px at calc(100% - 40px) 152px, #cfe6f5 96%, transparent);
+}
+
+/* La portada de un turno sin foto (`components/ui/PortadaCielo.tsx`): el cielo
+   en lugar del bloque de color por rubro. De día el degradé del cielo con su
+   luz; de noche el degradé hondo, con la nube al 30 % y la letra en blanco. */
+.portada-cielo {
+  background:
+    radial-gradient(120% 80% at 88% 0%, var(--app-cielo-luz), transparent 60%),
+    linear-gradient(180deg, #5ba8e0, #84c0ec 50%, #bfe1f6);
+  color: #0f3a5b;
+}
+:root[data-theme="dark"] .portada-cielo {
+  background:
+    radial-gradient(120% 80% at 88% 0%, rgba(120, 180, 225, 0.2), transparent 60%),
+    linear-gradient(180deg, #174a6c, #1f5e88 55%, #2a73a3);
+  color: #ffffff;
+}
+.portada-nube {
+  position: absolute;
+  height: auto;
+  max-width: none;
+  pointer-events: none;
+}
+:root[data-theme="dark"] .portada-nube {
+  opacity: 0.3;
+}
+.portada-vidrio {
+  background: rgba(255, 255, 255, 0.62);
+}
+:root[data-theme="dark"] .portada-vidrio {
+  background: rgba(255, 255, 255, 0.16);
+}
+/* La letra sobre una portada de cielo sigue a su tinta. */
+.portada-tinta {
+  color: #0f3a5b;
+}
+:root[data-theme="dark"] .portada-tinta {
+  color: #ffffff;
 }
 
 /* La banda azul hondo: donde cuelgan las comandas en curso del comercio.
@@ -1494,16 +1634,17 @@ body:has([data-landing]) main {
   font-size: clamp(1.375rem, 8cqi, 1.875rem);
 }
 
-/* La cinta «¡Oído!» pegada sobre la comanda del detalle del turno cuando la
-   persona se postuló: abajo a la derecha, torcida, sobresaliendo del papel.
-   Se pega con un golpe sólo si la postulación pasó en esa pantalla. */
+/* La cinta «¡Oído!» del detalle del turno, cuando la persona se postuló:
+   pegada sobre el borde de arriba de la hoja, a la derecha, torcida y
+   asomando sobre la foto. Se pega con un golpe sólo si la postulación pasó en
+   esa pantalla. */
 .cinta-oido {
   position: absolute;
-  right: -6px;
-  bottom: -30px;
+  right: 14px;
+  top: -52px;
   z-index: 2;
-  width: 170px;
-  transform: rotate(-10deg);
+  width: 150px;
+  transform: rotate(-8deg);
   pointer-events: none;
 }
 .cinta-oido-pega {
@@ -1516,77 +1657,15 @@ body:has([data-landing]) main {
   }
   60% {
     opacity: 1;
-    transform: scale(0.92) rotate(-8deg);
+    transform: scale(0.92) rotate(-6deg);
   }
   100% {
     opacity: 1;
-    transform: scale(1) rotate(-10deg);
+    transform: scale(1) rotate(-8deg);
   }
 }
 @media (prefers-reduced-motion: reduce) {
   .cinta-oido-pega {
-    animation: none;
-  }
-}
-
-/* «Disponible» como el cartelito de la puerta: cuelga de su hilo y se da
-   vuelta al tocarlo. Verde como el de «abierto»; blanco cuando no. */
-.cartelito {
-  position: relative;
-  flex: none;
-  padding-top: 14px;
-  perspective: 400px;
-}
-/* El hilo y el clavo de donde cuelga. */
-.cartelito-hilo {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  width: 60px;
-  height: 14px;
-  margin-left: -30px;
-}
-.cartelito-hilo path {
-  fill: none;
-  stroke: var(--app-cielo-tinta);
-  stroke-width: 1.4;
-  stroke-linejoin: round;
-}
-.cartelito-hilo circle {
-  fill: var(--app-cielo-tinta);
-}
-.cartelito > span {
-  display: block;
-  min-width: 112px;
-  padding: 9px 12px;
-  border: 1.5px solid #0b5d2b;
-  border-radius: 5px;
-  background: #15803d;
-  color: #ffffff;
-  box-shadow: 2px 2px 0 var(--relieve);
-  font-family: var(--font-brocha), "Trebuchet MS", sans-serif;
-  font-size: 17px;
-  font-weight: 400;
-  font-synthesis-weight: none;
-  line-height: 1;
-  text-align: center;
-  text-transform: uppercase;
-}
-.cartelito-no > span {
-  border-color: #4b5563;
-  background: #ffffff;
-  color: #4b5563;
-}
-.cartelito-gira > span {
-  animation: cartelitoGira 0.35s cubic-bezier(0.3, 1.4, 0.5, 1);
-}
-@keyframes cartelitoGira {
-  from {
-    transform: rotateY(90deg);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .cartelito-gira > span {
     animation: none;
   }
 }
@@ -3287,6 +3366,55 @@ body:has([data-landing]) main {
 :root[data-theme="dark"] .boton-vidrio {
   background: rgba(255, 255, 255, 0.1);
 }
+/* El mismo botón encima de una foto (o de la portada de cielo de un turno):
+   blanco casi lleno y la tinta del cielo, igual de día y de noche, porque la
+   foto no cambia con el tema. `#0f3a5b` sobre ese blanco da más de 10. */
+.boton-vidrio.sobre-foto,
+:root[data-theme="dark"] .boton-vidrio.sobre-foto {
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f3a5b;
+}
+/* El velo de arriba de una foto a sangre: oscurece la franja de los botones. */
+.portada-velo {
+  background: linear-gradient(180deg, rgba(13, 19, 26, 0.5), rgba(13, 19, 26, 0) 38%);
+  pointer-events: none;
+}
+/* El pago en el detalle del turno: el número más grande de la pantalla. Se
+   achica con la pantalla para que un monto de siete cifras entre a 320 px. */
+.turno-pago {
+  font-size: min(var(--text-pago-grande), 13.5vw);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--color-ink);
+}
+/* La acción del detalle del turno, fija abajo: la hoja pasa por detrás y se
+   esfuma en el borde de arriba. */
+.turno-accion {
+  background: linear-gradient(0deg, var(--color-card) 72%, transparent);
+}
+/* Con la barra de abajo de la app: el lugar reservado (`--chrome-bottom`) es
+   más alto que la barra, y por esa franja se veía pasar la hoja debajo del
+   botón. Se tapa con el color de la hoja, hasta detrás de la barra. */
+/* Sin sesión la acción llega al borde, pero el encabezado mide unos píxeles
+   menos que `--chrome-top` y quedaba una rayita del lienzo debajo. */
+@media (max-width: 767.98px) {
+  .turno-accion-al-borde {
+    box-shadow: 0 8px 0 var(--color-card);
+  }
+}
+@media (max-width: 767.98px) {
+  .turno-accion-sobre-barra::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: 100%;
+    height: var(--chrome-bottom);
+    background: var(--color-card);
+  }
+}
 /* Lo que se toca: una tecla blanca con sombra difusa; al apretarla se achica
    apenas, y la elegida se llena de azul hondo. */
 .estilo-suave .tecla {
@@ -3376,10 +3504,18 @@ body:has([data-landing]) main {
 .estilo-suave .boton-relieve {
   border-radius: 18px;
   background: linear-gradient(180deg, #f6a92a, #e58e0f);
-  box-shadow: 0 10px 24px rgba(217, 119, 6, 0.28);
+  /* Brillo de tecla (2026-11-19): un canto de luz arriba y uno de sombra
+     abajo, sutiles; sin reflejos de colores. */
+  box-shadow:
+    0 10px 24px rgba(217, 119, 6, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.08);
 }
 .estilo-suave .boton-relieve:active {
-  box-shadow: 0 4px 10px rgba(217, 119, 6, 0.22);
+  box-shadow:
+    0 4px 10px rgba(217, 119, 6, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.08);
 }
 .estilo-suave .boton-relieve:disabled {
   background: var(--suave-campo);
@@ -3393,6 +3529,70 @@ body:has([data-landing]) main {
      tono y el pago se fundía con la hoja (revisión del 2026-11-19). */
   background: var(--suave-tecla);
   box-shadow: var(--suave-sombra-alta);
+}
+/* Los esqueletos de carga dentro de la hoja: en oscuro el `surface` no se
+   distingue de la hoja, así que usan el tono del campo. */
+.estilo-suave .hoja [data-skeleton] {
+  background-color: var(--suave-campo);
+}
+/* Una fila de «Cerca tuyo» (`components/worker/NearbyRow.tsx`): una grilla con
+   áreas. Con lugar (el `li` mide 17 rem o más; en rem, así que con la letra
+   grande se corta antes): miniatura / puesto / pago en el renglón 1,
+   miniatura / local + distancia / pago en el 2, y el cuándo cruzando hasta el
+   borde derecho en el 3. Sin lugar: una sola columna, en el orden del
+   documento (miniatura, puesto, pago, local, cuándo). */
+.fila-cerca-li {
+  container-type: inline-size;
+}
+.fila-cerca {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: 0.25rem;
+}
+.fila-cerca-foto {
+  flex: none;
+}
+.fila-cerca-pago {
+  justify-self: start;
+}
+@container (min-width: 17rem) {
+  .fila-cerca {
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "foto puesto pago"
+      "foto local pago"
+      ". cuando cuando";
+    column-gap: 0.75rem;
+    row-gap: 0.125rem;
+  }
+  .fila-cerca-foto {
+    grid-area: foto;
+    align-self: center;
+  }
+  .fila-cerca-puesto {
+    grid-area: puesto;
+  }
+  .fila-cerca-pago {
+    grid-area: pago;
+    justify-self: end;
+    align-self: start;
+  }
+  .fila-cerca-local {
+    grid-area: local;
+  }
+  .fila-cerca-cuando {
+    grid-area: cuando;
+    margin-top: 0.125rem;
+  }
+}
+/* El buscador sobre el cielo: un campo de vidrio, sin borde. */
+.campo-vidrio {
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(8px);
+}
+:root[data-theme="dark"] .campo-vidrio {
+  background: rgba(255, 255, 255, 0.1);
 }
 .chip-vidrio,
 .chip-suave {
@@ -3413,6 +3613,25 @@ body:has([data-landing]) main {
   background: rgba(255, 255, 255, 0.1);
   color: #e6eef4;
 }
+.chip-vidrio.chip-disponible {
+  background: rgba(255, 255, 255, 0.82);
+}
+/* Brillo de tecla del vidrio (2026-11-19): un borde de luz y un canto más
+   claro arriba, sólo en la dirección suave. De noche, más tenues. */
+.estilo-suave .campo-vidrio,
+.estilo-suave .chip-vidrio,
+.estilo-suave .boton-vidrio {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+:root[data-theme="dark"] .estilo-suave .campo-vidrio,
+:root[data-theme="dark"] .estilo-suave .chip-vidrio,
+:root[data-theme="dark"] .estilo-suave .boton-vidrio {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
 .chip-suave {
   background: var(--suave-campo);
   color: var(--color-ink);
@@ -3424,4 +3643,171 @@ body:has([data-landing]) main {
 }
 :root[data-theme="dark"] .chip-urgente {
   color: #fca5a5;
+}
+/* Los avisos encima de una foto: un chip blanco que no cambia de noche (la
+   foto no cambia), con la letra en la tinta del cielo; «Urgente» en rojo
+   hondo (`#9b1c1c` sobre blanco da 8,3). */
+.chip-foto {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f3a5b;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.chip-foto-urgente {
+  color: #9b1c1c;
+}
+
+/* Sobre el cielo hondo (ver `.cielo-hondo` arriba): vidrio al 16 % con un velo
+   azul noche detrás, letra blanca. Va después de las reglas del vidrio claro
+   para ganarles en cualquier tema. */
+.app-cielo.cielo-hondo .chip-vidrio,
+.app-cielo.cielo-hondo .chip-vidrio.chip-disponible,
+.app-cielo.cielo-hondo .boton-vidrio,
+.app-cielo.cielo-hondo .campo-vidrio,
+:root[data-theme="dark"] .app-cielo.cielo-hondo .chip-vidrio,
+:root[data-theme="dark"] .app-cielo.cielo-hondo .boton-vidrio,
+:root[data-theme="dark"] .app-cielo.cielo-hondo .campo-vidrio {
+  background:
+    linear-gradient(rgba(8, 28, 48, 0.2), rgba(8, 28, 48, 0.2)),
+    rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+.app-cielo.cielo-hondo .campo-vidrio .text-ink-soft {
+  color: #ffffff;
+}
+
+/* El ícono del estado vacío (`EmptyState`): las ilustraciones llegan con el
+   trazo en el ámbar de marca, que sumaba un segundo ámbar a la pantalla. En la
+   dirección suave va en el azul de los links (`primary-text`). Fuera de ella no
+   cambia. */
+.estilo-suave .empty-state-icono svg [stroke]:not([stroke="none"]) {
+  stroke: var(--color-primary-text);
+}
+
+/* ===== Candidatos y «¡Oído!» con la dirección suave (2026-11-20) ===== */
+/* El título de una sección de la hoja. */
+.titulo-seccion {
+  font-size: 1.125rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+}
+/* La persona destacada de Candidatos (`CandidatoDestacado`): con foto, la
+   foto es la tarjeta y el nombre va encima, sobre un velo que oscurece sólo
+   el tramo de la letra; sin foto, una tarjeta con el cielo hondo arriba y
+   sus datos en grande abajo. */
+.estilo-suave .foto-destacada {
+  background: var(--suave-campo);
+  box-shadow: var(--suave-sombra-alta);
+}
+.foto-destacada-velo {
+  background: linear-gradient(180deg, rgba(10, 25, 38, 0) 18%, rgba(10, 25, 38, 0.58) 42%, rgba(10, 25, 38, 0.9) 78%);
+}
+.foto-destacada a {
+  text-shadow:
+    0 1px 2px rgba(10, 25, 38, 0.5),
+    0 2px 16px rgba(10, 25, 38, 0.6);
+}
+/* El contorno de foco azul hondo no se ve sobre el velo oscuro ni sobre el
+   cielo hondo: ahí va blanco (mismo grosor y separación que el global). */
+.foto-destacada a:focus-visible,
+.tarjeta-destacada .cielo-hondo a:focus-visible {
+  outline-color: #ffffff;
+}
+/* El chip sobre una foto muy clara no se funde. */
+.foto-destacada .chip-foto {
+  box-shadow: 0 1px 3px rgba(10, 25, 38, 0.28);
+}
+.estilo-suave .tarjeta-destacada {
+  overflow: hidden;
+  border-radius: 24px;
+  background: var(--suave-tecla);
+  box-shadow: var(--suave-sombra-alta);
+}
+/* Las columnas se acomodan solas (con la letra grande pasan a menos). La
+   raya va a la izquierda de cada cifra y la grilla se corre 13 px: el
+   contenedor con overflow hidden recorta la de la primera columna de cada
+   renglón. */
+.cifras-destacada {
+  grid-template-columns: repeat(auto-fit, minmax(4.75rem, 1fr));
+  row-gap: 0.75rem;
+  margin-left: -13px;
+}
+.cifras-destacada > div {
+  padding-left: 12px;
+  border-left: 1px solid var(--color-line);
+}
+/* «Elegir» en una fila: quieto (relleno del campo, letra azul hondo), para
+   que el único ámbar sea el de la destacada. */
+.estilo-suave .boton-quieto {
+  background: var(--suave-campo);
+  color: var(--color-primary-text);
+  box-shadow: none;
+}
+.estilo-suave .boton-quieto:hover {
+  filter: brightness(0.97);
+}
+.estilo-suave .boton-quieto:disabled {
+  color: var(--color-ink-mute);
+}
+/* «¡Oído!» al elegir (`OidoElegido`): las dos fotos llegan de los costados y
+   la cinta cae como un sello. Con «reducir movimiento» no se mueve nada. */
+.oido-retrato {
+  border: 5px solid #ffffff;
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 18px 34px rgba(15, 58, 91, 0.28);
+}
+.oido-tilde {
+  box-shadow: 0 10px 22px rgba(15, 58, 91, 0.3);
+}
+.oido-llega-izq {
+  animation: oidoLlegaIzq 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+.oido-llega-der {
+  animation: oidoLlegaDer 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) 0.08s both;
+}
+@keyframes oidoLlegaIzq {
+  from {
+    opacity: 0;
+    translate: -70px 0;
+  }
+}
+@keyframes oidoLlegaDer {
+  from {
+    opacity: 0;
+    translate: 70px 0;
+  }
+}
+.oido-sello {
+  transform: rotate(-4deg);
+  animation: oidoSello 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.25) 0.35s both;
+}
+@keyframes oidoSello {
+  0% {
+    opacity: 0;
+    transform: rotate(-14deg) scale(1.7);
+  }
+  60% {
+    opacity: 1;
+    transform: rotate(-3deg) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(-4deg) scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .oido-llega-izq,
+  .oido-llega-der,
+  .oido-sello {
+    animation: none;
+  }
 }

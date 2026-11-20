@@ -2,10 +2,11 @@ import { test, expect, type Page } from "@playwright/test";
 import { blockExternalHosts, injectSession, isoEnDias, mockEmptyNotifications, setTheme, skipSplash } from "./mocks";
 
 /**
- * El Inicio del trabajador con la dirección «con relieve» (2026-11-18,
- * docs/historial/2026-11-18-inicio-trabajador-relieve.md): el recomendado es
- * una comanda de papel, con un solo aviso («Urgente» o «para hoy»), «Cerca
- * tuyo» es una lista y «Disponible» es un cartelito que dice su estado.
+ * El Inicio del trabajador con la dirección «suave» (ADR-0028, 2026-11-19):
+ * el cielo con el saludo y el título «Hay turno a la vuelta», la hoja debajo;
+ * el recomendado es una tarjeta suave (foto con avisos como chips, puesto,
+ * pago grande), «Cerca tuyo» son teclas y «Disponible» es un chip de vidrio.
+ * (Hasta el 2026-11-19 era «con relieve»: comanda de papel y cartelito.)
  */
 const json = (body: unknown) => ({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
 
@@ -59,51 +60,138 @@ async function inicio(page: Page, feed: unknown[]) {
   );
 }
 
-test("el recomendado es una comanda: puesto, local, cuándo y pago, y «para hoy» si es hoy", async ({ page }) => {
+test("el recomendado es una tarjeta: puesto, pago, local y cuándo, y «Para hoy» si es hoy", async ({ page }) => {
   await inicio(page, [
     turno("s1", {}),
     turno("s2", { position: "barista", company_name: "Café Colegiales", start_at: isoEnDias(3, "08:00"), end_at: isoEnDias(3, "14:00"), pay_amount: "12000" }),
   ]);
   await page.goto("/feed");
-  await expect(page.getByRole("heading", { level: 1, name: "Hola, Sofía" })).toBeVisible();
-  const comanda = page.getByTestId("feed-hero-card");
-  await expect(comanda.getByRole("heading", { name: "Mozo/a" })).toBeVisible();
-  await expect(comanda).toContainText("Bar Lavalle · Palermo, CABA");
-  await expect(comanda.locator("dl")).toContainText("Cuándo");
-  await expect(comanda.locator("dl")).toContainText("$20.000 + propinas");
-  await expect(comanda).toContainText("para hoy");
-  await expect(comanda).not.toContainText("Urgente");
-  // Toda la comanda abre el detalle del turno.
-  await expect(comanda.getByRole("link", { name: "Ver turno: Mozo/a en Bar Lavalle" })).toHaveAttribute("href", "/turno/s1");
-  // «Cerca tuyo» es una lista, no un carrusel: un renglón por turno.
+  // El saludo es una línea normal; el título de la pantalla es la frase.
+  await expect(page.getByText("Hola, Sofía.", { exact: true })).toBeVisible();
+  const titulo = page.getByRole("heading", { level: 1 });
+  await expect(titulo).toHaveText(/Hay turno\s*a la vuelta/);
+  // También en `textContent` (lectores y buscadores): un espacio antes del corte.
+  expect(await titulo.evaluate((el) => el.textContent)).toBe("Hay turno a la vuelta");
+  const medidas = await titulo.evaluate((el) => ({ size: getComputedStyle(el).fontSize, peso: getComputedStyle(el).fontWeight, alto: getComputedStyle(el).lineHeight }));
+  expect(medidas).toEqual({ size: "46px", peso: "800", alto: "46px" });
+  const tarjeta = page.getByTestId("feed-hero-card");
+  await expect(tarjeta.getByRole("heading", { name: "Mozo/a" })).toBeVisible();
+  await expect(tarjeta).toContainText("Bar Lavalle · Palermo, CABA");
+  await expect(tarjeta).toContainText("$20.000");
+  await expect(tarjeta).toContainText("+ propinas");
+  await expect(tarjeta).toContainText("Para hoy");
+  await expect(tarjeta).not.toContainText("Urgente");
+  // Toda la tarjeta abre el detalle del turno.
+  await expect(tarjeta.getByRole("link", { name: "Ver turno: Mozo/a en Bar Lavalle" })).toHaveAttribute("href", "/turno/s1");
+  // «Cerca tuyo» son teclas, no un carrusel: una por turno.
   const cerca = page.getByRole("region", { name: "Cerca tuyo" });
   await expect(cerca.getByRole("listitem")).toHaveCount(1);
   await expect(cerca.getByTestId("feed-nearby-card")).toContainText("$12.000");
+  await expect(cerca.getByTestId("feed-nearby-card")).toHaveClass(/tecla/);
 });
 
-test("un turno urgente lleva el sello y no el apunte, y el papel es claro también de noche", async ({ page }) => {
+test("un turno urgente lleva el aviso «Urgente» y no «Para hoy», y la tarjeta es de la hoja también de noche", async ({ page }) => {
   await setTheme(page, "dark");
   await inicio(page, [turno("s1", { urgent: true })]);
   await page.goto("/feed");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  const comanda = page.getByTestId("feed-hero-card");
-  await expect(comanda).toContainText("Urgente");
-  await expect(comanda).not.toContainText("para hoy");
-  // El papel sigue claro en oscuro, y la tinta de adentro es la de claro.
-  const colores = await comanda.evaluate((el) => ({
-    papel: getComputedStyle(el).backgroundColor,
-    tinta: getComputedStyle(el.querySelector("dd")!).color,
+  const tarjeta = page.getByTestId("feed-hero-card");
+  await expect(tarjeta).toContainText("Urgente");
+  await expect(tarjeta).not.toContainText("Para hoy");
+  // De noche la tarjeta es una superficie propia (no se funde con la hoja) y
+  // el pago sigue leyéndose claro sobre ella.
+  const colores = await tarjeta.evaluate((el) => ({
+    tarjeta: getComputedStyle(el).backgroundColor,
+    hoja: getComputedStyle(el.closest(".hoja")!).backgroundColor,
+    pago: getComputedStyle(el.querySelector("p.tabular-nums")!).color,
   }));
-  expect(colores.papel).toBe("rgb(238, 243, 246)");
-  expect(colores.tinta).toBe("rgb(17, 17, 17)");
+  expect(colores.tarjeta).not.toBe(colores.hoja);
+  expect(colores.pago).not.toBe(colores.tarjeta);
 });
 
-test("el cartelito dice si está disponible y avisa su estado a los lectores de pantalla", async ({ page }) => {
+test("el chip «Disponible» dice su estado, avisa a los lectores de pantalla y mide 44 px", async ({ page }) => {
   await inicio(page, [turno("s1", {})]);
   await page.goto("/feed");
-  const cartelito = page.getByRole("button", { name: "Cambiar disponibilidad" });
-  await expect(cartelito).toHaveAttribute("aria-pressed", "true");
-  await expect(cartelito).toHaveText("Disponible");
-  const caja = await cartelito.boundingBox();
+  const chip = page.getByRole("button", { name: /: cambiar disponibilidad$/ });
+  await expect(chip).toHaveAttribute("aria-pressed", "true");
+  await expect(chip).toHaveText("Disponible");
+  // El nombre accesible empieza con el texto visible.
+  await expect(chip).toHaveAccessibleName("Disponible: cambiar disponibilidad");
+  const caja = await chip.boundingBox();
   expect(caja!.height).toBeGreaterThanOrEqual(44);
+});
+
+test("el cielo del Inicio lleva nubes decorativas de día y sólo estrellas de noche", async ({ page }) => {
+  await inicio(page, [turno("s1", {})]);
+  await page.goto("/feed");
+  const nubes = page.locator(".app-cielo.cielo-limpio img.nube-cielo");
+  await expect(nubes).toHaveCount(2);
+  await expect(nubes.first()).toHaveAttribute("alt", "");
+  await expect(nubes.first()).toHaveAttribute("aria-hidden", "true");
+  await expect(nubes.first()).toBeVisible();
+  await setTheme(page, "dark");
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(nubes.first()).toBeHidden();
+});
+
+test("el recomendado muestra la distancia como chip si se puede medir, con foto y sin foto, y nada si no", async ({ page }) => {
+  await page.route("https://fotos.test/**", (r) =>
+    r.fulfill({ status: 200, contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="2"><rect width="8" height="2" fill="#886"/></svg>' })
+  );
+  // Con foto: el chip va sobre la foto, junto a «Urgente».
+  await inicio(page, [turno("s1", { urgent: true, company_cover_url: "https://fotos.test/bar.svg", latitude: -34.5966, longitude: -58.4257 })]);
+  await page.goto("/feed");
+  const tarjeta = page.getByTestId("feed-hero-card");
+  const chip = tarjeta.getByTestId("feed-hero-distancia");
+  await expect(chip).toHaveText("1,0 km");
+  await expect(chip).toHaveClass(/chip-foto/);
+  await expect(tarjeta).toContainText("Urgente");
+
+  // Sin foto: el chip va arriba del puesto, con el mismo formato que «Cerca tuyo».
+  await page.unroute("**/api/v1/shifts/feed**");
+  await page.route("**/api/v1/shifts/feed**", (r) =>
+    r.fulfill(json([turno("s1", { latitude: -34.5966, longitude: -58.4257 }), turno("s2", { latitude: -34.5966, longitude: -58.4257, position: "barista" })]))
+  );
+  await page.goto("/feed");
+  await expect(page.getByTestId("feed-hero-card").getByTestId("feed-hero-distancia")).toHaveText("1,0 km");
+  await expect(page.getByTestId("feed-nearby-card")).toContainText("1,0 km");
+
+  // Sin ubicación del turno no se puede medir: ningún chip.
+  await page.unroute("**/api/v1/shifts/feed**");
+  await page.route("**/api/v1/shifts/feed**", (r) => r.fulfill(json([turno("s1", { latitude: null, longitude: null })])));
+  await page.goto("/feed");
+  await expect(page.getByTestId("feed-hero-card")).toBeVisible();
+  await expect(page.getByTestId("feed-hero-distancia")).toHaveCount(0);
+});
+
+test("sin foto la portada del recomendado y la miniatura de «Cerca tuyo» son el cielo; con foto, la foto", async ({ page }) => {
+  await page.route("https://fotos.test/**", (r) =>
+    r.fulfill({ status: 200, contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="2"><rect width="8" height="2" fill="#886"/></svg>' })
+  );
+  await inicio(page, [
+    turno("s1", { latitude: -34.5876 }),
+    turno("s2", { position: "barista", latitude: -34.59, company_cover_url: "https://fotos.test/bar.svg" }),
+    turno("s3", { position: "cocinero", latitude: -34.592 }),
+  ]);
+  await page.goto("/feed");
+  const tarjeta = page.getByTestId("feed-hero-card");
+  // Sin foto: la franja de 104 px es la portada del cielo, con el ícono en su círculo y la nube.
+  const portada = tarjeta.locator("[data-portada='portada']");
+  await expect(portada).toHaveCount(1);
+  await expect(portada.locator(".portada-vidrio svg")).toBeVisible();
+  await expect(portada.locator("img.portada-nube")).toHaveAttribute("src", /\/cielo\/nube-[abc]\.webp/);
+  expect((await portada.boundingBox())!.height).toBe(104);
+  expect(await portada.evaluate((el) => getComputedStyle(el).backgroundImage)).toContain("rgb(91, 168, 224)");
+  // «Cerca tuyo»: la sin foto lleva la miniatura; la con foto, su foto.
+  const filas = page.getByTestId("feed-nearby-card");
+  await expect(filas).toHaveCount(2);
+  await expect(filas.locator("[data-portada='mini']")).toHaveCount(1);
+  await expect(filas.locator("[data-portada='mini'] img")).toHaveCount(0);
+  await expect(filas.locator("img[src*='fotos.test']")).toHaveCount(1);
+  // De noche, el degradé hondo (no el celeste).
+  await setTheme(page, "dark");
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  expect(await page.getByTestId("feed-hero-card").locator("[data-portada='portada']").evaluate((el) => getComputedStyle(el).backgroundImage)).toContain("rgb(23, 74, 108)");
 });

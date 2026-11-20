@@ -52,8 +52,24 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
 
 0. 🟡 **Marca: Shrikhand e ícono «el pinche con oído» (beta, etapa 4).** **2026-11-19: la app pasa a
    la dirección suave** ([ADR-0028](./adr/ADR-0028-direccion-suave.md), «la hoja sobre el cielo»),
-   de a una pantalla: ya están «Publicar turno» y «Publicar evento»; el orden de lo que sigue está
-   en `design-system/direccion-relieve.md` ([historial](./historial/2026-11-19-publicar-direccion-suave.md)). Julieta eligió el
+   de a una pantalla: ya están «Publicar turno», «Publicar evento», **el Inicio de quien trabaja**
+   (2026-11-19, con el cielo nuevo y las nubes con volumen; sin foto, la portada es el cielo:
+   [historial](./historial/2026-11-19-inicio-trabajador-direccion-suave.md)), y su título dice la verdad
+   según el estado: la hora del turno de hoy, cuánto falta, o si no hay nada (2026-11-20,
+   [historial](./historial/2026-11-20-inicio-titulo-dice-la-verdad.md)). También están **Candidatos y
+   el «¡Oído!» al elegir** (2026-11-20: la persona destacada como tarjeta, un solo ámbar y, al elegir,
+   el cielo entero con la cinta y las dos fotos;
+   [historial](./historial/2026-11-20-candidatos-y-oido-direccion-suave.md)) y **el detalle del turno**
+   (2026-11-20: la foto del local a sangre, la hoja con el pago grande y «Postularme» fijo abajo:
+   [historial](./historial/2026-11-20-detalle-del-turno-direccion-suave.md)). **Sigue**, en sesiones
+   aparte y con la maqueta del lienzo: Mis turnos;
+   el Panel del comercio (no en paralelo con Mis turnos: comparten `ShiftCard`); Chats y Perfil; y al
+   final la barra de abajo y el encabezado. De paso se saca el marrón que queda en `ShiftCard`,
+   el mapa y Buscar del comercio. El orden del resto está
+   en `design-system/direccion-relieve.md` ([historial](./historial/2026-11-19-publicar-direccion-suave.md)). **Para mirar y decidir:** la
+   prueba de identidad por pantalla, dieciséis pantallas en claro y en noche
+   (https://claude.ai/artifact/WJn8NkYTpvSsa81RpoR2Jg; qué propone y qué cambia de lo decidido, en
+   `direccion-relieve.md`, «Identidad por pantalla»). Julieta eligió el
    2026-11-17 la letra Shrikhand y seguir con el ámbar. El 2026-11-18 eligió,
    después de ver cinco conceptos (https://claude.ai/artifact/TqfGBkrBX1aGFJSygrsQkS),
    el ícono **«el pinche con oído»** (la comanda clavada en el pinche, con
