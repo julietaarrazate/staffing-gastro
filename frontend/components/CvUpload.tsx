@@ -116,7 +116,7 @@ export default function CvUpload({
       </p>
 
       {isUploadedFile ? (
-        <div className="mt-2 flex items-center gap-2.5 rounded-[var(--radius-input)] bg-surface px-3.5 py-2.5 ring-1 ring-line">
+        <div className="campo mt-2 flex items-center gap-2.5 rounded-[var(--radius-input)] bg-surface px-3.5 py-2.5 ring-1 ring-line">
           <FileTextIcon size={18} className="shrink-0 text-ink/50" />
           {onOpen ? (
             <button
@@ -160,7 +160,7 @@ export default function CvUpload({
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
           disabled={uploading}
-          className={`mt-2 flex w-full flex-col items-center gap-1.5 rounded-[var(--radius-input)] border-2 border-dashed px-4 py-5 text-center transition disabled:opacity-60 ${
+          className={`cv-soltar mt-2 flex w-full flex-col items-center gap-1.5 rounded-[var(--radius-input)] border-2 border-dashed px-4 py-5 text-center transition disabled:opacity-60 ${
             dragOver ? "border-primary bg-primary-tint" : "border-line hover:bg-surface"
           }`}
         >

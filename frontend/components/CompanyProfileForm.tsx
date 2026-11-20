@@ -11,8 +11,6 @@ import type { MapAddressSelection } from "@/components/map/MapAddressPicker";
 import ImageUpload from "@/components/ImageUpload";
 import CoverPhotoUpload from "@/components/CoverPhotoUpload";
 import { Button, ErrorBanner, Skeleton, TextField } from "@/components/ui";
-import { MapPinIcon } from "@/components/icons";
-import IconChip from "@/components/ui/IconChip";
 import { LIMITES } from "@/lib/limites";
 import { saveCompanyProfilePart, type CompanyProfileChanges } from "@/lib/company-profile";
 
@@ -202,12 +200,7 @@ export default function CompanyProfileForm() {
             selector de ubicación de abajo es un widget compuesto, mapa o
             cascada de provincia/localidad — jsx-a11y/label-has-associated-
             control, TECH_DEBT.md F4). */}
-        <p className="flex items-center gap-2 text-sm font-medium text-ink/70">
-          <IconChip tone="trust" size="xs">
-            <MapPinIcon size={13} />
-          </IconChip>
-          Ubicación del comercio
-        </p>
+        <p className="text-sm font-semibold text-ink">Ubicación del comercio</p>
         <div className="mt-2">
           {useManualPicker ? (
             <div className="flex flex-col gap-2">

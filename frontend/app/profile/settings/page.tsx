@@ -4,8 +4,7 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { useAuth } from "@/lib/auth-context";
 import AppearanceControl from "@/components/AppearanceControl";
 import PushToggle from "@/components/PushToggle";
-import { Row, RowGroup, SectionLabel, SubpageHeader } from "@/components/profile/ProfileParts";
-import { LogOutIcon, MessageIcon, ShieldIcon } from "@/components/icons";
+import { FilaSuave, FilasSuaves, SubpaginaSuave } from "@/components/profile/ProfileParts";
 import { Skeleton } from "@/components/ui";
 
 /**
@@ -22,54 +21,39 @@ export default function SettingsPage() {
   // Mismo criterio que `/profile`, que espera a la sesión con un skeleton.
   if (loading || !user) {
     return (
-      <div className="mx-auto max-w-xl px-4 pb-10 pt-6" aria-hidden>
-        <Skeleton className="h-5 w-16" />
-        <Skeleton className="mt-4 h-8 w-32" />
-        <Skeleton className="mt-8 h-20 w-full" />
-        <Skeleton className="mt-8 h-44 w-full" />
-      </div>
+      <SubpaginaSuave title="">
+        <div aria-hidden>
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="mt-8 h-44 w-full" />
+        </div>
+      </SubpaginaSuave>
     );
   }
 
+  // La dirección suave (ADR-0028, 2026-11-20): el cielo corto con la vuelta y
+  // el título; en la hoja, la apariencia y la cuenta como filas suaves, sin
+  // íconos de colores.
   return (
-    <div className="mx-auto max-w-xl px-4 pb-10 pt-6">
-      <SubpageHeader title="Ajustes" />
-
-      <div className="mt-6">
-        <SectionLabel>Apariencia</SectionLabel>
-        <div className="mt-2">
-          <AppearanceControl />
-        </div>
+    <SubpaginaSuave title="Ajustes">
+      <h2 className="titulo-seccion">Apariencia</h2>
+      <div className="mt-3">
+        <AppearanceControl />
       </div>
 
-      <div className="mt-7">
-        <SectionLabel>Cuenta</SectionLabel>
-        <div className="mt-2">
-          <RowGroup>
-            <PushToggle />
-            {/* `/support` es "mis tickets" (GET /support/tickets/mine): para
-                un admin es casi siempre una lista vacía, porque los tickets
-                que importan son los que abren OTROS usuarios. Al admin lo
-                manda al inbox real (/admin/support). */}
-            <Row
-              icon={<MessageIcon size={18} />}
-              tone="cielo"
-              href={user.role === "admin" ? "/admin/support" : "/support"}
-            >
-              Soporte
-            </Row>
-            {/* Verificación en dos pasos, obligatoria para admin (ADR-0023). */}
-            {user.role === "admin" && (
-              <Row icon={<ShieldIcon size={18} />} tone="trust" href="/admin/seguridad">
-                Verificación en dos pasos
-              </Row>
-            )}
-            <Row icon={<LogOutIcon size={18} />} tone="neutral" onClick={logout}>
-              Cerrar sesión
-            </Row>
-          </RowGroup>
-        </div>
+      <h2 className="titulo-seccion mt-8">Cuenta</h2>
+      <div className="mt-3">
+        <FilasSuaves>
+          <PushToggle />
+          {/* `/support` es "mis tickets" (GET /support/tickets/mine): para
+              un admin es casi siempre una lista vacía, porque los tickets
+              que importan son los que abren OTROS usuarios. Al admin lo
+              manda al inbox real (/admin/support). */}
+          <FilaSuave href={user.role === "admin" ? "/admin/support" : "/support"}>Soporte</FilaSuave>
+          {/* Verificación en dos pasos, obligatoria para admin (ADR-0023). */}
+          {user.role === "admin" && <FilaSuave href="/admin/seguridad">Verificación en dos pasos</FilaSuave>}
+          <FilaSuave onClick={logout}>Cerrar sesión</FilaSuave>
+        </FilasSuaves>
       </div>
-    </div>
+    </SubpaginaSuave>
   );
 }

@@ -10,8 +10,6 @@ import CvUpload, { CvValue, NO_CV } from "@/components/CvUpload";
 import { openCv } from "@/lib/cv";
 import { saveProfilePart, WorkerProfileInput } from "@/lib/worker-profile";
 import { Button, ErrorBanner, Skeleton, TextField, Toggle } from "@/components/ui";
-import { CheckCircleIcon, MapPinIcon } from "@/components/icons";
-import IconChip, { type IconChipTone } from "@/components/ui/IconChip";
 import { normalizeUserLink } from "@/lib/safe-url";
 import { LIMITES } from "@/lib/limites";
 
@@ -26,23 +24,10 @@ import { LIMITES } from "@/lib/limites";
  * del mismo dato en el stat tile de WorkerGameCard) — no se inventa color
  * nuevo para el resto.
  */
-function FieldHeading({
-  icon,
-  tone,
-  children,
-}: {
-  icon: React.ReactNode;
-  tone: IconChipTone;
-  children: React.ReactNode;
-}) {
-  return (
-    <p className="flex items-center gap-2 text-sm font-medium text-ink/70">
-      <IconChip tone={tone} size="xs">
-        {icon}
-      </IconChip>
-      {children}
-    </p>
-  );
+/** El nombre de un grupo del formulario. Con la dirección suave (2026-11-20)
+ * va sin el ícono de color que llevaba antes. */
+function FieldHeading({ children }: { children: React.ReactNode }) {
+  return <p className="text-sm font-semibold text-ink">{children}</p>;
 }
 
 /** "Español, Inglés" → ["Español", "Inglés"] (limpia vacíos y espacios). */
@@ -294,7 +279,7 @@ export default function WorkerProfileForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       {/* La foto no se edita acá: se sube tocando el avatar del hero de
           `WorkerGameCard`, arriba en la misma pantalla, junto al nombre.
           Tener además un "Subir foto" en este formulario era el mismo dato
@@ -303,10 +288,10 @@ export default function WorkerProfileForm() {
         {/* No es un `<label>`: el selector de abajo es un widget compuesto
             (cascada provincia/localidad), no un único control asociable —
             jsx-a11y/label-has-associated-control, TECH_DEBT.md F4. */}
-        <FieldHeading icon={<MapPinIcon size={13} />} tone="trust">
+        <FieldHeading>
           Ubicación
         </FieldHeading>
-        <p className="mt-0.5 text-xs text-ink/50">
+        <p className="mt-0.5 text-caption text-ink-soft">
           Tu zona define qué turnos ves en el Inicio y de cuáles te avisamos.
         </p>
         <div className="mt-2">
@@ -320,14 +305,14 @@ export default function WorkerProfileForm() {
           />
         </div>
         {city && (
-          <p className="mt-2 text-sm font-medium text-ink/70">
+          <p className="mt-2 text-sm font-medium text-ink-soft">
             Tu zona: <span className="text-primary-text">{city}</span>
           </p>
         )}
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <FieldHeading icon={<CheckCircleIcon size={13} />} tone="cielo">
+        <FieldHeading>
           Años de experiencia
         </FieldHeading>
         <TextField
@@ -346,7 +331,7 @@ export default function WorkerProfileForm() {
             control — `role="group"` + `aria-labelledby` es el patrón
             correcto para que un lector de pantalla anuncie el conjunto
             (jsx-a11y/label-has-associated-control, TECH_DEBT.md F4). */}
-        <p id="worker-skills-heading" className="block text-sm font-medium text-ink/70">
+        <p id="worker-skills-heading" className="block text-sm font-semibold text-ink">
           Habilidades
         </p>
         <div role="group" aria-labelledby="worker-skills-heading" className="mt-2 flex flex-wrap gap-2">
@@ -358,11 +343,9 @@ export default function WorkerProfileForm() {
                 key={skill}
                 aria-pressed={active}
                 onClick={() => toggleSkill(skill)}
-                className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
-                  active
-                    ? "bg-primary text-night"
-                    : "bg-surface text-ink/70 hover:bg-line"
-                }`}
+                // Un chip suave de 44 px; el elegido va en azul hondo (antes,
+                // ámbar): el único ámbar de la pantalla es «Guardar cambios».
+                className={`chip-suave chip-filtro${active ? " chip-elegido" : ""}`}
               >
                 {SKILL_LABELS[skill]}
               </button>
@@ -376,10 +359,10 @@ export default function WorkerProfileForm() {
           los dejaba cargar, así que el perfil se veía pobre aunque hubiera
           datos para mostrar. */}
       <div>
-        <label htmlFor="worker-bio" className="block text-sm font-medium text-ink/70">
+        <label htmlFor="worker-bio" className="block text-sm font-semibold text-ink">
           Sobre mí
         </label>
-        <p className="mt-0.5 text-xs text-ink/50">
+        <p className="mt-0.5 text-caption text-ink-soft">
           Contá tu experiencia en una o dos líneas — es lo primero que lee el comercio.
         </p>
         <textarea
@@ -389,7 +372,7 @@ export default function WorkerProfileForm() {
           rows={3}
           maxLength={LIMITES.bio}
           placeholder="Ej: Mozo con 5 años en cafeterías de especialidad, experiencia en barra y salón."
-          className="mt-2 w-full rounded-[var(--radius-input)] bg-surface px-3.5 py-2.5 text-sm text-ink outline-none ring-1 ring-line"
+          className="campo mt-2 w-full rounded-[var(--radius-input)] bg-surface px-3.5 py-2.5 text-sm text-ink outline-none ring-1 ring-line"
         />
       </div>
 

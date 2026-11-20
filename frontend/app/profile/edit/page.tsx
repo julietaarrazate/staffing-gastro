@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import WorkerProfileForm from "@/components/WorkerProfileForm";
 import CompanyProfileForm from "@/components/CompanyProfileForm";
-import { SubpageHeader } from "@/components/profile/ProfileParts";
+import { SubpaginaSuave } from "@/components/profile/ProfileParts";
 import { Skeleton } from "@/components/ui";
 
 /**
@@ -26,26 +26,23 @@ export default function EditProfilePage() {
 
   if (loading || !user) {
     return (
-      <div className="mx-auto max-w-xl px-4 pb-10 pt-6" aria-hidden>
-        <Skeleton className="h-5 w-16" />
-        <Skeleton className="mt-4 h-8 w-48" />
-        <Skeleton className="mt-4 h-96 w-full" />
-      </div>
+      <SubpaginaSuave title="">
+        <div aria-hidden>
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="mt-5 h-64 w-full" />
+        </div>
+      </SubpaginaSuave>
     );
   }
 
   const isWorker = user.role === "worker";
 
   return (
-    <div className="mx-auto max-w-xl px-4 pb-10 pt-6">
-      <SubpageHeader title={isWorker ? "Editar perfil" : "Datos del comercio"} />
-      <div className="mt-4 rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
-        {isWorker ? (
-          <WorkerProfileForm />
-        ) : user.role === "employer" ? (
-          <CompanyProfileForm />
-        ) : null}
-      </div>
-    </div>
+    // La dirección suave (ADR-0028, 2026-11-20): el cielo corto con la vuelta
+    // y el título, y el formulario directo sobre la hoja (antes, una tarjeta
+    // con filete sobre el lienzo).
+    <SubpaginaSuave title={isWorker ? "Editar perfil" : "Datos del comercio"}>
+      {isWorker ? <WorkerProfileForm /> : user.role === "employer" ? <CompanyProfileForm /> : null}
+    </SubpaginaSuave>
   );
 }

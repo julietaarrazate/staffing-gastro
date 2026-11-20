@@ -4456,3 +4456,30 @@ body:has([data-landing]) main {
   background: var(--suave-tecla);
   box-shadow: var(--suave-sombra-alta);
 }
+
+/* ===== Editar perfil y Ajustes con la dirección suave (2026-11-20) ===== */
+/* Donde se suelta el CV (`CvUpload`): relleno del campo y el borde punteado
+   en el tono del contorno de las casillas (3,8 sobre la hoja). */
+.estilo-suave .cv-soltar {
+  border-radius: 18px;
+  border-color: var(--suave-casilla-borde);
+  border-width: 1.5px;
+  background: var(--suave-campo);
+}
+/* Apariencia (`AppearanceControl`): una pista con el relleno del campo y la
+   elegida en azul hondo, con letra blanca (5,2). Antes, ámbar. */
+.estilo-suave .apariencia {
+  border-radius: 18px;
+  background: var(--suave-campo);
+  box-shadow: none;
+}
+.estilo-suave .apariencia > button {
+  border-radius: 14px;
+  color: var(--color-ink-soft);
+}
+.estilo-suave .apariencia > button[aria-checked="true"],
+:root[data-theme="dark"] .estilo-suave .apariencia > button[aria-checked="true"] {
+  background: var(--suave-elegido);
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(28, 84, 120, 0.28);
+}
