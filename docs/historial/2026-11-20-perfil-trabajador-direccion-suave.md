@@ -1,4 +1,4 @@
-# El Perfil de quien trabaja con la dirección suave (#PR_PENDIENTE)
+# El Perfil de quien trabaja con la dirección suave (#705)
 
 **Pedido:** Julieta, 2026-11-20: seguir la migración a la dirección suave
 (ADR-0028) con el Perfil de quien trabaja, sobre la maqueta `T-Perfil` de la

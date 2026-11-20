@@ -37,7 +37,7 @@ qué responde cada pantalla está en
 
 - ⬜ **Panel del comercio** (`C-Panel`, `C-Panel-vacio`, `C-Panel-nadie`) · `app/shifts/page.tsx`, `components/ShiftCard.tsx` · después de Mis turnos
 
-- ✅ **Perfil de quien trabaja** (`T-Perfil`) · #PR_PENDIENTE · [historial](../historial/2026-11-20-perfil-trabajador-direccion-suave.md) · con una pieza propia (`components/worker/PerfilTrabajador.tsx`); el perfil del comercio, `/profile/edit` y `/profile/settings` no se tocaron; quedaron afuera quién escribió la reseña, «puntual en N» y las filas «Experiencia y CV», «Zona y puestos» y «Avisos y apariencia» (son funciones nuevas)
+- ✅ **Perfil de quien trabaja** (`T-Perfil`) · #705 · [historial](../historial/2026-11-20-perfil-trabajador-direccion-suave.md) · con una pieza propia (`components/worker/PerfilTrabajador.tsx`); el perfil del comercio, `/profile/edit` y `/profile/settings` no se tocaron; quedaron afuera quién escribió la reseña, «puntual en N» y las filas «Experiencia y CV», «Zona y puestos» y «Avisos y apariencia» (son funciones nuevas)
 
 - ⬜ **Mapa** (`T-Mapa`) · `app/map/page.tsx`
 
