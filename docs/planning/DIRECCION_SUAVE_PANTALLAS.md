@@ -43,7 +43,7 @@ qué responde cada pantalla está en
 
 - ⬜ **«¡Oído!» al postularse, a pantalla entera** (`T-Oido`) · es una función nueva, no piel: hoy es la cinta sobre la hoja del turno
 
-- ✅ **La barra de abajo y el encabezado** (`.barra`, `.barra-comercio` y `.mas` en `oido.css` del lienzo) · #PR · [historial](../historial/2026-11-20-barra-flotante-y-encabezado.md) · la barra flota, sin franja de encabezado en el celular («oído» y la campanita sobre el cielo del Inicio y del Panel; en las demás, la cuenta de avisos va en esa pestaña) y «Publicar turno» del comercio es el «+» azul hondo; en la compu, la misma píldora arriba · quedó afuera juntar Buscar y Mapa en una pestaña (seis → cinco, con el conmutador Lista / Mapa): es una función, va aparte y después
+- ✅ **La barra de abajo y el encabezado** (`.barra`, `.barra-comercio` y `.mas` en `oido.css` del lienzo) · #712 · [historial](../historial/2026-11-20-barra-flotante-y-encabezado.md) · la barra flota, sin franja de encabezado en el celular («oído» y la campanita sobre el cielo del Inicio y del Panel; en las demás, la cuenta de avisos va en esa pestaña) y «Publicar turno» del comercio es el «+» azul hondo; en la compu, la misma píldora arriba · quedó afuera juntar Buscar y Mapa en una pestaña (seis → cinco, con el conmutador Lista / Mapa): es una función, va aparte y después
 
 ## Sin maqueta todavía
 

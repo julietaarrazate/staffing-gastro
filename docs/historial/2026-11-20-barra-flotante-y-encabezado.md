@@ -1,4 +1,4 @@
-# La barra flota, se va la franja del encabezado y «Publicar turno» es un «+» (#PR)
+# La barra flota, se va la franja del encabezado y «Publicar turno» es un «+» (#712)
 
 **Pedido:** Julieta, 2026-11-20: llevar al código lo que decidió sobre la
 maqueta del lienzo «Oído · identidad por pantalla» (`.barra`, `.barra-comercio`
