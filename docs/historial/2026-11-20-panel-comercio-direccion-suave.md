@@ -1,4 +1,4 @@
-# El Panel del comercio con la dirección suave (#PRNUM)
+# El Panel del comercio con la dirección suave (#706)
 
 **Pedido:** Julieta, 2026-11-20 (por la sesión que coordina la tanda): seguir
 la migración a la dirección suave (ADR-0028) con el Panel del comercio, sobre
