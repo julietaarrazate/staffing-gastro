@@ -150,23 +150,25 @@ test("turno confirmado: el ámbar va en la acción que se puede usar ahora (tres
   await context.grantPermissions(["geolocation"]);
   await context.setGeolocation({ latitude: -34.58, longitude: -58.42 });
   const en = (min: number) => new Date(Date.now() + min * 60 * 1000).toISOString();
-  await abrir(page, [], [
-    shift({ id: "lejos", status: "confirmado", start_at: isoEnDias(2), company_name: "Bar Demo", worker_profile_id: "p" }),
-    shift({ id: "camino", status: "confirmado", start_at: en(60), company_name: "Café Belgrano", worker_profile_id: "p" }),
-    shift({ id: "ahora", status: "confirmado", start_at: en(10), company_name: "Bodegón Sur", worker_profile_id: "p" }),
-  ]);
+  const lejos = shift({ id: "lejos", status: "confirmado", start_at: isoEnDias(2), company_name: "Bar Demo", worker_profile_id: "p" });
+  const camino = shift({ id: "camino", status: "confirmado", start_at: en(60), company_name: "Café Belgrano", worker_profile_id: "p" });
+  const ahora = shift({ id: "ahora", status: "confirmado", start_at: en(10), company_name: "Bodegón Sur", worker_profile_id: "p" });
   await page.route("**/api/v1/shifts/*/en-route", (r) => r.fulfill(json({})));
   const boton = (id: string, name: string) => page.locator(`#turno-${id}`).getByRole("button", { name });
-  // Más de 2 h antes: ninguno en ámbar y «Llegué» deshabilitado con su pista.
+  const tipo = (id: string) => page.locator(`#turno-${id} [data-testid="shift-card"]`);
+
+  await abrir(page, [], [lejos, camino]);
+  // Más de 2 h antes: una fila, ninguno en ámbar y «Llegué» deshabilitado con su pista.
+  await expect(tipo("lejos")).toHaveAttribute("data-turno", "fila");
   expect(await esAmbar(boton("lejos", "Voy en camino"))).toBe(false);
   expect(await esAmbar(boton("lejos", "Llegué"))).toBe(false);
   await expect(boton("lejos", "Llegué")).toBeDisabled();
   await expect(page.locator("#turno-lejos").getByText("Se habilita 30 min antes del turno.")).toBeVisible();
-  // De 2 h a 30 min: «Voy en camino» ámbar; «Llegué» sigue deshabilitado.
+  // De 2 h a 30 min: es la tarjeta de hoy, con «Voy en camino» ámbar; «Llegué» sigue deshabilitado.
+  await expect(tipo("camino")).toHaveAttribute("data-turno", "destacado");
   expect(await esAmbar(boton("camino", "Voy en camino"))).toBe(true);
   // El paso actual del indicador de etapas no va en ámbar (el ámbar es del
-  // botón): desde los pasos tachados a mano (2026-11-19) es la palabra en
-  // negrita y en tinta.
+  // botón): es la palabra en negrita y en tinta.
   const pasoActual = page.locator("#turno-camino").locator('[aria-current="step"]');
   await expect(pasoActual).toHaveCount(1);
   expect(await esAmbar(pasoActual)).toBe(false);
@@ -179,11 +181,19 @@ test("turno confirmado: el ámbar va en la acción que se puede usar ahora (tres
   await expect(boton("camino", "Dejar de compartir")).toBeVisible();
   expect(await esAmbar(boton("camino", "Dejar de compartir"))).toBe(false);
   expect(await esAmbar(boton("camino", "Llegué"))).toBe(false);
-  // Desde 30 min antes: «Llegué» ámbar y habilitado, sin pista.
+
+  // Desde 30 min antes: «Llegué» ámbar y habilitado, sin pista. Con dos
+  // turnos cerca, la tarjeta de hoy (y el único ámbar) es del que empieza
+  // primero; el otro pasa a fila, con las mismas acciones quietas.
+  await abrir(page, [], [lejos, camino, ahora]);
+  await expect(tipo("ahora")).toHaveAttribute("data-turno", "destacado");
+  await expect(tipo("camino")).toHaveAttribute("data-turno", "fila");
   expect(await esAmbar(boton("ahora", "Llegué"))).toBe(true);
   await expect(boton("ahora", "Llegué")).toBeEnabled();
   expect(await esAmbar(boton("ahora", "Voy en camino"))).toBe(false);
   await expect(page.locator("#turno-ahora").getByText("Se habilita 30 min antes del turno.")).toHaveCount(0);
+  await expect(boton("camino", "Voy en camino")).toBeEnabled();
+  expect(await esAmbar(boton("camino", "Voy en camino"))).toBe(false);
 });
 
 test("comparar: el círculo de selección usa el color de marca, no el ámbar", async ({ page }) => {

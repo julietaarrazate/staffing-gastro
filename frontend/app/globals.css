@@ -3811,3 +3811,94 @@ body:has([data-landing]) main {
     animation: none;
   }
 }
+
+/* ===== Mis turnos con la dirección suave (2026-11-20, maqueta `T-Mis-turnos`) ===== */
+/* La semana en el cielo: hoy es un círculo blanco (igual de día y de noche,
+   `#0f3a5b` sobre blanco da más de 10) y el día con turno lleva un punto. */
+.dia-cielo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.dia-cielo-hoy {
+  background: #ffffff;
+  color: #0f3a5b;
+  box-shadow: 0 6px 14px rgba(15, 58, 91, 0.18);
+}
+.dia-cielo-punto {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+}
+/* Un turno que no es el de hoy (`worker/TurnoSuave`): una fila blanca con
+   sombra difusa. No es una `.tecla`: lleva botones adentro y no se achica al
+   tocarla. */
+.estilo-suave .turno-fila {
+  border-radius: var(--radio-suave);
+  background: var(--suave-tecla);
+  box-shadow: var(--suave-sombra);
+}
+/* El bloque con el día del turno. */
+.estilo-suave .turno-fecha {
+  border-radius: 14px;
+  background: var(--suave-campo);
+}
+/* Lo que ya no tiene nada pendiente (pagado, cancelado, no cubierto) queda
+   hundido: pierde la sombra, no el contraste de la letra. */
+.estilo-suave .turno-fila.turno-apagado {
+  background: var(--suave-campo);
+  box-shadow: none;
+}
+.estilo-suave .turno-apagado .turno-fecha,
+.estilo-suave .turno-apagado .boton-quieto,
+.estilo-suave .turno-apagado .chip-suave {
+  background: var(--color-card);
+}
+/* Los cuatro pasos del turno con su barra (`ShiftLifecycleStepper`,
+   `variante="barras"`): lo hecho y lo actual en azul hondo, lo que falta en el
+   relleno del campo; donde se cortó, en rojo. */
+.pasos-barras {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.pasos-barras > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  overflow-wrap: anywhere;
+}
+.pasos-barras > li::before {
+  content: "";
+  flex: 0 0 100%;
+  height: 4px;
+  margin-bottom: 4px;
+  border-radius: 2px;
+  background: var(--suave-campo, var(--color-surface));
+}
+.pasos-barras > li[data-paso="completed"]::before,
+.pasos-barras > li[data-paso="current"]::before {
+  background: var(--color-primary-text);
+}
+.pasos-barras > li[data-paso="death"]::before {
+  background: var(--color-danger);
+}
+.turno-apagado .pasos-barras > li[data-paso="future"]::before,
+.turno-apagado .pasos-barras > li[data-paso="cutoff"]::before,
+.turno-apagado .pasos-barras > li[data-paso="uncovered"]::before {
+  background: var(--color-card);
+}
+/* «Voy en camino» (`worker/EnRouteToggle`): relleno suave, sin filete. */
+.estilo-suave .caja-en-camino {
+  border-radius: var(--radio-suave);
+  background: var(--suave-campo);
+  box-shadow: none;
+}

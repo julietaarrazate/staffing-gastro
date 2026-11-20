@@ -9,7 +9,6 @@ import { blockExternalHosts, injectSession, isoEnDias, mockEmptyNotifications, s
  */
 const json = (body: unknown) => ({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
 const EMPLOYER = { id: "u-e", email: "e@oido.test", full_name: "Julieta Demo", role: "employer", status: "activo", is_active: true, is_verified: true };
-const WORKER = { id: "user-1", email: "w@oido.test", full_name: "Sofía Demo", role: "worker", status: "activo", is_active: true, is_verified: true };
 const turno = (id: string, status: string, position: string) => ({
   id, company_id: "c1", position, quantity: 1, start_at: isoEnDias(1, "21:00"), end_at: isoEnDias(2, "02:00"), pay_amount: "20000", currency: "ARS",
   tips: true, meal: false, dress_code: null, urgent: false, address: null, city: "Palermo, CABA", latitude: null, longitude: null,
@@ -68,20 +67,5 @@ for (const theme of ["light", "dark"] as const) {
     }
     // El principal sigue siendo el único con relieve.
     await expect(page.getByRole("link", { name: /Publicar turno/ })).toHaveClass(/boton-relieve/);
-  });
-
-  test(`${theme}: en Mis turnos, «Chatear» y «Cancelar mi asignación» son rectos y planos`, async ({ page }) => {
-    await abrir(page, theme, WORKER);
-    await page.route("**/api/v1/shifts/mine**", (r) => r.fulfill(json([turno("s1", "confirmado", "bartender")])));
-    await page.goto("/my-shifts");
-    await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
-    const comanda = page.locator('[data-shift-id="s1"]');
-    await expect(comanda).toBeVisible();
-    for (const boton of [comanda.getByRole("link", { name: "Chatear" }), comanda.getByRole("button", { name: /Cancelar mi asignación/ })]) {
-      const f = await forma(boton);
-      expect(f.radio).toBe("10px");
-      expect(f.sombraCorrida).toBe(false);
-      expect(f.contraste).toBeGreaterThanOrEqual(4.5);
-    }
   });
 }

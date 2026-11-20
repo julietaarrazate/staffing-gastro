@@ -48,7 +48,8 @@ export default function EnRouteToggle({
   }, [sharing, onSharingChange]);
 
   return (
-    <div className="mt-3 rounded-[var(--radius-card)] bg-surface p-3.5 ring-1 ring-line">
+    // `caja-en-camino`: adentro de la dirección suave (ADR-0028) pasa a relleno sin filete.
+    <div className="caja-en-camino mt-3 rounded-[var(--radius-card)] bg-surface p-3.5 ring-1 ring-line">
       <div className="flex items-start gap-2.5">
         <span
           aria-hidden

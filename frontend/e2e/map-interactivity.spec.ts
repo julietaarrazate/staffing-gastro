@@ -58,7 +58,9 @@ const SHIFT_WITH_LOCATION = {
   longitude: -58.4257,
   title: null,
   description: null,
-  status: "asignado",
+  // En marcha: es la tarjeta de hoy de Mis turnos, la única que lleva el
+  // MiniMap desde la dirección suave (2026-11-20).
+  status: "check_in",
   worker_profile_id: "wp-1",
   check_in_latitude: null,
   check_in_longitude: null,
@@ -124,6 +126,7 @@ test("Mis turnos ya no monta MapLibre para el mapa chico, y /map sigue arrastrab
   await mockEmptyNotifications(page);
   await mockWorkerRoutes(page);
 
+  // El mapa chico va sólo en la tarjeta de hoy de Mis turnos (dirección suave).
   await page.goto("/my-shifts");
   const mapaChico = page.locator(".mapa-chico").first();
   await expect(mapaChico).toBeVisible();
