@@ -99,7 +99,7 @@ export default function OportunidadFila({
               </p>
             </div>
             {(where || distancia || shift.company_verified || shift.tips) && (
-              <div className="mt-0.5 flex flex-wrap items-start justify-between gap-x-2 text-[0.84375rem] leading-snug text-ink-soft">
+              <div className="mt-0.5 flex flex-wrap items-start justify-between gap-x-2 text-caption leading-snug text-ink-soft">
                 {/* `break-words`: un nombre de comercio sin espacios no ensancha la página. */}
                 <p className="min-w-0 flex-1 basis-[7rem] break-words">
                   {shift.company_verified && (
