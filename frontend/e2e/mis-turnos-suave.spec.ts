@@ -116,6 +116,52 @@ test("sin turno hoy no hay tarjeta destacada ni ámbar", async ({ page }) => {
   await expect(page.locator("button.boton-relieve:not(:disabled)")).toHaveCount(0);
 });
 
+test("un turno viejo sin cerrar o con la salida ya marcada no se queda con la tarjeta de hoy", async ({ page }) => {
+  // Un asignado de hace dos días que nadie cerró y uno con la salida marcada
+  // al mediodía: ninguno tiene acción ahora. El de las 19:30 sí.
+  await misTurnos(page, [
+    turno({ id: "viejo", position: "mozo", status: "asignado", start_at: isoEnDias(-2, "20:00"), end_at: isoEnDias(-1, "02:00") }),
+    turno({ id: "salio", position: "mozo", status: "check_out", start_at: isoEnDias(0, "08:00"), end_at: isoEnDias(0, "12:00") }),
+    TURNOS()[0],
+  ]);
+  await expect(page.locator('[data-shift-id="hoy"]')).toHaveAttribute("data-turno", "destacado");
+  await expect(page.locator('[data-shift-id="viejo"]')).toHaveAttribute("data-turno", "fila");
+  await expect(page.locator('[data-shift-id="salio"]')).toHaveAttribute("data-turno", "fila");
+  await expect(page.locator("button.boton-relieve:not(:disabled)")).toHaveText("Voy en camino");
+});
+
+test("con un turno en marcha, la tarjeta de hoy y el ámbar son suyos aunque haya otro por empezar", async ({ page }) => {
+  await misTurnos(page, [
+    turno({ id: "luego", position: "mozo", status: "asignado", start_at: isoEnDias(0, "20:00"), end_at: isoEnDias(1, "01:00") }),
+    turno({ id: "ahora", position: "bartender", status: "trabajando", start_at: isoEnDias(0, "17:00"), end_at: isoEnDias(0, "19:30") }),
+  ]);
+  await expect(page.locator('[data-shift-id="ahora"]')).toHaveAttribute("data-turno", "destacado");
+  await expect(page.locator('[data-shift-id="luego"]')).toHaveAttribute("data-turno", "fila");
+  await expect(page.locator("button.boton-relieve:not(:disabled)")).toHaveText("Marcar salida");
+});
+
+for (const theme of ["light", "dark"] as const) {
+  test(`${theme}: lo quieto se lee (letra contra su relleno, 4,5 o más) en la tarjeta, en la fila y en lo apagado`, async ({ page }) => {
+    await setTheme(page, theme);
+    await misTurnos(page);
+    await expect(page.locator('[data-shift-id="s2"]')).toBeVisible();
+    const contrastes = await page.evaluate(() => {
+      const canal = (v: number) => (v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+      const luz = (c: string) => {
+        const [r, g, b] = c.match(/[\d.]+/g)!.map(Number);
+        return 0.2126 * canal(r) + 0.7152 * canal(g) + 0.0722 * canal(b);
+      };
+      return [...document.querySelectorAll<HTMLElement>('[data-testid="shift-card"] .boton-quieto:not(:disabled)')].map((el) => {
+        const e = getComputedStyle(el);
+        const [a, b] = [luz(e.color), luz(e.backgroundColor)].sort((x, y) => y - x);
+        return { texto: el.textContent, contraste: Math.round(((a + 0.05) / (b + 0.05)) * 10) / 10 };
+      });
+    });
+    expect(contrastes.length).toBeGreaterThan(5);
+    expect(contrastes.filter((c) => c.contraste < 4.5)).toEqual([]);
+  });
+}
+
 for (const ancho of [320, 360]) {
   test(`a ${ancho} px nada corre la página ni se sale de su tarjeta`, async ({ page }) => {
     await page.setViewportSize({ width: ancho, height: 740 });

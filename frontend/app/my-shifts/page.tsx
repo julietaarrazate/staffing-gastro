@@ -630,19 +630,25 @@ function MatchesContent() {
 
   const activeShifts = shifts.filter((s) => !FINISHED_STATUSES.includes(s.status));
   const finishedShifts = shifts.filter((s) => FINISHED_STATUSES.includes(s.status));
-  // La tarjeta de hoy: el turno que está en marcha, que empieza hoy o al que
-  // ya se puede avisar «voy en camino» (uno de la madrugada, visto a las
-  // 23:30). Si hay más de uno, el primero. Lleva su propio cielo y el único
-  // ámbar.
-  const turnoDeHoy =
-    activeShifts
-      .filter(
-        (s) =>
-          EN_MARCHA_STATUSES.includes(s.status) ||
-          isTodayInArgentina(s.start_at, now) ||
-          arrivalPhase(s) !== "lejos",
-      )
-      .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime())[0] ?? null;
+  // La tarjeta de hoy lleva su propio cielo y el único ámbar. Es, en orden:
+  // 1. el turno en marcha (si hubiera dos, el que empezó último);
+  // 2. si no, el próximo por empezar: el primero de los asignados o
+  //    confirmados que empiezan hoy o a los que ya se puede avisar «voy en
+  //    camino» (uno de la madrugada, visto a las 23:30).
+  // Queda afuera lo que no tiene acción ahora: la salida ya marcada
+  // (`check_out`) y un turno sin confirmar o sin llegada que empezó hace más
+  // de 2 h (el servidor lo cierra solo a esa altura).
+  const porInicio = (a: Shift, b: Shift) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime();
+  const enMarcha = activeShifts.filter((s) => EN_MARCHA_STATUSES.includes(s.status)).sort(porInicio);
+  const porEmpezar = activeShifts
+    .filter((s) => {
+      if (s.status !== "asignado" && s.status !== "confirmado") return false;
+      const faltan = new Date(s.start_at).getTime() - now.getTime();
+      if (faltan < -EN_ROUTE_WINDOW_MS) return false;
+      return isTodayInArgentina(s.start_at, now) || faltan <= EN_ROUTE_WINDOW_MS;
+    })
+    .sort(porInicio);
+  const turnoDeHoy = enMarcha[enMarcha.length - 1] ?? porEmpezar[0] ?? null;
   const otrosActivos = activeShifts.filter((s) => s.id !== turnoDeHoy?.id);
   // La semana del cielo: hoy y los días con un turno por hacer.
   const semana = semanaArgentina(now);
@@ -671,7 +677,7 @@ function MatchesContent() {
         {/* Una sola nube, que asoma por arriba. No se sale por el costado
             (ni cuando deriva): `overflow-audit` mide cada elemento contra el
             ancho de la pantalla. */}
-        <NubesCielo nubes={[{ forma: "a", ancho: 230, pos: { right: 24, top: -64 } }]} />
+        <NubesCielo nubes={[{ forma: "a", ancho: 190, pos: { right: 24, top: -52 } }]} />
         <h1 className="titulo-pantalla break-words">Matches</h1>
         {/* eslint-disable-next-line jsx-a11y/no-redundant-roles -- sin viñetas, Safari le saca el rol de lista */}
         <ol role="list" aria-label="Esta semana" className="mt-4 grid grid-cols-7 text-center md:max-w-md">

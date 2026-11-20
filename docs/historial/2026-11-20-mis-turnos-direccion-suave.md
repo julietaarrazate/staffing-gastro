@@ -20,8 +20,11 @@ igual.
 - **El turno de hoy es una tarjeta con su propio cielo:** «Hoy», el puesto
   grande, el local y el barrio, y el estado, el horario y el pago en chips
   de vidrio. Abajo, los cuatro pasos con su barra (lo hecho y lo actual en
-  azul hondo), el mapa, y las acciones. Es «de hoy» el turno que empieza hoy
-  o que ya está en marcha (si hay más de uno, el que empieza primero).
+  azul hondo), el mapa, y las acciones. Es «de hoy» el turno que ya está en
+  marcha; si no hay ninguno, el próximo asignado o confirmado que empieza hoy
+  o al que ya se puede avisar «voy en camino» (uno de la madrugada, visto a
+  las 23:30). No lo es uno con la salida ya marcada ni uno que empezó hace
+  más de 2 h sin confirmarse o sin llegada.
 - **Los demás son filas:** el día en un bloque, el puesto, el horario y el
   local, y a la derecha el estado en palabras (verde lo que salió bien, rojo
   lo cancelado) y el pago. Debajo, los pasos y las mismas acciones de antes.
@@ -88,6 +91,12 @@ Técnico:
   barrio, como hasta ahora.
 - **La barra de abajo flotante:** va al final, sola.
 
+**Revisión independiente** (otro agente, sobre el commit): encontró que un
+turno viejo sin cerrar, o uno con la salida ya marcada, se quedaba con la
+tarjeta de hoy y dejaba la pantalla sin ámbar. Se corrigió la regla y quedó
+cubierta en `mis-turnos-suave.spec.ts`, junto con el contraste de lo quieto.
+
 **Queda abierto:** el Panel del comercio (`ShiftCard`) y `ReviewBox`, que
-siguen con la piel anterior; la pista de pestañas y el nombre de la pantalla,
+siguen con la piel anterior (al elegir una estrella, «Enviar calificación»
+es un segundo ámbar: `ReviewBox` también está en el Panel y va con él); la pista de pestañas y el nombre de la pantalla,
 que hay que decidir para toda la app.
