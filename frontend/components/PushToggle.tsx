@@ -18,17 +18,17 @@ import {
   subscribeToPush,
   unsubscribeFromPush,
 } from "@/lib/push";
-import { BellIcon } from "@/components/icons";
 import { Spinner, useToast } from "@/components/ui";
-import IconChip from "@/components/ui/IconChip";
 
 const FALLA_ACTIVAR =
   "No pudimos activar las notificaciones. Probá de nuevo en un rato.";
 const FALLA_DESACTIVAR =
   "No pudimos desactivar las notificaciones. Probá de nuevo en un rato.";
 
+// Una fila suave de «Ajustes» (ADR-0028, 2026-11-20), como `FilaSuave` de
+// `profile/ProfileParts`: sin ícono de color, el nombre y el estado al final.
 const FILA =
-  "flex w-full items-center gap-3 px-4 py-3.5 text-left first:rounded-t-2xl last:rounded-b-2xl";
+  "flex min-h-[54px] w-full items-center justify-between gap-3 py-2.5 pl-4 pr-3.5 text-left";
 
 export default function PushToggle() {
   const { token, impersonating } = useAuth();
@@ -123,17 +123,14 @@ export default function PushToggle() {
     return (
       <div>
         <div className={FILA + " pb-1.5"}>
-          <IconChip tone="cielo">
-            <BellIcon size={18} />
-          </IconChip>
-          <span className="flex-1 text-sm font-medium text-ink/80">
+          <span className="flex-1 text-fila font-semibold text-ink">
             Notificaciones push
           </span>
-          <span className="rounded-full bg-surface px-2.5 py-0.5 text-xs font-semibold text-ink/50">
+          <span className="chip-suave !py-0.5 !text-xs text-ink-soft">
             {bloqueado ? "Bloqueadas" : "Sin instalar"}
           </span>
         </div>
-        <p id={hintId} className="pb-3.5 pl-16 pr-4 text-caption text-ink-soft">
+        <p id={hintId} className="pb-3.5 pl-4 pr-4 text-caption text-ink-soft">
           {bloqueado ? (
             <>
               Bloqueaste las notificaciones de Oído en este navegador.{" "}
@@ -160,12 +157,9 @@ export default function PushToggle() {
       onClick={toggle}
       disabled={checking || loading || locked}
       aria-describedby={locked ? hintId : undefined}
-      className={FILA + " enabled:hover:bg-surface disabled:opacity-70"}
+      className={FILA + " disabled:opacity-70"}
     >
-      <IconChip tone="cielo">
-        <BellIcon size={18} />
-      </IconChip>
-      <span className="flex-1 text-sm font-medium text-ink/80">
+      <span className="flex-1 text-fila font-semibold text-ink">
         Notificaciones push
       </span>
       {checking || loading ? (
@@ -176,7 +170,7 @@ export default function PushToggle() {
             "rounded-full px-2.5 py-0.5 text-xs font-semibold " +
             (enabled
               ? "bg-success-tint text-success-text"
-              : "bg-surface text-ink/50")
+              : "chip-suave !py-0.5 text-ink-soft")
           }
         >
           {enabled ? "Activadas" : "Desactivadas"}
@@ -194,7 +188,7 @@ export default function PushToggle() {
       {row}
       <p
         id={hintId}
-        className="-mt-1.5 pb-3.5 pl-16 pr-4 text-caption text-ink-soft"
+        className="-mt-1.5 pb-3.5 pl-4 pr-4 text-caption text-ink-soft"
       >
         Mientras ves la app como otra persona no se pueden cambiar las
         notificaciones de este dispositivo.

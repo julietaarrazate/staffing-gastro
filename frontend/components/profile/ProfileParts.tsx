@@ -153,3 +153,24 @@ export function Estrellas({ valor, size = 16 }: { valor: number; size?: number }
     </span>
   );
 }
+
+/**
+ * La cáscara de una subpantalla del perfil (`/profile/edit`,
+ * `/profile/settings`) con la dirección suave (2026-11-20): el cielo corto y
+ * liso con la vuelta al perfil en un botón de vidrio y el título en letra
+ * normal, y debajo la hoja con el contenido. Reemplaza a `SubpageHeader` en
+ * esas dos pantallas.
+ */
+export function SubpaginaSuave({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="estilo-suave mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col md:min-h-[calc(100dvh-var(--chrome-top))] md:max-w-xl md:px-4 md:pt-4">
+      <div className="app-cielo cielo-limpio px-4 pb-12 pt-4 md:rounded-t-[28px] md:px-6 md:pt-5">
+        <Link href="/profile" aria-label="Volver al perfil" className="boton-vidrio h-11 w-11">
+          <ChevronLeftIcon size={18} />
+        </Link>
+        <h1 className="titulo-pantalla mt-4 break-words">{title}</h1>
+      </div>
+      <div className="hoja -mt-7 flex-1 px-4 pb-8 pt-6 md:px-6">{children}</div>
+    </div>
+  );
+}

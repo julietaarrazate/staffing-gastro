@@ -24,7 +24,7 @@ export default function AppearanceControl() {
     <div
       role="radiogroup"
       aria-label="Apariencia"
-      className="flex gap-1.5 rounded-[var(--radius-card)] bg-card p-1.5 shadow-[var(--shadow-soft)] ring-1 ring-line"
+      className="apariencia flex gap-1.5 rounded-[var(--radius-card)] bg-card p-1.5 shadow-[var(--shadow-soft)] ring-1 ring-line"
     >
       {OPTIONS.map(({ value, label, Icon }) => {
         const active = theme === value;

@@ -47,6 +47,8 @@ qué responde cada pantalla está en
 
 ## Sin maqueta todavía
 
+- ✅ **Editar perfil, Datos del comercio y Ajustes** (`app/profile/edit`, `app/profile/settings`) · #711 · [historial](../historial/2026-11-20-editar-perfil-y-ajustes-direccion-suave.md) · sin maqueta: con las piezas de Publicar turno y del Perfil; del formulario del comercio se migró la cáscara y los campos, no el mapa de la dirección ni las fotos
+
 - ⬜ **La bienvenida y el ingreso/alta** (hoy «con relieve», #680)
 
 - ⬜ **Buscar del comercio** (`app/search/page.tsx`)

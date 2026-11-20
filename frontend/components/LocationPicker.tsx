@@ -82,7 +82,7 @@ export function resolveGpsLocality(
 // radio y anillo por token): antes usaba grises/naranjas crudos y quedaba
 // visiblemente distinto a los demás campos de la app.
 const selectClass =
-  "mt-1 min-h-[48px] w-full rounded-[var(--radius-input)] bg-surface px-4 text-body text-ink outline-none ring-1 ring-line transition";
+  "campo mt-1 min-h-[48px] w-full rounded-[var(--radius-input)] bg-surface px-4 text-body text-ink outline-none ring-1 ring-line transition";
 
 export default function LocationPicker({
   onSelect,
