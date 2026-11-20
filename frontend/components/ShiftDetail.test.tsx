@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ApplicationStatus, ShiftPublic } from "@/lib/types";
@@ -23,7 +23,7 @@ const post = vi.fn();
 vi.mock("@/lib/auth-context", () => ({ useAuth: () => auth.value }));
 vi.mock("@/lib/push-prompt-context", () => ({ usePushPrompt: () => ({ requestOptIn: vi.fn() }) }));
 vi.mock("@/components/ui", async (importOriginal) => ({
-  // La comanda, sus renglones y el sello de confianza son los de verdad.
+  // La portada de cielo y el sello de confianza son los de verdad.
   ...(await importOriginal<typeof import("@/components/ui")>()),
   Skeleton: () => <div data-testid="skeleton" />,
   useToast: () => vi.fn(),
@@ -32,7 +32,13 @@ vi.mock("@/components/MiniMap", () => ({ default: () => null }));
 // La brocha y Mansalva salen de next/font, que no corre en Vitest.
 vi.mock("@/lib/letras", () => ({ LETRAS_APP: "" }));
 vi.mock("@/components/worker/SaveShiftButton", () => ({ default: () => null }));
-vi.mock("@/components/ShareShiftButton", () => ({ default: () => null }));
+vi.mock("@/components/ShareShiftButton", () => ({
+  default: ({ vidrio }: { vidrio?: boolean }) => (
+    <button type="button" data-vidrio={String(Boolean(vidrio))}>
+      Compartir
+    </button>
+  ),
+}));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ back: vi.fn(), push: vi.fn() }) }));
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
@@ -79,6 +85,7 @@ describe("ShiftDetail", () => {
     // Y vuelve a este turno al terminar el alta (G16).
     expect(link).toHaveAttribute("href", "/register?rol=trabajador&next=%2Fturno%2Fs1");
     expect(screen.getByRole("link", { name: "Ingresá" })).toHaveAttribute("href", "/login?next=%2Fturno%2Fs1");
+    expect(screen.getByText(/Creá tu perfil gratis/)).toBeInTheDocument();
     expect(get).not.toHaveBeenCalled();
   });
 
@@ -96,19 +103,138 @@ describe("ShiftDetail", () => {
     expect(screen.queryByRole("link", { name: "Postulate en Oído" })).not.toBeInTheDocument();
   });
 
-  it("el turno es una comanda: el puesto, los renglones y el pago como último renglón", () => {
+  it("el turno es una hoja: el puesto como título, el pago primero y cuándo y dónde en filas", () => {
     render(<ShiftDetail publicShift={SHIFT} />);
-    const comanda = screen.getByRole("region", { name: "El turno" });
-    expect(comanda).toHaveClass("comanda");
-    expect(screen.getByRole("heading", { level: 1 })).toHaveClass("letra-cartel");
-    const rotulos = [...comanda.querySelectorAll("dt")].map((dt) => dt.textContent);
-    expect(rotulos).toEqual(["Cuándo", "Dónde", "Pago"]);
-    expect(comanda).toHaveTextContent("$42.000");
+    const hoja = screen.getByRole("region", { name: "El turno" });
+    expect(hoja).toHaveClass("hoja");
+    // El título va en letra normal: la brocha queda para la cinta.
+    const titulo = screen.getByRole("heading", { level: 1, name: "Mozo/a" });
+    expect(titulo).toHaveClass("titulo-pantalla");
+    expect(titulo).not.toHaveClass("letra-cartel");
+    const rotulos = [...hoja.querySelectorAll("dt")].map((dt) => dt.textContent);
+    expect(rotulos).toEqual(["Pago", "Cuándo", "Dónde"]);
+    expect(hoja.querySelector(".turno-pago")).toHaveTextContent("$42.000");
     // Sin postularse no hay cinta.
-    expect(comanda.querySelector(".cinta-oido")).toBeNull();
+    expect(hoja.querySelector(".cinta-oido")).toBeNull();
   });
 
-  it("al postularse, la comanda recibe la cinta «¡Oído!» (con el golpe, porque pasó acá)", async () => {
+  it("sin foto, la portada es el cielo y no el bloque de color del rubro", () => {
+    const { container } = render(<ShiftDetail publicShift={SHIFT} />);
+    const portada = container.querySelector("header")!;
+    expect(portada.querySelector('[data-portada="portada"]')).not.toBeNull();
+    expect(portada.querySelector("img.portada-nube")).not.toBeNull();
+    expect(portada.className).not.toMatch(/bg-(brand|glow|wine|skill)/);
+  });
+
+  it("con foto del local, la foto va a sangre con el velo y sin la portada de cielo", () => {
+    const { container } = render(
+      <ShiftDetail
+        publicShift={{ ...SHIFT, company_cover_url: "https://res.cloudinary.com/demo/image/upload/v1/local.jpg" }}
+      />
+    );
+    const portada = container.querySelector("header")!;
+    expect(portada.querySelector("img")?.getAttribute("src")).toContain("local.jpg");
+    expect(portada.querySelector(".portada-velo")).not.toBeNull();
+    expect(portada.querySelector("[data-portada]")).toBeNull();
+  });
+
+  it("«Compartir» va arriba, de vidrio; «Volver» sólo con sesión; «Urgente» sobre la portada", () => {
+    const { container, unmount } = render(<ShiftDetail publicShift={{ ...SHIFT, urgent: true }} />);
+    const portada = container.querySelector("header")!;
+    expect(portada.querySelector("button[data-vidrio]")).toHaveAttribute("data-vidrio", "true");
+    expect(screen.queryByRole("button", { name: "Volver" })).not.toBeInTheDocument();
+    expect(portada.querySelector(".chip-foto-urgente")).toHaveTextContent("Urgente");
+    unmount();
+
+    auth.value = { user: { role: "worker" }, token: "tok", loading: false };
+    mockGets([]);
+    render(<ShiftDetail publicShift={SHIFT} />);
+    const volver = screen.getByRole("button", { name: "Volver" });
+    expect(volver).toHaveClass("boton-vidrio", "sobre-foto");
+  });
+
+  it("la acción va fija abajo y es el único ámbar de la pantalla", async () => {
+    auth.value = { user: { role: "worker" }, token: "tok", loading: false };
+    mockGets([]);
+    const { container } = render(<ShiftDetail publicShift={SHIFT} />);
+    const boton = await screen.findByRole("button", { name: "Postularme" });
+    const barra = screen.getByTestId("turno-accion");
+    expect(barra).toContainElement(boton);
+    expect(barra).toHaveClass("sticky");
+    expect(container.querySelectorAll(".boton-relieve, .bg-primary")).toHaveLength(1);
+  });
+
+  it("una foto que falla cae al cielo, y si después llega otra foto, esa se muestra", () => {
+    const base = "https://res.cloudinary.com/demo/image/upload/v1/";
+    const { container, rerender } = render(
+      <ShiftDetail publicShift={{ ...SHIFT, company_cover_url: `${base}rota.jpg` }} />
+    );
+    fireEvent.error(container.querySelector("header img")!);
+    expect(container.querySelector('header [data-portada="portada"]')).not.toBeNull();
+    rerender(<ShiftDetail publicShift={{ ...SHIFT, company_cover_url: `${base}buena.jpg` }} />);
+    expect(container.querySelector("header [data-portada]")).toBeNull();
+    expect(container.querySelector("header img")?.getAttribute("src")).toContain("buena.jpg");
+  });
+
+  it("si la acción ocupa demasiado de la pantalla (letra muy grande), se despega", async () => {
+    auth.value = { user: { role: "worker" }, token: "tok", loading: false };
+    mockGets([]);
+    const alto = vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(500);
+    try {
+      render(<ShiftDetail publicShift={SHIFT} />);
+      await screen.findByRole("button", { name: "Postularme" });
+      // 500 px de 768 (la ventana de jsdom): más del 40 %.
+      await waitFor(() => expect(screen.getByTestId("turno-accion")).not.toHaveClass("sticky"));
+      expect(document.documentElement.style.scrollPaddingBottom).toBe("");
+    } finally {
+      alto.mockRestore();
+    }
+  });
+
+  it("mientras está pegada, el foco no queda debajo: reserva su alto al llevar algo a la vista", async () => {
+    auth.value = { user: { role: "worker" }, token: "tok", loading: false };
+    mockGets([]);
+    const alto = vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(92);
+    try {
+      const { unmount } = render(<ShiftDetail publicShift={SHIFT} />);
+      await screen.findByRole("button", { name: "Postularme" });
+      expect(screen.getByTestId("turno-accion")).toHaveClass("sticky");
+      expect(document.documentElement.style.scrollPaddingBottom).toBe("92px");
+      unmount();
+      expect(document.documentElement.style.scrollPaddingBottom).toBe("");
+    } finally {
+      alto.mockRestore();
+    }
+  });
+
+  it("si la foto ya había fallado antes de que la pantalla cobrara vida, cae al cielo", () => {
+    const completa = vi.spyOn(HTMLImageElement.prototype, "complete", "get").mockReturnValue(true);
+    try {
+      const { container } = render(
+        <ShiftDetail
+          publicShift={{ ...SHIFT, company_cover_url: "https://res.cloudinary.com/demo/image/upload/v1/rota.jpg" }}
+        />
+      );
+      // jsdom no carga imágenes: `naturalWidth` vale 0, como en una rota.
+      expect(container.querySelector('header [data-portada="portada"]')).not.toBeNull();
+    } finally {
+      completa.mockRestore();
+    }
+  });
+
+  it("a quien no puede hacer nada con el turno (otro comercio) no le deja una barra vacía", async () => {
+    auth.value = { user: { role: "employer" }, token: "tok", loading: false };
+    get.mockImplementation((path: string) => {
+      if (path === "/companies/me/profile") return Promise.resolve({ id: "otra" });
+      if (path === "/shifts/s1") return Promise.resolve({ ...SHIFT, company_id: "c1" });
+      return Promise.reject(new Error(`sin mock: ${path}`));
+    });
+    render(<ShiftDetail publicShift={SHIFT} />);
+    await waitFor(() => expect(get).toHaveBeenCalledWith("/companies/me/profile", "tok"));
+    expect(screen.queryByTestId("turno-accion")).not.toBeInTheDocument();
+  });
+
+  it("al postularse, la hoja recibe la cinta «¡Oído!» (con el golpe, porque pasó acá)", async () => {
     auth.value = { user: { role: "worker" }, token: "tok", loading: false };
     mockGets([]);
     post.mockResolvedValue({ id: "a1" });

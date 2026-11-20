@@ -250,10 +250,12 @@ preguntó con opciones puestas sobre las pantallas ya migradas (capturas a
   una al lado de la otra, lo hecho tachado a mano en azul hondo, lo actual en
   negrita y lo que falta apagado. Los hitos y sus nombres no cambian.
 - **Detalle del turno:** sigue siendo página (`/turno/[id]`; hacerla hoja
-  cambiaría la navegación). La foto arriba y el turno como comanda con
-  relieve; **el pago va en la comanda, como último renglón con el número
-  grande** (ya no en una banda celeste aparte). Al postularse, la cinta
-  «¡Oído!» sobre el papel.
+  cambiaría la navegación). **Desde el 2026-11-20 va con la dirección suave**
+  (ADR-0028): la foto del local a sangre o, sin foto, el cielo; la hoja con
+  el puesto como título, el pago como el número más grande y cuándo y dónde
+  en filas; «Postularme» fijo abajo. Al postularse, la cinta «¡Oído!» sobre
+  el borde de la hoja. Hasta el 2026-11-19 el turno era una comanda con
+  relieve, con el pago como último renglón.
 
 ## Falta que decida Julieta
 
@@ -530,9 +532,9 @@ Queda de este paso:
    `isTodayInArgentina`. Falta confirmar que `shift` viene siempre poblado.
 2. **El marrón que queda** (sale de `SKILL_HERO_TONE` en `lib/skill-style.tsx`,
    con letra blanca encima, así que se cambia pieza por pieza):
-   `components/ShiftCard.tsx` (panel del comercio y Mis turnos),
-   `components/ShiftDetail.tsx` (cabecera del detalle), los cuadraditos de
-   `app/map/page.tsx` y de `app/search/page.tsx`.
+   `components/ShiftCard.tsx` (panel del comercio y Mis turnos) y los
+   cuadraditos de `app/map/page.tsx` y de `app/search/page.tsx`. El detalle
+   del turno (`components/ShiftDetail.tsx`) ya no lo usa (2026-11-20).
 3. **En escritorio**, la grilla de `OpportunityCard` sigue con la letra y los
    botones de antes (varios «Postularme» ámbar): es una pieza de otra etapa.
 4. El cielo nuevo en la landing; el encabezado y la barra de abajo.

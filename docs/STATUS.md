@@ -52,11 +52,13 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
 
 0. 🟡 **Marca: Shrikhand e ícono «el pinche con oído» (beta, etapa 4).** **2026-11-19: la app pasa a
    la dirección suave** ([ADR-0028](./adr/ADR-0028-direccion-suave.md), «la hoja sobre el cielo»),
-   de a una pantalla: ya están «Publicar turno», «Publicar evento» y **el Inicio de quien trabaja**
+   de a una pantalla: ya están «Publicar turno», «Publicar evento», **el Inicio de quien trabaja**
    (2026-11-19, con el cielo nuevo y las nubes con volumen; sin foto, la portada es el cielo:
-   [historial](./historial/2026-11-19-inicio-trabajador-direccion-suave.md)). **Sigue, en este orden:**
+   [historial](./historial/2026-11-19-inicio-trabajador-direccion-suave.md)) y **el detalle del turno**
+   (2026-11-20: la foto del local a sangre, la hoja con el pago grande y «Postularme» fijo abajo:
+   [historial](./historial/2026-11-20-detalle-del-turno-direccion-suave.md)). **Sigue, en este orden:**
    la hora gigante del turno de hoy en el Inicio (función nueva; los datos ya llegan), y sacar el
-   marrón que queda en `ShiftCard`, `ShiftDetail`, el mapa y Buscar del comercio. El orden del resto está
+   marrón que queda en `ShiftCard`, el mapa y Buscar del comercio. El orden del resto está
    en `design-system/direccion-relieve.md` ([historial](./historial/2026-11-19-publicar-direccion-suave.md)). **Para mirar y decidir:** la
    prueba de identidad por pantalla, dieciséis pantallas en claro y en noche
    (https://claude.ai/artifact/WJn8NkYTpvSsa81RpoR2Jg; qué propone y qué cambia de lo decidido, en
