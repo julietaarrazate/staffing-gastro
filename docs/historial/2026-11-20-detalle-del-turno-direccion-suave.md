@@ -1,4 +1,4 @@
-# El detalle del turno con la dirección suave: la foto es el cielo (#PR)
+# El detalle del turno con la dirección suave: la foto es el cielo (#699)
 
 **Pedido:** Julieta, 2026-11-20, siguiendo la migración de ADR-0028 con la
 maqueta `T-Turno` de la prueba de identidad por pantalla: «la foto del local
