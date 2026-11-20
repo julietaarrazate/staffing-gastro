@@ -3986,6 +3986,91 @@ body:has([data-landing]) main {
   color: var(--color-ink-soft);
 }
 
+/* ===== El Perfil de quien trabaja con la dirección suave (2026-11-20, maqueta `T-Perfil`) ===== */
+/* La foto a caballo de la hoja (`worker/PerfilTrabajador`): el borde es del
+   color de la hoja, así parece recortada sobre el cielo. Sin foto, la inicial
+   va en celeste y azul hondo (el relleno de siempre sumaba otro color). */
+.estilo-suave .perfil-foto .foto-subir {
+  /* Relleno lleno (el del campo): un tinte transparente dejaba ver, de noche,
+     el borde entre el cielo y la hoja a través del círculo. */
+  background: var(--suave-campo);
+  color: var(--color-primary-text);
+  box-shadow:
+    0 0 0 4px var(--color-card),
+    var(--suave-sombra);
+}
+/* El nombre es el título: si es largo ocupa dos renglones en vez de cortarse
+   en el primero (`EditableName` lo corta en uno, para la tarjeta del comercio). */
+.estilo-suave .titulo-pantalla .truncate {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+/* La reputación: el número más grande de la hoja. */
+.perfil-numero {
+  font-size: 4rem;
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--color-ink);
+}
+/* Un grupo de filas (datos o accesos) sobre una tecla blanca. No es una
+   `.tecla`: el grupo no se aprieta entero, se toca cada fila. */
+.estilo-suave .perfil-filas {
+  overflow: hidden;
+  margin: 0;
+  border-radius: var(--radio-suave);
+  background: var(--suave-tecla);
+  box-shadow: var(--suave-sombra);
+}
+.estilo-suave .perfil-filas > * + * {
+  position: relative;
+}
+.estilo-suave .perfil-filas > * + *::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 16px;
+  height: 1px;
+  background: var(--color-line);
+}
+.estilo-suave .perfil-filas > a:active,
+.estilo-suave .perfil-filas > button:active {
+  background: var(--suave-campo);
+}
+@media (hover: hover) {
+  .estilo-suave .perfil-filas > a:hover,
+  .estilo-suave .perfil-filas > button:hover {
+    background: var(--suave-campo);
+  }
+}
+/* Una caja con el relleno del campo, sin filete: la reseña a la vista, la
+   verificación de identidad y «Disponible ahora». */
+.estilo-suave .caja-suave {
+  border-radius: 20px;
+  background: var(--suave-campo);
+  box-shadow: none;
+}
+/* Adentro de la caja, lo quieto y lo desactivado van con el color de la hoja:
+   con el relleno del campo se perdían contra la caja. */
+.estilo-suave .caja-suave .boton-quieto,
+.estilo-suave .caja-suave .boton-relieve:disabled {
+  background: var(--color-card);
+}
+/* El título de la caja, en la letra normal (la de títulos queda para la marca). */
+.estilo-suave .caja-suave .font-display {
+  font-family: inherit;
+  font-weight: 700;
+}
+/* «Estás disponible ahora»: el ícono en azul hondo, no en ámbar. */
+.estilo-suave .disponible-activo {
+  background: var(--suave-elegido);
+  color: #ffffff;
+}
+
 /* ===== Mis turnos con la dirección suave (2026-11-20, maqueta `T-Mis-turnos`) ===== */
 /* La semana en el cielo: hoy es un círculo blanco (igual de día y de noche,
    `#0f3a5b` sobre blanco da más de 10) y el día con turno lleva un punto. */
