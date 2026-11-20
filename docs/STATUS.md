@@ -56,10 +56,13 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
    (2026-11-19, con el cielo nuevo y las nubes con volumen; sin foto, la portada es el cielo:
    [historial](./historial/2026-11-19-inicio-trabajador-direccion-suave.md)), y su título dice la verdad
    según el estado: la hora del turno de hoy, cuánto falta, o si no hay nada (2026-11-20,
-   [historial](./historial/2026-11-20-inicio-titulo-dice-la-verdad.md)); y **el detalle del turno**
+   [historial](./historial/2026-11-20-inicio-titulo-dice-la-verdad.md)). También están **Candidatos y
+   el «¡Oído!» al elegir** (2026-11-20: la persona destacada como tarjeta, un solo ámbar y, al elegir,
+   el cielo entero con la cinta y las dos fotos;
+   [historial](./historial/2026-11-20-candidatos-y-oido-direccion-suave.md)) y **el detalle del turno**
    (2026-11-20: la foto del local a sangre, la hoja con el pago grande y «Postularme» fijo abajo:
-   [historial](./historial/2026-11-20-detalle-del-turno-direccion-suave.md)). **Sigue**, en sesiones aparte y
-   con la maqueta del lienzo: Candidatos y el «¡Oído!» al elegir; Mis turnos;
+   [historial](./historial/2026-11-20-detalle-del-turno-direccion-suave.md)). **Sigue**, en sesiones
+   aparte y con la maqueta del lienzo: Mis turnos;
    el Panel del comercio (no en paralelo con Mis turnos: comparten `ShiftCard`); Chats y Perfil; y al
    final la barra de abajo y el encabezado. De paso se saca el marrón que queda en `ShiftCard`,
    el mapa y Buscar del comercio. El orden del resto está
