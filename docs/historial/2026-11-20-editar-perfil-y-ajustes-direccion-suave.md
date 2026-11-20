@@ -1,4 +1,4 @@
-# Editar perfil y Ajustes con la dirección suave (#PR)
+# Editar perfil y Ajustes con la dirección suave (#711)
 
 **Pedido:** Julieta, 2026-11-20, con una captura de su celular: «para editar
 el perfil sigue versión vieja». El Perfil de quien trabaja ya era suave (#705)
