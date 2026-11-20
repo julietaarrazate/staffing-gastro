@@ -59,11 +59,13 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
    [historial](./historial/2026-11-20-inicio-titulo-dice-la-verdad.md)). También están **Candidatos y
    el «¡Oído!» al elegir** (2026-11-20: la persona destacada como tarjeta, un solo ámbar y, al elegir,
    el cielo entero con la cinta y las dos fotos;
-   [historial](./historial/2026-11-20-candidatos-y-oido-direccion-suave.md)). **Sigue**, en sesiones
-   aparte y con la maqueta del lienzo: el detalle del turno; Mis turnos;
+   [historial](./historial/2026-11-20-candidatos-y-oido-direccion-suave.md)) y **el detalle del turno**
+   (2026-11-20: la foto del local a sangre, la hoja con el pago grande y «Postularme» fijo abajo:
+   [historial](./historial/2026-11-20-detalle-del-turno-direccion-suave.md)). **Sigue**, en sesiones
+   aparte y con la maqueta del lienzo: Mis turnos;
    el Panel del comercio (no en paralelo con Mis turnos: comparten `ShiftCard`); Chats y Perfil; y al
    final la barra de abajo y el encabezado. De paso se saca el marrón que queda en `ShiftCard`,
-   `ShiftDetail`, el mapa y Buscar del comercio. El orden del resto está
+   el mapa y Buscar del comercio. El orden del resto está
    en `design-system/direccion-relieve.md` ([historial](./historial/2026-11-19-publicar-direccion-suave.md)). **Para mirar y decidir:** la
    prueba de identidad por pantalla, dieciséis pantallas en claro y en noche
    (https://claude.ai/artifact/WJn8NkYTpvSsa81RpoR2Jg; qué propone y qué cambia de lo decidido, en

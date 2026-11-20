@@ -12,7 +12,7 @@ import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
 import { getErrorMessage } from "@/lib/errors";
 import { SKILL_LABELS, Shift, ShiftApplication, ShiftPublic } from "@/lib/types";
-import { SKILL_ACCENT, SKILL_HERO_TONE, heroInk } from "@/lib/skill-style";
+import { SKILL_ACCENT } from "@/lib/skill-style";
 import { cldThumb } from "@/lib/cloudinary";
 import { formatDuration, formatShiftWhenLive, shiftDurationMinutes } from "@/lib/datetime";
 import { formatMoney, payPerHour, payView } from "@/lib/pay";
@@ -20,7 +20,7 @@ import TurnoNoDisponible from "@/components/TurnoNoDisponible";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import SaveShiftButton from "@/components/worker/SaveShiftButton";
 import { useLiveRefresh } from "@/lib/live-refresh";
-import { Badge, Comanda, ComandaFila, Skeleton, textoCartel, useToast } from "@/components/ui";
+import { Badge, PortadaCielo, Skeleton, useToast } from "@/components/ui";
 import Filete from "@/components/landing/Filete";
 import { LETRAS_APP } from "@/lib/letras";
 import DrawnCheck from "@/components/ui/DrawnCheck";
@@ -29,10 +29,12 @@ import { reportShiftHref } from "@/lib/support-reference";
 import { shiftHeroPhoto } from "@/lib/company-photo";
 import {
   ChevronLeftIcon,
+  ClockIcon,
   FileTextIcon,
-  RouteIcon,
+  MapPinIcon,
   ShieldIcon,
   SparklesIcon,
+  UsersIcon,
   UtensilsIcon,
   WalletIcon,
 } from "@/components/icons";
@@ -50,16 +52,22 @@ type Detail = ShiftPublic & Partial<Shift>;
 
 // `released`: tuvo este turno asignado y lo dejó (G4). No se postula otra vez:
 // sigue en la lista del comercio, que decide si lo vuelve a elegir.
+/** Hasta qué parte del alto de la ventana puede ocupar la acción pegada. */
+const MAX_ACCION_PEGADA = 0.4;
+
 type ApplyState = "unknown" | "can_apply" | "applying" | "applied" | "released";
 // Comienzo del 409 de `POST /applications/shifts/{id}` para quien tuvo el
 // turno y lo dejó (`backend/app/modules/application/api/routes.py`).
 const ALREADY_UNASSIGNED_PREFIX = "Ya tuviste este turno asignado";
 
 /**
- * Detalle de un turno (`/turno/[id]`), con la composición del board: cabecera
- * con la foto del local (o verde bosque con el ícono del rubro, igual que la
- * tarjeta "Recomendado" del home), título en serif, datos con íconos, pago y
- * la acción.
+ * Detalle de un turno (`/turno/[id]`), con la dirección suave (ADR-0028, «la
+ * hoja sobre el cielo»; Julieta, 2026-11-20). La foto del local hace de cielo:
+ * arriba, a sangre, con «Volver», «Guardar» y «Compartir» como botones de
+ * vidrio. Sin foto, la portada es el cielo (`PortadaCielo`), no el bloque de
+ * color por rubro. Debajo sube la hoja: el puesto como título, el pago como el
+ * número más grande de la pantalla, cuándo y dónde en filas, y lo que incluye
+ * y lo que pide el local. Abajo, fija, la acción: el único ámbar.
  *
  * Es la misma URL para dos públicos:
  * - **Sin sesión** (llegó por un link de WhatsApp): la vista pública que arma
@@ -90,7 +98,21 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
   // estaba hecha al cargar (ver DrawnCheck).
   const [justApplied, setJustApplied] = useState(false);
   const reducedMotion = useReducedMotion();
-  const [photoBroken, setPhotoBroken] = useState(false);
+  // La foto que falló, por su dirección: si después llega otra (el turno
+  // completo puede traer una distinta), esa sí se intenta.
+  const [brokenPhoto, setBrokenPhoto] = useState<string | null>(null);
+  // La foto viene en el HTML del servidor: si falla antes de que React
+  // enganche `onError`, el evento se pierde. Se mira al montar.
+  const photoRef = useRef<HTMLImageElement>(null);
+  useEffect(() => {
+    const img = photoRef.current;
+    if (img && img.complete && img.naturalWidth === 0) setBrokenPhoto(img.dataset.foto ?? null);
+  }, []);
+  // La acción pegada abajo: se despega si ocupa demasiado de la pantalla (con
+  // la letra al 200 % llegaba a taparla casi entera), y mientras está pegada
+  // el navegador deja ese lugar libre al llevar el foco a algo (teclado).
+  const accionRef = useRef<HTMLDivElement>(null);
+  const [accionSuelta, setAccionSuelta] = useState(false);
   const [myCompanyId, setMyCompanyId] = useState<string | null>(null);
 
   const isWorker = user?.role === "worker";
@@ -203,13 +225,14 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
   const { Icon } = SKILL_ACCENT[shift.position];
   const label = SKILL_LABELS[shift.position];
   const heroPhoto = shiftHeroPhoto(shift);
-  const photo = heroPhoto && !photoBroken ? heroPhoto : null;
+  const photo = heroPhoto && heroPhoto !== brokenPhoto ? heroPhoto : null;
   const minutes = shiftDurationMinutes(shift.start_at, shift.end_at);
   const perHour = payPerHour(shift);
   const pay = payView(shift);
   const isOwner = Boolean(full && myCompanyId && full.company_id === myCompanyId);
   const hasCoords = shift.latitude != null && shift.longitude != null;
-  const where = shift.address ? [shift.address, shift.city].filter(Boolean).join(", ") : shift.city;
+
+  const hayAccion = loading || !user || isWorker || isOwner;
 
   async function onApply() {
     if (!token) return;
@@ -240,159 +263,194 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
     }
   }
 
+  const accionVisible = !gone && hayAccion;
+  useEffect(() => {
+    const barra = accionRef.current;
+    if (!accionVisible || !barra) return;
+    const html = document.documentElement;
+    const medir = () => {
+      const alto = barra.offsetHeight;
+      const suelta = alto > window.innerHeight * MAX_ACCION_PEGADA;
+      setAccionSuelta(suelta);
+      const abajo = Number.parseFloat(getComputedStyle(barra).bottom) || 0;
+      html.style.scrollPaddingBottom = suelta ? "" : `${Math.round(alto + abajo)}px`;
+    };
+    medir();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(medir);
+    observer?.observe(barra);
+    window.addEventListener("resize", medir);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", medir);
+      html.style.scrollPaddingBottom = "";
+    };
+  }, [accionVisible]);
+
   if (gone) return <TurnoNoDisponible />;
 
+  // La barra de abajo de la app sólo existe con sesión (`BottomNav`), pero el
+  // layout le reserva lugar siempre. Sin sesión, la pantalla ocupa ese lugar
+  // y la acción queda pegada al borde; con sesión, justo encima de la barra.
+  const conBarra = Boolean(user);
+  const extras = [
+    pay.kind !== "por_hora" && minutes != null ? formatDuration(minutes) : null,
+    !pay.note && perHour ? `≈ ${formatMoney(perHour, shift.currency)} por hora` : null,
+    shift.tips ? "+ propinas" : null,
+  ].filter(Boolean);
+
   return (
-    <div className={`${LETRAS_APP} app-container-reading pb-10 md:px-4 md:pt-6`}>
-      {/* Cabecera: foto del local o el tono del rubro — el MISMO de la tarjeta
-          del feed y del panel (`SKILL_HERO_TONE`). Antes era verde bosque para
-          todos los puestos: el bartender se veía vino en la tarjeta y verde al
-          abrirlo, así que la identidad que arma la tarjeta se perdía justo en
-          el paso siguiente. El color de marca queda para el bloque del pago, que es la
-          superficie destacada de la pantalla (v5.0). */}
-      <header
-        className={`relative h-[240px] overflow-hidden md:rounded-[var(--radius-card)] ${!photo && SKILL_HERO_TONE[shift.position] === "bg-brand" ? "bg-glow" : SKILL_HERO_TONE[shift.position]}`}
-      >
+    <div
+      className={`${LETRAS_APP} estilo-suave app-container-reading flex flex-col md:mb-0 md:min-h-0 md:px-4 md:pb-10 md:pt-6 ${
+        conBarra
+          ? "min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))]"
+          : "-mb-[var(--chrome-bottom)] min-h-[calc(100dvh-var(--chrome-top))]"
+      }`}
+    >
+      {/* La portada: la foto del local a sangre o, sin foto, el cielo. Los
+          botones son de vidrio blanco en los dos casos y en los dos temas (la
+          foto no cambia de noche). */}
+      {/* El alto sigue a la pantalla: en un celular bajo la foto no se lleva
+          el lugar del puesto y del pago. */}
+      <header className="relative h-[clamp(180px,34dvh,300px)] shrink-0 overflow-hidden bg-surface md:h-[clamp(180px,45dvh,340px)] md:rounded-t-[28px]">
         {photo ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element -- la optimización la hace Cloudinary (cldThumb) */}
             <img
+              ref={photoRef}
               src={cldThumb(photo, 900)}
               alt=""
               decoding="async"
               fetchPriority="high"
-              onError={() => setPhotoBroken(true)}
-              className="absolute inset-0 h-full w-full object-cover"
+              data-foto={photo}
+              onError={() => setBrokenPhoto(photo)}
+              className="absolute inset-0 h-full w-full object-cover object-[50%_30%]"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-black/30" />
+            {/* Un velo arriba, para que los botones se lean sobre una foto clara. */}
+            <div aria-hidden className="portada-velo absolute inset-0" />
           </>
         ) : (
-          <Icon size={190} className={`absolute -right-8 -top-4 ${heroInk(shift.position, false).mark}`} aria-hidden />
+          <PortadaCielo id={shift.id} Icon={Icon} iconoEn="centro-izq" nubeEn="medio" />
         )}
 
-        <div className="relative flex items-start justify-between p-4">
+        <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-4 md:p-5">
           {user ? (
             <button
               type="button"
               onClick={() => (window.history.length > 1 ? router.back() : router.push("/feed"))}
               aria-label="Volver"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-night shadow-sm"
+              className="boton-vidrio sobre-foto h-11 w-11 shrink-0"
             >
-              <ChevronLeftIcon size={20} />
+              <ChevronLeftIcon size={22} />
             </button>
           ) : (
             <span />
           )}
-          {isWorker && <SaveShiftButton shiftId={shift.id} />}
+          <div className="flex items-center gap-2">
+            {isWorker && (
+              <SaveShiftButton
+                shiftId={shift.id}
+                iconSize={20}
+                className="boton-vidrio sobre-foto !h-11 !w-11 !shadow-none"
+              />
+            )}
+            <ShareShiftButton shift={shift} shiftId={shift.id} vidrio />
+          </div>
         </div>
+
+        {/* Lo que apura la decisión, sobre la foto y arriba del borde de la hoja. */}
+        {shift.urgent && (
+          <div className="absolute bottom-11 left-5 right-5 flex flex-wrap gap-1.5">
+            <span className="chip-foto chip-foto-urgente">Urgente</span>
+          </div>
+        )}
       </header>
 
-      {/* El turno como comanda de papel (dirección «con relieve», Julieta
-          2026-11-19): montada sobre el borde de la foto, con el puesto en
-          brocha, los datos en renglones y el pago como último renglón, con el
-          número grande. Antes, título en serif, datos con íconos en mosaico y
-          el pago en una banda celeste aparte. Al postularse recibe la cinta
-          «¡Oído!». Es el objeto con relieve de la pantalla. */}
-      <div className="relative z-[1] -mt-14 px-4 md:-mt-16 md:px-8">
-        <Comanda as="section" aria-label="El turno">
-          {/* Con la cinta, el papel deja lugar abajo para que no tape el
-              renglón del pago. */}
-          <div className={`px-4 pt-4 ${apply === "applied" ? "pb-14" : "pb-3"}`}>
-            {/* Señales: lo que cambia la decisión, antes que el puesto. */}
-            {(shift.urgent || shift.pay_band === "por_encima" || shift.company_verified) && (
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                {shift.urgent && <span className="sello-goma sello-rojo">Urgente</span>}
-                {shift.company_verified && (
-                  <Badge tone="trust" icon={<ShieldIcon size={11} />}>
-                    Comercio verificado
-                  </Badge>
-                )}
-                {shift.pay_band === "por_encima" && (
-                  <span className="inline-flex items-center gap-1 text-xs font-bold text-primary-text">
-                    <SparklesIcon size={12} /> Paga por encima de lo típico
-                  </span>
-                )}
-              </div>
-            )}
-
-            <h1 className="letra-cartel letra-cartel-puesto break-words">{textoCartel(label)}</h1>
-            {(shift.company_name || shift.city) && (
-              <p className="mt-1 text-sm text-ink-soft">
-                {[shift.company_name, shift.city].filter(Boolean).join(" · ")}
-              </p>
-            )}
-
-            <dl className="mt-3">
-              <ComandaFila rotulo="Cuándo">
-                {formatShiftWhenLive(shift)}
-                {minutes != null && pay.kind !== "por_hora" && (
-                  <span className="font-medium text-ink-soft"> · {formatDuration(minutes)}</span>
-                )}
-              </ComandaFila>
-              <ComandaFila rotulo="Dónde">{where ?? "Zona a confirmar"}</ComandaFila>
-              {shift.quantity != null && shift.quantity > 1 && (
-                <ComandaFila rotulo="Personas">{shift.quantity}</ComandaFila>
-              )}
-              {/* El pago, último renglón y el más grande: es el dato que más
-                  pesa para decidir (Julieta eligió que vaya en la comanda y no
-                  en una banda aparte). */}
-              {/* Si el monto no entra al lado del rótulo (un $ 1.250.000 a
-                  320 px casi pisaba «Pago», revisión del 2026-11-19), baja
-                  entero al renglón de abajo, a la derecha. */}
-              <div className="comanda-fila flex-wrap items-baseline">
-                <dt>Pago</dt>
-                <dd className="ml-auto max-w-full shrink-0">
-                  <span className="text-price font-extrabold tracking-tight">{pay.amount}</span>
-                  {pay.suffix && <span className="ml-1.5 text-body font-bold">{pay.suffix}</span>}
-                  {/* Turno reofrecido (U080): el número ya es por hora (o el
-                      monto que quedó fijo al llegar), y la línea lo explica. */}
-                  {(shift.tips || pay.note || perHour) && (
-                    <span className="block text-sm font-medium text-ink-soft">
-                      {[
-                        shift.tips ? "+ propinas" : null,
-                        pay.note ?? (perHour ? `≈ ${formatMoney(perHour, shift.currency)} por hora` : null),
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </span>
-                  )}
-                </dd>
-              </div>
-            </dl>
+      {/* La hoja. `flex-1` y la acción con `mt-auto`: con poco contenido la
+          hoja llega igual hasta abajo y la acción queda en el borde. */}
+      <section aria-label="El turno" className="hoja -mt-7 flex flex-1 flex-col px-5 pt-6 md:px-8 md:pt-7">
+        {/* Postulado: la cinta «¡Oído!» pegada sobre el borde de la hoja, como
+            en la cocina cuando se canta el pedido. Se pega con un golpe sólo
+            si la postulación pasó en esta pantalla (y sin movimiento si así
+            lo pide el sistema); si ya estaba hecha al cargar, ya está pegada. */}
+        {apply === "applied" && (
+          <div aria-hidden className={`cinta-oido${justApplied && !reducedMotion ? " cinta-oido-pega" : ""}`}>
+            <Filete palabra="¡Oído!" tam="cinta" className="block h-auto w-full" />
           </div>
-          {/* Postulado: la cinta «¡Oído!» pegada sobre el papel, como en la
-              cocina cuando se canta el pedido. Se pega con un golpe sólo si
-              la postulación pasó en esta pantalla (y sin movimiento si así lo
-              pide el sistema); si ya estaba hecha al cargar, ya está pegada. */}
-          {apply === "applied" && (
-            <div aria-hidden className={`cinta-oido${justApplied && !reducedMotion ? " cinta-oido-pega" : ""}`}>
-              <Filete palabra="¡Oído!" tam="cinta" className="block h-auto w-full" />
-            </div>
-          )}
-        </Comanda>
-      </div>
+        )}
 
-      <div className="px-4 md:px-0">
-        {/* Acción. Con la cinta colgando del papel, un poco más de aire. */}
-        <div className={apply === "applied" ? "mt-9" : "mt-5"}>
-          <PrimaryAction
-            loading={loading || (isWorker && apply === "unknown")}
-            loggedIn={Boolean(user)}
-            isWorker={isWorker}
-            isOwner={isOwner}
-            shiftId={shift.id}
-            apply={apply}
-            justApplied={justApplied}
-            onApply={onApply}
-          />
-        </div>
+        <h1 className="titulo-pantalla break-words text-ink">{label}</h1>
+        {(shift.company_name || shift.city) && (
+          <p className="mt-1 break-words text-fila text-ink-soft">
+            {[shift.company_name, shift.city].filter(Boolean).join(" · ")}
+          </p>
+        )}
+        {shift.company_verified && (
+          <div className="mt-2">
+            <Badge tone="trust" icon={<ShieldIcon size={11} />}>
+              Comercio verificado
+            </Badge>
+          </div>
+        )}
+
+        {/* `dl > div > dt + dd`: cada dato es un grupo con su rótulo. */}
+        <dl className="mt-5 flex flex-col gap-3.5">
+          {/* El pago: el número más grande de la pantalla, entre dos rayas.
+              Si no entra al lado de lo que lo explica (un $ 1.250.000 a
+              320 px), eso baja al renglón de abajo. */}
+          <div className="mb-1 flex flex-wrap items-end justify-between gap-x-3 gap-y-2 border-y border-line py-[1.125rem]">
+            <dt className="sr-only">Pago</dt>
+            <dd className="min-w-0">
+              <span className="turno-pago">{pay.amount}</span>
+              {pay.suffix && <span className="ml-1.5 text-base font-bold text-ink">{pay.suffix}</span>}
+            </dd>
+            {extras.length > 0 && (
+              <dd className="ml-auto text-right text-sm leading-snug text-ink-soft">
+                {extras.map((linea) => (
+                  <span key={linea} className="block">
+                    {linea}
+                  </span>
+                ))}
+              </dd>
+            )}
+            {/* Turno reofrecido (U080): el número ya es por hora (o el monto
+                que quedó fijo al llegar), y la línea lo explica. */}
+            {pay.note && <dd className="basis-full text-sm text-ink-soft">{pay.note}</dd>}
+            {shift.pay_band === "por_encima" && (
+              <dd className="flex basis-full items-center gap-1 text-xs font-bold text-primary-text">
+                <SparklesIcon size={12} /> Paga por encima de lo típico
+              </dd>
+            )}
+          </div>
+
+          <Fila rotulo="Cuándo" icono={<ClockIcon size={20} />} titulo={formatShiftWhenLive(shift)} />
+          <Fila
+            rotulo="Dónde"
+            icono={<MapPinIcon size={20} />}
+            titulo={shift.address ?? shift.city ?? "Zona a confirmar"}
+            detalle={shift.address ? shift.city : null}
+          >
+            {hasCoords && (
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${shift.latitude},${shift.longitude}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex min-h-11 shrink-0 items-center text-sm font-semibold text-primary-text"
+              >
+                Cómo llegar
+              </a>
+            )}
+          </Fila>
+          {shift.quantity != null && shift.quantity > 1 && (
+            <Fila rotulo="Personas" icono={<UsersIcon size={20} />} titulo={`${shift.quantity} personas`} />
+          )}
+        </dl>
 
         {/* Condiciones: van también sin sesión — es con lo que alguien que
             llega por WhatsApp decide si le conviene registrarse. */}
         {(shift.meal || shift.tips || shift.dress_code) && (
-          <section className="mt-7">
-            <h2 className="text-h3 font-semibold text-ink">Qué incluye</h2>
-            <div className="mt-2.5 flex flex-wrap gap-2">
+          <section className="mt-6">
+            <h2 className="text-sm font-bold text-ink">Qué incluye</h2>
+            <div className="mt-2 flex flex-wrap gap-2">
               {shift.tips && <Chip icon={<WalletIcon size={14} />}>Propinas</Chip>}
               {shift.meal && <Chip icon={<UtensilsIcon size={14} />}>Comida del personal</Chip>}
               {shift.dress_code && <Chip icon={<FileTextIcon size={14} />}>Vestimenta: {shift.dress_code}</Chip>}
@@ -401,51 +459,109 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
         )}
 
         {full?.description && (
-          <section className="mt-7">
-            <h2 className="text-h3 font-semibold text-ink">Sobre el turno</h2>
-            <p className="mt-2 whitespace-pre-line text-body leading-relaxed text-ink/75">{full.description}</p>
+          <section className="mt-6">
+            <h2 className="text-sm font-bold text-ink">Lo que piden</h2>
+            <p className="mt-1 whitespace-pre-line break-words text-sm leading-[1.45] text-ink-soft">
+              {full.description}
+            </p>
           </section>
         )}
 
         {hasCoords && (
-          <section className="mt-7">
-            <h2 className="text-h3 font-semibold text-ink">Ubicación</h2>
-            <div className="mt-2.5 overflow-hidden rounded-2xl ring-1 ring-line">
+          <section className="mt-6">
+            <h2 className="text-sm font-bold text-ink">Ubicación</h2>
+            <div className="mt-2 overflow-hidden rounded-[20px]">
               <MiniMap latitude={shift.latitude!} longitude={shift.longitude!} className="h-40 w-full" />
             </div>
-            <a
-              href={`https://www.google.com/maps/dir/?api=1&destination=${shift.latitude},${shift.longitude}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-3 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-[var(--radius-relieve)] bg-card text-sm font-semibold text-ink ring-1 ring-line"
-            >
-              <RouteIcon size={18} /> Cómo llegar
-            </a>
           </section>
         )}
 
-        <div className="mt-7 flex flex-col items-center gap-3 border-t border-line pt-4">
-          <ShareShiftButton shift={shift} shiftId={shift.id} />
-          {/* U110: discreto, sin acento. Sólo un trabajador con sesión puede
-              atar el turno a un ticket. */}
-          {isWorker && (
+        {/* U110: discreto, sin acento. Sólo un trabajador con sesión puede
+            atar el turno a un ticket. */}
+        {isWorker && (
+          <div className="mt-5 flex justify-center">
             <Link
               href={reportShiftHref(shift.id)}
-              className="text-sm font-semibold text-ink/50 underline-offset-2 hover:text-ink hover:underline"
+              className="flex min-h-11 items-center text-sm font-semibold text-ink-soft underline-offset-2 hover:text-ink hover:underline"
             >
               Reportar un problema
             </Link>
-          )}
-        </div>
-      </div>
+          </div>
+        )}
+        {!loading && !user && (
+          <p className="mt-6 text-center text-xs text-ink-soft">
+            Creá tu perfil gratis y postulate a este y otros turnos gastronómicos.
+          </p>
+        )}
+
+        {/* La acción, fija abajo: se queda pegada al borde de la pantalla
+            mientras la hoja pasa por detrás. Es el único ámbar. */}
+        {hayAccion && (
+          <div
+            ref={accionRef}
+            data-testid="turno-accion"
+            className={`turno-accion z-[5] -mx-5 mt-auto px-5 pt-7 md:bottom-0 md:-mx-8 md:rounded-b-[28px] md:px-8 md:pb-6 ${
+              accionSuelta ? "" : "sticky"
+            } ${
+              conBarra
+                ? `${accionSuelta ? "" : "turno-accion-sobre-barra "}bottom-[var(--chrome-bottom)] pb-2`
+                : "turno-accion-al-borde bottom-0 pb-[calc(1rem+env(safe-area-inset-bottom))]"
+            }`}
+          >
+            <PrimaryAction
+              loading={loading || (isWorker && apply === "unknown")}
+              loggedIn={Boolean(user)}
+              isWorker={isWorker}
+              isOwner={isOwner}
+              shiftId={shift.id}
+              apply={apply}
+              justApplied={justApplied}
+              onApply={onApply}
+            />
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+/** Un dato del turno en una fila: el ícono en su casilla, el dato en negrita
+ *  y, si hay, una línea de detalle y algo para tocar a la derecha. */
+function Fila({
+  rotulo,
+  icono,
+  titulo,
+  detalle,
+  children,
+}: {
+  /** Para quien no ve el ícono: «Cuándo», «Dónde». */
+  rotulo: string;
+  icono: React.ReactNode;
+  titulo: string;
+  detalle?: string | null;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <dt className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-[13px] bg-[var(--suave-campo)] text-primary-text">
+        <span aria-hidden className="flex">
+          {icono}
+        </span>
+        <span className="sr-only">{rotulo}</span>
+      </dt>
+      <dd className="min-w-0 flex-1">
+        <span className="block break-words text-fila font-bold leading-snug text-ink">{titulo}</span>
+        {detalle && <span className="block break-words text-sm text-ink-soft">{detalle}</span>}
+      </dd>
+      {children && <dd className="shrink-0">{children}</dd>}
     </div>
   );
 }
 
 function Chip({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-sm text-ink/80">
-      <span className="text-ink/55">{icon}</span>
+    <span className="chip-suave max-w-full break-words">
+      <span className="shrink-0 text-primary-text">{icon}</span>
       {children}
     </span>
   );
@@ -474,7 +590,7 @@ function PrimaryAction({
   onApply: () => void;
 }) {
   const reducedMotion = useReducedMotion();
-  if (loading) return <Skeleton className="h-14 w-full rounded-[var(--radius-relieve)]" />;
+  if (loading) return <Skeleton className="h-14 w-full rounded-[18px]" />;
 
   if (!loggedIn) {
     // Quien llega por un link compartido casi siempre es un trabajador: se
@@ -486,10 +602,7 @@ function PrimaryAction({
         <Link href={registerHref({ rol: "trabajador", next: aca })} className={PRIMARY_BUTTON}>
           Postulate en Oído
         </Link>
-        <p className="mt-2.5 text-center text-xs text-ink/45">
-          Creá tu perfil gratis y postulate a este y otros turnos gastronómicos.
-        </p>
-        <p className="mt-2 text-center text-sm text-ink/70">
+        <p className="mt-2.5 text-center text-sm text-ink-soft">
           ¿Ya tenés cuenta?{" "}
           <Link href={loginHref({ next: aca })} className="font-semibold text-primary-text">
             Ingresá
@@ -518,24 +631,27 @@ function PrimaryAction({
             {...swap}
             transition={{ duration: 0.18, ease: "easeOut" }}
             data-testid="turno-ya-asignado-antes"
-            className="rounded-[var(--radius-card)] bg-surface px-4 py-3.5 ring-1 ring-line"
+            className="rounded-[18px] bg-[var(--suave-campo)] px-4 py-3.5"
           >
             <p className="text-body font-semibold text-ink">Ya tuviste este turno asignado</p>
-            <p className="text-sm text-ink/60">Si el comercio te vuelve a elegir, te avisamos.</p>
+            <p className="text-sm text-ink-soft">Si el comercio te vuelve a elegir, te avisamos.</p>
           </motion.div>
         ) : apply === "applied" ? (
           <motion.div
             key="applied"
             {...swap}
             transition={{ duration: 0.18, ease: "easeOut" }}
-            className="flex items-center gap-3 rounded-[var(--radius-card)] bg-success-tint px-4 py-3.5"
+            className="flex items-center gap-3 rounded-[18px] bg-success-tint px-4 py-3.5"
           >
             <DrawnCheck size={24} animate={justApplied} className="shrink-0 text-success-text" />
             <div className="min-w-0 flex-1">
               <p className="text-body font-semibold text-ink">Ya te postulaste</p>
-              <p className="text-sm text-ink/60">Te avisamos cuando el comercio responda.</p>
+              <p className="text-sm text-ink-soft">Te avisamos cuando el comercio responda.</p>
             </div>
-            <Link href="/my-shifts" className="shrink-0 text-sm font-semibold text-primary-text">
+            <Link
+              href="/my-shifts"
+              className="flex min-h-11 min-w-11 shrink-0 items-center justify-center text-sm font-semibold text-primary-text"
+            >
               Ver
             </Link>
           </motion.div>

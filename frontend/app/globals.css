@@ -334,6 +334,7 @@
   --text-titular: 2.875rem; /* 46px — la frase grande del cielo del Inicio (ADR-0028) */
   --text-puesto: 1.1875rem; /* 19px — el puesto de la tarjeta del turno */
   --text-pago: 1.625rem; /* 26px — el pago de la tarjeta del turno */
+  --text-pago-grande: 3rem; /* 48px — el pago en el detalle del turno: el número más grande de la pantalla */
   --text-fila: 0.9375rem; /* 15px — el puesto en una fila de lista */
   --text-h2: 1.375rem; /* 22px — encabezado de sección */
   --text-h2--line-height: 1.2;
@@ -1509,16 +1510,17 @@ body:has([data-landing]) main {
   font-size: clamp(1.375rem, 8cqi, 1.875rem);
 }
 
-/* La cinta «¡Oído!» pegada sobre la comanda del detalle del turno cuando la
-   persona se postuló: abajo a la derecha, torcida, sobresaliendo del papel.
-   Se pega con un golpe sólo si la postulación pasó en esa pantalla. */
+/* La cinta «¡Oído!» del detalle del turno, cuando la persona se postuló:
+   pegada sobre el borde de arriba de la hoja, a la derecha, torcida y
+   asomando sobre la foto. Se pega con un golpe sólo si la postulación pasó en
+   esa pantalla. */
 .cinta-oido {
   position: absolute;
-  right: -6px;
-  bottom: -30px;
+  right: 14px;
+  top: -52px;
   z-index: 2;
-  width: 170px;
-  transform: rotate(-10deg);
+  width: 150px;
+  transform: rotate(-8deg);
   pointer-events: none;
 }
 .cinta-oido-pega {
@@ -1531,11 +1533,11 @@ body:has([data-landing]) main {
   }
   60% {
     opacity: 1;
-    transform: scale(0.92) rotate(-8deg);
+    transform: scale(0.92) rotate(-6deg);
   }
   100% {
     opacity: 1;
-    transform: scale(1) rotate(-10deg);
+    transform: scale(1) rotate(-8deg);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -3239,6 +3241,55 @@ body:has([data-landing]) main {
 }
 :root[data-theme="dark"] .boton-vidrio {
   background: rgba(255, 255, 255, 0.1);
+}
+/* El mismo botón encima de una foto (o de la portada de cielo de un turno):
+   blanco casi lleno y la tinta del cielo, igual de día y de noche, porque la
+   foto no cambia con el tema. `#0f3a5b` sobre ese blanco da más de 10. */
+.boton-vidrio.sobre-foto,
+:root[data-theme="dark"] .boton-vidrio.sobre-foto {
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f3a5b;
+}
+/* El velo de arriba de una foto a sangre: oscurece la franja de los botones. */
+.portada-velo {
+  background: linear-gradient(180deg, rgba(13, 19, 26, 0.5), rgba(13, 19, 26, 0) 38%);
+  pointer-events: none;
+}
+/* El pago en el detalle del turno: el número más grande de la pantalla. Se
+   achica con la pantalla para que un monto de siete cifras entre a 320 px. */
+.turno-pago {
+  font-size: min(var(--text-pago-grande), 13.5vw);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--color-ink);
+}
+/* La acción del detalle del turno, fija abajo: la hoja pasa por detrás y se
+   esfuma en el borde de arriba. */
+.turno-accion {
+  background: linear-gradient(0deg, var(--color-card) 72%, transparent);
+}
+/* Con la barra de abajo de la app: el lugar reservado (`--chrome-bottom`) es
+   más alto que la barra, y por esa franja se veía pasar la hoja debajo del
+   botón. Se tapa con el color de la hoja, hasta detrás de la barra. */
+/* Sin sesión la acción llega al borde, pero el encabezado mide unos píxeles
+   menos que `--chrome-top` y quedaba una rayita del lienzo debajo. */
+@media (max-width: 767.98px) {
+  .turno-accion-al-borde {
+    box-shadow: 0 8px 0 var(--color-card);
+  }
+}
+@media (max-width: 767.98px) {
+  .turno-accion-sobre-barra::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: 100%;
+    height: var(--chrome-bottom);
+    background: var(--color-card);
+  }
 }
 /* Lo que se toca: una tecla blanca con sombra difusa; al apretarla se achica
    apenas, y la elegida se llena de azul hondo. */
