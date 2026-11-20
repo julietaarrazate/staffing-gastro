@@ -43,7 +43,7 @@ qué responde cada pantalla está en
 
 - ⬜ **«¡Oído!» al postularse, a pantalla entera** (`T-Oido`) · es una función nueva, no piel: hoy es la cinta sobre la hoja del turno
 
-- ⬜ **La barra de abajo y el encabezado** (`.barra` en `oido.css` del lienzo) · al final, solos; la barra flotante cambia una decisión del 2026-11-19 (hay que decidirla de nuevo)
+- ⬜ **La barra de abajo y el encabezado** (`.barra` en `oido.css` del lienzo) · al final, solos · **decidido por Julieta el 2026-11-20** ([historial](../historial/2026-11-20-barra-y-encabezado-decidido.md)): la barra flota (píldora blanca con sombra; la activa, con un óvalo celeste detrás del ícono), se va la franja blanca del encabezado (el cielo llega arriba; «oído» y la campanita sobre el cielo sólo en Inicio y Panel) y «Publicar turno» del comercio es un «+» redondo azul hondo al lado de la barra; las tres van juntas, en un PR. Juntar Buscar y Mapa en una pestaña (seis → cinco, con el conmutador Lista / Mapa) también va, pero aparte y después: es una función, no piel
 
 ## Sin maqueta todavía
 
