@@ -1,4 +1,4 @@
-# Un renglón por pantalla, para migrar en paralelo sin chocar (#PR)
+# Un renglón por pantalla, para migrar en paralelo sin chocar (#700)
 
 **Pedido:** Julieta, 2026-11-20: «¿hay una manera de abrir varias sesiones,
 trabajar en paralelo y que no haya esos conflictos? Así no se corre todo dos
