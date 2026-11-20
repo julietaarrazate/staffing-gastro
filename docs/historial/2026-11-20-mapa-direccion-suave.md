@@ -1,4 +1,4 @@
-# El Mapa de quien trabaja con la dirección suave (#PR)
+# El Mapa de quien trabaja con la dirección suave (#707)
 
 **Pedido:** Julieta, 2026-11-20, segunda tanda de tres pantallas en paralelo
 (Panel del comercio, Perfil de quien trabaja y Mapa) para seguir la migración
