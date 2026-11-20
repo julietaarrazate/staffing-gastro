@@ -17,6 +17,8 @@ interface ClusterMarkerProps {
 
 /**
  * Burbuja blanca con conteo y aro naranja; tap -> zoom de expansión.
+ * Dentro de `.estilo-suave` (el Mapa de quien trabaja) el aro va en azul
+ * hondo: `.pin-grupo` en `globals.css`.
  *
  * Envuelto en `memo`: junto con el `onClick` estable del padre, evita
  * re-renderizar todos los clusters al seleccionar un marcador individual.
@@ -46,7 +48,7 @@ function ClusterMarker({ clusterId, longitude, latitude, count, delayMs = 0, onC
             e.stopPropagation();
             onClick(clusterId, longitude, latitude);
           }}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-card text-sm font-extrabold text-ink shadow-[0_4px_12px_rgba(17,17,20,0.2),0_0_0_4px_color-mix(in_srgb,var(--color-primary)_25%,transparent)] transition-transform active:scale-90"
+          className="pin-grupo flex h-11 w-11 items-center justify-center rounded-full bg-card text-sm font-extrabold text-ink shadow-[0_4px_12px_rgba(17,17,20,0.2),0_0_0_4px_color-mix(in_srgb,var(--color-primary)_25%,transparent)] transition-transform active:scale-90"
         >
           {count}
         </button>

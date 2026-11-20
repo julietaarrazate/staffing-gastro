@@ -4253,3 +4253,206 @@ body:has([data-landing]) main {
   background: var(--suave-campo);
   box-shadow: none;
 }
+
+/* ===== El Mapa de quien trabaja con la dirección suave (2026-11-20, maqueta `T-Mapa`) ===== */
+/* El mapa es el cielo: arriba se funde con el cielo de la app. El cielo va
+   DETRÁS del mapa y lo que se esfuma es el lienzo (una máscara): así los pines
+   que quedan arriba no se lavan (un degradé encima los bajaba a 2:1). El
+   título va encima, en la tinta del cielo, y no recibe toques. */
+.estilo-suave .maplibregl-map {
+  --mapa-funde: 150px;
+  background: linear-gradient(180deg, var(--app-cielo-0), var(--app-cielo-1) var(--mapa-funde));
+}
+.estilo-suave .maplibregl-canvas {
+  -webkit-mask-image: linear-gradient(180deg, transparent 8px, #000 var(--mapa-funde));
+  mask-image: linear-gradient(180deg, transparent 8px, #000 var(--mapa-funde));
+}
+@media (min-width: 768px) {
+  /* En la compu el título está en el panel: el cielo sólo asoma. */
+  .estilo-suave .maplibregl-map {
+    --mapa-funde: 104px;
+  }
+}
+/* Detrás del título, un velo corto del mismo cielo: un pin que quede justo
+   debajo de la letra se apaga en vez de mezclarse con ella. Más abajo no hay
+   nada encima de los pines. */
+.mapa-cielo {
+  background: linear-gradient(180deg, var(--app-cielo-0) 35%, transparent);
+  color: var(--app-cielo-tinta);
+}
+/* El título entra en un renglón a 320 px (y con la letra al 200 % no crece
+   más que el ancho). */
+.mapa-cielo .titulo-pantalla {
+  font-size: min(var(--text-pantalla), 8.2vw);
+}
+/* El aviso de «no pudimos ubicarte»: un chip blanco de dos renglones, igual de
+   día y de noche (`#0f3a5b` sobre ese blanco da más de 10). */
+.mapa-aviso {
+  display: inline-block;
+  max-width: 100%;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f3a5b;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+/* De noche el mapa base se apaga (es el de día, invertido), para que el cielo
+   de noche no se funda con un mapa claro. Sólo el lienzo: los pines no. */
+:root[data-theme="dark"] .estilo-suave .maplibregl-canvas {
+  filter: invert(0.9) hue-rotate(180deg) brightness(0.85) saturate(0.7);
+}
+/* El pin de un turno: una tecla con el pago y su pico. El elegido, en azul
+   hondo y más grande (blanco sobre el tono más claro del degradé: 5,2). */
+.pin-turno {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--suave-tecla, #ffffff);
+  color: var(--color-ink);
+  /* El aro: para que la tecla blanca se despegue de un mapa claro. */
+  box-shadow:
+    0 10px 24px rgba(15, 58, 91, 0.2),
+    0 0 0 1px rgba(15, 58, 91, 0.16);
+  font-size: 0.84375rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.pin-turno::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--suave-tecla, #ffffff);
+  transform: translateX(-50%) rotate(45deg);
+}
+:root[data-theme="dark"] .pin-turno {
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+.pin-turno[aria-pressed="true"],
+:root[data-theme="dark"] .pin-turno[aria-pressed="true"] {
+  height: 42px;
+  padding: 0 15px;
+  background: var(--suave-elegido, linear-gradient(180deg, #2a73a3, #1c5478));
+  color: #ffffff;
+  font-size: 0.96875rem;
+  box-shadow: 0 12px 24px rgba(28, 84, 120, 0.35);
+}
+.pin-turno[aria-pressed="true"]::after {
+  background: #1c5478;
+}
+/* Paga por encima de lo habitual: la flechita, en verde (en el elegido, blanca). */
+.pin-paga-mas {
+  color: var(--color-success-text);
+}
+.pin-turno[aria-pressed="true"] .pin-paga-mas {
+  color: #ffffff;
+}
+.pin-urgente {
+  border: 2px solid var(--suave-tecla, #ffffff);
+}
+.pin-onda {
+  background: rgba(42, 115, 163, 0.4);
+}
+/* Varios turnos juntos y el punto de «estás acá»: en el azul hondo, sin ámbar.
+   Las dos piezas son compartidas con el mapa de Buscar del comercio, que no
+   lleva `.estilo-suave` y no cambia. */
+.estilo-suave .pin-grupo {
+  background: var(--suave-tecla);
+  color: var(--color-ink);
+  box-shadow:
+    var(--suave-sombra-alta),
+    0 0 0 4px rgba(42, 115, 163, 0.25);
+}
+.estilo-suave .puck-punto {
+  border-width: 4px;
+  background: #2a73a3;
+  box-shadow: 0 2px 6px rgba(15, 58, 91, 0.3);
+}
+.estilo-suave .puck-halo {
+  background: rgba(42, 115, 163, 0.25);
+}
+/* La hoja con los turnos (celular, `worker/MapSheet`) y el panel (compu). */
+.mapa-hoja {
+  border-radius: 28px 28px 0 0;
+  box-shadow: 0 -10px 30px rgba(15, 58, 91, 0.1);
+}
+.mapa-panel {
+  position: relative;
+  z-index: 20;
+  box-shadow: 10px 0 30px rgba(15, 58, 91, 0.1);
+}
+.mapa-panel .titulo-pantalla {
+  font-size: 1.625rem;
+}
+/* Un turno en la hoja o en el panel: fila suave. No es una `.tecla`: lleva
+   un botón adentro. La elegida (la del pin en azul hondo) lleva su aro. */
+.estilo-suave .mapa-turno {
+  border-radius: 20px;
+  background: var(--suave-tecla);
+  box-shadow: var(--suave-sombra);
+}
+.estilo-suave .mapa-turno[data-elegido] {
+  box-shadow:
+    var(--suave-sombra),
+    0 0 0 2px #2a73a3;
+}
+:root[data-theme="dark"] .estilo-suave .mapa-turno[data-elegido] {
+  box-shadow:
+    var(--suave-sombra),
+    0 0 0 2px #5fa3cf;
+}
+.mapa-turno-pago {
+  /* El tope en vw es para la letra al 200 %: un monto largo entra a 320 px. */
+  font-size: min(1.25rem, 9vw);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* La miniatura y el pago se achican cuando la fila es angosta (a 320 px). */
+.estilo-suave .mapa-turno {
+  container-type: inline-size;
+}
+.mapa-turno-foto {
+  width: 64px;
+  height: 64px;
+}
+@container (max-width: 17rem) {
+  .mapa-turno-foto {
+    width: 48px;
+    height: 48px;
+  }
+  .mapa-turno-pago {
+    font-size: min(1.0625rem, 9vw);
+  }
+}
+/* Un puesto largo al lado de un pago largo, a 320 px: corta con guion. */
+.mapa-turno-puesto {
+  hyphens: auto;
+}
+.chip-suave.mapa-turno-marca {
+  padding: 3px 8px;
+  font-size: 0.71875rem;
+  white-space: nowrap;
+}
+/* El estado vacío sobre el mapa (celular): una tarjeta que flota. */
+.estilo-suave .mapa-tarjeta {
+  overflow: hidden;
+  border-radius: 24px;
+  background: var(--suave-tecla);
+  box-shadow: var(--suave-sombra-alta);
+}

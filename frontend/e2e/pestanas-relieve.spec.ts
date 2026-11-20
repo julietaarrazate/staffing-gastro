@@ -77,7 +77,10 @@ for (const theme of ["light", "dark"] as const) {
       expect(p.fondoBoton).toBe("rgba(0, 0, 0, 0)");
       expect(p.letra).toBeGreaterThanOrEqual(4.5);
       if (p.activa) {
-        expect(p.raya?.alto).toBe(3);
+        // 3 px, con tolerancia: la raya entra animada y el alto medido puede
+        // venir con un resto de subpíxel (3,0000153 en CI el 2026-11-20, tres
+        // veces en un día y en PRs que no tocaban esta pantalla).
+        expect(p.raya?.alto).toBeCloseTo(3, 2);
         expect(p.raya!.contraste).toBeGreaterThanOrEqual(3);
       } else {
         expect(p.raya).toBeNull();

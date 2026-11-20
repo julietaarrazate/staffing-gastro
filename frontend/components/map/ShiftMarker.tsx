@@ -2,7 +2,6 @@
 
 import { memo } from "react";
 import { Marker } from "@vis.gl/react-maplibre";
-import { SKILL_ACCENT } from "@/lib/skill-style";
 import { formatArs } from "@/lib/format";
 import { SKILL_LABELS, type WorkerSkill } from "@/lib/types";
 
@@ -36,19 +35,19 @@ interface ShiftMarkerProps {
  * abrirlo— y el rubro sigue presente como punto de color, no como ícono, para
  * no volver a llenar la pastilla.
  *
- * Estados (docs/reference/MAPS_REDESIGN.md §5, ampliado):
- *   - reposo  → carbón, se lee sin pedir atención.
+ * Dirección suave (ADR-0028, maqueta `T-Mapa`, 2026-11-20): el pin es una
+ * tecla blanca con su pico (`.pin-turno` en `globals.css`) y el elegido va en
+ * azul hondo, más grande. Se fue el punto de color por rubro: el rubro lo
+ * dice el nombre accesible y la tarjeta del turno.
+ *
+ * Estados:
+ *   - reposo  → tecla blanca (de noche, azul noche), con el pago en tinta.
  *   - urgente → punto rojo pulsante: hay actividad ahora.
- *   - match   → el monto en manteca: paga por encima de lo típico para ese
- *               puesto en esa ciudad (ADR-0012). NO usa el ámbar a propósito:
- *               el ámbar significa "acá se toca" y ya es del estado activo
- *               (ley de marca, ADR-0011). Manteca es el rol de color del DATO
- *               (`globals.css`), y sobre la pastilla oscura es exactamente la
- *               receta de la regla de la tarjeta negra (COLOR_SYSTEM §3.2:
- *               "dato secundario en crema #F1E7A0").
- *   - activo  → pasa a naranja, escala y saca el "pico" hacia el punto exacto.
- *               Gana sobre match: cuál está seleccionado no puede quedar
- *               ambiguo.
+ *   - match   → una flechita verde antes del monto: paga por encima de lo
+ *               típico para ese puesto en esa ciudad (ADR-0012). No usa el
+ *               ámbar: el ámbar es de la acción de la pantalla.
+ *   - activo  → azul hondo con letra blanca y más grande. Gana sobre match:
+ *               cuál está seleccionado no puede quedar ambiguo.
  */
 function ShiftMarker({
   id,
@@ -63,8 +62,6 @@ function ShiftMarker({
   delayMs = 0,
   onClick,
 }: ShiftMarkerProps) {
-  const { fg } = SKILL_ACCENT[position];
-
   return (
     <Marker
       longitude={longitude}
@@ -85,15 +82,14 @@ function ShiftMarker({
         className="relative origin-bottom [animation:markerPop_0.45s_cubic-bezier(0.3,1.4,0.5,1)_both]"
         style={{ animationDelay: `${delayMs}ms` }}
       >
-        {/* Al tocarlo, una onda ámbar sale del pin UNA vez (se monta con
+        {/* Al tocarlo, una onda azul sale del pin UNA vez (se monta con
             `active`, así que se repite en cada selección y no queda
             latiendo): confirma "este es el que elegiste" sin quedarse
-            como ruido en el mapa. El rebote del escalado (curva con
-            overshoot) es el mismo del pop de aparición. */}
+            como ruido en el mapa. */}
         {active && (
           <span
             aria-hidden
-            className="pointer-events-none absolute -inset-1.5 rounded-full bg-primary/40 [animation:markerHalo_0.6s_ease-out_1_both]"
+            className="pin-onda pointer-events-none absolute -inset-1.5 rounded-full [animation:markerHalo_0.6s_ease-out_1_both]"
           />
         )}
         <button
@@ -106,29 +102,16 @@ function ShiftMarker({
             e.stopPropagation();
             onClick(id);
           }}
-          className={`relative flex items-center gap-1.5 rounded-full border-2 border-white px-2.5 py-1.5 text-xs font-bold tabular-nums transition-transform duration-300 ease-[cubic-bezier(0.3,1.4,0.5,1)] ${
-            active
-              ? "scale-[1.14] bg-primary text-night shadow-[var(--shadow-primary)]"
-              : "scale-100 bg-night text-white shadow-[0_4px_10px_rgba(17,17,20,0.22)]"
-          }`}
+          className="pin-turno"
         >
-          {active && (
-            <span className="absolute -bottom-[6px] left-1/2 h-2.5 w-2.5 -translate-x-1/2 rotate-45 rounded-[2px] bg-primary" />
+          {isMatch && (
+            <svg aria-hidden viewBox="0 0 10 10" width="10" height="10" className="pin-paga-mas shrink-0">
+              <path d="M5 8.5v-7M1.8 4.6 5 1.4l3.2 3.2" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           )}
-          {/* El rubro pasa a ser un punto de color en vez de un ícono: mantiene
-              la lectura por oficio sin robarle lugar al monto. Activo hereda el
-              carbón para no perder contraste sobre el naranja. */}
-          <span
-            aria-hidden
-            className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-              active ? "bg-night" : fg.replace("text-", "bg-")
-            }`}
-          />
-          <span className={!active && isMatch ? "text-manteca" : undefined}>
-            {payLabel ?? formatArs(payAmount)}
-          </span>
+          <span>{payLabel ?? formatArs(payAmount)}</span>
           {urgent && (
-            <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-danger [animation:urgentPulse_1.2s_infinite]" />
+            <span className="pin-urgente absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-danger [animation:urgentPulse_1.2s_infinite]" />
           )}
         </button>
       </div>

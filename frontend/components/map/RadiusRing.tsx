@@ -17,9 +17,11 @@ function anillo(center: [number, number], radiusKm: number): GeoJSON.Feature<Geo
 
 // Constantes de módulo: la animación re-renderiza el anillo en cada cuadro y,
 // con objetos nuevos, `Layer` volvía a comparar y reaplicar el estilo en cada uno.
-const FILL_PAINT = { "fill-color": "#d97706", "fill-opacity": 0.06 };
+// Azul hondo (dirección suave, 2026-11-20): era ámbar, y el ámbar de la
+// pantalla es el de la acción. Sólo lo usa `/map`.
+const FILL_PAINT = { "fill-color": "#2a73a3", "fill-opacity": 0.06 };
 const LINE_PAINT = {
-  "line-color": "#d97706",
+  "line-color": "#2a73a3",
   "line-opacity": 0.45,
   "line-width": 1.5,
   "line-dasharray": [2, 2],
