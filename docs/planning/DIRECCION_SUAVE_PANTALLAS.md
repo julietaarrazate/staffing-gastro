@@ -31,7 +31,7 @@ qué responde cada pantalla está en
 
 - ⬜ **Mis turnos** (`T-Mis-turnos`) · `app/my-shifts/page.tsx`, `components/ShiftCard.tsx` · antes que el Panel
 
-- ⬜ **Buscar, de quien trabaja** (`T-Buscar`) · `app/buscar/page.tsx`
+- ✅ **Buscar, de quien trabaja** (`T-Buscar`) · #PRNUM · [historial](../historial/2026-11-20-buscar-trabajador-direccion-suave.md) · quedaron afuera el buscador de texto, el conmutador lista/mapa, los chips de día y la marca «Paga más» (son funciones nuevas)
 
 - ⬜ **Chats** (`Chats`) · `app/chats/`
 

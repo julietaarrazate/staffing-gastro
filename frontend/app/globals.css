@@ -3566,6 +3566,65 @@ body:has([data-landing]) main {
   stroke: var(--color-primary-text);
 }
 
+/* ===== Buscar, de quien trabaja, con la dirección suave (2026-11-20) ===== */
+/* Un chip que filtra (`/buscar`): de vidrio sobre el cielo o suave en la
+   hoja, con 44 px de alto (lo que se toca). El elegido va en azul hondo, con
+   letra blanca (5,2 sobre el tono más claro), también de noche. */
+.chip-filtro {
+  flex: none;
+  min-height: 44px;
+  padding: 0 16px;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  transition:
+    transform 0.12s ease,
+    background-color 0.15s ease;
+}
+.chip-filtro:active {
+  transform: scale(0.96);
+}
+@media (prefers-reduced-motion: reduce) {
+  .chip-filtro {
+    transition: none;
+  }
+}
+.estilo-suave .chip-elegido,
+:root[data-theme="dark"] .estilo-suave .chip-elegido {
+  background: var(--suave-elegido);
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(28, 84, 120, 0.28);
+}
+/* La fila de un turno (`components/worker/OportunidadFila.tsx`): la miniatura
+   de 72 px (56 cuando la fila es angosta), el pago en grande y la marca
+   chica al final del renglón. */
+.fila-buscar {
+  container-type: inline-size;
+}
+.fila-buscar-foto {
+  width: 56px;
+  height: 56px;
+}
+@container (min-width: 20rem) {
+  .fila-buscar-foto {
+    width: 72px;
+    height: 72px;
+  }
+}
+.fila-buscar-pago {
+  /* El tope en vw es para la letra al 200 %: un monto de siete cifras entra a 320 px. */
+  font-size: min(1.1875rem, 11vw);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.chip-suave.fila-buscar-marca {
+  padding: 3px 8px;
+  font-size: 0.71875rem;
+  white-space: nowrap;
+}
+
 /* ===== Candidatos y «¡Oído!» con la dirección suave (2026-11-20) ===== */
 /* El título de una sección de la hoja. */
 .titulo-seccion {
