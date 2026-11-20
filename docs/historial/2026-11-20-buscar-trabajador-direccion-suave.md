@@ -1,4 +1,4 @@
-# Buscar, de quien trabaja, con la dirección suave (#PRNUM)
+# Buscar, de quien trabaja, con la dirección suave (#702)
 
 **Pedido:** Julieta, 2026-11-20, tanda de tres pantallas en paralelo (Mis
 turnos, Buscar de quien trabaja y Chats) para seguir la migración a la
