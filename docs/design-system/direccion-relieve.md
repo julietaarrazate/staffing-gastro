@@ -414,7 +414,7 @@ el cielo de día o el hondo.
 | Candidatos | ¿A quién elijo? | Corto | La recomendada como tarjeta de foto con el nombre encima |
 | «¡Oído!» | Listo | Entero, sin hoja | El único momento de marca: la cinta y las dos fotos |
 
-Lo que la prueba cambia de lo ya decidido (hay que decidirlo de nuevo):
+Lo que la prueba cambia de lo ya decidido (hay que decidirlo de nuevo). **El 2026-11-20 Julieta decidió el 1 y el 3: van como en la prueba** (más el encabezado sin franja y, aparte, Buscar y Mapa en una pestaña; ver [`planning/DIRECCION_SUAVE_PANTALLAS.md`](../planning/DIRECCION_SUAVE_PANTALLAS.md)):
 
 1. **Barra de abajo:** flota sobre la hoja, blanca y con sombra difusa (la
    decidida el 2026-11-19 va pegada al borde con una raya azul).
