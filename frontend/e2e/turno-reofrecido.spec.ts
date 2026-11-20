@@ -145,7 +145,11 @@ test("Mis turnos: por hora hasta que llego, y después el monto que quedó fijo"
   await expect(tarjeta).toContainText("$10.000");
   await expect(tarjeta).toContainText("por hora");
   await expect(tarjeta).toContainText("Ya empezó · se paga desde que llegás");
-  await expect(tarjeta).toContainText(`Ya empezó · hasta las ${hhmm(confirmado.end_at)}`);
+  // En la tarjeta de hoy (dirección suave) «Ya empezó» va arriba del puesto y
+  // el «hasta» en su chip.
+  const deHoy = page.locator('[data-turno="destacado"]');
+  await expect(deHoy.locator(".app-cielo p").first()).toHaveText("Ya empezó");
+  await expect(deHoy).toContainText(`hasta las ${hhmm(confirmado.end_at)}`);
   await expect(tarjeta).not.toContainText("$40.000");
 
   // Marcó la llegada: el backend fijó el monto y ya no manda el valor por hora.

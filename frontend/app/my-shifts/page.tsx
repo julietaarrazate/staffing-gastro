@@ -10,7 +10,8 @@ import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { useTapGuard } from "@/lib/use-tap-guard";
-import { formatShiftStartPhrase } from "@/lib/datetime";
+import { formatShiftStartPhrase, isTodayInArgentina } from "@/lib/datetime";
+import { claveDiaArgentina, semanaArgentina } from "@/lib/semana";
 import { autoFinishWorkerNote } from "@/lib/shift-next-step";
 import { Shift, ShiftApplication, WorkerProfile } from "@/lib/types";
 import { getCurrentPosition } from "@/lib/geolocation";
@@ -19,20 +20,19 @@ import {
   originFor,
   type CurrentLocation,
 } from "@/lib/current-location";
-import { LETRAS_APP } from "@/lib/letras";
-import ShiftCard from "@/components/ShiftCard";
+import TurnoSuave from "@/components/worker/TurnoSuave";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import ReviewBox from "@/components/ReviewBox";
 import EnRouteToggle from "@/components/worker/EnRouteToggle";
 import { ShiftCoveredIllustration } from "@/components/illustrations";
 import dynamic from "next/dynamic";
 import {
-  BOTON_LISO,
   Button,
   CardSkeletons,
   EmptyState,
   ErrorBanner,
   Modal,
+  NubesCielo,
   SegmentedControl,
   useToast,
 } from "@/components/ui";
@@ -79,6 +79,12 @@ function closedShiftLabel(status: string): string {
 
 // Estados terminados: en «Asignados» van aparte, debajo de lo que hay que hacer (U066).
 const FINISHED_STATUSES = ["finalizado", "pagado", "cancelado", "no_cubierto"];
+// Ya en marcha: va en la tarjeta de hoy aunque haya empezado ayer (un turno
+// de noche que cruza la medianoche).
+const EN_MARCHA_STATUSES = ["en_camino", "check_in", "trabajando"];
+// Lo que no es la acción de la pantalla: relleno suave y letra azul hondo
+// (`.boton-quieto`, ADR-0028). El único ámbar es el de la tarjeta de hoy.
+const QUIETO = "boton-quieto";
 
 const CONFIRM_COPY = {
   reject: { title: "¿Rechazar este turno?", yes: "Sí, rechazar" },
@@ -98,7 +104,7 @@ function confirmCopy(path: "reject" | "worker-cancel" | "check-out"): string {
 export default function MatchesPage() {
   // `useSearchParams` pide Suspense en las rutas prerenderizadas.
   return (
-    <Suspense fallback={<div className="app-container px-4 pb-10 pt-6" />}>
+    <Suspense fallback={<div className="mx-auto max-w-md px-4 pb-10 pt-6 md:max-w-5xl" />}>
       <MatchesContent />
     </Suspense>
   );
@@ -456,162 +462,197 @@ function MatchesContent() {
     });
   }, []);
 
-  function renderAssigned(shift: Shift) {
+  function renderAssigned(shift: Shift, destacado = false) {
+    const fase = arrivalPhase(shift);
+    const size = destacado ? "md" : "sm";
+    // Un solo ámbar por pantalla: el de la tarjeta de hoy. En una fila, la
+    // misma acción va quieta.
+    const accion = (activa = true) =>
+      destacado && activa
+        ? ({ variant: "primary", className: "flex-1" } as const)
+        : ({ variant: "surface", className: destacado ? `${QUIETO} flex-1` : QUIETO } as const);
     return (
       <div
         key={shift.id}
         id={`turno-${shift.id}`}
-        // El anillo del turno resaltado (`?turno=`) va despegado del papel:
-        // pegado, quedaba encimado al relieve de la comanda.
-        className={`scroll-mt-24 rounded-[2px] transition-shadow motion-reduce:transition-none ${
-          highlightId === shift.id ? "ring-2 ring-primary-text ring-offset-8 ring-offset-background" : ""
-        }`}
+        // El anillo del turno resaltado (`?turno=`), despegado de la tarjeta.
+        className={`scroll-mt-24 transition-shadow motion-reduce:transition-none ${
+          destacado ? "rounded-[24px]" : "rounded-[18px]"
+        } ${highlightId === shift.id ? "ring-2 ring-primary-text ring-offset-4 ring-offset-card" : ""}`}
       >
-              <ShiftCard shift={shift} perspective="worker" comanda>
-                {shift.status !== "cancelado" && (
-                  <div className="mb-2 flex flex-wrap gap-2">
-                    <Link
-                      href={`/chats/${shift.id}`}
-                      className={`${BOTON_LISO} px-3 py-1.5 text-sm`}
-                    >
-                      <MessageIcon size={16} /> Chatear
-                    </Link>
-                  </div>
-                )}
-                {shift.status === "asignado" && (
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => act(shift.id, "confirm")}
-                      loading={busy === `${shift.id}:confirm`}
-                      disabled={busy !== null}
-                    >
-                      Confirmar
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="surface"
-                      onClick={() => pedirConfirmacion(shift.id, "reject")}
-                      loading={busy === `${shift.id}:reject`}
-                      disabled={busy !== null || tapGuard.locked}
-                    >
-                      Rechazar
-                    </Button>
-                  </div>
-                )}
-                {shift.status === "confirmado" && (
-                  <div className="flex flex-wrap gap-2">
-                    {/* ADR-0008: antes eran 4 toques (salir → llegada →
-                        empezar a trabajar → salida) — el paso "Salir hacia
-                        el turno" no sumaba nada real y bajaba la adhesión
-                        (gente que sí llegaba pero se olvidaba de tocarlo).
-                        "Llegué" marca la ubicación real directo. */}
-                    <Button
-                      size="sm"
-                      variant={arrivalPhase(shift) === "llegada" ? "primary" : "surface"}
-                      onClick={() => void tapGuard.run(() => act(shift.id, "check-in", true))}
-                      leftIcon={<MapPinIcon size={16} />}
-                      loading={busy === `${shift.id}:check-in`}
-                      disabled={busy !== null || tapGuard.locked || arrivalPhase(shift) !== "llegada"}
-                    >
-                      Llegué
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="surface"
-                      onClick={() => pedirConfirmacion(shift.id, "worker-cancel")}
-                      leftIcon={<CloseIcon size={16} />}
-                      loading={busy === `${shift.id}:worker-cancel`}
-                      disabled={busy !== null || tapGuard.locked}
-                    >
-                      Cancelar mi asignación
-                    </Button>
-                  </div>
-                )}
-                {shift.status === "confirmado" && arrivalPhase(shift) !== "llegada" && (
-                  <p className="mt-2 text-xs text-ink/60">Se habilita 30 min antes del turno.</p>
-                )}
-                {/* "Va en camino": debajo de "Llegué" y sólo con el turno
-                    confirmado. El backend además exige estar dentro de las 2h
-                    previas al inicio, así que en un turno de mañana el botón
-                    devuelve el error explicando desde cuándo se puede. */}
-                {shift.status === "confirmado" && (
-                  <EnRouteToggle
-                    shiftId={shift.id}
-                    token={token}
-                    prominent={arrivalPhase(shift) === "en_camino"}
-                    lastSharedAt={shift.en_route_at}
-                    onSharingChange={(on) => setEnRouteSharing(shift.id, on)}
-                  />
-                )}
-                {/* Legacy (ADR-0008): turnos que ya estaban "en camino" al
-                    desplegar el cambio siguen pudiendo marcar llegada acá —
-                    ya no es un paso que se ofrezca de entrada. */}
-                {shift.status === "en_camino" && (
-                  <Button
-                    size="sm"
-                    onClick={() => void tapGuard.run(() => act(shift.id, "check-in", true))}
-                    leftIcon={<MapPinIcon size={16} />}
-                    loading={busy === `${shift.id}:check-in`}
-                    disabled={busy !== null || tapGuard.locked}
-                  >
-                    Marcar llegada
-                  </Button>
-                )}
-                {shift.status === "check_in" &&
-                  (new Date(shift.start_at) > now ? (
-                    // Llegó temprano: la salida no tiene sentido antes de
-                    // que empiece el turno (el servidor también la rechaza).
-                    <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-success-text">
-                      <CheckIcon size={16} /> Llegada marcada · el turno empieza{" "}
-                      {formatShiftStartPhrase(shift.start_at, now)}
-                    </p>
-                  ) : (
-                    <Button
-                      size="sm"
-                      onClick={() => pedirConfirmacion(shift.id, "check-out")}
-                      leftIcon={<MapPinIcon size={16} />}
-                      loading={busy === `${shift.id}:check-out`}
-                      disabled={busy !== null || tapGuard.locked}
-                    >
-                      Me fui
-                    </Button>
-                  ))}
-                {/* Legacy (ADR-0008): idem, para turnos ya en "trabajando". */}
-                {shift.status === "trabajando" && (
-                  <Button
-                    size="sm"
-                    onClick={() => pedirConfirmacion(shift.id, "check-out")}
-                    leftIcon={<MapPinIcon size={16} />}
-                    loading={busy === `${shift.id}:check-out`}
-                    disabled={busy !== null || tapGuard.locked}
-                  >
-                    Marcar salida
-                  </Button>
-                )}
-                {shift.status === "check_out" && (
-                  // ink/60 como la línea de estado del panel: con el plazo es
-                  // información que la persona tiene que poder leer bien.
-                  <p className="text-sm text-ink/60">
-                    {autoFinishWorkerNote(shift.check_out_at, now)}
-                  </p>
-                )}
-                {(shift.status === "finalizado" || shift.status === "pagado") && (
-                  <div className="flex flex-col gap-2">
-                    <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-success-text">
-                      <CheckIcon size={16} /> {shift.status === "pagado" ? "Turno pagado" : "Turno finalizado"}
-                    </p>
-                    <ReviewBox shiftId={shift.id} />
-                  </div>
-                )}
-              </ShiftCard>
+        <TurnoSuave shift={shift} destacado={destacado}>
+          <div className="flex flex-wrap gap-2">
+            {shift.status !== "cancelado" && (
+              <Link
+                href={`/chats/${shift.id}`}
+                className={`boton ${QUIETO} inline-flex items-center justify-center gap-1.5 font-semibold transition active:scale-95 ${
+                  destacado ? "min-h-[48px] px-4 text-body" : "min-h-[40px] px-3 text-sm"
+                }`}
+              >
+                <MessageIcon size={destacado ? 18 : 16} /> Chatear
+              </Link>
+            )}
+            {shift.status === "asignado" && (
+              <>
+                <Button
+                  size={size}
+                  variant="secondary"
+                  className={destacado ? "flex-1" : undefined}
+                  onClick={() => act(shift.id, "confirm")}
+                  loading={busy === `${shift.id}:confirm`}
+                  disabled={busy !== null}
+                >
+                  Confirmar
+                </Button>
+                <Button
+                  size={size}
+                  variant="surface"
+                  className={QUIETO}
+                  onClick={() => pedirConfirmacion(shift.id, "reject")}
+                  loading={busy === `${shift.id}:reject`}
+                  disabled={busy !== null || tapGuard.locked}
+                >
+                  Rechazar
+                </Button>
+              </>
+            )}
+            {shift.status === "confirmado" && (
+              <>
+                {/* ADR-0008: antes eran 4 toques (salir → llegada →
+                    empezar a trabajar → salida) — el paso "Salir hacia
+                    el turno" no sumaba nada real y bajaba la adhesión
+                    (gente que sí llegaba pero se olvidaba de tocarlo).
+                    "Llegué" marca la ubicación real directo. */}
+                <Button
+                  size={size}
+                  {...accion(fase === "llegada")}
+                  onClick={() => void tapGuard.run(() => act(shift.id, "check-in", true))}
+                  leftIcon={<MapPinIcon size={16} />}
+                  loading={busy === `${shift.id}:check-in`}
+                  disabled={busy !== null || tapGuard.locked || fase !== "llegada"}
+                >
+                  Llegué
+                </Button>
+                <Button
+                  size="sm"
+                  variant="surface"
+                  className={`${QUIETO} ${destacado ? "min-h-[48px]" : ""}`}
+                  onClick={() => pedirConfirmacion(shift.id, "worker-cancel")}
+                  leftIcon={<CloseIcon size={16} />}
+                  loading={busy === `${shift.id}:worker-cancel`}
+                  disabled={busy !== null || tapGuard.locked}
+                >
+                  Cancelar mi asignación
+                </Button>
+              </>
+            )}
+            {/* Legacy (ADR-0008): turnos que ya estaban "en camino" al
+                desplegar el cambio siguen pudiendo marcar llegada acá —
+                ya no es un paso que se ofrezca de entrada. */}
+            {shift.status === "en_camino" && (
+              <Button
+                size={size}
+                {...accion()}
+                onClick={() => void tapGuard.run(() => act(shift.id, "check-in", true))}
+                leftIcon={<MapPinIcon size={16} />}
+                loading={busy === `${shift.id}:check-in`}
+                disabled={busy !== null || tapGuard.locked}
+              >
+                Marcar llegada
+              </Button>
+            )}
+            {/* Llegó temprano: la salida no tiene sentido antes de que
+                empiece el turno (el servidor también la rechaza). */}
+            {shift.status === "check_in" && new Date(shift.start_at) <= now && (
+              <Button
+                size={size}
+                {...accion()}
+                onClick={() => pedirConfirmacion(shift.id, "check-out")}
+                leftIcon={<MapPinIcon size={16} />}
+                loading={busy === `${shift.id}:check-out`}
+                disabled={busy !== null || tapGuard.locked}
+              >
+                Me fui
+              </Button>
+            )}
+            {/* Legacy (ADR-0008): idem, para turnos ya en "trabajando". */}
+            {shift.status === "trabajando" && (
+              <Button
+                size={size}
+                {...accion()}
+                onClick={() => pedirConfirmacion(shift.id, "check-out")}
+                leftIcon={<MapPinIcon size={16} />}
+                loading={busy === `${shift.id}:check-out`}
+                disabled={busy !== null || tapGuard.locked}
+              >
+                Marcar salida
+              </Button>
+            )}
+          </div>
+          {shift.status === "confirmado" && fase !== "llegada" && (
+            <p className="mt-2 text-xs text-ink-soft">Se habilita 30 min antes del turno.</p>
+          )}
+          {/* "Va en camino": debajo de "Llegué" y sólo con el turno
+              confirmado. El backend además exige estar dentro de las 2h
+              previas al inicio, así que en un turno de mañana el botón
+              devuelve el error explicando desde cuándo se puede. */}
+          {shift.status === "confirmado" && (
+            <EnRouteToggle
+              shiftId={shift.id}
+              token={token}
+              prominent={destacado && fase === "en_camino"}
+              lastSharedAt={shift.en_route_at}
+              onSharingChange={(on) => setEnRouteSharing(shift.id, on)}
+            />
+          )}
+          {shift.status === "check_in" && new Date(shift.start_at) > now && (
+            <p className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-success-text">
+              <CheckIcon size={16} /> Llegada marcada · el turno empieza{" "}
+              {formatShiftStartPhrase(shift.start_at, now)}
+            </p>
+          )}
+          {shift.status === "check_out" && (
+            // Con el plazo es información que la persona tiene que poder leer bien.
+            <p className="mt-2 text-sm text-ink-soft">{autoFinishWorkerNote(shift.check_out_at, now)}</p>
+          )}
+          {(shift.status === "finalizado" || shift.status === "pagado") && (
+            <div className="mt-2 flex flex-col gap-2">
+              <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-success-text">
+                <CheckIcon size={16} /> {shift.status === "pagado" ? "Turno pagado" : "Turno finalizado"}
+              </p>
+              <ReviewBox shiftId={shift.id} />
+            </div>
+          )}
+        </TurnoSuave>
       </div>
     );
   }
 
   const activeShifts = shifts.filter((s) => !FINISHED_STATUSES.includes(s.status));
   const finishedShifts = shifts.filter((s) => FINISHED_STATUSES.includes(s.status));
+  // La tarjeta de hoy lleva su propio cielo y el único ámbar. Es, en orden:
+  // 1. el turno en marcha (si hubiera dos, el que empezó último);
+  // 2. si no, el próximo por empezar: el primero de los asignados o
+  //    confirmados que empiezan hoy o a los que ya se puede avisar «voy en
+  //    camino» (uno de la madrugada, visto a las 23:30).
+  // Queda afuera lo que no tiene acción ahora: la salida ya marcada
+  // (`check_out`) y un turno sin confirmar o sin llegada que empezó hace más
+  // de 2 h (el servidor lo cierra solo a esa altura).
+  const porInicio = (a: Shift, b: Shift) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime();
+  const enMarcha = activeShifts.filter((s) => EN_MARCHA_STATUSES.includes(s.status)).sort(porInicio);
+  const porEmpezar = activeShifts
+    .filter((s) => {
+      if (s.status !== "asignado" && s.status !== "confirmado") return false;
+      const faltan = new Date(s.start_at).getTime() - now.getTime();
+      if (faltan < -EN_ROUTE_WINDOW_MS) return false;
+      return isTodayInArgentina(s.start_at, now) || faltan <= EN_ROUTE_WINDOW_MS;
+    })
+    .sort(porInicio);
+  const turnoDeHoy = enMarcha[enMarcha.length - 1] ?? porEmpezar[0] ?? null;
+  const otrosActivos = activeShifts.filter((s) => s.id !== turnoDeHoy?.id);
+  // La semana del cielo: hoy y los días con un turno por hacer.
+  const semana = semanaArgentina(now);
+  const diasConTurno = new Set(activeShifts.map((s) => claveDiaArgentina(s.start_at)));
 
   // Postulaciones pendientes: las que todavía no se volvieron un turno asignado.
   const pending = applications.filter((a) => a.status === "pendiente");
@@ -624,17 +665,46 @@ function MatchesContent() {
     .filter((s): s is Shift => s !== undefined);
 
   return (
-    // Desde el 2026-11-18 con la dirección «con relieve»
-    // (docs/design-system/direccion-relieve.md): el encabezado sobre la banda
-    // azul hondo con el título en brocha, y cada turno como comanda de papel
-    // (`ShiftCard comanda`). La lógica no cambió.
-    <div className={`${LETRAS_APP} app-container px-4 pb-10 md:pt-4`}>
-      <div className="app-banda -mx-4 px-4 pb-6 pt-5 md:mx-0 md:px-6">
-        <h1 className="letra-cartel letra-cartel-pantalla letra-cartel-sobre-banda break-words">Matches</h1>
-        <p className="mt-1 text-sm opacity-90">Tus turnos asignados, postulaciones y guardados.</p>
+    // Desde el 2026-11-20 con la dirección suave (ADR-0028, maqueta
+    // `T-Mis-turnos`): un cielo medio con la semana (hoy y los días con
+    // turno), y debajo la hoja con las pestañas; el turno de hoy es una
+    // tarjeta con su propio cielo y los cuatro pasos, y los demás son filas
+    // (`worker/TurnoSuave`). Del 2026-11-18 al 20 fue «con relieve» (título
+    // en brocha sobre la banda azul y cada turno como comanda). La lógica y
+    // las acciones no cambiaron.
+    <div className="estilo-suave mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col md:min-h-[calc(100dvh-var(--chrome-top))] md:max-w-5xl md:px-4 md:pt-4">
+      <div className="app-cielo cielo-limpio px-5 pb-11 pt-5 md:rounded-t-[28px] md:px-6 md:pt-6">
+        {/* Una sola nube, que asoma por arriba. No se sale por el costado
+            (ni cuando deriva): `overflow-audit` mide cada elemento contra el
+            ancho de la pantalla. */}
+        <NubesCielo nubes={[{ forma: "a", ancho: 190, pos: { right: 24, top: -52 } }]} />
+        <h1 className="titulo-pantalla break-words">Matches</h1>
+        {/* eslint-disable-next-line jsx-a11y/no-redundant-roles -- sin viñetas, Safari le saca el rol de lista */}
+        <ol role="list" aria-label="Esta semana" className="mt-4 grid grid-cols-7 text-center md:max-w-md">
+          {semana.map((d) => {
+            const conTurno = diasConTurno.has(d.clave);
+            return (
+              <li key={d.clave} data-dia={d.clave} className="flex flex-col items-center gap-1">
+                <span aria-hidden className={`text-xs ${d.esHoy ? "font-bold" : "font-semibold"}`}>
+                  {d.corto}
+                </span>
+                <span aria-hidden className={`dia-cielo ${d.esHoy ? "dia-cielo-hoy" : ""}`}>
+                  {d.numero}
+                </span>
+                {conTurno && <span aria-hidden data-con-turno className="dia-cielo-punto" />}
+                <span className="sr-only">
+                  {d.largo} {d.numero}
+                  {d.esHoy && ", hoy"}
+                  {conTurno && ", con turno"}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
       </div>
 
-      <div className="mt-4">
+      {/* La hoja sube 28 px sobre el cielo y lleva todo lo que se toca. */}
+      <div className="hoja -mt-7 flex-1 px-4 pb-10 pt-2 md:px-6">
         <SegmentedControl
           value={tab}
           onChange={(next) => {
@@ -654,7 +724,6 @@ function MatchesContent() {
             { value: "guardados", label: "Guardados", count: savedShifts.length },
           ]}
         />
-      </div>
 
       {loading && <CardSkeletons />}
       {error && <ErrorBanner message={error} onRetry={() => load()} />}
@@ -673,9 +742,16 @@ function MatchesContent() {
                 {/* Oculto: los puestos de las comandas son h3 y no tienen que
                     saltar desde el h1. */}
                 <h2 className="sr-only">Asignados</h2>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {activeShifts.map(renderAssigned)}
-                </div>
+                {turnoDeHoy && <div className="md:max-w-xl">{renderAssigned(turnoDeHoy, true)}</div>}
+                {otrosActivos.length > 0 && (
+                  <div
+                    className={`grid grid-cols-1 items-start gap-3 md:grid-cols-2 xl:grid-cols-3 ${
+                      turnoDeHoy ? "mt-3" : ""
+                    }`}
+                  >
+                    {otrosActivos.map((s) => renderAssigned(s))}
+                  </div>
+                )}
               </>
             )
           )}
@@ -684,14 +760,12 @@ function MatchesContent() {
           {finishedShifts.length > 0 && (
             <>
               <h2
-                className={`mb-3 text-sm font-semibold uppercase tracking-wide text-ink-soft ${
-                  activeShifts.length > 0 ? "mt-8" : ""
-                }`}
+                className={`titulo-seccion mb-3 ${activeShifts.length > 0 ? "mt-8" : ""}`}
               >
                 Terminados
               </h2>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {finishedShifts.map(renderAssigned)}
+              <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {finishedShifts.map((s) => renderAssigned(s))}
               </div>
             </>
           )}
@@ -709,16 +783,16 @@ function MatchesContent() {
           ) : (
             <>
             <h2 className="sr-only">Postulaciones</h2>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
             {pending.map((application) => {
               const shift = appShifts[application.shift_id];
               if (!shift) return null;
               const isOpen = OPEN_SHIFT_STATUSES.includes(shift.status);
               return (
-                <ShiftCard key={application.id} shift={shift} perspective="worker" comanda>
+                <TurnoSuave key={application.id} shift={shift}>
                   {isOpen ? (
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="inline-flex items-center gap-1.5 rounded-full bg-primary-tint px-3 py-1.5 text-sm font-semibold text-primary-text">
+                      <p className="chip-suave text-primary-text">
                         <ClockIcon size={15} /> {APPLICATION_LABELS[application.status]}
                       </p>
                       {/* Compartir a un colega: este turno sigue abierto, pasarlo
@@ -728,6 +802,7 @@ function MatchesContent() {
                       <Button
                         size="sm"
                         variant="surface"
+                        className={QUIETO}
                         leftIcon={<CloseIcon size={16} />}
                         onClick={() => void tapGuard.run(() => setConfirmWithdrawId(application.id))}
                         loading={withdrawing === application.id}
@@ -741,12 +816,13 @@ function MatchesContent() {
                     // Sin compartir (nadie puede postularse) y con una sola
                     // acción: sacarlo de la lista.
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-sm font-semibold text-ink/70 ring-1 ring-line">
+                      <p className="chip-suave text-ink-soft">
                         <CloseIcon size={15} /> {closedShiftLabel(shift.status)}
                       </p>
                       <Button
                         size="sm"
                         variant="surface"
+                        className={QUIETO}
                         onClick={() => void tapGuard.run(() => withdrawApplication(application.id))}
                         loading={withdrawing === application.id}
                         disabled={withdrawing !== null || tapGuard.locked}
@@ -755,7 +831,7 @@ function MatchesContent() {
                       </Button>
                     </div>
                   )}
-                </ShiftCard>
+                </TurnoSuave>
               );
             })}
             </div>
@@ -783,11 +859,8 @@ function MatchesContent() {
                   <button
                     type="button"
                     onClick={() => (compareMode ? exitCompareMode() : setCompareMode(true))}
-                    className={`inline-flex min-h-[40px] items-center gap-1.5 rounded-[var(--radius-relieve)] px-3 py-1.5 text-sm font-semibold ring-1 transition active:scale-95 ${
-                      compareMode
-                        ? "bg-primary/10 text-primary-text ring-primary/30"
-                        : "bg-card text-ink ring-line hover:bg-surface"
-                    }`}
+                    aria-pressed={compareMode}
+                    className={`boton ${QUIETO} inline-flex min-h-[40px] items-center gap-1.5 px-3 py-1.5 text-sm font-semibold transition active:scale-95`}
                   >
                     <ScaleIcon size={14} />
                     {compareMode ? "Cancelar comparación" : "Comparar"}
@@ -796,7 +869,7 @@ function MatchesContent() {
               )}
 
               <h2 className="sr-only">Guardados</h2>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {savedShifts.map((shift) => {
                   const selected = selectedForCompare.includes(shift.id);
                   return (
@@ -808,21 +881,25 @@ function MatchesContent() {
                           disabled={!selected && selectedForCompare.length >= MAX_COMPARE}
                           aria-pressed={selected}
                           aria-label={selected ? "Sacar de la comparación" : "Sumar a la comparación"}
-                          // Arriba a la derecha, por fuera del papel: adentro
-                          // tapaba el sello «Urgente» de la comanda.
+                          // Arriba a la derecha, por fuera de la fila: adentro
+                          // tapaba el estado.
                           className={`absolute -right-2 -top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full ring-2 ring-card transition disabled:opacity-40 ${
-                            // Sin elegir va con borde azul: afuera del papel,
-                            // sobre el lienzo, el círculo blanco no se veía.
+                            // Sin elegir va con borde azul: sobre la hoja, el
+                            // círculo blanco no se veía.
                             selected ? "bg-primary-text text-card" : "bg-card text-ink/40 ring-primary-text"
                           }`}
                         >
                           {selected ? <CheckIcon size={14} /> : null}
                         </button>
                       )}
-                      <ShiftCard shift={shift} perspective="worker" showLifecycle={false} comanda>
+                      <TurnoSuave shift={shift} showLifecycle={false}>
                         <div className="flex flex-wrap items-center gap-2">
+                          {/* Quieto: con un «Postularme» ámbar por fila, la
+                              pantalla tenía tantos ámbar como guardados. */}
                           <Button
                             size="sm"
+                            variant="surface"
+                            className={QUIETO}
                             onClick={() => applyToSavedShift(shift)}
                             loading={applyingSaved === shift.id}
                             disabled={applyingSaved !== null || unsaving !== null}
@@ -833,6 +910,7 @@ function MatchesContent() {
                           <Button
                             size="sm"
                             variant="surface"
+                            className={QUIETO}
                             leftIcon={<CloseIcon size={16} />}
                             onClick={() => unsaveShift(shift.id)}
                             loading={unsaving === shift.id}
@@ -841,7 +919,7 @@ function MatchesContent() {
                             Quitar de guardados
                           </Button>
                         </div>
-                      </ShiftCard>
+                      </TurnoSuave>
                     </div>
                   );
                 })}
@@ -851,13 +929,15 @@ function MatchesContent() {
         </div>
       )}
 
+      </div>
+
       {/* Barra flotante de comparación: aparece recién con 2+ elegidos (un
           turno solo no compara contra nada). Fija sobre el bottom nav
           (z-40, mismo nivel que otros overlays flotantes de la app). */}
       {compareMode && selectedForCompare.length >= 2 && (
         <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-40 flex justify-center px-4 md:bottom-4">
           <Button
-            // Un solo ámbar por pantalla: «Postularme» ya lo es; este va neutro.
+            // Neutro: el ámbar queda para la acción del turno de hoy.
             variant="surface"
             leftIcon={<ScaleIcon size={16} />}
             onClick={() => {

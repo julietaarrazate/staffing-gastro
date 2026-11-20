@@ -11,7 +11,7 @@ import { ChatMessage, SKILL_LABELS, Shift } from "@/lib/types";
 import { CheckCheckIcon, CheckIcon, ChevronLeftIcon } from "@/components/icons";
 import { formatShiftTime } from "@/lib/datetime";
 import { Avatar, ErrorBanner, MessageBubble, Skeleton } from "@/components/ui";
-import { useConversation, useConversationsControl } from "../ConversationsContext";
+import { shiftLabel, useConversation, useConversationsControl } from "../ConversationsContext";
 import { LIMITES } from "@/lib/limites";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 
@@ -48,7 +48,7 @@ export default function ConversationPage() {
     null
   );
   const conversation = listed
-    ? { name: listed.other_party_name, title: listed.shift_title, photo: listed.other_party_photo }
+    ? { name: listed.other_party_name, title: shiftLabel(listed.shift_title), photo: listed.other_party_photo }
     : fromShift;
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -180,103 +180,112 @@ export default function ConversationPage() {
   }
 
   return (
-    <div className="flex h-full flex-1 flex-col px-4 py-4">
+    <div className="flex h-full min-h-0 flex-1 flex-col">
       {/* Encabezado: con quién y de qué turno (auditoría visual 2026-09-24).
-          Antes el hilo arrancaba sin decirlo, y en md+ la única pista era el
-          ítem marcado en la lista de al lado. El "volver" sólo hace falta en
-          mobile: en md+ la lista ya queda fija al costado (ver layout.tsx). */}
-      <div className="flex items-center gap-3">
+          En el celular es el cielo corto de la pantalla, con la vuelta en un
+          botón de vidrio; en la compu la lista ya queda fija al costado (ver
+          layout.tsx), así que va sobre la hoja, sin vuelta y con una raya
+          debajo (`.cielo-celular` apaga el cielo desde `md`). */}
+      <div className="app-cielo cielo-limpio cielo-celular flex shrink-0 items-center gap-3 px-4 pb-10 pt-3 md:border-b md:border-line md:px-5 md:py-3.5">
         <Link
           href="/chats"
           aria-label="Volver a mensajes"
-          className="-ml-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-ink/60 hover:bg-surface md:hidden"
+          className="boton-vidrio h-11 w-11 shrink-0"
         >
           <ChevronLeftIcon size={20} />
         </Link>
         {conversation && (
           <>
-            <Avatar src={conversation.photo} name={conversation.name} size="sm" />
+            <Avatar src={conversation.photo} name={conversation.name} size="md" />
             <div className="min-w-0">
-              <p className="truncate text-body font-semibold text-ink">{conversation.name}</p>
-              <p className="truncate text-caption text-ink/50">{conversation.title}</p>
+              <p className="truncate text-h3 font-extrabold leading-tight">
+                {conversation.name}
+              </p>
+              <p className="mt-0.5 truncate text-caption font-semibold">{conversation.title}</p>
             </div>
           </>
         )}
       </div>
 
-      <div className="mt-3 flex-1 space-y-2 overflow-y-auto rounded-2xl bg-surface p-4 ring-1 ring-line">
-        {loading && <ChatBubblesSkeleton />}
-        {!loading && error && <ErrorBanner message={error} onRetry={load} />}
-        {!loading && messages.length === 0 && !error && (
-          <p className="text-center text-sm text-ink/40">
-            Todavía no hay mensajes. ¡Escribí el primero!
+      {/* La hoja sube sobre el cielo (en la compu ya es la del layout). */}
+      <div className="hoja-celular -mt-7 flex min-h-0 flex-1 flex-col md:mt-0">
+        <div className="flex-1 space-y-2 overflow-y-auto px-4 pb-2 pt-5 md:px-5">
+          {loading && <ChatBubblesSkeleton />}
+          {!loading && error && <ErrorBanner message={error} onRetry={load} />}
+          {!loading && messages.length === 0 && !error && (
+            <p className="pt-2 text-center text-sm text-ink-soft">
+              Todavía no hay mensajes. ¡Escribí el primero!
+            </p>
+          )}
+          {messages.map((m) => {
+            const mine = m.sender_user_id === user?.id;
+            return (
+              <MessageBubble
+                key={m.id}
+                mine={mine}
+                meta={
+                  <>
+                    {formatShiftTime(m.created_at)}
+                    {mine &&
+                      (m.read ? (
+                        <CheckCheckIcon size={13} aria-label="Visto" />
+                      ) : (
+                        <CheckIcon size={13} aria-label="Enviado" />
+                      ))}
+                  </>
+                }
+              >
+                {m.body}
+              </MessageBubble>
+            );
+          })}
+          <div ref={bottomRef} />
+        </div>
+
+        {token && wsStatus !== "open" && (
+          <div className="mt-2 flex justify-center px-4">
+            <span className="chip-suave !text-xs !text-ink-soft">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-ink-soft" />
+              Reconectando...
+            </span>
+          </div>
+        )}
+
+        {sendError && (
+          <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 px-4 text-xs font-medium text-danger-text md:px-5">
+            {sendError}
+            <button
+              type="button"
+              onClick={sendMessage}
+              className="font-semibold underline decoration-danger/40 underline-offset-2 hover:opacity-80"
+            >
+              Reintentar
+            </button>
           </p>
         )}
-        {messages.map((m) => {
-          const mine = m.sender_user_id === user?.id;
-          return (
-            <MessageBubble
-              key={m.id}
-              mine={mine}
-              meta={
-                <>
-                  {formatShiftTime(m.created_at)}
-                  {mine &&
-                    (m.read ? (
-                      <CheckCheckIcon size={13} aria-label="Visto" />
-                    ) : (
-                      <CheckIcon size={13} aria-label="Enviado" />
-                    ))}
-                </>
-              }
+
+        {/* Donde se escribe: el campo con relleno y «Enviar», la única acción
+            (el único ámbar de la pantalla). */}
+        {!unavailable && (
+          <form onSubmit={send} className="flex gap-2 px-4 pb-3 pt-2.5 md:px-5 md:pb-4">
+            <input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="Escribí un mensaje..."
+              aria-label="Mensaje"
+              maxLength={LIMITES.mensajeChat}
+              className="campo h-12 min-w-0 flex-1 px-4 text-body text-ink"
+            />
+            <button
+              type="submit"
+              disabled={sending || !draft.trim()}
+              className="boton-relieve flex h-12 shrink-0 items-center justify-center bg-primary px-5 text-sm font-bold text-night hover:bg-primary-strong disabled:bg-surface disabled:text-ink-mute"
             >
-              {m.body}
-            </MessageBubble>
-          );
-        })}
-        <div ref={bottomRef} />
+              Enviar
+            </button>
+          </form>
+        )}
       </div>
-
-      {token && wsStatus !== "open" && (
-        <div className="mt-2 flex justify-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1 text-xs font-medium text-ink/50">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-ink/40" />
-            Reconectando...
-          </span>
-        </div>
-      )}
-
-      {sendError && (
-        <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs font-medium text-danger-text">
-          {sendError}
-          <button
-            type="button"
-            onClick={sendMessage}
-            className="font-semibold underline decoration-danger/40 underline-offset-2 hover:opacity-80"
-          >
-            Reintentar
-          </button>
-        </p>
-      )}
-
-      {!unavailable && (
-        <form onSubmit={send} className="mt-3 flex gap-2">
-          <input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="Escribí un mensaje..."
-            maxLength={LIMITES.mensajeChat}
-            className="flex-1 rounded-full border border-line bg-surface px-4 py-2 text-sm text-ink"
-          />
-          <button
-            type="submit"
-            disabled={sending || !draft.trim()}
-            className="boton-relieve flex min-h-[44px] items-center justify-center bg-primary px-5 text-sm font-semibold text-night hover:bg-primary-strong disabled:bg-surface disabled:text-ink-mute"
-          >
-            Enviar
-          </button>
-        </form>
-      )}
     </div>
   );
 }
