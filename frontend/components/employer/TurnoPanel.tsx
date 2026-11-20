@@ -72,7 +72,7 @@ export default function TurnoPanel({ shift, children }: { shift: Shift; children
             </span>
           )}
           <div className="min-w-0 flex-1">
-            <h3 className="break-words text-fila font-bold text-ink">
+            <h3 className="text-fila font-bold text-ink [overflow-wrap:anywhere]">
               {SKILL_LABELS[shift.position]}
               {shift.urgent && (
                 <span className="ml-2 inline-flex items-center gap-0.5 align-middle text-xs font-bold text-danger-text">
@@ -87,7 +87,7 @@ export default function TurnoPanel({ shift, children }: { shift: Shift; children
                 <span className="whitespace-nowrap text-ink-soft"> · {formatDuration(durationMin)}</span>
               )}
             </p>
-            <p className="break-words text-caption text-ink-soft">
+            <p className="text-caption text-ink-soft [overflow-wrap:anywhere]">
               {conPersona && <span className="font-semibold text-ink">{shift.worker_name} · </span>}
               {shift.city ?? "Ubicación a confirmar"}
             </p>

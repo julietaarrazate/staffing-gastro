@@ -101,6 +101,8 @@ export default function CieloPanel({
                 {hola} {frase}{" "}
               </span>
               <span className="numero-gigante">{resumen.total}</span>
+              {/* El espacio es para quien lo oye: sin él se lee «5turnos». */}
+              <span className="sr-only"> </span>
               <span className="text-2xl font-extrabold tracking-tight">{resumen.total === 1 ? "turno" : "turnos"}</span>
             </h1>
             <dl className="mt-4 flex flex-wrap gap-x-7 gap-y-2" data-testid="panel-estados">

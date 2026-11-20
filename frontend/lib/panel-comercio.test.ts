@@ -6,6 +6,7 @@ import { familyOf, resumenPanel } from "./panel-comercio";
 const AHORA = new Date("2026-11-20T15:00:00Z");
 const HOY = "2026-11-20T21:00:00-03:00";
 const MANANA = "2026-11-21T21:00:00-03:00";
+const AYER = "2026-11-19T23:00:00-03:00";
 
 function turno(id: string, status: Shift["status"], extra: Partial<Shift> = {}): Shift {
   return { id, status, start_at: HOY, end_at: HOY, ...extra } as Shift;
@@ -27,7 +28,7 @@ describe("resumenPanel", () => {
     expect(r.nadie).toBeNull();
   });
 
-  it("cuenta los turnos de hoy con sus tres estados; borradores y cancelados no cuentan", () => {
+  it("con todo lo que está en curso de hoy: cuenta eso y lo que hoy ya terminó; borradores y cancelados no cuentan", () => {
     const r = resumenPanel(
       [
         turno("a", "publicado"),
@@ -35,19 +36,30 @@ describe("resumenPanel", () => {
         turno("c", "finalizado"),
         turno("d", "cancelado"),
         turno("e", "borrador"),
-        turno("f", "publicado", { start_at: MANANA }),
+        turno("f", "pagado", { start_at: AYER, end_at: AYER }),
       ],
       AHORA
     );
     expect(r).toMatchObject({ enMarcha: true, deHoy: true, total: 3, buscando: 1, cubiertos: 1, terminados: 1, marchando: true });
   });
 
-  it("si hoy no queda nada en curso, cuenta los que están en curso otros días", () => {
+  it("un turno de anoche que sigue en marcha cuenta como de hoy", () => {
+    const r = resumenPanel([turno("anoche", "trabajando", { start_at: AYER }), turno("a", "publicado")], AHORA);
+    expect(r).toMatchObject({ deHoy: true, total: 2, buscando: 1, cubiertos: 1 });
+  });
+
+  it("si algo en curso es de otro día, no dice «hoy»: cuenta todo lo que está en curso y nada de lo terminado", () => {
     const r = resumenPanel(
-      [turno("a", "pagado"), turno("b", "publicado", { start_at: MANANA }), turno("c", "asignado", { start_at: MANANA })],
+      [
+        turno("a", "pagado"),
+        turno("b", "confirmado"),
+        turno("c", "publicado", { start_at: MANANA, pending_applicants_count: 1 }),
+      ],
       AHORA
     );
     expect(r).toMatchObject({ enMarcha: true, deHoy: false, total: 2, buscando: 1, cubiertos: 1, terminados: 0 });
+    // El número habla del mismo turno que se ofrece elegir.
+    expect(r.elegir?.id).toBe("c");
   });
 
   it("elegir: el turno con postulaciones pendientes que empieza antes", () => {

@@ -47,8 +47,12 @@ export function familyOf(status: ShiftStatus): Family {
  * - `enMarcha`: hay algún turno en curso (buscando o en marcha, de cualquier
  *   día). Es lo que vuelve hondo al cielo; sin eso, el cielo es el de día y
  *   pregunta «¿Te falta alguien hoy?».
- * - El número: los turnos de hoy si alguno de hoy sigue en curso (`deHoy`);
- *   si no, los que están en curso otros días. Con sus tres estados.
+ * - El número: todos los turnos en curso. Si todos son de hoy (o empezaron
+ *   antes y siguen en marcha, como uno de anoche que cruzó la medianoche),
+ *   es «Hoy tenés» y suma los que hoy ya terminaron (`deHoy`); si alguno es
+ *   de otro día, es «Tenés en curso» y cuenta sólo los que están en curso.
+ *   Así el número y los tres estados hablan de los mismos turnos que
+ *   `elegir` y `nadie`, y que las pestañas de la hoja.
  * - `elegir`: el turno que espera que el comercio elija (tiene postulaciones
  *   pendientes), el que empieza antes. Es el ámbar de la pantalla.
  * - `nadie`: hay turnos buscando y ninguno tiene postulaciones; el que
@@ -75,11 +79,17 @@ export function resumenPanel(shifts: Shift[], now: Date = new Date()): ResumenPa
     return family === "buscando" || family === "en_marcha";
   };
   const activos = shifts.filter(enCurso);
-  const hoy = shifts.filter(
-    (s) => (enCurso(s) || familyOf(s.status) === "terminado") && isTodayInArgentina(s.start_at, now)
-  );
-  const deHoy = hoy.some(enCurso);
-  const conjunto = deHoy ? hoy : activos;
+  const deHoy =
+    activos.length > 0 &&
+    activos.every((s) => isTodayInArgentina(s.start_at, now) || new Date(s.start_at).getTime() < now.getTime());
+  const terminadosHoy = deHoy
+    ? shifts.filter(
+        (s) =>
+          familyOf(s.status) === "terminado" &&
+          (isTodayInArgentina(s.start_at, now) || isTodayInArgentina(s.end_at, now))
+      )
+    : [];
+  const conjunto = [...activos, ...terminadosHoy];
   const cuenta = (family: Family) => conjunto.filter((s) => familyOf(s.status) === family).length;
 
   const buscandoTodos = activos.filter((s) => familyOf(s.status) === "buscando").sort(porInicio);
