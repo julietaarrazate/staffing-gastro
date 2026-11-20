@@ -252,3 +252,18 @@ export function formatMessageWhen(iso: string, now: Date = new Date()): string {
     date.toLocaleDateString("es-AR", { timeZone: AR_TIMEZONE, day: "numeric", month: "short" })
   );
 }
+
+/**
+ * El día de una reseña, en palabras: "14 de noviembre". Si es de otro año lo
+ * dice ("14 de noviembre de 2025"): una reseña vieja sin el año parece de este.
+ */
+export function formatReviewDate(iso: string, now: Date = new Date()): string {
+  const fecha = new Date(iso);
+  const anio = (d: Date) => d.toLocaleDateString("es-AR", { timeZone: AR_TIMEZONE, year: "numeric" });
+  return fecha.toLocaleDateString("es-AR", {
+    timeZone: AR_TIMEZONE,
+    day: "numeric",
+    month: "long",
+    ...(anio(fecha) === anio(now) ? {} : { year: "numeric" }),
+  });
+}

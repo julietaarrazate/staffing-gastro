@@ -182,3 +182,19 @@ for (const ancho of [320, 360]) {
     expect(salidos).toEqual([]);
   });
 }
+
+test("«Enviar calificación» va en azul hondo: con las estrellas puestas no suma un segundo ámbar", async ({ page }) => {
+  // 2026-11-20 (PR del panel del comercio): `ReviewBox` es la misma pieza en
+  // las dos pantallas y su botón era ámbar apenas se elegía una estrella.
+  await misTurnos(page);
+  const pagado = page.locator('[data-shift-id="s2"]');
+  const enviar = pagado.getByRole("button", { name: "Enviar calificación" });
+  await expect(enviar).toBeDisabled();
+  await pagado.getByRole("button", { name: "4 estrellas" }).click();
+  await expect(enviar).toBeEnabled();
+  await expect(enviar).toHaveClass(/boton-hondo/);
+  await expect(enviar).not.toHaveClass(/boton-relieve/);
+  await expect(enviar).toHaveCSS("color", "rgb(255, 255, 255)");
+  expect(await enviar.evaluate((el) => getComputedStyle(el).backgroundImage)).toContain("rgb(42, 115, 163)");
+  await expect(page.locator("button.boton-relieve:not(:disabled)")).toHaveCount(1);
+});

@@ -11,19 +11,19 @@ import { useIdempotencyKeys } from "@/lib/idempotency";
 import { useTapGuard } from "@/lib/use-tap-guard";
 import { useLiveRefresh } from "@/lib/live-refresh";
 import { coberturaPorEvento } from "@/lib/evento-cobertura";
-import { LETRAS_APP } from "@/lib/letras";
 import {
   cancelConfirmCopy,
   cancelEventConfirmCopy,
   isCancellable,
   withFreshState,
 } from "@/lib/cancelar-turno";
-import { Shift, ShiftStatus } from "@/lib/types";
-import ShiftCard from "@/components/ShiftCard";
+import { FAMILY_ORDER, familyOf, resumenPanel, type Family } from "@/lib/panel-comercio";
+import { Shift } from "@/lib/types";
+import TurnoPanel from "@/components/employer/TurnoPanel";
+import CieloPanel from "@/components/employer/CieloPanel";
 import ShiftActions from "@/components/ShiftActions";
 import AIAssistantBar from "@/components/AIAssistantBar";
 import PerfilFaltanteCard from "@/components/PerfilFaltanteCard";
-import Link from "next/link";
 import ReviewBox from "@/components/ReviewBox";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import ShiftPublishedNextSteps from "@/components/ShiftPublishedNextSteps";
@@ -32,9 +32,7 @@ import { noShowConfirmCopy } from "@/lib/turno-reofrecido";
 import dynamic from "next/dynamic";
 import type { TourStep } from "@/components/GuidedTour";
 import { useTourPendiente } from "@/lib/use-tour-pendiente";
-import { EmptyPanelIllustration } from "@/components/illustrations";
 import {
-  BOTON_LISO,
   Button,
   CardSkeletons,
   EmptyState,
@@ -45,59 +43,15 @@ import {
   useToast,
 } from "@/components/ui";
 import {
-  CalendarPlusIcon,
   CheckCircleIcon,
   ClipboardIcon,
   ClockIcon,
-  PlusIcon,
   SearchIcon,
   XCircleIcon,
 } from "@/components/icons";
 
 // Recorrido de una sola vez: se baja sólo si hay algo que mostrar.
 const GuidedTour = dynamic(() => import("@/components/GuidedTour"), { ssr: false });
-
-// Familias de estado del panel (bug de la operadora, docs/planning/PULIDO_ROADMAP.md
-// batch "panel-por-estados": "activos 2 pero abajo la lista completa con
-// inactivos; buscando 1 y no muestra cuál; deberían estar agrupados por
-// estado, cancelados con cancelados, finalizados con finalizados"). Antes
-// había 3 KPIs estáticos (uno en azul — "Buscando", fuera de la Ley de marca)
-// que no filtraban nada, más una lista plana. Ahora el estado real de cada
-// turno decide en qué familia cae, y la familia decide qué pestaña lo
-// muestra — el conteo de cada pestaña es siempre el largo real de esa
-// familia, nunca un número desconectado de la lista.
-type Family = "borrador" | "buscando" | "en_marcha" | "terminado" | "cancelado";
-
-const FAMILY_STATUSES: Record<Family, ShiftStatus[]> = {
-  borrador: ["borrador"],
-  buscando: ["publicado", "buscando_personal"],
-  // `confirmado` va en "en marcha", no en "terminado" (fix 2026-09). Estaba
-  // agrupado con finalizado/pagado, así que un turno confirmado —que todavía
-  // no pasó, y donde el trabajador ni siquiera llegó— aparecía bajo
-  // "Terminados". Quedó a la vista con "va en camino": el trabajador viajando
-  // al local y su turno figurando como terminado.
-  //
-  // El criterio de la familia es "¿queda algo por pasar?", no "¿está cerrado
-  // el trato?": confirmado es exactamente el momento en que el turno está en
-  // curso hacia su ejecución, igual que asignado o check_in.
-  en_marcha: ["asignado", "confirmado", "en_camino", "check_in", "trabajando", "check_out"],
-  terminado: ["finalizado", "pagado"],
-  // `no_cubierto` (ADR-0015) entra en esta familia, no en una propia: por el
-  // mismo criterio de arriba ("¿queda algo por pasar? No"), es tan terminal
-  // como cancelado. La tarjeta lo distingue igual (badge y stepper propios,
-  // ver ShiftCard/ShiftLifecycleStepper) — comparten pestaña, no etiqueta.
-  cancelado: ["cancelado", "no_cubierto"],
-};
-
-// Orden de despliegue en la pestaña "Todos": borradores primero (ni siquiera
-// se publicaron todavía), buscando, en marcha, terminados y cancelados al
-// final — los dos últimos ya atenuados por `ShiftCard` (opacity-65 en sus
-// estados terminales: finalizado/pagado/cancelado).
-const FAMILY_ORDER: Family[] = ["borrador", "buscando", "en_marcha", "terminado", "cancelado"];
-
-function familyOf(status: ShiftStatus): Family {
-  return FAMILY_ORDER.find((family) => FAMILY_STATUSES[family].includes(status)) ?? "buscando";
-}
 
 type Tab = "todos" | Family;
 
@@ -163,6 +117,19 @@ const EMPLOYER_PANEL_TOUR: TourStep[] = [
     target: '[data-tour="nav-search"]',
     title: "También podés buscar vos",
     body: "Si no querés esperar postulaciones, buscá candidatos disponibles directo desde acá.",
+  },
+];
+
+/** El primer día: qué va a pasar, en tres pasos (maqueta `C-Panel-vacio`). */
+const PRIMER_DIA = [
+  { titulo: "Cantás el pedido", detalle: "Puesto, horario y cuánto pagás. Lleva un minuto." },
+  {
+    titulo: "Les avisamos a quienes están cerca",
+    detalle: "Acá vas viendo quién se postula y cómo le fue antes.",
+  },
+  {
+    titulo: "Elegís y te contestan «¡oído!»",
+    detalle: "Se escriben por el chat y ves cuando sale para tu local.",
   },
 ];
 
@@ -518,36 +485,24 @@ function MyShiftsPanel() {
   // igual, vacía, con su propio mensaje de marca.
   const visibleFamilies: Family[] =
     tab === "todos" ? FAMILY_ORDER.filter((family) => families[family].length > 0) : [tab];
-  // Sólo de la vista: qué familias cuelgan del riel (en curso y con turnos)
-  // y cuáles van debajo, sobre el lienzo.
-  const cuelga = (family: Family) =>
-    (family === "buscando" || family === "en_marcha") && families[family].length > 0;
-  const enElRiel = visibleFamilies.filter(cuelga);
-  const fueraDelRiel = visibleFamilies.filter((family) => !cuelga(family));
+  // Lo que responde el cielo: sólo cuando la lista está cargada y es de fiar.
+  const resumen = useMemo(
+    () => (loading || error || sinPerfil ? null : resumenPanel(shifts)),
+    [loading, error, sinPerfil, shifts]
+  );
 
   return (
-    // Desde el 2026-11-18 el panel lleva la dirección «con relieve»
-    // (docs/design-system/direccion-relieve.md): el saludo en brocha,
-    // «Publicar turno» como el botón con relieve, y los turnos como comandas
-    // de papel. Los que están en curso (buscando y en marcha) cuelgan del
-    // riel, sobre una banda azul hondo; los que ya salieron van debajo, sobre
-    // el lienzo. La lógica no cambió.
-    <div className={`${LETRAS_APP} app-container px-4 pb-10 pt-6`}>
-      <div>
-        {/* Saludo en brocha, igual que el Inicio del trabajador. */}
-        <h1 className="letra-cartel letra-cartel-pantalla break-words">
-          {firstName ? `Hola, ${firstName}` : "Hola"}
-        </h1>
-        <p className="mt-1 text-sm text-ink-soft">Gestioná los turnos de tu comercio.</p>
-      </div>
+    // Desde el 2026-11-20 el panel lleva la dirección suave (ADR-0028,
+    // maquetas `C-Panel*`): arriba el cielo, hondo mientras hay turnos en
+    // curso, con el número de turnos de hoy y sus tres estados; debajo la
+    // hoja, con los turnos como filas suaves (`employer/TurnoPanel`). Del
+    // 2026-11-18 al 20 fue «con relieve» (saludo en brocha, comandas de papel
+    // colgando del riel). La lógica no cambió.
+    <div className="estilo-suave mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col md:min-h-[calc(100dvh-var(--chrome-top))] md:max-w-5xl md:px-4 md:pt-4">
+      <CieloPanel nombre={firstName} resumen={resumen} conAcciones={!loading && !sinPerfil} />
 
-      {/* Arriba, sólo lo que se hace desde acá (2026-09-28, diagnóstico de
-          sobrecarga). Antes había cinco capas antes del primer turno: saludo,
-          la tarjeta verde "Turnos activos", el buscador, cuatro accesos
-          rápidos y las pestañas. "Turnos activos" repetía los conteos de las
-          pestañas; Favoritos y Mi plan siguen a un toque desde Perfil. Queda
-          Publicar como la acción, Evento al lado como variante, y el
-          asistente. */}
+      {/* La hoja sube 28 px sobre el cielo y lleva todo lo que se toca. */}
+      <div className="hoja -mt-7 flex-1 px-4 pb-10 pt-5 md:px-6">
       {sinPerfil && !loading && (
         <PerfilFaltanteCard
           title="Te falta completar tu comercio"
@@ -557,58 +512,46 @@ function MyShiftsPanel() {
         />
       )}
 
+      {/* Arriba, sólo lo que se hace desde acá (2026-09-28, diagnóstico de
+          sobrecarga): Publicar y Evento (en el cielo) y el asistente. */}
       {!sinPerfil && (
-        <>
-      <div className="mt-4 flex gap-2">
-        <Link
-          href="/shifts/new"
-          data-tour="shifts-publish"
-          // El botón con relieve de la pantalla: ámbar, con la sombra dura
-          // del filete, que se aprieta al tocarlo.
-          className="boton-relieve flex flex-1 items-center justify-center gap-1.5 bg-primary px-4 py-3 text-sm font-bold text-night"
-        >
-          <PlusIcon size={18} /> Publicar turno
-        </Link>
-        <Link
-          href="/shifts/new-event"
-          className={`${BOTON_LISO} px-4 py-3 text-sm`}
-        >
-          <CalendarPlusIcon size={17} /> Evento
-        </Link>
-      </div>
-
-      <div className="mt-3.5">
-        <AIAssistantBar recto />
-      </div>
-
-        </>
+        <div className="panel-asistente">
+          <AIAssistantBar />
+        </div>
       )}
 
       {loading && <CardSkeletons />}
       {error && !sinPerfil && <ErrorBanner message={error} onRetry={() => load()} />}
 
-      {/* Primera experiencia (Parte B): CTA imposible de errar + qué va a
-          pasar en 3 pasos concretos. Reusa el `EmptyState` de marca (mismo
-          componente que usan los estados vacíos por familia, abajo). */}
+      {/* El primer día (maqueta `C-Panel-vacio`): la acción está en el cielo
+          («Publicar turno», el ámbar) y la hoja cuenta qué va a pasar, en
+          tres pasos. */}
       {!loading && !error && !sinPerfil && shifts.length === 0 && (
-        <EmptyState
-          icon={<EmptyPanelIllustration color="var(--color-primary)" />}
-          title="Publicá tu primer turno"
-          subtitle="Publicás el turno, te recomendamos a los mejores candidatos disponibles cerca tuyo, y vos elegís a quién asignar. En minutos vas a tener gente lista para cubrirlo."
-          primaryAction={{
-            label: "Publicá tu primer turno",
-            onClick: () => router.push("/shifts/new"),
-          }}
-        />
+        <section className="mt-7" data-testid="panel-primer-dia">
+          <h2 className="titulo-seccion">Así sale un turno</h2>
+          <ol className="mt-5 flex flex-col gap-5 md:max-w-xl">
+            {PRIMER_DIA.map((paso, i) => (
+              <li key={paso.titulo} className="flex gap-3.5">
+                <span
+                  aria-hidden
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-tint text-body font-extrabold text-primary-text"
+                >
+                  {i + 1}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-fila font-bold text-ink">{paso.titulo}</p>
+                  <p className="text-sm leading-snug text-ink-soft">{paso.detalle}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
       )}
 
       {!loading && !error && !sinPerfil && eventGroups.length > 0 && (
-        <div className="mt-4 space-y-2">
+        <div className="mt-4 space-y-2.5">
           {eventGroups.map((event) => (
-            <div
-              key={event.eventId}
-              className="flex items-center justify-between gap-3 rounded-[var(--radius-btn)] bg-card px-4 py-3 ring-1 ring-line"
-            >
+            <div key={event.eventId} className="turno-fila flex items-center justify-between gap-3 px-4 py-3">
               <p className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{event.name}</p>
               <span
                 className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${
@@ -641,7 +584,7 @@ function MyShiftsPanel() {
               conteo no entran: `w-max` les deja su ancho real y el contenedor
               scrollea en horizontal (mismo patrón que un tab bar nativo);
               `min-w-full` lleva el filete hasta el borde aunque entren. */}
-          <div className="-mx-4 -mb-1 mt-3 scroll-px-4 overflow-x-auto px-4 py-1 no-scrollbar" data-tour="shifts-tabs">
+          <div className="-mx-4 -mb-1 mt-3 scroll-px-4 overflow-x-auto px-4 py-1 no-scrollbar md:-mx-6 md:scroll-px-6 md:px-6" data-tour="shifts-tabs">
             <SegmentedControl<Tab>
               value={tab}
               onChange={setTab}
@@ -656,88 +599,63 @@ function MyShiftsPanel() {
             />
           </div>
 
-          {/* Las familias se acomodan en la MISMA grilla que las tarjetas, y
-              cada una ocupa tantas columnas como tarjetas tiene (hasta el
+          {/* Las familias se acomodan en la MISMA grilla que las filas, y
+              cada una ocupa tantas columnas como turnos tiene (hasta el
               ancho completo). Antes cada familia abría su propia grilla en
               una fila nueva: con un turno por familia, a 768px quedaba una
               tarjeta de 360px y media pantalla vacía, grupo tras grupo
               (auditoría visual 2026-09-24, A3). Ahora dos familias de un
-              turno cada una comparten fila, cada una con su encabezado. */}
-          {/* Dos grupos (2026-11-18). «En el riel»: las familias en curso
-              que tienen turnos, sobre la banda azul hondo y colgando del
-              riel. Debajo, sobre el lienzo, las demás (terminados,
-              cancelados, borradores) y las que están vacías, cuyo cartel
-              de vacío no se leería sobre el azul. Cada grupo es una grilla
-              como la de antes. */}
-          <div data-testid="shifts-panel-list">
-            {[enElRiel, fueraDelRiel].map((grupo, g) =>
-              grupo.length === 0 ? null : (
-                <div
-                  key={g === 0 ? "riel" : "resto"}
-                  className={g === 0 ? "app-banda -mx-4 mt-6 px-4 pb-7 pt-0" : "mt-6"}
-                >
-                  {g === 0 && (
-                    <div aria-hidden className="riel">
-                      {[8, 30, 52, 74, 94].map((x) => (
-                        <i key={x} style={{ left: `${x}%` }} />
+              turno cada una comparten fila, cada una con su título. */}
+          <div
+            data-testid="shifts-panel-list"
+            className="mt-6 grid items-start gap-x-4 gap-y-7 md:grid-cols-2 xl:grid-cols-3"
+          >
+            {visibleFamilies.map((family) => {
+              const list = families[family];
+              const meta = FAMILY_META[family];
+              // Con una sola familia a la vista (una pestaña puntual) ocupa el
+              // ancho entero, como antes: no hay otra con quién compartir fila.
+              const full = tab !== "todos" || list.length >= 3;
+              const span = full ? "md:col-span-2 xl:col-span-3" : list.length === 2 ? "md:col-span-2" : "";
+              const cols = full ? "md:grid-cols-2 xl:grid-cols-3" : list.length === 2 ? "md:grid-cols-2" : "";
+              return (
+                <section key={family} className={`min-w-0 ${span}`} data-family={family}>
+                  <h2 className="titulo-seccion mb-3">
+                    {meta.title}
+                    <span className="ml-1.5 text-sm font-semibold text-ink-soft">{list.length}</span>
+                  </h2>
+
+                  {list.length === 0 ? (
+                    <EmptyState icon={meta.icon} title={meta.emptyTitle} subtitle={meta.emptySubtitle} />
+                  ) : (
+                    <div className={`grid items-start gap-3 ${cols}`}>
+                      {list.map((shift) => (
+                        <TurnoPanel key={shift.id} shift={shift}>
+                          <ShiftActions
+                            shift={shift}
+                            busy={busy}
+                            locked={tapGuard.locked}
+                            onRun={run}
+                            onMarkPaid={() => askMarkPaid(shift.id)}
+                            onNoShow={() => setConfirmNoShowId(shift.id)}
+                            onCancel={() => void askCancel(shift.id)}
+                          />
+                          {(shift.status === "finalizado" || shift.status === "pagado") && (
+                            <div className="mt-3">
+                              <ReviewBox shiftId={shift.id} />
+                            </div>
+                          )}
+                        </TurnoPanel>
                       ))}
                     </div>
                   )}
-                  <div className={`grid items-start gap-x-4 gap-y-6 md:grid-cols-2 xl:grid-cols-3 ${g === 0 ? "pt-5" : ""}`}>
-                    {grupo.map((family) => {
-                      const list = families[family];
-                      const meta = FAMILY_META[family];
-                      // Con una sola familia a la vista (una pestaña puntual) ocupa el
-                      // ancho entero, como antes: no hay otra con quién compartir fila.
-                      const full = tab !== "todos" || list.length >= 3;
-                      const span = full ? "md:col-span-2 xl:col-span-3" : list.length === 2 ? "md:col-span-2" : "";
-                      const cols = full ? "md:grid-cols-2 xl:grid-cols-3" : list.length === 2 ? "md:grid-cols-2" : "";
-                      return (
-                        <section key={family} className={`min-w-0 ${span}`} data-family={family}>
-                          <h2
-                            className={`mb-2.5 flex items-center gap-1.5 text-sm font-semibold ${
-                              g === 0 ? "text-[color:var(--app-banda-tinta)]" : "text-ink-soft"
-                            }`}
-                          >
-                            {meta.icon}
-                            {meta.title}
-                            <span className={`font-medium ${g === 0 ? "opacity-75" : ""}`}>· {list.length}</span>
-                          </h2>
-
-                          {list.length === 0 ? (
-                            <EmptyState icon={meta.icon} title={meta.emptyTitle} subtitle={meta.emptySubtitle} />
-                          ) : (
-                            <div className={`grid gap-4 ${cols}`}>
-                              {list.map((shift) => (
-                                <ShiftCard key={shift.id} shift={shift} comanda>
-                                  <ShiftActions
-                                    shift={shift}
-                                    busy={busy}
-                                    locked={tapGuard.locked}
-                                    onRun={run}
-                                    onMarkPaid={() => askMarkPaid(shift.id)}
-                                    onNoShow={() => setConfirmNoShowId(shift.id)}
-                                    onCancel={() => void askCancel(shift.id)}
-                                  />
-                                  {(shift.status === "finalizado" || shift.status === "pagado") && (
-                                    <div className="mt-3">
-                                      <ReviewBox shiftId={shift.id} />
-                                    </div>
-                                  )}
-                                </ShiftCard>
-                              ))}
-                            </div>
-                          )}
-                        </section>
-                      );
-                    })}
-                  </div>
-                </div>
-              )
-            )}
+                </section>
+              );
+            })}
           </div>
         </>
       )}
+      </div>
 
       <PlanLimitModal
         open={planLimitMessage !== null}

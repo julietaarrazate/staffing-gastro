@@ -17,16 +17,26 @@ import { Button, ErrorBanner } from "@/components/ui";
 import { formatShiftTime } from "@/lib/datetime";
 import { useAvailableNow } from "@/lib/use-available-now";
 
-export default function AvailableNowToggle({ token }: { token: string | null }) {
+export default function AvailableNowToggle({
+  token,
+  quieta = false,
+}: {
+  token: string | null;
+  /** La acción de la pantalla es otra (un solo ámbar por pantalla): el botón
+   * va quieto, con el relleno de la hoja y la letra azul. */
+  quieta?: boolean;
+}) {
   const { active, until, loading, error, start, stop } = useAvailableNow(token);
 
   return (
-    <div className="rounded-[var(--radius-card)] bg-surface p-3.5 ring-1 ring-line">
+    // `caja-suave`, `disponible-activo` y `boton-quieto`: los ganchos de la
+        // dirección suave (ADR-0028), que sólo pesan adentro de `.estilo-suave`.
+    <div className="caja-suave rounded-[var(--radius-card)] bg-surface p-3.5 ring-1 ring-line">
       <div className="flex items-start gap-2.5">
         <span
           aria-hidden
           className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-            active ? "bg-primary text-night" : "bg-card text-ink/45"
+            active ? "disponible-activo bg-primary text-night" : "bg-card text-ink/45"
           }`}
         >
           <MapPinIcon size={15} />
@@ -35,7 +45,7 @@ export default function AvailableNowToggle({ token }: { token: string | null }) 
           <p className="text-sm font-semibold text-ink">
             {active ? "Estás disponible ahora" : "Avisá que estás disponible ahora"}
           </p>
-          <p className="mt-0.5 text-xs text-ink/60">
+          <p className="mt-0.5 text-xs text-ink-soft">
             {active
               ? `El comercio ve la distancia real hasta las ${
                   until ? formatShiftTime(until) : ""
@@ -52,12 +62,12 @@ export default function AvailableNowToggle({ token }: { token: string | null }) 
       )}
 
       <Button
-        variant={active ? "surface" : "primary"}
+        variant={active || quieta ? "surface" : "primary"}
         size="sm"
         fullWidth
         loading={loading}
         onClick={active ? stop : start}
-        className="mt-3"
+        className={active || quieta ? "boton-quieto mt-3" : "mt-3"}
       >
         {active ? "Dejar de compartir" : "Estoy disponible ahora"}
       </Button>

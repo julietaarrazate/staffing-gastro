@@ -2,24 +2,19 @@
 
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import AvailableNowToggle from "@/components/worker/AvailableNowToggle";
-import IdentityVerificationCard from "@/components/worker/IdentityVerificationCard";
 import BusinessVerificationCard from "@/components/company/BusinessVerificationCard";
 import LateCancellations from "@/components/company/LateCancellations";
 import EditableName from "@/components/EditableName";
-import WorkerGameCard from "@/components/worker/WorkerGameCard";
+import PerfilTrabajador from "@/components/worker/PerfilTrabajador";
 import { Badge, Skeleton } from "@/components/ui";
 import ReceivedReviews from "@/components/ReceivedReviews";
 import { Row, RowGroup } from "@/components/profile/ProfileParts";
-import { shareBusinessInvite } from "@/lib/business-invite";
 import {
   BuildingIcon,
   CreditCardIcon,
   HeartIcon,
-  PencilIcon,
   ShieldIcon,
   SettingsIcon,
-  ShareIcon,
 } from "@/components/icons";
 
 /**
@@ -31,7 +26,7 @@ import {
  * apariencia, notificaciones, soporte y cerrar sesión en `/profile/settings`.
  */
 export default function ProfilePage() {
-  const { user, token, loading } = useAuth();
+  const { user, loading } = useAuth();
   // La tarjeta de verificación ya pide `/identity/me`: avisa acá si la
   // constancia está aprobada, sin pedirlo dos veces.
   const [comercioVerificado, setComercioVerificado] = useState(false);
@@ -61,6 +56,11 @@ export default function ProfilePage() {
   if (!user)
     return <p className="px-4 py-16 text-center text-ink/50">Iniciá sesión para ver tu perfil.</p>;
 
+  // Quien trabaja ve su perfil con la dirección suave (ADR-0028): el cielo, la
+  // foto a caballo de la hoja y la reputación en grande. Lo de abajo es el
+  // perfil del comercio y el del admin, que todavía no migraron.
+  if (user.role === "worker") return <PerfilTrabajador />;
+
   return (
     <div className="mx-auto max-w-xl px-4 py-8 lg:max-w-5xl">
       {/* F2 (auditoría de producto/UI 2026-08-09): la pantalla no tenía
@@ -73,47 +73,36 @@ export default function ProfilePage() {
           costados. En mobile/tablet es un único stack. */}
       <div className="mt-4 lg:grid lg:grid-cols-3 lg:items-start lg:gap-6">
         <div className="lg:col-span-2">
-          {user.role === "worker" ? (
-            <WorkerGameCard />
-          ) : (
-            <div className="flex items-center gap-4 rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary-tint text-xl font-bold text-primary-text">
-                {user.full_name.charAt(0).toUpperCase()}
-              </div>
-              <div className="min-w-0">
-                <EditableName className="font-display text-lg font-semibold text-ink" />
-                <p className="truncate text-sm text-ink/50">{user.email}</p>
-                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                  <span className="inline-block rounded-full bg-surface px-2.5 py-0.5 text-xs font-semibold text-ink/60">
-                    {user.role === "admin" ? "Administrador" : "Comercio"}
-                  </span>
-                  {/* Antes: `user.is_verified` (mail confirmado) con el texto
-                      «Identidad verificada». Ahora sólo con la constancia
-                      aprobada (claim `negocio_verificado`, G5). */}
-                  {user.role === "employer" && comercioVerificado && (
-                    <Badge tone="trust" icon={<ShieldIcon size={13} />}>
-                      Comercio verificado
-                    </Badge>
-                  )}
-                </div>
+          <div className="flex items-center gap-4 rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary-tint text-xl font-bold text-primary-text">
+              {user.full_name.charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <EditableName className="font-display text-lg font-semibold text-ink" />
+              <p className="truncate text-sm text-ink/50">{user.email}</p>
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <span className="inline-block rounded-full bg-surface px-2.5 py-0.5 text-xs font-semibold text-ink/60">
+                  {user.role === "admin" ? "Administrador" : "Comercio"}
+                </span>
+                {/* Antes: `user.is_verified` (mail confirmado) con el texto
+                    «Identidad verificada». Ahora sólo con la constancia
+                    aprobada (claim `negocio_verificado`, G5). */}
+                {user.role === "employer" && comercioVerificado && (
+                  <Badge tone="trust" icon={<ShieldIcon size={13} />}>
+                    Comercio verificado
+                  </Badge>
+                )}
               </div>
             </div>
-          )}
+          </div>
 
           {/* La verificación va arriba: mientras no está aprobada es lo que
               destraba todo, y una vez aprobada la tarjeta se achica sola a
-              un sello (ver `IdentityVerificationCard` y
-              `BusinessVerificationCard`). Celeste y no `bg-card`: es una
-              pieza de confianza, no una tarjeta de contenido más. */}
+              un sello (ver `BusinessVerificationCard`). Celeste y no `bg-card`:
+              es una pieza de confianza, no una tarjeta de contenido más. */}
           {user.role !== "admin" && (
             <div className="mt-4 rounded-[var(--radius-card)] bg-cielo-tint shadow-[var(--shadow-soft)]">
-              {user.role === "worker" ? <IdentityVerificationCard /> : <BusinessVerificationCard onVerifiedChange={setComercioVerificado} />}
-            </div>
-          )}
-
-          {user.role === "worker" && (
-            <div className="mt-4">
-              <AvailableNowToggle token={token} />
+              <BusinessVerificationCard onVerifiedChange={setComercioVerificado} />
             </div>
           )}
 
@@ -124,19 +113,6 @@ export default function ProfilePage() {
         <div>
           <div className="mt-7 lg:mt-0">
             <RowGroup>
-              {user.role === "worker" && (
-                <>
-                  <Row icon={<PencilIcon size={18} />} tone="manteca" href="/profile/edit">
-                    Editar perfil
-                  </Row>
-                  {/* Una fila más del menú y no una tarjeta: es una acción
-                      que se usa de vez en cuando, no algo que el perfil
-                      tenga que gritar (regla "una pantalla, una pregunta"). */}
-                  <Row icon={<ShareIcon size={18} />} tone="trust" onClick={shareBusinessInvite}>
-                    Invitá a tu comercio
-                  </Row>
-                </>
-              )}
               {user.role === "employer" && (
                 <>
                   <Row icon={<BuildingIcon size={18} />} tone="manteca" href="/profile/edit">

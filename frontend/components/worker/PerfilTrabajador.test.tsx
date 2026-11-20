@@ -23,7 +23,12 @@ vi.mock("@/components/ImageUpload", () => ({
 }));
 vi.mock("@/components/EditableName", () => ({ default: () => null }));
 
-import WorkerGameCard from "./WorkerGameCard";
+// Cada una pide lo suyo al backend y tiene sus propios tests.
+vi.mock("@/components/worker/AvailableNowToggle", () => ({ default: () => null }));
+vi.mock("@/components/worker/IdentityVerificationCard", () => ({ default: () => null }));
+vi.mock("@/components/ReceivedReviews", () => ({ default: () => null }));
+
+import PerfilTrabajador from "./PerfilTrabajador";
 
 function perfil(extra: Partial<WorkerProfile> = {}): WorkerProfile {
   return {
@@ -55,7 +60,7 @@ function perfil(extra: Partial<WorkerProfile> = {}): WorkerProfile {
   } as WorkerProfile;
 }
 
-describe("WorkerGameCard: cambiar la foto", () => {
+describe("PerfilTrabajador: cambiar la foto", () => {
   beforeEach(() => {
     get.mockReset();
     put.mockReset();
@@ -71,7 +76,7 @@ describe("WorkerGameCard: cambiar la foto", () => {
     });
     put.mockImplementation(async (_p, body) => ({ ...nueva, ...(body as object) }));
 
-    render(<WorkerGameCard />);
+    render(<PerfilTrabajador />);
     await userEvent.click(await screen.findByRole("button", { name: "Subir foto" }));
 
     await waitFor(() => expect(put).toHaveBeenCalledTimes(1));
@@ -90,14 +95,14 @@ describe("WorkerGameCard: cambiar la foto", () => {
     });
     put.mockRejectedValue(new Error("sin conexión"));
 
-    render(<WorkerGameCard />);
+    render(<PerfilTrabajador />);
     await userEvent.click(await screen.findByRole("button", { name: "Subir foto" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("No pudimos guardar tu foto");
   });
 });
 
-describe("WorkerGameCard: cancelaciones y ausencias en el perfil propio", () => {
+describe("PerfilTrabajador: cancelaciones y ausencias en el perfil propio", () => {
   beforeEach(() => get.mockReset());
 
   function conPerfil(p: WorkerProfile) {
@@ -109,17 +114,18 @@ describe("WorkerGameCard: cancelaciones y ausencias en el perfil propio", () => 
 
   it("sin turnos hechos pero con 1 ausencia y 1 cancelación, las muestra", async () => {
     conPerfil(perfil({ events_completed: 0, no_shows: 1, cancellations: 1 }));
-    render(<WorkerGameCard />);
+    render(<PerfilTrabajador />);
     expect(await screen.findByText("Ausencias")).toBeInTheDocument();
     expect(screen.getByText("Cancelaciones")).toBeInTheDocument();
     expect(screen.getByText("Tu reputación arranca con tu primer turno.")).toBeInTheDocument();
-    // Sin historia no aparece el resto de la tarjeta.
-    expect(screen.queryByText("Turnos")).not.toBeInTheDocument();
+    // Sin historia no aparece el resto de los datos.
+    expect(screen.queryByText(/turnos? hechos?/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Años de experiencia")).not.toBeInTheDocument();
   });
 
   it("sin turnos y sin faltas, sigue el mensaje de siempre y nada más", async () => {
     conPerfil(perfil());
-    render(<WorkerGameCard />);
+    render(<PerfilTrabajador />);
     expect(await screen.findByText("Tu reputación arranca con tu primer turno.")).toBeInTheDocument();
     expect(screen.queryByText("Ausencias")).not.toBeInTheDocument();
     expect(screen.queryByText("Cancelaciones")).not.toBeInTheDocument();
@@ -127,35 +133,75 @@ describe("WorkerGameCard: cancelaciones y ausencias en el perfil propio", () => 
 
   it("con turnos hechos y una ausencia, la suma a los demás datos", async () => {
     conPerfil(perfil({ events_completed: 3, no_shows: 1 }));
-    render(<WorkerGameCard />);
+    render(<PerfilTrabajador />);
     expect(await screen.findByText("Ausencias")).toBeInTheDocument();
-    expect(screen.getByText("Turnos")).toBeInTheDocument();
+    expect(screen.getByText("turnos hechos")).toBeInTheDocument();
   });
 
   it("con turnos hechos y sin ausencias, queda como antes (sin «Ausencias»)", async () => {
     conPerfil(perfil({ events_completed: 3 }));
-    render(<WorkerGameCard />);
+    render(<PerfilTrabajador />);
     expect(await screen.findByText("Cancelaciones")).toBeInTheDocument();
     expect(screen.queryByText("Ausencias")).not.toBeInTheDocument();
   });
 
   it("con al menos una ausencia o cancelación, ofrece escribir a Soporte en un toque", async () => {
     conPerfil(perfil({ no_shows: 1 }));
-    render(<WorkerGameCard />);
+    render(<PerfilTrabajador />);
     expect(await screen.findByText(/¿Alguna no corresponde\?/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Soporte" })).toHaveAttribute("href", "/support");
   });
 
   it("con turnos hechos y una cancelación, también", async () => {
     conPerfil(perfil({ events_completed: 3, cancellations: 1 }));
-    render(<WorkerGameCard />);
+    render(<PerfilTrabajador />);
     expect(await screen.findByRole("link", { name: "Soporte" })).toHaveAttribute("href", "/support");
   });
 
   it("sin ausencias ni cancelaciones no aparece", async () => {
     conPerfil(perfil({ events_completed: 3 }));
-    render(<WorkerGameCard />);
-    expect(await screen.findByText("Turnos")).toBeInTheDocument();
+    render(<PerfilTrabajador />);
+    expect(await screen.findByText("turnos hechos")).toBeInTheDocument();
     expect(screen.queryByText(/¿Alguna no corresponde\?/)).not.toBeInTheDocument();
+  });
+});
+
+describe("PerfilTrabajador: la reputación en grande", () => {
+  beforeEach(() => get.mockReset());
+
+  it("con nota, el número grande es la nota y al lado van los turnos y la puntualidad", async () => {
+    get.mockImplementation(async (path: string) => {
+      if (path === "/workers/me/earnings") throw new Error("sin ganancias");
+      return perfil({ events_completed: 32, rating: 4.86, punctuality_rate: 0.97 });
+    });
+    render(<PerfilTrabajador />);
+    expect(await screen.findByText("4,9")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "4,9 de 5 estrellas" })).toBeInTheDocument();
+    expect(screen.getByText(/32 turnos hechos · puntualidad 97%/)).toBeInTheDocument();
+  });
+
+  it("sin nota todavía, el número grande son los turnos hechos (no un 0,0 ni estrellas vacías)", async () => {
+    get.mockImplementation(async (path: string) => {
+      if (path === "/workers/me/earnings") throw new Error("sin ganancias");
+      return perfil({ events_completed: 1, rating: 0, punctuality_rate: 1 });
+    });
+    render(<PerfilTrabajador />);
+    expect(await screen.findByText("turno hecho")).toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: /estrellas/ })).not.toBeInTheDocument();
+    expect(screen.getByText("puntualidad 100%")).toBeInTheDocument();
+  });
+
+  it("los puestos y la zona van debajo del nombre, y las ganancias en su fila", async () => {
+    get.mockImplementation(async (path: string) => {
+      if (path === "/workers/me/earnings")
+        return { total_earned: "480000", this_month_earned: "120000", shifts_completed: 3 };
+      return perfil({ events_completed: 3, skills: ["mozo", "bartender"] as never });
+    });
+    render(<PerfilTrabajador />);
+    expect(await screen.findByText(/y .+ · Palermo, CABA/)).toBeInTheDocument();
+    expect(await screen.findByText("Ganado este mes")).toBeInTheDocument();
+    expect(screen.getByText(/en total/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Editar perfil" })).toHaveAttribute("href", "/profile/edit");
+    expect(screen.getByRole("link", { name: "Ajustes" })).toHaveAttribute("href", "/profile/settings");
   });
 });

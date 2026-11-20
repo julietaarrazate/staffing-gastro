@@ -26,7 +26,7 @@ const APAGADOS = new Set(["cancelado", "pagado", "no_cubierto"]);
 // El estado en palabras y con un color: verde lo que salió bien, rojo sólo lo
 // cancelado, gris lo que no arrancó o no se cubrió y azul hondo lo que está
 // en curso (los mismos grupos que los sellos de la comanda).
-const TONO_ESTADO: Record<string, "verde" | "rojo" | "gris"> = {
+export const TONO_ESTADO: Record<string, "verde" | "rojo" | "gris"> = {
   borrador: "gris",
   confirmado: "verde",
   check_in: "verde",
@@ -35,7 +35,7 @@ const TONO_ESTADO: Record<string, "verde" | "rojo" | "gris"> = {
   cancelado: "rojo",
   no_cubierto: "gris",
 };
-const CLASE_TONO = {
+export const CLASE_TONO = {
   verde: "text-success-text",
   rojo: "text-danger-text",
   gris: "text-ink-soft",

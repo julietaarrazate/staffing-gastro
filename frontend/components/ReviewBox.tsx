@@ -72,8 +72,8 @@ export default function ReviewBox({ shiftId }: { shiftId: string }) {
 
   if (myReview) {
     return (
-      <div className="rounded-xl bg-surface px-3 py-2.5">
-        <p className="text-xs font-semibold text-ink/50">Tu calificación</p>
+      <div className="caja-resena rounded-xl bg-surface px-3 py-2.5">
+        <p className="text-xs font-semibold text-ink-soft">Tu calificación</p>
         <div className="mt-1 flex items-center gap-2">
           <StarRating value={myReview.rating} size={16} />
         </div>
@@ -81,7 +81,7 @@ export default function ReviewBox({ shiftId }: { shiftId: string }) {
           // Comentario de reseña ya escrito: contenido de lectura genuino
           // (como los mensajes de chat), seleccionable aunque la tarjeta que
           // lo envuelve (ShiftCard) sea `.no-select` (bug C0 #2 / fix 2).
-          <p className="mt-1 select-text text-sm text-ink/60">{myReview.comment}</p>
+          <p className="mt-1 select-text text-sm text-ink-soft">{myReview.comment}</p>
         )}
       </div>
     );
@@ -109,8 +109,8 @@ export default function ReviewBox({ shiftId }: { shiftId: string }) {
   }
 
   return (
-    <form onSubmit={submit} className="rounded-xl bg-surface px-3 py-3">
-      <p className="text-xs font-semibold text-ink/50">Calificar este turno</p>
+    <form onSubmit={submit} className="caja-resena rounded-xl bg-surface px-3 py-3">
+      <p className="text-xs font-semibold text-ink-soft">Calificar este turno</p>
       <div className="mt-1.5">
         <StarRating value={rating} onChange={setRating} />
       </div>
@@ -122,12 +122,21 @@ export default function ReviewBox({ shiftId }: { shiftId: string }) {
         rows={2}
         className="mt-2 w-full rounded-lg border border-line px-2.5 py-1.5 text-sm"
       />
-      <p className="mt-2 text-xs text-ink/60">
+      <p className="mt-2 text-xs text-ink-soft">
         Una vez enviada, la calificación no se puede cambiar ni borrar.
       </p>
       {error && <p className="mt-1 text-sm text-danger-text">{error}</p>}
       <div className="mt-2">
-        <Button type="submit" size="sm" loading={submitting} disabled={rating === 0 || submitting}>
+        {/* En azul hondo, no en ámbar (2026-11-20): Mis turnos y el panel del
+            comercio ya tienen su ámbar, y este era el segundo de la pantalla. */}
+        <Button
+          type="submit"
+          size="sm"
+          variant="surface"
+          className="boton-hondo"
+          loading={submitting}
+          disabled={rating === 0 || submitting}
+        >
           Enviar calificación
         </Button>
       </div>

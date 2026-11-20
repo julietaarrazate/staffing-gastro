@@ -76,7 +76,7 @@ function DocSlot({
         // `bg-surface` el ícono/label quedaban en tinta clara de modo oscuro
         // sobre un fondo que seguía siendo claro (bug real, captura de
         // Julieta 2026-09-02).
-        className="relative flex aspect-[3/2] w-full items-center justify-center overflow-hidden rounded-2xl bg-card text-ink/50 ring-1 ring-line transition active:scale-[0.98] disabled:opacity-70"
+        className="relative flex aspect-[3/2] w-full items-center justify-center overflow-hidden rounded-2xl bg-card text-ink-soft ring-1 ring-line transition active:scale-[0.98] disabled:opacity-70"
       >
         {value ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -98,7 +98,7 @@ function DocSlot({
           </span>
         )}
       </button>
-      <p className="mt-1 text-center text-label text-ink/45">{hint}</p>
+      <p className="mt-1 text-center text-label text-ink-soft">{hint}</p>
       <input
         ref={inputRef}
         type="file"
@@ -111,7 +111,17 @@ function DocSlot({
   );
 }
 
-export default function IdentityVerificationCard() {
+export default function IdentityVerificationCard({
+  sinSello = false,
+  onStatusChange,
+}: {
+  /** El sello «Identidad verificada» ya lo muestra la pantalla (el chip del
+   * Perfil con la dirección suave): con la identidad aprobada queda sólo la
+   * nota de qué ven los comercios y qué se guarda. */
+  sinSello?: boolean;
+  /** Avisa el estado de la verificación cuando se conoce o cambia. */
+  onStatusChange?: (status: string) => void;
+} = {}) {
   const { token } = useAuth();
   const [summary, setSummary] = useState<IdentitySummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -139,6 +149,11 @@ export default function IdentityVerificationCard() {
     void load();
   }, [load]);
 
+  const estado = summary ? (documentClaim(summary)?.status ?? "no_presentada") : null;
+  useEffect(() => {
+    if (estado) onStatusChange?.(estado);
+  }, [estado, onStatusChange]);
+
   async function handleSubmit() {
     if (!token || !dniFront || !selfie) return;
     setSubmitting(true);
@@ -160,6 +175,7 @@ export default function IdentityVerificationCard() {
   }
 
   if (loading) {
+    if (sinSello) return null;
     return (
       <div className="flex justify-center py-8">
         <Spinner size={22} className="text-ink/40" />
@@ -170,7 +186,7 @@ export default function IdentityVerificationCard() {
   if (loadError) {
     return (
       <div className="p-4 text-center">
-        <p className="text-sm text-ink/60">No se pudo cargar tu estado de identidad.</p>
+        <p className="text-sm text-ink-soft">No se pudo cargar tu estado de identidad.</p>
         <Button variant="ghost" onClick={() => void load()} className="mt-2">
           Reintentar
         </Button>
@@ -181,6 +197,15 @@ export default function IdentityVerificationCard() {
   const claim = summary ? documentClaim(summary) : undefined;
   const status = claim?.status ?? "no_presentada";
   const showForm = status === "no_presentada" || status === "rechazada";
+
+  if (sinSello && status === "verificada") {
+    return (
+      <p className="px-1 text-caption text-ink-soft">
+        Los comercios ven que tu identidad está verificada. No guardamos tu DNI: sólo queda la
+        constancia de la verificación.
+      </p>
+    );
+  }
 
   return (
     <div className="p-4">
@@ -200,13 +225,13 @@ export default function IdentityVerificationCard() {
           {status === "verificada" ? (
             <div className="mt-1.5">
               <IdentityVerifiedBadge verified />
-              <p className="mt-1.5 text-sm text-ink/55">
+              <p className="mt-1.5 text-sm text-ink-soft">
                 Los comercios ven que tu identidad está verificada. No guardamos
                 tu DNI: sólo queda la constancia de la verificación.
               </p>
             </div>
           ) : status === "pendiente" ? (
-            <p className="mt-1 text-sm text-ink/60">
+            <p className="mt-1 text-sm text-ink-soft">
               Estamos revisando tu documento. Te avisamos apenas esté listo.
             </p>
           ) : status === "rechazada" ? (
@@ -216,7 +241,7 @@ export default function IdentityVerificationCard() {
                 : "No pudimos verificarla. Probá con fotos más nítidas."}
             </p>
           ) : (
-            <p className="mt-1 text-sm text-ink/60">
+            <p className="mt-1 text-sm text-ink-soft">
               Subí tu DNI y una selfie para que un comercio pueda confiar en que
               sos quien decís. Lleva un minuto.
             </p>
@@ -241,7 +266,7 @@ export default function IdentityVerificationCard() {
               onChange={setSelfie}
             />
           </div>
-          <p className="mt-3 text-label leading-relaxed text-ink/45">
+          <p className="mt-3 text-label leading-relaxed text-ink-soft">
             Usamos estas imágenes sólo para verificar tu identidad. Quedan
             privadas: las ve una persona de nuestro equipo mientras revisa, y
             las eliminamos una vez revisadas (Ley 25.326).

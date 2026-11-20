@@ -1,4 +1,4 @@
-import { formatMessageWhen } from "./datetime";
+import { formatMessageWhen, formatReviewDate } from "./datetime";
 import { describe, expect, it } from "vitest";
 import {
   argentinaISOToLocalInput,
@@ -203,5 +203,20 @@ describe("formatMessageWhen", () => {
 
   it("una fecha rota no rompe la lista", () => {
     expect(formatMessageWhen("no-es-fecha", AHORA)).toBe("");
+  });
+});
+
+describe("formatReviewDate", () => {
+  it("de este año: el día y el mes en palabras", () => {
+    expect(formatReviewDate("2026-11-14T23:00:00Z", AHORA)).toBe("14 de noviembre");
+  });
+
+  it("de otro año: lo dice", () => {
+    expect(formatReviewDate("2025-12-20T23:00:00Z", AHORA)).toBe("20 de diciembre de 2025");
+  });
+
+  it("usa el día de Argentina, no el de UTC", () => {
+    // 01:30 UTC del 15 son las 22:30 del 14 en Buenos Aires.
+    expect(formatReviewDate("2026-11-15T01:30:00Z", AHORA)).toBe("14 de noviembre");
   });
 });
