@@ -1,4 +1,4 @@
-# Mis turnos con la dirección suave (#PR)
+# Mis turnos con la dirección suave (#703)
 
 **Pedido:** Julieta, 2026-11-20 (por la sesión que coordina la tanda): seguir
 la migración a la dirección suave (ADR-0028) con Mis turnos, sobre la maqueta
