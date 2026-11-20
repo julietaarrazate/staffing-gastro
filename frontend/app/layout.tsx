@@ -10,6 +10,7 @@ import { ToastProvider } from "@/components/ui";
 import SplashScreen from "@/components/SplashScreen";
 import Navbar from "@/components/Navbar";
 import BottomNav from "@/components/BottomNav";
+import { AvisosProvider } from "@/lib/avisos";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
 import CapturaOrigen from "@/components/CapturaOrigen";
 import { SITE_URL } from "@/lib/site";
@@ -136,6 +137,7 @@ export default function RootLayout({
           <AuthProvider>
             <ToastProvider>
               <PushPromptProvider>
+                <AvisosProvider>
                 <SplashScreen />
                 <CapturaOrigen />
                 <ImpersonationBanner />
@@ -156,6 +158,7 @@ export default function RootLayout({
                     cálculo da exactamente 5rem = 80px, igual que antes. */}
                 <main className="flex-1 pb-[var(--chrome-bottom)] md:pb-0 print:pb-0">{children}</main>
                 <BottomNav />
+                </AvisosProvider>
               </PushPromptProvider>
             </ToastProvider>
           </AuthProvider>

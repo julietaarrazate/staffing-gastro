@@ -106,7 +106,9 @@
    * escritorio los insets valen 0 y el cálculo da exactamente lo de antes,
    * así que el arreglo no cambia nada del layout web. */
   --chrome-top: calc(4rem + env(safe-area-inset-top));
-  --chrome-bottom: calc(5rem + env(safe-area-inset-bottom));
+  /* La barra de abajo flota (2026-11-20): 18 px del borde, 64 de alto y 10 de
+   * aire arriba. */
+  --chrome-bottom: calc(5.75rem + env(safe-area-inset-bottom));
 
   /* Motion (ART_DIRECTION.md §13.3, DESIGN_TOKENS.md §3.7). Sin rebote a
    * propósito: la llegada seca comunica precisión, no juego (§13.2). Estos
@@ -4501,4 +4503,152 @@ body:has([data-landing]) main {
    Perfil, que usa las mismas filas. */
 .estilo-suave .perfil-filas :is(a, button):focus-visible {
   outline-offset: -3px;
+}
+
+/* ===== La barra flotante y la barra de la compu (2026-11-20, ADR-0028) =====
+   Decidido por Julieta sobre la maqueta `.barra` del lienzo «identidad por
+   pantalla»: una píldora blanca con sombra difusa, separada de los bordes; la
+   pestaña activa lleva un óvalo celeste detrás del ícono. Al lado, para el
+   comercio, «Publicar turno»: un «+» redondo azul hondo. */
+:root {
+  --barra-fondo: #ffffff;
+  --barra-sombra: 0 14px 30px rgba(15, 58, 91, 0.16), 0 0 0 1px rgba(15, 58, 91, 0.05);
+  --barra-hondo: linear-gradient(180deg, #2a73a3, #1c5478);
+  --cielo-hondo-0: #174a6c;
+}
+:root[data-theme="dark"] {
+  --cielo-hondo-0: #0b1a28;
+  --barra-fondo: #1d2833;
+  --barra-sombra: 0 14px 30px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+/* Sin encabezado en el celular (quien trabaja y el comercio): arriba sólo
+   queda la zona segura del equipo. */
+@media (max-width: 767.98px) {
+  :root[data-cromo="app"] {
+    --chrome-top: env(safe-area-inset-top);
+  }
+  /* La zona segura de arriba (el notch, en la app instalada): la deja libre
+     `main`, y se pinta del color con el que arranca el cielo de la pantalla,
+     para que el cielo llegue hasta el borde. */
+  :root[data-cromo="app"] main {
+    padding-top: env(safe-area-inset-top);
+  }
+  :root[data-cromo="app"] main:has(.estilo-suave .app-cielo) {
+    background:
+      linear-gradient(var(--app-cielo-0), var(--app-cielo-0)) top / 100% env(safe-area-inset-top) no-repeat,
+      var(--color-card);
+  }
+  :root[data-cromo="app"] main:has(.cielo-de-pantalla.cielo-hondo) {
+    background:
+      linear-gradient(var(--cielo-hondo-0), var(--cielo-hondo-0)) top / 100% env(safe-area-inset-top) no-repeat,
+      var(--color-card);
+  }
+  /* El lugar reservado para la barra flotante: la hoja de la pantalla sigue
+     por detrás de la barra (si no, debajo de la píldora quedaba una franja
+     del lienzo). `.bajo-barra-hoja` es para una pantalla que todavía no pasó
+     a la dirección suave pero termina en una hoja (Buscar del comercio). */
+  main:has(.estilo-suave),
+  main:has(.bajo-barra-hoja) {
+    background-color: var(--color-card);
+  }
+}
+.barra-app {
+  position: fixed;
+  z-index: 40;
+  inset-inline: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px calc(18px + env(safe-area-inset-bottom));
+  pointer-events: none;
+}
+/* Sólo en el celular: en la compu se navega con la barra de arriba. (Acá y no
+   con `md:hidden`: una regla sin capa le gana a las utilidades.) */
+@media (min-width: 768px) {
+  .barra-app {
+    display: none;
+  }
+}
+@media print {
+  .barra-app {
+    display: none;
+  }
+}
+.barra-app-pildora {
+  pointer-events: auto;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+  height: 64px;
+  padding: 0 4px;
+  border-radius: 24px;
+  background: var(--barra-fondo);
+  box-shadow: var(--barra-sombra);
+}
+.barra-app-pestana {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  min-height: 48px;
+  border-radius: 16px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--color-ink-mute);
+}
+.barra-app-icono {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  max-width: 100%;
+  height: 28px;
+  border-radius: 999px;
+}
+.barra-app-pestana[aria-current="page"] {
+  color: var(--color-primary-text);
+}
+.barra-app-pestana[aria-current="page"] .barra-app-icono {
+  background: var(--color-primary-tint);
+}
+.barra-app-mas {
+  pointer-events: auto;
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  background: var(--barra-hondo);
+  color: #ffffff;
+  box-shadow: 0 12px 24px rgba(28, 84, 120, 0.35);
+}
+.barra-compu {
+  border-radius: 20px;
+  background: var(--barra-fondo);
+  box-shadow: var(--barra-sombra);
+}
+.barra-compu-mas {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 52px;
+  height: 52px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--barra-hondo);
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 10px 22px rgba(28, 84, 120, 0.3);
 }

@@ -1,6 +1,7 @@
 import { act, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import NotificationBell, { RECONNECT_REFRESH_MIN_GAP_MS } from "./NotificationBell";
+import NotificationBell from "./NotificationBell";
+import { AvisosProvider, RECONNECT_REFRESH_MIN_GAP_MS } from "@/lib/avisos";
 
 // VIE-04: la campanita se relee al volver a primer plano y al volver la red.
 
@@ -28,7 +29,7 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 async function montar() {
-  render(<NotificationBell />);
+  render(<AvisosProvider><NotificationBell /></AvisosProvider>);
   await act(async () => {});
   return apiGet.mock.calls.length;
 }

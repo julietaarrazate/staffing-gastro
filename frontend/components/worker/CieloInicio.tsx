@@ -4,6 +4,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { NubesCielo } from "@/components/ui";
 import AIAssistantBar from "@/components/AIAssistantBar";
+import Logo from "@/components/Logo";
+import NotificationBell from "@/components/NotificationBell";
 import type { InicioEstado, TurnoDeHoy } from "@/lib/inicio-estado";
 
 /**
@@ -165,7 +167,7 @@ export default function CieloInicio({
     <div
       data-testid="inicio-cielo"
       data-estado={estado.tipo}
-      className={`app-cielo cielo-limpio${hondo ? " cielo-hondo" : ""} px-4 pb-11 pt-4 md:rounded-t-[28px] md:px-6 md:pb-12 md:pt-6`}
+      className={`cielo-de-pantalla app-cielo cielo-limpio${hondo ? " cielo-hondo" : ""} px-4 pb-11 pt-4 md:rounded-t-[28px] md:px-6 md:pb-12 md:pt-6`}
     >
       {/* Una nube grande que asoma arriba a la derecha y una chica «de lejos»
           a la derecha del título (se oculta por debajo de 360 px: `max-[360px]`
@@ -193,7 +195,13 @@ export default function CieloInicio({
           sola palabra no entra al lado (un nombre largo a 320 px), el chip
           baja a su renglón. */}
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-        <p className="min-w-min flex-1 break-words text-base font-semibold">{saludo}</p>
+        {/* En el celular no hay encabezado: «oído» va acá, sobre el cielo, y
+            el saludo baja a su renglón. En la compu la marca está en la barra
+            de arriba. */}
+        <span className="md:hidden">
+          <Logo size={30} sobreCielo />
+        </span>
+        <p className="hidden min-w-min flex-1 break-words text-base font-semibold md:block">{saludo}</p>
         {/* «Disponible»: un chip de vidrio con un punto verde cuando está
             prendido y gris cuando no. Mismo estado y mismo guardado de siempre. */}
         <button
@@ -206,7 +214,11 @@ export default function CieloInicio({
           <span aria-hidden className={`h-2 w-2 rounded-full ${available ? "bg-success" : "bg-ink-soft"}`} />
           {available ? "Disponible" : "No disponible"}
         </button>
+        <span className="md:hidden">
+          <NotificationBell variante="vidrio" />
+        </span>
       </div>
+      <p className="mt-5 break-words text-base font-semibold md:hidden">{saludo}</p>
       {titulo}
       {detalle}
       {/* El único ámbar de la pantalla: las acciones del turno viven en Mis

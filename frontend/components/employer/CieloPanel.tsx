@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { NubesCielo } from "@/components/ui";
 import { CalendarPlusIcon, PlusIcon } from "@/components/icons";
+import Logo from "@/components/Logo";
+import NotificationBell from "@/components/NotificationBell";
 import { formatShiftStartPhrase } from "@/lib/datetime";
 import type { ResumenPanel } from "@/lib/panel-comercio";
 import { SKILL_LABELS, type Shift } from "@/lib/types";
@@ -42,19 +44,21 @@ export default function CieloPanel({
   const postulados = elegir?.pending_applicants_count ?? 0;
   const frase = resumen?.deHoy ? "Hoy tenés" : "Tenés en curso";
 
+  // Con a quién elegir, el ámbar es «Elegir a quién va» y «Publicar turno» no
+  // se repite acá: está al lado de la barra (el «+» del celular, el botón azul
+  // hondo de la compu). Sin nadie que elegir, publicar es la acción de la
+  // pantalla y va en ámbar.
   const acciones = conAcciones && (
     <div className="mt-4 flex gap-2">
-      <Link
-        href="/shifts/new"
-        data-tour="shifts-publish"
-        className={
-          elegir
-            ? "chip-vidrio boton-cielo flex-1"
-            : "boton-relieve flex min-h-[52px] flex-1 items-center justify-center gap-1.5 bg-primary px-4 text-body font-bold text-night"
-        }
-      >
-        <PlusIcon size={18} /> Publicar turno
-      </Link>
+      {!elegir && (
+        <Link
+          href="/shifts/new"
+          data-tour="shifts-publish"
+          className="boton-relieve flex min-h-[52px] flex-1 items-center justify-center gap-1.5 bg-primary px-4 text-body font-bold text-night"
+        >
+          <PlusIcon size={18} /> Publicar turno
+        </Link>
+      )}
       <Link href="/shifts/new-event" className="chip-vidrio boton-cielo">
         <CalendarPlusIcon size={17} /> Evento
       </Link>
@@ -65,7 +69,7 @@ export default function CieloPanel({
     <div
       data-testid="panel-cielo"
       data-cielo={hondo ? "hondo" : "dia"}
-      className={`panel-cielo app-cielo cielo-limpio px-5 pb-12 pt-5 md:rounded-t-[28px] md:px-6 md:pt-6 ${
+      className={`cielo-de-pantalla panel-cielo app-cielo cielo-limpio px-5 pb-12 pt-5 md:rounded-t-[28px] md:px-6 md:pt-6 ${
         hondo ? "cielo-hondo" : ""
       }`}
     >
@@ -78,6 +82,13 @@ export default function CieloPanel({
           { forma: "a", ancho: 250, pos: { left: "30%", top: -74 }, className: "hidden md:block" },
         ]}
       />
+
+      {/* En el celular no hay encabezado: «oído» y la campanita van acá, sobre
+          el cielo. En la compu están en la barra de arriba. */}
+      <div className="mb-5 flex items-center justify-between md:hidden">
+        <Logo size={30} sobreCielo />
+        <NotificationBell variante="vidrio" />
+      </div>
 
       {!resumen ? (
         <>
