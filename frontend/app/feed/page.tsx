@@ -16,6 +16,8 @@ import { esPerfilInexistente } from "@/lib/perfil-faltante";
 import { bienvenidaHref } from "@/lib/safe-next";
 import PerfilFaltanteCard from "@/components/PerfilFaltanteCard";
 import { isTodayInArgentina } from "@/lib/datetime";
+import { decidirInicio } from "@/lib/inicio-estado";
+import { useAhora } from "@/lib/use-ahora";
 import { useLiveRefresh } from "@/lib/live-refresh";
 import {
   distanceOf,
@@ -27,8 +29,8 @@ import {
   type CurrentLocation,
 } from "@/lib/current-location";
 import LocationBar from "@/components/worker/LocationBar";
-import AIAssistantBar from "@/components/AIAssistantBar";
-import { CardSkeletons, EmptyState, NubesCielo, Skeleton, useToast } from "@/components/ui";
+import { CardSkeletons, EmptyState, Skeleton, useToast } from "@/components/ui";
+import CieloInicio from "@/components/worker/CieloInicio";
 import OpportunityCard from "@/components/worker/OpportunityCard";
 import FeedHero from "@/components/worker/FeedHero";
 import NearbyRow from "@/components/worker/NearbyRow";
@@ -69,6 +71,8 @@ const WORKER_FEED_TOUR: TourStep[] = [
 interface CachedFeed {
   shifts: Shift[];
   profile: WorkerProfile | null;
+  /** Mis postulaciones (para el turno de hoy del título). Ausente en un caché viejo. */
+  applications?: ShiftApplication[];
 }
 const FEED_CACHE_KEY = "worker-feed";
 /** Marca interna: el perfil se pidió y el servidor dijo 404 (no existe). */
@@ -199,6 +203,13 @@ function WorkerFeedPanel() {
   const [available, setAvailable] = useState(cached?.profile?.is_available ?? true);
   const tourPendiente = useTourPendiente("staffya_tour_worker_feed");
   const [loading, setLoading] = useState(cached === undefined);
+  // Mis postulaciones, para el turno que la persona ya tiene hoy (el título del
+  // cielo). `null` = todavía no se sabe; si el pedido falla queda `[]` y el
+  // Inicio sigue como si no tuviera ninguno.
+  const [applications, setApplications] = useState<ShiftApplication[] | null>(cached?.applications ?? null);
+  // El reloj sólo corre si hay una postulación aceptada que pueda ser el turno de hoy.
+  const hayAceptada = !!applications?.some((a) => a.status === "aceptada" && a.shift);
+  const ahora = useAhora(hayAceptada);
   // «Llegó vacío» (el servidor no devolvió ningún turno) no es lo mismo que
   // «los vi todos» (la persona fue pasando/descartando las tarjetas): lo
   // primero no se puede decir como si ya hubiera visto algo. El caché guarda
@@ -281,6 +292,7 @@ function WorkerFeedPanel() {
       ]);
       if (mine !== latestLoad.current) return;
       setError(null);
+      setApplications(applied);
       const appliedIds = appliedShiftIds(applied);
       const visible = feed.filter((s) => !appliedIds.has(s.id) && !descartados.current.has(s.id));
       setShifts(visible);
@@ -310,7 +322,7 @@ function WorkerFeedPanel() {
             ? null
             : prof
           : (lastSavedProfile.current ?? getCached<CachedFeed>(FEED_CACHE_KEY)?.profile ?? null);
-        setCached<CachedFeed>(FEED_CACHE_KEY, { shifts: visible, profile: cachedProfile });
+        setCached<CachedFeed>(FEED_CACHE_KEY, { shifts: visible, profile: cachedProfile, applications: applied });
       }
     } catch (err) {
       if (!silent && mine === latestLoad.current) {
@@ -545,7 +557,17 @@ function WorkerFeedPanel() {
   // más turnos» sería falso, la persona todavía no vio nada.
   const incompleto =
     !!profile && (profile.latitude == null || profile.longitude == null || !profile.skills?.length);
-  const hayCartel = sinPerfil || incompleto;
+  // El título del cielo según lo que pasa (lib/inicio-estado.ts). Con el turno
+  // de hoy a la vista, «Ver mi turno» es el único ámbar de la pantalla.
+  const estado = decidirInicio({
+    postulaciones: applications ?? [],
+    turnosParaMostrar: visibleShifts.length,
+    ahora,
+    cargando: loading || (applications === null && !error),
+    conError: !!error,
+  });
+  const turnoDeHoy = estado.tipo.startsWith("hoy-");
+  const hayCartel = sinPerfil || incompleto || turnoDeHoy;
   const emptyState = sinPerfil ? null : (
     <EmptyState
       icon={<EmptyFeedIllustration color="var(--color-primary)" />}
@@ -567,55 +589,21 @@ function WorkerFeedPanel() {
     // para deslizar sigue como "Descubrir rápido" (decisión de Julieta,
     // 2026-09-22). La lógica no cambió.
     <div className="estilo-suave mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col md:min-h-[calc(100dvh-var(--chrome-top))] md:max-w-5xl md:px-4 md:pt-4">
-      <div className="app-cielo cielo-limpio px-4 pb-11 pt-4 md:rounded-t-[28px] md:px-6 md:pb-12 md:pt-6">
-        {/* Una nube grande que asoma arriba a la derecha y una chica «de
-            lejos» a la derecha del título (se oculta por debajo de 360 px: `max-[360px]` es «menos de 360»).
-            De día una nube puede quedar detrás de un texto en tinta; no
-            puede tapar nada ni ir detrás de letra blanca (de noche no hay). */}
-        <NubesCielo
-          nubes={[
-            { forma: "a", ancho: "min(300px, 68vw)", pos: { right: "calc(min(300px, 68vw) * -0.28)", top: -64 } },
-            { forma: "b", ancho: 100, pos: { right: 24, top: 92 }, lejos: true, className: "max-[360px]:hidden" },
-          ]}
-        />
-        {/* El saludo ocupa lo que deja el chip y se parte entre palabras; si
-            una sola palabra no entra al lado (un nombre largo a 320 px), el
-            chip baja a su renglón. */}
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-          <p className="min-w-min flex-1 break-words text-base font-semibold">
-            {firstName ? `Hola, ${firstName}.` : "Hola."}
-          </p>
-          {/* «Disponible»: un chip de vidrio con un punto verde cuando está
-              prendido y gris cuando no. Mismo estado y mismo guardado de
-              siempre (`toggleAvailable`). */}
-          <button
-            type="button"
-            onClick={toggleAvailable}
-            className="chip-vidrio chip-disponible ml-auto min-h-11 shrink-0 px-3.5 text-sm"
-            aria-label={`${available ? "Disponible" : "No disponible"}: cambiar disponibilidad`}
-            aria-pressed={available}
-          >
-            <span aria-hidden className={`h-2 w-2 rounded-full ${available ? "bg-success" : "bg-ink-soft"}`} />
-            {available ? "Disponible" : "No disponible"}
-          </button>
-        </div>
-        <h1 className="mt-2 text-[length:min(var(--text-titular),14.5vw)] font-extrabold leading-none tracking-[-0.035em]">
-          Hay turno{" "}
-          <br />a la vuelta
-        </h1>
-        {/* Desde dónde se mide el feed, debajo del título y a todo el ancho.
-            Mientras hay una búsqueda del asistente, manda la zona pedida
-            (cartel de abajo). */}
-        <div className="mb-4 mt-3">
-          {assistantSearch ? (
+      <CieloInicio
+        estado={estado}
+        firstName={firstName}
+        available={available}
+        onToggleAvailable={toggleAvailable}
+        zona={
+          // Mientras hay una búsqueda del asistente, manda la zona pedida
+          // (cartel de abajo).
+          assistantSearch ? (
             <p className="mt-1 text-sm">Encontrá tu próximo turno.</p>
           ) : (
             <LocationBar current={here} profileCity={profile?.city ?? null} onChange={setHere} />
-          )}
-        </div>
-
-        <AIAssistantBar vidrio />
-      </div>
+          )
+        }
+      />
 
       {/* La hoja sube 28 px sobre el cielo y lleva todo lo que se toca. */}
       <div className="hoja -mt-7 flex-1 px-4 pb-6 pt-5 md:px-6">
@@ -630,6 +618,7 @@ function WorkerFeedPanel() {
             body="Completá tu zona y tus oficios para recibir turnos."
             actionLabel="Completar mi perfil"
             href={bienvenidaHref("/feed")}
+            secundario={turnoDeHoy}
           />
         </div>
       )}
@@ -640,6 +629,7 @@ function WorkerFeedPanel() {
             body="Sin eso te mostramos todo y no te avisamos de los turnos que te sirven."
             actionLabel="Completar mi perfil"
             href="/profile"
+            secundario={turnoDeHoy}
           />
         </div>
       )}
