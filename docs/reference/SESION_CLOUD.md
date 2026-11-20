@@ -81,6 +81,14 @@ sólo los archivos del área, y la completa una vez antes del push. No uses
   G20, G23) pasaron sus specs y cayeron en CI por specs de otras pantallas que
   esperaban la URL exacta `/shifts/new` o no simulaban un pedido nuevo. Cada
   vuelta de CI son ~5 minutos.
+- **Varias sesiones migrando pantallas a la vez: cada una edita sólo su
+  renglón** de `docs/planning/DIRECCION_SUAVE_PANTALLAS.md` (más su entrada
+  del historial y su fila del mapa del código), no el párrafo de la etapa 4
+  de `docs/STATUS.md`. El 2026-11-20 tres PRs seguidos (#697, #698, #699)
+  chocaron en ese párrafo y a cada uno hubo que traerle `main` y esperar otra
+  corrida de CI de 9 minutos. Para cerrar la tanda, una sola sesión mergea
+  los PRs en orden: mergea el primero, le trae `main` al siguiente, espera su
+  CI y sigue.
 - **Con varias ramas en paralelo, probá el merge entre ellas antes de pedir
   el "sí".** Dos PRs que agregan una importación en el mismo lugar chocan
   aunque no tengan nada que ver; se ve con un `git merge --no-commit` local y
