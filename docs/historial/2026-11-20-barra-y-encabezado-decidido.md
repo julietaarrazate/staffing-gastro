@@ -1,4 +1,4 @@
-# La barra de abajo y el encabezado: decidido (#PR)
+# La barra de abajo y el encabezado: decidido (#710)
 
 **Pedido:** Julieta, 2026-11-20: no recordaba las diferencias entre lo que
 está en producción y la maqueta del lienzo «Oído · identidad por pantalla»;
