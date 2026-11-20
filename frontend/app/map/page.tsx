@@ -16,11 +16,11 @@ import { getStoredLocation, nearbyOnly, originFor, sortByDistance } from "@/lib/
 import { haversineKm } from "@/lib/map/geo";
 import { estimateTravelTimes } from "@/lib/map/travel-time";
 import { SKILL_LABELS, Shift, ShiftApplication, WorkerProfile } from "@/lib/types";
-import { SKILL_ACCENT, SKILL_RAIL_BORDER, heroTile } from "@/lib/skill-style";
 import { Button, EmptyState, Sheet, Skeleton, useToast } from "@/components/ui";
-import { BikeIcon, CalendarIcon, CarIcon, FlameIcon, FootprintsIcon, MapPinIcon, UsersIcon, WalletIcon } from "@/components/icons";
+import { BikeIcon, CalendarIcon, CarIcon, FootprintsIcon, MapPinIcon, UsersIcon } from "@/components/icons";
 import { formatShiftRange, formatShiftTime } from "@/lib/datetime";
 import MapSheet from "@/components/worker/MapSheet";
+import TurnoMapa, { MiniaturaTurno } from "@/components/worker/TurnoMapa";
 import ConfirmOverlay from "@/components/ui/ConfirmOverlay";
 import { formatPayAmount, formatPayCompact, payView } from "@/lib/pay";
 import { formatDistance, plural } from "@/lib/format";
@@ -47,25 +47,36 @@ function handleCardActivate(e: React.KeyboardEvent, onActivate: () => void) {
 
 function MapCardSkeleton({ wide = false }: { wide?: boolean }) {
   return (
-    <div
-      className={`overflow-hidden rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-float)] ring-1 ring-line ${
-        wide ? "w-full" : "w-[86%] shrink-0 snap-center"
-      }`}
-      aria-hidden
-    >
-      <div className="flex items-center gap-2.5">
-        <Skeleton className="h-11 w-11 rounded-[var(--radius-chip)]" />
-        <div className="flex-1 space-y-2">
+    <div className={`mapa-turno p-3 ${wide ? "w-full" : "w-[86%] shrink-0 snap-center"}`} aria-hidden>
+      <div className="flex items-start gap-3">
+        <Skeleton className="h-16 w-16 rounded-[14px]" />
+        <div className="flex-1 space-y-2 pt-1">
           <Skeleton className="h-4 w-2/3" />
           <Skeleton className="h-3 w-1/2" />
+          <Skeleton className="h-3 w-1/3" />
         </div>
       </div>
-      <div className="mt-3 flex items-end justify-between">
-        <Skeleton className="h-6 w-24" />
-        <Skeleton className="h-3 w-14" />
-      </div>
-      <Skeleton className="mt-3 h-9 w-full rounded-full" />
+      <Skeleton className="mt-3 h-11 w-full rounded-[16px]" />
     </div>
+  );
+}
+
+/** Los tiempos de viaje estimados (a pie, en bici, en auto), en un renglón. */
+function TiemposDeViaje({ distanceKm, className = "" }: { distanceKm: number; className?: string }) {
+  const { walkMin, bikeMin, carMin } = estimateTravelTimes(distanceKm);
+  return (
+    <p className={`flex items-center gap-2.5 text-xs font-medium text-ink-soft ${className}`}>
+      <span className="inline-flex items-center gap-1">
+        <FootprintsIcon size={13} /> {walkMin}&apos;
+      </span>
+      <span className="inline-flex items-center gap-1">
+        <BikeIcon size={13} /> {bikeMin}&apos;
+      </span>
+      <span className="inline-flex items-center gap-1">
+        <CarIcon size={13} /> {carMin}&apos;
+      </span>
+      <span className="text-ink-mute">aprox.</span>
+    </p>
   );
 }
 
@@ -99,61 +110,46 @@ function ShiftRow({
   onSelect: () => void;
   onApply: () => void;
 }) {
-  const { Icon } = SKILL_ACCENT[shift.position];
-  const rail = SKILL_RAIL_BORDER[shift.position];
   const distance =
     shift.latitude != null && shift.longitude != null ? haversineKm(center, [shift.latitude, shift.longitude]) : null;
 
   return (
     <div
       onMouseEnter={onSelect}
-      // Riel de color por rubro a la izquierda: estas tarjetas eran todas
-      // blancas y en una lista de varias se leían iguales (Julieta,
-      // 2026-08-17: "en mapa, donde se ven los turnos en blanco, también que
-      // las tarjetas tengan colores"). El estado activo sigue marcándose con
-      // el borde/fondo naranja, que es señal de SELECCIÓN, no de rubro.
-      className={`relative w-full rounded-[var(--radius-card)] border border-l-[6px] p-3.5 pl-3 text-left transition ${rail} ${
-        active ? "border-primary/40 bg-primary-tint/60" : "border-line bg-card hover:bg-surface"
-      }`}
+      data-elegido={active || undefined}
+      // Una fila suave (ADR-0028): tecla blanca con sombra difusa. La elegida
+      // (la del pin en azul hondo) lleva un aro del mismo azul y es la única
+      // con «Postularme» en ámbar; en las demás el botón va quieto. Se fueron
+      // el riel y el cuadradito de color por rubro.
+      className="mapa-turno relative w-full p-3 text-left"
     >
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-chip)] ${heroTile(shift.position)}`}>
-            <Icon size={20} />
-          </span>
-          <div className="min-w-0">
-            {/* Link real al detalle (`/turno/[id]`), estirado sobre toda la
-                fila: se llega con Tab y Enter. El botón «Postularme» queda por
-                encima (`z-10`) y no navega. */}
-            <h3 className="truncate text-sm font-extrabold leading-tight text-ink">
-              <Link
-                href={`/turno/${shift.id}`}
-                data-testid="map-row-link"
-                className="after:absolute after:inset-0 after:rounded-[var(--radius-card)] foco-propio focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-(--focus-ring)"
-              >
-                {SKILL_LABELS[shift.position]}
-              </Link>
-            </h3>
-            <p className="truncate text-xs font-medium text-ink/50">{shift.company_name ?? "Comercio"}</p>
-          </div>
-        </div>
-        {shift.urgent && (
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-danger-tint px-2 py-0.5 text-label font-bold text-danger-text">
-            <FlameIcon size={10} /> Urgente
-          </span>
-        )}
-      </div>
-      <div className="mt-2.5 flex items-end justify-between gap-2">
-        <p className="text-base font-extrabold text-primary-text">
-          {formatPayCompact(shift)}
-        </p>
-        <p className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-ink/50">
-          <MapPinIcon size={12} />
-          {distance != null ? formatDistance(distance) : (shift.city ?? "")}
-        </p>
-      </div>
+      <TurnoMapa
+        shift={shift}
+        distanceKm={distance}
+        pago={formatPayCompact(shift)}
+        titulo={
+          // Link real al detalle (`/turno/[id]`), estirado sobre toda la
+          // fila: se llega con Tab y Enter. El botón «Postularme» queda por
+          // encima (`z-10`) y no navega.
+          <Link
+            href={`/turno/${shift.id}`}
+            data-testid="map-row-link"
+            className="after:absolute after:inset-0 after:rounded-[inherit] foco-propio focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-(--focus-ring)"
+          >
+            {SKILL_LABELS[shift.position]}
+          </Link>
+        }
+      />
       <div className="relative z-10 mt-3">
-        <Button fullWidth size="sm" loading={applying} disabled={disabled} onClick={onApply}>
+        <Button
+          fullWidth
+          size="sm"
+          variant={active ? "primary" : "surface"}
+          className={`min-h-[44px] ${active ? "" : "boton-quieto"}`}
+          loading={applying}
+          disabled={disabled}
+          onClick={onApply}
+        >
           Postularme
         </Button>
       </div>
@@ -425,15 +421,15 @@ export default function MapPage() {
   const emptySecondary = error || allFarFromHere ? undefined : goToSearch;
 
   return (
-    <div className="flex h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] overflow-hidden md:h-[calc(100dvh-var(--chrome-top))]">
+    <div className="estilo-suave flex h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] overflow-hidden md:h-[calc(100dvh-var(--chrome-top))]">
       {/* Panel lateral (desktop, md+): la MISMA lista de turnos que en mobile
           vive en el sheet inferior, acá como columna fija — así la función
           del mapa no queda "escondida"/reducida en la versión web (antes el
           bottom-sheet mobile se estiraba tal cual a una tarjeta gigantesca
           y vacía en pantallas anchas). En mobile no se renderiza (hidden). */}
-      <aside className="hidden w-full max-w-[380px] shrink-0 flex-col overflow-y-auto border-r border-line bg-card md:flex">
-        <div className="sticky top-0 z-10 border-b border-line bg-card/95 px-5 py-4 backdrop-blur">
-          <h1 className="font-display text-h1 font-semibold text-ink">
+      <aside className="mapa-panel hidden w-full max-w-[380px] shrink-0 flex-col overflow-y-auto bg-card md:flex">
+        <div className="sticky top-0 z-20 bg-card/95 px-5 pb-3 pt-5 backdrop-blur">
+          <h1 className="titulo-pantalla text-ink">
             {loading
               ? "Buscando turnos..."
               : locationUnavailable
@@ -443,13 +439,13 @@ export default function MapPage() {
                   : `${plural(shifts.length, "turno", "turnos")} cerca tuyo`}
           </h1>
           {!loading && locationUnavailable && (
-            <p className="mt-1 text-sm text-ink/50">
+            <p className="mt-1.5 text-sm text-ink-soft">
               No pudimos ubicarte — activá la ubicación para ver los turnos
               realmente cerca tuyo.
             </p>
           )}
         </div>
-        <div className="flex-1 px-3 py-3">
+        <div className="flex-1 px-4 pb-5 pt-1">
           {loading ? (
             <div className="space-y-3">
               <MapCardSkeleton wide />
@@ -500,15 +496,12 @@ export default function MapPage() {
         bottomPadding={sheetHeight}
       />
 
-      {/* Encabezado flotante (sólo mobile: en desktop el conteo ya está en el
-          panel lateral, repetirlo acá arriba del mapa sería ruido). */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col items-start gap-1.5 p-3 md:hidden">
-        {/* Pastillas flotantes SOBRE el mapa: el mapa (MapLibre) no cambia de
-            tema, así que la pastilla queda blanca en ambos modos y su texto
-            debe ser SIEMPRE oscuro (`text-night`), no `text-ink` que se voltea
-            a claro en oscuro y desaparecería sobre el blanco. */}
-        <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-white/95 px-4 py-2.5 text-sm font-semibold text-night/70 shadow-[var(--shadow-soft)] ring-1 ring-line backdrop-blur">
-          <MapPinIcon size={16} className="text-primary-text" />
+      {/* El mapa es el cielo (ADR-0028, maqueta `T-Mapa`): arriba se funde con
+          el cielo de la app y el título va encima, en la tinta del cielo.
+          Sólo mobile: en la compu el título está en el panel de al lado. No
+          recibe toques: el mapa se mueve también por debajo del título. */}
+      <div className="mapa-cielo pointer-events-none absolute inset-x-0 top-0 z-10 px-5 pb-12 pt-5 md:hidden">
+        <h1 className="titulo-pantalla break-words">
           {loading
             ? "Buscando turnos cerca..."
             : locationUnavailable
@@ -516,21 +509,23 @@ export default function MapPage() {
               : usingZone
                 ? `${plural(shifts.length, "turno", "turnos")} cerca de tu zona`
                 : `${plural(shifts.length, "turno", "turnos")} cerca tuyo`}
-        </div>
+        </h1>
         {!loading && locationUnavailable && (
-          <div className="pointer-events-auto rounded-full bg-white/95 px-3.5 py-1.5 text-xs font-medium text-night/50 shadow-[var(--shadow-soft)] ring-1 ring-line backdrop-blur">
+          <p className="mapa-aviso mt-2.5">
             No pudimos ubicarte — activá la ubicación para ver lo que está
             realmente cerca
-          </div>
+          </p>
         )}
       </div>
+      {/* En la compu, el mismo cielo que asoma arriba del mapa, sin letra. */}
+      <div aria-hidden className="mapa-cielo mapa-cielo-compu pointer-events-none absolute inset-x-0 top-0 z-10 hidden h-28 md:block" />
 
       {/* Sheet inferior arrastrable con el carrusel de tarjetas — SÓLO mobile,
           en desktop la lista ya vive en el panel lateral de al lado. */}
       <div className="md:hidden">
       {!loading && shifts.length === 0 ? (
         <div className="absolute inset-x-0 bottom-4 z-10 px-4">
-          <div className="rounded-[var(--radius-card)] bg-card p-2 shadow-[var(--shadow-float)]">
+          <div className="mapa-tarjeta p-2">
             <EmptyState
               icon={<CalendarIcon size={28} />}
               title={emptyTitle}
@@ -545,7 +540,7 @@ export default function MapPage() {
           <div
             ref={carouselRef}
             onScroll={onCarouselScroll}
-            className="no-scrollbar relative flex items-stretch snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-4"
+            className="no-scrollbar relative flex items-stretch snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-6 pt-1"
           >
           {loading ? (
             <>
@@ -556,12 +551,13 @@ export default function MapPage() {
           ) : (
           <AnimatePresence initial={false} mode="popLayout">
           {shifts.map((shift) => {
-            const { Icon } = SKILL_ACCENT[shift.position];
-            const rail = SKILL_RAIL_BORDER[shift.position];
             const distance =
               shift.latitude != null && shift.longitude != null
                 ? haversineKm(center, [shift.latitude, shift.longitude])
                 : null;
+            // La tarjeta que el mapa sigue (la del pin en azul hondo) es la
+            // única con «Postularme» en ámbar: un solo ámbar por pantalla.
+            const elegida = shift.id === activeId;
             return (
               <motion.div
                 key={shift.id}
@@ -580,62 +576,15 @@ export default function MapPage() {
                 // navegar a su perfil.
                 onClick={() => setPreviewShift(shift)}
                 onKeyDown={(e) => handleCardActivate(e, () => setPreviewShift(shift))}
-                className={`relative flex w-[86%] shrink-0 snap-center flex-col overflow-hidden rounded-[var(--radius-card)] border-l-[6px] bg-card p-4 pl-3.5 text-left shadow-[var(--shadow-float)] ring-1 ring-line transition active:scale-[0.98] ${rail}`}
+                className="mapa-turno relative flex w-[86%] shrink-0 snap-center flex-col p-3 text-left transition active:scale-[0.98]"
               >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2.5">
-                    <span className={`flex h-11 w-11 items-center justify-center rounded-[var(--radius-chip)] ${heroTile(shift.position)}`}>
-                      <Icon size={22} />
-                    </span>
-                    <div>
-                      <h3 className="text-base font-extrabold leading-tight text-ink">
-                        {SKILL_LABELS[shift.position]}
-                      </h3>
-                      <Link
-                        href={`/companies/${shift.company_id}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="text-xs font-medium text-ink/50"
-                      >
-                        {shift.company_name ?? "Comercio"}
-                      </Link>
-                    </div>
-                  </div>
-                  {shift.urgent && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-danger-tint px-2 py-0.5 text-label font-bold text-danger-text">
-                      <FlameIcon size={11} /> Urgente
-                    </span>
-                  )}
-                </div>
-                <div className="mt-3 flex items-end justify-between">
-                  <p className="text-xl font-extrabold text-primary-text">
-                    {formatPayAmount(shift)}
-                  </p>
-                  <p className="inline-flex items-center gap-1 text-xs font-medium text-ink/50">
-                    <MapPinIcon size={13} />
-                    {distance != null ? formatDistance(distance) : (shift.city ?? "")}
-                  </p>
-                </div>
-                {distance != null && (
-                  <p className="mt-1.5 flex items-center gap-2.5 text-xs font-medium text-ink/45">
-                    {(() => {
-                      const { walkMin, bikeMin, carMin } = estimateTravelTimes(distance);
-                      return (
-                        <>
-                          <span className="inline-flex items-center gap-0.5">
-                            <FootprintsIcon size={12} /> {walkMin}&apos;
-                          </span>
-                          <span className="inline-flex items-center gap-0.5">
-                            <BikeIcon size={12} /> {bikeMin}&apos;
-                          </span>
-                          <span className="inline-flex items-center gap-0.5">
-                            <CarIcon size={12} /> {carMin}&apos;
-                          </span>
-                          <span className="text-ink/30">aprox.</span>
-                        </>
-                      );
-                    })()}
-                  </p>
-                )}
+                <TurnoMapa
+                  shift={shift}
+                  distanceKm={distance}
+                  pago={formatPayAmount(shift)}
+                  comercioHref={`/companies/${shift.company_id}`}
+                />
+                {distance != null && <TiemposDeViaje distanceKm={distance} className="mt-2" />}
                 {/* stopPropagation: sin esto, el toque también burbujea al
                     onClick de la tarjeta y abre el sheet de detalle a la vez
                     que postula. Este botón es el atajo directo para quien ya
@@ -643,10 +592,12 @@ export default function MapPage() {
                     necesita semántica/teclado propios — el botón de adentro
                     ya es interactivo y accesible por su cuenta. */}
                 {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events */}
-                <div className="mt-4" onClick={(e) => e.stopPropagation()}>
+                <div className="mt-auto pt-3" onClick={(e) => e.stopPropagation()}>
                   <Button
                     fullWidth
                     size="sm"
+                    variant={elegida ? "primary" : "surface"}
+                    className={`min-h-[44px] ${elegida ? "" : "boton-quieto"}`}
                     loading={applyingId === shift.id}
                     disabled={applyingId !== null || justAppliedId !== null}
                     onClick={() => apply(shift)}
@@ -677,105 +628,66 @@ export default function MapPage() {
         >
           {(() => {
             const shift = previewShift;
-            const { Icon } = SKILL_ACCENT[shift.position];
-            // Sin riel de color acá, a diferencia de las dos tarjetas de
-            // lista: esto es la hoja de detalle de UN turno, y el riel existe
-            // para diferenciar filas entre sí. Sobre un único elemento a
-            // pantalla completa sería decoración sin información.
             const distance =
               shift.latitude != null && shift.longitude != null
                 ? haversineKm(center, [shift.latitude, shift.longitude])
                 : null;
+            const pago = payView(shift);
             return (
-              <div className="pb-2 pt-1">
+              // `estilo-suave` acá también: la hoja se dibuja en un portal,
+              // fuera de la raíz de la pantalla.
+              <div className="estilo-suave pb-2 pt-1">
                 <div className="flex items-center gap-3">
-                  <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-[var(--radius-chip)] ${heroTile(shift.position)}`}>
-                    <Icon size={26} />
-                  </span>
-                  <div className="min-w-0">
+                  <MiniaturaTurno shift={shift} />
+                  <div className="min-w-0 flex-1">
                     <Link
                       href={`/companies/${shift.company_id}`}
                       onClick={() => setPreviewShift(null)}
-                      className="text-sm font-semibold text-ink/60"
+                      className="text-sm font-semibold text-ink"
                     >
                       {shift.company_name ?? "Comercio"}
                     </Link>
-                    <p className="flex items-center gap-1 text-xs font-medium text-ink/45">
+                    <p className="flex items-center gap-1 text-caption text-ink-soft">
                       <MapPinIcon size={13} />
                       {distance != null ? `A ${formatDistance(distance)}` : (shift.city ?? "Zona a confirmar")}
                     </p>
                   </div>
-                  {shift.urgent && (
-                    <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-danger-tint px-2 py-0.5 text-label font-bold text-danger-text">
-                      <FlameIcon size={11} /> Urgente
-                    </span>
-                  )}
+                  {shift.urgent && <span className="chip-suave chip-urgente ml-auto shrink-0">Urgente</span>}
                 </div>
 
-                {/* `bg-night` (Fase 14, mismo criterio que `/turno/[id]` en
-                    PR #288): el dinero es un módulo de foco en toda la app,
-                    no una superficie más — acá quedaba con el tratamiento
-                    viejo (`bg-surface`) mientras el resto ya cambió. Texto
-                    hardcoded claro: esta superficie no invierte con el tema.
-                    Ícono ámbar + moneda ámbar + monto blanco + rótulo crema:
-                    la misma receta de la tarjeta de ganancias de
-                    `WorkerGameCard`, que es la referencia de tarjeta negra
-                    de la app — una tarjeta negra con todo el contenido en
-                    blancos y grises no es el lenguaje de Oído. */}
-                <div className="mt-4 rounded-2xl bg-night px-4 py-4 text-center">
-                  <span className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-night">
-                    <WalletIcon size={18} />
-                  </span>
-                  <p className="font-display text-price font-extrabold tracking-tight text-white">
-                    {payView(shift).amount}
-                  </p>
-                  <p className="mt-1 text-label font-bold font-mono uppercase tracking-wide text-manteca">
+                {/* El pago es el número más grande de la hoja, en tinta sobre
+                    la hoja (como en `/turno/[id]`). Hasta el 2026-11-20 era un
+                    módulo negro con el ícono en ámbar, que sumaba un segundo
+                    ámbar al de «Postularme». */}
+                <div className="mt-5">
+                  <p className="turno-pago">{pago.amount}</p>
+                  <p className="mt-1.5 text-sm font-medium text-ink-soft">
                     {/* Turno reofrecido (U080): el número es por hora. */}
-                    {payView(shift).kind === "por_hora" ? "Por hora, desde que llegás" : "Pago ofrecido"}
+                    {pago.kind === "por_hora" ? "Por hora, desde que llegás" : "Pago ofrecido"}
                     {shift.tips ? " + propinas" : ""}{shift.meal ? " + comida" : ""}
                   </p>
                 </div>
 
-                <div className="mt-4 space-y-2.5 text-body text-ink/80">
-                  <p className="inline-flex items-center gap-2">
-                    <CalendarIcon size={18} className="text-ink/35" />
-                    {payView(shift).kind === "por_hora"
+                <div className="mt-5 space-y-2.5 text-body text-ink">
+                  <p className="flex items-center gap-2">
+                    <CalendarIcon size={18} className="shrink-0 text-ink-mute" />
+                    {pago.kind === "por_hora"
                       ? `Ya empezó · hasta las ${formatShiftTime(shift.end_at)}`
                       : formatShiftRange(shift.start_at, shift.end_at)}
                   </p>
-                  <p className="inline-flex items-center gap-2">
-                    <UsersIcon size={18} className="text-ink/35" />
+                  <p className="flex items-center gap-2">
+                    <UsersIcon size={18} className="shrink-0 text-ink-mute" />
                     {shift.quantity} {shift.quantity === 1 ? "persona" : "personas"}
                   </p>
                   {shift.dress_code && (
-                    <p className="text-sm text-ink/50">Dress code: {shift.dress_code}</p>
+                    <p className="text-sm text-ink-soft">Dress code: {shift.dress_code}</p>
                   )}
                   {shift.description && (
-                    <p className="text-sm text-ink/70">{shift.description}</p>
+                    <p className="text-sm text-ink-soft">{shift.description}</p>
                   )}
                 </div>
 
-                {distance != null && (
-                  <p className="mt-3 flex items-center gap-3 text-xs font-medium text-ink/45">
-                    {(() => {
-                      const { walkMin, bikeMin, carMin } = estimateTravelTimes(distance);
-                      return (
-                        <>
-                          <span className="inline-flex items-center gap-1">
-                            <FootprintsIcon size={13} /> {walkMin}&apos;
-                          </span>
-                          <span className="inline-flex items-center gap-1">
-                            <BikeIcon size={13} /> {bikeMin}&apos;
-                          </span>
-                          <span className="inline-flex items-center gap-1">
-                            <CarIcon size={13} /> {carMin}&apos;
-                          </span>
-                          <span className="text-ink/30">aprox.</span>
-                        </>
-                      );
-                    })()}
-                  </p>
-                )}
+                {distance != null && <TiemposDeViaje distanceKm={distance} className="mt-3" />}
 
                 <Button
                   fullWidth

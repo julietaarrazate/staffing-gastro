@@ -39,7 +39,7 @@ qué responde cada pantalla está en
 
 - ⬜ **Perfil de quien trabaja** (`T-Perfil`) · `app/profile/`
 
-- ⬜ **Mapa** (`T-Mapa`) · `app/map/page.tsx`
+- ✅ **Mapa** (`T-Mapa`) · #PR · [historial](../historial/2026-11-20-mapa-direccion-suave.md) · quedaron afuera el conmutador Lista / Mapa, los chips de día y la tarjeta única con «Ver el turno» (son funciones nuevas); falta mirar el mapa de noche con el mapa real
 
 - ⬜ **«¡Oído!» al postularse, a pantalla entera** (`T-Oido`) · es una función nueva, no piel: hoy es la cinta sobre la hoja del turno
 
