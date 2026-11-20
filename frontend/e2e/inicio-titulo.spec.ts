@@ -279,6 +279,10 @@ for (const estado of ["a1", "a2", "a3", "b", "c"] as const) {
       : null;
     await inicio(page, { postulaciones: turno ? postulaciones({ ...turno, company_name: "Restaurante Los Tres Hermanos del Sur" }) : [], feed: estado === "c" ? [] : feedUno() });
     await page.goto("/feed");
+    // Se mide recién con el estado final: mientras carga hay otro `h1` («Inicio»,
+    // sólo para lectores) que se reemplaza, y medirlo a destiempo daba null.
+    const final = { a1: "hoy-mas-tarde", a2: "hoy-por-empezar", a3: "hoy-en-curso", b: "con-turnos", c: "tranquilo" }[estado];
+    await expect(page.getByTestId("inicio-cielo")).toHaveAttribute("data-estado", final);
     await expect(titulo(page)).toBeVisible();
     await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
     expect(await page.evaluate(() => getComputedStyle(document.documentElement).fontSize)).toBe("32px");
