@@ -201,7 +201,8 @@ function Retrato({
       ) : (
         <span
           {...(sinIniciales ? { "aria-hidden": true } : { role: "img", "aria-label": nombre })}
-          className="cielo-hondo flex h-full w-full items-center justify-center text-[length:min(2.75rem,12vw)] font-extrabold tracking-[-0.02em]"
+          // El cielo hondo va siempre sobre un `.app-cielo` (`globals.css`).
+          className="app-cielo cielo-limpio cielo-hondo flex h-full w-full items-center justify-center text-[length:min(2.75rem,12vw)] font-extrabold tracking-[-0.02em]"
         >
           {sinIniciales ? null : iniciales(nombre)}
         </span>

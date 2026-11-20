@@ -524,7 +524,10 @@ con `.app-cielo`. **La landing sigue con el anterior** (`--l-*`) hasta su PR.
 
 Queda de este paso:
 
-1. **La hora gigante** («Hoy trabajás a las 20:00», «Empezás en 28 min»): es
+1. ~~**La hora gigante**~~ **Hecha el 2026-11-20** (`lib/inicio-estado.ts`,
+   `components/worker/CieloInicio.tsx`, `.cielo-hondo`, `.numero-gigante`;
+   [historial](../historial/2026-11-20-inicio-titulo-dice-la-verdad.md)). Lo
+   que sigue de este punto era la nota original: es
    una función nueva, no piel. Los datos ya llegan al Inicio: `GET
    /applications/mine` trae las postulaciones con el turno embebido; la
    asignada es `status === "aceptada"`, la hora `shift.start_at` y «hoy»
@@ -538,6 +541,11 @@ Queda de este paso:
    botones de antes (varios «Postularme» ámbar): es una pieza de otra etapa.
 4. El cielo nuevo en la landing; el encabezado y la barra de abajo.
 
+**Vidrio (Julieta, 2026-11-19, con referencias de componentes de cristal
+grueso):** se toma el brillo, no el cristal. Dentro de `.estilo-suave` el
+botón ámbar lleva una luz arriba y una sombra fina abajo, y el vidrio sobre el
+cielo un borde de luz. Nada de reflejos tornasolados ni de vidrio sobre blanco.
+
 ### En el código (2026-11-20): Candidatos y el «¡Oído!» al elegir
 
 Sobre las maquetas `C-Candidatos`, `C-Candidatos-sin-fotos` y `C-Oido` de la
@@ -549,7 +557,7 @@ prueba. Piezas nuevas:
 | `CandidatoFila` | ídem | Los demás: una tecla con la foto o la inicial, el nombre, sus datos en un renglón y «Elegir» quieto (`.boton-quieto`) |
 | `OidoElegido` | ídem | «¡Oído!» a pantalla completa: el cielo entero con el banco de nubes, las dos fotos que llegan de los costados (`.oido-llega-*`), el tilde y la cinta de `Filete.tsx` que cae como un sello (`.oido-sello`). Es un diálogo: foco adentro, Escape vuelve al panel |
 | `datosCandidato` | `components/candidate/CandidateSignals.tsx` | Los datos de una persona en pocas palabras y en orden de peso (nota, turnos, distancia, puntualidad, oficio), con las mismas reglas de «sin reseñas no es cero» |
-| `.cielo-hondo` | `globals.css` | El azul del filete en degradé con la letra en blanco (5,2 sobre el tono más claro); de noche, el azul noche. Las nubes, al 30 % |
+| `.cielo-hondo` (ya estaba, del Inicio) | `globals.css` | Acá es el fondo de quien no tiene foto: la tarjeta de la destacada y las fotos de «¡Oído!». Va siempre sobre un `.app-cielo` |
 | `.titulo-seccion` | ídem | El título de una sección de la hoja (18 px, 800) |
 
 Lo que la maqueta tenía y el producto no, y cómo quedó:

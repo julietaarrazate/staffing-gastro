@@ -33,7 +33,7 @@ export default function EmptyState({
       transition={reducedMotion ? { duration: 0 } : MOTION_UI}
       className="mx-auto mt-10 flex max-w-xs flex-col items-center px-6 text-center"
     >
-      <div className="flex h-24 w-24 items-center justify-center rounded-[28px] bg-surface text-primary-text">
+      <div className="empty-state-icono flex h-24 w-24 items-center justify-center rounded-[28px] bg-surface text-primary-text">
         {icon ?? <LogoGlyph size={36} color="var(--color-primary-text)" />}
       </div>
       <h2 className="mt-5 text-lg font-bold text-ink">{title}</h2>

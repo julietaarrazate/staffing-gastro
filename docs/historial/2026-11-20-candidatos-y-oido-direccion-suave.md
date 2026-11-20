@@ -43,8 +43,9 @@ puede asignar, los errores y la asignación en sí quedaron igual.
 Técnico: `frontend/app/shifts/[id]/candidates/page.tsx`; piezas nuevas en
 `frontend/components/candidate/`: `CandidatoDestacado.tsx`,
 `CandidatoFila.tsx`, `OidoElegido.tsx` y `datosCandidato` en
-`CandidateSignals.tsx`. En `globals.css`: `.cielo-hondo`, `.titulo-seccion`,
-`.foto-destacada`, `.tarjeta-destacada`, `.boton-quieto` y las `.oido-*`.
+`CandidateSignals.tsx`. En `globals.css`, en un bloque propio al final:
+`.titulo-seccion`, `.foto-destacada`, `.tarjeta-destacada`, `.boton-quieto` y
+las `.oido-*` (el `.cielo-hondo` es el del Inicio, #697).
 `CandidateCard.tsx` perdió la variante `relieve` (ahora sólo lo usa la
 landing vieja de `/historia`). Specs: `candidatos-relieve.spec.ts` pasó a
 `candidatos-suave.spec.ts`; se adaptaron los que buscaban «Asignar», «Mejor
