@@ -73,6 +73,21 @@ export function AvisosProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // De qué cuenta es la lista que hay en memoria. El proveedor no se desmonta
+  // al salir (la campanita de antes sí): sin esto, quien entra después en el
+  // mismo equipo veía los avisos de la cuenta anterior hasta que respondía su
+  // propio pedido (revisión del 2026-11-20). Se compara por cuenta y no por
+  // token, que también cambia cada vez que la sesión se renueva.
+  const cuenta = token ? (user?.id ?? null) : null;
+  const [duenio, setDuenio] = useState<string | null>(null);
+  const cuentaRef = useRef<string | null>(cuenta);
+  cuentaRef.current = cuenta;
+  useEffect(() => {
+    setNotifications([]);
+    setError(null);
+    setLoading(true);
+    setDuenio(cuenta);
+  }, [cuenta]);
   // La primera apertura del socket coincide con la carga inicial; desde la
   // segunda es una reconexión (ver `useWebSocket`).
   const hasOpenedOnce = useRef(false);
@@ -90,12 +105,21 @@ export function AvisosProvider({ children }: { children: ReactNode }) {
 
   const load = useCallback(() => {
     if (!token) return;
+    // La respuesta sólo vale si la cuenta sigue siendo la que la pidió.
+    const pidio = cuentaRef.current;
+    const vigente = () => cuentaRef.current === pidio;
     setError(null);
     api
       .get<Notification[]>("/notifications", token)
-      .then(setNotifications)
-      .catch((err) => setError(getErrorMessage(err, "No pudimos cargar tus notificaciones")))
-      .finally(() => setLoading(false));
+      .then((lista) => {
+        if (vigente()) setNotifications(lista);
+      })
+      .catch((err) => {
+        if (vigente()) setError(getErrorMessage(err, "No pudimos cargar tus notificaciones"));
+      })
+      .finally(() => {
+        if (vigente()) setLoading(false);
+      });
   }, [token]);
 
   useEffect(() => {
@@ -260,22 +284,23 @@ export function AvisosProvider({ children }: { children: ReactNode }) {
     }
   }, [notifications, token]);
 
-  const value = useMemo<Avisos>(
-    () =>
-      token
-        ? {
-            activo: true,
-            notifications,
-            loading,
-            error,
-            unreadCount: notifications.filter((n) => !n.read).length,
-            load,
-            openNotification,
-            markAllAsRead,
-          }
-        : SIN_AVISOS,
-    [token, notifications, loading, error, load, openNotification, markAllAsRead]
-  );
+  const value = useMemo<Avisos>(() => {
+    if (!token) return SIN_AVISOS;
+    // Entre el cambio de cuenta y el efecto que vacía la lista hay un render:
+    // en ese render la lista en memoria todavía es de la cuenta anterior.
+    const propios = duenio === cuenta;
+    const lista = propios ? notifications : [];
+    return {
+      activo: true,
+      notifications: lista,
+      loading: propios ? loading : true,
+      error: propios ? error : null,
+      unreadCount: lista.filter((n) => !n.read).length,
+      load,
+      openNotification,
+      markAllAsRead,
+    };
+  }, [token, cuenta, duenio, notifications, loading, error, load, openNotification, markAllAsRead]);
 
   return <AvisosContext.Provider value={value}>{children}</AvisosContext.Provider>;
 }

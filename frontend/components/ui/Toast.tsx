@@ -50,9 +50,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={show}>
       {children}
-      {/* El aviso va ARRIBA en todos los anchos, debajo del encabezado
-          (`--chrome-top`: 4rem + zona segura; el aviso arranca 0,5rem más
-          abajo). Abajo caía sobre «Publicar turno»: en el celular (390 px) y
+      {/* El aviso va ARRIBA en todos los anchos: debajo de la barra de arriba
+          donde la hay (`--chrome-top`: 4rem + zona segura; el aviso arranca
+          0,5rem más abajo) y, en el celular con sesión, que no tiene
+          encabezado, pegado a la zona segura. Abajo caía sobre «Publicar turno»: en el celular (390 px) y
           también en escritorio con la ventana baja (~510-615 px de alto), donde
           el botón queda a media pantalla (U009).
           Tocar el aviso lo CIERRA y el toque no pasa a lo que tapa: arriba

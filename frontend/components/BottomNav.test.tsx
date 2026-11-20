@@ -61,6 +61,15 @@ describe("BottomNav: los avisos sin leer, en la pestaña por la que se llega a e
     expect(screen.getByRole("link", { name: "Inicio" })).not.toHaveTextContent("3");
   });
 
+  it("en una pantalla de adentro del Panel (publicar, candidatos) no hay campanita: la pestaña lleva la cuenta aunque esté activa", () => {
+    auth = sesion("employer");
+    ruta = "/shifts/s1/candidates";
+    sinLeer = 2;
+    render(<BottomNav />);
+    const panel = screen.getByRole("link", { name: "Panel, 2 avisos sin leer" });
+    expect(panel).toHaveAttribute("aria-current", "page");
+  });
+
   it("sin avisos sin leer no hay cuenta", () => {
     auth = sesion("worker");
     ruta = "/buscar";

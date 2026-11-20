@@ -84,7 +84,9 @@ export default function BottomNav() {
       <nav aria-label="Secciones" className="barra-app-pildora">
         {tabs.map(({ href, label, Icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`);
-          const avisos = href === inicio && !active ? unreadCount : 0;
+          // Coincidencia exacta: en una pantalla de adentro (publicar,
+          // candidatos) la pestaña está activa pero no hay campanita.
+          const avisos = href === inicio && pathname !== href ? unreadCount : 0;
           return (
             <Link
               key={href}
@@ -103,7 +105,7 @@ export default function BottomNav() {
               // mismo criterio que F4/jsx-a11y).
               aria-current={active ? "page" : undefined}
               aria-label={avisos > 0 ? `${label}, ${avisos} ${avisos === 1 ? "aviso" : "avisos"} sin leer` : undefined}
-              className="barra-app-pestana foco-propio"
+              className="barra-app-pestana"
             >
               {/* La activa: un óvalo celeste detrás del ícono. */}
               <span className="barra-app-icono">
@@ -118,7 +120,7 @@ export default function BottomNav() {
       {/* «Publicar turno» del comercio: el «+» redondo azul hondo al lado de
           la barra. No va en ámbar: el ámbar es de la acción de cada pantalla. */}
       {conMas && (
-        <Link href="/shifts/new" aria-label="Publicar turno" className="barra-app-mas">
+        <Link href="/shifts/new" aria-label="Publicar turno" data-tour="shifts-publish" className="barra-app-mas">
           <PlusIcon size={26} strokeWidth={2.2} />
         </Link>
       )}

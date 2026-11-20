@@ -4601,6 +4601,12 @@ body:has([data-landing]) main {
   font-weight: 600;
   color: var(--color-ink-mute);
 }
+/* El foco de teclado va por dentro: la píldora es angosta y por fuera se
+   pisaba con la pestaña de al lado. */
+.barra-app-pestana:focus-visible {
+  outline: 2px solid var(--focus-ring, var(--color-primary));
+  outline-offset: -2px;
+}
 .barra-app-icono {
   position: relative;
   display: flex;
@@ -4629,6 +4635,16 @@ body:has([data-landing]) main {
   background: var(--barra-hondo);
   color: #ffffff;
   box-shadow: 0 12px 24px rgba(28, 84, 120, 0.35);
+}
+/* Lo que pasa por detrás de la barra de arriba al bajar se esfuma en el
+   lienzo, en vez de asomar entero por encima y por debajo de la píldora. */
+.barra-compu-cielo::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 -14px;
+  z-index: -1;
+  background: linear-gradient(180deg, var(--background) 70%, transparent);
+  pointer-events: none;
 }
 .barra-compu {
   border-radius: 20px;

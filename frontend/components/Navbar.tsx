@@ -86,7 +86,9 @@ export default function Navbar() {
   // 2026-11-20): el cielo de cada pantalla llega hasta arriba, y «oído» y la
   // campanita van sobre el cielo del Inicio y del Panel. `data-cromo="app"` en
   // `<html>` le dice a `globals.css` que arriba ya no hay nada que descontar.
-  const sinEncabezadoEnCelular = user?.role === "worker" || user?.role === "employer";
+  // No en las pantallas propias, sin barras (la bienvenida trae su zona segura).
+  const pantallaPropia = pathname === "/bienvenida" || pathname === "/historia" || pathname === "/encuesta";
+  const sinEncabezadoEnCelular = !pantallaPropia && (user?.role === "worker" || user?.role === "employer");
   useEffect(() => {
     const raiz = document.documentElement;
     if (sinEncabezadoEnCelular) raiz.dataset.cromo = "app";
@@ -205,7 +207,7 @@ function BarraConSesion() {
   const soloCompu = user.role === "worker" || user.role === "employer";
 
   return (
-    <header className={cn("safe-top sticky top-0 z-40 print:hidden", soloCompu && "hidden md:block")}>
+    <header className={cn("barra-compu-cielo safe-top sticky top-0 z-40 print:hidden", soloCompu && "hidden md:block")}>
       <div className="mx-auto flex max-w-5xl items-center gap-2.5 px-4 pt-3">
         <div className="barra-compu flex h-[52px] min-w-0 flex-1 items-center justify-between gap-2 pl-5 pr-2">
           <Link href="/" aria-label="Inicio">
@@ -255,7 +257,7 @@ function BarraConSesion() {
         </div>
         {/* Publicando no va: ya se está en eso. */}
         {user.role === "employer" && !estaPublicando(pathname) && (
-          <Link href="/shifts/new" aria-label="Publicar turno" className="barra-compu-mas">
+          <Link href="/shifts/new" aria-label="Publicar turno" data-tour="shifts-publish" className="barra-compu-mas">
             <PlusIcon size={22} strokeWidth={2.2} />
             <span className="hidden lg:inline">Publicar turno</span>
           </Link>
