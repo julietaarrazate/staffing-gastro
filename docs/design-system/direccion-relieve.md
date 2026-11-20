@@ -525,7 +525,10 @@ con `.app-cielo`. **La landing sigue con el anterior** (`--l-*`) hasta su PR.
 
 Queda de este paso:
 
-1. **La hora gigante** («Hoy trabajás a las 20:00», «Empezás en 28 min»): es
+1. ~~**La hora gigante**~~ **Hecha el 2026-11-20** (`lib/inicio-estado.ts`,
+   `components/worker/CieloInicio.tsx`, `.cielo-hondo`, `.numero-gigante`;
+   [historial](../historial/2026-11-20-inicio-titulo-dice-la-verdad.md)). Lo
+   que sigue de este punto era la nota original: es
    una función nueva, no piel. Los datos ya llegan al Inicio: `GET
    /applications/mine` trae las postulaciones con el turno embebido; la
    asignada es `status === "aceptada"`, la hora `shift.start_at` y «hoy»
@@ -538,3 +541,8 @@ Queda de este paso:
 3. **En escritorio**, la grilla de `OpportunityCard` sigue con la letra y los
    botones de antes (varios «Postularme» ámbar): es una pieza de otra etapa.
 4. El cielo nuevo en la landing; el encabezado y la barra de abajo.
+
+**Vidrio (Julieta, 2026-11-19, con referencias de componentes de cristal
+grueso):** se toma el brillo, no el cristal. Dentro de `.estilo-suave` el
+botón ámbar lleva una luz arriba y una sombra fina abajo, y el vidrio sobre el
+cielo un borde de luz. Nada de reflejos tornasolados ni de vidrio sobre blanco.
