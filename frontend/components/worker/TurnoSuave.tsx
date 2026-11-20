@@ -116,7 +116,7 @@ export default function TurnoSuave({
               más que el turno. «Cómo llegar» sigue en todas. */}
           {destacado && conMapa && (
             <div className="overflow-hidden rounded-2xl">
-              <MiniMap latitude={shift.latitude as number} longitude={shift.longitude as number} />
+              <MiniMap latitude={shift.latitude as number} longitude={shift.longitude as number} nombre={shift.company_name} />
             </div>
           )}
           <div className="flex gap-2">

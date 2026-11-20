@@ -506,7 +506,7 @@ export default function ShiftCard({
           <>
             {shift.latitude != null && shift.longitude != null && (
               <div className="mt-3 overflow-hidden rounded-2xl ring-1 ring-line">
-                <MiniMap latitude={shift.latitude} longitude={shift.longitude} />
+                <MiniMap latitude={shift.latitude} longitude={shift.longitude} nombre={shift.company_name} />
               </div>
             )}
             <div className="mt-2 flex gap-2">

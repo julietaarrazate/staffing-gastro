@@ -471,7 +471,7 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
           <section className="mt-6">
             <h2 className="text-sm font-bold text-ink">Ubicación</h2>
             <div className="mt-2 overflow-hidden rounded-[20px]">
-              <MiniMap latitude={shift.latitude!} longitude={shift.longitude!} className="h-40 w-full" />
+              <MiniMap latitude={shift.latitude!} longitude={shift.longitude!} className="h-40 w-full" nombre={shift.company_name} />
             </div>
           </section>
         )}
