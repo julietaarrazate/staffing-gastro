@@ -7,29 +7,20 @@ import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { Conversation } from "@/lib/types";
-import { EmptyState, ErrorBanner, Skeleton } from "@/components/ui";
+import { Avatar, EmptyState, ErrorBanner, Skeleton } from "@/components/ui";
 import { MessageIcon } from "@/components/icons";
-import { ConversationsContext, ConversationsControlContext } from "./ConversationsContext";
+import { ConversationsContext, ConversationsControlContext, shiftLabel } from "./ConversationsContext";
 import { useLiveRefresh } from "@/lib/live-refresh";
-
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const min = Math.floor(diff / 60000);
-  if (min < 1) return "recién";
-  if (min < 60) return `hace ${min} min`;
-  const h = Math.floor(min / 60);
-  if (h < 24) return `hace ${h} h`;
-  const d = Math.floor(h / 24);
-  return `hace ${d} d`;
-}
+import { formatMessageWhen } from "@/lib/datetime";
 
 function ConversationRowSkeleton() {
   return (
-    <div className="flex items-center gap-3 rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
-      <Skeleton className="h-12 w-12 shrink-0 rounded-full" />
-      <div className="min-w-0 flex-1 space-y-2">
+    <div className="flex gap-3 px-5 py-3">
+      <Skeleton className="h-[52px] w-[52px] shrink-0 rounded-full" />
+      <div className="min-w-0 flex-1 space-y-2 pt-1">
         <Skeleton className="h-4 w-1/2" />
         <Skeleton className="h-3.5 w-3/4" />
+        <Skeleton className="h-5 w-2/5 rounded-full" />
       </div>
     </div>
   );
@@ -92,102 +83,141 @@ export default function ChatsLayout({ children }: { children: React.ReactNode })
   const activeShiftId = !isIndex ? pathname.split("/")[2] : null;
 
   return (
-    <div className="app-container flex h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] overflow-hidden md:h-[calc(100dvh-var(--chrome-top))]">
-      <aside
-        className={`w-full shrink-0 flex-col overflow-y-auto md:flex md:max-w-[380px] md:border-r md:border-line md:bg-card ${
-          isIndex ? "flex" : "hidden"
+    // La dirección suave (ADR-0028, maqueta «Chats»): un cielo corto y liso,
+    // sin nubes, con el título en letra normal, y la hoja con la lista, donde
+    // cada chat cuelga de su turno. En el celular la conversación abierta
+    // ocupa la pantalla con su propio cielo (ver `[shiftId]/page.tsx`), así
+    // que el de la lista se guarda; en la compu el cielo queda y la hoja lleva
+    // la lista y la conversación lado a lado.
+    <div className="estilo-suave mx-auto flex h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] w-full flex-col md:h-[calc(100dvh-var(--chrome-top))] md:max-w-5xl md:px-4 md:pb-4 md:pt-4">
+      <div
+        className={`app-cielo cielo-limpio shrink-0 px-5 pb-11 pt-5 md:block md:rounded-t-[28px] md:px-6 md:pt-6 ${
+          isIndex ? "" : "hidden"
         }`}
       >
-        <div className="px-4 pb-2 pt-6">
-          <h1 className="font-display text-h1 font-semibold">Mensajes</h1>
-          <p className="mt-1 text-sm text-ink/50">
-            Coordiná los detalles de cada turno con la otra parte.
-          </p>
-        </div>
+        <h1 className="titulo-pantalla">Chats</h1>
+      </div>
 
-        <div className="flex-1 space-y-3 px-4 pb-6">
-          {loading && (
-            <div className="grid grid-cols-1 gap-3" aria-hidden>
-              <ConversationRowSkeleton />
-              <ConversationRowSkeleton />
-              <ConversationRowSkeleton />
-            </div>
-          )}
-          {!loading && error && <ErrorBanner message={error} onRetry={() => load()} />}
-          {!loading && conversations.length === 0 && !error && (
-            <EmptyState
-              icon={<MessageIcon size={28} />}
-              title="Todavía no tenés conversaciones"
-              subtitle="Apenas se asigne un turno, vas a poder chatear acá con la otra parte."
-            />
-          )}
+      <div
+        className={`flex min-h-0 flex-1 md:-mt-7 md:overflow-hidden ${
+          isIndex ? "hoja -mt-7 overflow-hidden" : "hoja-compu"
+        }`}
+      >
+        <aside
+          className={`w-full shrink-0 flex-col overflow-y-auto md:flex md:max-w-[380px] md:border-r md:border-line ${
+            isIndex ? "flex" : "hidden"
+          }`}
+        >
+          <div className="flex-1 pb-6 pt-2.5">
+            {loading && (
+              <div aria-hidden>
+                <ConversationRowSkeleton />
+                <ConversationRowSkeleton />
+                <ConversationRowSkeleton />
+              </div>
+            )}
+            {!loading && error && (
+              <div className="px-5 pt-3">
+                <ErrorBanner message={error} onRetry={() => load()} />
+              </div>
+            )}
+            {!loading && conversations.length === 0 && !error && (
+              <div className="px-5 pt-3">
+                <EmptyState
+                  icon={<MessageIcon size={28} />}
+                  title="Todavía no tenés conversaciones"
+                  subtitle="Apenas se asigne un turno, vas a poder chatear acá con la otra parte."
+                />
+              </div>
+            )}
 
-          <div className="grid grid-cols-1 gap-3">
-            {conversations.map((c) => (
-              <Link
-                key={c.shift_id}
-                href={`/chats/${c.shift_id}`}
-                onClick={() =>
-                  setConversations((prev) =>
-                    prev.map((p) => (p.shift_id === c.shift_id ? { ...p, unread_count: 0 } : p))
-                  )
-                }
-                className={`flex min-w-0 items-center gap-3 rounded-[var(--radius-card)] p-4 shadow-[var(--shadow-soft)] ring-1 transition hover:shadow-md ${
-                  c.shift_id === activeShiftId
-                    ? "bg-primary-tint ring-primary/40"
-                    : "bg-card ring-line"
-                }`}
-              >
-                {c.other_party_photo ? (
-                  <img
-                    src={c.other_party_photo}
-                    alt={c.other_party_name}
-                    width={48}
-                    height={48}
-                    loading="lazy"
-                    decoding="async"
-                    className="h-12 w-12 shrink-0 rounded-full object-cover ring-1 ring-line"
-                  />
-                ) : (
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary-tint text-lg font-bold text-primary-text">
-                    {c.other_party_name.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="flex min-w-0 items-center justify-between gap-2">
-                    <h3 className="truncate font-bold text-ink">{c.other_party_name}</h3>
-                    <span className="shrink-0 text-xs text-ink/40">
-                      {timeAgo(c.last_message_at)}
-                    </span>
-                  </div>
-                  <p className="truncate text-xs text-ink/40">{c.shift_title}</p>
-                  <p className="truncate text-sm text-ink/60">{c.last_message}</p>
-                </div>
-                {c.unread_count > 0 && (
-                  <span className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold text-night">
-                    {c.unread_count}
-                  </span>
-                )}
-              </Link>
-            ))}
+            {conversations.length > 0 && (
+              <>
+                <p className="px-5 pb-1 pt-3.5 text-caption font-bold text-ink-soft">
+                  Coordiná los detalles de cada turno con la otra parte.
+                </p>
+                <ul>
+                  {conversations.map((c) => {
+                    const sinLeer = c.unread_count > 0;
+                    const abierta = c.shift_id === activeShiftId;
+                    return (
+                      <li key={c.shift_id} className="chat-fila">
+                        <Link
+                          href={`/chats/${c.shift_id}`}
+                          aria-current={abierta ? "page" : undefined}
+                          onClick={() =>
+                            setConversations((prev) =>
+                              prev.map((p) =>
+                                p.shift_id === c.shift_id ? { ...p, unread_count: 0 } : p
+                              )
+                            )
+                          }
+                          className="flex min-w-0 gap-3 px-5 py-3"
+                        >
+                          <Avatar
+                            src={c.other_party_photo}
+                            name={c.other_party_name}
+                            className="!h-[52px] !w-[52px]"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex min-w-0 items-baseline justify-between gap-2">
+                              <h3
+                                className={`truncate text-fila text-ink ${
+                                  sinLeer ? "font-extrabold" : "font-bold"
+                                }`}
+                              >
+                                {c.other_party_name}
+                              </h3>
+                              <span
+                                className={`shrink-0 text-xs ${
+                                  sinLeer ? "font-bold text-primary-text" : "font-medium text-ink-soft"
+                                }`}
+                              >
+                                {formatMessageWhen(c.last_message_at)}
+                              </span>
+                            </div>
+                            <div className="mt-px flex min-w-0 items-center justify-between gap-2.5">
+                              <p
+                                className={`truncate text-sm ${
+                                  sinLeer ? "font-semibold text-ink" : "text-ink-soft"
+                                }`}
+                              >
+                                {c.last_message}
+                              </p>
+                              {sinLeer && (
+                                <span className="chat-sin-leer">{c.unread_count}</span>
+                              )}
+                            </div>
+                            {/* El chat cuelga de su turno. */}
+                            <span className="chip-suave mt-2 max-w-full !px-[9px] !py-1 !text-xs !text-primary-text">
+                              <span className="truncate">{shiftLabel(c.shift_title)}</span>
+                            </span>
+                          </div>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            )}
           </div>
-        </div>
-      </aside>
+        </aside>
 
-      {/* Sin conversaciones el panel derecho queda VACÍO, no con su
-          placeholder. `page.tsx` dice "Elegí una conversación · Seleccioná un
-          chat de la lista", que al lado de un "Todavía no tenés
-          conversaciones" es una instrucción imposible: no hay lista de la cual
-          elegir. Eran dos estados vacíos contradictorios uno al lado del otro
-          — visible en el render a 1440px (auditoría fase I). El panel sólo
-          conoce su propia ruta, así que la decisión vive acá, que es donde se
-          sabe cuántas conversaciones hay. */}
-      <div className={`min-w-0 flex-1 flex-col md:flex ${isIndex ? "hidden" : "flex"}`}>
-        <ConversationsContext.Provider value={conversations}>
-          <ConversationsControlContext.Provider value={control}>
-            {isIndex && !loading && !error && conversations.length === 0 ? null : children}
-          </ConversationsControlContext.Provider>
-        </ConversationsContext.Provider>
+        {/* Sin conversaciones el panel derecho queda VACÍO, no con su
+            placeholder. `page.tsx` dice "Elegí una conversación · Seleccioná un
+            chat de la lista", que al lado de un "Todavía no tenés
+            conversaciones" es una instrucción imposible: no hay lista de la cual
+            elegir. Eran dos estados vacíos contradictorios uno al lado del otro
+            — visible en el render a 1440px (auditoría fase I). El panel sólo
+            conoce su propia ruta, así que la decisión vive acá, que es donde se
+            sabe cuántas conversaciones hay. */}
+        <div className={`min-w-0 flex-1 flex-col md:flex ${isIndex ? "hidden" : "flex"}`}>
+          <ConversationsContext.Provider value={conversations}>
+            <ConversationsControlContext.Provider value={control}>
+              {isIndex && !loading && !error && conversations.length === 0 ? null : children}
+            </ConversationsControlContext.Provider>
+          </ConversationsContext.Provider>
+        </div>
       </div>
     </div>
   );
