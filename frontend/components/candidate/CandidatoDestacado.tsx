@@ -151,24 +151,26 @@ export default function CandidatoDestacado({
         </div>
       </div>
       {cifras.length > 0 && (
-        <dl
-          className="cifras-destacada grid p-4"
-          style={{ gridTemplateColumns: `repeat(${cifras.length}, minmax(0, 1fr))` }}
-        >
-          {cifras.map((d) => (
-            <div key={d.clave} className="min-w-0">
-              {/* El número arriba y su rótulo abajo, pero el rótulo es el
-                  término: `flex-col-reverse` mantiene el orden de lectura. */}
-              <div className="flex flex-col-reverse">
-                <dt className="mt-1.5 text-metadata leading-tight text-ink-soft">{d.rotulo}</dt>
-                <dd className="flex items-center gap-1 whitespace-nowrap text-[length:min(1.625rem,7vw)] font-extrabold leading-[0.95] tracking-[-0.035em] tabular-nums text-ink">
-                  {d.numero}
-                  {d.clave === "nota" && <StarIcon size={16} filled className="shrink-0 text-primary-text" />}
-                </dd>
-              </div>
-            </div>
-          ))}
-        </dl>
+        <div className="p-4">
+          {/* Recorta la raya de la primera columna de cada renglón. */}
+          <div className="overflow-hidden">
+            <dl className="cifras-destacada grid">
+              {cifras.map((d) => (
+                <div key={d.clave} className="min-w-0">
+                  {/* El número arriba y su rótulo abajo, pero el rótulo es el
+                      término: `flex-col-reverse` mantiene el orden de lectura. */}
+                  <div className="flex flex-col-reverse">
+                    <dt className="mt-1.5 break-words text-metadata leading-tight text-ink-soft">{d.rotulo}</dt>
+                    <dd className="flex items-center gap-1 whitespace-nowrap text-[length:min(1.625rem,7vw)] font-extrabold leading-[0.95] tracking-[-0.035em] tabular-nums text-ink">
+                      {d.numero}
+                      {d.clave === "nota" && <StarIcon size={16} filled className="shrink-0 text-primary-text" />}
+                    </dd>
+                  </div>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </div>
       )}
       {/* Por encima del link que cubre la tarjeta. */}
       {boton && <div className={`relative z-[1] px-4 pb-4 ${cifras.length === 0 ? "pt-4" : ""}`}>{boton}</div>}

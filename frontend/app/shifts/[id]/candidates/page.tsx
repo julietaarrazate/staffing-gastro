@@ -227,8 +227,9 @@ function ShiftCandidatesContent() {
           {shift && (
             <p data-testid="candidatos-turno" className="min-w-0 break-words text-[length:var(--text-fila)] font-semibold leading-snug">
               {SKILL_LABELS[shift.position]} ·{" "}
-              {/* El horario no se parte: si no entra, baja entero. */}
-              <span className="whitespace-nowrap">
+              {/* El horario baja entero al renglón siguiente si no entra al lado del
+                  puesto; si ni así entra (320 px con la letra al 200 %), se parte adentro. */}
+              <span className="inline-block">
                 {formatShiftWhen(shift.start_at, shift.end_at).replace(" · ", ", ")}
               </span>
             </p>

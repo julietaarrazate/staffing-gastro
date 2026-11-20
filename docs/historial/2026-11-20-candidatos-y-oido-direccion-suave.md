@@ -1,4 +1,4 @@
-# Candidatos y el «¡Oído!» al elegir, con la dirección suave
+# Candidatos y el «¡Oído!» al elegir, con la dirección suave (#698)
 
 **Pedido:** Julieta, 2026-11-20: seguir la migración a la dirección suave
 (ADR-0028) con Candidatos del comercio y el «¡Oído!» al elegir, sobre las
@@ -84,7 +84,18 @@ las iniciales); sobre una foto muy clara el primer renglón de un nombre de
 tres no llegaba a contraste (el velo empieza antes y el nombre ocupa a lo
 sumo dos renglones); «Elegir» medía 40 px de alto (ahora 44); sin nombre del
 local, «¡Oído!» escribía «EL» (ahora el cielo hondo solo); y «Nuevo en Oído»
-se perdía en la tarjeta sin foto cuando había otro dato.
+se perdía en la tarjeta sin foto cuando había otro dato. Una **segunda
+pasada** (otro agente, sobre esos arreglos, más el teclado, el «atrás» del
+navegador desde «¡Oído!» y la misma persona en las dos pestañas) aprobó sin
+bloqueantes, y se tomaron sus cinco detalles: el contorno de foco casi no se
+veía sobre la foto ni sobre el cielo hondo en claro (ahora va en blanco); a
+320 px con la letra al 200 % el horario del cielo se cortaba; el «·» del
+renglón de datos quedaba solo en un renglón; el chip de arriba se fundía con
+una foto muy clara (lleva una sombra suave); y la foto vacía del local se
+anunciaba a un lector de pantalla. Al mirar la captura de esos arreglos
+apareció uno más: con la letra al 200 % a 320 px los tres datos de la tarjeta
+sin foto se pisaban (ahora las columnas se acomodan solas y pasan a una). Los
+arreglos de la segunda pasada los escribió un agente Sonnet.
 
 **Queda abierto:**
 
@@ -95,7 +106,6 @@ se perdía en la tarjeta sin foto cuando había otro dato.
   «Identidad verificada» (queda el escudo): están en el perfil.
 - La «Garantía Oído» y las pestañas siguen con el estilo de antes.
 - `Flechita` quedó sin uso; se va con la limpieza final del ADR-0028.
-- No se probó en un celular táctil real, ni con fotos reales de Cloudinary,
-  ni el «atrás» del navegador desde «¡Oído!» con historial real.
+- No se probó en un celular táctil real ni con fotos reales de Cloudinary.
 - Lo que la revisión vio y es de toda la app: «Inicio» y la campanita del
   encabezado miden menos de 44 px, y la barra de abajo con la letra al 200 %.

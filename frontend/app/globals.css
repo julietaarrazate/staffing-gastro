@@ -3483,13 +3483,32 @@ body:has([data-landing]) main {
     0 1px 2px rgba(10, 25, 38, 0.5),
     0 2px 16px rgba(10, 25, 38, 0.6);
 }
+/* El contorno de foco azul hondo no se ve sobre el velo oscuro ni sobre el
+   cielo hondo: ahí va blanco (mismo grosor y separación que el global). */
+.foto-destacada a:focus-visible,
+.tarjeta-destacada .cielo-hondo a:focus-visible {
+  outline-color: #ffffff;
+}
+/* El chip sobre una foto muy clara no se funde. */
+.foto-destacada .chip-foto {
+  box-shadow: 0 1px 3px rgba(10, 25, 38, 0.28);
+}
 .estilo-suave .tarjeta-destacada {
   overflow: hidden;
   border-radius: 24px;
   background: var(--suave-tecla);
   box-shadow: var(--suave-sombra-alta);
 }
-.cifras-destacada > div + div {
+/* Las columnas se acomodan solas (con la letra grande pasan a menos). La
+   raya va a la izquierda de cada cifra y la grilla se corre 13 px: el
+   contenedor con overflow hidden recorta la de la primera columna de cada
+   renglón. */
+.cifras-destacada {
+  grid-template-columns: repeat(auto-fit, minmax(4.75rem, 1fr));
+  row-gap: 0.75rem;
+  margin-left: -13px;
+}
+.cifras-destacada > div {
   padding-left: 12px;
   border-left: 1px solid var(--color-line);
 }

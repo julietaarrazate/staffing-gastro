@@ -69,13 +69,16 @@ export default function CandidatoFila({
           <span className="mt-0.5 block text-caption leading-snug text-ink-soft">
             {disponible && !marca && (
               <>
-                <span className="font-semibold text-success-text">Disponible</span>
-                {datos.length > 0 && " · "}
+                <span className="whitespace-nowrap">
+                  <span className="font-semibold text-success-text">Disponible</span>
+                  {datos.length > 0 && " ·"}
+                </span>{" "}
               </>
             )}
             {datos.map((d, i) => (
               <span key={d.clave}>
-                {i > 0 && " · "}
+                {i > 0 && " "}
+                {/* El « ·» viaja pegado al dato anterior: no queda huérfano en un renglón. */}
                 <span className="whitespace-nowrap">
                   {d.clave === "nota" && (
                     <>
@@ -84,6 +87,7 @@ export default function CandidatoFila({
                     </>
                   )}
                   {d.clave === "distancia" ? d.texto.toLowerCase() : d.texto}
+                  {i < datos.length - 1 && " ·"}
                 </span>
               </span>
             ))}

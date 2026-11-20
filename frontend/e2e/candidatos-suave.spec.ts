@@ -214,3 +214,63 @@ test("sobre la foto el nombre ocupa a lo sumo dos renglones", async ({ page }) =
   expect(alto).toBeLessThanOrEqual(renglon * 2 + 1);
   await expect(nombre).toHaveAttribute("title", "Maximiliano Alejandro Fernandez de la Cruz Sanchez Villa");
 });
+
+test("el foco por teclado sobre la destacada lleva contorno blanco, con foto y sin foto", async ({ page }) => {
+  for (const extra of [{}, { photo_url: "/landing/cocinera.webp" }]) {
+    await candidatos(page, [persona("1", "Julia Méndez", { events_completed: 41, ...extra })]);
+    await setTheme(page, "light");
+    await page.goto("/shifts/shift-1/candidates");
+    const link = page.locator("[data-destacado]").getByRole("link", { name: "Julia Méndez" });
+    await expect(link).toBeVisible();
+    for (let i = 0; i < 12 && !(await link.evaluate((el) => el === document.activeElement)); i++) await page.keyboard.press("Tab");
+    await expect(link).toBeFocused();
+    const { color, estilo } = await link.evaluate((el) => {
+      const c = getComputedStyle(el);
+      return { color: c.outlineColor, estilo: c.outlineStyle };
+    });
+    expect(color).toBe("rgb(255, 255, 255)");
+    expect(estilo).not.toBe("none");
+    await page.unrouteAll({ behavior: "ignoreErrors" });
+  }
+});
+
+test("«¡Oído!» sin nombre del local: no hay un «El local» vacío para el lector de pantalla", async ({ page }) => {
+  await candidatos(page);
+  await page.route("**/api/v1/shifts/shift-1", (r) => r.fulfill(json({ ...SHIFT, company_name: null })));
+  await page.route("**/api/v1/shifts/shift-1/assign", (r) => r.fulfill(json({ ...SHIFT, company_name: null, status: "asignado", worker_profile_id: "wp-1" })));
+  await page.goto("/shifts/shift-1/candidates");
+  await page.getByRole("button", { name: "Elegir a Sofía", exact: true }).click();
+  const oido = page.getByRole("dialog", { name: "¡Oído! Elegiste a Sofía" });
+  await expect(oido).toBeVisible();
+  await expect(oido.getByRole("img", { name: "El local" })).toHaveCount(0);
+  await expect(oido.getByRole("img", { name: "Sofía Ramírez" })).toHaveText("SR");
+});
+
+test("las cifras de la destacada no se pisan con la letra al 200 % a 320 px, y a 390 px van en un renglón", async ({ page }) => {
+  await candidatos(page, [persona("1", "Sofía Ramírez", { rating: 4.9, events_completed: 38 })]);
+  const medir = () =>
+    page.evaluate(() => ({
+      cajas: [...document.querySelectorAll("[data-destacado] dl > div")].map((e) => {
+        const r = e.getBoundingClientRect();
+        return { top: r.top, left: r.left, right: r.right, bottom: r.bottom };
+      }),
+      rotulos: [...document.querySelectorAll("[data-destacado] dt")].map((e) => e.scrollWidth - e.clientWidth),
+    }));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/shifts/shift-1/candidates");
+  await expect(page.locator("[data-destacado] dl > div")).toHaveCount(3);
+  const normal = await medir();
+  expect(new Set(normal.cajas.map((c) => Math.round(c.top))).size).toBe(1);
+
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.addStyleTag({ content: "html{font-size:200%}" });
+  const grande = await medir();
+  for (let i = 0; i < grande.cajas.length; i++) {
+    for (let j = i + 1; j < grande.cajas.length; j++) {
+      const a = grande.cajas[i], b = grande.cajas[j];
+      const seSuperponen = a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5;
+      expect(seSuperponen).toBe(false);
+    }
+  }
+  for (const sobra of grande.rotulos) expect(sobra).toBeLessThanOrEqual(0);
+});
