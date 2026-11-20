@@ -80,6 +80,7 @@ export default function ShiftLifecycleStepper({
   perspective = "employer",
   className,
   caption: captionMode = "always",
+  variante = "tachados",
 }: {
   shift: ShiftForStepper;
   perspective?: ShiftStepperPerspective;
@@ -90,6 +91,11 @@ export default function ShiftLifecycleStepper({
    *  "Paso 1 de 4: Publicado"), así que queda sólo para lectores de
    *  pantalla, en el `aria-label` de la lista. */
   caption?: "always" | "cutShort";
+  /** "barras" (dirección suave, ADR-0028; la tarjeta de hoy de Mis turnos):
+   *  los mismos cuatro hitos, cada uno con su barra arriba; la barra de lo
+   *  hecho y de lo actual en azul hondo; lo hecho en letra azul, sin tacha
+   *  (un tilde al lado no entraba a 320 px). */
+  variante?: "tachados" | "barras";
 }) {
   // Un borrador todavía no entró al ciclo de vida (ni siquiera se publicó):
   // no hay ningún hito que resaltar todavía.
@@ -117,12 +123,17 @@ export default function ShiftLifecycleStepper({
   // azul hondo, lo actual va en negrita y lo que falta queda en la letra
   // suave. Antes eran circulitos numerados unidos por una línea; los hitos,
   // sus nombres y en qué paso está cada estado no cambiaron.
+  const barras = variante === "barras";
   return (
     <div className={cn("flex flex-col gap-1", className)}>
       {/* `role="list"` explícito: sin viñetas, Safari le saca a la lista su
           rol de lista. */}
       {/* eslint-disable-next-line jsx-a11y/no-redundant-roles */}
-      <ol role="list" aria-label={caption} className="pasos-tachados flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <ol
+        role="list"
+        aria-label={caption}
+        className={barras ? "pasos-barras" : "pasos-tachados flex flex-wrap items-baseline gap-x-3 gap-y-1"}
+      >
         {labels.map((label, i) => {
           const state: "completed" | "current" | "future" | "death" | "uncovered" | "cutoff" =
             isCancelled
@@ -148,8 +159,8 @@ export default function ShiftLifecycleStepper({
               data-paso={state}
               aria-current={state === "current" || state === "death" || state === "uncovered" ? "step" : undefined}
               className={cn(
-                "inline-flex items-center gap-1 whitespace-nowrap text-xs",
-                state === "completed" && "font-medium text-ink-soft",
+                barras ? "min-w-0 text-xs" : "inline-flex items-center gap-1 whitespace-nowrap text-xs",
+                state === "completed" && (barras ? "font-bold text-primary-text" : "font-medium text-ink-soft"),
                 state === "current" && "font-bold text-ink",
                 (state === "future" || state === "cutoff") && "font-medium text-ink-soft",
                 state === "death" && "font-bold text-danger-text",
@@ -160,7 +171,8 @@ export default function ShiftLifecycleStepper({
               {state === "uncovered" && <ClockIcon size={12} aria-hidden />}
               <span className="relative">
                 {label}
-                {state === "completed" && (
+                {state === "completed" && barras && <span className="sr-only"> (hecho)</span>}
+                {state === "completed" && !barras && (
                   <>
                     <svg className="tacha" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true">
                       <path d="M2 6C20 2 40 8 60 4S90 3 98 6" />

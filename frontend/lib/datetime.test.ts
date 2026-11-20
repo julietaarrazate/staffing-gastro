@@ -1,3 +1,4 @@
+import { formatMessageWhen } from "./datetime";
 import { describe, expect, it } from "vitest";
 import {
   argentinaISOToLocalInput,
@@ -172,5 +173,35 @@ describe("formatAgo", () => {
   it("horas con minutos sueltos: 'hace N h M'", () => {
     const iso = new Date(Date.now() - (60 + 10) * 60_000).toISOString();
     expect(formatAgo(iso)).toBe("hace 1 h 10");
+  });
+});
+
+// Viernes 20 de noviembre de 2026, 21:00 en Buenos Aires.
+const AHORA = new Date("2026-11-21T00:00:00Z");
+
+describe("formatMessageWhen", () => {
+  it("de hoy: la hora, en 24 h y en hora de Argentina", () => {
+    expect(formatMessageWhen("2026-11-20T21:12:00Z", AHORA)).toBe("18:12");
+  });
+
+  it("hoy en UTC pero ayer en Argentina: el día, no la hora", () => {
+    // 01:30 UTC del 20 son las 22:30 del jueves 19 en Buenos Aires.
+    expect(formatMessageWhen("2026-11-20T01:30:00Z", AHORA)).toBe("jue");
+  });
+
+  it("de los últimos días: el día de la semana, sin punto", () => {
+    expect(formatMessageWhen("2026-11-16T15:00:00Z", AHORA)).toBe("lun");
+  });
+
+  it("más viejo: el día y el mes, sin punto", () => {
+    expect(formatMessageWhen("2026-11-09T15:00:00Z", AHORA)).toBe("9 nov");
+  });
+
+  it("el mismo día de la semana pasada no se confunde con el de esta", () => {
+    expect(formatMessageWhen("2026-11-13T15:00:00Z", AHORA)).toBe("13 nov");
+  });
+
+  it("una fecha rota no rompe la lista", () => {
+    expect(formatMessageWhen("no-es-fecha", AHORA)).toBe("");
   });
 });

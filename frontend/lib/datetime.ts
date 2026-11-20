@@ -232,3 +232,23 @@ export function formatShiftRange(startIso: string, endIso: string): string {
   }
   return `${date} ${formatShiftTime(startIso)} → ${formatShiftDate(endIso)} ${formatShiftTime(endIso)}`;
 }
+
+/**
+ * Cuándo llegó el último mensaje de un chat, corto, para la lista de `/chats`:
+ * la hora si es de hoy ("18:12"), el día de la semana si es de los últimos
+ * seis días ("lun") y, si es anterior, el día y el mes ("9 nov"). Siempre en
+ * hora de Argentina.
+ */
+export function formatMessageWhen(iso: string, now: Date = new Date()): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  if (isTodayInArgentina(iso, now)) return formatShiftTime(iso);
+  const sinPunto = (texto: string) => texto.replace(/\./g, "");
+  const dias = (now.getTime() - date.getTime()) / 86_400_000;
+  if (dias >= 0 && dias < 6) {
+    return sinPunto(date.toLocaleDateString("es-AR", { timeZone: AR_TIMEZONE, weekday: "short" }));
+  }
+  return sinPunto(
+    date.toLocaleDateString("es-AR", { timeZone: AR_TIMEZONE, day: "numeric", month: "short" })
+  );
+}

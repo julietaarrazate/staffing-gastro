@@ -44,3 +44,23 @@ sin capa de abstracción (cada componente importaba `leaflet` directo).
   depende del mapa).
 - ⚠️ Dependencia del estilo gratuito de CARTO (mismo riesgo que los raster
   anteriores; plan B: MapTiler con key o self-host — nuevo ADR si pasa).
+
+## Actualización 2026-11-19: el mapa chico ya no usa MapLibre
+
+El paso 4 del plan (`docs/reference/MAPS_REDESIGN.md` §8) dejaba abierto que
+`MiniMap` pasara «a imagen estática del estilo si el peso no justifica canvas
+por thumbnail». Lo justificaba: cada tarjeta de Mis turnos bajaba el motor
+entero (~1 MB de JS) y abría su propio WebGL para una foto de 112 px que no
+se toca, y la pantalla pesaba el doble que las demás. Ahora `MiniMap` dibuja
+en SVG calles, avenidas, plazas y agua a partir de los **mismos mosaicos
+vectoriales de CARTO** (`lib/map/mapa-chico.ts`), con los colores de un mapa
+de siempre (elegidos por Julieta). MapLibre sigue para todo mapa que se
+mueve y para el de «va en camino» (`EnRouteMap`). Medido en
+`docs/reference/RENDIMIENTO.md` (Mis turnos: 634 → 343 KB de JS, TBT 827 →
+290 ms).
+
+El riesgo de arriba ya se cumplió en parte: **los mosaicos-imagen de CARTO
+ahora piden clave** («API KEY REQUIRED», visto el 2026-11-19). Los
+vectoriales, que usan el mapa grande y el chico, siguen libres; si también
+la piden, rige el plan B de arriba (y un ADR nuevo).
+

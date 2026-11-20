@@ -10,6 +10,10 @@ import type { ReactNode } from "react";
  * la acción ("Enviar"), y un hilo largo de burbujas llenas ponía decenas de
  * ámbares en pantalla (color-system.md, "un acento por contexto"). La
  * posición (derecha/izquierda) y la cola ya dicen de quién es cada una.
+ *
+ * En la dirección suave (dentro de `.estilo-suave`, ADR-0028) las clases
+ * `burbuja-*` la vuelven suave desde `globals.css`: lo propio en celeste, lo
+ * ajeno con el relleno del campo y sin borde. Fuera de ella no cambia.
  */
 export default function MessageBubble({
   mine,
@@ -28,14 +32,18 @@ export default function MessageBubble({
   return (
     <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
       <div
-        className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-body text-ink ${
-          mine ? "rounded-br-md bg-primary-tint" : "rounded-bl-md bg-card ring-1 ring-line"
+        className={`burbuja max-w-[80%] rounded-2xl px-4 py-2.5 text-body text-ink ${
+          mine
+            ? "burbuja-mia rounded-br-md bg-primary-tint"
+            : "burbuja-ajena rounded-bl-md bg-card ring-1 ring-line"
         }`}
       >
         {author && <p className="mb-0.5 text-label font-semibold text-ink/50">{author}</p>}
         <div className="whitespace-pre-wrap break-words">{children}</div>
         {meta && (
-          <p className="mt-1 flex items-center justify-end gap-1 text-label text-ink/45">{meta}</p>
+          <p className="burbuja-meta mt-1 flex items-center justify-end gap-1 text-label text-ink/45">
+            {meta}
+          </p>
         )}
       </div>
     </div>
