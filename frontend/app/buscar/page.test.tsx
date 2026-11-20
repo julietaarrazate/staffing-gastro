@@ -27,9 +27,7 @@ vi.mock("@/components/ui", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/components/ui")>()),
   useToast: () => vi.fn(),
 }));
-// La brocha y Mansalva salen de next/font, que no corre en Vitest.
-vi.mock("@/lib/letras", () => ({ LETRAS_APP: "" }));
-vi.mock("@/components/worker/OportunidadComanda", () => ({
+vi.mock("@/components/worker/OportunidadFila", () => ({
   default: ({ shift, onApply, onPass }: { shift: Shift; onApply: () => void; onPass: () => void }) => (
     <div>
       <span>{shift.company_name}</span>

@@ -24,9 +24,8 @@ import {
 } from "@/lib/current-location";
 import { sortByBestPay } from "@/lib/pay";
 import { FlameIcon, StarIcon } from "@/components/icons";
-import OportunidadComanda from "@/components/worker/OportunidadComanda";
-import { CardSkeletons, EmptyState, ErrorBanner, SegmentedControl, useToast } from "@/components/ui";
-import { LETRAS_APP } from "@/lib/letras";
+import OportunidadFila from "@/components/worker/OportunidadFila";
+import { EmptyState, ErrorBanner, NubesCielo, Skeleton, useToast } from "@/components/ui";
 import { EmptyFeedIllustration } from "@/components/illustrations";
 
 /**
@@ -39,20 +38,30 @@ import { EmptyFeedIllustration } from "@/components/illustrations";
  * backend, sólo un filtro explícito por chip de rubro en vez del implícito
  * por perfil.
  *
- * Con la dirección «con relieve» desde el 2026-11-19: el cielo arriba con el
- * título en brocha, los rubros como pestañas con la raya azul hondo (antes,
- * píldoras con «Todos» en ámbar, y el ámbar es sólo la acción) y cada turno
- * como comanda (`OportunidadComanda`).
+ * Con la dirección suave (ADR-0028) desde el 2026-11-20: el cielo corto con el
+ * título en letra normal y los rubros como chips de vidrio (el elegido, en
+ * azul hondo); debajo sube la hoja con los dos filtros, cuántos turnos hay y
+ * cada turno como fila suave con el pago en grande (`OportunidadFila`). Del
+ * 2026-11-19 al 20 fue «con relieve» (título en brocha, pestañas con raya y
+ * comandas). Qué se pide, cómo se filtra y qué hace cada botón no cambió.
  */
 
-/** Filtros secundarios (urgentes, orden por pago): rectos con filete; cuando
- *  están prendidos, llenos en azul hondo, como lo actual de un indicador
- *  (`marca-hoy.md`, regla 2). Antes, píldoras en tinte. Mismo alto que una
- *  pestaña tocable (36 px) y la misma letra en las dos. */
-function filterChipClass(active: boolean): string {
-  return `inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--radius-relieve)] px-3.5 text-sm font-semibold ring-1 transition active:scale-95 ${
-    active ? "bg-primary-text text-card ring-primary-text" : "bg-card text-ink ring-line hover:bg-surface"
-  }`;
+/** Un chip de filtro: de vidrio sobre el cielo (`vidrio`) o suave en la hoja.
+ *  El elegido va en azul hondo (`.chip-elegido`); el ámbar queda para la
+ *  acción. 44 px de alto, que es lo que se toca. */
+function chipClass(active: boolean, vidrio = false): string {
+  return `${vidrio ? "chip-vidrio" : "chip-suave"} chip-filtro${active ? " chip-elegido" : ""}`;
+}
+
+/** Cuántos turnos hay y en qué orden están, en una frase. */
+function resumen(cantidad: number, opts: { urgentes: boolean; porPago: boolean; conOrigen: boolean }): string {
+  const cuantos = `${cantidad} ${cantidad === 1 ? "turno" : "turnos"}${opts.urgentes ? (cantidad === 1 ? " urgente" : " urgentes") : ""}`;
+  if (cantidad < 2) return cuantos;
+  if (opts.porPago) return `${cuantos}, primero los que mejor pagan por hora`;
+  if (!opts.conOrigen) return opts.urgentes ? cuantos : `${cuantos}, primero los urgentes`;
+  return opts.urgentes
+    ? `${cuantos}, del más cercano al más lejano`
+    : `${cuantos}, primero los urgentes y después los más cercanos`;
 }
 
 export default function BuscarPage() {
@@ -176,79 +185,105 @@ export default function BuscarPage() {
   const sortedShifts = urgentOnly ? sorted.filter((s) => s.urgent) : sorted;
 
   return (
-    <div className={`${LETRAS_APP} app-container px-4 pb-10 md:pt-4`}>
-      <div className="app-cielo -mx-4 px-4 pb-6 pt-5 md:mx-0 md:rounded-[var(--radius-card)] md:px-6">
-        <h1 className="letra-cartel letra-cartel-pantalla break-words">Buscar turnos</h1>
+    <div className="estilo-suave mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col md:min-h-[calc(100dvh-var(--chrome-top))] md:max-w-5xl md:px-4 md:pt-4">
+      {/* El cielo corto: el título y los rubros (un carril que se desliza en el
+          celular; en la compu, donde no hay cómo deslizarlo, bajan de renglón).
+          La hoja sube 28 px encima. */}
+      <div className="app-cielo cielo-limpio px-4 pb-10 pt-5 md:rounded-t-[28px] md:px-6 md:pt-6">
+        <NubesCielo nubes={[{ forma: "a", ancho: 250, pos: { right: -100, top: -66 } }]} />
+        <h1 className="titulo-pantalla break-words">Buscar turnos</h1>
         <p className="mt-1 text-sm">Explorá oportunidades de cualquier rubro, no sólo el tuyo.</p>
-      </div>
-
-      <div className="no-scrollbar -mx-4 -mb-1 mt-3 scroll-px-4 overflow-x-auto px-4 py-1">
-        <SegmentedControl<WorkerSkill | "">
-          className="w-max min-w-full"
-          value={skill}
-          onChange={setSkill}
-          options={[{ value: "", label: "Todos" }, ...WORKER_SKILLS.map((s) => ({ value: s, label: SKILL_LABELS[s] }))]}
-        />
-      </div>
-
-      <div className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 py-1">
-        <button
-          type="button"
-          role="switch"
-          aria-checked={urgentOnly}
-          onClick={() => setUrgentOnly((v) => !v)}
-          className={filterChipClass(urgentOnly)}
+        <div
+          role="group"
+          aria-label="Rubro"
+          data-testid="buscar-rubros"
+          className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto scroll-px-4 px-4 py-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0"
         >
-          <FlameIcon size={14} /> Urgentes
-        </button>
-        <button
-          type="button"
-          aria-pressed={sort === "pay"}
-          onClick={() => setSort((v) => (v === "pay" ? "nearby" : "pay"))}
-          className={filterChipClass(sort === "pay")}
-        >
-          <StarIcon size={14} filled /> Mejores pagos
-        </button>
-      </div>
-
-      {error && (
-        <div className="mt-4">
-          <ErrorBanner message={error} onRetry={() => load()} />
+          {([{ value: "", label: "Todos" }, ...WORKER_SKILLS.map((s) => ({ value: s, label: SKILL_LABELS[s] }))] as Array<{
+            value: WorkerSkill | "";
+            label: string;
+          }>).map((o) => (
+            <button
+              key={o.value || "todos"}
+              type="button"
+              aria-pressed={skill === o.value}
+              onClick={() => setSkill(o.value)}
+              className={chipClass(skill === o.value, true)}
+            >
+              {o.label}
+            </button>
+          ))}
         </div>
-      )}
+      </div>
 
-      <div className="mt-5">
-        {loading ? (
-          <CardSkeletons count={6} />
-        ) : sortedShifts.length === 0 ? (
-          <EmptyState
-            icon={<EmptyFeedIllustration color="var(--color-primary)" />}
-            title={urgentOnly ? "No hay turnos urgentes ahora" : "No hay turnos en este rubro"}
-            subtitle={
-              urgentOnly
-                ? "Sacá el filtro para ver el resto de las oportunidades."
-                : "Probá con otra categoría o volvé más tarde."
-            }
-          />
-        ) : (
-          // Cada turno es una comanda de papel, el mismo objeto que en el
-          // Inicio, Mis turnos y el Panel (Julieta, 2026-11-19, entre la
-          // comanda y una lista con filete). Antes, la tarjeta con foto
-          // grande de 560 a 620 px (`OpportunityCard`), que sigue en el mazo
-          // del Inicio y en la grilla del Inicio en compu.
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {sortedShifts.map((shift) => (
-              <OportunidadComanda
-                key={shift.id}
-                shift={shift}
-                distanceKm={distanceOf(shift, origin)}
-                applying={decidingId === shift.id}
-                onApply={() => handleDecide(shift, "like")}
-                onPass={() => handleDecide(shift, "pass")}
-              />
-            ))}
+      <div className="hoja -mt-7 flex-1 px-4 pb-8 pt-5 md:px-6">
+        <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 py-1 md:-mx-6 md:px-6">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={urgentOnly}
+            onClick={() => setUrgentOnly((v) => !v)}
+            className={chipClass(urgentOnly)}
+          >
+            <FlameIcon size={14} /> Urgentes
+          </button>
+          <button
+            type="button"
+            aria-pressed={sort === "pay"}
+            onClick={() => setSort((v) => (v === "pay" ? "nearby" : "pay"))}
+            className={chipClass(sort === "pay")}
+          >
+            <StarIcon size={14} filled /> Mejores pagos
+          </button>
+        </div>
+
+        {error && (
+          <div className="mt-4">
+            <ErrorBanner message={error} onRetry={() => load()} />
           </div>
         )}
+
+        <div className="mt-4">
+          {loading ? (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              {Array.from({ length: 6 }, (_, i) => (
+                <Skeleton key={i} className="h-[156px] w-full rounded-[18px]" />
+              ))}
+            </div>
+          ) : sortedShifts.length === 0 ? (
+            <EmptyState
+              icon={<EmptyFeedIllustration color="var(--color-primary)" />}
+              title={urgentOnly ? "No hay turnos urgentes ahora" : "No hay turnos en este rubro"}
+              subtitle={
+                urgentOnly
+                  ? "Sacá el filtro para ver el resto de las oportunidades."
+                  : "Probá con otra categoría o volvé más tarde."
+              }
+            />
+          ) : (
+            <>
+              <p data-testid="buscar-resumen" className="mb-3 text-caption font-medium text-ink-soft">
+                {resumen(sortedShifts.length, { urgentes: urgentOnly, porPago: sort === "pay", conOrigen: origin !== null })}
+              </p>
+              {/* Cada turno es una fila suave con el pago en grande. Un solo
+                  ámbar por pantalla: «Postularme» va en ámbar en el primero de
+                  la lista y quieto en los demás (como «Elegir» en Candidatos). */}
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                {sortedShifts.map((shift, i) => (
+                  <OportunidadFila
+                    key={shift.id}
+                    shift={shift}
+                    distanceKm={distanceOf(shift, origin)}
+                    destacado={i === 0}
+                    applying={decidingId === shift.id}
+                    onApply={() => handleDecide(shift, "like")}
+                    onPass={() => handleDecide(shift, "pass")}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
