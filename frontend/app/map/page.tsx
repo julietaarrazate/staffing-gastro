@@ -497,10 +497,11 @@ export default function MapPage() {
       />
 
       {/* El mapa es el cielo (ADR-0028, maqueta `T-Mapa`): arriba se funde con
-          el cielo de la app y el título va encima, en la tinta del cielo.
+          el cielo de la app (lo hace el CSS, sobre el lienzo del mapa: ver
+          `.estilo-suave .maplibregl-map`) y el título va encima, en su tinta.
           Sólo mobile: en la compu el título está en el panel de al lado. No
           recibe toques: el mapa se mueve también por debajo del título. */}
-      <div className="mapa-cielo pointer-events-none absolute inset-x-0 top-0 z-10 px-5 pb-12 pt-5 md:hidden">
+      <div className="mapa-cielo pointer-events-none absolute inset-x-0 top-0 z-10 px-5 pb-7 pt-5 md:hidden">
         <h1 className="titulo-pantalla break-words">
           {loading
             ? "Buscando turnos cerca..."
@@ -517,9 +518,6 @@ export default function MapPage() {
           </p>
         )}
       </div>
-      {/* En la compu, el mismo cielo que asoma arriba del mapa, sin letra. */}
-      <div aria-hidden className="mapa-cielo mapa-cielo-compu pointer-events-none absolute inset-x-0 top-0 z-10 hidden h-28 md:block" />
-
       {/* Sheet inferior arrastrable con el carrusel de tarjetas — SÓLO mobile,
           en desktop la lista ya vive en el panel lateral de al lado. */}
       <div className="md:hidden">
@@ -540,7 +538,7 @@ export default function MapPage() {
           <div
             ref={carouselRef}
             onScroll={onCarouselScroll}
-            className="no-scrollbar relative flex items-stretch snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-6 pt-1"
+            className="no-scrollbar relative flex items-stretch snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-4 pt-1"
           >
           {loading ? (
             <>

@@ -80,7 +80,7 @@ export default function TurnoMapa({
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-2">
           {/* Un puesto largo («Ayudante de cocina») baja a un segundo
               renglón; no se corta con puntos. */}
-          <h3 className="col-start-1 row-start-1 break-words text-base font-extrabold leading-tight tracking-[-0.01em] text-ink">
+          <h3 lang="es" className="mapa-turno-puesto col-start-1 row-start-1 break-words text-base font-extrabold leading-tight tracking-[-0.01em] text-ink">
             {titulo ?? SKILL_LABELS[shift.position]}
           </h3>
           {/* Si no entra, se corta el nombre del local, no la distancia. */}

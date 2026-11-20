@@ -4078,20 +4078,35 @@ body:has([data-landing]) main {
 }
 
 /* ===== El Mapa de quien trabaja con la dirección suave (2026-11-20, maqueta `T-Mapa`) ===== */
-/* El mapa es el cielo: arriba se funde con el cielo de la app y el título va
-   encima, en su tinta. No recibe toques (el mapa se mueve por debajo). */
+/* El mapa es el cielo: arriba se funde con el cielo de la app. El cielo va
+   DETRÁS del mapa y lo que se esfuma es el lienzo (una máscara): así los pines
+   que quedan arriba no se lavan (un degradé encima los bajaba a 2:1). El
+   título va encima, en la tinta del cielo, y no recibe toques. */
+.estilo-suave .maplibregl-map {
+  --mapa-funde: 150px;
+  background: linear-gradient(180deg, var(--app-cielo-0), var(--app-cielo-1) var(--mapa-funde));
+}
+.estilo-suave .maplibregl-canvas {
+  -webkit-mask-image: linear-gradient(180deg, transparent 8px, #000 var(--mapa-funde));
+  mask-image: linear-gradient(180deg, transparent 8px, #000 var(--mapa-funde));
+}
+@media (min-width: 768px) {
+  /* En la compu el título está en el panel: el cielo sólo asoma. */
+  .estilo-suave .maplibregl-map {
+    --mapa-funde: 104px;
+  }
+}
+/* Detrás del título, un velo corto del mismo cielo: un pin que quede justo
+   debajo de la letra se apaga en vez de mezclarse con ella. Más abajo no hay
+   nada encima de los pines. */
 .mapa-cielo {
-  background: linear-gradient(180deg, var(--app-cielo-0), var(--app-cielo-1) 46%, transparent);
+  background: linear-gradient(180deg, var(--app-cielo-0) 35%, transparent);
   color: var(--app-cielo-tinta);
 }
 /* El título entra en un renglón a 320 px (y con la letra al 200 % no crece
    más que el ancho). */
 .mapa-cielo .titulo-pantalla {
   font-size: min(var(--text-pantalla), 8.2vw);
-}
-/* En la compu no lleva letra: sólo asoma. */
-.mapa-cielo.mapa-cielo-compu {
-  opacity: 0.85;
 }
 /* El aviso de «no pudimos ubicarte»: un chip blanco de dos renglones, igual de
    día y de noche (`#0f3a5b` sobre ese blanco da más de 10). */
@@ -4123,7 +4138,10 @@ body:has([data-landing]) main {
   border-radius: 999px;
   background: var(--suave-tecla, #ffffff);
   color: var(--color-ink);
-  box-shadow: var(--suave-sombra-alta, 0 14px 30px rgba(15, 58, 91, 0.16), 0 0 0 1px rgba(15, 58, 91, 0.05));
+  /* El aro: para que la tecla blanca se despegue de un mapa claro. */
+  box-shadow:
+    0 10px 24px rgba(15, 58, 91, 0.2),
+    0 0 0 1px rgba(15, 58, 91, 0.16);
   font-size: 0.84375rem;
   font-weight: 800;
   letter-spacing: -0.01em;
@@ -4144,7 +4162,7 @@ body:has([data-landing]) main {
 :root[data-theme="dark"] .pin-turno {
   box-shadow:
     0 10px 24px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(255, 255, 255, 0.16);
+    0 0 0 1px rgba(255, 255, 255, 0.3);
 }
 .pin-turno[aria-pressed="true"],
 :root[data-theme="dark"] .pin-turno[aria-pressed="true"] {
@@ -4244,6 +4262,10 @@ body:has([data-landing]) main {
   .mapa-turno-pago {
     font-size: min(1.0625rem, 9vw);
   }
+}
+/* Un puesto largo al lado de un pago largo, a 320 px: corta con guion. */
+.mapa-turno-puesto {
+  hyphens: auto;
 }
 .chip-suave.mapa-turno-marca {
   padding: 3px 8px;

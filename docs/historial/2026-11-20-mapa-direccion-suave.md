@@ -49,11 +49,13 @@ hoja); un bloque nuevo al final de `frontend/app/globals.css` (`.mapa-*`,
 `.pin-*`, `.puck-*`), sin tocar las reglas que ya estaban;
 `frontend/e2e/mapa-suave.spec.ts`.
 
-**Piezas compartidas con el mapa de Buscar del comercio (`/search`):**
-`map/ClusterMarker.tsx` y `map/UserPuck.tsx` recibieron sólo un nombre de
-clase (`pin-grupo`, `puck-halo`, `puck-punto`); lo suave está dentro de
-`.estilo-suave`, que `/search` no lleva, así que ahí se ven igual que antes.
-`map/MapView.tsx` no se tocó.
+**Pieza compartida con el mapa de Buscar del comercio (`/search`):**
+`map/UserPuck.tsx` recibió sólo dos nombres de clase (`puck-halo`,
+`puck-punto`); lo suave está dentro de `.estilo-suave`, que `/search` no
+lleva, así que ahí se ve igual que antes (verificado renderizado).
+`map/ClusterMarker.tsx` (que hoy sólo usa `/map`) se trató igual, con
+`pin-grupo`. `map/MapView.tsx` no se tocó: el cielo y el filtro de noche se
+aplican por CSS a su lienzo, sólo dentro de `.estilo-suave`.
 
 **Por qué así:**
 
@@ -79,6 +81,28 @@ clase (`pin-grupo`, `puck-halo`, `puck-punto`); lo suave está dentro de
 - **Las alturas de la hoja no se tocaron** (`MapSheet`): con la tarjeta más
   baja queda algo de aire debajo en pantallas altas.
 
+**Revisión independiente** (otro agente, intentando romperlo: de 320 a
+1280 px, en claro y oscuro, datos difíciles, 0, 1 y 30 turnos, estados vacío y
+error, contraste medido, teclado, letra al 200 %, «reducir movimiento»,
+gestos, `/search` renderizado y la lógica comparada con la de `main`). Aprobó
+con detalles y se arreglaron: el cielo era un degradé ENCIMA del mapa y lavaba
+los pines que quedaban arriba (el elegido bajaba a 2,1:1): ahora el cielo va
+detrás y lo que se esfuma es el lienzo, con una máscara; el pin blanco casi no
+se despegaba del mapa (lleva un aro fino); y a 320 px un puesto largo junto a
+un pago de siete cifras se partía mal (corta con guion). Quedó sin tocar, por
+menor: con la letra al 200 % el título y el pago no crecen más que el ancho
+(el mismo tope que en Buscar), y el botón quieto no tiene contorno (como
+«Elegir» en Candidatos).
+
+**Prueba en la app** (`tools/e2e-local`, backend real y datos sembrados):
+cuatro cuentas nuevas de quien trabaja, en celular y compu, en claro y oscuro.
+Con 6 turnos reales: arrastró el mapa empezando sobre el título (se movió),
+tocó un pin (pasó a azul hondo y su fila se quedó con el ámbar), abrió el
+detalle tocando la tarjeta, se postuló desde el detalle y desde una fila (201,
+la fila sale; la postulación quedó `pendiente` en la base), cambió el alto de
+la hoja con la manija y, en la compu, la fila llevó a `/turno/[id]`. Sin
+errores de consola ni de red.
+
 **Queda abierto:**
 
 - Decidir con Julieta lo que quedó afuera (Lista / Mapa, filtro por día, la
@@ -87,6 +111,8 @@ clase (`pin-grupo`, `puck-halo`, `puck-punto`); lo suave está dentro de
   los mosaicos de CARTO, así que el filtro de noche se vio sólo sobre un fondo
   liso. Si las calles no se leen, se ajusta o se saca una regla de
   `globals.css` (`.estilo-suave .maplibregl-canvas`).
+- A 320 × 568 px «Postularme» de la tarjeta queda al ras del borde de la hoja
+  (las alturas de la hoja son una fracción de la pantalla y no se tocaron).
 - El cartel «No pudimos cargar el mapa» (`MapView`, compartido con `/search`)
   sigue con el aspecto de antes.
 - La hoja genérica del detalle (`ui/Sheet`: la manija, el título y la cruz)

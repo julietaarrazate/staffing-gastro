@@ -63,7 +63,11 @@ for (const theme of ["light", "dark"] as const) {
     const cielo = titulo.locator("xpath=..");
     await expect(cielo).toHaveClass(/mapa-cielo/);
     await expect(cielo).toHaveCSS("pointer-events", "none");
-    await expect(cielo).toHaveCSS("background-image", /linear-gradient/);
+    // El cielo va detrás del mapa y lo que se esfuma es el lienzo: debajo del
+    // título (un velo corto, menos de 110 px) nada tapa los pines.
+    expect((await cielo.boundingBox())?.height).toBeLessThan(110);
+    await expect(page.locator(".maplibregl-map").first()).toHaveCSS("background-image", /linear-gradient/);
+    await expect(page.locator(".maplibregl-canvas").first()).toHaveCSS("mask-image", /linear-gradient/);
 
     // El pago en el pin; el elegido (el más cercano), en azul hondo con letra blanca y más grande.
     const elegido = page.getByRole("button", { name: /^Turno de Bartender, \$\s?54\.000/ });
