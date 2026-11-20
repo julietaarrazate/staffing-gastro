@@ -1,4 +1,4 @@
-# Cierre de la primera tanda en paralelo de la dirección suave (#PR)
+# Cierre de la primera tanda en paralelo de la dirección suave (#704)
 
 **Pedido:** Julieta, 2026-11-20: hacer las pantallas que faltan en tandas en
 paralelo, y «mergeá los 3» cuando vio las capturas.
