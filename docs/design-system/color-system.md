@@ -235,7 +235,8 @@ celeste). Tres tokens y una utilidad, nada más:
 | `--glow-image` + `bg-glow` | blanco con brillo celeste arriba a la derecha y ámbar suave abajo | tarjeta oscura con los mismos brillos tenues | Tarjeta destacada de Inicio, cabecera del turno sin foto (mozo), encabezado del Perfil, plan Básico y las dos fichas de "Sabés quién viene" de la landing. |
 
 El **celeste lleno** queda sólo donde decide algo: el bloque de pago del
-turno y "Mejor valorado" en Candidatos. Lo demás que era celeste lleno pasó a
+turno (en Candidatos, la destacada es una tarjeta de foto o de cielo hondo
+desde el 2026-11-20). Lo demás que era celeste lleno pasó a
 `bg-glow`. No sumar vidrio ni degradé en otros lugares sin pasar por acá: con
 dos superficies translúcidas y un brillo por pantalla alcanza.
 

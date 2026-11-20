@@ -5,7 +5,7 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./moc
 /**
  * G4 (U021): quien tuvo el turno asignado y lo dejó (rechazó, canceló o no se
  * presentó) aparecía en la lista de postulantes como cualquiera, con
- * «Asignar» y sin ninguna marca; con buena reputación, hasta de destacado.
+ * «Elegir» y sin ninguna marca; con buena reputación, hasta de destacado.
  * Ahora va al final, con su marca, no suma en la pestaña, y se le puede
  * volver a asignar.
  */
@@ -86,7 +86,7 @@ test("quien dejó el turno va al final, con su marca, y no cuenta como postulant
   // Uno solo está en carrera: es lo que cuenta la pestaña.
   await expect(page.getByRole("button", { name: "Postulantes (1)" })).toBeVisible();
 
-  const nombres = page.locator("a.font-semibold", { hasText: /Sofía|Rocío|Carla|Fabián/ });
+  const nombres = page.locator("[data-nombre-candidato]", { hasText: /Sofía|Rocío|Carla|Fabián/ });
   await expect(nombres.first()).toHaveText("Sofía Sigue");
   await expect(nombres).toHaveCount(4);
 
@@ -97,9 +97,9 @@ test("quien dejó el turno va al final, con su marca, y no cuenta como postulant
   await expect(marcas.filter({ hasText: "No se presentó" })).toHaveCount(1);
 
   // La destacada es quien sigue en carrera, no la de mejor reputación que rechazó.
-  await expect(page.getByText("Mejor valorado")).toHaveCount(1);
+  await expect(page.getByText("Mejor calificación")).toHaveCount(1);
   await expect(
-    page.locator("[data-destacado]", { hasText: "Mejor valorado" }).getByText("Sofía Sigue")
+    page.locator("[data-destacado]", { hasText: "Mejor calificación" }).getByText("Sofía Sigue")
   ).toBeVisible();
 });
 
@@ -116,7 +116,7 @@ test("a quien rechazó se le puede volver a asignar", async ({ page }) => {
   const tarjeta = page
     .locator("div.no-select", { hasText: "Rocío Rechazó" })
     .filter({ has: page.getByTestId("postulante-desasignado") });
-  await tarjeta.getByRole("button", { name: "Asignar" }).click();
+  await tarjeta.getByRole("button", { name: /^Elegir/ }).click();
 
   await expect.poll(() => asignado).toEqual({ worker_profile_id: "wp-rechazo" });
 });

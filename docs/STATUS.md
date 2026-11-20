@@ -52,9 +52,12 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
 
 0. 🟡 **Marca: Shrikhand e ícono «el pinche con oído» (beta, etapa 4).** **2026-11-19: la app pasa a
    la dirección suave** ([ADR-0028](./adr/ADR-0028-direccion-suave.md), «la hoja sobre el cielo»),
-   de a una pantalla: ya están «Publicar turno», «Publicar evento» y **el Inicio de quien trabaja**
+   de a una pantalla: ya están «Publicar turno», «Publicar evento», **el Inicio de quien trabaja**
    (2026-11-19, con el cielo nuevo y las nubes con volumen; sin foto, la portada es el cielo:
-   [historial](./historial/2026-11-19-inicio-trabajador-direccion-suave.md)). **Sigue, en este orden:**
+   [historial](./historial/2026-11-19-inicio-trabajador-direccion-suave.md)) y **Candidatos con el
+   «¡Oído!» al elegir** (2026-11-20: la persona destacada como tarjeta, un solo ámbar y, al elegir,
+   el cielo entero con la cinta y las dos fotos:
+   [historial](./historial/2026-11-20-candidatos-y-oido-direccion-suave.md)). **Sigue, en este orden:**
    la hora gigante del turno de hoy en el Inicio (función nueva; los datos ya llegan), y sacar el
    marrón que queda en `ShiftCard`, `ShiftDetail`, el mapa y Buscar del comercio. El orden del resto está
    en `design-system/direccion-relieve.md` ([historial](./historial/2026-11-19-publicar-direccion-suave.md)). **Para mirar y decidir:** la
