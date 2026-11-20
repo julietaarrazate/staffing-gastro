@@ -14,7 +14,9 @@ estado.
   Mis turnos (las acciones del turno siguen ahí, no se duplican).
 - **Falta una hora o menos:** el cielo pasa a azul hondo y dice «Bartender
   en Bar Mirasol. Empezás en **28 min**». Se actualiza solo.
-- **Ya empezó:** «Estás en Bar Mirasol hasta las **23:00**».
+- **Ya empezó:** si marcó la llegada, «Estás en Bar Mirasol hasta las
+  **23:00**»; si todavía no, «Tu turno en Bar Mirasol empezó a las
+  **20:00**» (no se afirma que está en el local sin saberlo).
 - **Hay turnos cerca:** «Hay turno a la vuelta». **No hay:** «Todo tranquilo
   por ahora». **Cargando:** un esqueleto en lugar del título.
 - **Brillo de tecla**, sutil: el botón ámbar tiene una luz arriba y el vidrio
@@ -50,7 +52,22 @@ aceptada), `components/worker/CieloInicio.tsx` (el cielo, extraído de
 - **Si el feed falla** y no hay turno de hoy, el título dice «Inicio»: ni
   «hay turno» ni «todo tranquilo» serían verdad.
 
-**Queda abierto:** `/applications/mine` trae las últimas 50 postulaciones; un
+**Revisión independiente** (otro agente; la primera pasada se perdió por un
+reinicio del contenedor y se repitió). Confirmó que las horas no dependen de
+la zona del celular (el backend manda los horarios con zona; probado a la
+medianoche argentina desde UTC, Tokio y Los Ángeles), que no se agregan
+pedidos y que el caché no muestra el turno de otra cuenta. Encontró, y se
+arregló: una falla pasajera de `/applications/mine` en un refresco borraba el
+turno de hoy del título (ahora se conserva lo último que se supo, también
+para ocultar los turnos ya postulados); un turno que empieza en la próxima
+hora pero pasada la medianoche no contaba; el título afirmaba «Estás en…»
+sin llegada marcada; el reloj corría para cualquier postulación aceptada
+(ahora sólo con un turno en las próximas 24 h); y los estados del turno van
+por lista de permitidos (`asignado`, `confirmado`, `en_camino`, `check_in`,
+`trabajando`).
+
+**Queda abierto:** un turno de la madrugada (00:30) no aparece como «hoy
+trabajás» la noche anterior, sólo desde una hora antes.  `/applications/mine` trae las últimas 50 postulaciones; un
 turno aceptado hace mucho, con más de 50 postulaciones posteriores, no se
 vería en el título (no se cambió el pedido). El resto de lo pendiente del
 Inicio sigue en `design-system/direccion-relieve.md`, «En el código».
