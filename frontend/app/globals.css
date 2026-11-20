@@ -1255,6 +1255,36 @@ body:has([data-landing]) main {
 .app-cielo.cielo-limpio::before {
   content: none;
 }
+/* El cielo hondo (2026-11-19): cuando algo está en marcha (el turno por
+   empezar o en curso). Letra blanca, nubes al 30 %; de noche, el azul hondo.
+   Lo que va encima (zona, buscador, chip) se lee en blanco sobre vidrio al
+   16 % con un velo azul noche detrás: el vidrio solo daba 4,0 sobre el
+   tramo claro del degradé. */
+.app-cielo.cielo-hondo {
+  --app-cielo-tinta: #ffffff;
+  background:
+    radial-gradient(120% 80% at 88% 0%, rgba(120, 180, 225, 0.2), transparent 60%),
+    linear-gradient(180deg, #174a6c, #1f5e88 55%, #2a73a3);
+  color: #ffffff;
+}
+:root[data-theme="dark"] .app-cielo.cielo-hondo {
+  background:
+    radial-gradient(120% 80% at 88% 0%, rgba(120, 180, 225, 0.2), transparent 60%),
+    linear-gradient(180deg, #0b1a28, #10304a 55%, #17466a);
+}
+.cielo-hondo .nube-cielo,
+.cielo-hondo .nube-cielo-lejos {
+  opacity: 0.3;
+}
+/* La hora o los minutos gigantes del Inicio: el número es el título. */
+.numero-gigante {
+  font-size: min(5.75rem, 24vw);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 0.95;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 .nube-cielo {
   position: absolute;
   z-index: -1;
@@ -3299,10 +3329,18 @@ body:has([data-landing]) main {
 .estilo-suave .boton-relieve {
   border-radius: 18px;
   background: linear-gradient(180deg, #f6a92a, #e58e0f);
-  box-shadow: 0 10px 24px rgba(217, 119, 6, 0.28);
+  /* Brillo de tecla (2026-11-19): un canto de luz arriba y uno de sombra
+     abajo, sutiles; sin reflejos de colores. */
+  box-shadow:
+    0 10px 24px rgba(217, 119, 6, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.08);
 }
 .estilo-suave .boton-relieve:active {
-  box-shadow: 0 4px 10px rgba(217, 119, 6, 0.22);
+  box-shadow:
+    0 4px 10px rgba(217, 119, 6, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.08);
 }
 .estilo-suave .boton-relieve:disabled {
   background: var(--suave-campo);
@@ -3403,6 +3441,22 @@ body:has([data-landing]) main {
 .chip-vidrio.chip-disponible {
   background: rgba(255, 255, 255, 0.82);
 }
+/* Brillo de tecla del vidrio (2026-11-19): un borde de luz y un canto más
+   claro arriba, sólo en la dirección suave. De noche, más tenues. */
+.estilo-suave .campo-vidrio,
+.estilo-suave .chip-vidrio,
+.estilo-suave .boton-vidrio {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+:root[data-theme="dark"] .estilo-suave .campo-vidrio,
+:root[data-theme="dark"] .estilo-suave .chip-vidrio,
+:root[data-theme="dark"] .estilo-suave .boton-vidrio {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
 .chip-suave {
   background: var(--suave-campo);
   color: var(--color-ink);
@@ -3432,4 +3486,31 @@ body:has([data-landing]) main {
 }
 .chip-foto-urgente {
   color: #9b1c1c;
+}
+
+/* Sobre el cielo hondo (ver `.cielo-hondo` arriba): vidrio al 16 % con un velo
+   azul noche detrás, letra blanca. Va después de las reglas del vidrio claro
+   para ganarles en cualquier tema. */
+.app-cielo.cielo-hondo .chip-vidrio,
+.app-cielo.cielo-hondo .chip-vidrio.chip-disponible,
+.app-cielo.cielo-hondo .boton-vidrio,
+.app-cielo.cielo-hondo .campo-vidrio,
+:root[data-theme="dark"] .app-cielo.cielo-hondo .chip-vidrio,
+:root[data-theme="dark"] .app-cielo.cielo-hondo .boton-vidrio,
+:root[data-theme="dark"] .app-cielo.cielo-hondo .campo-vidrio {
+  background:
+    linear-gradient(rgba(8, 28, 48, 0.2), rgba(8, 28, 48, 0.2)),
+    rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+.app-cielo.cielo-hondo .campo-vidrio .text-ink-soft {
+  color: #ffffff;
+}
+
+/* El ícono del estado vacío (`EmptyState`): las ilustraciones llegan con el
+   trazo en el ámbar de marca, que sumaba un segundo ámbar a la pantalla. En la
+   dirección suave va en el azul de los links (`primary-text`). Fuera de ella no
+   cambia. */
+.estilo-suave .empty-state-icono svg [stroke]:not([stroke="none"]) {
+  stroke: var(--color-primary-text);
 }

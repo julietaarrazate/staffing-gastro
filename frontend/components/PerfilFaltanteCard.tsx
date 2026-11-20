@@ -12,11 +12,15 @@ export default function PerfilFaltanteCard({
   body,
   actionLabel,
   href,
+  secundario = false,
 }: {
   title: string;
   body?: string;
   actionLabel: string;
   href: string;
+  /** El botón no es ámbar: otra pieza de la pantalla ya lleva el acento (el
+   *  turno de hoy en el Inicio). */
+  secundario?: boolean;
 }) {
   return (
     <section
@@ -28,7 +32,11 @@ export default function PerfilFaltanteCard({
       {body && <p className="mt-1 text-sm leading-relaxed text-ink-soft">{body}</p>}
       <Link
         href={href}
-        className="mt-3 flex min-h-[44px] items-center justify-center boton-relieve bg-primary px-4 text-sm font-bold text-night"
+        className={`mt-3 flex min-h-[44px] items-center justify-center px-4 text-sm font-bold ${
+          secundario
+            ? "rounded-[18px] bg-surface text-ink ring-1 ring-line"
+            : "boton-relieve bg-primary text-night"
+        }`}
       >
         {actionLabel}
       </Link>
