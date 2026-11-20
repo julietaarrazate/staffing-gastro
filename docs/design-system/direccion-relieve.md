@@ -350,7 +350,7 @@ Antes de dibujar algo nuevo en una pantalla, usar éstas:
 | `.app-banda` + `.riel` | `globals.css` | La banda azul hondo donde cuelgan las comandas en curso, y la barra del riel. Sobre la banda el relieve cambia de tono solo |
 | `BOTON_LISO` y `Button` `surface` | `components/ui/Button.tsx` | El secundario: blanco, recto (10 px, el radio del principal), con filete y plano. `BOTON_LISO` es para lo que no puede ser un `Button` (un `Link`, un `<a>`) |
 | `ShiftLifecycleStepper` + `.pasos-tachados` | `components/ShiftLifecycleStepper.tsx`, `globals.css` | Los pasos del turno en un renglón: lo hecho tachado a mano en azul hondo (`.tacha`), lo actual en negrita |
-| `OportunidadComanda` | `components/worker/OportunidadComanda.tsx` | Un turno abierto a postulaciones como comanda, con sus acciones («Cómo llegar», «Compartir», «No, gracias», «Postularme»). La usa Buscar del trabajador |
+| `OportunidadFila` | `components/worker/OportunidadFila.tsx` | Un turno abierto a postulaciones como fila suave, en Buscar de quien trabaja (desde el 2026-11-20, #702; hasta entonces era `OportunidadComanda`, una comanda de papel). |
 | `.boton-relieve` | `globals.css` | El relieve del botón principal: borde azul hondo, sombra dura, se aprieta. El fondo lo pone quien lo usa. Desde el 2026-11-18 lo lleva `Button` en su variante `primary` en toda la app (sigue en ámbar): un principal plano al lado de uno con relieve desentona |
 
 ## La dirección suave (2026-11-19, ADR-0028)

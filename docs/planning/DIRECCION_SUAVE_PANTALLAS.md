@@ -35,9 +35,9 @@ qué responde cada pantalla está en
 
 - ✅ **Chats** (`Chats`) · #701 · [historial](../historial/2026-11-20-chats-direccion-suave.md) · sin las secciones por fecha del turno ni «Vos:» (piden datos que `GET /chats` no manda)
 
-- ⬜ **Panel del comercio** (`C-Panel`, `C-Panel-vacio`, `C-Panel-nadie`) · `app/shifts/page.tsx`, `components/ShiftCard.tsx` · después de Mis turnos
+- ✅ **Panel del comercio** (`C-Panel`, `C-Panel-vacio`, `C-Panel-nadie`) · #706 · [historial](../historial/2026-11-20-panel-comercio-direccion-suave.md) · con piezas propias (`employer/CieloPanel`, `employer/TurnoPanel`); `ShiftCard` no se tocó · quedaron afuera «Buscamos hace N min», las fotos de quienes se postularon y las tres salidas de «nadie se postuló» (subir el pago, invitar a un favorito, cambiar el horario): son funciones nuevas
 
-- ⬜ **Perfil de quien trabaja** (`T-Perfil`) · `app/profile/`
+- ✅ **Perfil de quien trabaja** (`T-Perfil`) · #705 · [historial](../historial/2026-11-20-perfil-trabajador-direccion-suave.md) · con una pieza propia (`components/worker/PerfilTrabajador.tsx`); el perfil del comercio, `/profile/edit` y `/profile/settings` no se tocaron; quedaron afuera quién escribió la reseña, «puntual en N» y las filas «Experiencia y CV», «Zona y puestos» y «Avisos y apariencia» (son funciones nuevas)
 
 - ✅ **Mapa** (`T-Mapa`) · #707 · [historial](../historial/2026-11-20-mapa-direccion-suave.md) · quedaron afuera el conmutador Lista / Mapa, los chips de día y la tarjeta única con «Ver el turno» (son funciones nuevas); falta mirar el mapa de noche con el mapa real
 

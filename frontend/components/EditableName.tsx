@@ -12,8 +12,8 @@ import { LIMITES } from "@/lib/limites";
  * guardar/cancelar). Único dato de identidad que hoy queda fijo tanto en el
  * registro por email como en el acceso con Google, sin forma de corregirlo
  * (Julieta, 2026-07-30). El color hereda del contenedor (`className`), así
- * sirve igual sobre fondo claro (perfil del comercio) u oscuro (hero de
- * `WorkerGameCard`).
+ * sirve igual en la tarjeta del perfil del comercio y sobre el cielo de
+ * `PerfilTrabajador`).
  */
 export default function EditableName({ className = "" }: { className?: string }) {
   const { user, updateFullName } = useAuth();

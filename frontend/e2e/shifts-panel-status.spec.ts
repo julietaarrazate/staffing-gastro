@@ -55,36 +55,32 @@ test("en /shifts los estados se diferencian por color de marca y los cancelados 
   await page.goto("/shifts");
   await expect(page.getByText("Cancelado").first()).toBeVisible();
 
-  // El sello de "Cancelado" va en el rojo de los sellos (`.sello-rojo`, la
-  // misma tinta que `danger-text` de claro, fija porque el papel es claro en
-  // los dos temas; 2026-11-19), no un rojo suelto, y la tarjeta que lo
-  // contiene queda apagada.
+  // "Cancelado" va en el rojo de marca (`danger-text`), no un rojo suelto, y
+  // la fila que lo contiene queda apagada (dirección suave, 2026-11-20:
+  // pierde la sombra, no la opacidad, que dejaba la letra sin contraste).
   const canceladoChip = page.getByText("Cancelado", { exact: true }).first();
-  await expect(canceladoChip).toHaveClass(/sello-rojo/);
-  await expect(canceladoChip).toHaveCSS("color", "rgb(194, 47, 47)");
+  await expect(canceladoChip.locator("..")).toHaveClass(/text-danger-text/);
   const canceladoCard = page.locator(".no-select", { has: canceladoChip }).first();
-  // Apagada: en la comanda (2026-11-18) pierde el relieve en vez de bajar la
-  // opacidad, que dejaba el sello por debajo de contraste.
-  await expect(canceladoCard).toHaveClass(/comanda-apagada/);
+  await expect(canceladoCard).toHaveClass(/turno-apagado/);
+  await expect(canceladoCard).toHaveCSS("opacity", "1");
 
-  // "Confirmado" va en el verde de los sellos, sin apagar (sigue vivo).
+  // "Confirmado" va en verde, sin apagar (sigue vivo).
   const confirmadoChip = page.getByText("Confirmado", { exact: true }).first();
-  await expect(confirmadoChip).toHaveClass(/sello-verde/);
+  await expect(confirmadoChip.locator("..")).toHaveClass(/text-success-text/);
   const confirmadoCard = page.locator(".no-select", { has: confirmadoChip }).first();
-  await expect(confirmadoCard).not.toHaveClass(/comanda-apagada/);
+  await expect(confirmadoCard).not.toHaveClass(/turno-apagado/);
 
-  // "Publicado" va en el azul hondo de los sellos: está en curso.
+  // "Publicado" va en azul hondo: está en curso.
   const publicadoChip = page.getByText("Publicado", { exact: true }).first();
-  await expect(publicadoChip).toHaveClass(/sello-azul/);
+  await expect(publicadoChip.locator("..")).toHaveClass(/text-primary-text/);
 
   // Orden: el cancelado (terminal) debe quedar después de los no-terminales
   // en el DOM (bug: se veían mezclados con los turnos vivos).
   const cardOrder = await page.locator(".no-select h3").allTextContents();
-  const cards = await page.locator("div.no-select").all();
+  const cards = await page.locator("article.no-select").all();
   const statusesInOrder: string[] = [];
   for (const card of cards) {
-    // El estado es un sello sobre la comanda desde el 2026-11-18 (antes una
-    // píldora `rounded-full`): se busca por su marca, no por su forma.
+    // El estado se busca por su marca (`shift-status`), no por su forma.
     const text = await card.getByTestId("shift-status").textContent();
     if (text) statusesInOrder.push(text.trim());
   }
