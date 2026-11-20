@@ -57,7 +57,9 @@ const SHIFT_WITH_LOCATION = {
   longitude: -58.4257,
   title: null,
   description: null,
-  status: "asignado",
+  // En marcha: es la tarjeta de hoy de Mis turnos, la única que lleva el
+  // MiniMap desde la dirección suave (2026-11-20).
+  status: "check_in",
   worker_profile_id: "wp-1",
   check_in_latitude: null,
   check_in_longitude: null,
@@ -118,7 +120,7 @@ test("el mapa de /map sigue con el arrastre habilitado tras visitar un MiniMap n
   await mockEmptyNotifications(page);
   await mockWorkerRoutes(page);
 
-  // 1) /my-shifts renderiza un ShiftCard con MiniMap (interactive: false):
+  // 1) /my-shifts renderiza la tarjeta de hoy con MiniMap (interactive: false):
   // monta y recicla un mapboxgl.Map con dragPan/touchZoomRotate/etc.
   // deshabilitados desde su construcción.
   await page.goto("/my-shifts");
