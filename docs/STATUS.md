@@ -55,11 +55,15 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
    de a una pantalla. **Qué pantalla está hecha y cuál falta, renglón por renglón, en
    [`planning/DIRECCION_SUAVE_PANTALLAS.md`](./planning/DIRECCION_SUAVE_PANTALLAS.md)**: el PR de cada
    pantalla edita ahí su renglón y **no este párrafo** (era lo que hacía chocar a las sesiones en
-   paralelo). Hechas al 2026-11-20: Publicar turno y evento, el Inicio de quien trabaja, el turno,
-   Candidatos y el «¡Oído!» al elegir, y la primera tanda en paralelo: Mis turnos, Chats y Buscar de
-   quien trabaja. En curso, la segunda tanda: el Panel del comercio, el Perfil y el Mapa. Después, solos,
-   la barra de abajo y el encabezado, y lo que todavía no tiene maqueta. De paso se saca el marrón
-   que queda en `ShiftCard`, el mapa y Buscar del comercio. **Para mirar y decidir:** la
+   paralelo). **Hechas al 2026-11-20 todas las que tienen maqueta en el lienzo**: Publicar turno y evento,
+   el Inicio de quien trabaja, el turno, Candidatos y el «¡Oído!» al elegir, Mis turnos, Chats, Buscar
+   de quien trabaja, el Panel del comercio, el Perfil y el Mapa. **Sigue:** la barra de abajo y el
+   encabezado (solos; la barra flotante cambia una decisión del 2026-11-19 y hay que decidirla de
+   nuevo); después lo que no tiene maqueta (la bienvenida y el ingreso, Buscar del comercio, las hojas
+   compartidas, fichas, Favoritos, Mi plan y Soporte) y el cierre de ADR-0028. **Falta que Julieta
+   mire** el mapa de noche con calles de verdad (el filtro que lo apaga no se pudo ver en las sesiones).
+   Limpiezas anotadas: la variante `comanda` de `ShiftCard` quedó sin uso, y el marrón por rubro
+   sigue en `ShiftCard` y en Buscar del comercio. **Para mirar y decidir:** la
    prueba de identidad por pantalla, dieciséis pantallas en claro y en noche
    (https://claude.ai/artifact/WJn8NkYTpvSsa81RpoR2Jg; qué propone y qué cambia de lo decidido, en
    `direccion-relieve.md`, «Identidad por pantalla»). Julieta eligió el
