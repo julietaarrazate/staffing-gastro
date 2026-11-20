@@ -125,13 +125,15 @@ test("turno cancelado: el stepper se corta con un marcador rojo en el paso donde
   // cada tarjeta, cancelada o no.
   const steps = early.getByRole("listitem");
   await expect(steps).toHaveCount(4);
-  // El paso donde murió, en rojo y marcado como el actual; los que siguen,
-  // sin tachar (no pasaron).
+  // El paso donde murió, marcado como el actual; los dos de antes, hechos, y
+  // el que sigue, cortado (no pasó). Desde el 2026-11-20 los pasos del panel
+  // son barras (dirección suave), no palabras tachadas.
   const muerte = late.locator('[aria-current="step"]');
   await expect(muerte).toHaveText("En curso");
   await expect(muerte).toHaveAttribute("data-paso", "death");
-  await expect(late.locator('[data-paso="completed"] svg.tacha')).toHaveCount(2);
-  await expect(late.locator('[data-paso="cutoff"] svg.tacha')).toHaveCount(0);
+  await expect(late.locator('[data-paso="completed"]')).toHaveCount(2);
+  await expect(late.locator('[data-paso="cutoff"]')).toHaveCount(1);
+  await expect(late.locator("svg.tacha")).toHaveCount(0);
 });
 
 /**
@@ -190,9 +192,9 @@ test("turno no cubierto se lee igual en claro y en oscuro", async ({ page }) => 
     await expect(chip).toBeVisible();
 
     // Contraste real computado del estado, no clases — mismo método que
-    // enseñó el bug de septiembre (tarjetas del color del lienzo). Desde el
-    // 2026-11-18 el estado es un sello sobre el papel de la comanda: no
-    // tiene fondo propio, así que se mide su letra contra el papel.
+    // enseñó el bug de septiembre (tarjetas del color del lienzo). El estado
+    // es una palabra sobre la fila (dirección suave, 2026-11-20): no tiene
+    // fondo propio, así que se mide su letra contra la fila.
     const contraste = await chip.evaluate((el) => {
       const rgb = (c: string) => (c.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number);
       const luz = (c: string) => {
@@ -202,11 +204,11 @@ test("turno no cubierto se lee igual en claro y en oscuro", async ({ page }) => 
         });
         return 0.2126 * r + 0.7152 * g + 0.0722 * b;
       };
-      const papel = getComputedStyle(el.closest(".comanda") as HTMLElement).backgroundColor;
+      const papel = getComputedStyle(el.closest('[data-testid="shift-card"]') as HTMLElement).backgroundColor;
       const [a, b] = [luz(getComputedStyle(el as HTMLElement).color), luz(papel)].sort((x, y) => y - x);
       return (a + 0.05) / (b + 0.05);
     });
-    expect(contraste, `${tema}: el sello no se lee sobre el papel`).toBeGreaterThanOrEqual(4.5);
+    expect(contraste, `${tema}: el estado no se lee sobre su fila`).toBeGreaterThanOrEqual(4.5);
   }
 });
 
@@ -320,13 +322,13 @@ test("el panel se refresca solo mientras alguien puede venir en camino", async (
   await expect(card.getByText("Juana Pérez va en camino")).toBeVisible({ timeout: 10_000 });
 });
 
-// Los pasos tachados a mano (2026-11-19, docs/historial/2026-11-19-pasos-tachados.md):
-// lo hecho lleva el trazo en azul hondo, lo actual va en negrita y tinta, lo
-// que falta en la letra suave. El turno del panel es una comanda de papel,
-// forzada a claro por dentro: los colores son los de claro también con la app
-// en oscuro. Todas las palabras se leen sobre el papel (4,5).
+// Los pasos del panel del comercio son barras desde el 2026-11-20 (dirección
+// suave, `variante="barras"`; del 19 al 20 fueron palabras tachadas a mano):
+// lo hecho y lo actual llevan la barra en azul hondo (celeste de noche), lo
+// que falta en el relleno del campo; lo actual va en negrita. Todas las
+// palabras se leen sobre la fila (4,5), de día y de noche.
 for (const theme of ["light", "dark"] as const) {
-  test(`comercio, ${theme}: lo hecho tachado en azul hondo, lo actual en negrita, todo se lee`, async ({ page }) => {
+  test(`comercio, ${theme}: lo hecho y lo actual con su barra llena, lo actual en negrita, todo se lee`, async ({ page }) => {
     await injectSession(page);
     await setTheme(page, theme);
     await blockExternalHosts(page);
@@ -346,21 +348,22 @@ for (const theme of ["light", "dark"] as const) {
         const [p, q] = [lum(rgb(a)), lum(rgb(b))].sort((m, n) => n - m);
         return (p + 0.05) / (q + 0.05);
       };
-      const papel = getComputedStyle(ol.closest(".comanda") as HTMLElement).backgroundColor;
+      const fila = getComputedStyle(ol.closest('[data-testid="shift-card"]') as HTMLElement).backgroundColor;
       return [...ol.querySelectorAll("li")].map((li) => {
         const st = getComputedStyle(li);
-        const tacha = li.querySelector("svg.tacha");
         return {
           estado: li.getAttribute("data-paso"),
           peso: st.fontWeight,
-          contraste: ratio(st.color, papel),
-          tacha: tacha ? getComputedStyle(tacha).color : null,
+          contraste: ratio(st.color, fila),
+          barra: getComputedStyle(li, "::before").backgroundColor,
+          tachado: li.querySelector("svg.tacha") !== null,
         };
       });
     });
     expect(pasos.map((p) => p.estado)).toEqual(["completed", "current", "future", "future"]);
-    expect(pasos[0].tacha).toBe("rgb(28, 84, 120)");
-    expect(pasos.slice(1).every((p) => p.tacha === null)).toBe(true);
+    expect(pasos[0].barra).toBe(pasos[1].barra);
+    expect(pasos[2].barra).not.toBe(pasos[0].barra);
+    expect(pasos.some((p) => p.tachado)).toBe(false);
     expect(pasos[1].peso).toBe("700");
     for (const p of pasos) expect(p.contraste).toBeGreaterThanOrEqual(4.5);
     await expect(lista.locator('[aria-current="step"]')).toHaveText("Asignado");

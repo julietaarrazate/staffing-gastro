@@ -35,7 +35,7 @@ qué responde cada pantalla está en
 
 - ✅ **Chats** (`Chats`) · #701 · [historial](../historial/2026-11-20-chats-direccion-suave.md) · sin las secciones por fecha del turno ni «Vos:» (piden datos que `GET /chats` no manda)
 
-- ⬜ **Panel del comercio** (`C-Panel`, `C-Panel-vacio`, `C-Panel-nadie`) · `app/shifts/page.tsx`, `components/ShiftCard.tsx` · después de Mis turnos
+- ✅ **Panel del comercio** (`C-Panel`, `C-Panel-vacio`, `C-Panel-nadie`) · #706 · [historial](../historial/2026-11-20-panel-comercio-direccion-suave.md) · con piezas propias (`employer/CieloPanel`, `employer/TurnoPanel`); `ShiftCard` no se tocó · quedaron afuera «Buscamos hace N min», las fotos de quienes se postularon y las tres salidas de «nadie se postuló» (subir el pago, invitar a un favorito, cambiar el horario): son funciones nuevas
 
 - ⬜ **Perfil de quien trabaja** (`T-Perfil`) · `app/profile/`
 

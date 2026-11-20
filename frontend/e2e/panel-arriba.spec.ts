@@ -59,15 +59,11 @@ test.describe("arriba del panel", () => {
     const publicar = page.getByRole("link", { name: "Publicar turno" });
     const evento = page.getByRole("link", { name: "Evento" });
     await expect(publicar).toBeVisible();
-    // El acento se mide por el color REAL, no por la clase: así el test sigue
-    // valiendo si mañana el token cambia de nombre.
-    const primario = await page.evaluate(() => {
-      const hex = getComputedStyle(document.documentElement).getPropertyValue("--color-primary").trim();
-      const n = parseInt(hex.replace("#", ""), 16);
-      return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`;
-    });
-    await expect(publicar).toHaveCSS("background-color", primario);
-    expect(await evento.evaluate((el) => getComputedStyle(el).backgroundColor)).not.toBe(primario);
+    // El acento se mide por el color REAL, no por la clase. Con la dirección
+    // suave (2026-11-20) el ámbar es un degradé: `#f6a92a` → `#e58e0f`.
+    const fondo = (el: Element) => getComputedStyle(el).backgroundImage;
+    expect(await publicar.evaluate(fondo)).toContain("rgb(246, 169, 42)");
+    expect(await evento.evaluate(fondo)).not.toContain("rgb(246, 169, 42)");
   });
 
   test("ninguna de las dos repite un destino del nav de abajo", async ({ page }) => {
