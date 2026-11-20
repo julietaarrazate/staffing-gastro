@@ -9,6 +9,7 @@ import NotificationBell from "@/components/NotificationBell";
 import Logo from "@/components/Logo";
 import { PlusIcon } from "@/components/icons";
 import { cn } from "@/lib/cn";
+import { estaPublicando } from "@/lib/publicando";
 import { loginHref, nextDeCabecera, registerHref, safeNext } from "@/lib/safe-next";
 
 /**
@@ -199,6 +200,7 @@ function AuthLink({
  */
 function BarraConSesion() {
   const { user, logout, twoFactorSetupPending } = useAuth();
+  const pathname = usePathname();
   if (!user) return null;
   const soloCompu = user.role === "worker" || user.role === "employer";
 
@@ -251,7 +253,8 @@ function BarraConSesion() {
             </button>
           </nav>
         </div>
-        {user.role === "employer" && (
+        {/* Publicando no va: ya se está en eso. */}
+        {user.role === "employer" && !estaPublicando(pathname) && (
           <Link href="/shifts/new" aria-label="Publicar turno" className="barra-compu-mas">
             <PlusIcon size={22} strokeWidth={2.2} />
             <span className="hidden lg:inline">Publicar turno</span>

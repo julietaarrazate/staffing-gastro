@@ -191,34 +191,36 @@ export default function CieloInicio({
             : [{ forma: "b" as const, ancho: 100, pos: { right: 24, top: 92 }, lejos: true, className: "max-[360px]:hidden" }]),
         ]}
       />
-      {/* El saludo ocupa lo que deja el chip y se parte entre palabras; si una
-          sola palabra no entra al lado (un nombre largo a 320 px), el chip
-          baja a su renglón. */}
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-        {/* En el celular no hay encabezado: «oído» va acá, sobre el cielo, y
-            el saludo baja a su renglón. En la compu la marca está en la barra
-            de arriba. */}
+      {/* En el celular no hay encabezado: «oído» va acá, sobre el cielo, con
+          «Disponible» y la campanita, y el saludo baja a su renglón. En la
+          compu la marca y la campanita están en la barra de arriba, y el
+          saludo ocupa lo que deja el chip (si una palabra no entra al lado,
+          el chip baja a su renglón). */}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-5 md:gap-y-2">
         <span className="md:hidden">
           <Logo size={30} sobreCielo />
         </span>
-        <p className="hidden min-w-min flex-1 break-words text-base font-semibold md:block">{saludo}</p>
-        {/* «Disponible»: un chip de vidrio con un punto verde cuando está
-            prendido y gris cuando no. Mismo estado y mismo guardado de siempre. */}
-        <button
-          type="button"
-          onClick={onToggleAvailable}
-          className="chip-vidrio chip-disponible ml-auto min-h-11 shrink-0 px-3.5 text-sm"
-          aria-label={`${available ? "Disponible" : "No disponible"}: cambiar disponibilidad`}
-          aria-pressed={available}
-        >
-          <span aria-hidden className={`h-2 w-2 rounded-full ${available ? "bg-success" : "bg-ink-soft"}`} />
-          {available ? "Disponible" : "No disponible"}
-        </button>
-        <span className="md:hidden">
-          <NotificationBell variante="vidrio" />
-        </span>
+        <p className="order-last min-w-min basis-full break-words text-base font-semibold md:order-none md:flex-1 md:basis-0">
+          {saludo}
+        </p>
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          {/* «Disponible»: un chip de vidrio con un punto verde cuando está
+              prendido y gris cuando no. Mismo estado y mismo guardado de siempre. */}
+          <button
+            type="button"
+            onClick={onToggleAvailable}
+            className="chip-vidrio chip-disponible min-h-11 shrink-0 px-3.5 text-sm"
+            aria-label={`${available ? "Disponible" : "No disponible"}: cambiar disponibilidad`}
+            aria-pressed={available}
+          >
+            <span aria-hidden className={`h-2 w-2 rounded-full ${available ? "bg-success" : "bg-ink-soft"}`} />
+            {available ? "Disponible" : "No disponible"}
+          </button>
+          <span className="md:hidden">
+            <NotificationBell variante="vidrio" />
+          </span>
+        </div>
       </div>
-      <p className="mt-5 break-words text-base font-semibold md:hidden">{saludo}</p>
       {titulo}
       {detalle}
       {/* El único ámbar de la pantalla: las acciones del turno viven en Mis

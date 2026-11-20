@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useAvisos } from "@/lib/avisos";
+import { estaPublicando } from "@/lib/publicando";
 import { CuentaAvisos } from "@/components/NotificationBell";
 import {
   ClipboardIcon,
@@ -45,10 +46,6 @@ const TABS_BY_ROLE: Record<string, typeof WORKER_TABS> = {
   admin: ADMIN_TABS,
 };
 
-/** Las pantallas del comercio donde «Publicar turno» no va al lado de la
- *  barra: ya se está publicando. */
-const PUBLICANDO = ["/shifts/new", "/shifts/new-event"];
-
 export default function BottomNav() {
   const { user, loading, twoFactorSetupPending } = useAuth();
   const { unreadCount } = useAvisos();
@@ -69,7 +66,7 @@ export default function BottomNav() {
   if (pathname === "/encuesta") return null;
 
   const tabs = TABS_BY_ROLE[user.role] ?? EMPLOYER_TABS;
-  const conMas = user.role === "employer" && !PUBLICANDO.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  const conMas = user.role === "employer" && !estaPublicando(pathname);
   // La campanita está sólo en el Inicio y en el Panel (y el admin la conserva
   // en su encabezado): en las demás pantallas la cuenta de avisos sin leer va
   // sobre esa pestaña, que es por donde se llega a ellos.

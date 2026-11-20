@@ -6,7 +6,7 @@ import { AvisosProvider, RECONNECT_REFRESH_MIN_GAP_MS } from "@/lib/avisos";
 const apiGet = vi.fn();
 vi.mock("@/lib/api", () => ({ api: { get: (...a: unknown[]) => apiGet(...a), post: vi.fn() } }));
 const auth = vi.hoisted(() => ({ token: "tok" as string | null }));
-vi.mock("@/lib/auth-context", () => ({ useAuth: () => ({ token: auth.token }) }));
+vi.mock("@/lib/auth-context", () => ({ useAuth: () => ({ token: auth.token, user: { id: "u" }, loading: false }) }));
 const ws = vi.hoisted(() => ({
   onOpen: null as null | (() => void),
   onMessage: null as null | ((frame: unknown) => void),

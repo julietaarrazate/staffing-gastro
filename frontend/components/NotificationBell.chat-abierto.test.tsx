@@ -12,7 +12,7 @@ vi.mock("@/lib/api", () => ({
     post: (...args: unknown[]) => apiPost(...args),
   },
 }));
-vi.mock("@/lib/auth-context", () => ({ useAuth: () => ({ token: "tok" }) }));
+vi.mock("@/lib/auth-context", () => ({ useAuth: () => ({ token: "tok", user: { id: "u" }, loading: false }) }));
 vi.mock("@/lib/useWebSocket", () => ({ useWebSocket: () => undefined }));
 let pathname = "/chats/s1";
 vi.mock("next/navigation", () => ({

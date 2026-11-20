@@ -61,10 +61,13 @@ export function useAvisos(): Avisos {
 }
 
 export function AvisosProvider({ children }: { children: ReactNode }) {
-  const { token: sessionToken, twoFactorSetupPending } = useAuth();
+  const { token: sessionToken, user, loading: cargandoSesion, twoFactorSetupPending } = useAuth();
   // Con el alta de 2FA del admin pendiente (ADR-0023) el backend rechaza los
-  // pedidos de avisos: sin token no carga ni abre el socket (U133).
-  const token = twoFactorSetupPending ? null : sessionToken;
+  // pedidos de avisos: sin token no carga ni abre el socket (U133). Y hasta
+  // que la sesión no está confirmada (`user`) no se sabe si es ese caso: el
+  // token guardado aparece antes que la respuesta de `/auth/me`. La campanita
+  // del encabezado esperaba lo mismo (se montaba recién con `user`).
+  const token = cargandoSesion || !user || twoFactorSetupPending ? null : sessionToken;
   const router = useRouter();
   const pathname = usePathname();
   const [notifications, setNotifications] = useState<Notification[]>([]);
