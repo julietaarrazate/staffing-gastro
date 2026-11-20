@@ -19,7 +19,7 @@ import type { InicioEstado, TurnoDeHoy } from "@/lib/inicio-estado";
  * saludo, a la vista pero oculto a los lectores, y el `h1` lo repite en un
  * `span` sólo para ellos: se lee entero, «Hoy trabajás a las 20:00».
  *
- * Con algo en marcha (turno por empezar o en curso) el cielo es hondo
+ * Con algo en marcha (turno por empezar, empezado o en curso) el cielo es hondo
  * (`.cielo-hondo`).
  */
 
@@ -45,7 +45,7 @@ export default function CieloInicio({
   /** La zona (`LocationBar`) o, en una búsqueda del asistente, su renglón. */
   zona: ReactNode;
 }) {
-  const hondo = estado.tipo === "hoy-por-empezar" || estado.tipo === "hoy-en-curso";
+  const hondo = estado.tipo === "hoy-por-empezar" || estado.tipo === "hoy-en-curso" || estado.tipo === "hoy-empezo";
   const hola = firstName ? `Hola, ${firstName}.` : "Hola.";
 
   let saludo: ReactNode = hola;
@@ -100,6 +100,18 @@ export default function CieloInicio({
         <h1 className="numero-gigante mt-2" data-testid="inicio-titulo">
           <span className="sr-only">{frase} </span>
           {turno.horaFin}
+        </h1>
+      );
+      break;
+    }
+    case "hoy-empezo": {
+      const { turno } = estado;
+      const frase = turno.local ? `Tu turno en ${turno.local} empezó a las` : "Tu turno empezó a las";
+      saludo = <span aria-hidden>{frase}</span>;
+      titulo = (
+        <h1 className="numero-gigante mt-2" data-testid="inicio-titulo">
+          <span className="sr-only">{frase} </span>
+          {turno.horaInicio}
         </h1>
       );
       break;
@@ -199,7 +211,7 @@ export default function CieloInicio({
       {detalle}
       {/* El único ámbar de la pantalla: las acciones del turno viven en Mis
           turnos, acá sólo se va para allá. */}
-      {(estado.tipo === "hoy-mas-tarde" || estado.tipo === "hoy-por-empezar" || estado.tipo === "hoy-en-curso") && (
+      {(estado.tipo === "hoy-mas-tarde" || estado.tipo === "hoy-por-empezar" || estado.tipo === "hoy-en-curso" || estado.tipo === "hoy-empezo") && (
         <Link
           href="/my-shifts"
           data-testid="inicio-ver-turno"

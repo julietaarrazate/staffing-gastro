@@ -16,7 +16,7 @@ import { esPerfilInexistente } from "@/lib/perfil-faltante";
 import { bienvenidaHref } from "@/lib/safe-next";
 import PerfilFaltanteCard from "@/components/PerfilFaltanteCard";
 import { isTodayInArgentina } from "@/lib/datetime";
-import { decidirInicio } from "@/lib/inicio-estado";
+import { decidirInicio, relojNecesario } from "@/lib/inicio-estado";
 import { useAhora } from "@/lib/use-ahora";
 import { useLiveRefresh } from "@/lib/live-refresh";
 import {
@@ -204,12 +204,15 @@ function WorkerFeedPanel() {
   const tourPendiente = useTourPendiente("staffya_tour_worker_feed");
   const [loading, setLoading] = useState(cached === undefined);
   // Mis postulaciones, para el turno que la persona ya tiene hoy (el título del
-  // cielo). `null` = todavía no se sabe; si el pedido falla queda `[]` y el
-  // Inicio sigue como si no tuviera ninguno.
+  // cielo). `null` = todavía no se sabe; si el pedido falla se conserva lo
+  // anterior, y sin nada previo queda `[]` (el Inicio sigue como sin turno).
   const [applications, setApplications] = useState<ShiftApplication[] | null>(cached?.applications ?? null);
-  // El reloj sólo corre si hay una postulación aceptada que pueda ser el turno de hoy.
-  const hayAceptada = !!applications?.some((a) => a.status === "aceptada" && a.shift);
-  const ahora = useAhora(hayAceptada);
+  // Lo último que se supo de las postulaciones, para conservarlo si un
+  // refresco falla (sin esto el título pierde el turno de hoy por un error pasajero).
+  const applicationsRef = useRef<ShiftApplication[] | null>(applications);
+  // El reloj sólo corre si hay un turno aceptado, de los que se trabajan, que
+  // está en curso o empieza en las próximas 24 h.
+  const ahora = useAhora(!!applications && relojNecesario(applications, new Date()));
   // «Llegó vacío» (el servidor no devolvió ningún turno) no es lo mismo que
   // «los vi todos» (la persona fue pasando/descartando las tarjetas): lo
   // primero no se puede decir como si ya hubiera visto algo. El caché guarda
@@ -283,15 +286,19 @@ function WorkerFeedPanel() {
     if (!silent) setError(null);
     const savesAtStart = profileSaves.current;
     try {
-      const [feed, prof, applied] = await Promise.all([
+      const [feed, prof, appliedNuevas] = await Promise.all([
         api.get<Shift[]>(feedPathFor(assistantSearch), token),
         api
           .get<WorkerProfile>("/workers/me/profile", token)
           .catch((err) => (esPerfilInexistente(err) ? SIN_PERFIL : null)),
-        api.get<ShiftApplication[]>("/applications/mine", token).catch(() => []),
+        api.get<ShiftApplication[]>("/applications/mine", token).catch(() => null),
       ]);
       if (mine !== latestLoad.current) return;
       setError(null);
+      // Si el pedido falló se conservan las anteriores (estado y caché); sólo
+      // en la primera carga, sin nada previo, se sigue con la lista vacía.
+      const applied = appliedNuevas ?? applicationsRef.current ?? [];
+      applicationsRef.current = applied;
       setApplications(applied);
       const appliedIds = appliedShiftIds(applied);
       const visible = feed.filter((s) => !appliedIds.has(s.id) && !descartados.current.has(s.id));

@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { decidirInicio, type InicioEntrada } from "@/lib/inicio-estado";
+import { decidirInicio, relojNecesario, type InicioEntrada } from "@/lib/inicio-estado";
 import type { Shift, ShiftStatus } from "@/lib/types";
 
 /** Hora de Argentina (UTC-3) a ISO. */
@@ -63,9 +63,42 @@ describe("decidirInicio", () => {
     expect(uno).toMatchObject({ tipo: "hoy-por-empezar", minutos: 1 });
   });
 
-  it("A3: a la hora exacta de inicio ya empezó", () => {
-    const e = decidir([aceptada(turno(ar("2026-11-19", "18:00"), ar("2026-11-19", "23:00")))]);
+  it("A2: faltan 27 min 30 s -> dice 28 (redondea hacia arriba)", () => {
+    const t = turno(ar("2026-11-19", "18:28"), ar("2026-11-19", "23:00"));
+    const ahora = new Date(new Date(ar("2026-11-19", "18:00")).getTime() + 30_000);
+    expect(decidir([aceptada(t)], { ahora })).toMatchObject({ tipo: "hoy-por-empezar", minutos: 28 });
+  });
+
+  it("A2 pasada la medianoche: son las 23:50 y empieza 00:20 -> «Empezás en 30 min»", () => {
+    const ahora = new Date(ar("2026-11-19", "23:50"));
+    const t = turno(ar("2026-11-20", "00:20"), ar("2026-11-20", "04:00"));
+    expect(decidir([aceptada(t)], { ahora })).toMatchObject({ tipo: "hoy-por-empezar", minutos: 30 });
+  });
+
+  it("23:50 y empieza 01:00 (70 min, ya es mañana) no cuenta: A1 es sólo de hoy", () => {
+    const ahora = new Date(ar("2026-11-19", "23:50"));
+    const t = turno(ar("2026-11-20", "01:00"), ar("2026-11-20", "04:00"));
+    expect(decidir([aceptada(t)], { ahora }).tipo).toBe("con-turnos");
+  });
+
+  it("A3: marcó la llegada (check_in o trabajando) -> «hasta las» con la hora de fin", () => {
+    for (const status of ["check_in", "trabajando"] as ShiftStatus[]) {
+      const t = turno(ar("2026-11-19", "17:00"), ar("2026-11-19", "23:00"), { status });
+      expect(decidir([aceptada(t)])).toMatchObject({ tipo: "hoy-en-curso", turno: { horaFin: "23:00" } });
+    }
+  });
+
+  it("ya empezó pero no marcó la llegada (asignado, confirmado, en_camino) -> hoy-empezo con la hora de inicio", () => {
+    for (const status of ["asignado", "confirmado", "en_camino"] as ShiftStatus[]) {
+      const t = turno(ar("2026-11-19", "17:00"), ar("2026-11-19", "23:00"), { status });
+      expect(decidir([aceptada(t)])).toMatchObject({ tipo: "hoy-empezo", turno: { horaInicio: "17:00" } });
+    }
+  });
+
+  it("a la hora exacta de inicio ya empezó", () => {
+    const e = decidir([aceptada(turno(ar("2026-11-19", "18:00"), ar("2026-11-19", "23:00"), { status: "check_in" }))]);
     expect(e).toMatchObject({ tipo: "hoy-en-curso", turno: { horaFin: "23:00" } });
+    expect(decidir([aceptada(turno(ar("2026-11-19", "18:00"), ar("2026-11-19", "23:00")))]).tipo).toBe("hoy-empezo");
   });
 
   it("un turno que terminó ya no cuenta (a la hora exacta de fin)", () => {
@@ -80,7 +113,7 @@ describe("decidirInicio", () => {
 
   it("el turno de ayer que termina hoy de madrugada cuenta mientras está en curso", () => {
     const ahora = new Date(ar("2026-11-19", "01:00"));
-    const p = [aceptada(turno(ar("2026-11-18", "22:00"), ar("2026-11-19", "02:00")))];
+    const p = [aceptada(turno(ar("2026-11-18", "22:00"), ar("2026-11-19", "02:00"), { status: "trabajando" }))];
     expect(decidir(p, { ahora })).toMatchObject({ tipo: "hoy-en-curso", turno: { horaFin: "02:00" } });
     // y a las 02:00 ya no
     expect(decidir(p, { ahora: new Date(ar("2026-11-19", "02:00")) }).tipo).toBe("con-turnos");
@@ -109,8 +142,9 @@ describe("decidirInicio", () => {
     }
   });
 
-  it("un turno cancelado, no cubierto o terminado no cuenta", () => {
-    for (const status of ["cancelado", "no_cubierto", "finalizado", "pagado", "check_out"] as ShiftStatus[]) {
+  it("sólo cuentan los estados permitidos: el resto no cuenta", () => {
+    const todos: ShiftStatus[] = ["borrador", "publicado", "buscando_personal", "check_out", "finalizado", "pagado", "cancelado", "no_cubierto"];
+    for (const status of todos) {
       const t = turno(ar("2026-11-19", "17:00"), ar("2026-11-19", "23:00"), { status });
       expect(decidir([aceptada(t)]).tipo).toBe("con-turnos");
     }
@@ -129,6 +163,24 @@ describe("decidirInicio", () => {
     expect(decidir([], { turnosParaMostrar: 2 }).tipo).toBe("con-turnos");
     expect(decidir([], { turnosParaMostrar: 0 }).tipo).toBe("tranquilo");
     expect(decidir([], { turnosParaMostrar: 0, conError: true }).tipo).toBe("con-error");
+  });
+});
+
+describe("relojNecesario", () => {
+  const t = (inicio: string, fin: string, extra: Partial<Shift> = {}) => [aceptada(turno(inicio, fin, extra))];
+  it("corre con un turno en curso o que empieza en las próximas 24 h", () => {
+    expect(relojNecesario(t(ar("2026-11-19", "20:00"), ar("2026-11-20", "02:00")), AHORA)).toBe(true);
+    expect(relojNecesario(t(ar("2026-11-19", "15:00"), ar("2026-11-19", "23:00")), AHORA)).toBe(true);
+    expect(relojNecesario(t(ar("2026-11-20", "17:59"), ar("2026-11-20", "23:00")), AHORA)).toBe(true);
+  });
+  it("no corre con turnos terminados, lejanos, de otro estado o sin aceptar", () => {
+    expect(relojNecesario(t(ar("2026-11-19", "10:00"), ar("2026-11-19", "18:00")), AHORA)).toBe(false);
+    expect(relojNecesario(t(ar("2026-11-20", "18:01"), ar("2026-11-20", "23:00")), AHORA)).toBe(false);
+    expect(relojNecesario(t(ar("2026-11-26", "20:00"), ar("2026-11-27", "02:00")), AHORA)).toBe(false);
+    expect(relojNecesario(t(ar("2026-11-19", "20:00"), ar("2026-11-20", "02:00"), { status: "publicado" }), AHORA)).toBe(false);
+    expect(relojNecesario(t(ar("2026-11-19", "20:00"), ar("2026-11-20", "02:00"), { status: "cancelado" }), AHORA)).toBe(false);
+    expect(relojNecesario([{ status: "pendiente" as const, shift: turno(ar("2026-11-19", "20:00"), ar("2026-11-20", "02:00")) }], AHORA)).toBe(false);
+    expect(relojNecesario([aceptada(null)], AHORA)).toBe(false);
   });
 });
 

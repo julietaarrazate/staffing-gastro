@@ -26,12 +26,16 @@ interface Opciones {
   /** Si se pasa, la respuesta de /applications/mine espera a esta promesa. */
   esperar?: Promise<void>;
   postulacionesFalla?: boolean;
+  /** Desde el pedido N (1 = el primero) /applications/mine responde 500. */
+  fallaDesde?: number;
   perfil?: Record<string, unknown>;
   tema?: "light" | "dark";
+  /** Reloj fijado (por defecto AHORA). */
+  ahora?: Date;
 }
 
 async function inicio(page: Page, o: Opciones = {}) {
-  await page.clock.install({ time: AHORA });
+  await page.clock.install({ time: o.ahora ?? AHORA });
   if (o.tema) await setTheme(page, o.tema);
   await injectSession(page);
   await skipSplash(page);
@@ -39,9 +43,11 @@ async function inicio(page: Page, o: Opciones = {}) {
   await mockEmptyNotifications(page);
   await page.route("**/api/v1/auth/me", (r) => r.fulfill(json(deContrato("auth_me_worker", { full_name: "Sofía Demo" }))));
   await page.route("**/api/v1/shifts/feed**", (r) => r.fulfill(json(o.feed ?? [])));
+  let pedidos = 0;
   await page.route("**/api/v1/applications/mine**", async (r) => {
+    pedidos += 1;
     if (o.esperar) await o.esperar;
-    if (o.postulacionesFalla) return r.fulfill({ status: 500, contentType: "application/json", body: '{"detail":"x"}' });
+    if (o.postulacionesFalla || (o.fallaDesde !== undefined && pedidos >= o.fallaDesde)) return r.fulfill({ status: 500, contentType: "application/json", body: '{"detail":"x"}' });
     return r.fulfill(json(o.postulaciones ?? []));
   });
   await page.route("**/api/v1/workers/me/profile", (r) =>
@@ -90,7 +96,7 @@ test("A1 sin local: sólo el puesto", async ({ page }) => {
   await expect(page.getByTestId("inicio-turno").locator("p").first()).toHaveText("Bartender");
 });
 
-test("A2: faltan 60 min o menos -> cielo hondo y «Empezás en 28 min» que baja con el reloj y pasa a A3 al empezar", async ({ page }) => {
+test("A2: faltan 60 min o menos -> cielo hondo y «Empezás en 28 min» que baja con el reloj y pasa a «empezó a las» al empezar", async ({ page }) => {
   await inicio(page, { postulaciones: postulaciones({ start_at: ar(HOY, "18:28"), end_at: ar(HOY, "23:00") }), feed: feedUno() });
   await page.goto("/feed");
   const cielo = page.getByTestId("inicio-cielo");
@@ -105,12 +111,12 @@ test("A2: faltan 60 min o menos -> cielo hondo y «Empezás en 28 min» que baja
   await page.clock.runFor("22:00");
   await expect(titulo(page)).toHaveAccessibleName("Empezás en 1 min");
   await page.clock.runFor("01:00");
-  await expect(titulo(page)).toHaveAccessibleName("Estás en Bar Mirasol hasta las 23:00");
-  await expect(cielo).toHaveAttribute("data-estado", "hoy-en-curso");
+  await expect(titulo(page)).toHaveAccessibleName("Tu turno en Bar Mirasol empezó a las 18:28");
+  await expect(cielo).toHaveAttribute("data-estado", "hoy-empezo");
 });
 
-test("A3: ya empezó -> «Estás en Bar Mirasol hasta las 23:00», y sin local «Tu turno termina a las 23:00»", async ({ page }) => {
-  await inicio(page, { postulaciones: postulaciones({ start_at: ar(HOY, "17:00"), end_at: ar(HOY, "23:00") }), feed: feedUno() });
+test("A3: con la llegada marcada -> «Estás en Bar Mirasol hasta las 23:00», y sin local «Tu turno termina a las 23:00»", async ({ page }) => {
+  await inicio(page, { postulaciones: postulaciones({ start_at: ar(HOY, "17:00"), end_at: ar(HOY, "23:00"), status: "check_in" }), feed: feedUno() });
   await page.goto("/feed");
   await expect(page.getByTestId("inicio-cielo")).toHaveClass(/cielo-hondo/);
   await expect(titulo(page)).toHaveAccessibleName("Estás en Bar Mirasol hasta las 23:00");
@@ -120,9 +126,51 @@ test("A3: ya empezó -> «Estás en Bar Mirasol hasta las 23:00», y sin local �
 });
 
 test("A3 sin local", async ({ page }) => {
-  await inicio(page, { postulaciones: postulaciones({ start_at: ar("2026-11-18", "22:00"), end_at: ar("2026-11-19", "23:00"), company_name: null }) });
+  await inicio(page, { postulaciones: postulaciones({ start_at: ar("2026-11-18", "22:00"), end_at: ar("2026-11-19", "23:00"), company_name: null, status: "trabajando" }) });
   await page.goto("/feed");
   await expect(titulo(page)).toHaveAccessibleName("Tu turno termina a las 23:00");
+});
+
+test("A3 sin llegada marcada: «Tu turno en Bar Mirasol empezó a las 20:00» con la hora de inicio, cielo hondo y «Ver mi turno»", async ({ page }) => {
+  await inicio(page, { postulaciones: postulaciones({ start_at: ar(HOY, "17:00"), end_at: ar(HOY, "23:00"), status: "confirmado" }), feed: feedUno() });
+  await page.goto("/feed");
+  await expect(page.getByTestId("inicio-cielo")).toHaveClass(/cielo-hondo/);
+  await expect(page.getByTestId("inicio-cielo")).toHaveAttribute("data-estado", "hoy-empezo");
+  await expect(titulo(page)).toHaveAccessibleName("Tu turno en Bar Mirasol empezó a las 17:00");
+  await expect(page.getByTestId("inicio-cielo")).toContainText("Tu turno en Bar Mirasol empezó a las");
+  expect(await visible(page)).toBe("17:00");
+  await expect(page.getByRole("link", { name: "Ver mi turno" })).toHaveAttribute("href", "/my-shifts");
+  await expect(ambares(page)).toHaveCount(1);
+});
+
+test("A3 sin llegada marcada y sin local: «Tu turno empezó a las 17:00»", async ({ page }) => {
+  await inicio(page, { postulaciones: postulaciones({ start_at: ar(HOY, "17:00"), end_at: ar(HOY, "23:00"), status: "asignado", company_name: null }) });
+  await page.goto("/feed");
+  await expect(titulo(page)).toHaveAccessibleName("Tu turno empezó a las 17:00");
+  expect(await visible(page)).toBe("17:00");
+});
+
+test("si el refresco de /applications/mine falla, el título sigue en A1 y «Ver mi turno» no se pierde", async ({ page }) => {
+  await inicio(page, {
+    postulaciones: postulaciones({ start_at: ar(HOY, "20:00"), end_at: ar("2026-11-20", "02:00") }),
+    feed: feedUno(),
+    fallaDesde: 2,
+  });
+  await page.goto("/feed");
+  await expect(titulo(page)).toHaveAccessibleName("Hoy trabajás a las 20:00");
+  const segundo = page.waitForResponse((r) => r.url().includes("/applications/mine") && r.status() === 500);
+  await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+  await page.clock.runFor(5000);
+  await segundo;
+  await expect(titulo(page)).toHaveAccessibleName("Hoy trabajás a las 20:00");
+  await expect(page.getByRole("link", { name: "Ver mi turno" })).toBeVisible();
+});
+
+test("A2 de medianoche: son las 23:50 y empieza a las 00:20 -> «Empezás en 30 min»", async ({ page }) => {
+  await inicio(page, { postulaciones: postulaciones({ start_at: ar("2026-11-20", "00:20"), end_at: ar("2026-11-20", "04:00") }), feed: feedUno(), ahora: new Date("2026-11-19T23:50:00-03:00") });
+  await page.goto("/feed");
+  await expect(titulo(page)).toHaveAccessibleName("Empezás en 30 min");
+  await expect(page.getByTestId("inicio-cielo")).toHaveClass(/cielo-hondo/);
 });
 
 test("con el turno de hoy a la vista, «Completar mi perfil» deja de ser ámbar y el vacío tampoco suma otro", async ({ page }) => {
@@ -227,7 +275,7 @@ for (const estado of ["a1", "a2", "a3", "b", "c"] as const) {
     const turno =
       estado === "a1" ? { start_at: ar(HOY, "20:00"), end_at: ar("2026-11-20", "02:00") }
       : estado === "a2" ? { start_at: ar(HOY, "18:28"), end_at: ar(HOY, "23:00") }
-      : estado === "a3" ? { start_at: ar(HOY, "17:00"), end_at: ar(HOY, "23:00") }
+      : estado === "a3" ? { start_at: ar(HOY, "17:00"), end_at: ar(HOY, "23:00"), status: "check_in" }
       : null;
     await inicio(page, { postulaciones: turno ? postulaciones({ ...turno, company_name: "Restaurante Los Tres Hermanos del Sur" }) : [], feed: estado === "c" ? [] : feedUno() });
     await page.goto("/feed");
