@@ -1,4 +1,4 @@
-# Cierre de la segunda tanda en paralelo de la dirección suave (#PR)
+# Cierre de la segunda tanda en paralelo de la dirección suave (#708)
 
 **Pedido:** Julieta, 2026-11-20: «mergeá todo lo que queda pendiente cuando
 esté verde».
