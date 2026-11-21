@@ -203,6 +203,7 @@ const APPS = () => [
 ];
 
 async function abrirRetiro(page: Page) {
+  await page.clock.setFixedTime(new Date("2026-07-12T12:00:00-03:00")); // Mis turnos filtra por semana
   await page.goto("/my-shifts");
   await page.getByRole("button", { name: "Postulaciones (2)" }).click();
   await page.getByRole("button", { name: "Cancelar postulación" }).first().click();
@@ -259,6 +260,7 @@ test("retirar: con otro error la postulación vuelve a su lugar, no al principio
   await page.route("**/api/v1/applications/app-2/withdraw", (route) =>
     route.fulfill(json({ detail: "Error del servidor" }, 500))
   );
+  await page.clock.setFixedTime(new Date("2026-07-12T12:00:00-03:00")); // Mis turnos filtra por semana
   await page.goto("/my-shifts");
   await page.getByRole("button", { name: "Postulaciones (2)" }).click();
   await page.getByRole("button", { name: "Cancelar postulación" }).nth(1).click();

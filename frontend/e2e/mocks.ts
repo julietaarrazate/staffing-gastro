@@ -119,3 +119,20 @@ export function enDias(dias: number, hora = "20:00"): string {
 export function isoEnDias(dias: number, hora = "20:00"): string {
   return `${enDias(dias, hora)}:00-03:00`;
 }
+
+/**
+ * Mis turnos filtra por semana (la tira de días, 2026-11-21): un spec cuyos
+ * turnos tienen que verse a la vez fija el reloj del navegador con
+ * `page.clock.setFixedTime(AHORA_JUEVES)` y arma las fechas con
+ * `isoDesdeJueves`, en vez de `isoEnDias`, que depende del día en que corre el
+ * spec. Jueves 19/11/2026, 12:00 en Argentina: la semana del 16 (-3) al 22 (+3).
+ */
+export const AHORA_JUEVES = new Date("2026-11-19T12:00:00-03:00");
+
+/** Lo mismo que `isoEnDias`, contando desde `AHORA_JUEVES`. */
+export function isoDesdeJueves(dias: number, hora = "20:00"): string {
+  const dia = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Argentina/Buenos_Aires" }).format(
+    new Date(AHORA_JUEVES.getTime() + dias * 24 * 60 * 60 * 1000)
+  );
+  return `${dia}T${hora}:00-03:00`;
+}

@@ -11,16 +11,19 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { useTapGuard } from "@/lib/use-tap-guard";
 import { formatShiftStartPhrase, isTodayInArgentina } from "@/lib/datetime";
-import { claveDiaArgentina, semanaArgentina } from "@/lib/semana";
+import { claveDiaArgentina, diaEnPalabras, semanaArgentina, semanasHasta, turnosPorDia } from "@/lib/semana";
+import MasAdelante, { type FilaFutura } from "@/components/MasAdelante";
+import SemanaTira from "@/components/SemanaTira";
 import { autoFinishWorkerNote } from "@/lib/shift-next-step";
-import { Shift, ShiftApplication, WorkerProfile } from "@/lib/types";
+import { SKILL_LABELS, STATUS_LABELS, Shift, ShiftApplication, WorkerProfile } from "@/lib/types";
+import { formatPayCompact } from "@/lib/pay";
 import { getCurrentPosition } from "@/lib/geolocation";
 import {
   getStoredLocation,
   originFor,
   type CurrentLocation,
 } from "@/lib/current-location";
-import TurnoSuave from "@/components/worker/TurnoSuave";
+import TurnoSuave, { CLASE_TONO, TONO_ESTADO } from "@/components/worker/TurnoSuave";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import ReviewBox from "@/components/ReviewBox";
 import EnRouteToggle from "@/components/worker/EnRouteToggle";
@@ -114,6 +117,10 @@ function MatchesContent() {
   const { token } = useRequireAuth({ roles: ["worker"] });
   const toast = useToast();
   const [tab, setTab] = useState<Tab>("asignados");
+  // La tira de días del cielo: qué semana se ve (0 = la de hoy, en pasos de
+  // semanas) y, si se tocó uno, el día (clave "YYYY-MM-DD" de Argentina).
+  const [semanaOffset, setSemanaOffset] = useState(0);
+  const [diaElegido, setDiaElegido] = useState<string | null>(null);
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [applications, setApplications] = useState<ShiftApplication[]>([]);
   const [appShifts, setAppShifts] = useState<Record<string, Shift>>({});
@@ -242,15 +249,19 @@ function MatchesContent() {
     }
     if (loading || error || turnoHandledRef.current === turnoParam) return;
     turnoHandledRef.current = turnoParam;
-    if (shifts.some((s) => s.id === turnoParam)) {
+    const deAviso = shifts.find((s) => s.id === turnoParam);
+    if (deAviso) {
       setTab("asignados");
+      // La tarjeta tiene que estar en lo que se ve: va a su semana, sin día elegido.
+      setSemanaOffset(semanasHasta(claveDiaArgentina(deAviso.start_at), now));
+      setDiaElegido(null);
       setHighlightId(turnoParam);
     }
     const rest = new URLSearchParams(searchParams.toString());
     rest.delete("turno");
     const qs = rest.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-  }, [turnoParam, loading, error, shifts, router, pathname, searchParams]);
+  }, [turnoParam, loading, error, shifts, now, router, pathname, searchParams]);
 
   // Resaltado: baja a la tarjeta (ya dibujada en «Asignados») y la deja
   // marcada 3,5 s. Su temporizador sólo se corta al cambiar de resaltado o al
@@ -628,8 +639,61 @@ function MatchesContent() {
     );
   }
 
-  const activeShifts = shifts.filter((s) => !FINISHED_STATUSES.includes(s.status));
-  const finishedShifts = shifts.filter((s) => FINISHED_STATUSES.includes(s.status));
+  // Postulaciones pendientes: las que todavía no se volvieron un turno asignado.
+  const pending = applications.filter((a) => a.status === "pendiente");
+
+  // La tira de días filtra las tres pestañas por la fecha del turno (hora de
+  // Argentina): sin día elegido, la semana que se ve; con uno, sólo ese día.
+  // Los contadores de las pestañas siguen contando todo. Los puntitos de la
+  // tira, las flechas y «Más adelante» son de la pestaña que se mira.
+  const fuente: { shift: Shift; estado: string; tono: string }[] =
+    tab === "asignados"
+      ? shifts.map((s) => ({ shift: s, estado: STATUS_LABELS[s.status], tono: CLASE_TONO[TONO_ESTADO[s.status] ?? "azul"] }))
+      : tab === "postulaciones"
+        ? pending.flatMap((a) => {
+            const s = appShifts[a.shift_id];
+            return s ? [{ shift: s, estado: APPLICATION_LABELS[a.status] ?? "Pendiente", tono: CLASE_TONO.azul }] : [];
+          })
+        : savedShifts.map((s) => ({ shift: s, estado: "Guardado", tono: CLASE_TONO.azul }));
+  const semana = semanaArgentina(now, semanaOffset);
+  const clavesSemana = new Set(semana.map((d) => d.clave));
+  // Un día elegido que ya no está en la semana que se ve (pasó la medianoche
+  // del domingo con la pantalla abierta) se da por soltado.
+  const dia = diaElegido && clavesSemana.has(diaElegido) ? diaElegido : null;
+  const enLaVista = (s: Shift) => {
+    const c = claveDiaArgentina(s.start_at);
+    return dia ? c === dia : clavesSemana.has(c);
+  };
+  const turnosDelDia = turnosPorDia(fuente.map((f) => claveDiaArgentina(f.shift.start_at)));
+  const primerDia = semana[0].clave;
+  const ultimoDia = semana[6].clave;
+  const hayAntes = fuente.some((f) => claveDiaArgentina(f.shift.start_at) < primerDia);
+  // «Más adelante»: lo de semanas que vienen, en filas de una línea.
+  const futuros: FilaFutura[] = fuente
+    .filter((f) => claveDiaArgentina(f.shift.start_at) > ultimoDia)
+    .sort((a, b) => new Date(a.shift.start_at).getTime() - new Date(b.shift.start_at).getTime())
+    .map((f) => ({
+      id: f.shift.id,
+      clave: claveDiaArgentina(f.shift.start_at),
+      puesto: SKILL_LABELS[f.shift.position],
+      estado: f.estado,
+      tono: f.tono,
+      pago: formatPayCompact(f.shift),
+    }));
+  const irADia = (clave: string) => {
+    setSemanaOffset(semanasHasta(clave, now));
+    setDiaElegido(clave);
+    window.scrollTo({ top: 0 });
+  };
+  const sinNadaVisible = fuente.length > 0 && !fuente.some((f) => enLaVista(f.shift));
+  const diaVacio = (
+    <p data-testid="dia-vacio" role="status" className="py-6 text-center text-body font-medium text-ink-soft">
+      {dia ? `Nada el ${diaEnPalabras(dia)}` : "Nada en esta semana"}
+    </p>
+  );
+  const vistos = shifts.filter(enLaVista);
+  const activeShifts = vistos.filter((s) => !FINISHED_STATUSES.includes(s.status));
+  const finishedShifts = vistos.filter((s) => FINISHED_STATUSES.includes(s.status));
   // La tarjeta de hoy lleva su propio cielo y el único ámbar. Es, en orden:
   // 1. el turno en marcha (si hubiera dos, el que empezó último);
   // 2. si no, el próximo por empezar: el primero de los asignados o
@@ -650,12 +714,6 @@ function MatchesContent() {
     .sort(porInicio);
   const turnoDeHoy = enMarcha[enMarcha.length - 1] ?? porEmpezar[0] ?? null;
   const otrosActivos = activeShifts.filter((s) => s.id !== turnoDeHoy?.id);
-  // La semana del cielo: hoy y los días con un turno por hacer.
-  const semana = semanaArgentina(now);
-  const diasConTurno = new Set(activeShifts.map((s) => claveDiaArgentina(s.start_at)));
-
-  // Postulaciones pendientes: las que todavía no se volvieron un turno asignado.
-  const pending = applications.filter((a) => a.status === "pendiente");
 
   const origin = originFor(here, profile);
   // En el orden en que se fueron tocando (no el orden de la lista): más
@@ -679,28 +737,25 @@ function MatchesContent() {
             ancho de la pantalla. */}
         <NubesCielo nubes={[{ forma: "a", ancho: 190, pos: { right: 24, top: -52 } }]} />
         <h1 className="titulo-pantalla break-words">Mis turnos</h1>
-        {/* eslint-disable-next-line jsx-a11y/no-redundant-roles -- sin viñetas, Safari le saca el rol de lista */}
-        <ol role="list" aria-label="Esta semana" className="mt-4 grid grid-cols-7 text-center md:max-w-md">
-          {semana.map((d) => {
-            const conTurno = diasConTurno.has(d.clave);
-            return (
-              <li key={d.clave} data-dia={d.clave} className="flex flex-col items-center gap-1">
-                <span aria-hidden className={`text-xs ${d.esHoy ? "font-bold" : "font-semibold"}`}>
-                  {d.corto}
-                </span>
-                <span aria-hidden className={`dia-cielo ${d.esHoy ? "dia-cielo-hoy" : ""}`}>
-                  {d.numero}
-                </span>
-                {conTurno && <span aria-hidden data-con-turno className="dia-cielo-punto" />}
-                <span className="sr-only">
-                  {d.largo} {d.numero}
-                  {d.esHoy && ", hoy"}
-                  {conTurno && ", con turno"}
-                </span>
-              </li>
-            );
-          })}
-        </ol>
+        <div className="mt-4">
+          <SemanaTira
+            dias={semana}
+            turnosPorDia={turnosDelDia}
+            elegido={dia}
+            onElegir={setDiaElegido}
+            onSemana={(paso) => {
+              setSemanaOffset((o) => o + paso);
+              setDiaElegido(null);
+            }}
+            esActual={semanaOffset === 0}
+            hayAntes={hayAntes}
+            hayDespues={futuros.length > 0}
+            onVolver={() => {
+              setSemanaOffset(0);
+              setDiaElegido(null);
+            }}
+          />
+        </div>
       </div>
 
       {/* La hoja sube 28 px sobre el cielo y lleva todo lo que se toca. */}
@@ -755,6 +810,7 @@ function MatchesContent() {
               </>
             )
           )}
+          {sinNadaVisible && diaVacio}
           {/* U066: lo terminado (pagado, cancelado, no cubierto) va aparte,
               debajo de lo que todavía hay que hacer. */}
           {finishedShifts.length > 0 && (
@@ -769,6 +825,7 @@ function MatchesContent() {
               </div>
             </>
           )}
+          <MasAdelante filas={futuros} onElegir={irADia} />
         </div>
       )}
 
@@ -786,7 +843,7 @@ function MatchesContent() {
             <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
             {pending.map((application) => {
               const shift = appShifts[application.shift_id];
-              if (!shift) return null;
+              if (!shift || !enLaVista(shift)) return null;
               const isOpen = OPEN_SHIFT_STATUSES.includes(shift.status);
               return (
                 <TurnoSuave key={application.id} shift={shift}>
@@ -835,6 +892,8 @@ function MatchesContent() {
               );
             })}
             </div>
+            {sinNadaVisible && diaVacio}
+            <MasAdelante filas={futuros} onElegir={irADia} />
             </>
           )}
         </div>
@@ -870,7 +929,7 @@ function MatchesContent() {
 
               <h2 className="sr-only">Guardados</h2>
               <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {savedShifts.map((shift) => {
+                {savedShifts.filter(enLaVista).map((shift) => {
                   const selected = selectedForCompare.includes(shift.id);
                   return (
                     <div key={shift.id} className="relative">
@@ -924,6 +983,8 @@ function MatchesContent() {
                   );
                 })}
               </div>
+              {sinNadaVisible && diaVacio}
+              <MasAdelante filas={futuros} onElegir={irADia} />
             </>
           )}
         </div>

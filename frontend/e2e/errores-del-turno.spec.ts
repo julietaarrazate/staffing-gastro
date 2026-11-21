@@ -46,6 +46,7 @@ test("Trabajador: Confirmar falla porque el comercio canceló; muestra el motivo
     server.status = "cancelado"; // el comercio canceló mientras la pantalla estaba abierta
     return fulfillContrato(r, "turno_cancelado_confirmar"); // 400, texto real del backend
   });
+  await page.clock.setFixedTime(new Date("2037-12-16T12:00:00-03:00")); // Mis turnos filtra por semana
   await page.goto("/my-shifts");
 
   const confirmar = page.getByRole("button", { name: "Confirmar" });

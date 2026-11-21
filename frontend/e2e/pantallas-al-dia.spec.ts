@@ -80,6 +80,7 @@ test("el comercio cancela y «Mis turnos» deja de ofrecer «Llegué»", async (
       body: JSON.stringify([shift(status)]),
     })
   );
+  await page.clock.setFixedTime(new Date("2037-12-16T12:00:00-03:00")); // Mis turnos filtra por semana
   await page.goto("/my-shifts");
   await expect(page.getByRole("button", { name: "Llegué" })).toBeVisible();
 
