@@ -17,7 +17,6 @@ import { describe, expect, it } from "vitest";
 const PERMITIDOS: Record<string, string[]> = {
   "components/NotificationBell.tsx": ["text-[10px]"],
   "components/ShiftLifecycleStepper.tsx": ["text-[10px]"],
-  "components/map/WorkerMarker.tsx": ["text-[9px]"],
   "app/bienvenida/page.tsx": ["text-[2rem]"],
 };
 
