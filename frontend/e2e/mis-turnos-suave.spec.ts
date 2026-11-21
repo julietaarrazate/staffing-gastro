@@ -38,12 +38,12 @@ for (const theme of ["light", "dark"] as const) {
     await setTheme(page, theme);
     await misTurnos(page);
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
-    const titulo = page.getByRole("heading", { level: 1, name: "Matches" });
+    const titulo = page.getByRole("heading", { level: 1, name: "Mis turnos" });
     await expect(titulo).toHaveClass(/titulo-pantalla/);
     await expect(titulo).not.toHaveClass(/letra-cartel/);
     // La tinta del cielo: azul hondo de día, clara de noche.
     const cielo = page.locator(".estilo-suave > .app-cielo");
-    await expect(cielo).toContainText("Matches");
+    await expect(cielo).toContainText("Mis turnos");
     expect(await titulo.evaluate((el) => getComputedStyle(el).color)).toBe(
       theme === "light" ? "rgb(15, 58, 91)" : "rgb(238, 243, 246)",
     );

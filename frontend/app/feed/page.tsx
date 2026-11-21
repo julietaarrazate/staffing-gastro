@@ -63,7 +63,7 @@ const WORKER_FEED_TOUR: TourStep[] = [
   {
     target: '[data-tour="nav-my-shifts"]',
     title: "Acá seguís tus postulaciones",
-    body: 'Cuando te postulás o te asignan un turno, lo vas a encontrar en "Matches".',
+    body: 'Cuando te postulás o te asignan un turno, lo vas a encontrar en «Turnos».',
   },
 ];
 

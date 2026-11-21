@@ -130,7 +130,7 @@ test.describe("barra superior en compu (1280 px)", () => {
     await base(page);
     await page.goto("/feed");
     const nav = page.getByRole("navigation", { name: "Principal" });
-    await expect(nav.getByRole("link", { name: "Turnos", exact: true })).toBeVisible({ timeout: 15_000 });
+    await expect(nav.getByRole("link", { name: "Inicio", exact: true })).toBeVisible({ timeout: 15_000 });
     await nav.getByRole("link", { name: "Buscar" }).click();
     await expect(page).toHaveURL(/\/buscar$/);
     await expect(nav.getByRole("link", { name: "Buscar" })).toHaveAttribute("aria-current", "page");

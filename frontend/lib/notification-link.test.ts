@@ -33,7 +33,7 @@ describe("notificationHref", () => {
     expect(notificationHref(aviso({ type: "urgent_shift_nearby" }))).toBe("/feed");
   });
 
-  it("el turno que el comercio canceló antes de confirmar abre «Matches»", () => {
+  it("el turno que el comercio canceló antes de confirmar abre «Mis turnos»", () => {
     expect(notificationHref(aviso({ type: "shift_cancelled" }))).toBe("/my-shifts");
   });
 
@@ -46,7 +46,7 @@ describe("notificationHref", () => {
     expect(notificationHref(aviso({ type: "shift_no_show", link: "/profile" }))).toBe("/profile");
   });
 
-  it("los recordatorios de llegada y de salida abren Matches (donde están «Llegué» y «Va en camino»)", () => {
+  it("los recordatorios de llegada y de salida abren Mis turnos (donde están «Llegué» y «Va en camino»)", () => {
     expect(notificationHref(aviso({ type: "checkin_reminder", link: "/my-shifts?turno=turno-1" }))).toBe(
       "/my-shifts?turno=turno-1"
     );

@@ -133,7 +133,10 @@ test("Mis turnos ya no monta MapLibre para el mapa chico, y /map sigue arrastrab
   await expect(mapaChico).toContainText("Bar Demo Palermo"); // el nombre del local, junto al cuadradito
   await expect(page.locator(".maplibregl-map")).toHaveCount(0);
 
-  await page.getByRole("link", { name: /Mapa/i }).click();
+  // Al mapa se llega por «Buscar» y el conmutador «Lista / Mapa» (ya no hay pestaña «Mapa»), todo SPA.
+  await page.getByRole("navigation", { name: "Secciones" }).getByRole("link", { name: "Buscar" }).click();
+  await page.waitForURL("**/buscar");
+  await page.getByRole("navigation", { name: "Cómo ver los turnos" }).getByRole("link", { name: "Mapa" }).click();
   await page.waitForURL("**/map");
   await page.waitForSelector(".maplibregl-marker", { timeout: 10_000 });
   expect(await dragPanEnabled(page)).toBe(true);

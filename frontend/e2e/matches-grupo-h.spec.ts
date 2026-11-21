@@ -1,5 +1,5 @@
 /**
- * Matches del trabajador (Beta etapa 3, grupo H): «Asignados» separa lo
+ * Mis turnos del trabajador (Beta etapa 3, grupo H): «Asignados» separa lo
  * terminado (U066), las tres pestañas entran sin scroll en 360 px y sin
  * tarjetas más anchas que la pantalla (U068), y una postulación a un turno
  * cerrado no dice «esperando respuesta» (U088).
@@ -56,7 +56,7 @@ async function abrir(
   await page.route("**/api/v1/saved-shifts", (r) => r.request().method() === "GET" ? r.fulfill(json(guardados)) : r.continue());
   await page.route("**/api/v1/workers/me/profile", (r) => r.fulfill(json({ id: "p", user_id: "u", full_name: "Mozo", skills: ["mozo"], latitude: -34.58, longitude: -58.42, city: "Palermo", badges: [], level: "plata", rating: 4.5 })));
   await page.goto(url);
-  await page.getByRole("heading", { name: "Matches" }).waitFor();
+  await page.getByRole("heading", { name: "Mis turnos" }).waitFor();
 }
 
 test("Asignados: lo que hay que hacer arriba y lo terminado bajo «Terminados»", async ({ page }) => {
@@ -223,7 +223,7 @@ test("?turno= abre Asignados, baja a esa tarjeta y la resalta", async ({ page })
   await expect(tarjeta).not.toHaveClass(/ring-primary-text/, { timeout: 6000 });
 });
 
-test("?turno= estando ya en Matches (aviso tocado desde la campanita) salta otra vez", async ({ page }) => {
+test("?turno= estando ya en Mis turnos (aviso tocado desde la campanita) salta otra vez", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 740 });
   const muchos = Array.from({ length: 8 }, (_, i) =>
     shift({ id: `turno-${i}`, status: "confirmado", start_at: isoEnDias(2 + i), worker_profile_id: "p", company_name: `Local ${i}` }),
@@ -243,7 +243,7 @@ test("?turno= estando ya en Matches (aviso tocado desde la campanita) salta otra
 
 test("?turno= con un turno que no está en la lista no pasa nada", async ({ page }) => {
   await abrir(page, [], assigned, [], "/my-shifts?turno=no-existe");
-  await expect(page.getByRole("heading", { name: "Matches" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Mis turnos" })).toBeVisible();
   // Ninguna tarjeta (`#turno-…`) lleva el token exacto del resaltado en su classList.
   const resaltadas = await page
     .locator("[id^='turno-']")

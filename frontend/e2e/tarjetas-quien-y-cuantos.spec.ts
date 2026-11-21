@@ -7,7 +7,7 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash }
  *  - Panel del comercio: «Elegir a alguien (2)», y la cifra se pone al día sola
  *    cuando llega otro postulante (aviso por el WebSocket de la campanita).
  *  - Panel del comercio: «Asignado a Ana», «Beto confirmó».
- *  - Matches → Postulaciones: la tarjeta dice de qué comercio es el turno.
+ *  - Mis turnos → Postulaciones: la tarjeta dice de qué comercio es el turno.
  */
 
 // Turno de `GET /shifts/me` (e2e/contrato): sin datos del comercio, con `worker_name`
@@ -92,7 +92,7 @@ test("el panel dice con quién está cada turno", async ({ page }) => {
   await expect(lista.getByText(/^Confirmó\. Te avisamos/)).toHaveCount(1);
 });
 
-test("Matches → Postulaciones dice de qué comercio es cada turno", async ({ page }) => {
+test("Mis turnos → Postulaciones dice de qué comercio es cada turno", async ({ page }) => {
   await setup(page, "worker");
   await page.route(/\/api\/v1\/applications\/mine(\?.*)?$/, (route) =>
     route.fulfill(

@@ -86,6 +86,31 @@ describe("BottomNav: los avisos sin leer, en la pestaña por la que se llega a e
   });
 });
 
+describe("BottomNav: cinco pestañas para quien trabaja", () => {
+  it("Inicio, Buscar, Turnos, Chats y Perfil: sin «Mapa» ni «Matches»", () => {
+    auth = sesion("worker");
+    ruta = "/feed";
+    render(<BottomNav />);
+    const nombres = screen.getAllByRole("link").map((a) => a.textContent);
+    expect(nombres).toEqual(["Inicio", "Buscar", "Turnos", "Chats", "Perfil"]);
+  });
+
+  it("en el Mapa la pestaña activa es Buscar: son la misma tarea", () => {
+    auth = sesion("worker");
+    ruta = "/map";
+    render(<BottomNav />);
+    expect(screen.getByRole("link", { name: "Buscar" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Turnos" })).not.toHaveAttribute("aria-current");
+  });
+
+  it("el admin conserva su pestaña «Mapa»", () => {
+    auth = sesion("admin");
+    ruta = "/map";
+    render(<BottomNav />);
+    expect(screen.getByRole("link", { name: "Mapa" })).toHaveAttribute("aria-current", "page");
+  });
+});
+
 describe("BottomNav: el «+» de «Publicar turno»", () => {
   it("el comercio lo tiene al lado de la barra, fuera de las pestañas", () => {
     auth = sesion("employer");

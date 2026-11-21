@@ -17,30 +17,40 @@ import {
   UsersIcon,
 } from "@/components/icons";
 
-const WORKER_TABS = [
+type Tab = {
+  href: string;
+  label: string;
+  Icon: typeof HomeIcon;
+  /** Otras pantallas que viven bajo esta pestaña. */
+  tambien?: string[];
+};
+
+// Cinco pestañas (Julieta, 2026-11-20): Buscar y el Mapa son una sola, con un
+// conmutador Lista / Mapa en la pantalla (`worker/ListaMapa`), y «Matches»
+// pasó a llamarse «Turnos».
+const WORKER_TABS: Tab[] = [
   { href: "/feed", label: "Inicio", Icon: HomeIcon },
-  { href: "/buscar", label: "Buscar", Icon: SearchIcon },
-  { href: "/map", label: "Mapa", Icon: MapPinIcon },
-  { href: "/my-shifts", label: "Matches", Icon: ClipboardIcon },
+  { href: "/buscar", label: "Buscar", Icon: SearchIcon, tambien: ["/map"] },
+  { href: "/my-shifts", label: "Turnos", Icon: ClipboardIcon },
   { href: "/chats", label: "Chats", Icon: MessageIcon },
   { href: "/profile", label: "Perfil", Icon: UsersIcon },
 ];
 
-const EMPLOYER_TABS = [
+const EMPLOYER_TABS: Tab[] = [
   { href: "/shifts", label: "Panel", Icon: HomeIcon },
   { href: "/search", label: "Buscar", Icon: MapPinIcon },
   { href: "/chats", label: "Chats", Icon: MessageIcon },
   { href: "/profile", label: "Perfil", Icon: UsersIcon },
 ];
 
-const ADMIN_TABS = [
+const ADMIN_TABS: Tab[] = [
   { href: "/admin", label: "Panel", Icon: ShieldIcon },
   { href: "/map", label: "Mapa", Icon: MapPinIcon },
   { href: "/search", label: "Buscar", Icon: SearchIcon },
   { href: "/profile", label: "Perfil", Icon: UsersIcon },
 ];
 
-const TABS_BY_ROLE: Record<string, typeof WORKER_TABS> = {
+const TABS_BY_ROLE: Record<string, Tab[]> = {
   worker: WORKER_TABS,
   employer: EMPLOYER_TABS,
   admin: ADMIN_TABS,
@@ -82,8 +92,8 @@ export default function BottomNav() {
           navegación» sin forma de distinguirlas (auditoría de navegación,
           fase H). */}
       <nav aria-label="Secciones" className="barra-app-pildora">
-        {tabs.map(({ href, label, Icon }) => {
-          const active = pathname === href || pathname.startsWith(`${href}/`);
+        {tabs.map(({ href, label, Icon, tambien = [] }) => {
+          const active = [href, ...tambien].some((ruta) => pathname === ruta || pathname.startsWith(`${ruta}/`));
           // Coincidencia exacta: en una pantalla de adentro (publicar,
           // candidatos) la pestaña está activa pero no hay campanita.
           const avisos = href === inicio && pathname !== href ? unreadCount : 0;

@@ -219,7 +219,7 @@ function MatchesContent() {
       setError(null);
     } catch (err) {
       if (mine === latestLoad.current && !silent) {
-        setError(getErrorMessage(err, "Error al cargar tus matches"));
+        setError(getErrorMessage(err, "Error al cargar tus turnos"));
       }
     } finally {
       if (mine === latestLoad.current) setLoading(false);
@@ -678,7 +678,7 @@ function MatchesContent() {
             (ni cuando deriva): `overflow-audit` mide cada elemento contra el
             ancho de la pantalla. */}
         <NubesCielo nubes={[{ forma: "a", ancho: 190, pos: { right: 24, top: -52 } }]} />
-        <h1 className="titulo-pantalla break-words">Matches</h1>
+        <h1 className="titulo-pantalla break-words">Mis turnos</h1>
         {/* eslint-disable-next-line jsx-a11y/no-redundant-roles -- sin viñetas, Safari le saca el rol de lista */}
         <ol role="list" aria-label="Esta semana" className="mt-4 grid grid-cols-7 text-center md:max-w-md">
           {semana.map((d) => {

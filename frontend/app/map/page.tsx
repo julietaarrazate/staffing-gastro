@@ -19,6 +19,7 @@ import { SKILL_LABELS, Shift, ShiftApplication, WorkerProfile } from "@/lib/type
 import { Button, EmptyState, Sheet, Skeleton, useToast } from "@/components/ui";
 import { BikeIcon, CalendarIcon, CarIcon, FootprintsIcon, MapPinIcon, UsersIcon } from "@/components/icons";
 import { formatShiftRange, formatShiftTime } from "@/lib/datetime";
+import ListaMapa from "@/components/worker/ListaMapa";
 import MapSheet from "@/components/worker/MapSheet";
 import TurnoMapa, { MiniaturaTurno } from "@/components/worker/TurnoMapa";
 import ConfirmOverlay from "@/components/ui/ConfirmOverlay";
@@ -429,6 +430,9 @@ export default function MapPage() {
           y vacía en pantallas anchas). En mobile no se renderiza (hidden). */}
       <aside className="mapa-panel hidden w-full max-w-[380px] shrink-0 flex-col overflow-y-auto bg-card md:flex">
         <div className="sticky top-0 z-20 bg-card/95 px-5 pb-3 pt-5 backdrop-blur">
+          {/* El conmutador Lista / Mapa: sólo quien trabaja tiene la lista
+              (el admin entra al mapa a mirar). */}
+          {user?.role === "worker" && <ListaMapa actual="mapa" className="conmutador-hoja mb-3 w-fit" />}
           <h1 className="titulo-pantalla text-ink">
             {loading
               ? "Buscando turnos..."
@@ -502,6 +506,8 @@ export default function MapPage() {
           Sólo mobile: en la compu el título está en el panel de al lado. No
           recibe toques: el mapa se mueve también por debajo del título. */}
       <div className="mapa-cielo pointer-events-none absolute inset-x-0 top-0 z-10 px-5 pb-7 pt-5 md:hidden">
+        {/* El conmutador sí recibe toques (el resto del cielo no). */}
+        {user?.role === "worker" && <ListaMapa actual="mapa" className="pointer-events-auto float-right mb-1 ml-3" />}
         <h1 className="titulo-pantalla break-words">
           {loading
             ? "Buscando turnos cerca..."
