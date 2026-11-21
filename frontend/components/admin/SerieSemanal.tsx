@@ -19,7 +19,7 @@ import {
   serieACsv,
 } from "@/lib/metricas-semanales";
 import type { WeekSummary, WeeklyMetrics } from "@/lib/types";
-import { Badge, Button, Card, ErrorBanner, SegmentedControl, Skeleton } from "@/components/ui";
+import { Badge, Button, ErrorBanner, SegmentedControl, Skeleton } from "@/components/ui";
 import { DownloadIcon } from "@/components/icons";
 import { SectionLabel } from "@/components/admin/AdminStats";
 import { etiquetaOrigen } from "@/components/admin/AltasPorOrigen";
@@ -30,25 +30,25 @@ const pct = (p: number | null) => (p === null ? "—" : `${p.toFixed(0)}%`);
 const minutos = (m: number | null) => (m === null ? "—" : `${m.toFixed(0)} min`);
 
 const TH = "px-2 pb-2 pt-4 text-right align-bottom font-medium";
-const TD = "px-2 py-2 text-right tabular-nums text-ink/75 whitespace-nowrap";
+const TD = "px-2 py-2 text-right tabular-nums text-ink-soft whitespace-nowrap";
 
 /** Un conteo con su porcentaje debajo, más chico. */
 function ConPct({ n, p }: { n: number; p: number | null }) {
   return (
     <>
       <span className="font-semibold text-ink">{n}</span>
-      <span className="block text-xs text-ink/50">{pct(p)}</span>
+      <span className="block text-xs text-ink-soft">{pct(p)}</span>
     </>
   );
 }
 
 function TablaSemanas({ semanas }: { semanas: WeekSummary[] }) {
   return (
-    <Card className="mt-2 overflow-x-auto p-0">
+    <div className="tarjeta-suave mt-2 overflow-x-auto p-0">
       <table className="w-full text-sm">
         <caption className="sr-only">Indicadores de cada semana, la más nueva primero</caption>
         <thead>
-          <tr className="text-left text-xs font-medium text-ink/50">
+          <tr className="text-left text-xs font-medium text-ink-soft">
             <th scope="col" className="px-4 pb-2 pt-4 align-bottom font-medium sm:px-5">Semana</th>
             <th scope="col" className={TH}>Publicados</th>
             <th scope="col" className={TH}>Cubiertos</th>
@@ -90,7 +90,7 @@ function TablaSemanas({ semanas }: { semanas: WeekSummary[] }) {
           ))}
         </tbody>
       </table>
-    </Card>
+    </div>
   );
 }
 
@@ -98,19 +98,19 @@ function TablaOrigenes({ semanas }: { semanas: WeekSummary[] }) {
   const origenes = origenesDeLaSerie(semanas);
   if (origenes.length === 0) {
     return (
-      <Card className="mt-2 p-5">
-        <p className="text-sm text-ink/60">Ninguna cuenta nueva en estas semanas.</p>
-      </Card>
+      <div className="tarjeta-suave mt-2 p-5">
+        <p className="text-sm text-ink-soft">Ninguna cuenta nueva en estas semanas.</p>
+      </div>
     );
   }
   return (
-    <Card className="mt-2 overflow-x-auto p-0">
+    <div className="tarjeta-suave mt-2 overflow-x-auto p-0">
       <table className="w-full text-sm">
         <caption className="sr-only">
           Cuentas nuevas de cada semana por origen: trabajadores y comercios
         </caption>
         <thead>
-          <tr className="text-left text-xs font-medium text-ink/50">
+          <tr className="text-left text-xs font-medium text-ink-soft">
             <th scope="col" className="px-4 pb-2 pt-4 align-bottom font-medium sm:px-5">Origen</th>
             {semanas.map((s, i) => (
               <th
@@ -129,7 +129,7 @@ function TablaOrigenes({ semanas }: { semanas: WeekSummary[] }) {
               <th
                 scope="row"
                 className={`max-w-[10rem] break-words px-4 py-2 text-left font-medium sm:max-w-none sm:px-5 ${
-                  origen === null ? "text-ink/50" : "text-ink"
+                  origen === null ? "text-ink-soft" : "text-ink"
                 }`}
               >
                 {etiquetaOrigen(origen)}
@@ -141,7 +141,7 @@ function TablaOrigenes({ semanas }: { semanas: WeekSummary[] }) {
                   <td
                     key={s.start}
                     className={`${TD} ${i === semanas.length - 1 ? "pr-4 sm:pr-5" : ""} ${
-                      nada ? "text-ink/40" : ""
+                      nada ? "text-ink-soft" : ""
                     }`}
                   >
                     {nada ? "—" : `${altas.workers} · ${altas.companies}`}
@@ -152,7 +152,7 @@ function TablaOrigenes({ semanas }: { semanas: WeekSummary[] }) {
           ))}
         </tbody>
       </table>
-    </Card>
+    </div>
   );
 }
 
@@ -197,9 +197,9 @@ export default function SerieSemanal({ token }: { token: string | null }) {
     <div className="mt-8" data-testid="serie-semanal">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <SectionLabel>Semana por semana</SectionLabel>
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <SegmentedControl<Semanas>
-            className="flex-1 sm:flex-none"
+            className="min-w-0 flex-1 sm:flex-none"
             value={cuantas}
             onChange={setCuantas}
             options={[
@@ -223,7 +223,7 @@ export default function SerieSemanal({ token }: { token: string | null }) {
       ) : (
         <>
           <TablaSemanas semanas={recientes} />
-          <p className="mt-1.5 px-1 text-xs text-ink/40">
+          <p className="mt-1.5 px-1 text-xs text-ink-soft">
             Semanas de lunes a domingo, hora argentina. Cada turno cuenta en la semana en que se
             publicó. Cubierto: la persona confirmó; cumplido: llegó al local. El CSV va de la semana
             más vieja a la más nueva, con las altas de cada origen.
@@ -232,7 +232,7 @@ export default function SerieSemanal({ token }: { token: string | null }) {
             <SectionLabel>Altas por origen, semana por semana</SectionLabel>
           </div>
           <TablaOrigenes semanas={recientes} />
-          <p className="mt-1.5 px-1 text-xs text-ink/40">
+          <p className="mt-1.5 px-1 text-xs text-ink-soft">
             Cada celda: trabajadores · comercios.
           </p>
         </>

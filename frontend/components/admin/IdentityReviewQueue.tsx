@@ -14,7 +14,7 @@ import {
   type PendingClaim,
   type PendingEvidence,
 } from "@/lib/identity";
-import { Avatar, Button, Card, EmptyState, ErrorBanner, Skeleton, TextField } from "@/components/ui";
+import { Avatar, Button, EmptyState, ErrorBanner, Skeleton, TextField } from "@/components/ui";
 import { FileTextIcon, ShieldIcon } from "@/components/icons";
 import { safeHttpsUrl } from "@/lib/safe-url";
 
@@ -68,14 +68,14 @@ function EvidenceThumb({ evidence }: { evidence: PendingEvidence }) {
     }
   }
 
-  const tile = "aspect-[3/2] w-32 rounded-xl ring-1 ring-line";
-  const caption = <span className="mt-1 block text-center text-label text-ink/50">{label}</span>;
+  const tile = "aspect-[3/2] w-32 rounded-[14px] bg-[var(--suave-campo)]";
+  const caption = <span className="mt-1 block text-center text-label text-ink-soft">{label}</span>;
 
   if (!evidence.available || failed) {
     return (
       <div>
         <span
-          className={`${tile} flex flex-col items-center justify-center gap-1 bg-surface px-2 text-center text-ink/60`}
+          className={`${tile} flex flex-col items-center justify-center gap-1 px-2 text-center text-ink-soft`}
         >
           <FileTextIcon size={20} />
           <span className="text-label font-semibold">
@@ -117,7 +117,7 @@ function EvidenceThumb({ evidence }: { evidence: PendingEvidence }) {
     >
       {isDocument ? (
         <span
-          className={`${tile} flex flex-col items-center justify-center gap-1 bg-surface text-ink/60 transition group-hover:ring-primary`}
+          className={`${tile} flex flex-col items-center justify-center gap-1 bg-surface text-ink-soft transition group-hover:ring-primary`}
         >
           <FileTextIcon size={22} />
           <span className="text-label font-semibold">Abrir documento</span>
@@ -141,7 +141,7 @@ function isBusiness(claim: PendingClaim): boolean {
 
 function ReviewCardSkeleton() {
   return (
-    <Card className="p-5" aria-hidden>
+    <div className="tarjeta-suave p-5" aria-hidden>
       <div className="flex items-center gap-3">
         <Skeleton className="h-11 w-11 rounded-full" />
         <Skeleton className="h-4 w-1/3" />
@@ -150,7 +150,7 @@ function ReviewCardSkeleton() {
         <Skeleton className="aspect-[3/2] w-32 rounded-xl" />
         <Skeleton className="aspect-[3/2] w-32 rounded-xl" />
       </div>
-    </Card>
+    </div>
   );
 }
 
@@ -229,7 +229,7 @@ export default function IdentityReviewQueue() {
   return (
     <div className="mt-2 grid gap-3 md:grid-cols-2">
       {claims.map((claim) => (
-        <Card key={claim.claim_id} className="p-5">
+        <div key={claim.claim_id} className="tarjeta-suave min-w-0 p-5">
           <div className="flex items-center gap-3">
             <Avatar
               name={
@@ -243,7 +243,7 @@ export default function IdentityReviewQueue() {
                   ? (claim.company_name ?? "Comercio")
                   : (claim.full_name ?? "Trabajador")}
               </p>
-              <p className="truncate text-xs text-ink/50">
+              <p className="truncate text-xs text-ink-soft">
                 {isBusiness(claim)
                   ? // El nombre del titular, porque la comprobación que hace
                     // revisable una constancia es que la razón social del PDF
@@ -290,7 +290,7 @@ export default function IdentityReviewQueue() {
               </div>
             </div>
           ) : (
-            <div className="mt-3 flex gap-2">
+            <div className="mt-3 flex flex-wrap gap-2">
               <Button
                 size="sm"
                 variant="secondary"
@@ -313,7 +313,7 @@ export default function IdentityReviewQueue() {
               </Button>
             </div>
           )}
-        </Card>
+        </div>
       ))}
     </div>
   );

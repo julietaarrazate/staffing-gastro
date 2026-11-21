@@ -6,7 +6,7 @@ import { getErrorMessage } from "@/lib/errors";
 import { formatDayMonth } from "@/lib/datetime";
 import { formatArs } from "@/lib/format";
 import type { AdminSubscriptionSummary } from "@/lib/types";
-import { Button, Card, ErrorBanner, Modal } from "@/components/ui";
+import { Button, ErrorBanner, Modal } from "@/components/ui";
 import PesosInput from "@/components/ui/PesosInput";
 import { SectionLabel } from "@/components/admin/AdminStats";
 
@@ -77,17 +77,17 @@ export default function PlanCompromiso({
   return (
     <div className="mt-8" data-testid="plan-compromiso">
       <SectionLabel>Plan</SectionLabel>
-      <Card className="mt-2 p-5">
-        <p className="text-xs text-ink/50">Plan actual</p>
+      <div className="tarjeta-suave mt-2 p-5">
+        <p className="text-xs text-ink-soft">Plan actual</p>
         <p className="font-semibold text-ink">{summary.plan_name}</p>
         {summary.chosen_plan_name && summary.chosen_plan_at && (
-          <p className="mt-2 text-sm text-ink/60">
+          <p className="mt-2 text-sm text-ink-soft">
             Eligió {summary.chosen_plan_name} al darse de alta ({formatDayMonth(summary.chosen_plan_at)})
           </p>
         )}
 
         <div className="mt-4 border-t border-line pt-4">
-          <p className="text-xs text-ink/50">Compromiso de pago</p>
+          <p className="text-xs text-ink-soft">Compromiso de pago</p>
           {error && (
             <div className="mt-2">
               <ErrorBanner message={error} />
@@ -105,15 +105,15 @@ export default function PlanCompromiso({
             </div>
           ) : (
             <div className="mt-2 flex flex-col gap-3">
-              <p className="text-sm text-ink/60">Todavía no se comprometió.</p>
+              <p className="text-sm text-ink-soft">Todavía no se comprometió.</p>
               <div className="flex flex-wrap items-end gap-3">
-                <label className="flex flex-col gap-1 text-xs text-ink/60">
+                <label className="flex flex-col gap-1 text-xs text-ink-soft">
                   Plan
                   <select
                     value={plan}
                     aria-label="Plan del compromiso"
                     onChange={(e) => setPlan(e.target.value)}
-                    className="min-h-[40px] rounded-xl bg-card px-3 text-sm text-ink ring-1 ring-line"
+                    className="campo min-h-[44px] px-3 text-sm text-ink"
                   >
                     {PLANES.map((p) => (
                       <option key={p.value} value={p.value}>
@@ -122,14 +122,14 @@ export default function PlanCompromiso({
                     ))}
                   </select>
                 </label>
-                <label className="flex flex-col gap-1 text-xs text-ink/60">
+                <label className="flex flex-col gap-1 text-xs text-ink-soft">
                   Precio mensual
                   <PesosInput
                     value={precio}
                     onChange={setPrecio}
                     placeholder="$ por mes"
                     aria-label="Precio mensual acordado"
-                    className="min-h-[40px] w-36 rounded-xl bg-card px-3 text-sm text-ink ring-1 ring-line"
+                    className="campo min-h-[44px] w-36 px-3 text-sm text-ink"
                   />
                 </label>
                 <Button size="sm" loading={busy} disabled={busy || !precioValido} onClick={registrar}>
@@ -139,10 +139,10 @@ export default function PlanCompromiso({
             </div>
           )}
         </div>
-      </Card>
+      </div>
 
       <Modal open={confirmarBorrado} onClose={() => setConfirmarBorrado(false)} title="¿Borrar el compromiso de pago?">
-        <p className="text-sm text-ink/60">
+        <p className="text-sm text-ink-soft">
           Se quita de la ficha y deja de contar en las métricas. Podés volver a registrarlo.
         </p>
         <div className="mt-4 flex justify-end gap-2">

@@ -36,7 +36,7 @@ export default function TotpQr({ value, size = 200 }: { value: string; size?: nu
       width={size}
       height={size}
       shapeRendering="crispEdges"
-      className="rounded-xl ring-1 ring-line"
+      className="rounded-[14px]"
     >
       <rect width={modules} height={modules} fill={QR_LIGHT} />
       <path d={path} fill={QR_DARK} />

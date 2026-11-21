@@ -11,7 +11,7 @@ import { api, ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import type { TestAccount } from "@/lib/types";
-import { Button, Card, ErrorBanner, Skeleton } from "@/components/ui";
+import { Button, ErrorBanner, Skeleton } from "@/components/ui";
 import { EyeIcon, FlaskIcon } from "@/components/icons";
 import { AdminHeading } from "@/components/admin/AdminStats";
 
@@ -61,10 +61,10 @@ export default function AdminToolsPage() {
           <ErrorBanner message={error} />
         </div>
       )}
-      <Card className="mt-5 p-5">
+      <div className="tarjeta-suave mt-5 p-5">
         <div className="flex items-center gap-1.5">
-          <FlaskIcon size={16} className="text-ink/50" />
-          <p className="text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">
+          <FlaskIcon size={16} className="text-ink-soft" />
+          <p className="text-xs font-semibold text-ink-soft">
             Mis cuentas de prueba
           </p>
         </div>
@@ -87,7 +87,7 @@ export default function AdminToolsPage() {
             ))
           )}
         </div>
-      </Card>
+      </div>
     </div>
   );
 }
