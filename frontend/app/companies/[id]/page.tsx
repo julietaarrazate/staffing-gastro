@@ -152,7 +152,7 @@ export default function PublicCompanyProfilePage() {
           />
 
           {profile.owner_full_name && (
-            <p className="px-1 text-sm text-ink-soft">A cargo de {profile.owner_full_name}</p>
+            <p className="text-sm text-ink-soft">A cargo de {profile.owner_full_name}</p>
           )}
 
           {profile.description && <p className="break-words text-base text-ink">{profile.description}</p>}
