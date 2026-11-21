@@ -26,12 +26,19 @@ export default function SubscriptionStatusCard({
   planName,
   onUpgrade,
   onPay,
+  ahora,
+  ambarArriba = false,
 }: {
   subscription: Subscription;
   planName: string;
   onUpgrade: () => void;
   /** Cobro prendido (ADR-0022): ir a pagar el mes del plan actual. */
   onPay?: () => void;
+  /** La hora con la que la pantalla decide qué está vencido: con la misma, la
+   *  tarjeta y la pantalla no pueden discrepar sobre quién lleva el ámbar. */
+  ahora?: number;
+  /** Arriba ya hay una acción en ámbar (el aviso del plan elegido): acá no. */
+  ambarArriba?: boolean;
 }) {
   const { max_turnos_mes, turnos_usados_mes, status, price_ars } = subscription;
   const billing = subscription.billing_enabled === true;
@@ -42,7 +49,8 @@ export default function SubscriptionStatusCard({
       : (STATUS_TONE[status] ?? { tone: "neutral" as const, label: status });
   const paidUntil = billing && status === "activa" ? subscription.paid_until ?? null : null;
   // Hora de cuando se montó la tarjeta: alcanza para saber si ya venció.
-  const [mountedAt] = useState(() => Date.now());
+  const [alMontar] = useState(() => Date.now());
+  const mountedAt = ahora ?? alMontar;
   const inGrace = paidUntil !== null && new Date(paidUntil).getTime() < mountedAt;
   const blocked = billing && subscription.can_publish === false;
   const blockedText =
@@ -135,7 +143,7 @@ export default function SubscriptionStatusCard({
               : `Te quedan ${remaining} ${remaining === 1 ? "turno" : "turnos"} este mes.`}
           </p>
           {/* Con «Pagar el mes» a la vista, ése es el ámbar. */}
-          <Button size="sm" variant={acciones.pagar ? "surface" : "primary"} onClick={onUpgrade}>
+          <Button size="sm" variant={acciones.pagar || ambarArriba ? "surface" : "primary"} onClick={onUpgrade}>
             Mejorá tu plan
           </Button>
         </div>

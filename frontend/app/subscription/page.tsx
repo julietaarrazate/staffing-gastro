@@ -247,7 +247,8 @@ function SubscriptionContent() {
   const destacado = planDestacado(
     plans,
     currentPriceArs,
-    avisoConAccion || Boolean(accionesActual && (accionesActual.pagar || accionesActual.alLimite || accionesActual.cercaDelLimite))
+    avisoConAccion || Boolean(accionesActual && (accionesActual.pagar || accionesActual.alLimite || accionesActual.cercaDelLimite)),
+    subscription?.plan_code ?? null
   );
 
   // Una sola vez, cuando ya están las tarjetas: el foco va a la del plan
@@ -297,10 +298,12 @@ function SubscriptionContent() {
                 el?.scrollIntoView({ behavior: "smooth", block: "start" });
               }}
               onPay={billing && currentPlan && !avisoConAccion ? () => setPendingPlan(currentPlan) : undefined}
+              ahora={abiertaEn}
+              ambarArriba={avisoConAccion}
             />
           </div>
 
-          <div id="planes" className="mt-8 scroll-mt-4">
+          <div id="planes" className="mt-8 scroll-mt-[calc(var(--chrome-top)+1rem)]">
             <h2 className="titulo-seccion text-ink">Planes disponibles</h2>
             <p className="mt-0.5 text-sm text-ink-soft">
               {billing

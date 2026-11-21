@@ -121,12 +121,15 @@ export function accionesDelPlanActual(
 export function planDestacado(
   plans: { code: string; price_ars: number | string }[],
   currentPriceArs: number,
-  hayAccionArriba: boolean
+  hayAccionArriba: boolean,
+  /** El plan actual nunca es «el siguiente», aunque su precio de lista haya
+   *  subido por encima de lo que paga quien ya lo tenía. */
+  planActual: string | null = null
 ): string | null {
   if (hayAccionArriba) return null;
   const superiores = plans
     .map((p) => ({ code: p.code, precio: Number(p.price_ars) }))
-    .filter((p) => p.precio > currentPriceArs)
+    .filter((p) => p.code !== planActual && p.precio > currentPriceArs)
     .sort((a, b) => a.precio - b.precio);
   return superiores[0]?.code ?? null;
 }

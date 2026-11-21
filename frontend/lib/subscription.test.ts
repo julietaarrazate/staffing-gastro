@@ -105,6 +105,12 @@ describe("un solo ámbar en Mi plan (2026-11-21)", () => {
     expect(planDestacado(PLANES, 20000, false)).toBe("pro");
   });
 
+  it("el plan actual nunca es «el siguiente», aunque su precio de lista haya subido", () => {
+    // Paga 9.900 (lo que tenía) y el catálogo ya lo cobra 12.000.
+    const lista = [{ code: "inicial", price_ars: 12000 }, { code: "basico", price_ars: 20000 }];
+    expect(planDestacado(lista, 9900, false, "inicial")).toBe("basico");
+  });
+
   it("en el plan más caro, o con una acción arriba, ningún plan va en ámbar", () => {
     expect(planDestacado(PLANES, 45000, false)).toBeNull();
     expect(planDestacado(PLANES, 9900, true)).toBeNull();

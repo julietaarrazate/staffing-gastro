@@ -86,6 +86,22 @@ test("al llegar al límite del plan, el ámbar es «Mejorá tu plan» del aviso 
   expect(await aviso.evaluate((el) => getComputedStyle(el).backgroundImage)).toContain("rgb(246, 169, 42)");
 });
 
+test("al límite y con falta pagar a la vez, el único ámbar es «Pagar el mes»", async ({ page }) => {
+  await miPlan(page, "suscripcion_cobro_pendiente", { limite_exigido: true, max_turnos_mes: 5, turnos_usados_mes: 5 });
+  await expect(page.getByText("Alcanzaste el límite de turnos de tu plan este mes.")).toBeVisible();
+  expect(await ambares(page)).toEqual(["Pagar el mes"]);
+});
+
+test("con el aviso del plan elegido en la landing, el único ámbar es el del aviso, también al límite", async ({ page }) => {
+  await miPlan(page, "suscripcion_comercio", { limite_exigido: true, max_turnos_mes: 5, turnos_usados_mes: 5 });
+  await page.goto("/subscription?plan=basico");
+  await expect(page.getByText(/Elegiste el plan/)).toBeVisible();
+  await expect(page.getByText("Alcanzaste el límite de turnos de tu plan este mes.")).toBeVisible();
+  expect(await ambares(page)).toHaveLength(1);
+  const aviso = page.locator(".nota-ayuda").getByRole("button");
+  expect(await aviso.evaluate((el) => getComputedStyle(el).backgroundImage)).toContain("rgb(246, 169, 42)");
+});
+
 test("a 320 px nada corre la página y los precios entran enteros", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 640 });
   await miPlan(page, "suscripcion_cobro_pendiente");

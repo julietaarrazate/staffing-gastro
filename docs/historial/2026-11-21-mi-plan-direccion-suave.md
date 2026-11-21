@@ -32,6 +32,16 @@ tarjeta del plan actual; la usan la tarjeta y la pantalla, para no decidirlo
 en dos lugares) y `planDestacado`. `PlanCard`, `SubscriptionStatusCard` y
 `PlanElegidoAviso` pasan a `.tarjeta-suave` / `.nota-ayuda`.
 
+**Lo que encontró la revisión independiente (arreglado en el PR):** tres casos
+en los que la regla fallaba: con el aviso del plan elegido y además al límite
+quedaban dos ámbares (la tarjeta ahora sabe que arriba ya hay uno:
+`ambarArriba`); la pantalla y la tarjeta miraban relojes distintos y podían
+discrepar justo cuando vencía el mes (ahora comparten la hora: `ahora`); y si
+el precio de lista del plan actual había subido, «el siguiente» era el propio
+plan y no quedaba ningún ámbar (`planDestacado` lo excluye). De paso, al tocar
+«Mejorá tu plan» del aviso, «Planes disponibles» ya no queda tapado por la
+barra de arriba en la compu.
+
 **Por qué así:** el ámbar es la acción de la pantalla (regla de la marca), y
 con dos o tres botones iguales no decía cuál. El plan siguiente es el paso
 natural; quien quiere el más caro lo tiene al lado.
