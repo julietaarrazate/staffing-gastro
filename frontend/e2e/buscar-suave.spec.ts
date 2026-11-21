@@ -49,7 +49,7 @@ for (const theme of ["light", "dark"] as const) {
     const titulo = page.getByRole("heading", { level: 1, name: "Buscar turnos" });
     await expect(titulo).toHaveClass(/titulo-pantalla/);
     await expect(titulo).not.toHaveClass(/letra-cartel/);
-    await expect(titulo.locator("xpath=..")).toHaveClass(/app-cielo/);
+    await expect(titulo.locator("xpath=ancestor::*[contains(@class,'app-cielo')][1]")).toHaveClass(/app-cielo/);
     await expect(page.locator(".estilo-suave .hoja")).toBeVisible();
     // Los rubros son chips de vidrio sobre el cielo; el elegido, en azul hondo.
     const rubros = page.getByRole("group", { name: "Rubro" });

@@ -4526,7 +4526,7 @@ body:has([data-landing]) main {
   min-height: 38px;
   padding: 0 14px;
   border-radius: 999px;
-  font-size: var(--text-sm);
+  font-size: 0.875rem;
   font-weight: 700;
   color: var(--app-cielo-tinta);
 }

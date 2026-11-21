@@ -64,8 +64,12 @@ for (const theme of ["light", "dark"] as const) {
     await expect(cielo).toHaveClass(/mapa-cielo/);
     await expect(cielo).toHaveCSS("pointer-events", "none");
     // El cielo va detrás del mapa y lo que se esfuma es el lienzo: debajo del
-    // título (un velo corto, menos de 110 px) nada tapa los pines.
-    expect((await cielo.boundingBox())?.height).toBeLessThan(110);
+    // título (un velo corto: menos de 40 px bajo el título) nada tapa los pines.
+    // Se mide bajo el título y no la altura total: con el conmutador «Lista /
+    // Mapa» flotando a su derecha el título pasa a dos renglones (~118 px).
+    const cajaCielo = (await cielo.boundingBox())!;
+    const cajaTitulo = (await titulo.boundingBox())!;
+    expect(cajaCielo.y + cajaCielo.height - (cajaTitulo.y + cajaTitulo.height)).toBeLessThan(40);
     await expect(page.locator(".maplibregl-map").first()).toHaveCSS("background-image", /linear-gradient/);
     await expect(page.locator(".maplibregl-canvas").first()).toHaveCSS("mask-image", /linear-gradient/);
 

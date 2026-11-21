@@ -53,7 +53,7 @@ for (const tema of ["light", "dark"] as const) {
     const activa = barra(page).getByRole("link", { name: "Buscar" });
     await expect(activa).toHaveAttribute("aria-current", "page");
     const [ovalo, otra] = await Promise.all(
-      ["Buscar", "Mapa"].map((nombre) =>
+      ["Buscar", "Turnos"].map((nombre) =>
         barra(page)
           .getByRole("link", { name: nombre })
           .locator(".barra-app-icono")

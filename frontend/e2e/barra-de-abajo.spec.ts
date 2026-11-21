@@ -6,13 +6,13 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications, setTheme, sk
  * cada rol tienen que entrar enteras y repartidas en 360 y en 320 px, ahora
  * DENTRO de la píldora flotante (a 16 px de los costados; el comercio tiene
  * además el «+» de «Publicar turno» al lado, que tampoco puede salirse). Con
- * seis pestañas el trabajador veía «Perfil» cortada en el borde derecho: cada
+ * seis pestañas (hoy son cinco) el trabajador veía «Perfil» cortada en el borde derecho: cada
  * pestaña pedía más ancho del que le tocaba. Se mide con la barra renderizada,
  * no con el código (el viewport es lo que decide).
  */
 
 const CUENTAS = {
-  worker: { ruta: "/feed", pestanas: 6 },
+  worker: { ruta: "/feed", pestanas: 5 },
   employer: { ruta: "/shifts", pestanas: 4 },
   admin: { ruta: "/admin/seguridad", pestanas: 4 },
 } as const;

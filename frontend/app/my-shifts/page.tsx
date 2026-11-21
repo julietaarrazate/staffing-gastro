@@ -219,7 +219,7 @@ function MatchesContent() {
       setError(null);
     } catch (err) {
       if (mine === latestLoad.current && !silent) {
-        setError(getErrorMessage(err, "Error al cargar tus matches"));
+        setError(getErrorMessage(err, "Error al cargar tus turnos"));
       }
     } finally {
       if (mine === latestLoad.current) setLoading(false);

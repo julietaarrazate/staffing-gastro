@@ -57,9 +57,9 @@ test.describe("navegación de escritorio", () => {
     // Y exactamente uno: si dos links se marcan activos a la vez, la señal no
     // dice nada (pasaría con un `startsWith` mal hecho sobre rutas anidadas).
     await expect(page.locator('header nav a[aria-current="page"]')).toHaveCount(1);
-    // `exact`: sin él "Turnos" también matchea "Mis turnos".
+    // Acotado a la barra «Principal»: el logo también se llama "Inicio".
     await expect(
-      page.getByRole("link", { name: "Turnos", exact: true })
+      page.getByRole("navigation", { name: "Principal" }).getByRole("link", { name: "Inicio", exact: true })
     ).not.toHaveAttribute("aria-current", "page");
   });
 
