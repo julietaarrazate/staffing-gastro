@@ -264,15 +264,5 @@ for (const theme of ["light", "dark"] as const) {
   });
 }
 
-test("el perfil del comercio sigue igual: su tarjeta, sus filas y sin la piel nueva", async ({ page }) => {
-  await perfil(page, { rol: "employer" });
-  await page.route("**/api/v1/companies/me/profile", (r) => r.fulfill({ status: 404, contentType: "application/json", body: "{}" }));
-  await page.goto("/profile");
-  await expect(page.getByRole("heading", { level: 1, name: "Perfil" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Datos del comercio" })).toHaveAttribute("href", "/profile/edit");
-  await expect(page.getByRole("link", { name: "Mi plan" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Trabajadores favoritos" })).toBeVisible();
-  await expect(page.getByText("Reseñas recibidas")).toBeVisible();
-  await expect(page.locator(".estilo-suave")).toHaveCount(0);
-  await expect(page.locator(".app-cielo")).toHaveCount(0);
-});
+// El perfil del comercio también pasó a la dirección suave (2026-11-21): lo
+// prueba `perfil-comercio-suave.spec.ts`.

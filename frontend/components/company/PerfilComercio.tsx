@@ -73,7 +73,7 @@ export default function PerfilComercio() {
           </div>
           <Link
             href="/profile/edit"
-            aria-label="Editar datos del comercio"
+            aria-label="Editar perfil"
             className="boton-vidrio h-11 w-11 shrink-0 transition active:scale-95"
           >
             <PencilIcon size={20} />
