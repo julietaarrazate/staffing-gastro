@@ -4505,6 +4505,43 @@ body:has([data-landing]) main {
   outline-offset: -3px;
 }
 
+/* ===== Lista / Mapa (2026-11-20, maquetas `T-Buscar` y `T-Mapa`) =====
+   Un conmutador de vidrio sobre el cielo; la vista elegida, en azul hondo.
+   `.conmutador-hoja` es el mismo sobre la hoja blanca (el panel del mapa en
+   la compu): pista hundida en vez de vidrio. */
+.conmutador {
+  display: flex;
+  flex: none;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(8px);
+}
+:root[data-theme="dark"] .conmutador {
+  background: rgba(255, 255, 255, 0.1);
+}
+.conmutador a {
+  display: flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--app-cielo-tinta);
+}
+.conmutador a[aria-current="page"] {
+  background: linear-gradient(180deg, #2a73a3, #1c5478);
+  color: #ffffff;
+}
+.conmutador.conmutador-hoja {
+  background: var(--color-surface);
+  backdrop-filter: none;
+}
+.conmutador.conmutador-hoja a:not([aria-current="page"]) {
+  color: var(--color-ink-soft);
+}
+
 /* ===== La barra flotante y la barra de la compu (2026-11-20, ADR-0028) =====
    Decidido por Julieta sobre la maqueta `.barra` del lienzo «identidad por
    pantalla»: una píldora blanca con sombra difusa, separada de los bordes; la

@@ -28,13 +28,16 @@ function NavLink({
   href,
   children,
   replace = true,
+  tambien = [],
 }: {
   href: string;
   children: ReactNode;
   replace?: boolean;
+  /** Otras pantallas que viven bajo esta sección (el Mapa, bajo Buscar). */
+  tambien?: string[];
 }) {
   const pathname = usePathname();
-  const active = pathname === href || pathname.startsWith(`${href}/`);
+  const active = [href, ...tambien].some((ruta) => pathname === ruta || pathname.startsWith(`${ruta}/`));
   return (
     <Link
       href={href}
@@ -216,10 +219,13 @@ function BarraConSesion() {
           <nav aria-label="Principal" className="flex items-center gap-0.5 text-sm font-semibold lg:gap-1">
             {user.role === "worker" && (
               <>
-                <NavLink href="/feed">Turnos</NavLink>
-                <NavLink href="/buscar">Buscar</NavLink>
-                <NavLink href="/map">Mapa</NavLink>
-                <NavLink href="/my-shifts">Matches</NavLink>
+                {/* Las mismas cinco secciones que la barra de abajo del
+                    celular (2026-11-20): el Mapa vive bajo Buscar. */}
+                <NavLink href="/feed">Inicio</NavLink>
+                <NavLink href="/buscar" tambien={["/map"]}>
+                  Buscar
+                </NavLink>
+                <NavLink href="/my-shifts">Turnos</NavLink>
                 <NavLink href="/chats">Mensajes</NavLink>
                 <NavLink href="/profile">Mi perfil</NavLink>
               </>

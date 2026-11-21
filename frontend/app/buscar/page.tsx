@@ -1,5 +1,6 @@
 "use client";
 
+import ListaMapa from "@/components/worker/ListaMapa";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { appliedShiftIds } from "@/lib/applications";
@@ -191,7 +192,11 @@ export default function BuscarPage() {
           La hoja sube 28 px encima. */}
       <div className="app-cielo cielo-limpio px-4 pb-10 pt-5 md:rounded-t-[28px] md:px-6 md:pt-6">
         <NubesCielo nubes={[{ forma: "a", ancho: 250, pos: { right: -100, top: -66 } }]} />
-        <h1 className="titulo-pantalla break-words">Buscar turnos</h1>
+        {/* El título y, a su lado, el conmutador Lista / Mapa. */}
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="titulo-pantalla min-w-0 break-words">Buscar turnos</h1>
+          <ListaMapa actual="lista" className="shrink-0" />
+        </div>
         <p className="mt-1 text-sm">Explorá oportunidades de cualquier rubro, no sólo el tuyo.</p>
         <div
           role="group"
