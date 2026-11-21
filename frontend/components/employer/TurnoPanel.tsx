@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { SKILL_LABELS, STATUS_LABELS, Shift } from "@/lib/types";
 import { SKILL_ACCENT } from "@/lib/skill-style";
-import { Badge, PortadaCielo } from "@/components/ui";
+import { Badge, PortadaCielo, SinFoto } from "@/components/ui";
 import { CalendarPlusIcon, CheckIcon, FlameIcon, ShieldIcon } from "@/components/icons";
 import { formatAgo, formatDuration, formatShiftWhen, shiftDurationMinutes } from "@/lib/datetime";
 import { payView } from "@/lib/pay";
@@ -23,15 +23,10 @@ const EnRouteMap = dynamic(() => import("@/components/employer/EnRouteMap"), {
 const APAGADOS = new Set(["cancelado", "pagado", "no_cubierto"]);
 const CON_AVISO_DE_PAGO = new Set(["borrador", "publicado", "buscando_personal"]);
 
-function iniciales(nombre: string): string {
-  const partes = nombre.trim().split(/\s+/);
-  return ((partes[0]?.[0] ?? "") + (partes[1]?.[0] ?? "")).toUpperCase() || "?";
-}
-
 /**
  * Un turno en el panel del comercio, con la dirección suave (ADR-0028,
  * maquetas `C-Panel*`): una fila blanca con sombra difusa. A la izquierda,
- * quién lo cubre (sus iniciales) o, mientras no lo cubre nadie, el cielo con
+ * quién lo cubre (su inicial sobre el cielo de `SinFoto`) o, mientras no lo cubre nadie, el cielo con
  * el ícono del puesto (`PortadaCielo`: sin el bloque de color por rubro); al
  * lado el puesto, el horario y el lugar, y a la derecha el estado en palabras
  * y el pago.
@@ -60,11 +55,8 @@ export default function TurnoPanel({ shift, children }: { shift: Shift; children
       <div className="flex flex-wrap items-start justify-end gap-x-3 gap-y-1.5">
         <div className="flex min-w-[min(100%,11rem)] flex-1 items-start gap-3">
           {conPersona ? (
-            <span
-              aria-hidden
-              className="turno-fecha flex h-[46px] w-[46px] shrink-0 items-center justify-center !rounded-full text-sm font-bold text-primary-text"
-            >
-              {iniciales(shift.worker_name as string)}
+            <span className="block h-[46px] w-[46px] shrink-0 overflow-hidden rounded-full">
+              <SinFoto nombre={shift.worker_name} id={shift.worker_profile_id} tamano={46} />
             </span>
           ) : (
             <span className="relative block h-[46px] w-[46px] shrink-0 overflow-hidden rounded-[14px]">

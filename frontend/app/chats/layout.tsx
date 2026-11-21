@@ -157,6 +157,7 @@ export default function ChatsLayout({ children }: { children: React.ReactNode })
                           <Avatar
                             src={c.other_party_photo}
                             name={c.other_party_name}
+                            cielo
                             className="!h-[52px] !w-[52px]"
                           />
                           <div className="min-w-0 flex-1">

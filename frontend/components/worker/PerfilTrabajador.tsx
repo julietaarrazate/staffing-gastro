@@ -11,42 +11,19 @@ import {
   BADGE_ICONS,
   BADGE_LABELS,
   formatPunctuality,
-  formatRating,
-  hasRating,
   levelLabel,
 } from "@/lib/reputation";
-import { ErrorBanner, NubesCielo, Skeleton } from "@/components/ui";
+import { ErrorBanner, NubesCielo, SinFoto, Skeleton } from "@/components/ui";
 import EditableName from "@/components/EditableName";
 import AvailableNowToggle from "@/components/worker/AvailableNowToggle";
 import IdentityVerificationCard from "@/components/worker/IdentityVerificationCard";
 import ReceivedReviews from "@/components/ReceivedReviews";
-import { Estrellas, FilaSuave, FilasSuaves } from "@/components/profile/ProfileParts";
+import { DatoSuave as Dato, FilaSuave, FilasSuaves, ReputacionGrande } from "@/components/profile/ProfileParts";
 import { shareBusinessInvite } from "@/lib/business-invite";
 import { AwardIcon, CheckIcon, PencilIcon } from "@/components/icons";
-import { formatArs, plural } from "@/lib/format";
+import { formatArs } from "@/lib/format";
 
 const LISTA = new Intl.ListFormat("es", { style: "long", type: "conjunction" });
-
-/** Un dato del perfil en su fila: el nombre a la izquierda, el valor a la derecha. */
-function Dato({
-  nombre,
-  valor,
-  detalle,
-}: {
-  nombre: string;
-  valor: string;
-  detalle?: string;
-}) {
-  return (
-    <div className="flex min-h-[54px] items-center justify-between gap-3 px-4 py-2.5">
-      <dt className="min-w-0 text-fila font-semibold text-ink">
-        {nombre}
-        {detalle && <span className="block text-caption font-normal text-ink-soft">{detalle}</span>}
-      </dt>
-      <dd className="shrink-0 text-base font-extrabold tabular-nums text-ink">{valor}</dd>
-    </div>
-  );
-}
 
 /**
  * El Perfil de quien trabaja, con la dirección suave (ADR-0028, maqueta
@@ -175,11 +152,8 @@ export default function PerfilTrabajador() {
               fallbackLabel={user?.full_name ?? "Vos"}
             />
           ) : (
-            <div
-              aria-hidden
-              className="foto-subir flex h-[108px] w-[108px] items-center justify-center rounded-full text-3xl font-bold"
-            >
-              {(user?.full_name ?? "V").charAt(0).toUpperCase()}
+            <div className="foto-subir h-[108px] w-[108px] overflow-hidden rounded-full">
+              <SinFoto nombre={user?.full_name ?? "V"} id={user?.id} />
             </div>
           )}
         </div>
@@ -208,42 +182,21 @@ export default function PerfilTrabajador() {
             )}
             {error && <ErrorBanner message={error} />}
 
-            {profile &&
-              (hasHistory ? (
-                <div className="flex items-end gap-3.5">
-                  {hasRating(profile.rating) ? (
-                    <>
-                      <p className="perfil-numero">
-                        <span className="sr-only">Calificación: </span>
-                        {formatRating(profile.rating)}
-                      </p>
-                      <div className="min-w-0 pb-1">
-                        <Estrellas valor={profile.rating} size={17} />
-                        <p className="mt-1 text-sm text-ink-soft">
-                          {plural(profile.events_completed, "turno hecho", "turnos hechos")} ·
-                          puntualidad {formatPunctuality(profile.punctuality_rate)}
-                        </p>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <p className="perfil-numero">{profile.events_completed}</p>
-                      <div className="min-w-0 pb-1">
-                        <p className="text-fila font-semibold text-ink">
-                          {profile.events_completed === 1 ? "turno hecho" : "turnos hechos"}
-                        </p>
-                        <p className="mt-0.5 text-sm text-ink-soft">
-                          puntualidad {formatPunctuality(profile.punctuality_rate)}
-                        </p>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ) : (
-                <p className="text-fila font-semibold text-ink-soft">
-                  Tu reputación arranca con tu primer turno.
-                </p>
-              ))}
+            {profile && (
+              <ReputacionGrande
+                rating={profile.rating}
+                cantidad={profile.events_completed}
+                singular="turno hecho"
+                varios="turnos hechos"
+                detalle={`puntualidad ${formatPunctuality(profile.punctuality_rate)}`}
+                conHistoria={hasHistory}
+                vacio={
+                  <p className="text-fila font-semibold text-ink-soft">
+                    Tu reputación arranca con tu primer turno.
+                  </p>
+                }
+              />
+            )}
 
             {/* Sin reseñas no se muestra nada: una sección que dice «Todavía
                 no tenés reseñas» es otra cosa que le cuenta a la persona nueva

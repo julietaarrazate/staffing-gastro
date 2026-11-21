@@ -15,6 +15,7 @@ export { default as SegmentedControl } from "./SegmentedControl";
 export { default as PasosTachados } from "./PasosTachados";
 export { default as NubesCielo } from "./NubesCielo";
 export { default as PortadaCielo, variantePorId } from "./PortadaCielo";
+export { default as SinFoto } from "./SinFoto";
 export { default as Toggle } from "./Toggle";
 export { ToastProvider, useToast } from "./Toast";
 export { default as OidoLoader } from "./OidoLoader";

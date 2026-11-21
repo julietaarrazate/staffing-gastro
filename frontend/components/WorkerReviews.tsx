@@ -7,7 +7,8 @@ import { useAuth } from "@/lib/auth-context";
 import { Review } from "@/lib/types";
 import StarRating from "@/components/StarRating";
 import { Skeleton } from "@/components/ui";
-import { formatShiftDate } from "@/lib/datetime";
+import { formatReviewDate, formatShiftDate } from "@/lib/datetime";
+import { Estrellas } from "@/components/profile/ProfileParts";
 
 /**
  * Reseñas públicas de un trabajador, para que el comercio lo vetee antes de
@@ -24,7 +25,18 @@ function ReviewSkeleton() {
   );
 }
 
-export default function WorkerReviews({ workerProfileId }: { workerProfileId: string }) {
+/**
+ * Con `suave` (la ficha con la dirección suave, ADR-0028): las mismas reseñas
+ * sobre la hoja, cada una en una caja con el relleno del campo, con estrellas
+ * azules (el ámbar de `StarRating` sumaba otro a la pantalla).
+ */
+export default function WorkerReviews({
+  workerProfileId,
+  suave = false,
+}: {
+  workerProfileId: string;
+  suave?: boolean;
+}) {
   const { token } = useAuth();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,6 +57,7 @@ export default function WorkerReviews({ workerProfileId }: { workerProfileId: st
     load();
   }, [load]);
 
+  if (loading && suave) return <Skeleton className="h-24 w-full rounded-[20px]" />;
   if (loading) {
     return (
       <div className="flex flex-col gap-3">
@@ -70,7 +83,29 @@ export default function WorkerReviews({ workerProfileId }: { workerProfileId: st
   }
 
   if (reviews.length === 0) {
-    return <p className="text-sm text-ink/50">Todavía no tiene reseñas.</p>;
+    return suave ? (
+      <p className="text-sm text-ink-soft">Todavía no tiene reseñas.</p>
+    ) : (
+      <p className="text-sm text-ink/50">Todavía no tiene reseñas.</p>
+    );
+  }
+
+  if (suave) {
+    return (
+      <ul className="flex flex-col gap-3">
+        {reviews.map((review) => (
+          <li key={review.id} className="caja-suave p-4">
+            {review.comment && (
+              <p className="mb-2 break-words text-sm font-semibold leading-snug text-ink">«{review.comment}»</p>
+            )}
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-caption text-ink-soft">
+              <Estrellas valor={review.rating} size={14} />
+              {formatReviewDate(review.created_at)}
+            </p>
+          </li>
+        ))}
+      </ul>
+    );
   }
 
   return (

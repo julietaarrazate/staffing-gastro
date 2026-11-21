@@ -3,24 +3,33 @@
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { cldThumb } from "@/lib/cloudinary";
+import SinFoto from "./SinFoto";
 
 const SIZES = { sm: 32, md: 44, lg: 64, xl: 96 } as const;
 
 /**
  * Avatar con fallback robusto: si no hay foto (o la imagen falla al cargar),
- * muestra la inicial sobre un gradiente, sin texto desbordado.
+ * muestra la inicial sin texto desbordado. Por defecto, sobre el celeste liso
+ * de siempre (admin, landing); con `cielo`, el cielo de `SinFoto` (dirección
+ * suave: la foto que falta nunca es un color liso).
  */
 export default function Avatar({
   src,
   name,
   size = "md",
   square = false,
+  cielo = false,
+  id,
   className,
 }: {
   src?: string | null;
   name: string;
   size?: keyof typeof SIZES;
   square?: boolean;
+  /** La foto que falta es `SinFoto` (el cielo) y no el celeste liso. */
+  cielo?: boolean;
+  /** Elige la nube del cielo; si falta, el nombre. */
+  id?: string;
   className?: string;
 }) {
   const [broken, setBroken] = useState(false);
@@ -53,6 +62,8 @@ export default function Avatar({
           decoding="async"
           className="h-full w-full object-cover"
         />
+      ) : cielo ? (
+        <SinFoto nombre={name} id={id} tamano={px} />
       ) : (
         <span>{initial}</span>
       )}

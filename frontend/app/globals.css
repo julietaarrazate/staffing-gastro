@@ -4918,4 +4918,22 @@ body:has([data-landing]) main {
     var(--barra-velo) calc(var(--chrome-bottom) - 64px - 18px - env(safe-area-inset-bottom))
   );
   pointer-events: none;
+/* La foto que falta (`components/ui/SinFoto.tsx`): un pedacito de cielo, con
+   las clases de la portada (`.portada-cielo`, `.portada-nube`,
+   `.portada-tinta`). La letra y la nube se miden contra el contenedor, así que
+   la misma pieza sirve de 40 a 120 px. La tinta sobre el degradé: 4,57 en la
+   franja más oscura y 6,04 en el medio, donde cae la letra (de noche, blanco:
+   5,15 a 9,41). */
+.sin-foto {
+  container-type: size;
+}
+.sin-foto-inicial {
+  font-size: 42cqmin;
+  line-height: 1;
+  padding-bottom: 18cqmin;
+}
+/* De noche la nube de esta pieza va más tenue (22 %): la letra, clara, no
+   debe quedar sobre un blanco al 30 %. */
+:root[data-theme="dark"] .sin-foto .portada-nube {
+  opacity: 0.22;
 }
