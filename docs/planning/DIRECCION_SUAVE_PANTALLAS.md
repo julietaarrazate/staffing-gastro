@@ -78,7 +78,7 @@ en una tanda propia, una pantalla por PR.
 
 - ⬜ **Mis turnos: tocar un día de la tira** · hoy la tira de la semana no se toca y debajo va la lista entera. Propuesta: tocar una fecha muestra sólo los turnos de ese día (tocarla de nuevo vuelve a la semana), puntito en los días con turnos y flechas para cambiar de semana, así los terminados viejos no son una lista infinita.
 
-- ⬜ **Panel del comercio: el renglón «Todos / Buscando (0) / En marcha (0) / Terminados (2) / Cancelados»** · le resulta poco estético: largo, palabras sueltas, y el Panel queda menos prolijo que Mis turnos. Propuesta (falta su «sí»): sacar las pestañas (la lista ya va agrupada con sus títulos) y poner la misma tira de días de Mis turnos. Si quiere conservar un filtro por estado, se rediseña como chips cortos.
+- ⬜ **Panel del comercio: el renglón «Todos / Buscando (0) / En marcha (0) / Terminados (2) / Cancelados»** · le resulta poco estético: largo, palabras sueltas, y el Panel queda menos prolijo que Mis turnos. **Decidido por Julieta el 2026-11-21:** se sacan las pestañas (la lista ya va agrupada con sus títulos) y va la misma tira de días de Mis turnos; el comercio toca un día y ve lo de ese día, ordenado por estado.
 
 - ⬜ **El ícono del asistente («¿Qué necesitás?»)** · las estrellitas son genéricas. Propuesta: un dibujo propio de la marca (la «o» de oído, la del ícono de la app).
 
