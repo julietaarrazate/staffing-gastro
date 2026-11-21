@@ -59,6 +59,7 @@ import {
   EllipsisVertical,
   Shield,
   Sparkles,
+  createLucideIcon,
   Star,
   Sun,
   Moon,
@@ -141,6 +142,15 @@ export const XCircleIcon = make(XCircle);
 export const CreditCardIcon = make(CreditCard);
 export const AlertTriangleIcon = make(AlertTriangle);
 export const SparklesIcon = make(Sparkles);
+/** La oreja: el ícono del asistente («¿Qué necesitás?», /assistant). Dibujo
+ *  propio, de trazo como el resto del set (24×24, 1,75, `currentColor`). Las
+ *  estrellitas (`SparklesIcon`) quedan para «destacado», no para el asistente. */
+export const OrejaIcon = make(
+  createLucideIcon("Oreja", [
+    ["path", { d: "M5.5 11.5v-1.8a6.5 6.5 0 0 1 13 0c0 3.3-1.7 4.6-3.2 6.1-1 1-1.6 1.9-1.6 3.1a3.4 3.4 0 0 1-6.6 1", key: "borde" }],
+    ["path", { d: "M9.6 11.2v-1.3a2.9 2.9 0 0 1 5.8 0c0 1.5-1 2.1-1.9 3", key: "pliegue" }],
+  ]),
+);
 export const ShareIcon = make(Share2);
 /** El botón "Compartir" de Safari (cuadrado con flecha): para explicar
  *  cómo agregar Oído a la pantalla de inicio del iPhone. */

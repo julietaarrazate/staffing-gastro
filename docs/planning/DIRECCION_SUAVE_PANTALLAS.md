@@ -84,13 +84,13 @@ Julieta vio las maquetas (dos vueltas de prototipos; el código, **que no se mer
 
 2. ✅ **Mis turnos con la tira tocable** · #PR · [historial](../historial/2026-11-21-mis-turnos-tira-tocable.md) · tocar un día muestra sólo ese día (tocarlo de nuevo vuelve a la semana); puntito en los días con turnos; flechas para cambiar de semana, con puntito cuando hay turnos antes o después; «Volver a esta semana»; al final, el grupo «Más adelante» con filas de una línea que saltan a su semana. Día vacío: «Nada el martes 17».
 
-3. ⬜ **El ícono del asistente: la oreja** (decidido) · de trazo, en azul hondo, en el campo «¿Qué necesitás?».
+3. ✅ **El ícono del asistente: la oreja** (decidido; hecho 2026-11-21, `OrejaIcon` en `components/icons.tsx`) · de trazo, en azul hondo, en el campo «¿Qué necesitás?».
 
 4. ✅ **El Panel del comercio, compacto y con la tira** (decidido) · #PR · [historial](../historial/2026-11-21-panel-compacto-con-tira.md) · sin el renglón de pestañas; la lista agrupada por estado. El cielo más bajo, para que el primer turno se vea sin bajar: sin los tres contadores; «Evento» como chip chico junto al estado; la acción pendiente en una fila con el ámbar a la derecha; la tira debajo. **El número del cielo cuenta los turnos del día** (hoy por defecto; al tocar otro día, ese día): «Hoy tenés 3 turnos», con «1 sin cubrir» si hay; sin turnos hoy, «Hoy no tenés turnos» y el próximo. **Sin acción pendiente no va «Publicar turno» en el cielo** (queda el «+» de la barra); en el Panel vacío sí. «Más adelante» como en Mis turnos, con los «Buscando» primero. Mirado en la compu (dos columnas: lo que se elige a la derecha del título, la tira debajo).
 
 5. ⬜ **El mapa de quien trabaja** · pines con el ícono del rubro y el pago; al acercar, el nombre del local en una pastilla del color de la tecla (se voltea a la izquierda si no entra); chips «Hoy», «Mañana», «Fin de semana» (uno a la vez) y «Paga más».
 
-6. ⬜ **Accesos por rubro en Buscar de quien trabaja** · teclas con ícono y nombre en vez de los chips del cielo.
+6. ✅ **Accesos por rubro en Buscar de quien trabaja** (hecho 2026-11-21, `.tecla-rubro` en `app/buscar/page.tsx`) · teclas con ícono y nombre en vez de los chips del cielo.
 
 Quedó afuera, sin maqueta: el buscador de texto de turnos.
 

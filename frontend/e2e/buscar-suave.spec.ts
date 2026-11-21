@@ -4,7 +4,8 @@ import { blockExternalHosts, injectSession, isoEnDias, mockEmptyNotifications, s
 /**
  * Buscar del trabajador con la dirección suave (ADR-0028, 2026-11-20,
  * docs/historial/2026-11-20-buscar-trabajador-direccion-suave.md): el cielo
- * corto con el título en letra normal y los rubros como chips de vidrio, la
+ * corto con el título en letra normal, los rubros como una fila de teclas suaves
+ * en la hoja (desde el 2026-11-21, antes eran chips de vidrio en el cielo), la
  * hoja con los dos filtros y cada turno como fila suave con el pago en grande,
  * la marca «Urgente» al final del renglón y las acciones de siempre. Un solo
  * ámbar: «Postularme» del primero. Se mide renderizado, en claro y de noche.
@@ -51,13 +52,18 @@ for (const theme of ["light", "dark"] as const) {
     await expect(titulo).not.toHaveClass(/letra-cartel/);
     await expect(titulo.locator("xpath=ancestor::*[contains(@class,'app-cielo')][1]")).toHaveClass(/app-cielo/);
     await expect(page.locator(".estilo-suave .hoja")).toBeVisible();
-    // Los rubros son chips de vidrio sobre el cielo; el elegido, en azul hondo.
+    // Los rubros son teclas suaves en la hoja (no en el cielo), con el ícono y
+    // el nombre corto; sin «Todos»: ninguno elegido es «todos».
     const rubros = page.getByRole("group", { name: "Rubro" });
-    const todos = rubros.getByRole("button", { name: "Todos" });
-    await expect(todos).toHaveAttribute("aria-pressed", "true");
-    await expect(todos).toHaveClass(/chip-elegido/);
-    await expect(todos).toHaveCSS("color", "rgb(255, 255, 255)");
-    await expect(rubros.getByRole("button", { name: "Bartender" })).toHaveClass(/chip-vidrio/);
+    await expect(rubros.locator("xpath=ancestor::*[contains(@class,'app-cielo')]")).toHaveCount(0);
+    await expect(rubros.locator("xpath=ancestor::*[contains(@class,'hoja')]")).toHaveCount(1);
+    await expect(rubros.getByRole("button", { name: "Todos" })).toHaveCount(0);
+    await expect(rubros.getByRole("button")).toHaveCount(10);
+    const bartender = rubros.getByRole("button", { name: "Bartender" });
+    await expect(bartender).toHaveClass(/tecla-rubro/);
+    await expect(bartender).toHaveAttribute("aria-pressed", "false");
+    await expect(bartender.locator("svg")).toHaveCount(1);
+    await expect(bartender).toContainText("Barra");
 
     const cards = page.getByTestId("buscar-card");
     await expect(cards).toHaveCount(2);
@@ -120,12 +126,79 @@ for (const theme of ["light", "dark"] as const) {
     await expect(pagos).toHaveClass(/chip-elegido/);
     await expect(page.getByTestId("buscar-resumen")).toHaveText("2 turnos, primero los que mejor pagan por hora");
 
-    // Elegir un rubro lo deja en azul hondo y suelta «Todos».
-    const rubros = page.getByRole("group", { name: "Rubro" });
-    await rubros.getByRole("button", { name: "Bartender" }).click();
-    await expect(rubros.getByRole("button", { name: "Bartender" })).toHaveClass(/chip-elegido/);
-    await expect(rubros.getByRole("button", { name: "Todos" })).toHaveAttribute("aria-pressed", "false");
   });
+
+  test(`${theme}: la tecla de rubro elegida va en azul hondo, se suelta al tocarla de nuevo y el pedido lleva el rubro`, async ({ page }) => {
+    const pedidos: string[] = [];
+    page.on("request", (r) => {
+      if (r.url().includes("/api/v1/shifts/feed")) pedidos.push(new URL(r.url()).search);
+    });
+    await buscar(page, theme);
+    // Sin rubro elegido: se piden todos los rubros, ninguno en particular.
+    await expect(page.getByTestId("buscar-card")).toHaveCount(2);
+    expect(pedidos.at(-1)).toContain("positions=mozo");
+    expect(pedidos.at(-1)).not.toContain("position=");
+    const rubros = page.getByRole("group", { name: "Rubro" });
+    const barra = rubros.getByRole("button", { name: "Bartender" });
+    const alto = (await barra.boundingBox())!.height;
+    expect(alto).toBeGreaterThanOrEqual(44);
+
+    await barra.click();
+    await expect(barra).toHaveAttribute("aria-pressed", "true");
+    expect(await barra.evaluate((el) => getComputedStyle(el).backgroundImage)).toContain("rgb(42, 115, 163)");
+    await expect(barra).toHaveCSS("color", "rgb(255, 255, 255)");
+    expect(contraste("rgb(255, 255, 255)", "rgb(42, 115, 163)")).toBeGreaterThanOrEqual(4.5);
+    await expect.poll(() => pedidos.at(-1)).toContain("position=bartender");
+    expect(pedidos.at(-1)).not.toContain("positions=");
+    // Elegir otra suelta la anterior (una a la vez).
+    await rubros.getByRole("button", { name: "Mozo/a" }).click();
+    await expect(barra).toHaveAttribute("aria-pressed", "false");
+    await expect(rubros.getByRole("button", { name: "Mozo/a" })).toHaveAttribute("aria-pressed", "true");
+    await expect.poll(() => pedidos.at(-1)).toContain("position=mozo");
+    // Tocarla de nuevo la suelta y vuelve el pedido de todos los rubros.
+    await rubros.getByRole("button", { name: "Mozo/a" }).click();
+    await expect(rubros.getByRole("button", { name: "Mozo/a" })).toHaveAttribute("aria-pressed", "false");
+    await expect.poll(() => pedidos.at(-1)).toContain("positions=mozo");
+    expect(pedidos.at(-1)).not.toMatch(/[?&]position=/);
+    await expect(rubros.locator("[aria-pressed='true']")).toHaveCount(0);
+  });
+}
+
+test("con el teclado: Tab llega a cada rubro, Enter lo elige y Espacio lo suelta", async ({ page }) => {
+  await buscar(page, "light");
+  const rubros = page.getByRole("group", { name: "Rubro" });
+  const mozo = rubros.getByRole("button", { name: "Mozo/a" });
+  await mozo.focus();
+  await expect(mozo).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(mozo).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("Space");
+  await expect(mozo).toHaveAttribute("aria-pressed", "false");
+  await page.keyboard.press("Tab");
+  await expect(rubros.getByRole("button", { name: "Bartender" })).toBeFocused();
+});
+
+for (const ancho of [320, 390]) {
+  for (const theme of ["light", "dark"] as const) {
+    test(`a ${ancho} px (${theme}) los rubros se deslizan sin ensanchar la página y el cielo no queda con un hueco`, async ({ page }) => {
+      await page.setViewportSize({ width: ancho, height: 800 });
+      await buscar(page, theme);
+      const carril = page.getByTestId("buscar-rubros");
+      const medidas = await carril.evaluate((el) => ({ scroll: el.scrollWidth, ancho: el.clientWidth }));
+      expect(medidas.scroll).toBeGreaterThan(medidas.ancho);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(ancho);
+      // El carril se desliza por dentro: el último rubro se alcanza.
+      await page.getByRole("button", { name: "Personal de salón" }).scrollIntoViewIfNeeded();
+      await expect(page.getByRole("button", { name: "Personal de salón" })).toBeInViewport();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(ancho);
+      // El cielo termina justo después de la frase: sin hueco entre ella y la hoja.
+      const { frase, hoja } = await page.evaluate(() => ({
+        frase: document.querySelector(".app-cielo p")!.getBoundingClientRect().bottom,
+        hoja: document.querySelector(".hoja")!.getBoundingClientRect().top,
+      }));
+      expect(hoja - frase).toBeLessThanOrEqual(40);
+    });
+  }
 }
 
 test("a 320 px nada se sale de la pantalla", async ({ page }) => {
