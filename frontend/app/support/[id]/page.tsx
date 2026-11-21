@@ -134,7 +134,7 @@ export default function SupportTicketPage() {
 
   if (loading) {
     return (
-      <SubpaginaSuave title="Soporte" volver={volver}>
+      <SubpaginaSuave title="Soporte" volver={volver} lectura>
         <CardSkeletons />
       </SubpaginaSuave>
     );
@@ -142,7 +142,7 @@ export default function SupportTicketPage() {
 
   if (error || !ticket) {
     return (
-      <SubpaginaSuave title="Soporte" volver={volver}>
+      <SubpaginaSuave title="Soporte" volver={volver} lectura>
         <ErrorBanner message={error ?? "Ticket no encontrado"} onRetry={load} />
       </SubpaginaSuave>
     );
@@ -153,7 +153,7 @@ export default function SupportTicketPage() {
   return (
     // Con la dirección suave (ADR-0028, 2026-11-21): el asunto es el título
     // sobre el cielo, con la vuelta a la lista; la conversación va en la hoja.
-    <SubpaginaSuave title={ticket.subject} bajada={TICKET_CATEGORY_LABELS[ticket.category]} volver={volver}>
+    <SubpaginaSuave title={ticket.subject} bajada={TICKET_CATEGORY_LABELS[ticket.category]} volver={volver} lectura>
       <div className="flex justify-end">
         <Badge tone={isClosed ? "neutral" : "secondary"}>
           {isClosed ? "Cerrado" : "Abierto"}

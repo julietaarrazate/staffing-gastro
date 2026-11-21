@@ -167,10 +167,14 @@ export function SubpaginaSuave({
   title,
   bajada,
   ancha = false,
+  lectura = false,
   volver = VOLVER_AL_PERFIL,
   children,
 }: {
   title: string;
+  /** Una pantalla de lectura (un ticket de soporte): en la compu mide
+   *  `--app-reading`, el ancho de lectura del sistema. */
+  lectura?: boolean;
   /** A dónde lleva la vuelta del cielo; por defecto, al perfil. */
   volver?: { href: string; label: string };
   /** Una línea debajo del título, sobre el cielo. */
@@ -182,7 +186,7 @@ export function SubpaginaSuave({
   return (
     <div
       className={`estilo-suave mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col md:min-h-[calc(100dvh-var(--chrome-top))] md:px-4 md:pt-4 ${
-        ancha ? "md:max-w-2xl lg:max-w-5xl" : "md:max-w-xl"
+        ancha ? "md:max-w-2xl lg:max-w-5xl" : lectura ? "md:max-w-[var(--app-reading)]" : "md:max-w-xl"
       }`}
     >
       <div className="app-cielo cielo-limpio px-4 pb-12 pt-4 md:rounded-t-[28px] md:px-6 md:pt-5">
