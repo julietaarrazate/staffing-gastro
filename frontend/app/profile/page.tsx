@@ -1,21 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import BusinessVerificationCard from "@/components/company/BusinessVerificationCard";
-import LateCancellations from "@/components/company/LateCancellations";
 import EditableName from "@/components/EditableName";
+import PerfilComercio from "@/components/company/PerfilComercio";
 import PerfilTrabajador from "@/components/worker/PerfilTrabajador";
-import { Badge, Skeleton } from "@/components/ui";
-import ReceivedReviews from "@/components/ReceivedReviews";
+import { Skeleton } from "@/components/ui";
 import { Row, RowGroup } from "@/components/profile/ProfileParts";
-import {
-  BuildingIcon,
-  CreditCardIcon,
-  HeartIcon,
-  ShieldIcon,
-  SettingsIcon,
-} from "@/components/icons";
+import { SettingsIcon } from "@/components/icons";
 
 /**
  * Perfil = cómo te ven (sobrecarga visual, 2026-09-30). Antes esta pantalla
@@ -27,10 +18,6 @@ import {
  */
 export default function ProfilePage() {
   const { user, loading } = useAuth();
-  // La tarjeta de verificación ya pide `/identity/me`: avisa acá si la
-  // constancia está aprobada, sin pedirlo dos veces.
-  const [comercioVerificado, setComercioVerificado] = useState(false);
-
   if (loading) {
     // Mismo estilo de skeleton que el resto de la app (batch C3,
     // docs/planning/PULIDO_ROADMAP.md: "un solo estilo de skeleton, en vez
@@ -60,6 +47,9 @@ export default function ProfilePage() {
   // foto a caballo de la hoja y la reputación en grande. Lo de abajo es el
   // perfil del comercio y el del admin, que todavía no migraron.
   if (user.role === "worker") return <PerfilTrabajador />;
+  // El comercio también (2026-11-21, sin maqueta: con las mismas piezas). Lo de
+  // abajo queda sólo para el admin, que migra con el resto de Administración.
+  if (user.role === "employer") return <PerfilComercio />;
 
   return (
     <div className="mx-auto max-w-xl px-4 py-8 lg:max-w-5xl">
@@ -68,9 +58,6 @@ export default function ProfilePage() {
           lectores de pantalla) en una de las pantallas más usadas de la
           app. */}
       <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">Perfil</h1>
-      {/* En lg+ la tarjeta principal ocupa dos columnas y lo demás va al
-          costado, en vez de apilarse debajo con media pantalla vacía a los
-          costados. En mobile/tablet es un único stack. */}
       <div className="mt-4 lg:grid lg:grid-cols-3 lg:items-start lg:gap-6">
         <div className="lg:col-span-2">
           <div className="flex items-center gap-4 rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
@@ -82,64 +69,19 @@ export default function ProfilePage() {
               <p className="truncate text-sm text-ink/50">{user.email}</p>
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                 <span className="inline-block rounded-full bg-surface px-2.5 py-0.5 text-xs font-semibold text-ink/60">
-                  {user.role === "admin" ? "Administrador" : "Comercio"}
+                  Administrador
                 </span>
-                {/* Antes: `user.is_verified` (mail confirmado) con el texto
-                    «Identidad verificada». Ahora sólo con la constancia
-                    aprobada (claim `negocio_verificado`, G5). */}
-                {user.role === "employer" && comercioVerificado && (
-                  <Badge tone="trust" icon={<ShieldIcon size={13} />}>
-                    Comercio verificado
-                  </Badge>
-                )}
               </div>
             </div>
           </div>
-
-          {/* La verificación va arriba: mientras no está aprobada es lo que
-              destraba todo, y una vez aprobada la tarjeta se achica sola a
-              un sello (ver `BusinessVerificationCard`). Celeste y no `bg-card`:
-              es una pieza de confianza, no una tarjeta de contenido más. */}
-          {user.role !== "admin" && (
-            <div className="mt-4 rounded-[var(--radius-card)] bg-cielo-tint shadow-[var(--shadow-soft)]">
-              <BusinessVerificationCard onVerifiedChange={setComercioVerificado} />
-            </div>
-          )}
-
-          {/* Sólo con al menos una: en cero no dibuja nada. */}
-          {user.role === "employer" && <LateCancellations />}
         </div>
 
-        <div>
-          <div className="mt-7 lg:mt-0">
-            <RowGroup>
-              {user.role === "employer" && (
-                <>
-                  <Row icon={<BuildingIcon size={18} />} tone="manteca" href="/profile/edit">
-                    Datos del comercio
-                  </Row>
-                  <Row icon={<CreditCardIcon size={18} />} tone="secondary" href="/subscription">
-                    Mi plan
-                  </Row>
-                  <Row icon={<HeartIcon size={18} />} tone="danger" href="/favorites">
-                    Trabajadores favoritos
-                  </Row>
-                </>
-              )}
-              <Row icon={<SettingsIcon size={18} />} tone="neutral" href="/profile/settings">
-                Ajustes
-              </Row>
-            </RowGroup>
-          </div>
-
-          {/* Sin reseñas no se muestra nada: una sección que dice
-              "Todavía no tenés reseñas" es otra cosa que le cuenta a la
-              persona nueva lo que no tiene. */}
-          {user.role !== "admin" && (
-            <div className="mt-7">
-              <ReceivedReviews />
-            </div>
-          )}
+        <div className="mt-7 lg:mt-0">
+          <RowGroup>
+            <Row icon={<SettingsIcon size={18} />} tone="neutral" href="/profile/settings">
+              Ajustes
+            </Row>
+          </RowGroup>
         </div>
       </div>
     </div>

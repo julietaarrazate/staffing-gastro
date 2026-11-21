@@ -17,12 +17,21 @@ import type { CompanyProfile } from "@/lib/types";
  * 2026-09-30): no se le cuenta a un comercio nuevo lo que no tiene. Sin
  * perfil de comercio todavía (404) o sin red, tampoco.
  */
-export default function LateCancellations() {
+export default function LateCancellations({
+  count: conocida,
+  suave = false,
+}: {
+  /** La cuenta, si quien lo dibuja ya leyó el perfil: no se vuelve a pedir. */
+  count?: number;
+  /** Con la dirección suave: una caja con el relleno del campo, sin filete. */
+  suave?: boolean;
+} = {}) {
   const { token } = useAuth();
-  const [count, setCount] = useState(0);
+  const [leida, setCount] = useState(0);
+  const count = conocida ?? leida;
 
   useEffect(() => {
-    if (!token) return;
+    if (!token || conocida !== undefined) return;
     let cancelled = false;
     api
       .get<CompanyProfile>("/companies/me/profile", token)
@@ -35,21 +44,25 @@ export default function LateCancellations() {
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [token, conocida]);
 
   if (count <= 0) return null;
 
   return (
     <section
       aria-label="Cancelaciones tardías"
-      className="mt-4 flex items-center gap-4 rounded-[var(--radius-card)] bg-card px-5 py-4 shadow-[var(--shadow-soft)] ring-1 ring-line"
+      className={
+        suave
+          ? "caja-suave flex items-center gap-4 px-5 py-4"
+          : "mt-4 flex items-center gap-4 rounded-[var(--radius-card)] bg-card px-5 py-4 shadow-[var(--shadow-soft)] ring-1 ring-line"
+      }
     >
       <p className="shrink-0 text-2xl font-extrabold tabular-nums text-ink">{count}</p>
       <div className="min-w-0">
         <p className="text-sm font-semibold text-ink">
           {count === 1 ? "Cancelación tardía" : "Cancelaciones tardías"}
         </p>
-        <p className="text-xs text-ink/50">
+        <p className={suave ? "text-caption text-ink-soft" : "text-xs text-ink/50"}>
           Turnos que cancelaste con el trabajador ya confirmado.
         </p>
       </div>
