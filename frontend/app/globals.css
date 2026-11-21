@@ -4918,6 +4918,8 @@ body:has([data-landing]) main {
     var(--barra-velo) calc(var(--chrome-bottom) - 64px - 18px - env(safe-area-inset-bottom))
   );
   pointer-events: none;
+}
+
 /* La foto que falta (`components/ui/SinFoto.tsx`): un pedacito de cielo, con
    las clases de la portada (`.portada-cielo`, `.portada-nube`,
    `.portada-tinta`). La letra y la nube se miden contra el contenedor, así que
