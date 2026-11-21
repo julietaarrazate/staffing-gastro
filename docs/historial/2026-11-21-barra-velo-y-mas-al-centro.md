@@ -1,4 +1,4 @@
-# La barra de abajo: un velo y el «+» de «Publicar turno» al centro (#PR)
+# La barra de abajo: un velo y el «+» de «Publicar turno» al centro (#719)
 
 **Pedido:** Julieta, 2026-11-21, con capturas de su celular: «quizás lo que
 hace que se vea raro sea la barra flotante: pasa por el texto y se
