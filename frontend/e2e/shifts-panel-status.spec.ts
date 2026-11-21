@@ -47,6 +47,7 @@ async function mockEmployerShifts(page: Page) {
 test("en /shifts los estados se diferencian por color de marca y los cancelados quedan al final y atenuados", async ({
   page,
 }) => {
+  await page.clock.setFixedTime(new Date("2037-12-16T12:00:00-03:00")); // el Panel filtra por semana (la tira de días)
   await injectSession(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
@@ -89,6 +90,7 @@ test("en /shifts los estados se diferencian por color de marca y los cancelados 
 });
 
 test("las tarjetas de /shifts no son seleccionables como texto de página (chrome de UI), C0 #2", async ({ page }) => {
+  await page.clock.setFixedTime(new Date("2037-12-16T12:00:00-03:00")); // el Panel filtra por semana (la tira de días)
   await injectSession(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);

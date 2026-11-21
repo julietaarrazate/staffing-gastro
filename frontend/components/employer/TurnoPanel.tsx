@@ -76,7 +76,11 @@ export default function TurnoPanel({ shift, children }: { shift: Shift; children
             <p className="text-caption text-ink">
               {formatShiftWhen(shift.start_at, shift.end_at)}
               {durationMin != null && (
-                <span className="whitespace-nowrap text-ink-soft"> · {formatDuration(durationMin)}</span>
+                <>
+                  {" "}
+                  {/* Un bloque: baja entero a la línea de abajo y, si ni así entra (letra al 200 %), se parte adentro. */}
+                  <span className="inline-block max-w-full text-ink-soft">· {formatDuration(durationMin)}</span>
+                </>
               )}
             </p>
             <p className="text-caption text-ink-soft [overflow-wrap:anywhere]">

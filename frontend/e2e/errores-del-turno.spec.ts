@@ -61,6 +61,7 @@ test("Trabajador: Confirmar falla porque el comercio canceló; muestra el motivo
 
 test("Comercio: Cancelar falla porque ya estaba cancelado; muestra el motivo y recarga la lista", async ({ page }) => {
   await base(page, "employer");
+  await page.clock.setFixedTime(new Date("2037-12-16T12:00:00-03:00")); // el Panel filtra por semana (la tira de días)
   const server = { status: "confirmado" };
   let listados = 0;
   await page.route("**/api/v1/shifts/me", (r) => {

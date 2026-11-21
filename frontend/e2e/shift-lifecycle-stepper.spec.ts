@@ -70,6 +70,7 @@ async function mockEmployerShifts(page: Page, shifts: unknown[]) {
 test("el stepper resalta el hito real (asignado→paso2, en curso→paso3, finalizado→paso4)", async ({
   page,
 }) => {
+  await page.clock.setFixedTime(new Date("2026-07-20T12:00:00-03:00")); // el Panel filtra por semana (la tira de días)
   await injectSession(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
@@ -98,6 +99,7 @@ test("el stepper resalta el hito real (asignado→paso2, en curso→paso3, final
 test("turno cancelado: el stepper se corta con un marcador rojo en el paso donde murió, sin un 5º paso", async ({
   page,
 }) => {
+  await page.clock.setFixedTime(new Date("2026-07-20T12:00:00-03:00")); // el Panel filtra por semana (la tira de días)
   await injectSession(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
@@ -147,6 +149,7 @@ test("turno cancelado: el stepper se corta con un marcador rojo en el paso donde
 test("turno no cubierto: se corta con un marcador neutro (no rojo), sin un 5º paso", async ({
   page,
 }) => {
+  await page.clock.setFixedTime(new Date("2026-07-20T12:00:00-03:00")); // el Panel filtra por semana (la tira de días)
   await injectSession(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
@@ -178,6 +181,7 @@ test("turno no cubierto: se corta con un marcador neutro (no rojo), sin un 5º p
 });
 
 test("turno no cubierto se lee igual en claro y en oscuro", async ({ page }) => {
+  await page.clock.setFixedTime(new Date("2026-07-20T12:00:00-03:00")); // el Panel filtra por semana (la tira de días)
   await injectSession(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
@@ -222,6 +226,7 @@ test("turno no cubierto se lee igual en claro y en oscuro", async ({ page }) => 
 test("el comercio ve 'va en camino' sólo mientras el trabajador comparte", async ({
   page,
 }) => {
+  await page.clock.setFixedTime(new Date("2026-07-20T12:00:00-03:00")); // el Panel filtra por semana (la tira de días)
   await injectSession(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
@@ -329,6 +334,7 @@ test("el panel se refresca solo mientras alguien puede venir en camino", async (
 // palabras se leen sobre la fila (4,5), de día y de noche.
 for (const theme of ["light", "dark"] as const) {
   test(`comercio, ${theme}: lo hecho y lo actual con su barra llena, lo actual en negrita, todo se lee`, async ({ page }) => {
+    await page.clock.setFixedTime(new Date("2026-07-20T12:00:00-03:00")); // el Panel filtra por semana (la tira de días)
     await injectSession(page);
     await setTheme(page, theme);
     await blockExternalHosts(page);

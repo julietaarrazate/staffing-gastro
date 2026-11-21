@@ -6,11 +6,11 @@ import { blockExternalHosts, injectSession, isoEnDias, mockEmptyNotifications, s
  * docs/historial/2026-11-19-pestanas-relieve.md): texto plano sobre un
  * filete, la activa en tinta con una raya azul hondo debajo. Sin píldora. Se
  * mide renderizado: la raya, el contraste de los nombres y que el contorno de
- * foco no quede cortado donde las pestañas scrollean (el Panel).
+ * foco no quede cortado. (El Panel del comercio ya no tiene pestañas desde el
+ * 2026-11-21: la lista va agrupada por estado, con la tira de días.)
  */
 const json = (body: unknown) => ({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
 const WORKER = { id: "user-1", email: "w@oido.test", full_name: "Sofía Demo", role: "worker", status: "activo", is_active: true, is_verified: true };
-const EMPLOYER = { id: "u-e", email: "e@oido.test", full_name: "Julieta Demo", role: "employer", status: "activo", is_active: true, is_verified: true };
 const turno = (id: string, status: string, position: string) => ({
   id, company_id: "c1", position, quantity: 1, start_at: isoEnDias(1, "21:00"), end_at: isoEnDias(2, "02:00"), pay_amount: "20000", currency: "ARS",
   tips: true, meal: false, dress_code: null, urgent: false, address: null, city: "Palermo, CABA", latitude: null, longitude: null,
@@ -93,57 +93,6 @@ for (const theme of ["light", "dark"] as const) {
     expect(despues.pestanas.map((p) => p.raya !== null)).toEqual([false, false, true]);
   });
 }
-
-test("en el Panel las cinco scrollean, el filete llega al borde y el foco no queda cortado", async ({ page }) => {
-  await abrir(page, "light", EMPLOYER);
-  await page.route("**/api/v1/shifts/me", (r) => r.fulfill(json([turno("s1", "publicado", "mozo"), turno("s2", "confirmado", "bartender")])));
-  await page.goto("/shifts");
-  await expect(page.locator('[data-shift-id="s1"]')).toBeVisible();
-  const pista = page.locator("[data-pestanas]");
-  await expect(pista.getByRole("button")).toHaveCount(5);
-  const caja = await page.locator('[data-tour="shifts-tabs"]').evaluate((c) => {
-    const p = c.querySelector("[data-pestanas]") as HTMLElement;
-    return { scroll: c.scrollWidth > c.clientWidth, pista: p.getBoundingClientRect().width, contenedor: c.clientWidth - 32 };
-  });
-  // No entran en 390: scrollean, y la pista nunca es más angosta que el contenedor.
-  expect(caja.scroll).toBe(true);
-  expect(caja.pista).toBeGreaterThanOrEqual(caja.contenedor);
-  // La página no se ensancha.
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
-  // El contorno de foco (2 px a 2 px de la pestaña) entra arriba y abajo.
-  const todos = pista.getByRole("button", { name: "Todos" });
-  await todos.focus();
-  const holgura = await todos.evaluate((b) => {
-    const c = b.closest('[data-tour="shifts-tabs"]') as HTMLElement;
-    const rb = b.getBoundingClientRect();
-    const rc = c.getBoundingClientRect();
-    return { visible: b.matches(":focus-visible"), arriba: rb.top - rc.top, abajo: rc.bottom - rb.bottom };
-  });
-  expect(holgura.visible).toBe(true);
-  expect(holgura.arriba).toBeGreaterThanOrEqual(4);
-  expect(holgura.abajo).toBeGreaterThanOrEqual(4);
-});
-
-test("en el Panel, la pestaña que recibe el foco se trae entera a la vista", async ({ page }) => {
-  await abrir(page, "light", EMPLOYER);
-  await page.route("**/api/v1/shifts/me", (r) => r.fulfill(json([turno("s1", "publicado", "mozo")])));
-  await page.goto("/shifts");
-  await expect(page.locator('[data-shift-id="s1"]')).toBeVisible();
-  const contenedor = page.locator('[data-tour="shifts-tabs"]');
-  // Corrida al final: «Todos» queda fuera o asomando a medias.
-  await contenedor.evaluate((c) => (c.scrollLeft = c.scrollWidth));
-  const todos = page.getByRole("button", { name: "Todos" });
-  await todos.focus();
-  await expect
-    .poll(() =>
-      todos.evaluate((b) => {
-        const c = b.closest('[data-tour="shifts-tabs"]') as HTMLElement;
-        // Lo que asoma del contorno (2 px a 2 px de la pestaña) por la izquierda.
-        return b.getBoundingClientRect().left - 4 - c.getBoundingClientRect().left;
-      }),
-    )
-    .toBeGreaterThanOrEqual(0);
-});
 
 test("a 320 px, Mis turnos con contadores de una cifra muestra los tres nombres enteros", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 700 });

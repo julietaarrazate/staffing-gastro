@@ -44,6 +44,7 @@ async function mockPanel(
 ): Promise<string[]> {
   const current = { ...server };
   const cancelCalls: string[] = [];
+  await page.clock.setFixedTime(new Date("2037-12-16T12:00:00-03:00")); // el Panel filtra por semana (la tira de días)
   await injectSession(page);
   await skipSplash(page);
   await blockExternalHosts(page);
@@ -284,6 +285,7 @@ const COMPANY_PROFILE = {
 };
 
 async function mockEmployerProfile(page: Page, lateCancellations: number) {
+  await page.clock.setFixedTime(new Date("2037-12-16T12:00:00-03:00")); // el Panel filtra por semana (la tira de días)
   await injectSession(page);
   await skipSplash(page);
   await blockExternalHosts(page);
@@ -337,6 +339,7 @@ function notice(type: string, title: string, message: string) {
 }
 
 async function mockWorkerWithNotice(page: Page, item: ReturnType<typeof notice>) {
+  await page.clock.setFixedTime(new Date("2037-12-16T12:00:00-03:00")); // el Panel filtra por semana (la tira de días)
   await injectSession(page);
   await skipSplash(page);
   await blockExternalHosts(page);

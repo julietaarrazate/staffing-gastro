@@ -74,6 +74,7 @@ async function mockEmployerShifts(page: Page) {
 }
 
 test("toque real en la X del Sheet 'Más acciones' lo cierra (dentro de un Card con whileTap)", async ({ page }) => {
+  await page.clock.setFixedTime(new Date("2026-08-20T12:00:00-03:00")); // el Panel filtra por semana (la tira de días)
   await injectSession(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
@@ -89,6 +90,7 @@ test("toque real en la X del Sheet 'Más acciones' lo cierra (dentro de un Card 
 });
 
 test("toque real en 'Cancelar turno' (contenido del Sheet) abre la confirmación", async ({ page }) => {
+  await page.clock.setFixedTime(new Date("2026-08-20T12:00:00-03:00")); // el Panel filtra por semana (la tira de días)
   await injectSession(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);

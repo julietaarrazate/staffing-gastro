@@ -91,6 +91,7 @@ async function mockPanel(
     body: JSON.stringify(body),
   });
 
+  await page.clock.setFixedTime(new Date("2026-07-20T12:00:00-03:00")); // el Panel filtra por semana (la tira de días)
   await injectSession(page);
   // La splash de marca tapa la pantalla ~1 s: con ella encima, un toque por
   // coordenadas le pega a la splash y no al botón.

@@ -65,8 +65,9 @@ listados más abajo.
   comparte** desde la tarjeta del feed (`OpportunityCard`), para pasarle un
   turno a un colega. (Distinto de la API de WhatsApp Business, que sigue
   bloqueada por cuenta/credenciales de Julieta.)
-- **Panel del comercio por familias de estado** (Todos/Buscando/En
-  marcha/Terminados/Cancelados) con **stepper del ciclo de vida** del turno
+- **Panel del comercio agrupado por estado** (Buscando personal / En
+  marcha / Terminados / Cancelados; sin pestañas desde el 2026-11-21, con la
+  tira de días del cielo para mirar una semana o un día) con **stepper del ciclo de vida** del turno
   (`ShiftLifecycleStepper`, mapeos distintos para comercio y trabajador) y
   pantalla **"esto es lo que sigue"** al publicar un turno (timeline de los
   próximos pasos, se muestra cada vez que se publica).
