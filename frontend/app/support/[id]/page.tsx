@@ -1,16 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
+import { SubpaginaSuave } from "@/components/profile/ProfileParts";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import Link from "next/link";
 import { SupportTicketDetail, TicketSuggestion, TICKET_CATEGORY_LABELS } from "@/lib/types";
 import { formatShiftDate, formatShiftTime } from "@/lib/datetime";
 import { Badge, Button, CardSkeletons, ErrorBanner, MessageBubble, Modal, useToast } from "@/components/ui";
-import { ChevronLeftIcon, SparklesIcon } from "@/components/icons";
+import { SparklesIcon } from "@/components/icons";
 
 const ROLE_LABELS: Record<string, string> = {
   worker: "Trabajador",
@@ -20,7 +21,6 @@ const ROLE_LABELS: Record<string, string> = {
 
 export default function SupportTicketPage() {
   const { token, user } = useRequireAuth();
-  const router = useRouter();
   const toast = useToast();
   const params = useParams<{ id: string }>();
   const [ticket, setTicket] = useState<SupportTicketDetail | null>(null);
@@ -126,42 +126,35 @@ export default function SupportTicketPage() {
     }
   }
 
+  const isAdmin = user?.role === "admin";
+  // La vuelta del cielo: a la lista de quien mira (la del admin es otra).
+  const volver = isAdmin
+    ? { href: "/admin/support", label: "Volver a los tickets" }
+    : { href: "/support", label: "Volver a Soporte" };
+
   if (loading) {
     return (
-      <div className="app-container-reading px-4 pb-10 pt-6">
+      <SubpaginaSuave title="Soporte" volver={volver} lectura>
         <CardSkeletons />
-      </div>
+      </SubpaginaSuave>
     );
   }
 
   if (error || !ticket) {
     return (
-      <div className="app-container-reading px-4 pb-10 pt-6">
+      <SubpaginaSuave title="Soporte" volver={volver} lectura>
         <ErrorBanner message={error ?? "Ticket no encontrado"} onRetry={load} />
-      </div>
+      </SubpaginaSuave>
     );
   }
 
-  const isAdmin = user?.role === "admin";
   const isClosed = ticket.status === "cerrado";
 
   return (
-    <div className="app-container-reading px-4 pb-10 pt-6">
-      <button
-        type="button"
-        onClick={() => router.push(isAdmin ? "/admin/support" : "/support")}
-        className="inline-flex items-center gap-1 text-sm font-semibold text-ink/50 hover:text-ink"
-      >
-        <ChevronLeftIcon size={16} /> Volver
-      </button>
-
-      <div className="mt-3 flex items-start justify-between gap-2">
-        <div>
-          <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">
-            {ticket.subject}
-          </h1>
-          <p className="mt-0.5 text-sm text-ink/50">{TICKET_CATEGORY_LABELS[ticket.category]}</p>
-        </div>
+    // Con la dirección suave (ADR-0028, 2026-11-21): el asunto es el título
+    // sobre el cielo, con la vuelta a la lista; la conversación va en la hoja.
+    <SubpaginaSuave title={ticket.subject} bajada={TICKET_CATEGORY_LABELS[ticket.category]} volver={volver} lectura>
+      <div className="flex justify-end">
         <Badge tone={isClosed ? "neutral" : "secondary"}>
           {isClosed ? "Cerrado" : "Abierto"}
         </Badge>
@@ -187,7 +180,7 @@ export default function SupportTicketPage() {
         >
           {ticket.references.shift && (
             <p className="text-ink/70">
-              <span className="text-ink/50">Turno: </span>
+              <span className="text-ink-soft">Turno: </span>
               {isAdmin ? (
                 <Link
                   href={`/turno/${ticket.references.shift.id}`}
@@ -207,7 +200,7 @@ export default function SupportTicketPage() {
           )}
           {ticket.references.company && !ticket.references.shift && (
             <p className="text-ink/70">
-              <span className="text-ink/50">Comercio: </span>
+              <span className="text-ink-soft">Comercio: </span>
               {isAdmin && ticket.references.company.user_id ? (
                 <Link
                   href={`/admin/personas/${ticket.references.company.user_id}`}
@@ -222,7 +215,7 @@ export default function SupportTicketPage() {
           )}
           {isAdmin && ticket.references.shift && ticket.references.company?.user_id && (
             <p className="mt-1 text-ink/70">
-              <span className="text-ink/50">Ficha del comercio: </span>
+              <span className="text-ink-soft">Ficha del comercio: </span>
               <Link
                 href={`/admin/personas/${ticket.references.company.user_id}`}
                 className="font-semibold text-primary-text underline-offset-2 hover:underline"
@@ -266,7 +259,7 @@ export default function SupportTicketPage() {
               {suggestion && (
                 <p className="mt-2 text-sm text-ink/60">{suggestion.summary}</p>
               )}
-              <p className="mt-1.5 text-xs text-ink/40">
+              <p className="mt-1.5 text-xs text-ink-soft">
                 Sólo precarga la respuesta de abajo — revisala antes de mandar, nunca le contesta
                 directo al usuario.
               </p>
@@ -283,7 +276,7 @@ export default function SupportTicketPage() {
             placeholder="Escribí tu respuesta..."
             maxLength={2000}
             rows={3}
-            className="w-full rounded-[var(--radius-input)] bg-card px-4 py-3 text-body text-ink outline-none ring-1 ring-line transition"
+            className="campo w-full px-4 py-3 text-body text-ink outline-none"
           />
           <div className="flex gap-2">
             <Button type="submit" loading={sending} disabled={!reply.trim()}>
@@ -302,7 +295,7 @@ export default function SupportTicketPage() {
           </div>
         </form>
       ) : (
-        <p className="mt-5 text-center text-sm text-ink/40">
+        <p className="mt-5 text-center text-sm text-ink-soft">
           Este ticket está cerrado. Si necesitás algo más, abrí uno nuevo.
         </p>
       )}
@@ -321,6 +314,6 @@ export default function SupportTicketPage() {
           </Button>
         </div>
       </Modal>
-    </div>
+    </SubpaginaSuave>
   );
 }
