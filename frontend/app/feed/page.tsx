@@ -33,6 +33,7 @@ import { CardSkeletons, EmptyState, Skeleton, useToast } from "@/components/ui";
 import CieloInicio from "@/components/worker/CieloInicio";
 import OpportunityCard from "@/components/worker/OpportunityCard";
 import FeedHero from "@/components/worker/FeedHero";
+import UrgentesRow from "@/components/worker/UrgentesRow";
 import NearbyRow from "@/components/worker/NearbyRow";
 import DiscoverDeck from "@/components/worker/DiscoverDeck";
 import dynamic from "next/dynamic";
@@ -683,6 +684,10 @@ function WorkerFeedPanel() {
         />
       ) : (
         <>
+          {/* «Urgentes»: lo que empieza en las próximas 6 h, arriba de todo
+              (celular y compu). Sin ninguno no se dibuja. */}
+          <UrgentesRow shifts={visibleShifts} distanceOf={distanceFromOrigin} />
+
           {/* Mobile: Recomendado + Descubrir rápido + Cerca tuyo. */}
           {!isDesktop && (
             <div className="md:hidden">

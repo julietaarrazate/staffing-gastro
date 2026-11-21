@@ -154,6 +154,13 @@ listados más abajo.
   real, redondeada a 4 decimales (TECH_DEBT.md S4; ADR-0014, actualización
   2026-11-19) — un desplazamiento determinístico (mismo trabajador en el
   mismo lugar, mismo punto en cada render), no aleatorio en cada carga.
+- **«Urgentes» en el Inicio de quien trabaja** (2026-11-21): arriba de la
+  hoja, una fila horizontal con los turnos que **empiezan en las próximas
+  6 horas** (el que empieza antes primero, hasta 8) y una cuenta regresiva
+  («Empieza en 1 h 40») que baja sola cada minuto. «Urgente» acá es la
+  cercanía del horario, no la marca «Urgente» del comercio. Sale de los
+  turnos que el Inicio ya muestra (mismo radio, sin los que ya se postuló);
+  sin ninguno, la sección no aparece. Siguen estando también en «Para vos».
 - **«Cerca» es un límite, no una preferencia** (2026-11-13): el aviso
   «Turno cerca tuyo» sale sólo a quien está a 25 km o menos del turno (40 km
   en la escalada a urgente), y lo mismo los recomendados que ve el comercio.
