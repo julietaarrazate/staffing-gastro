@@ -28,6 +28,21 @@ export function claveDiaArgentina(fecha: Date | string): string {
   return CLAVE.format(typeof fecha === "string" ? new Date(fecha) : fecha);
 }
 
+/**
+ * El día en que se muestra un turno en la tira (Mis turnos y el Panel): el de
+ * su inicio, salvo que esté en curso ahora (empezó y todavía no terminó), que
+ * se muestra hoy. Sin esto, un turno de 21 a 3 que cruza la medianoche del
+ * domingo quedaba en la semana anterior y desaparecía de la vista justo
+ * mientras se trabaja (2026-11-21).
+ */
+export function claveDeVista(turno: { start_at: string; end_at?: string | null }, ahora: Date = new Date()): string {
+  const t = ahora.getTime();
+  if (turno.end_at && new Date(turno.start_at).getTime() <= t && t < new Date(turno.end_at).getTime()) {
+    return claveDiaArgentina(ahora);
+  }
+  return claveDiaArgentina(turno.start_at);
+}
+
 const DIA_MS = 86_400_000;
 
 /** Mediodía UTC de una clave: sumar días no cruza ningún cambio de fecha. */

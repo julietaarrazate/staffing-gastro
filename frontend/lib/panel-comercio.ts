@@ -1,4 +1,4 @@
-import { claveDiaArgentina, diaEnPalabras, type DiaSemana } from "@/lib/semana";
+import { claveDeVista, claveDiaArgentina, diaEnPalabras, type DiaSemana } from "@/lib/semana";
 import type { Shift, ShiftStatus } from "@/lib/types";
 
 // Familias de estado del panel (bug de la operadora, docs/planning/PULIDO_ROADMAP.md
@@ -163,10 +163,10 @@ export function tituloDelDia(shifts: Shift[], dia: string | null, ahora: Date = 
 const capitalizar = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 
 /** Los turnos que se ven: el día elegido o, sin día, la semana (`dias`). */
-export function turnosEnLaVista(shifts: Shift[], dias: DiaSemana[], dia: string | null): Shift[] {
+export function turnosEnLaVista(shifts: Shift[], dias: DiaSemana[], dia: string | null, ahora: Date = new Date()): Shift[] {
   const claves = new Set(dias.map((d) => d.clave));
   return shifts.filter((s) => {
-    const c = claveDiaArgentina(s.start_at);
+    const c = claveDeVista(s, ahora);
     return dia ? c === dia : claves.has(c);
   });
 }
@@ -191,7 +191,7 @@ export function diaParaFamilia(shifts: Shift[], family: Family, dias: DiaSemana[
   const delGrupo = shifts.filter((s) => familyOf(s.status) === family).sort(porInicio);
   if (delGrupo.length === 0) return null;
   const claves = new Set(dias.map((d) => d.clave));
-  if (delGrupo.some((s) => claves.has(claveDiaArgentina(s.start_at)))) return null;
+  if (delGrupo.some((s) => claves.has(claveDeVista(s, ahora)))) return null;
   const proximo = delGrupo.find((s) => new Date(s.start_at).getTime() >= ahora.getTime()) ?? delGrupo[delGrupo.length - 1];
   return claveDiaArgentina(proximo.start_at);
 }
