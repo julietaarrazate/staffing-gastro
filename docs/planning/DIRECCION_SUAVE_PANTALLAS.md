@@ -59,7 +59,7 @@ qué responde cada pantalla está en
 
 - ⬜ **Fichas, Favoritos, Mi plan, Soporte**
 
-- ✅ **Perfil del comercio** (`components/company/PerfilComercio.tsx`) · #PR · [historial](../historial/2026-11-21-perfil-comercio-direccion-suave.md) · sin maqueta: con las piezas del Perfil de quien trabaja; el título es el nombre del local y la reputación va en grande; el logo se cambia en «Datos del comercio»
+- ✅ **Perfil del comercio** (`components/company/PerfilComercio.tsx`) · #714 · [historial](../historial/2026-11-21-perfil-comercio-direccion-suave.md) · sin maqueta: con las piezas del Perfil de quien trabaja; el título es el nombre del local y la reputación va en grande; el logo se cambia en «Datos del comercio»
 
 - ⬜ **Administración** (`app/admin/`: Hoy, Turnos en vivo, Personas, Verificación, Soporte, Métricas, Crecimiento, Herramientas, Seguridad) · **decidido por Julieta el 2026-11-20:** toda la app pasa a la misma dirección, el admin también. Hoy conserva arriba el logo y la campanita en el celular porque sus pantallas no tienen cielo (#712); al migrarlo se decide si lleva cielo
 

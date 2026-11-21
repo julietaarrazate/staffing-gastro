@@ -1,4 +1,4 @@
-# El Perfil del comercio con la dirección suave (#PR)
+# El Perfil del comercio con la dirección suave (#714)
 
 **Pedido:** Julieta, 2026-11-20/21: «toda la app pasa a la misma dirección»;
 el Perfil del comercio seguía con la tarjeta y la letra de antes (había
