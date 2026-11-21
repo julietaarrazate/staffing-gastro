@@ -104,17 +104,69 @@ test("los accesos son filas: Datos del comercio, Mi plan, Favoritos y Ajustes, y
   await expect(hoja(page).getByRole("button", { name: "Editar nombre" })).toBeVisible();
 });
 
-test("la verificación va arriba mientras falta, y baja al final cuando ya está aprobada", async ({ page }) => {
-  await perfil(page, { perfil: CON_HISTORIA, claims: [] });
+test("la verificación va arriba mientras falta (también pendiente), y baja al final de su columna cuando ya está aprobada", async ({ page }) => {
   const tarjeta = () => hoja(page).getByText("Verificación del comercio");
-  const filas = () => hoja(page).getByRole("link", { name: "Datos del comercio", exact: true });
-  await expect(tarjeta()).toBeVisible();
-  await expect(hoja(page).locator(".chip-suave", { hasText: "Comercio verificado" })).toHaveCount(0);
-  expect((await tarjeta().boundingBox())!.y).toBeLessThan((await filas().boundingBox())!.y);
+  const tardias = () => page.getByRole("region", { name: "Cancelaciones tardías" });
+  const sello = () => hoja(page).locator(".chip-suave", { hasText: "Comercio verificado" });
 
+  for (const claims of [[], [claim("pendiente")]]) {
+    await perfil(page, { perfil: CON_HISTORIA, claims });
+    await expect(tarjeta()).toBeVisible();
+    await expect(tardias()).toBeVisible();
+    await expect(sello()).toHaveCount(0);
+    expect((await tarjeta().boundingBox())!.y).toBeLessThan((await tardias().boundingBox())!.y);
+  }
+
+  // Aprobada: una sola tarjeta, y un solo pedido del estado.
+  let pedidos = 0;
+  page.on("request", (r) => {
+    if (r.url().endsWith("/identity/me")) pedidos += 1;
+  });
   await perfil(page, { perfil: CON_HISTORIA, claims: [claim("verificada")] });
-  await expect(tarjeta()).toBeVisible();
-  expect((await tarjeta().boundingBox())!.y).toBeGreaterThan((await filas().boundingBox())!.y);
+  await expect(sello()).toBeVisible();
+  await expect(tarjeta()).toHaveCount(1);
+  await expect.poll(async () => (await tarjeta().boundingBox())!.y - (await tardias().boundingBox())!.y).toBeGreaterThan(0);
+  expect(pedidos).toBe(1);
+});
+
+test("mientras carga, el cielo no muestra el nombre de la cuenta para cambiarlo después", async ({ page }) => {
+  let soltar!: () => void;
+  const espera = new Promise<void>((r) => (soltar = r));
+  await page.route("**/api/v1/companies/me/profile", async (r) => {
+    await espera;
+    await r.fulfill(json(deContrato("perfil_comercio", CON_HISTORIA)));
+  });
+  await setTheme(page, "light");
+  await injectSession(page);
+  await skipSplash(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await page.route("**/api/v1/auth/me", (r) => r.fulfill(json(deContrato("auth_me_employer", { full_name: "Julieta Demo" }))));
+  await page.route("**/api/v1/reviews/received", (r) => r.fulfill(json([])));
+  await page.route("**/api/v1/identity/me", (r) => r.fulfill(json({ claims: [] })));
+  await page.goto("/profile");
+  const cielo = page.locator(".app-cielo");
+  await expect(cielo).toBeVisible();
+  await expect(cielo).not.toContainText("Julieta Demo");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Perfil");
+  soltar();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Bar Lavalle");
+});
+
+test("si el perfil no se pudo cargar (no es un 404), lo dice y los accesos siguen", async ({ page }) => {
+  await perfil(page, { perfil: CON_HISTORIA });
+  await page.route("**/api/v1/companies/me/profile", (r) => r.fulfill({ status: 500, contentType: "application/json", body: '{"detail":"x"}' }));
+  await page.reload();
+  await expect(hoja(page).getByRole("alert")).toBeVisible();
+  await expect(hoja(page).getByRole("link", { name: "Datos del comercio", exact: true })).toBeVisible();
+  await expect(page.locator(".perfil-numero")).toHaveCount(0);
+});
+
+test("un logo que no carga vuelve a la inicial", async ({ page }) => {
+  await page.route("**/logo-roto.png", (r) => r.fulfill({ status: 404, body: "" }));
+  await perfil(page, { perfil: { ...CON_HISTORIA, logo_url: "/logo-roto.png" } });
+  await expect(page.locator(".perfil-foto")).toHaveText("B");
+  await expect(page.locator(".perfil-foto img")).toHaveCount(0);
 });
 
 test("un comercio nuevo no ve ceros: la reputación arranca con su primer turno", async ({ page }) => {

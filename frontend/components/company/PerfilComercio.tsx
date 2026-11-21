@@ -40,6 +40,8 @@ export default function PerfilComercio() {
   // La tarjeta de verificación ya pide `/identity/me`: avisa acá si la
   // constancia está aprobada, sin pedirlo dos veces.
   const [verificado, setVerificado] = useState(false);
+  // Un logo que no carga (archivo borrado, sin red) vuelve a la inicial.
+  const [logoRoto, setLogoRoto] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -68,7 +70,20 @@ export default function PerfilComercio() {
         <NubesCielo nubes={[{ forma: "a", ancho: 250, pos: { right: -56, top: 44 } }]} />
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <h1 className="titulo-pantalla line-clamp-2 break-words">{nombre}</h1>
+            {/* Mientras no se sabe el nombre del local no se pone el de la
+                cuenta para cambiarlo un instante después: una barra, y el
+                `h1` sólo para lectores. */}
+            {loading ? (
+              <>
+                <h1 className="sr-only">Perfil</h1>
+                <div
+                  aria-hidden
+                  className="h-[35px] w-[62%] animate-pulse rounded-full bg-[rgba(255,255,255,0.35)] motion-reduce:animate-none"
+                />
+              </>
+            ) : (
+              <h1 className="titulo-pantalla line-clamp-2 break-words">{nombre}</h1>
+            )}
             {bajada && <p className="mt-1 break-words text-fila font-semibold">{bajada}</p>}
           </div>
           <Link
@@ -88,13 +103,14 @@ export default function PerfilComercio() {
       <div className="hoja -mt-7 flex-1 px-5 pb-10 pt-[18px] md:px-6">
         {/* El logo se cambia en «Datos del comercio» (el lápiz de arriba). */}
         <div className="perfil-foto absolute left-5 top-[-60px] z-[2] md:left-6">
-          {profile?.logo_url ? (
+          {profile?.logo_url && !logoRoto ? (
             // eslint-disable-next-line @next/next/no-img-element -- logo chico (108 px) de Cloudinary, no amerita next/image
             <img
               src={profile.logo_url}
               alt=""
               width={108}
               height={108}
+              onError={() => setLogoRoto(true)}
               className="foto-subir h-[108px] w-[108px] rounded-full object-cover"
             />
           ) : (
@@ -102,7 +118,7 @@ export default function PerfilComercio() {
               aria-hidden
               className="foto-subir flex h-[108px] w-[108px] items-center justify-center rounded-full text-3xl font-bold"
             >
-              {nombre.charAt(0).toUpperCase()}
+              {loading ? "" : nombre.charAt(0).toUpperCase()}
             </div>
           )}
         </div>
@@ -173,12 +189,12 @@ export default function PerfilComercio() {
 
             {/* La verificación va arriba mientras no está aprobada: es lo que
                 destraba todo. Aprobada, el sello es el chip de arriba y la
-                nota baja al final de la hoja. */}
-            {!verificado && (
-              <div className="caja-suave">
-                <BusinessVerificationCard onVerifiedChange={setVerificado} />
-              </div>
-            )}
+                nota baja al final de la columna. Es una sola tarjeta que
+                cambia de orden, no dos: montarla en dos lugares la hacía
+                saltar y pedir dos veces el estado (revisión del 2026-11-21). */}
+            <div className={`caja-suave ${verificado ? "order-last" : ""}`}>
+              <BusinessVerificationCard onVerifiedChange={setVerificado} />
+            </div>
 
             {/* Sólo con al menos una: en cero no dibuja nada. */}
             {profile && <LateCancellations suave count={profile.late_cancellations ?? 0} />}
@@ -199,12 +215,6 @@ export default function PerfilComercio() {
               <EditableName className="text-fila font-semibold text-ink" />
               <p className="truncate text-sm text-ink-soft">{user?.email}</p>
             </div>
-
-            {verificado && (
-              <div className="caja-suave">
-                <BusinessVerificationCard onVerifiedChange={setVerificado} />
-              </div>
-            )}
           </div>
         </div>
       </div>

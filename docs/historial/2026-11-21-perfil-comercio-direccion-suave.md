@@ -31,6 +31,13 @@ acepta la cuenta ya leída (`count`, no vuelve a pedir el perfil) y `suave`.
 `app/profile/page.tsx` queda sólo con la vista del admin, que migra con
 Administración. No hay cambios de backend ni de lógica.
 
+**Lo que encontró la revisión independiente (arreglado en el PR):** la tarjeta
+de verificación se montaba en dos lugares y, ya aprobada, saltaba de arriba al
+final y pedía dos veces el estado (ahora es una sola que cambia de orden);
+mientras cargaba, el cielo mostraba el nombre de la cuenta y después lo
+cambiaba por el del local (ahora una barra hasta saberlo); y un logo que no
+carga dejaba el círculo vacío (vuelve a la inicial).
+
 **Por qué así:**
 
 - *El título es el local y no la persona:* es lo que ve quien trabaja. El
