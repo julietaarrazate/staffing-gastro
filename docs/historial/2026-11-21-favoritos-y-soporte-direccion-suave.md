@@ -1,4 +1,4 @@
-# Favoritos y Soporte con la dirección suave (#PR)
+# Favoritos y Soporte con la dirección suave (#716)
 
 **Pedido:** Julieta, 2026-11-21: «toda la app pasa a la misma dirección».
 Favoritos y Soporte seguían con la letra y las tarjetas de antes.
