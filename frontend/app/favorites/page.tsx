@@ -74,7 +74,7 @@ export default function FavoritesPage() {
         // `grid-cols-1`: sin columnas declaradas la grilla tomaba el ancho del
         // nombre más largo, y con un nombre largo todas las tarjetas se salían
         // de la pantalla y «Quitar» quedaba cortado (visto al migrar, 2026-11-21).
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {favorites.map((f) => (
             <div
               key={f.worker_profile_id}

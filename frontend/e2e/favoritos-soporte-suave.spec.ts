@@ -94,6 +94,27 @@ for (const ancho of [390, 320]) {
   });
 }
 
+test("Favoritos en tablet (768 px): una columna, con lugar para el nombre y «Quitar»", async ({ page }) => {
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await abrir(page, "/favorites");
+  const cajas = await hoja(page).locator(".tarjeta-suave").evaluateAll((els) => els.map((el) => el.getBoundingClientRect().left));
+  expect(new Set(cajas.map((x) => Math.round(x))).size).toBe(1);
+  await expect(hoja(page).locator(".tarjeta-suave").first().getByRole("link", { name: "Juana Pérez" })).toBeVisible();
+});
+
+test("un ticket con un asunto larguísimo y sin espacios no corre la página", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 640 });
+  await abrir(page, "/support/t1");
+  await page.route("**/api/v1/support/tickets/t1", (r) => r.fulfill(json({ ...DETALLE, subject: "Nopuedosubirmicvdesdeelcelularyyaprobétresveces".repeat(3) })));
+  await page.reload();
+  await expect(cielo(page).getByRole("heading", { level: 1 })).toContainText("Nopuedosubir");
+  const sobra = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(sobra).toBeLessThanOrEqual(0);
+});
+
+// Que «Reportar un problema» (`/support?categoria=…&turno=…`) abra solo el ticket nuevo
+// lo prueba `support.spec.ts`, que sigue pasando con la piel nueva.
+
 test("Favoritos vacío: el estado vacío de siempre, sobre la hoja", async ({ page }) => {
   await abrir(page, "/favorites", { favoritos: [] });
   await expect(hoja(page).getByText("Todavía no marcaste favoritos")).toBeVisible();

@@ -180,7 +180,7 @@ export default function SupportTicketPage() {
         >
           {ticket.references.shift && (
             <p className="text-ink/70">
-              <span className="text-ink/50">Turno: </span>
+              <span className="text-ink-soft">Turno: </span>
               {isAdmin ? (
                 <Link
                   href={`/turno/${ticket.references.shift.id}`}
@@ -200,7 +200,7 @@ export default function SupportTicketPage() {
           )}
           {ticket.references.company && !ticket.references.shift && (
             <p className="text-ink/70">
-              <span className="text-ink/50">Comercio: </span>
+              <span className="text-ink-soft">Comercio: </span>
               {isAdmin && ticket.references.company.user_id ? (
                 <Link
                   href={`/admin/personas/${ticket.references.company.user_id}`}
@@ -215,7 +215,7 @@ export default function SupportTicketPage() {
           )}
           {isAdmin && ticket.references.shift && ticket.references.company?.user_id && (
             <p className="mt-1 text-ink/70">
-              <span className="text-ink/50">Ficha del comercio: </span>
+              <span className="text-ink-soft">Ficha del comercio: </span>
               <Link
                 href={`/admin/personas/${ticket.references.company.user_id}`}
                 className="font-semibold text-primary-text underline-offset-2 hover:underline"
@@ -259,7 +259,7 @@ export default function SupportTicketPage() {
               {suggestion && (
                 <p className="mt-2 text-sm text-ink/60">{suggestion.summary}</p>
               )}
-              <p className="mt-1.5 text-xs text-ink/40">
+              <p className="mt-1.5 text-xs text-ink-soft">
                 Sólo precarga la respuesta de abajo — revisala antes de mandar, nunca le contesta
                 directo al usuario.
               </p>
@@ -295,7 +295,7 @@ export default function SupportTicketPage() {
           </div>
         </form>
       ) : (
-        <p className="mt-5 text-center text-sm text-ink/40">
+        <p className="mt-5 text-center text-sm text-ink-soft">
           Este ticket está cerrado. Si necesitás algo más, abrí uno nuevo.
         </p>
       )}
