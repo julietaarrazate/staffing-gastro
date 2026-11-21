@@ -65,11 +65,14 @@ for (const theme of ["light", "dark"] as const) {
     await expect(cielo).toHaveCSS("pointer-events", "none");
     // El cielo va detrás del mapa y lo que se esfuma es el lienzo: debajo del
     // título (un velo corto: menos de 40 px bajo el título) nada tapa los pines.
-    // Se mide bajo el título y no la altura total: con el conmutador «Lista /
+    // Se mide bajo el título (y bajo los chips) y no la altura total: con el conmutador «Lista /
     // Mapa» flotando a su derecha el título pasa a dos renglones (~118 px).
     const cajaCielo = (await cielo.boundingBox())!;
     const cajaTitulo = (await titulo.boundingBox())!;
-    expect(cajaCielo.y + cajaCielo.height - (cajaTitulo.y + cajaTitulo.height)).toBeLessThan(40);
+    expect(cajaCielo.y + cajaCielo.height - (cajaTitulo.y + cajaTitulo.height)).toBeLessThan(40 + 44 + 2); // + la fila de chips (2026-11-21)
+    // Y bajo los chips (lo último del cielo) sigue valiendo lo mismo: un velo corto.
+    const cajaChips = (await cielo.getByRole("group", { name: "Filtrar turnos" }).boundingBox())!;
+    expect(cajaCielo.y + cajaCielo.height - (cajaChips.y + cajaChips.height)).toBeLessThan(40);
     await expect(page.locator(".maplibregl-map").first()).toHaveCSS("background-image", /linear-gradient/);
     await expect(page.locator(".maplibregl-canvas").first()).toHaveCSS("mask-image", /linear-gradient/);
 

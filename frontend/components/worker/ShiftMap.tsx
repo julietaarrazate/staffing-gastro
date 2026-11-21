@@ -15,7 +15,11 @@ import {
   type BottomPaddingApplier,
 } from "@/lib/map/camera";
 import { haversineKm } from "@/lib/map/geo";
+import { anchoEstimadoPin, colocarPastillas, proyectarEnEncuadre, type PinParaPastilla } from "@/lib/map/pastillas";
 import { Shift } from "@/lib/types";
+
+/** Desde este zoom el nombre del local se ve al lado de cada pin. */
+const ZOOM_NOMBRES = 15;
 
 /** Radio de búsqueda mostrado en el anillo (ver docs/reference/MAPS_REDESIGN.md §4.1). */
 const SEARCH_RADIUS_KM = 2;
@@ -23,6 +27,14 @@ const SEARCH_RADIUS_KM = 2;
 interface Viewport {
   bbox: [number, number, number, number];
   zoom: number;
+  /** Tamaño visible del mapa (px), para ubicar las pastillas de los nombres. */
+  ancho: number;
+  alto: number;
+}
+
+function medir(map: MapRef, zoom: number): Viewport {
+  const c = map.getContainer();
+  return { bbox: boundsToBbox(map), zoom, ancho: c.clientWidth, alto: c.clientHeight };
 }
 
 function boundsToBbox(map: MapRef): [number, number, number, number] {
@@ -71,13 +83,13 @@ export default function ShiftMap({
 
   const handleLoad = useCallback((map: MapRef) => {
     mapRef.current = map;
-    setViewport({ bbox: boundsToBbox(map), zoom: map.getZoom() });
+    setViewport(medir(map, map.getZoom()));
     setReady(true);
   }, []);
 
   const handleMoveEnd = useCallback((event: ViewStateChangeEvent) => {
     const map = event.target as unknown as MapRef;
-    setViewport({ bbox: boundsToBbox(map), zoom: event.viewState.zoom });
+    setViewport(medir(map, event.viewState.zoom));
   }, []);
 
   // Padding inferior = alto de la hoja. Va ANTES de los efectos de vuelo (el
@@ -165,6 +177,21 @@ export default function ShiftMap({
     [clusters, center]
   );
 
+  // Las pastillas con el nombre del local (zoom 15 o más). Se recalculan al
+  // terminar de mover el mapa, igual que los clusters.
+  const pastillas = useMemo(() => {
+    if (!viewport || viewport.zoom < ZOOM_NOMBRES) return new Map();
+    const pines: PinParaPastilla[] = [];
+    for (const f of orderedClusters) {
+      if (isCluster(f)) continue;
+      const { shiftId, companyName, payLabel, isMatch } = f.properties;
+      const [lng, lat] = f.geometry.coordinates;
+      const { x, y } = proyectarEnEncuadre(viewport.bbox, viewport.ancho, viewport.alto, lng, lat);
+      pines.push({ id: shiftId, nombre: companyName, x, y, pinAncho: anchoEstimadoPin(payLabel, isMatch) });
+    }
+    return colocarPastillas(pines, viewport.ancho, activeId);
+  }, [orderedClusters, viewport, activeId]);
+
   const handleClusterClick = useCallback(
     (clusterId: number, lng: number, lat: number) => {
       if (!mapRef.current) return;
@@ -205,7 +232,7 @@ export default function ShiftMap({
             />
           );
         }
-        const { shiftId, position, urgent, payAmount, payLabel, isMatch } = feature.properties;
+        const { shiftId, position, urgent, payAmount, payLabel, isMatch, companyName } = feature.properties;
         return (
           <ShiftMarker
             key={shiftId}
@@ -219,6 +246,8 @@ export default function ShiftMap({
             isMatch={isMatch}
             active={shiftId === activeId}
             delayMs={index * 80}
+            nombre={companyName}
+            pastilla={pastillas.get(shiftId) ?? null}
             onClick={handleShiftSelect}
           />
         );
