@@ -8,6 +8,8 @@ const PEEK_HEIGHT = 140;
  * Bandeja deslizable que se superpone a un mapa a
  * pantalla completa. Se puede arrastrar el handle (o tocarlo) para expandir
  * entre un estado "peek" (asoma el resultado) y uno expandido (lista completa).
+ * Con la dirección suave (ADR-0028) toma el borde redondo y la sombra de
+ * `worker/MapSheet` (`.mapa-hoja`); las alturas y el arrastre son los de antes.
  */
 export default function BottomSheet({
   header,
@@ -51,10 +53,19 @@ export default function BottomSheet({
 
   return (
     <div
-      className={`absolute inset-x-0 bottom-0 z-20 flex h-[78dvh] flex-col rounded-t-[var(--radius-relieve)] border-t-[1.5px] border-[color:var(--relieve)] bg-card ${
+      className={`absolute inset-x-0 bottom-0 z-20 flex flex-col overflow-hidden mapa-hoja bg-card ${
         dragging ? "" : "transition-transform duration-200 ease-out"
       }`}
-      style={{ transform: `translateY(${transform})` }}
+      // Tope de altura: 78dvh, o menos si la pantalla reserva arriba un cielo
+      // con filtros (`--hoja-tope`, en px, lo mide el padre): arrastrada al
+      // máximo la hoja queda debajo de ellos. Sin la variable, 78dvh como antes.
+      // Con poco alto (celular de costado, teclado abierto) el cielo se comería
+      // la hoja: ahí manda un piso de 260 px (o 78dvh si es menos), aunque tape
+      // los filtros, para que la lista se pueda leer.
+      style={{
+        height: "max(min(78dvh, calc(100% - var(--hoja-tope, 0px))), min(78dvh, 260px))",
+        transform: `translateY(${transform})`,
+      }}
     >
       <div
         onPointerDown={onPointerDown}

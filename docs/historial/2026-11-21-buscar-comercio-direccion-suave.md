@@ -1,0 +1,80 @@
+# Buscar del comercio con la dirección suave (#717)
+
+**Pedido:** Julieta, 2026-11-21, tanda de pantallas en paralelo para seguir la
+migración a la dirección suave (ADR-0028). Sin maqueta: `/search` es la gemela
+de `/map` (migrado el 2026-11-20, ver
+[`2026-11-20-mapa-direccion-suave.md`](./2026-11-20-mapa-direccion-suave.md)) y
+responde «¿quién está cerca de mi local?». Sólo la piel.
+
+**Qué cambió:** `/search`. Qué se pide, desde dónde se mide (el local; el admin,
+donde está), los filtros, la guarda de rol y qué hace cada toque quedó igual.
+
+- **El mapa es el cielo**, como en `/map`: arriba se funde con el cielo de la
+  app y encima va el título en letra normal: «7 personas cerca de tu local»
+  (admin: «cerca tuyo»; «1 persona…»). Debajo, «Desde tu local · <dirección>».
+  Cargando, sin local y error conservan lo que decían, hechos título. Antes
+  era una línea chica («7 trabajadores disponibles en el radio seleccionado»)
+  en la hoja. En la compu el título va en el panel.
+- **Filtros de vidrio** sobre el cielo: el rubro, el radio en km y la lupa
+  (`campo-vidrio`, `boton-vidrio`). Misma función y mismos nombres accesibles;
+  a 320 px el rubro se achica y la lupa queda a la vista. Se fue el
+  `boton-relieve` ámbar de la lupa. En el panel de la compu (fondo de hoja, no
+  cielo) los campos llevan el relleno del campo suave: el vidrio blanco no se
+  ve sobre blanco.
+- **Pines de personas:** una tecla blanca redonda con aro fino y su pico, con
+  la foto o, sin foto, la inicial sobre el blanco de la tecla; la nota en una pastilla
+  blanca; «Disponible ahora» es el punto verde. Antes eran círculos azul hondo
+  con borde blanco y la nota en un módulo noche. El origen («estás acá») ya iba
+  en el azul de la marca por `.puck-*`.
+- **La lista son filas suaves** (`PersonaCerca`), en la hoja (celular) y en el
+  panel (compu), como los turnos de `/map`: foto redonda (sin foto, la inicial
+  sobre el cielo de `.portada-cielo`), nombre en negrita, nota y distancia,
+  «Disponible ahora · hace N» en verde y los rubros como `chip-suave`. Se
+  fueron la ficha con filete y relieve para quien está disponible, la
+  banda/`heroTile` de color por rubro y el cuadradito.
+- **La hoja** (`BottomSheet`) toma el borde y la sombra de `MapSheet`
+  (`.mapa-hoja`); el arrastre es el de antes. Su tope de altura es el menor
+  entre 78 dvh y lo que deja libre el cielo: la página mide hasta dónde llegan
+  título, filtros y avisos y se lo pasa como `--hoja-tope`, así arrastrada al
+  máximo queda debajo de los filtros (320, 390 y 430 px, con el título en dos
+  renglones). Sin la variable, 78 dvh como antes. Ya no lleva encabezado con
+  el conteo: el conteo es el título.
+- **Sin ámbar, tampoco en las estrellas:** las de la nota van en el azul de los
+  links (`Estrellas` del Perfil en la fila; `text-primary-text` en el pin); el
+  spec mide el color computado. «Nuevo en Oído» sigue igual (`RatingOrNew` no
+  se tocó). La pantalla no tiene acción principal (cada fila lleva a la
+  ficha). El estado «Tu local no tiene ubicación» lleva «Completar ubicación»
+  en azul hondo (antes, ámbar). Los demás estados, con los mismos textos.
+
+Técnico: `frontend/app/search/page.tsx`;
+`frontend/components/employer/PersonaCerca.tsx` (nueva: la fila y
+`FotoPersona`); `frontend/components/map/WorkerMarker.tsx` (quitó su único
+`text-[9px]`: se sacó su excepción de `lib/type-scale.test.ts`);
+`frontend/components/BottomSheet.tsx`; un bloque al final de `globals.css`
+(`.buscar-*`, `.pin-trabajador`, `.pin-nota`, `.persona-*`), sin tocar reglas
+existentes y reusando `.mapa-cielo`, `.mapa-hoja`, `.mapa-panel` y
+`.mapa-turno`. `frontend/e2e/buscar-comercio-suave.spec.ts` reemplaza a
+`buscar-comercio-relieve.spec.ts`. `landing/story/replicas.tsx` no importa
+ninguna de estas piezas (replica el pin por su cuenta): no se tocó.
+
+**Por qué así:**
+
+- **El select de rubro ahora tiene `aria-label="Rubro"`:** no tenía nombre
+  accesible. Es lo único que se agregó fuera de la piel.
+- **La inicial sobre cielo y no el ícono del rubro** para quien no tiene foto:
+  es una persona, no un puesto; el rubro ya está en los chips.
+- **0 resultados dice «0 personas cerca de tu local»** (como `/map` con 0
+  turnos); el estado vacío de abajo explica qué hacer.
+- **Sin encabezado en la hoja:** el conteo estaba duplicado entre la hoja y
+  el título.
+
+**Queda abierto:**
+
+- Con muchas personas los pines que quedan bajo el cielo se ven a través del
+  vidrio de los filtros (los pines no se esfuman, sólo el lienzo; igual que en
+  `/map`).
+- **El mapa real no se vio** (en la sesión no hay salida a los mosaicos): el
+  fondo es liso y el filtro de noche no se probó sobre calles (ver el pendiente
+  de `/map`).
+- El cartel «No pudimos cargar el mapa» (`MapView`, compartido) sigue como
+  antes; `EmptyState` conserva su subtítulo en `ink/50`.

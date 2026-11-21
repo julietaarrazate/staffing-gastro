@@ -1,11 +1,9 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
-import { formatAgo } from "@/lib/datetime";
-import { formatDistance } from "@/lib/format";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useCompanyPlace } from "@/lib/company-place";
@@ -13,15 +11,14 @@ import Link from "next/link";
 import { SKILL_LABELS, WORKER_SKILLS, WorkerMapResult, WorkerSkill } from "@/lib/types";
 import { EmptyState, ErrorBanner, Skeleton } from "@/components/ui";
 import { MapPinIcon, SearchIcon, UsersIcon } from "@/components/icons";
-import { SKILL_ACCENT, heroTile } from "@/lib/skill-style";
-import RatingOrNew from "@/components/RatingOrNew";
+import PersonaCerca from "@/components/employer/PersonaCerca";
 import BottomSheet from "@/components/BottomSheet";
 
 function WorkerRowSkeleton() {
   return (
-    <div className="flex gap-3 rounded-[var(--radius-card)] bg-card p-4 ring-1 ring-line" aria-hidden>
-      <Skeleton className="h-14 w-14 shrink-0 rounded-[var(--radius-btn)]" />
-      <div className="flex-1 space-y-2">
+    <div className="mapa-turno persona-fila flex gap-3 p-3" aria-hidden>
+      <Skeleton className="persona-foto shrink-0 rounded-full" />
+      <div className="flex-1 space-y-2 pt-1">
         <Skeleton className="h-4 w-2/3" />
         <Skeleton className="h-3.5 w-1/3" />
         <Skeleton className="h-5 w-3/4 rounded-full" />
@@ -77,7 +74,7 @@ function SearchGuard() {
   if (!allowed) return null;
   if (!user) {
     return (
-      <div data-testid="guarda-cargando" aria-busy className="mx-auto max-w-md space-y-3 px-4 pb-8 pt-4 md:max-w-5xl">
+      <div data-testid="guarda-cargando" aria-busy className="estilo-suave mx-auto max-w-md space-y-3 px-4 pb-8 pt-4 md:max-w-5xl">
         <WorkerRowSkeleton />
         <WorkerRowSkeleton />
         <WorkerRowSkeleton />
@@ -207,14 +204,48 @@ function SearchPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, center, origin, filtersRestored]);
 
+  // Los filtros, de vidrio sobre el cielo del mapa (celular) y sobre el panel
+  // (compu). Misma función y mismos nombres accesibles que antes.
+  // La hoja, arrastrada al máximo, no tapa el cielo: se mide hasta dónde llega
+  // lo de arriba (título, desde dónde se mide, filtros y avisos) y se le pasa
+  // a `BottomSheet` como `--hoja-tope`. En la compu el cielo no se ve (alto 0)
+  // y no hay tope.
+  const mapaRef = useRef<HTMLDivElement>(null);
+  const cieloRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const mapa = mapaRef.current;
+    const cielo = cieloRef.current;
+    if (!mapa || !cielo) return;
+    const medir = () => {
+      const ultimo = cielo.lastElementChild as HTMLElement | null;
+      if (cielo.offsetHeight === 0 || !ultimo) {
+        mapa.style.removeProperty("--hoja-tope");
+        return;
+      }
+      // El último renglón con contenido (el de avisos puede estar vacío).
+      let fin = cielo.firstElementChild as HTMLElement;
+      for (const hijo of Array.from(cielo.children) as HTMLElement[]) {
+        if (hijo.offsetHeight > 0) fin = hijo;
+      }
+      const tope = fin.getBoundingClientRect().bottom - mapa.getBoundingClientRect().top + 12;
+      mapa.style.setProperty("--hoja-tope", `${Math.max(0, Math.round(tope))}px`);
+    };
+    medir();
+    const observer = new ResizeObserver(medir);
+    observer.observe(cielo);
+    observer.observe(mapa);
+    return () => observer.disconnect();
+  }, []);
+
   const filterControls = (
-    <div className="flex items-center gap-2 rounded-[var(--radius-relieve)] bg-card px-2 py-2 ring-1 ring-line">
+    <div className="buscar-filtros flex items-center gap-2">
       <select
         value={skill}
         onChange={(e) => setSkill(e.target.value as WorkerSkill | "")}
+        aria-label="Rubro"
         // `min-w-0`: sin esto el select no se achica y a 320 px la lupa quedaba
         // fuera de la pantalla (revisión del 2026-11-19).
-        className="min-w-0 flex-1 rounded-[var(--radius-btn)] bg-surface px-3 py-2 text-sm font-medium text-ink ring-1 ring-line transition focus:bg-card"
+        className="campo-vidrio h-11 min-w-0 flex-1 px-3 text-sm font-semibold text-ink"
       >
         <option value="">Todos los roles</option>
         {WORKER_SKILLS.map((s) => (
@@ -231,57 +262,56 @@ function SearchPageContent() {
         onChange={(e) => setRadiusKm(Number(e.target.value))}
         title="Radio en km"
         aria-label="Radio en kilómetros"
-        className="w-12 rounded-[var(--radius-btn)] bg-surface px-1 py-2 text-center text-sm font-medium text-ink ring-1 ring-line transition focus:bg-card"
+        className="campo-vidrio h-11 w-14 px-1 text-center text-sm font-semibold text-ink"
       />
-      <span className="-ml-1 text-sm font-medium text-ink-soft" aria-hidden>
+      <span className="-ml-1 text-sm font-semibold" aria-hidden>
         km
       </span>
       <button
         onClick={search}
         disabled={loading}
         aria-label="Buscar"
-        className="boton-relieve flex h-9 w-9 shrink-0 items-center justify-center bg-primary text-night disabled:opacity-60"
+        className="boton-vidrio h-11 w-11 shrink-0 transition active:scale-95 disabled:opacity-60"
       >
-        <SearchIcon size={16} className={loading ? "animate-pulse" : ""} />
+        <SearchIcon size={18} className={loading ? "animate-pulse" : ""} />
       </button>
     </div>
   );
 
   const sinLocal = origin === "sin-local";
   const placeFailed = origin === "error";
-  const countLabel = placeFailed
+  // El título de la pantalla: cuántas personas hay y respecto de qué (el comercio
+  // mide desde su local; el admin, desde donde está).
+  const cerca = origin === "cerca" ? "cerca tuyo" : "cerca de tu local";
+  const titulo = placeFailed
     ? "No pudimos ubicar tu local"
     : sinLocal
     ? "Falta la ubicación de tu local"
     : loading
     ? "Buscando..."
-    : `${workers.length} trabajador${workers.length === 1 ? "" : "es"} disponible${
-        workers.length === 1 ? "" : "s"
-      } en el radio seleccionado`;
+    : `${workers.length} ${workers.length === 1 ? "persona" : "personas"} ${cerca}`;
 
   // Desde dónde se mide, dicho en pantalla (el comercio no debería adivinarlo).
   const originNote =
     origin === "local" && companyPlace ? (
-      <p
-        data-testid="search-origin"
-        className="flex items-center gap-1.5 text-xs font-medium text-ink/60"
-      >
-        <MapPinIcon size={13} className="shrink-0 text-primary-text" />
+      <p data-testid="search-origin" className="flex items-center gap-1.5 text-xs font-semibold">
+        <MapPinIcon size={13} className="shrink-0" />
         <span className="min-w-0 truncate">
           Desde tu local · {companyPlace.label}
         </span>
       </p>
     ) : sinLocal ? (
-      // En mobile el sheet arranca replegado y el botón del estado vacío queda
-      // abajo: el acceso a completar el local también va en el encabezado.
-      <Link href="/profile/edit" className="inline-flex min-h-[44px] items-center text-sm font-semibold text-primary-text underline">
+      // En mobile la hoja arranca replegada y el botón del estado vacío queda
+      // abajo. El cielo no recibe toques (el mapa se mueve por debajo): este
+      // enlace los vuelve a pedir, si no el toque cae en el mapa.
+      <Link href="/profile/edit" className="pointer-events-auto inline-flex min-h-[44px] items-center text-sm font-semibold underline">
         Completar ubicación del local
       </Link>
     ) : null;
 
   // Falló el pedido del local: no es «sin local». Se dice y se puede reintentar.
   const placeBanner = placeFailed ? (
-    <div className="-mt-4">
+    <div className="mt-2">
       <ErrorBanner message="No pudimos cargar la ubicación de tu local." onRetry={retryPlace} />
     </div>
   ) : null;
@@ -289,12 +319,14 @@ function SearchPageContent() {
   const workerList = (
     <>
       {placeFailed ? null : sinLocal ? (
-        <EmptyState
-          icon={<MapPinIcon size={28} />}
-          title="Tu local no tiene ubicación"
-          subtitle="Para buscar gente cerca necesitamos saber dónde queda. Completá la dirección de tu local y medimos desde ahí."
-          primaryAction={{ label: "Completar ubicación", onClick: () => router.push("/profile/edit") }}
-        />
+        <div className="buscar-vacio">
+          <EmptyState
+            icon={<MapPinIcon size={28} />}
+            title="Tu local no tiene ubicación"
+            subtitle="Para buscar gente cerca necesitamos saber dónde queda. Completá la dirección de tu local y medimos desde ahí."
+            primaryAction={{ label: "Completar ubicación", onClick: () => router.push("/profile/edit") }}
+          />
+        </div>
       ) : !loading && workers.length === 0 ? (
         <EmptyState
           icon={<UsersIcon size={28} />}
@@ -302,12 +334,10 @@ function SearchPageContent() {
           subtitle="Ampliá el radio de búsqueda o probá otro rubro para encontrar candidatos cerca."
         />
       ) : (
-        // Cada trabajador en su ficha blanca con filete, como en Candidatos
-        // (Julieta, 2026-11-19, entre fichas y renglones). Quien está
-        // «Disponible ahora» lleva el borde y el relieve del filete. Antes:
-        // tarjetas en superficie gris con una banda de color del rubro al
-        // costado y sombra difusa.
-        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-1">
+        // Cada persona en una fila suave, como los turnos de `/map`: foto
+        // redonda, nombre, nota y distancia, «Disponible ahora» en verde y los
+        // rubros como chips. Toda la fila lleva a su ficha.
+        <div className="grid gap-3 py-1 sm:grid-cols-2 md:grid-cols-1">
           {loading ? (
             <>
               <WorkerRowSkeleton />
@@ -315,105 +345,57 @@ function SearchPageContent() {
               <WorkerRowSkeleton />
             </>
           ) : (
-            workers.map((worker) => (
-              <Link
-                key={worker.profile_id}
-                href={`/workers/${worker.profile_id}`}
-                className={`flex gap-3 rounded-[var(--radius-card)] p-4 transition active:scale-[0.99] ${worker.is_live ? "tarjeta-relieve" : "bg-card ring-1 ring-line"}`}
-              >
-                {worker.photo_url ? (
-                  <img
-                    src={worker.photo_url}
-                    alt={worker.full_name}
-                    width={56}
-                    height={56}
-                    loading="lazy"
-                    decoding="async"
-                    className="h-14 w-14 rounded-[var(--radius-btn)] object-cover"
-                  />
-                ) : (
-                  <span aria-hidden className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-[var(--radius-btn)] text-xl font-bold ${worker.skills.length > 0 ? heroTile(worker.skills[0]) : "bg-surface text-ink"}`}>
-                    {worker.full_name.charAt(0).toUpperCase()}
-                  </span>
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-ink">{worker.full_name}</p>
-                  <div className="mt-0.5 flex items-center gap-1.5">
-                    <RatingOrNew rating={worker.rating} size={13} numberClassName="text-xs text-ink-soft" />
-                    {worker.distance_km != null && <span className="text-xs text-ink-soft">· {formatDistance(worker.distance_km)}</span>}
-                  </div>
-                  {worker.is_live && (
-                    <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-success-text">
-                      <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden />
-                      Disponible ahora
-                      {worker.position_updated_at && <span className="font-normal text-ink-soft">· {formatAgo(worker.position_updated_at)}</span>}
-                    </p>
-                  )}
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {worker.skills.map((sk) => {
-                      const { Icon } = SKILL_ACCENT[sk];
-                      return (
-                        <span key={sk} className="inline-flex items-center gap-1 rounded-[var(--radius-chip)] bg-surface px-2 py-0.5 text-xs font-semibold text-ink-soft">
-                          <Icon size={11} /> {SKILL_LABELS[sk]}
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
-              </Link>
-            ))
+            workers.map((worker) => <PersonaCerca key={worker.profile_id} worker={worker} />)
           )}
         </div>
       )}
     </>
   );
 
+  const avisoError = error && (
+    <div className="mt-2">
+      <ErrorBanner message={error} onRetry={search} />
+    </div>
+  );
+
   return (
-    <div className="bajo-barra-hoja flex h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] overflow-hidden md:h-[calc(100dvh-var(--chrome-top))]">
-      {/* Panel lateral (desktop, md+): filtros + la MISMA lista que en mobile
-          vive en el BottomSheet. Antes el sheet mobile se estiraba tal cual a
-          la web y dejaba media pantalla vacía (mismo patrón que tenía /map,
-          ver docs/STATUS.md). En mobile no se renderiza (hidden). */}
-      <aside className="hidden w-full max-w-[400px] shrink-0 flex-col overflow-hidden border-r border-line bg-card md:flex">
-        <div className="border-b border-line px-4 py-3">
-          {filterControls}
+    <div className="estilo-suave bajo-barra-hoja flex h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] overflow-hidden md:h-[calc(100dvh-var(--chrome-top))]">
+      {/* Panel lateral (desktop, md+): el título, los filtros y la MISMA lista
+          que en mobile vive en la hoja (mismo patrón que `/map`). En mobile no
+          se renderiza (hidden). */}
+      <aside className="mapa-panel hidden w-full max-w-[400px] shrink-0 flex-col overflow-hidden bg-card md:flex">
+        <div className="shrink-0 px-5 pb-3 pt-5">
+          <h1 className="titulo-pantalla break-words text-ink">{titulo}</h1>
+          {originNote && <div className="mt-1.5 text-ink-soft">{originNote}</div>}
+          <div className="mt-3">{filterControls}</div>
           {placeBanner}
-          {error && (
-            <div className="mt-2">
-              <ErrorBanner message={error} onRetry={search} />
-            </div>
-          )}
+          {avisoError}
         </div>
-        <p className="px-5 pt-4 text-sm font-semibold text-ink/75">{countLabel}</p>
-        {originNote && <div className="px-5 pt-1">{originNote}</div>}
-        <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3">{workerList}</div>
+        <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-4 pt-1">{workerList}</div>
       </aside>
 
       {/* Mapa + overlays mobile */}
-      <div className="relative h-full flex-1 overflow-hidden">
+      <div ref={mapaRef} className="buscar-mapa relative h-full flex-1 overflow-hidden">
         <WorkerSearchMap center={center} workers={workers} showOrigin={origin === "local" || origin === "cerca"} className="absolute inset-0 h-full w-full" />
 
-        {/* Filtros flotantes: sólo mobile (en desktop ya están en el panel). */}
-        <div className="absolute inset-x-0 top-0 z-10 p-3 md:hidden">
-          {filterControls}
-          {placeBanner}
-          {error && (
-            <div className="mt-2">
-              <ErrorBanner message={error} onRetry={search} />
-            </div>
-          )}
+        {/* El mapa es el cielo (ADR-0028, como `/map`): arriba se funde con el
+            cielo de la app (lo hace el CSS sobre el lienzo) y encima van el
+            título, desde dónde se mide y los filtros de vidrio. Sólo mobile: en
+            la compu van en el panel. El cielo no recibe toques (el mapa se
+            mueve también por debajo del título); los filtros sí. */}
+        <div ref={cieloRef} className="mapa-cielo buscar-cielo pointer-events-none absolute inset-x-0 top-0 z-10 px-4 pb-8 pt-5 md:hidden">
+          <h1 className="titulo-pantalla break-words px-1">{titulo}</h1>
+          {originNote && <div className="mt-1.5 px-1">{originNote}</div>}
+          <div className="pointer-events-auto mt-3">{filterControls}</div>
+          <div className="pointer-events-auto">
+            {placeBanner}
+            {avisoError}
+          </div>
         </div>
 
-        {/* BottomSheet: sólo mobile — en desktop la lista vive en el panel. */}
+        {/* La hoja: sólo mobile — en desktop la lista vive en el panel. */}
         <div className="md:hidden">
-          <BottomSheet header={
-              <div className="px-4 pb-2">
-                <p className="text-sm font-semibold text-ink/75">{countLabel}</p>
-                {originNote && <div className="mt-0.5">{originNote}</div>}
-              </div>
-            }>
-            {workerList}
-          </BottomSheet>
+          <BottomSheet>{workerList}</BottomSheet>
         </div>
       </div>
     </div>

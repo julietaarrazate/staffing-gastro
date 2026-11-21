@@ -25,10 +25,12 @@ interface WorkerMarkerProps {
 }
 
 /**
- * Marcador de trabajador (mapa del comercio, `/search`): avatar circular con
- * foto (o inicial de fallback) y mini-badge de rating. Seleccionado: escala
- * 1.25x + halo naranja, mismo patrón que `ShiftMarker`. Ver
- * docs/reference/MAPS_REDESIGN.md §5.
+ * Marcador de trabajador (mapa del comercio, `/search`): una tecla blanca
+ * redonda con aro fino (`.pin-trabajador` en `globals.css`), con la foto o, sin
+ * foto, la inicial sobre el celeste de la marca, y la nota en una pastilla
+ * blanca en la esquina. «Disponible ahora»: el punto verde. Seleccionado:
+ * escala 1.25x con el aro en azul hondo. Mismo lenguaje que `ShiftMarker`
+ * (dirección suave, ADR-0028). Ver docs/reference/MAPS_REDESIGN.md §5.
  *
  * Envuelto en `memo`: junto con el `onClick(id)` estable del padre, evita
  * que los N marcadores se re-rendericen todos al seleccionar uno solo.
@@ -73,17 +75,12 @@ function WorkerMarker({
             e.stopPropagation();
             onClick(id);
           }}
-          className={`relative flex h-[38px] w-[38px] items-center justify-center rounded-full border-2 border-white bg-primary-text shadow-[0_4px_10px_rgba(17,17,20,0.22)] transition-transform duration-300 ease-out ${
-            active ? "scale-[1.25]" : "scale-100"
-          }`}
+          className="pin-trabajador"
         >
-          {active && (
-            <span className="absolute -inset-2 rounded-full border-2 border-primary-text [animation:markerHalo_1.6s_ease-out_infinite]" />
-          )}
           {isLive && (
             <span
               aria-label="Disponible ahora"
-              className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-success"
+              className="pin-vivo absolute -right-0.5 -top-0.5 z-10 h-3 w-3 rounded-full bg-success"
             />
           )}
           {showPhoto ? (
@@ -97,11 +94,11 @@ function WorkerMarker({
               className="h-full w-full rounded-full object-cover"
             />
           ) : (
-            <span className="text-sm font-bold text-card">{initial}</span>
+            <span className="pin-trabajador-inicial">{initial}</span>
           )}
           {hasRating(rating) && (
-            <span className="absolute -bottom-1 -right-1 flex items-center gap-0.5 rounded-full border border-white bg-night px-1 py-[1px] text-[9px] font-bold leading-tight text-white shadow-sm">
-              <StarIcon size={8} filled className="text-rating" />
+            <span className="pin-nota">
+              <StarIcon size={9} filled className="text-primary-text" />
               {formatRating(rating)}
             </span>
           )}
