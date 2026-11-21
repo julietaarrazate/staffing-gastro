@@ -1,4 +1,4 @@
-# La barra de abajo: un velo que esfuma lo que pasa por detrás (#PR)
+# La barra de abajo: un velo y el «+» de «Publicar turno» al centro (#PR)
 
 **Pedido:** Julieta, 2026-11-21, con capturas de su celular: «quizás lo que
 hace que se vea raro sea la barra flotante: pasa por el texto y se
@@ -37,3 +37,35 @@ la barra (z-index 50 o más).
 **Queda abierto:** la zona segura (`env(safe-area-inset-bottom)`) no se puede
 simular en Chromium de escritorio: el velo y la píldora la suman por igual, y
 queda por mirar en un iPhone.
+
+## El «+» de «Publicar turno» pasa al centro de la píldora
+
+**Pedido:** Julieta, 2026-11-21, con referencias de barras con el botón
+central: «lo prefiero al centro». **Es decisión suya y reemplaza la del
+2026-11-20 (#712), que lo dejaba suelto a la derecha de la píldora.**
+
+**Qué cambió (lo que se ve):** la barra del comercio es una sola píldora de
+ancho completo (como la de quien trabaja) con Panel y Buscar a la izquierda,
+el «+» redondo azul hondo en el centro (56 px, mismo ícono, mismo nombre
+«Publicar turno» y mismo destino) y Chats y Perfil a la derecha. El «+»
+sobresale 10 px por arriba de la píldora, con su sombra y un aro del color de
+la píldora que lo despega; sin muesca recortada y sin ámbar. A 320 px las
+cuatro pestañas siguen midiendo 57 px de ancho táctil. Quien trabaja (cinco
+pestañas, sin «+») y el admin no cambian; en la compu tampoco.
+
+**Lo técnico:** `frontend/components/BottomNav.tsx`: el «+» ya no es hermano
+de la `<nav>`, es un enlace dentro de ella entre la segunda y la tercera
+pestaña (el orden de teclado sale solo: Panel, Buscar, +, Chats, Perfil).
+`frontend/app/globals.css`, `.barra-app-mas`: ocupa su lugar en la fila (56 px
+y 4 de aire por lado), sube 14 px (`translateY`) y lleva `box-shadow` con el
+aro de `--barra-fondo`; foco visible con `outline-offset: 6px` (por fuera del
+aro). Tests: `BottomNav.test.tsx`, `e2e/barra-de-abajo.spec.ts` (el «+» ya no
+va al lado) y `e2e/barra-flotante.spec.ts` (centrado ±1 px, dos pestañas a
+cada lado, nada se pisa a 390 y 320 px en claro y oscuro, el velo no lo
+lava, orden de teclado y foco, la barra de quien trabaja no cambia).
+
+**Por qué así:** el «+» sobresale justo lo que mide el hueco que las pantallas
+dejan libre para la barra (`--chrome-bottom`), así que no pisa lo que
+descansa al final ni queda debajo del velo (el velo va detrás de la píldora y
+del «+»). Dentro de la `<nav>` y no al lado: una sola píldora, un solo grupo
+para el lector de pantalla.

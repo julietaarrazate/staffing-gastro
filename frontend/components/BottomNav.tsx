@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
@@ -92,48 +93,52 @@ export default function BottomNav() {
           navegación» sin forma de distinguirlas (auditoría de navegación,
           fase H). */}
       <nav aria-label="Secciones" className="barra-app-pildora">
-        {tabs.map(({ href, label, Icon, tambien = [] }) => {
+        {tabs.map(({ href, label, Icon, tambien = [] }, i) => {
           const active = [href, ...tambien].some((ruta) => pathname === ruta || pathname.startsWith(`${ruta}/`));
           // Coincidencia exacta: en una pantalla de adentro (publicar,
           // candidatos) la pestaña está activa pero no hay campanita.
           const avisos = href === inicio && pathname !== href ? unreadCount : 0;
           return (
-            <Link
-              key={href}
-              href={href}
-              data-tour={`nav-${href.slice(1)}`}
-              // `replace` (no push): cambiar de pestaña NO apila historial, igual
-              // que una app nativa. Antes cada tap sumaba una entrada y el botón
-              // "atrás" retrocedía pestaña por pestaña (Perfil→Chats→Matches→...)
-              // en vez de salir de la sección — el síntoma de "atrás va una
-              // página atrás y nunca sale". La navegación a detalle (turno,
-              // candidatos, chat) sigue con push, así que ahí "atrás" funciona
-              // como se espera.
-              replace
-              // La pestaña activa no se distingue SÓLO por color: quien usa
-              // lector de pantalla tiene que saber en qué sección está (fase H,
-              // mismo criterio que F4/jsx-a11y).
-              aria-current={active ? "page" : undefined}
-              aria-label={avisos > 0 ? `${label}, ${avisos} ${avisos === 1 ? "aviso" : "avisos"} sin leer` : undefined}
-              className="barra-app-pestana"
-            >
-              {/* La activa: un óvalo celeste detrás del ícono. */}
-              <span className="barra-app-icono">
-                <Icon size={22} />
-                <CuentaAvisos cuantos={avisos} className="absolute -top-1 right-0" />
-              </span>
-              {label}
-            </Link>
+            <Fragment key={href}>
+              {/* «Publicar turno» del comercio: el «+» redondo azul hondo en el
+                  centro de la píldora (Julieta, 2026-11-21, reemplaza al «+» al
+                  costado de #712), dos pestañas de cada lado. Sobresale unos
+                  10 px por arriba. No va en ámbar: el ámbar es de la acción de
+                  cada pantalla. */}
+              {conMas && i === tabs.length / 2 && (
+                <Link href="/shifts/new" aria-label="Publicar turno" data-tour="shifts-publish" className="barra-app-mas">
+                  <PlusIcon size={26} strokeWidth={2.2} />
+                </Link>
+              )}
+              <Link
+                data-tour={`nav-${href.slice(1)}`}
+                href={href}
+                // `replace` (no push): cambiar de pestaña NO apila historial, igual
+                // que una app nativa. Antes cada tap sumaba una entrada y el botón
+                // "atrás" retrocedía pestaña por pestaña (Perfil→Chats→Matches→...)
+                // en vez de salir de la sección — el síntoma de "atrás va una
+                // página atrás y nunca sale". La navegación a detalle (turno,
+                // candidatos, chat) sigue con push, así que ahí "atrás" funciona
+                // como se espera.
+                replace
+                // La pestaña activa no se distingue SÓLO por color: quien usa
+                // lector de pantalla tiene que saber en qué sección está (fase H,
+                // mismo criterio que F4/jsx-a11y).
+                aria-current={active ? "page" : undefined}
+                aria-label={avisos > 0 ? `${label}, ${avisos} ${avisos === 1 ? "aviso" : "avisos"} sin leer` : undefined}
+                className="barra-app-pestana"
+              >
+                {/* La activa: un óvalo celeste detrás del ícono. */}
+                <span className="barra-app-icono">
+                  <Icon size={22} />
+                  <CuentaAvisos cuantos={avisos} className="absolute -top-1 right-0" />
+                </span>
+                {label}
+              </Link>
+            </Fragment>
           );
         })}
       </nav>
-      {/* «Publicar turno» del comercio: el «+» redondo azul hondo al lado de
-          la barra. No va en ámbar: el ámbar es de la acción de cada pantalla. */}
-      {conMas && (
-        <Link href="/shifts/new" aria-label="Publicar turno" data-tour="shifts-publish" className="barra-app-mas">
-          <PlusIcon size={26} strokeWidth={2.2} />
-        </Link>
-      )}
     </div>
   );
 }

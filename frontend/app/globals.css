@@ -4683,18 +4683,33 @@ body:has([data-landing]) main {
 .barra-app-pestana[aria-current="page"] .barra-app-icono {
   background: var(--color-primary-tint);
 }
+/* «Publicar turno» del comercio: el «+» en el centro de la píldora, dos
+   pestañas de cada lado (Julieta, 2026-11-21). Ocupa su lugar en la fila (56 px
+   más 4 de aire a cada lado) y sube 14 px: sobresale 10 por arriba de la
+   píldora, que es justo el hueco que la pantalla deja libre para la barra
+   (`--chrome-bottom`), así que no pisa lo que descansa al final. El aro del
+   color de la píldora lo despega de lo que pasa por detrás. */
 .barra-app-mas {
-  pointer-events: auto;
+  position: relative;
+  z-index: 1;
   display: flex;
   flex: none;
   align-items: center;
   justify-content: center;
-  width: 64px;
-  height: 64px;
+  width: 56px;
+  height: 56px;
+  margin-inline: 4px;
   border-radius: 999px;
   background: var(--barra-hondo);
   color: #ffffff;
-  box-shadow: 0 12px 24px rgba(28, 84, 120, 0.35);
+  transform: translateY(-14px);
+  box-shadow:
+    0 0 0 4px var(--barra-fondo),
+    0 10px 20px rgba(28, 84, 120, 0.35);
+}
+.barra-app-mas:focus-visible {
+  outline: 2px solid var(--focus-ring, var(--color-primary));
+  outline-offset: 6px;
 }
 /* Lo que pasa por detrás de la barra de arriba al bajar se esfuma en el
    lienzo, en vez de asomar entero por encima y por debajo de la píldora. */

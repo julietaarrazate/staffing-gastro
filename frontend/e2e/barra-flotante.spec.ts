@@ -91,7 +91,7 @@ test("celular: sin encabezado; fuera del Inicio la cuenta de avisos va en su pes
   await expect(hoja).toBeHidden();
 });
 
-test("celular, comercio: «oído» y la campanita sobre el cielo del Panel, y el «+» de «Publicar turno» al lado de la barra", async ({
+test("celular, comercio: «oído» y la campanita sobre el cielo del Panel, y el «+» de «Publicar turno» en el centro de la barra", async ({
   page,
 }) => {
   await abrir(page, "employer", "/shifts");
@@ -102,8 +102,8 @@ test("celular, comercio: «oído» y la campanita sobre el cielo del Panel, y el
 
   const mas = page.locator(".barra-app").getByRole("link", { name: "Publicar turno" });
   const [cajaBarra, cajaMas] = await Promise.all([barra(page).boundingBox(), mas.boundingBox()]);
-  // Al lado, no encima: el «+» arranca donde termina la píldora.
-  expect(cajaMas!.x).toBeGreaterThanOrEqual(cajaBarra!.x + cajaBarra!.width);
+  // En el centro de la píldora (2026-11-21, reemplaza al «+» al costado de #712).
+  expect(Math.abs(cajaMas!.x + cajaMas!.width / 2 - (cajaBarra!.x + cajaBarra!.width / 2))).toBeLessThanOrEqual(1);
   expect(cajaMas!.width).toBeGreaterThanOrEqual(48);
 
   await mas.click();
@@ -325,4 +325,111 @@ test("velo: en la compu la barra no existe y no queda ningún velo", async ({ pa
   await page.setViewportSize({ width: 1280, height: 800 });
   await abrir(page, "worker", "/feed");
   await expect(page.locator(".barra-app")).toHaveCSS("display", "none");
+});
+
+/**
+ * El «+» de «Publicar turno» en el centro de la píldora del comercio (Julieta,
+ * 2026-11-21): dos pestañas de cada lado, sobresale unos 10 px por arriba con
+ * un aro del color de la píldora, sin ámbar, con foco visible y el orden de
+ * teclado Panel, Buscar, +, Chats, Perfil. Se mide con la pantalla renderizada.
+ */
+for (const ancho of [390, 320]) {
+  for (const tema of ["light", "dark"] as const) {
+    test(`«+» al centro (${ancho} px, ${tema}): centrado ±1 px, dos pestañas a cada lado, nada se pisa`, async ({ page }) => {
+      await page.setViewportSize({ width: ancho, height: ancho === 320 ? 568 : 844 });
+      await abrir(page, "employer", "/shifts", tema);
+      const mas = barra(page).getByRole("link", { name: "Publicar turno" });
+      await expect(mas).toBeVisible();
+      const pildora = (await barra(page).boundingBox())!;
+      const cm = (await mas.boundingBox())!;
+      expect(Math.abs(cm.x + cm.width / 2 - (pildora.x + pildora.width / 2))).toBeLessThanOrEqual(1);
+      expect(cm.width).toBeGreaterThanOrEqual(56 - 0.5);
+      expect(cm.width).toBeLessThanOrEqual(60);
+      // Sobresale 10–12 px por arriba de la píldora y queda dentro de la pantalla.
+      const sobresale = pildora.y - cm.y;
+      expect(sobresale).toBeGreaterThanOrEqual(9);
+      expect(sobresale).toBeLessThanOrEqual(13);
+      expect(cm.y).toBeGreaterThanOrEqual(0);
+
+      const nombres = ["Panel", "Buscar", "Chats", "Perfil"];
+      const cajas = await Promise.all(nombres.map(async (n) => (await barra(page).getByRole("link", { name: n, exact: true }).boundingBox())!));
+      const [panel, buscar, chats, perfil] = cajas;
+      expect(panel.x + panel.width).toBeLessThanOrEqual(buscar.x + 0.5);
+      expect(buscar.x + buscar.width).toBeLessThanOrEqual(cm.x + 0.5); // dos a la izquierda
+      expect(chats.x).toBeGreaterThanOrEqual(cm.x + cm.width - 0.5); // dos a la derecha
+      expect(chats.x + chats.width).toBeLessThanOrEqual(perfil.x + 0.5);
+      for (const c of cajas) {
+        // Cada pestaña conserva su área táctil (44 px) y entra en la píldora.
+        expect(c.width).toBeGreaterThanOrEqual(44);
+        expect(c.x).toBeGreaterThanOrEqual(pildora.x - 0.5);
+        expect(c.x + c.width).toBeLessThanOrEqual(pildora.x + pildora.width + 0.5);
+      }
+      // Los textos de las pestañas no se salen de su pestaña.
+      for (const n of nombres) {
+        const ok = await barra(page)
+          .getByRole("link", { name: n, exact: true })
+          .evaluate((el) => {
+            const r = document.createRange();
+            r.selectNodeContents(el);
+            const t = r.getBoundingClientRect();
+            const c = el.getBoundingClientRect();
+            return t.left >= c.left - 0.5 && t.right <= c.right + 0.5;
+          });
+        expect(ok, n).toBe(true);
+      }
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+    });
+  }
+}
+
+test("«+» al centro: azul hondo (no ámbar), con aro del color de la píldora, y el velo no lo corta ni lo lava", async ({ page }) => {
+  await abrir(page, "employer", "/shifts");
+  const mas = barra(page).getByRole("link", { name: "Publicar turno" });
+  const estilo = await mas.evaluate((el) => {
+    const c = getComputedStyle(el);
+    const fondoPildora = getComputedStyle(el.closest("nav")!).backgroundColor;
+    return { fondo: c.backgroundImage, sombra: c.boxShadow, fondoPildora };
+  });
+  expect(estilo.fondo).toContain("linear-gradient");
+  expect(estilo.fondo).not.toMatch(/246, 169, 42|229, 142, 15|245, 158, 11|217, 119, 6|255, 171, 37/);
+  expect(estilo.sombra).toContain(estilo.fondoPildora); // el aro
+  // Píxeles reales: el centro del «+» es azul (no se lavó con el velo) y la
+  // punta que sobresale por arriba de la píldora también.
+  const c = (await mas.boundingBox())!;
+  const [centro, punta] = await pixeles(page, [
+    [Math.round(c.x + c.width / 2 - 14), Math.round(c.y + c.height / 2 + 10)],
+    [Math.round(c.x + c.width / 2), Math.round(c.y + 3)],
+  ]);
+  for (const px of [centro, punta]) {
+    expect(px[2]).toBeGreaterThan(px[0] + 30); // más azul que rojo
+    expect(px[0]).toBeLessThan(120);
+  }
+});
+
+test("«+» al centro: orden de teclado Panel, Buscar, +, Chats, Perfil y foco visible en el «+»", async ({ page }) => {
+  await abrir(page, "employer", "/shifts");
+  await barra(page).getByRole("link", { name: "Buscar", exact: true }).focus();
+  const orden: string[] = [];
+  for (let i = 0; i < 3; i++) {
+    await page.keyboard.press("Tab");
+    orden.push(await page.evaluate(() => (document.activeElement as HTMLElement).getAttribute("aria-label") ?? document.activeElement!.textContent ?? ""));
+  }
+  expect(orden).toEqual(["Publicar turno", "Chats", "Perfil"]);
+  await barra(page).getByRole("link", { name: "Buscar", exact: true }).focus();
+  await page.keyboard.press("Tab");
+  const mas = barra(page).getByRole("link", { name: "Publicar turno" });
+  await expect(mas).toBeFocused();
+  const aro = await mas.evaluate((el) => {
+    const c = getComputedStyle(el);
+    return { estilo: c.outlineStyle, ancho: parseFloat(c.outlineWidth), offset: parseFloat(c.outlineOffset) };
+  });
+  expect(aro.estilo).toBe("solid");
+  expect(aro.ancho).toBeGreaterThanOrEqual(2);
+  expect(aro.offset).toBeGreaterThanOrEqual(5); // por fuera del aro de la píldora
+});
+
+test("barra de quien trabaja: cinco pestañas y ningún «+» (no cambia)", async ({ page }) => {
+  await abrir(page, "worker", "/feed");
+  await expect(barra(page).getByRole("link")).toHaveCount(5);
+  await expect(barra(page).getByRole("link", { name: "Publicar turno" })).toHaveCount(0);
 });
