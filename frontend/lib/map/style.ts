@@ -14,16 +14,17 @@ export const MAP_STYLE_URL = "https://basemaps.cartocdn.com/gl/voyager-gl-style/
  * `--mapa-*`, los usa el mapa chico (`globals.css`): si cambia uno, cambia el otro.
  */
 export const NOCHE = {
-  fondo: "#16233a",
-  residencial: "#1a2a44",
+  fondo: "#1a283f",
+  residencial: "#1e2d47",
   parque: "#1d4a48",
-  agua: "#0e2238",
-  aguaLinea: "#1a3a5c",
-  edificio: "#1e2d48",
-  edificioBajo: "#1a2840",
-  edificioBorde: "#2a3d5f",
+  agua: "#14406b",
+  aguaBorde: "#2a5d92",
+  aguaLinea: "#24558a",
+  edificio: "#243653",
+  edificioBajo: "#202f4b",
+  edificioBorde: "#2f4468",
   calle: "#2a3a59",
-  calleBorde: "#1d2c47",
+  calleBorde: "#202f49",
   avenida: "#3d527d",
   avenidaBorde: "#2c3e63",
   autopista: "#4b6290",
@@ -37,7 +38,7 @@ export const NOCHE = {
   rotuloLejano: "#94a9ca",
   rotuloAvenida: "#c4d3ea",
   rotuloAutopista: "#dbe6f6",
-  rotuloAgua: "#7fa6d6",
+  rotuloAgua: "#9bbfe6",
   rotuloParque: "#9fe0d2",
   rotuloParqueHalo: "#17393a",
   numero: "#7d92b4",
@@ -138,7 +139,8 @@ function cambiosDeNoche(id: string): Cambios | null {
   if (id === "landcover" || id === "landuse" || id.startsWith("park_"))
     return { "fill-color": NOCHE.parque };
   if (id === "waterway") return { "line-color": NOCHE.aguaLinea };
-  if (id === "water" || id === "water_shadow") return { "fill-color": NOCHE.agua };
+  if (id === "water") return { "fill-color": NOCHE.agua, "fill-outline-color": NOCHE.aguaBorde };
+  if (id === "water_shadow") return { "fill-color": NOCHE.agua };
   if (id.startsWith("aeroway")) return { "line-color": NOCHE.pista };
   if (id === "boundary_county" || id === "boundary_state") return { "line-color": NOCHE.limite };
   if (id === "boundary_country_inner") return { "line-color": NOCHE.limitePais };

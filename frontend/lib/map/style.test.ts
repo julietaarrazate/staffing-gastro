@@ -234,6 +234,13 @@ describe("estiloDeNoche", () => {
     }
   });
 
+  it("el agua se distingue del suelo al menos tanto como la calle chica", () => {
+    const dif = (a: string, b: string) => Math.abs(luz(a) - luz(b));
+    expect(dif(NOCHE.agua, NOCHE.fondo)).toBeGreaterThanOrEqual(dif(NOCHE.calle, NOCHE.fondo));
+    expect(dif(NOCHE.aguaBorde, NOCHE.agua)).toBeGreaterThan(0.02);
+    expect(paintDe(noche, "water")["fill-outline-color"]).toBe(NOCHE.aguaBorde);
+  });
+
   it("y sobre el fondo de la capa donde van", () => {
     expect(contraste(NOCHE.rotulo, NOCHE.fondo)).toBeGreaterThanOrEqual(4.5);
     expect(contraste(NOCHE.rotulo, NOCHE.calle)).toBeGreaterThanOrEqual(4.5);

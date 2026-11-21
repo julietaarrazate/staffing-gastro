@@ -1309,15 +1309,15 @@ body:has([data-landing]) main {
    anidado) vuelve a declarar estos tokens y conserva el mapa de día. El local y
    su etiqueta (`--mapa-papel`, `--mapa-local`) no cambian. */
 :root[data-theme="dark"] {
-  --mapa-fondo: #16233a;
+  --mapa-fondo: #1a283f;
   --mapa-parque: #1d4a48;
-  --mapa-agua: #0e2238;
-  --mapa-borde: #1d2c47;
+  --mapa-agua: #14406b;
+  --mapa-borde: #202f49;
   --mapa-calle: #2a3a59;
   --mapa-avenida: #3d527d;
   --mapa-borde-avenida: #2c3e63;
   --mapa-rotulo: #a9bddb;
-  --mapa-credito-fondo: rgb(22 35 58 / 0.78);
+  --mapa-credito-fondo: rgb(26 40 63 / 0.78);
   --mapa-credito-tinta: #a9bddb;
 }
 /* Un estado como sello de goma: borde del color de la letra, apenas torcido.
