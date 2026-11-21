@@ -80,6 +80,8 @@ for (const ancho of [390, 320]) {
   test(`Favoritos a ${ancho} px: con un nombre larguísimo, la tarjeta no se sale y «Quitar» queda entero`, async ({ page }) => {
     await page.setViewportSize({ width: ancho, height: 700 });
     await abrir(page, "/favorites");
+    // Con las tarjetas ya dibujadas: sin esto los bucles de abajo no medían nada.
+    await expect(hoja(page).locator(".tarjeta-suave")).toHaveCount(2);
     const sobra = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(sobra).toBeLessThanOrEqual(0);
     for (const boton of await hoja(page).getByRole("button", { name: "Quitar" }).all()) {
@@ -97,6 +99,8 @@ for (const ancho of [390, 320]) {
 test("Favoritos en tablet (768 px): una columna, con lugar para el nombre y «Quitar»", async ({ page }) => {
   await page.setViewportSize({ width: 768, height: 1024 });
   await abrir(page, "/favorites");
+  // Esperar a que estén las tarjetas: medir antes daba una lista vacía (cortó CI).
+  await expect(hoja(page).locator(".tarjeta-suave")).toHaveCount(2);
   const cajas = await hoja(page).locator(".tarjeta-suave").evaluateAll((els) => els.map((el) => el.getBoundingClientRect().left));
   expect(new Set(cajas.map((x) => Math.round(x))).size).toBe(1);
   await expect(hoja(page).locator(".tarjeta-suave").first().getByRole("link", { name: "Juana Pérez" })).toBeVisible();
