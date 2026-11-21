@@ -78,7 +78,7 @@ en una tanda propia, una pantalla por PR.
 
 ### La tanda siguiente, ya vista en maqueta (2026-11-21)
 
-Julieta vio las maquetas (dos vueltas de prototipos, rama local `claude/maquetas-tanda-5`: **no se mergea**, es código de prototipo y sirve de referencia; las capturas no quedaron en el repo) y decidió lo que sigue. **Orden para construir, una pantalla por PR, en una sesión nueva:**
+Julieta vio las maquetas (dos vueltas de prototipos; el código, **que no se mergea** porque es de prototipo y rompe tests, quedó como parche de referencia en [`design-system/pruebas/2026-11-21-maquetas-tanda-5.patch`](../design-system/pruebas/2026-11-21-maquetas-tanda-5.patch), `git apply` sobre el commit `180710a` de `main`; las capturas no quedaron en el repo) y decidió lo que sigue. **Orden para construir, una pantalla por PR, en una sesión nueva:**
 
 1. ⬜ **«Urgentes» con cuenta regresiva en el Inicio de quien trabaja** · arriba de la hoja, una fila horizontal con los turnos que empiezan en las próximas ~6 h: chip rojo «Empieza en 1 h 40» (se actualiza por minuto), el pago en grande, puesto, local y distancia. Sin urgentes, la sección no aparece. Por definir al construir: si «urgente» es la cercanía del horario o la marca del comercio, y si trae turnos fuera del radio del Inicio.
 
