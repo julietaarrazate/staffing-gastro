@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
+import { SubpaginaSuave } from "@/components/profile/ProfileParts";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { parseSupportPrefill } from "@/lib/support-reference";
@@ -173,33 +174,31 @@ function SupportContent() {
   const showEmptyState = !loading && !error && tickets.length === 0;
 
   return (
-    <div className="app-container px-4 pb-10 pt-6">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">Soporte</h1>
-          <p className="mt-0.5 text-sm text-ink/50">
-            ¿Algún problema con la app? Contanos y te respondemos por acá.
-          </p>
-        </div>
-        {/* Con la lista vacía este botón NO va: el estado vacío ya trae su
-            propio "Abrir un ticket", así que quedaban dos CTA ámbar para la
-            misma acción en la misma pantalla — contra la ley de marca de un
-            solo acento por pantalla (ADR-0011), y redundante para el usuario.
-            Se queda el del estado vacío, que es el foco de la pantalla; el del
-            encabezado aparece recién cuando hay tickets y el foco pasa a la
-            lista. Verificado en un render a 1440px (auditoría fase I). */}
-        {!showEmptyState && (
+    // Con la dirección suave (ADR-0028, 2026-11-21; sin maqueta): el cielo
+    // corto con el título y la vuelta a Ajustes (por donde se llega), y la
+    // hoja con los tickets como tarjetas suaves.
+    <SubpaginaSuave
+      title="Soporte"
+      bajada="¿Algún problema con la app? Contanos y te respondemos por acá."
+      volver={{ href: "/profile/settings", label: "Volver a Ajustes" }}
+    >
+      {/* Con la lista vacía este botón NO va: el estado vacío ya trae su
+          propio «Abrir un ticket», y serían dos ámbar para la misma acción
+          (un solo acento por pantalla, ADR-0011). Aparece recién cuando hay
+          tickets y el foco pasa a la lista. */}
+      {!showEmptyState && (
+        <div className="mb-4 flex justify-end">
           <Button size="sm" onClick={() => setShowNew(true)}>
             <PlusIcon size={16} /> Nuevo
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
-      {loading && <div className="mt-5"><CardSkeletons /></div>}
-      {error && <div className="mt-5"><ErrorBanner message={error} onRetry={load} /></div>}
+      {loading && <CardSkeletons />}
+      {error && <ErrorBanner message={error} onRetry={load} />}
 
       {showEmptyState && (
-        <div className="mt-5">
+        <div>
           <EmptyState
             icon={<MessageIcon size={28} />}
             title="Todavía no abriste ningún ticket"
@@ -210,12 +209,12 @@ function SupportContent() {
       )}
 
       {!loading && !error && tickets.length > 0 && (
-        <div className="mt-5 space-y-2.5">
+        <div className="space-y-2.5">
           {tickets.map((t) => (
             <Link
               key={t.id}
               href={`/support/${t.id}`}
-              className="block rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line transition hover:bg-surface"
+              className="tecla block p-4"
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="truncate font-semibold text-ink">{t.subject}</p>
@@ -223,7 +222,7 @@ function SupportContent() {
                   {t.status === "abierto" ? "Abierto" : "Cerrado"}
                 </Badge>
               </div>
-              <p className="mt-1 text-sm text-ink/50">{TICKET_CATEGORY_LABELS[t.category]}</p>
+              <p className="mt-1 text-sm text-ink-soft">{TICKET_CATEGORY_LABELS[t.category]}</p>
             </Link>
           ))}
         </div>
@@ -321,6 +320,6 @@ function SupportContent() {
           </div>
         </form>
       </Modal>
-    </div>
+    </SubpaginaSuave>
   );
 }
