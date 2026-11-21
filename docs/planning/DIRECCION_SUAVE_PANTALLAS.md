@@ -53,11 +53,15 @@ qué responde cada pantalla está en
 
 - ⬜ **La bienvenida y el ingreso/alta** (hoy «con relieve», #680)
 
+- ⬜ **La landing** (`components/landing/`, estilos `.landing-*`) · es la híbrida del 2026-11-18, anterior a la dirección suave: conserva los botones con relieve (los negros), el cielo y las nubes de antes y los títulos de sección en serif · **prueba hecha el 2026-11-21, sin decidir** (Julieta la vio y dijo «lo que quede mejor con la app, la landing lo vemos después»): el cielo y las nubes de la app, botones suaves con el principal en ámbar, títulos de sección en la letra de la app, tarjetas con sombra difusa y la sección de quien trabaja en azul hondo; se quedan la brocha del inicio, el cierre y la carta, la rueda de fotos, la comanda y el filete. El cambio está guardado como parche en [`design-system/pruebas/2026-11-21-landing-suave.patch`](../design-system/pruebas/2026-11-21-landing-suave.patch) (`git apply` sobre `main`). Quedó por decidir: si el botón principal va en ámbar (convive con la palabra ámbar del inicio) o en azul hondo, y si los títulos de sección dejan la serif. Va junto con la bienvenida y el ingreso
+
 - ⬜ **Buscar del comercio** (`app/search/page.tsx`)
 
 - ⬜ **Las hojas compartidas** (`BottomSheet`, «¡Turno publicado!»)
 
-- ⬜ **Fichas, Favoritos, Mi plan, Soporte**
+- ✅ **Mi plan** (`app/subscription/page.tsx`) · #715 · [historial](../historial/2026-11-21-mi-plan-direccion-suave.md) · sin maqueta: con `SubpaginaSuave`; un solo botón ámbar (`accionesDelPlanActual` y `planDestacado` en `lib/subscription.ts`); textos y precios sin cambios
+
+- ⬜ **Fichas, Favoritos, Soporte**
 
 - ✅ **Perfil del comercio** (`components/company/PerfilComercio.tsx`) · #714 · [historial](../historial/2026-11-21-perfil-comercio-direccion-suave.md) · sin maqueta: con las piezas del Perfil de quien trabaja; el título es el nombre del local y la reputación va en grande; el logo se cambia en «Datos del comercio»
 

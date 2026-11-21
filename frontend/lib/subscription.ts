@@ -75,3 +75,61 @@ export function limiteExigido(sub: { limite_exigido?: boolean }): boolean {
 export function usoSinTopeText(usados: number): string {
   return `${usados} ${usados === 1 ? "turno publicado" : "turnos publicados"} este mes`;
 }
+
+/** Umbral de «casi al límite»: cuando quedan pocos turnos se avisa antes de que falle publicar. */
+export const LOW_REMAINING_THRESHOLD = 2;
+
+/**
+ * Qué acciones pide la tarjeta del plan actual (`SubscriptionStatusCard`):
+ * pagar el mes (bloqueado, o vencido en los días de gracia) y mejorar el plan
+ * (al límite o cerca, sólo con el tope exigido). La pantalla lo usa para que
+ * haya **un solo botón ámbar** (Julieta, 2026-11-21): si la tarjeta de arriba
+ * pide una acción, ningún plan de la lista va en ámbar.
+ */
+export function accionesDelPlanActual(
+  sub: {
+    billing_enabled?: boolean;
+    renews?: boolean;
+    status: string;
+    paid_until?: string | null;
+    can_publish?: boolean;
+    max_turnos_mes: number | null;
+    turnos_usados_mes: number;
+    limite_exigido?: boolean;
+  },
+  ahora: number,
+  puedePagar: boolean
+): { pagar: boolean; alLimite: boolean; cercaDelLimite: boolean } {
+  const billing = sub.billing_enabled === true;
+  const renews = sub.renews !== false;
+  const paidUntil = billing && sub.status === "activa" ? (sub.paid_until ?? null) : null;
+  const inGrace = paidUntil !== null && new Date(paidUntil).getTime() < ahora;
+  const blocked = billing && sub.can_publish === false;
+  const remaining = sub.max_turnos_mes === null ? null : Math.max(sub.max_turnos_mes - sub.turnos_usados_mes, 0);
+  const conTope = limiteExigido(sub);
+  return {
+    pagar: (blocked || (inGrace && renews)) && puedePagar,
+    alLimite: conTope && remaining !== null && remaining <= 0,
+    cercaDelLimite: conTope && remaining !== null && remaining > 0 && remaining <= LOW_REMAINING_THRESHOLD,
+  };
+}
+
+/**
+ * El plan de la lista que lleva el ámbar: el más barato por encima del actual,
+ * y ninguno si arriba ya hay una acción en ámbar.
+ */
+export function planDestacado(
+  plans: { code: string; price_ars: number | string }[],
+  currentPriceArs: number,
+  hayAccionArriba: boolean,
+  /** El plan actual nunca es «el siguiente», aunque su precio de lista haya
+   *  subido por encima de lo que paga quien ya lo tenía. */
+  planActual: string | null = null
+): string | null {
+  if (hayAccionArriba) return null;
+  const superiores = plans
+    .map((p) => ({ code: p.code, precio: Number(p.price_ars) }))
+    .filter((p) => p.code !== planActual && p.precio > currentPriceArs)
+    .sort((a, b) => a.precio - b.precio);
+  return superiores[0]?.code ?? null;
+}

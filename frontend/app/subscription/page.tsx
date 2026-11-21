@@ -9,10 +9,18 @@ import { useIdempotencyKeys } from "@/lib/idempotency";
 import { Subscription, SubscriptionPlan } from "@/lib/types";
 import { formatArs } from "@/lib/format";
 import { useLiveRefresh } from "@/lib/live-refresh";
-import { endOfArgentinaDay, formatPlainDate, limiteExigido, paymentReturnMessage } from "@/lib/subscription";
+import {
+  accionesDelPlanActual,
+  endOfArgentinaDay,
+  formatPlainDate,
+  limiteExigido,
+  paymentReturnMessage,
+  planDestacado,
+} from "@/lib/subscription";
 import { planValido } from "@/lib/plan-elegido";
 import SubscriptionStatusCard from "@/components/subscription/SubscriptionStatusCard";
 import PlanCard from "@/components/subscription/PlanCard";
+import { SubpaginaSuave } from "@/components/profile/ProfileParts";
 import PlanElegidoAviso, { type EstadoPlanElegido } from "@/components/subscription/PlanElegidoAviso";
 import { CardSkeletons, ErrorBanner, Modal, Button, Card, useToast } from "@/components/ui";
 
@@ -69,6 +77,10 @@ function SubscriptionContent() {
   const [subscribing, setSubscribing] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [acting, setActing] = useState(false);
+  // La hora con la que se decide si el mes ya venció: una sola para la pantalla
+  // y la tarjeta, y se renueva cada vez que llega el estado del plan (una
+  // pestaña que quedó abierta días no puede seguir diciendo «pagado»).
+  const [abiertaEn, setAbiertaEn] = useState(() => Date.now());
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
 
   // `silent` (G11, BK-898A15047291): al volver a la pestaña o a la red se
@@ -84,6 +96,7 @@ function SubscriptionContent() {
         api.get<{ plans: SubscriptionPlan[] }>("/subscription/plans", token),
       ]);
       setSubscription(sub);
+      setAbiertaEn(Date.now());
       setPlans(plansRes.plans);
       setError(null);
     } catch (err) {
@@ -156,6 +169,7 @@ function SubscriptionContent() {
     try {
       const updated = await api.post<Subscription>(path, {}, token);
       setSubscription(updated);
+      setAbiertaEn(Date.now());
       toast(
         pendingAction === "baja"
           ? "Listo, tu plan no se va a renovar"
@@ -229,6 +243,17 @@ function SubscriptionContent() {
   // mes" del estado del plan se esconde (pagaría el plan actual, no el que
   // eligió) y las tarjetas pasan a botones sin acento.
   const avisoConAccion = estadoElegido === "elegir" || estadoElegido === "pagar";
+  // Un solo ámbar en la pantalla (Julieta, 2026-11-21): el aviso del plan
+  // elegido, o lo que pida la tarjeta del plan actual (pagar el mes, mejorar
+  // al llegar al límite) y, si arriba no hay nada, el plan siguiente al actual.
+  const puedePagar = Boolean(billing && currentPlan && !avisoConAccion);
+  const accionesActual = subscription ? accionesDelPlanActual(subscription, abiertaEn, puedePagar) : null;
+  const destacado = planDestacado(
+    plans,
+    currentPriceArs,
+    avisoConAccion || Boolean(accionesActual && (accionesActual.pagar || accionesActual.alLimite || accionesActual.cercaDelLimite)),
+    subscription?.plan_code ?? null
+  );
 
   // Una sola vez, cuando ya están las tarjetas: el foco va a la del plan
   // elegido. Sin mover la pantalla, para que el aviso de arriba (con la
@@ -241,17 +266,13 @@ function SubscriptionContent() {
   }, [hayTarjetaElegida]);
 
   return (
-    // La grilla de planes ya usaba sm:grid-cols-2 lg:grid-cols-3 (docs/STATUS.md)
-    // pero el contenedor se quedaba en max-w-2xl: en lg+ las 3 columnas se
-    // apretaban en 672px en vez de aprovechar el ancho real de la pantalla.
-    <div className="mx-auto max-w-2xl px-4 pb-10 pt-6 lg:max-w-5xl">
-      <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">Mi plan</h1>
-      <p className="mt-0.5 text-sm text-ink/50">
-        Gestioná la suscripción de tu comercio a Oído.
-      </p>
-
+    // Con la dirección suave (ADR-0028, 2026-11-21; sin maqueta): el cielo
+    // corto con el título y la vuelta al perfil, y la hoja con el plan, los
+    // planes y la baja. Los textos, los precios y las acciones no cambian.
+    // `ancha`: en lg+ los tres planes van en tres columnas.
+    <SubpaginaSuave title="Mi plan" bajada="Gestioná la suscripción de tu comercio a Oído." ancha>
       {returnMessage && (
-        <div role="status" className={`mt-5 rounded-2xl p-4 ring-1 ${RETURN_TONE[returnMessage.tone]}`}>
+        <div role="status" className={`mb-5 rounded-[20px] p-4 ring-1 ${RETURN_TONE[returnMessage.tone]}`}>
           <p className="text-sm font-bold">{returnMessage.title}</p>
           <p className="mt-0.5 text-sm">{returnMessage.text}</p>
         </div>
@@ -272,7 +293,7 @@ function SubscriptionContent() {
             />
           )}
 
-          <div className="mt-5">
+          <div>
             <SubscriptionStatusCard
               subscription={subscription}
               planName={currentPlan?.name ?? subscription.plan_code}
@@ -281,12 +302,14 @@ function SubscriptionContent() {
                 el?.scrollIntoView({ behavior: "smooth", block: "start" });
               }}
               onPay={billing && currentPlan && !avisoConAccion ? () => setPendingPlan(currentPlan) : undefined}
+              ahora={abiertaEn}
+              ambarArriba={avisoConAccion}
             />
           </div>
 
-          <div id="planes" className="mt-8 scroll-mt-4">
-            <h2 className="text-lg font-extrabold text-ink">Planes disponibles</h2>
-            <p className="mt-0.5 text-sm text-ink/50">
+          <div id="planes" className="mt-8 scroll-mt-[calc(var(--chrome-top)+1rem)]">
+            <h2 className="titulo-seccion text-ink">Planes disponibles</h2>
+            <p className="mt-0.5 text-sm text-ink-soft">
               {billing
                 ? "Pagás mes a mes con Mercado Pago, sin débito automático. El plan define cuántos turnos podés publicar."
                 : limiteExigido(subscription)
@@ -304,7 +327,7 @@ function SubscriptionContent() {
                     busy={subscribing && pendingPlan?.code === plan.code}
                     onSelect={() => setPendingPlan(plan)}
                     payLabel={plan.code === subscription.plan_code ? currentPayLabel : undefined}
-                    sinAcento={avisoConAccion}
+                    sinAcento={plan.code !== destacado}
                   />
                 );
                 if (plan.code !== elegido?.code) return card;
@@ -318,7 +341,7 @@ function SubscriptionContent() {
                     data-plan-elegido={plan.code}
                     aria-label={`Plan ${plan.name}, el que elegiste`}
                     role="group"
-                    className="grid rounded-[var(--radius-card)] outline-2 outline-offset-4 outline-[color:var(--focus-ring)] outline-solid"
+                    className="grid rounded-[20px] outline-2 outline-offset-4 outline-[color:var(--focus-ring)] outline-solid"
                   >
                     {card}
                   </div>
@@ -328,7 +351,7 @@ function SubscriptionContent() {
           </div>
 
           {billing && (canCancelRenewal || withdrawalUntil) && (
-            <Card className="mt-8 p-5">
+            <Card className="tarjeta-suave mt-8 p-5 ring-0">
               <h2 className="text-base font-extrabold text-ink">Baja y arrepentimiento</h2>
               <div className="mt-3 flex flex-col gap-4">
                 {canCancelRenewal && (
@@ -428,6 +451,6 @@ function SubscriptionContent() {
           </div>
         </div>
       </Modal>
-    </div>
+    </SubpaginaSuave>
   );
 }
