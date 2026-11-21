@@ -15,6 +15,7 @@ import { EmptyState, OidoLoader } from "@/components/ui";
 import { ShieldIcon } from "@/components/icons";
 import { AdminInboxProvider, formatCount, useAdminInbox } from "@/components/admin/AdminInbox";
 import type { AdminInbox } from "@/components/admin/AdminInbox";
+import { PantallaAdmin } from "@/components/admin/PantallaAdmin";
 
 type NavItem = {
   href: string;
@@ -65,11 +66,7 @@ function AdminNav({ pathname }: { pathname: string }) {
               <Link
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={
-                  active
-                    ? "flex items-center justify-between gap-2 rounded-full bg-raised px-3.5 py-2 text-sm font-semibold text-ink shadow-[var(--shadow-soft)] ring-1 ring-ink/40 md:rounded-[var(--radius-btn)]"
-                    : "flex items-center justify-between gap-2 rounded-full px-3.5 py-2 text-sm font-semibold text-ink/60 ring-1 ring-line transition hover:bg-surface md:rounded-[var(--radius-btn)] md:ring-0"
-                }
+                className="admin-nav-item"
               >
                 {item.label}
                 {badge && (
@@ -116,17 +113,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   return (
     <AdminInboxProvider token={twoFactorSetupPending ? null : token} refreshKey={pathname}>
-      <div className="app-container px-4 pb-10 pt-6">
-        <p className="flex items-center gap-1.5 text-xs font-semibold font-mono uppercase tracking-wide text-ink/40 print:hidden">
-          <ShieldIcon size={14} /> Administración
-        </p>
-        <div className="mt-3 md:flex md:gap-8">
-          {/* Mismo árbol con o sin menú: al terminar el alta aparece el menú
-              y la pantalla no se remonta (perdería los códigos a la vista). */}
-          {!twoFactorSetupPending && <AdminNav pathname={pathname} />}
-          <div className="mt-5 min-w-0 flex-1 md:mt-0">{children}</div>
-        </div>
-      </div>
+      {/* Mismo árbol con o sin menú: al terminar el alta aparece el menú
+          y la pantalla no se remonta (perdería los códigos a la vista). */}
+      <PantallaAdmin
+        tituloPorDefecto={NAV.find((n) => isActive(pathname, n.href))?.label ?? "Administración"}
+        menu={!twoFactorSetupPending && <AdminNav pathname={pathname} />}
+      >
+        {children}
+      </PantallaAdmin>
     </AdminInboxProvider>
   );
 }

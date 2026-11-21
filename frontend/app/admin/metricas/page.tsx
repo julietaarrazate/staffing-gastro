@@ -14,7 +14,7 @@ import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { AR_TIMEZONE } from "@/lib/datetime";
 import type { PeriodMetrics, PeriodSummary, PlatformStats, SubscriptionStats } from "@/lib/types";
-import { Badge, Card, ErrorBanner, SegmentedControl } from "@/components/ui";
+import { Badge, ErrorBanner, SegmentedControl } from "@/components/ui";
 import { WalletIcon } from "@/components/icons";
 import { periodDelta } from "@/components/admin/live";
 import AltasPorOrigen from "@/components/admin/AltasPorOrigen";
@@ -169,7 +169,7 @@ function PeriodSection({ token }: { token: string | null }) {
           </>
         )}
       </div>
-      <p className="mt-1.5 px-1 text-xs text-ink/40">
+      <p className="mt-1.5 px-1 text-xs text-ink-soft">
         Contra los {period} días anteriores. Los días se cortan a la medianoche de Argentina.
       </p>
       {data?.signups_by_origin && <AltasPorOrigen filas={data.signups_by_origin} />}
@@ -260,7 +260,7 @@ export default function AdminMetricsPage() {
                 }
               />
             </div>
-            <p className="mt-1.5 px-1 text-xs text-ink/40">
+            <p className="mt-1.5 px-1 text-xs text-ink-soft">
               Desde que se publica hasta que la persona confirma. Sobre{" "}
               {stats.coverage_sample_size} turno
               {stats.coverage_sample_size === 1 ? "" : "s"} cubierto
@@ -331,8 +331,8 @@ export default function AdminMetricsPage() {
         <div className="mt-8">
           <SectionLabel>Suscripciones</SectionLabel>
           <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Card className="col-span-2 p-5">
-              <div className="flex flex-wrap items-center gap-1.5 text-ink/50">
+            <div className="tarjeta-suave col-span-2 min-w-0 p-5">
+              <div className="flex flex-wrap items-center gap-1.5 text-ink-soft">
                 <WalletIcon size={14} />
                 <p className="text-xs font-medium">Ingreso mensual recurrente</p>
                 {!subscriptionStats.billing_enabled && <Badge tone="neutral">Cobro no activado</Badge>}
@@ -343,27 +343,27 @@ export default function AdminMetricsPage() {
               {/* Con el cobro apagado, `mrr_ars` es lo que se cobraría: nunca
                   se muestra como ingreso real (auditoría 2026-08-15, F1). */}
               {!subscriptionStats.billing_enabled && (
-                <p className="mt-1 text-xs text-ink/40">
+                <p className="mt-1 text-xs text-ink-soft">
                   Potencial si se cobrara: {formatArs(subscriptionStats.mrr_ars)}
                 </p>
               )}
               {/* El ingreso es una foto de hoy: no se guarda su historia, así
                   que no hay período anterior contra el cual comparar. */}
-              <p className="mt-1 text-xs text-ink/40">Hoy, sin comparación por período.</p>
-            </Card>
+              <p className="mt-1 text-xs text-ink-soft">Hoy, sin comparación por período.</p>
+            </div>
             <StatCard label="Comercios" value={subscriptionStats.total_companies} />
             <StatCard label="Cerca del límite" value={subscriptionStats.companies_at_plan_limit} />
           </div>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div data-testid="eligieron-plan">
-            <Card className="p-5">
+            <div className="tarjeta-suave min-w-0 p-5">
               <p className="text-2xl font-extrabold text-ink">
                 {Object.values(subscriptionStats.companies_with_chosen_plan ?? {}).reduce(
                   (a, b) => a + b,
                   0
                 )}
               </p>
-              <p className="text-xs font-medium text-ink/50">Eligieron un plan al darse de alta</p>
+              <p className="text-xs font-medium text-ink-soft">Eligieron un plan al darse de alta</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {Object.entries(subscriptionStats.companies_with_chosen_plan ?? {}).map(
                   ([planCode, count]) => (
@@ -373,18 +373,18 @@ export default function AdminMetricsPage() {
                   )
                 )}
               </div>
-            </Card>
+            </div>
             </div>
             <div data-testid="se-comprometieron">
-            <Card className="p-5">
+            <div className="tarjeta-suave min-w-0 p-5">
               <p className="text-2xl font-extrabold text-ink">
                 {subscriptionStats.committed_companies ?? 0}
               </p>
-              <p className="text-xs font-medium text-ink/50">Se comprometieron a pagar</p>
+              <p className="text-xs font-medium text-ink-soft">Se comprometieron a pagar</p>
               <p className="mt-2 text-sm font-semibold text-ink">
                 {formatArs(subscriptionStats.committed_mrr_ars ?? 0)}/mes
               </p>
-            </Card>
+            </div>
             </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">

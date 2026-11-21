@@ -22,14 +22,13 @@ import {
   Avatar,
   Badge,
   Button,
-  Card,
   CardSkeletons,
   EmptyState,
   ErrorBanner,
   Modal,
 } from "@/components/ui";
-import { CheckCircleIcon, ChevronLeftIcon, EyeIcon, UsersIcon } from "@/components/icons";
-import { SectionLabel } from "@/components/admin/AdminStats";
+import { CheckCircleIcon, EyeIcon, UsersIcon } from "@/components/icons";
+import { AdminHeading, SectionLabel } from "@/components/admin/AdminStats";
 import PlanCompromiso from "@/components/admin/PlanCompromiso";
 import CerrarTurnoDialog, { type CerrarTurnoTarget } from "@/components/admin/CerrarTurnoDialog";
 import {
@@ -43,7 +42,7 @@ import {
 function Fact({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div>
-      <p className="text-xs text-ink/50">{label}</p>
+      <p className="text-xs text-ink-soft">{label}</p>
       <p className="font-semibold text-ink">{value}</p>
     </div>
   );
@@ -128,20 +127,13 @@ export default function AdminPersonPage() {
     }
   }
 
-  const back = (
-    <Link
-      href="/admin/personas"
-      className="inline-flex items-center gap-1 text-sm font-semibold text-ink/60 transition hover:text-ink"
-    >
-      <ChevronLeftIcon size={16} /> Personas
-    </Link>
-  );
+  const volver = { href: "/admin/personas", label: "Volver a Personas" };
 
   if (notFound) {
     return (
       <div>
-        {back}
-        <div className="mt-5">
+        <AdminHeading title="Personas" volver={volver} />
+        <div>
           <EmptyState
             icon={<UsersIcon size={28} />}
             title="No encontramos a esta persona"
@@ -155,13 +147,13 @@ export default function AdminPersonPage() {
   if (!detail) {
     return (
       <div>
-        {back}
+        <AdminHeading title="Personas" volver={volver} />
         {error ? (
-          <div className="mt-5">
+          <div>
             <ErrorBanner message={error} onRetry={load} />
           </div>
         ) : (
-          <div className="mt-5">
+          <div>
             <CardSkeletons />
           </div>
         )}
@@ -174,25 +166,21 @@ export default function AdminPersonPage() {
 
   return (
     <div>
-      {back}
+      <AdminHeading title={u.full_name} subtitle={u.email} volver={volver} />
 
-      <div className="mt-3 flex items-start gap-4">
+      <div className="flex items-center gap-4">
         <Avatar src={u.photo_url} name={u.full_name} size="lg" />
-        <div className="min-w-0">
-          <h1 className="flex items-center gap-2 font-display text-h1 font-semibold tracking-tight text-ink">
-            <span className="min-w-0 break-words">{u.full_name}</span>
-            {u.is_verified && <CheckCircleIcon size={20} className="shrink-0 text-success-text" />}
-          </h1>
-          <p className="break-all text-sm text-ink/50">{u.email}</p>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            <Badge tone="neutral">{ROLE_LABELS[u.role] ?? u.role}</Badge>
-            <Badge tone={u.status === "active" ? "secondary" : "danger"}>
-              {STATUS_LABELS[u.status] ?? u.status}
+        <div className="flex min-w-0 flex-wrap gap-1.5">
+          {u.is_verified && (
+            <Badge tone="trust" icon={<CheckCircleIcon size={14} />}>
+              <span className="sr-only">Verificado</span>
             </Badge>
-            {u.created_at && (
-              <Badge tone="neutral">Desde {formatShiftDate(u.created_at)}</Badge>
-            )}
-          </div>
+          )}
+          <Badge tone="neutral">{ROLE_LABELS[u.role] ?? u.role}</Badge>
+          <Badge tone={u.status === "active" ? "secondary" : "danger"}>
+            {STATUS_LABELS[u.status] ?? u.status}
+          </Badge>
+          {u.created_at && <Badge tone="neutral">Desde {formatShiftDate(u.created_at)}</Badge>}
         </div>
       </div>
 
@@ -265,14 +253,14 @@ export default function AdminPersonPage() {
         onClose={() => setConfirm(null)}
         title={confirm === "suspend" ? `¿Suspender a ${u.full_name}?` : `¿Hacer admin a ${u.full_name}?`}
       >
-        <p className="text-sm text-ink/60">
+        <p className="text-sm text-ink-soft">
           {confirm === "suspend"
             ? "No va a poder entrar a la app hasta que la reactives."
             : "Va a ver y manejar todo el panel de administración, como vos."}
         </p>
         {confirm === "suspend" && (
-          <div className="mt-3 rounded-xl bg-surface p-3.5 ring-1 ring-line" aria-live="polite">
-            <p className="text-xs font-semibold text-ink/60">Sus turnos</p>
+          <div className="caja-suave mt-3 p-3.5" aria-live="polite">
+            <p className="text-xs font-semibold text-ink-soft">Sus turnos</p>
             {preview ? (
               <ul className="mt-1.5 flex flex-col gap-1.5 text-sm text-ink">
                 {suspensionImpactLines(preview).map((line) => (
@@ -285,7 +273,7 @@ export default function AdminPersonPage() {
                 los que correspondan.
               </p>
             ) : (
-              <p className="mt-1.5 text-sm text-ink/60">Contando sus turnos…</p>
+              <p className="mt-1.5 text-sm text-ink-soft">Contando sus turnos…</p>
             )}
           </div>
         )}
@@ -314,7 +302,7 @@ export default function AdminPersonPage() {
       {detail.worker && (
         <div className="mt-8">
           <SectionLabel>Como trabajador</SectionLabel>
-          <Card className="mt-2 p-5">
+          <div className="tarjeta-suave mt-2 p-5">
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               <Fact label="Turnos completados" value={detail.worker.events_completed} />
               <Fact label="Calificación" value={formatRatingOrNone(detail.worker.rating)} />
@@ -325,20 +313,20 @@ export default function AdminPersonPage() {
               <Fact label="Experiencia" value={`${detail.worker.years_experience} años`} />
               <Fact label="Disponible" value={detail.worker.is_available ? "Sí" : "No"} />
             </div>
-            <p className="mt-4 text-sm text-ink/60">
+            <p className="mt-4 text-sm text-ink-soft">
               {detail.worker.skills.map(skillLabel).join(" · ") || "Sin puestos cargados"}
               {detail.worker.city ? ` — ${detail.worker.city}` : ""}
             </p>
-          </Card>
+          </div>
         </div>
       )}
 
       {detail.company && (
         <div className="mt-8">
           <SectionLabel>Como comercio</SectionLabel>
-          <Card className="mt-2 p-5">
+          <div className="tarjeta-suave mt-2 p-5">
             <p className="font-semibold text-ink">{detail.company.name}</p>
-            <p className="text-sm text-ink/50">
+            <p className="text-sm text-ink-soft">
               {[detail.company.address, detail.company.city].filter(Boolean).join(", ") ||
                 "Sin dirección cargada"}
             </p>
@@ -353,7 +341,7 @@ export default function AdminPersonPage() {
               />
               <Fact label="Cancelaciones tardías" value={detail.company.late_cancellations} />
             </div>
-          </Card>
+          </div>
         </div>
       )}
 
@@ -370,9 +358,9 @@ export default function AdminPersonPage() {
         <div className="mt-8">
           <SectionLabel>Turnos recientes</SectionLabel>
           {detail.recent_shifts.length === 0 ? (
-            <p className="mt-2 px-1 text-sm text-ink/50">Todavía no tiene turnos.</p>
+            <p className="mt-2 px-1 text-sm text-ink-soft">Todavía no tiene turnos.</p>
           ) : (
-            <ul className="mt-2 divide-y divide-line overflow-hidden rounded-[var(--radius-card)] bg-card ring-1 ring-line">
+            <ul className="perfil-filas !mt-2">
               {detail.recent_shifts.map((s) => {
                 const name = s.title || skillLabel(s.position);
                 const closeAction = s.admin_close;
@@ -381,7 +369,7 @@ export default function AdminPersonPage() {
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <p className="truncate font-medium text-ink">{name}</p>
-                        <p className="text-xs text-ink/50">
+                        <p className="text-xs text-ink-soft">
                           {formatShiftDate(s.start_at)} · {formatAmountDue(s)}
                         </p>
                       </div>
@@ -399,7 +387,7 @@ export default function AdminPersonPage() {
                     </div>
                     {closeAction && (
                       <div className="mt-2.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-                        <p className="text-xs text-ink/60">{adminCloseHint(closeAction)}</p>
+                        <p className="text-xs text-ink-soft">{adminCloseHint(closeAction)}</p>
                         <Button
                           size="sm"
                           variant="surface"
@@ -436,14 +424,14 @@ export default function AdminPersonPage() {
       <div className="mt-8">
         <SectionLabel>Soporte</SectionLabel>
         {detail.tickets.length === 0 ? (
-          <p className="mt-2 px-1 text-sm text-ink/50">No abrió tickets.</p>
+          <p className="mt-2 px-1 text-sm text-ink-soft">No abrió tickets.</p>
         ) : (
-          <ul className="mt-2 divide-y divide-line overflow-hidden rounded-[var(--radius-card)] bg-card ring-1 ring-line">
+          <ul className="perfil-filas !mt-2">
             {detail.tickets.map((t) => (
               <li key={t.id}>
                 <Link
                   href={`/support/${t.id}`}
-                  className="flex items-center justify-between gap-3 px-4 py-3 transition hover:bg-surface"
+                  className="admin-fila-link flex items-center justify-between gap-3 px-4 py-3"
                 >
                   <p className="truncate font-medium text-ink">{t.subject}</p>
                   <Badge tone={t.status === "abierto" ? "secondary" : "neutral"}>

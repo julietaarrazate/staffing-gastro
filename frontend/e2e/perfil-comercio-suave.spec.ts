@@ -231,9 +231,9 @@ test("un solo ámbar: en el perfil del comercio ninguna acción lleva el acento"
   expect(ambar).toBeLessThanOrEqual(1);
 });
 
-test("el admin conserva su vista de antes (migra con Administración)", async ({ page }) => {
+test("el admin ve el perfil con la cáscara de la Administración", async ({ page }) => {
   await perfil(page, { rol: "admin" });
   await expect(page.getByRole("heading", { level: 1, name: "Perfil" })).toBeVisible();
-  await expect(page.locator(".estilo-suave")).toHaveCount(0);
+  await expect(page.locator(".estilo-suave .app-cielo.cielo-limpio")).toHaveCount(1);
   await expect(page.getByRole("link", { name: "Ajustes" })).toBeVisible();
 });

@@ -5562,3 +5562,67 @@ body:has([data-landing]) main {
   text-transform: uppercase;
   color: var(--color-primary-text);
 }
+
+/* ---- La Administración con la dirección suave (2026-11-21, ADR-0028) ----
+   Una herramienta de trabajo con listas y tablas densas: lleva el cielo corto
+   y liso de las subpantallas y debajo la hoja (`PantallaAdmin`). Todo va bajo
+   `.admin-suave`, la raíz de la cáscara. */
+.estilo-suave .admin-nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: var(--suave-campo);
+  color: var(--color-ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color 0.15s ease;
+}
+@media (min-width: 768px) {
+  .estilo-suave .admin-nav-item {
+    border-radius: 14px;
+    background: transparent;
+  }
+  .estilo-suave .admin-nav-item:hover {
+    background: var(--suave-campo);
+  }
+}
+.estilo-suave .admin-nav-item[aria-current="page"] {
+  background: var(--suave-elegido);
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(28, 84, 120, 0.22);
+}
+/* El segundo botón (blanco con filete) pasa a quieto: relleno del campo y
+   letra azul hondo; el ámbar queda para la acción principal. */
+.admin-suave .boton.ring-line {
+  background: var(--suave-campo);
+  color: var(--color-primary-text);
+  box-shadow: none;
+}
+.admin-suave .boton.ring-line:hover {
+  filter: brightness(0.97);
+}
+.admin-suave .boton.ring-line:disabled {
+  color: var(--color-ink-mute);
+}
+/* Las tarjetas y filas que llevan a otra pantalla. */
+.estilo-suave .admin-tarjeta-link {
+  transition: background-color 0.15s ease;
+}
+.estilo-suave .admin-fila-link {
+  transition: background-color 0.15s ease;
+}
+@media (hover: hover) {
+  .estilo-suave .admin-tarjeta-link:hover,
+  .estilo-suave .admin-fila-link:hover {
+    background: var(--suave-campo);
+  }
+}
+.estilo-suave .admin-fila-link:active,
+.estilo-suave .admin-tarjeta-link:active {
+  background: var(--suave-campo);
+}
