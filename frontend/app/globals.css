@@ -4870,3 +4870,28 @@ body:has([data-landing]) main {
   color: #ffffff;
   box-shadow: 0 6px 14px rgba(28, 84, 120, 0.22);
 }
+
+/* ---- El velo de la barra flotante (Julieta, 2026-11-21) ----
+   La barra flota y el contenido pasaba por detrás: se leía texto cortado por
+   encima, a los costados y por debajo de la píldora, y la pantalla quedaba
+   desprolija. Ahora lo que llega a la barra se esfuma en el color del fondo:
+   un degradé corto arriba de la píldora y, de ahí para abajo, el fondo liso.
+   No recibe toques (el contenedor tampoco). El color sigue a la pantalla: la
+   hoja en las pantallas suaves, el lienzo en las demás. */
+:root {
+  --barra-velo: var(--background);
+}
+:root:has(main .estilo-suave),
+:root:has(main .bajo-barra-hoja) {
+  --barra-velo: var(--color-card);
+}
+.barra-app::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset-inline: 0;
+  bottom: 0;
+  height: calc(64px + 18px + 32px + env(safe-area-inset-bottom));
+  background: linear-gradient(to bottom, transparent, var(--barra-velo) 32px);
+  pointer-events: none;
+}
