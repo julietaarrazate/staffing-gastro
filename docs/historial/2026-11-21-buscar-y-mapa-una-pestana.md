@@ -1,4 +1,4 @@
-# Buscar y Mapa en una sola pestaña, y «Matches» pasa a «Turnos» (#PR)
+# Buscar y Mapa en una sola pestaña, y «Matches» pasa a «Turnos» (#713)
 
 **Pedido:** Julieta, 2026-11-20 ([decisión](./2026-11-20-barra-y-encabezado-decidido.md),
 punto 4): la barra de quien trabaja pasa de seis pestañas a cinco, con un
