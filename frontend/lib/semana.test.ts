@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  claveDeVista,
   claveDiaArgentina,
   diaCortoArgentina,
   diaEnPalabras,
@@ -131,5 +132,22 @@ describe("turnosPorDia", () => {
     expect(m.get("2026-11-18")).toBe(2);
     expect(m.get("2026-11-20")).toBe(1);
     expect(m.get("2026-11-19")).toBeUndefined();
+  });
+});
+
+describe("claveDeVista", () => {
+  const turno = { start_at: "2026-11-22T21:00:00-03:00", end_at: "2026-11-23T03:00:00-03:00" };
+  it("un turno en curso que cruzó la medianoche se muestra hoy", () => {
+    expect(claveDeVista(turno, new Date("2026-11-23T01:00:00-03:00"))).toBe("2026-11-23");
+  });
+  it("antes de empezar y después de terminar, el día de su inicio", () => {
+    expect(claveDeVista(turno, new Date("2026-11-22T20:00:00-03:00"))).toBe("2026-11-22");
+    expect(claveDeVista(turno, new Date("2026-11-23T03:00:00-03:00"))).toBe("2026-11-22");
+  });
+  it("en curso el mismo día de su inicio: ese día", () => {
+    expect(claveDeVista(turno, new Date("2026-11-22T22:00:00-03:00"))).toBe("2026-11-22");
+  });
+  it("sin fin conocido, el día de su inicio", () => {
+    expect(claveDeVista({ start_at: turno.start_at, end_at: null }, new Date("2026-11-23T01:00:00-03:00"))).toBe("2026-11-22");
   });
 });

@@ -62,8 +62,8 @@ const TURNOS = () => [
   turno("f5", "confirmado", "runner", "2026-12-18", { worker_name: "Ana Soto" }),
 ];
 
-async function abrir(page: Page, turnos: unknown[] = TURNOS(), url = "/shifts") {
-  await page.clock.setFixedTime(AHORA);
+async function abrir(page: Page, turnos: unknown[] = TURNOS(), url = "/shifts", ahora: Date = AHORA) {
+  await page.clock.setFixedTime(ahora);
   await injectSession(page);
   await skipSplash(page);
   await blockExternalHosts(page);
@@ -388,4 +388,15 @@ test("en la compu (1280) el cielo y la tira van en el ancho del panel, con lo qu
   await expect(page.getByRole("list", { name: "Días de la semana" }).getByRole("button")).toHaveCount(7);
   // Y la lista, en la hoja.
   await expect(page.locator('[data-shift-id="h1"]')).toBeVisible();
+});
+
+// El mismo caso en el Panel: el lunes a la 1, el turno de anoche sigue en marcha
+// y es de hoy: se lista en «En marcha» y el cielo lo cuenta.
+test("un turno en marcha que empezó el domingo a la noche se ve el lunes de madrugada y cuenta como de hoy", async ({ page }) => {
+  const enCurso = turno("noche", "trabajando", "mozo", "2026-11-22", { worker_name: "Ana Soto", start_at: a("2026-11-22", "21:00"), end_at: a("2026-11-23", "03:00") });
+  await abrir(page, [enCurso], "/shifts", new Date("2026-11-23T01:00:00-03:00"));
+  await expect(page.getByText("Esta semana · 23 – 29 nov")).toBeVisible();
+  await expect(page.getByTestId("panel-cielo")).toContainText("Hoy tenés");
+  await expect(page.getByTestId("panel-cielo")).toContainText("1 turno");
+  await expect(page.locator('[data-shift-id="noche"]')).toBeVisible();
 });

@@ -62,6 +62,23 @@ representan un "día de negocio".
 
 ---
 
+## Un turno que cruza la medianoche cae en el día (y la semana) equivocados
+
+**Patrón:** ubicar un turno sólo por su día de inicio lo saca de la vista
+mientras se trabaja si cruza la medianoche; si además es la del domingo, cae
+en la semana anterior. No aparece en pruebas de día: sólo el lunes de
+madrugada con un turno nocturno.
+
+- **Encontrado (2026-11-21, revisión de #722):** con la tira de días, Mis
+  turnos y el Panel filtraban por el día de inicio; el lunes a la 1 un turno
+  del domingo de 21 a 3 desaparecía. Fix: `claveDeVista` en
+  `frontend/lib/semana.ts` (un turno en curso se muestra hoy). Tests: e2e con
+  el reloj en el lunes 01:00 en `mis-turnos-tira.spec.ts` y
+  `panel-tira.spec.ts`.
+- **Cómo evitarlo:** para «en qué día se ve» un turno, usar `claveDeVista`,
+  no `claveDiaArgentina(start_at)`. Y en los tests con turnos de horario
+  fijo, probar el lunes de madrugada.
+
 ## Pantalla en blanco si el backend está dormido (cold start de Render sin timeout)
 
 **Patrón:** un `fetch` sin timeout explícito cuelga indefinidamente si el backend está frío
