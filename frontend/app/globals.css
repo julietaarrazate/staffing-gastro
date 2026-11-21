@@ -4589,6 +4589,14 @@ body:has([data-landing]) main {
     background-color: var(--color-card);
   }
 }
+/* Lo que toma el foco (un campo que se abre al final de la pantalla, como el
+   nombre «A cargo» del Perfil del comercio) no queda escondido detrás de la
+   barra flotante: el navegador deja ese lugar libre al traerlo a la vista. */
+@media (max-width: 767.98px) {
+  html {
+    scroll-padding-bottom: var(--chrome-bottom);
+  }
+}
 .barra-app {
   position: fixed;
   z-index: 40;

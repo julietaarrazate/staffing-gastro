@@ -19,7 +19,8 @@ Perfil de quien trabaja (`T-Perfil`). Responde «¿cómo me ven?»:
   tu primer turno» (no se muestran ceros). Con turnos y sin nota, el número
   grande son los turnos.
 - Debajo, lo de siempre: una reseña, la verificación del comercio (arriba
-  mientras falta; aprobada, su nota baja al final), las cancelaciones tardías
+  mientras falta; aprobada, su nota baja al final de su columna, debajo de las
+  cancelaciones tardías), las cancelaciones tardías
   y las filas Datos del comercio, Mi plan, Trabajadores favoritos y Ajustes.
 - **«A cargo»:** el nombre de la cuenta (se edita ahí) y su mail. Antes era el
   título de la pantalla.

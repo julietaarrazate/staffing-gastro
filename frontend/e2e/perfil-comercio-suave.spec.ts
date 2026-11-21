@@ -104,6 +104,17 @@ test("los accesos son filas: Datos del comercio, Mi plan, Favoritos y Ajustes, y
   await expect(hoja(page).getByRole("button", { name: "Editar nombre" })).toBeVisible();
 });
 
+test("al editar el nombre «A cargo», el campo no queda escondido detrás de la barra de abajo", async ({ page }) => {
+  await perfil(page, { perfil: CON_HISTORIA });
+  await hoja(page).getByRole("button", { name: "Editar nombre" }).click();
+  const campo = hoja(page).getByRole("textbox");
+  await expect(campo).toBeFocused();
+  const barra = page.getByRole("navigation", { name: "Secciones" });
+  await expect
+    .poll(async () => (await barra.boundingBox())!.y - ((await campo.boundingBox())!.y + (await campo.boundingBox())!.height))
+    .toBeGreaterThanOrEqual(0);
+});
+
 test("la verificación va arriba mientras falta (también pendiente), y baja al final de su columna cuando ya está aprobada", async ({ page }) => {
   const tarjeta = () => hoja(page).getByText("Verificación del comercio");
   const tardias = () => page.getByRole("region", { name: "Cancelaciones tardías" });
@@ -132,15 +143,16 @@ test("la verificación va arriba mientras falta (también pendiente), y baja al 
 test("mientras carga, el cielo no muestra el nombre de la cuenta para cambiarlo después", async ({ page }) => {
   let soltar!: () => void;
   const espera = new Promise<void>((r) => (soltar = r));
-  await page.route("**/api/v1/companies/me/profile", async (r) => {
-    await espera;
-    await r.fulfill(json(deContrato("perfil_comercio", CON_HISTORIA)));
-  });
   await setTheme(page, "light");
   await injectSession(page);
   await skipSplash(page);
   await blockExternalHosts(page);
+  await page.route("**/api/v1/**", (r) => (r.request().method() === "GET" ? r.fulfill(json([])) : r.continue()));
   await mockEmptyNotifications(page);
+  await page.route("**/api/v1/companies/me/profile", async (r) => {
+    await espera;
+    await r.fulfill(json(deContrato("perfil_comercio", CON_HISTORIA)));
+  });
   await page.route("**/api/v1/auth/me", (r) => r.fulfill(json(deContrato("auth_me_employer", { full_name: "Julieta Demo" }))));
   await page.route("**/api/v1/reviews/received", (r) => r.fulfill(json([])));
   await page.route("**/api/v1/identity/me", (r) => r.fulfill(json({ claims: [] })));
@@ -149,6 +161,8 @@ test("mientras carga, el cielo no muestra el nombre de la cuenta para cambiarlo 
   await expect(cielo).toBeVisible();
   await expect(cielo).not.toContainText("Julieta Demo");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Perfil");
+  // Tampoco la inicial de la cuenta en el círculo.
+  await expect(page.locator(".perfil-foto")).toHaveText("");
   soltar();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Bar Lavalle");
 });
