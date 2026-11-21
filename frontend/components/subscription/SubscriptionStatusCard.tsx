@@ -6,7 +6,7 @@ import { formatArs, plural } from "@/lib/format";
 import { Badge, Button, Card } from "@/components/ui";
 import { AlertTriangleIcon } from "@/components/icons";
 import { formatShiftDate } from "@/lib/datetime";
-import { BETA_SIN_TOPE_TEXT, limiteExigido, usoSinTopeText } from "@/lib/subscription";
+import { BETA_SIN_TOPE_TEXT, accionesDelPlanActual, limiteExigido, usoSinTopeText } from "@/lib/subscription";
 
 const STATUS_TONE: Record<string, { tone: "primary" | "secondary" | "danger" | "neutral"; label: string }> = {
   pendiente: { tone: "primary", label: "Falta pagar" },
@@ -14,9 +14,6 @@ const STATUS_TONE: Record<string, { tone: "primary" | "secondary" | "danger" | "
   vencida: { tone: "danger", label: "Vencido" },
   cancelada: { tone: "neutral", label: "Cancelado" },
 };
-
-/** Umbral de "casi al límite": cuando quedan pocos turnos, avisamos antes de que falle publicar. */
-const LOW_REMAINING_THRESHOLD = 2;
 
 /**
  * Estado del plan actual del comercio (ADR-0005, Fase 1): plan, turnos usados
@@ -61,8 +58,11 @@ export default function SubscriptionStatusCard({
   // Con el tope sin exigir (la beta, G11) el uso se cuenta pero no hay barra,
   // ni «casi al límite», ni «alcanzaste el límite», ni oferta de cambiar de plan.
   const conTope = limiteExigido(subscription);
-  const atLimit = conTope && remaining !== null && remaining <= 0;
-  const nearLimit = conTope && remaining !== null && remaining > 0 && remaining <= LOW_REMAINING_THRESHOLD;
+  // Una sola fuente para qué acciones se piden: la pantalla la usa también,
+  // para que haya un solo botón ámbar (`accionesDelPlanActual`).
+  const acciones = accionesDelPlanActual(subscription, mountedAt, Boolean(onPay));
+  const atLimit = acciones.alLimite;
+  const nearLimit = acciones.cercaDelLimite;
 
   return (
     <Card className="tarjeta-suave p-5 ring-0">
@@ -85,7 +85,7 @@ export default function SubscriptionStatusCard({
         </p>
       )}
 
-      {(blocked || (inGrace && renews)) && onPay && (
+      {acciones.pagar && onPay && (
         <div className="mt-4 flex flex-col gap-3 rounded-2xl bg-warning-tint p-3.5 ring-1 ring-warning/20">
           <p className="flex items-start gap-2 text-sm font-semibold text-warning-text">
             <AlertTriangleIcon size={16} className="mt-0.5 shrink-0" />
@@ -134,7 +134,8 @@ export default function SubscriptionStatusCard({
               ? "Alcanzaste el límite de turnos de tu plan este mes."
               : `Te quedan ${remaining} ${remaining === 1 ? "turno" : "turnos"} este mes.`}
           </p>
-          <Button size="sm" onClick={onUpgrade}>
+          {/* Con «Pagar el mes» a la vista, ése es el ámbar. */}
+          <Button size="sm" variant={acciones.pagar ? "surface" : "primary"} onClick={onUpgrade}>
             Mejorá tu plan
           </Button>
         </div>

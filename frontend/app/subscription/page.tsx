@@ -9,7 +9,14 @@ import { useIdempotencyKeys } from "@/lib/idempotency";
 import { Subscription, SubscriptionPlan } from "@/lib/types";
 import { formatArs } from "@/lib/format";
 import { useLiveRefresh } from "@/lib/live-refresh";
-import { endOfArgentinaDay, formatPlainDate, limiteExigido, paymentReturnMessage } from "@/lib/subscription";
+import {
+  accionesDelPlanActual,
+  endOfArgentinaDay,
+  formatPlainDate,
+  limiteExigido,
+  paymentReturnMessage,
+  planDestacado,
+} from "@/lib/subscription";
 import { planValido } from "@/lib/plan-elegido";
 import SubscriptionStatusCard from "@/components/subscription/SubscriptionStatusCard";
 import PlanCard from "@/components/subscription/PlanCard";
@@ -70,6 +77,8 @@ function SubscriptionContent() {
   const [subscribing, setSubscribing] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [acting, setActing] = useState(false);
+  // Hora de cuando se abrió la pantalla: alcanza para saber si el mes ya venció.
+  const [abiertaEn] = useState(() => Date.now());
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
 
   // `silent` (G11, BK-898A15047291): al volver a la pestaña o a la red se
@@ -230,6 +239,16 @@ function SubscriptionContent() {
   // mes" del estado del plan se esconde (pagaría el plan actual, no el que
   // eligió) y las tarjetas pasan a botones sin acento.
   const avisoConAccion = estadoElegido === "elegir" || estadoElegido === "pagar";
+  // Un solo ámbar en la pantalla (Julieta, 2026-11-21): el aviso del plan
+  // elegido, o lo que pida la tarjeta del plan actual (pagar el mes, mejorar
+  // al llegar al límite) y, si arriba no hay nada, el plan siguiente al actual.
+  const puedePagar = Boolean(billing && currentPlan && !avisoConAccion);
+  const accionesActual = subscription ? accionesDelPlanActual(subscription, abiertaEn, puedePagar) : null;
+  const destacado = planDestacado(
+    plans,
+    currentPriceArs,
+    avisoConAccion || Boolean(accionesActual && (accionesActual.pagar || accionesActual.alLimite || accionesActual.cercaDelLimite))
+  );
 
   // Una sola vez, cuando ya están las tarjetas: el foco va a la del plan
   // elegido. Sin mover la pantalla, para que el aviso de arriba (con la
@@ -301,7 +320,7 @@ function SubscriptionContent() {
                     busy={subscribing && pendingPlan?.code === plan.code}
                     onSelect={() => setPendingPlan(plan)}
                     payLabel={plan.code === subscription.plan_code ? currentPayLabel : undefined}
-                    sinAcento={avisoConAccion}
+                    sinAcento={plan.code !== destacado}
                   />
                 );
                 if (plan.code !== elegido?.code) return card;
