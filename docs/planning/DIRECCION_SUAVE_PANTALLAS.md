@@ -90,7 +90,7 @@ Julieta vio las maquetas (dos vueltas de prototipos; el código, **que no se mer
 
 5. ⬜ **El mapa de quien trabaja** · pines con el ícono del rubro y el pago; al acercar, el nombre del local en una pastilla del color de la tecla (se voltea a la izquierda si no entra); chips «Hoy», «Mañana», «Fin de semana» (uno a la vez) y «Paga más».
 
-6. ⬜ **Accesos por rubro en Buscar de quien trabaja** · teclas con ícono y nombre en vez de los chips del cielo.
+6. ✅ **Accesos por rubro en Buscar de quien trabaja** (hecho 2026-11-21, `.tecla-rubro` en `app/buscar/page.tsx`) · teclas con ícono y nombre en vez de los chips del cielo.
 
 Quedó afuera, sin maqueta: el buscador de texto de turnos.
 

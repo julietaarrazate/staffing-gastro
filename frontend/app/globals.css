@@ -5007,3 +5007,56 @@ body:has([data-landing]) main {
   font-family: inherit;
   font-weight: 700;
 }
+
+/* Accesos por rubro de Buscar (`app/buscar/page.tsx`): una tecla suave con el
+   ícono y el nombre corto del rubro; la elegida, en azul hondo (como el pin
+   elegido del mapa). Mide bastante más de 44 px de alto. */
+.estilo-suave .tecla-rubro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  width: 76px;
+  min-height: 44px;
+  padding: 10px 4px 9px;
+  border-radius: var(--radio-suave);
+  background: var(--suave-tecla);
+  color: var(--color-ink);
+  box-shadow: var(--suave-sombra);
+  transition:
+    transform 0.12s ease,
+    background-color 0.15s ease;
+}
+.estilo-suave .tecla-rubro:active {
+  transform: scale(0.95);
+}
+.estilo-suave .tecla-rubro-icono {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  background: var(--suave-campo);
+  color: var(--color-primary-text);
+}
+.estilo-suave .tecla-rubro-nombre {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+.estilo-suave .tecla-rubro[aria-pressed="true"] {
+  background: var(--suave-elegido);
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(28, 84, 120, 0.32);
+}
+.estilo-suave .tecla-rubro[aria-pressed="true"] .tecla-rubro-icono {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+@media (prefers-reduced-motion: reduce) {
+  .estilo-suave .tecla-rubro {
+    transition: none;
+  }
+}
