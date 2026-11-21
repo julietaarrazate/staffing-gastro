@@ -1,4 +1,4 @@
-# Mi plan con la dirección suave, y un solo botón ámbar (#PR)
+# Mi plan con la dirección suave, y un solo botón ámbar (#715)
 
 **Pedido:** Julieta, 2026-11-21: «toda la app pasa a la misma dirección». Mi
 plan seguía con la letra y las tarjetas de antes. Vio la propuesta en capturas

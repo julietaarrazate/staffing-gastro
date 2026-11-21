@@ -57,7 +57,7 @@ qué responde cada pantalla está en
 
 - ⬜ **Las hojas compartidas** (`BottomSheet`, «¡Turno publicado!»)
 
-- ✅ **Mi plan** (`app/subscription/page.tsx`) · #PR · [historial](../historial/2026-11-21-mi-plan-direccion-suave.md) · sin maqueta: con `SubpaginaSuave`; un solo botón ámbar (`accionesDelPlanActual` y `planDestacado` en `lib/subscription.ts`); textos y precios sin cambios
+- ✅ **Mi plan** (`app/subscription/page.tsx`) · #715 · [historial](../historial/2026-11-21-mi-plan-direccion-suave.md) · sin maqueta: con `SubpaginaSuave`; un solo botón ámbar (`accionesDelPlanActual` y `planDestacado` en `lib/subscription.ts`); textos y precios sin cambios
 
 - ⬜ **Fichas, Favoritos, Soporte**
 
