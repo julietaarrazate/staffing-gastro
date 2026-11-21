@@ -36,7 +36,9 @@ en dos lugares) y `planDestacado`. `PlanCard`, `SubscriptionStatusCard` y
 en los que la regla fallaba: con el aviso del plan elegido y además al límite
 quedaban dos ámbares (la tarjeta ahora sabe que arriba ya hay uno:
 `ambarArriba`); la pantalla y la tarjeta miraban relojes distintos y podían
-discrepar justo cuando vencía el mes (ahora comparten la hora: `ahora`); y si
+discrepar justo cuando vencía el mes (ahora comparten la hora, `ahora`, que se
+renueva cada vez que se relee el plan: una pestaña abierta varios días ya no
+sigue diciendo «pagado»); y si
 el precio de lista del plan actual había subido, «el siguiente» era el propio
 plan y no quedaba ningún ámbar (`planDestacado` lo excluye). De paso, al tocar
 «Mejorá tu plan» del aviso, «Planes disponibles» ya no queda tapado por la
