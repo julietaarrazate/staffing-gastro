@@ -72,11 +72,11 @@ export function PushPromptProvider({ children }: { children: ReactNode }) {
       {children}
       <Sheet open={open} onClose={dismiss}>
         <div className="flex flex-col items-center pb-2 pt-1 text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--suave-campo)] text-primary-text">
             <BellIcon size={22} />
           </span>
-          <h3 className="mt-3 text-base font-bold text-ink">Activá las notificaciones</h3>
-          <p className="mt-1 text-sm text-ink/60">
+          <h3 className="mt-3 text-lg font-extrabold text-ink">Activá las notificaciones</h3>
+          <p className="mt-1 text-sm text-ink-soft">
             Enterate al instante cuando te asignen un turno, te escriban o cambie el estado
             de tu postulación.
           </p>

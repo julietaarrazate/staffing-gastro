@@ -5383,3 +5383,182 @@ body:has([data-landing]) main {
   font-size: 0.875rem;
   font-weight: 600;
 }
+
+/* ===== Las hojas y ventanas compartidas con la dirección suave (ADR-0028, 2026-11-21) =====
+   `Sheet`, `Modal`, el aviso flotante, el recorrido guiado y la campanita se
+   dibujan en un portal, fuera de la raíz de cada pantalla, así que ya no
+   dependen de que la pantalla lleve `.estilo-suave`: cada capa se lleva su
+   propia `.estilo-suave` (las variables y el botón, el campo y el chip suaves
+   pesan adentro) y `.ventana-suave` marca lo que sólo vale en una ventana.
+   La landing no usa ninguna de estas piezas (tiene sus réplicas). */
+/* El velo detrás de una hoja o un diálogo: azul de tinta, no negro puro. */
+.velo-suave {
+  background: rgba(15, 58, 91, 0.42);
+}
+:root[data-theme="dark"] .velo-suave {
+  background: rgba(3, 8, 14, 0.66);
+}
+/* La hoja que sube desde abajo: blanca, con las esquinas de arriba grandes y
+   la sombra difusa hacia arriba. De noche, la noche azul de la hoja. */
+.hoja-flotante {
+  background: var(--color-card);
+  border-radius: 28px 28px 0 0;
+  box-shadow: 0 -10px 30px rgba(15, 58, 91, 0.16);
+}
+:root[data-theme="dark"] .hoja-flotante {
+  box-shadow:
+    0 -10px 30px rgba(0, 0, 0, 0.45),
+    0 -1px 0 rgba(255, 255, 255, 0.06);
+}
+/* La cabecera pegajosa de la hoja (manija, título y cruz): del color de la
+   hoja, para que el contenido se esconda por detrás al desplazarse. */
+.hoja-flotante-cabeza {
+  background: var(--color-card);
+  border-radius: 28px 28px 0 0;
+}
+/* La manija de arrastre: una barrita suave, visible sobre la hoja. */
+.manija-suave {
+  width: 40px;
+  height: 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--suave-casilla-borde) 55%, transparent);
+}
+/* La cruz de cerrar: una tecla redonda con el relleno del campo. */
+.cruz-suave {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: var(--suave-campo);
+  color: var(--color-ink-soft);
+  transition:
+    transform 0.12s ease,
+    filter 0.15s ease;
+}
+.cruz-suave:hover {
+  filter: brightness(0.96);
+}
+.cruz-suave:active {
+  transform: scale(0.94);
+}
+@media (prefers-reduced-motion: reduce) {
+  .cruz-suave {
+    transition: none;
+  }
+}
+/* El diálogo centrado (las confirmaciones): una hoja blanca de esquinas
+   grandes con la sombra difusa alta. */
+.dialogo-suave {
+  background: var(--color-card);
+  border-radius: 28px;
+  box-shadow: var(--suave-sombra-alta);
+}
+/* El secundario de una ventana («Volver», «Ahora no»): quieto, con el relleno
+   del campo y la letra azul hondo, sin filete. El principal sigue siendo el
+   único ámbar (o el rojo de peligro de una confirmación destructiva). */
+.ventana-suave .boton-secundario {
+  background: var(--suave-campo);
+  color: var(--color-primary-text);
+  box-shadow: none;
+}
+.ventana-suave .boton-secundario:hover {
+  filter: brightness(0.97);
+}
+.ventana-suave .boton-secundario:disabled {
+  color: var(--color-ink-mute);
+}
+/* Una fila de una lista dentro de una hoja (el menú «Más acciones», los
+   avisos): redonda, de 48 px de alto como mínimo, sin rayas entre filas. */
+.ventana-suave .fila-hoja {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+.ventana-suave button.fila-hoja:hover:not(:disabled),
+.ventana-suave a.fila-hoja:hover {
+  background: var(--suave-campo);
+}
+.ventana-suave .fila-hoja:disabled {
+  opacity: 0.5;
+}
+/* Los avisos de la campanita: cada uno una tarjeta; el que no se leyó, con el
+   relleno del campo y un punto azul hondo. */
+.ventana-suave .aviso-fila {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 2px;
+  font-weight: 400;
+  background: var(--color-card);
+}
+.ventana-suave .aviso-fila[data-sin-leer="true"] {
+  background: var(--suave-campo);
+}
+.aviso-punto {
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 999px;
+  background: var(--suave-elegido);
+}
+/* El desplegable de avisos en la barra de arriba (la compu). */
+.panel-avisos {
+  border-radius: 22px;
+  background: var(--color-card);
+  box-shadow: var(--suave-sombra-alta);
+}
+/* El aviso flotante (`ToastProvider`): una tecla oscura con sombra difusa; el
+   texto largo lo envuelve en dos renglones sin deformar la píldora. */
+.aviso-flotante {
+  border-radius: 20px;
+  box-shadow: 0 10px 28px rgba(15, 58, 91, 0.28);
+}
+:root[data-theme="dark"] .aviso-flotante {
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+}
+/* El recorrido guiado: el hueco que deja el velo, y la tarjeta con su pregunta. */
+.recorrido-hueco {
+  border-radius: 22px;
+}
+.recorrido-tarjeta {
+  border-radius: 24px;
+  background: var(--color-card);
+  box-shadow: var(--suave-sombra-alta);
+}
+/* Un paso de «Esto es lo que sigue»: el número en una chapita redonda (el
+   primero, en azul hondo; los demás, con el relleno del campo). */
+.paso-chapa {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--suave-campo);
+  color: var(--color-primary-text);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.paso-chapa[data-actual="true"] {
+  background: var(--suave-elegido);
+  color: #ffffff;
+}
+.chip-suave-chico {
+  padding: 2px 8px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-primary-text);
+}

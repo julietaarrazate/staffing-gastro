@@ -202,7 +202,7 @@ export default function ImageCropModal({
         </div>
 
         <div className="flex w-full items-center gap-3 px-1">
-          <span className="text-xs font-semibold text-ink/50">Zoom</span>
+          <span className="text-xs font-semibold text-ink-soft">Zoom</span>
           <input
             type="range"
             min={MIN_ZOOM}
@@ -210,7 +210,7 @@ export default function ImageCropModal({
             step={0.05}
             value={zoom}
             onChange={(e) => setZoom(Number(e.target.value))}
-            className="flex-1 accent-primary"
+            className="flex-1 accent-[var(--color-primary-text)]"
           />
         </div>
 
@@ -219,7 +219,7 @@ export default function ImageCropModal({
             type="button"
             onClick={onCancel}
             disabled={saving}
-            className="flex-1 rounded-[var(--radius-relieve)] bg-card py-2.5 text-sm font-semibold text-ink ring-1 ring-line disabled:opacity-50"
+            className="boton boton-quieto min-h-[44px] flex-1 py-2.5 text-sm font-semibold disabled:opacity-50"
           >
             Cancelar
           </button>
@@ -227,7 +227,7 @@ export default function ImageCropModal({
             type="button"
             onClick={confirm}
             disabled={saving || natural.width === 0}
-            className="boton-relieve flex-1 bg-primary py-2.5 text-sm font-semibold text-night disabled:bg-surface disabled:text-ink-mute"
+            className="boton boton-relieve min-h-[44px] flex-1 bg-primary py-2.5 text-sm font-semibold text-night disabled:bg-surface disabled:text-ink-mute"
           >
             {saving ? "Guardando..." : "Usar esta foto"}
           </button>
