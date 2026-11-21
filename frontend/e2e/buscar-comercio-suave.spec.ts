@@ -193,3 +193,15 @@ test("con 400 px de alto la hoja al máximo sigue mostrando la lista", async ({ 
   expect(caja.y).toBeGreaterThanOrEqual(0);
   await expect(hoja.getByText("Persona número 0", { exact: true })).toBeInViewport({ ratio: 1 });
 });
+
+// El cielo no recibe toques, pero el enlace del encabezado sí (en el celular
+// el botón del estado vacío queda abajo, en la hoja replegada).
+test("celular sin local: «Completar ubicación del local» del cielo se puede tocar y lleva a editar", async ({ page }) => {
+  await buscar(page, "light", null, 390);
+  await page.route("**/api/v1/companies/me/profile", (r) =>
+    r.fulfill(json({ id: "c1", user_id: "u-e", name: "Bar", logo_url: null, address: null, city: null, latitude: null, longitude: null })),
+  );
+  await page.reload();
+  await page.locator(".mapa-cielo").getByRole("link", { name: "Completar ubicación del local" }).click();
+  await expect(page).toHaveURL(/\/profile\/edit/);
+});

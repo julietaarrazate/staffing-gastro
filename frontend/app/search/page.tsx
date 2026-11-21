@@ -302,8 +302,9 @@ function SearchPageContent() {
       </p>
     ) : sinLocal ? (
       // En mobile la hoja arranca replegada y el botón del estado vacío queda
-      // abajo: el acceso a completar el local también va en el encabezado.
-      <Link href="/profile/edit" className="inline-flex min-h-[44px] items-center text-sm font-semibold underline">
+      // abajo. El cielo no recibe toques (el mapa se mueve por debajo): este
+      // enlace los vuelve a pedir, si no el toque cae en el mapa.
+      <Link href="/profile/edit" className="pointer-events-auto inline-flex min-h-[44px] items-center text-sm font-semibold underline">
         Completar ubicación del local
       </Link>
     ) : null;
