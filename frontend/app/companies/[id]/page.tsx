@@ -109,6 +109,7 @@ export default function PublicCompanyProfilePage() {
       bajada={bajada || undefined}
       fotoUrl={profile.logo_url}
       inicial={profile.name}
+      idFoto={params.id}
       onVolver={goBack}
     >
       {profile.cover_photo_url && !portadaRota && (

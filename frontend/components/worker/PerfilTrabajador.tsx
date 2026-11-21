@@ -13,7 +13,7 @@ import {
   formatPunctuality,
   levelLabel,
 } from "@/lib/reputation";
-import { ErrorBanner, NubesCielo, Skeleton } from "@/components/ui";
+import { ErrorBanner, NubesCielo, SinFoto, Skeleton } from "@/components/ui";
 import EditableName from "@/components/EditableName";
 import AvailableNowToggle from "@/components/worker/AvailableNowToggle";
 import IdentityVerificationCard from "@/components/worker/IdentityVerificationCard";
@@ -152,11 +152,8 @@ export default function PerfilTrabajador() {
               fallbackLabel={user?.full_name ?? "Vos"}
             />
           ) : (
-            <div
-              aria-hidden
-              className="foto-subir flex h-[108px] w-[108px] items-center justify-center rounded-full text-3xl font-bold"
-            >
-              {(user?.full_name ?? "V").charAt(0).toUpperCase()}
+            <div className="foto-subir h-[108px] w-[108px] overflow-hidden rounded-full">
+              <SinFoto nombre={user?.full_name ?? "V"} id={user?.id} />
             </div>
           )}
         </div>

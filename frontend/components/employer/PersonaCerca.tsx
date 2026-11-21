@@ -7,17 +7,28 @@ import { SKILL_ACCENT } from "@/lib/skill-style";
 import { formatAgo } from "@/lib/datetime";
 import { formatDistance } from "@/lib/format";
 import RatingOrNew from "@/components/RatingOrNew";
+import SinFoto from "@/components/ui/SinFoto";
 import { Estrellas } from "@/components/profile/ProfileParts";
 import { formatRating, hasRating } from "@/lib/reputation";
 
 /**
  * La foto de quien aparece en Buscar del comercio: redonda; sin foto (o si no
- * carga), la inicial sobre el cielo de `.portada-cielo` (dirección suave,
+ * carga), el cielo de `ui/SinFoto` con su inicial (dirección suave,
  * ADR-0028). Reemplaza al cuadradito de color por rubro (`heroTile`).
  */
-export function FotoPersona({ nombre, url, className = "" }: { nombre: string; url: string | null; className?: string }) {
+export function FotoPersona({
+  nombre,
+  url,
+  id,
+  className = "",
+}: {
+  nombre: string;
+  url: string | null;
+  /** Id del perfil: elige la nube del cielo que reemplaza a la foto. */
+  id?: string;
+  className?: string;
+}) {
   const [rota, setRota] = useState(false);
-  const inicial = nombre.trim().charAt(0).toUpperCase() || "?";
   return (
     <span className={`persona-foto relative flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface ${className}`}>
       {url && !rota ? (
@@ -33,9 +44,7 @@ export function FotoPersona({ nombre, url, className = "" }: { nombre: string; u
           className="h-full w-full object-cover"
         />
       ) : (
-        <span aria-hidden className="portada-cielo flex h-full w-full items-center justify-center text-xl font-extrabold">
-          {inicial}
-        </span>
+        <SinFoto nombre={nombre} id={id} tamano={56} />
       )}
     </span>
   );
@@ -56,7 +65,7 @@ export default function PersonaCerca({ worker }: { worker: WorkerMapResult }) {
       href={`/workers/${worker.profile_id}`}
       className="mapa-turno persona-fila flex items-start gap-3 p-3 transition active:scale-[0.99]"
     >
-      <FotoPersona nombre={worker.full_name} url={worker.photo_url} />
+      <FotoPersona nombre={worker.full_name} url={worker.photo_url} id={worker.profile_id} />
       <div className="min-w-0 flex-1">
         <p lang="es" className="break-words text-base font-extrabold leading-tight tracking-[-0.01em] text-ink">
           {worker.full_name}

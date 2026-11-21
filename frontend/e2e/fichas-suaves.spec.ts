@@ -312,7 +312,9 @@ test("«Cómo llegar» abre las indicaciones del local", async ({ page }) => {
 test("perfil mínimo de quien trabaja: sin foto la inicial, «Nuevo en Oído», sin ceros ni filas vacías", async ({ page }) => {
   await abrir(page, "/workers/wp-2", { trabajador: TRABAJADORA_MINIMA, resenas: [] });
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Nico Nuevo");
-  await expect(page.locator(".perfil-foto img")).toHaveCount(0);
+  await expect(page.locator(".perfil-foto img:not(.portada-nube)")).toHaveCount(0);
+  // Sin foto: el cielo de `SinFoto` (degradé con nube e inicial), no un color liso.
+  await expect(page.locator(".perfil-foto [data-sin-foto='nube'] img.portada-nube")).toHaveCount(1);
   await expect(page.locator(".perfil-foto")).toHaveText("N");
   await expect(hoja(page)).toContainText("Nuevo en Oído");
   await expect(page.locator(".perfil-numero")).toHaveCount(0);
@@ -330,7 +332,8 @@ test("perfil mínimo del comercio: sin logo la inicial, sin foto, sin mapa, sin 
   await abrir(page, "/companies/c-2", { comercio: COMERCIO_MINIMO, rol: "worker" });
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Café Nuevo");
   await expect(page.locator(".perfil-foto")).toHaveText("C");
-  await expect(hoja(page).locator("img")).toHaveCount(0);
+  await expect(hoja(page).locator("img:not(.portada-nube)")).toHaveCount(0);
+  await expect(page.locator(".perfil-foto [data-sin-foto]")).toBeVisible();
   await expect(hoja(page)).toContainText("Nuevo en Oído");
   await expect(hoja(page)).not.toContainText(/Pago a tiempo|A cargo|Ubicación|Capacidad|Horario|Dirección/i);
   await expect(page.locator("dl.perfil-filas")).toHaveCount(0);
@@ -358,7 +361,7 @@ test("una foto o un logo que no carga vuelve a la inicial; la foto del local rot
   await page.unrouteAll({ behavior: "ignoreErrors" });
   await abrir(page, "/companies/c-1", { comercio: { ...COMERCIO, logo_url: "https://rota.test/l.jpg", cover_photo_url: "https://rota.test/c.jpg" } });
   await expect(page.locator(".perfil-foto")).toHaveText("B");
-  await expect(hoja(page).locator("img")).toHaveCount(0);
+  await expect(hoja(page).locator("img:not(.portada-nube)")).toHaveCount(0);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Bar Lavalle");
 });
 

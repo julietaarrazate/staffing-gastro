@@ -29,8 +29,10 @@ describe("ImageUpload sin foto", () => {
       <ImageUpload value={null} onChange={() => {}} fallbackLabel="Julieta A." />
     );
     // El overlay a pantalla completa es el que pisaba: mientras no se esté
-    // subiendo nada, no debe existir ninguno.
-    expect(container.querySelectorAll(".absolute.inset-0")).toHaveLength(0);
+    // subiendo nada, no debe existir ninguno (la letra del cielo de `SinFoto`
+    // vive dentro de su propio bloque, no es un overlay del botón).
+    expect(container.querySelectorAll(".absolute.inset-0:not([data-sin-foto] *)")).toHaveLength(0);
+    expect(container.querySelector("[data-sin-foto]")).not.toBeNull();
   });
 
   it("igual se ve que la foto se puede tocar (insignia en la esquina)", () => {
@@ -72,7 +74,9 @@ describe("ImageUpload con una foto que no carga", () => {
     const img = container.querySelector("img");
     expect(img).not.toBeNull();
     fireEvent.error(img!);
-    expect(container.querySelector("img")).toBeNull();
+    // Ya no hay foto (la única imagen es la nube decorativa del cielo, sin alt).
+    expect(container.querySelector("img[alt]:not([alt=''])")).toBeNull();
+    expect(container.querySelector("[data-sin-foto]")).not.toBeNull();
     expect(screen.getByRole("button", { name: "Cambiar foto de perfil" })).toHaveTextContent("L");
   });
 });

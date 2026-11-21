@@ -81,7 +81,7 @@ export default function FavoritesPage() {
               className="tarjeta-suave no-select flex min-w-0 items-center gap-3 p-4"
             >
               <Link href={`/workers/${f.worker_profile_id}`}>
-                <Avatar src={f.photo_url} name={f.full_name} size="lg" />
+                <Avatar src={f.photo_url} name={f.full_name} size="lg" id={f.worker_profile_id} cielo />
               </Link>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">

@@ -6,7 +6,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import type { CompanyProfile } from "@/lib/types";
 import { formatPunctuality, hasPaymentRate } from "@/lib/reputation";
-import { ErrorBanner, NubesCielo, Skeleton } from "@/components/ui";
+import { ErrorBanner, NubesCielo, SinFoto, Skeleton } from "@/components/ui";
 import BusinessVerificationCard from "@/components/company/BusinessVerificationCard";
 import LateCancellations from "@/components/company/LateCancellations";
 import EditableName from "@/components/EditableName";
@@ -113,11 +113,8 @@ export default function PerfilComercio() {
               className="foto-subir h-[108px] w-[108px] rounded-full object-cover"
             />
           ) : (
-            <div
-              aria-hidden
-              className="foto-subir flex h-[108px] w-[108px] items-center justify-center rounded-full text-3xl font-bold"
-            >
-              {loading ? "" : nombre.charAt(0).toUpperCase()}
+            <div className="foto-subir h-[108px] w-[108px] overflow-hidden rounded-full">
+              <SinFoto nombre={loading ? "" : nombre} id={profile?.id} />
             </div>
           )}
         </div>

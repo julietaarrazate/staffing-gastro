@@ -180,7 +180,8 @@ test("un logo que no carga vuelve a la inicial", async ({ page }) => {
   await page.route("**/logo-roto.png", (r) => r.fulfill({ status: 404, body: "" }));
   await perfil(page, { perfil: { ...CON_HISTORIA, logo_url: "/logo-roto.png" } });
   await expect(page.locator(".perfil-foto")).toHaveText("B");
-  await expect(page.locator(".perfil-foto img")).toHaveCount(0);
+  await expect(page.locator(".perfil-foto img:not(.portada-nube)")).toHaveCount(0);
+  await expect(page.locator(".perfil-foto [data-sin-foto]")).toBeVisible();
 });
 
 test("un comercio nuevo no ve ceros: la reputación arranca con su primer turno", async ({ page }) => {

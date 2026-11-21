@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { cldThumb } from "@/lib/cloudinary";
 import { ChevronLeftIcon } from "@/components/icons";
-import { NubesCielo } from "@/components/ui";
+import { NubesCielo, SinFoto } from "@/components/ui";
 
 /**
  * La cáscara de la ficha pública de una persona o de un comercio
@@ -22,6 +22,7 @@ export default function FichaSuave({
   bajada,
   fotoUrl,
   inicial,
+  idFoto,
   sello,
   cargando = false,
   onVolver,
@@ -32,8 +33,10 @@ export default function FichaSuave({
   /** Una línea debajo del nombre (ciudad; rubro · ciudad). */
   bajada?: string;
   fotoUrl?: string | null;
-  /** La letra del círculo cuando no hay foto, o no carga. */
+  /** De acá sale la letra del cielo que reemplaza a la foto cuando falta, o no carga. */
   inicial?: string;
+  /** Id del perfil: elige la nube de ese cielo (`SinFoto`). */
+  idFoto?: string;
   /** Lo que va a la derecha de la foto, sobre la hoja (identidad verificada). */
   sello?: React.ReactNode;
   cargando?: boolean;
@@ -93,11 +96,8 @@ export default function FichaSuave({
               className="foto-subir h-[108px] w-[108px] rounded-full object-cover"
             />
           ) : (
-            <div
-              aria-hidden
-              className="foto-subir flex h-[108px] w-[108px] items-center justify-center rounded-full text-3xl font-bold"
-            >
-              {cargando ? "" : (inicial ?? "").charAt(0).toUpperCase()}
+            <div className="foto-subir h-[108px] w-[108px] overflow-hidden rounded-full">
+              <SinFoto nombre={cargando ? "" : inicial} id={idFoto} />
             </div>
           )}
         </div>

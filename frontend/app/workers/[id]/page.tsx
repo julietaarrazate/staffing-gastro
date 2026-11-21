@@ -169,6 +169,7 @@ export default function PublicWorkerProfilePage() {
       bajada={profile.city ?? undefined}
       fotoUrl={profile.photo_url}
       inicial={name}
+      idFoto={params.id}
       onVolver={goBack}
       sello={
         profile.identidad_verificada && (

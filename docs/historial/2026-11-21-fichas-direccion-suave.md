@@ -42,3 +42,16 @@ foto del local (antes el logo sólo era el respaldo) es el mismo dato público.
 
 **Queda abierto:** Favoritos y Soporte. `RateMeter`, `RatingOrNew`,
 `IdentityVerifiedBadge` y `SKILL_ACCENT` siguen para las pantallas sin migrar.
+
+## Sin foto (2026-11-21)
+
+**Pedido de Julieta:** «Lo que no me gusta son esos círculos de colores o tarjetas de colores en las fichas ni en ningún lugar donde el comercio o el empleado debe cargar fotos; en su defecto, cuando no lo cargan, debe tener algún componente visual estético que no se reduzca a un color plano liso.»
+
+**Qué cambió:** pieza nueva `components/ui/SinFoto.tsx`: un pedacito de cielo (las clases `.portada-cielo`, `.portada-nube` y `.portada-tinta` de la portada de un turno, las mismas nubes, `variantePorId`) con una nube que asoma por abajo y la inicial encima. Llena su contenedor y escala con él (unidades de contenedor); por debajo de 36 px queda degradé e inicial. Bloque al final de `globals.css` (`.sin-foto`, la letra a `42cqmin` y la nube más tenue de noche).
+
+**Dónde se usa:** las dos fichas (`FichaSuave`, con la prop `idFoto`), `PerfilComercio`, `PerfilTrabajador` (sin perfil cargado) y `ImageUpload` (el círculo de subir foto del perfil y el logo cuadrado de los formularios), `PersonaCerca` (`FotoPersona`), `TurnoPanel` (la persona asignada) y `Avatar` con la prop nueva `cielo` en Chats (lista y encabezado), Favoritos y las filas de Candidatos. **Sigue igual:** `Avatar` sin `cielo` (admin y landing), `OpportunityCard` y `ShiftCard` (los comparte la landing), los pines del mapa, `CandidatoDestacado` y `OidoElegido` (ya eran cielo hondo con iniciales), la foto del local (sin foto no se dibuja nada) y `app/profile/page.tsx` (el admin).
+
+**Contraste de la inicial** (medido sobre los píxeles de la letra, 40/56/108 px, con nube): claro, peor caso 5,09; noche, 6,20.
+
+**Verificación:** unit de `SinFoto`, ajustes en `ImageUpload.test`, `fichas-suaves`, `perfil-comercio-suave` y `panel-suave`. Capturas con fotos reales de `public/landing/` en el scratchpad de la sesión.
+
