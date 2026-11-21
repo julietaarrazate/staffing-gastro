@@ -7,7 +7,9 @@ import { useAuth } from "@/lib/auth-context";
 import { destinoTrasIngreso } from "@/lib/perfil-faltante";
 import { ApiError } from "@/lib/api";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
-import { Button, SegmentedControl, TextField } from "@/components/ui";
+import { Button, TextField } from "@/components/ui";
+import PantallaAcceso from "@/components/acceso/PantallaAcceso";
+import AceptoTerminos from "@/components/acceso/AceptoTerminos";
 import TurnstileWidget, { TurnstileTemprano } from "@/components/TurnstileWidget";
 import { TURNSTILE_SITE_KEY } from "@/lib/turnstile";
 import { loginHref, bienvenidaHref, safeNext } from "@/lib/safe-next";
@@ -18,6 +20,11 @@ import { motivoBloqueoRegistro } from "@/lib/registro";
 import { EDAD_MINIMA, motivoFechaNacimiento, nacimientoMasReciente } from "@/lib/edad";
 
 type Role = "worker" | "employer";
+
+const ROLES: { value: Role; label: string }[] = [
+  { value: "worker", label: "Soy trabajador/a" },
+  { value: "employer", label: "Soy comercio" },
+];
 
 /** `?rol=comercio|trabajador` en la URL preselecciona la pestaña — lo usan
  * los CTA de la landing ("Necesito personal" / "Quiero trabajar", ver
@@ -106,152 +113,123 @@ function RegisterForm() {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-57px)] items-center justify-center px-4 py-10">
-      <div className="w-full max-w-sm">
-        <h1 className="text-center font-display text-h1 font-semibold tracking-tight text-ink">Crear cuenta</h1>
-        <p className="mt-1 text-center text-sm text-ink/50">
-          Empezá a cubrir o conseguir turnos en minutos.
-        </p>
-
-        <div className="mt-6 rounded-[var(--radius-card)] bg-card p-6 shadow-[var(--shadow-soft)] ring-1 ring-line">
-          <SegmentedControl
-            options={[
-              { value: "worker", label: "Soy trabajador/a" },
-              { value: "employer", label: "Soy comercio" },
-            ]}
-            value={role}
-            onChange={setRole}
-          />
-
-          <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-4">
-            <TextField
-              label="Nombre completo"
-              name="name"
-              autoComplete="name"
-              value={fullName}
-              onChange={setFullName}
-              placeholder="Nombre completo"
-              required
-              maxLength={LIMITES.nombre}
-            />
-            <div>
-              <TextField
-                type="date"
-                label="Fecha de nacimiento"
-                name="bday"
-                autoComplete="bday"
-                value={birthDate}
-                onChange={setBirthDate}
-                max={nacimientoMasReciente()}
-                required
-                // Sólo con la fecha completa: mientras se escribe no hay error.
-                error={errorNacimiento}
-              />
-              {!errorNacimiento && (
-                <p className="mt-1.5 text-xs text-ink/50">
-                  Oído es para mayores de {EDAD_MINIMA} años. No se la mostramos a nadie.
-                </p>
-              )}
-            </div>
-            <TextField
-              type="email"
-              name="email"
-              autoComplete="email"
-              label="Email"
-              value={email}
-              onChange={setEmail}
-              placeholder="Email"
-              required
-            />
-            <TextField
-              type="password"
-              name="new-password"
-              autoComplete="new-password"
-              label="Contraseña"
-              value={password}
-              onChange={setPassword}
-              placeholder="Contraseña (mín. 8 caracteres)"
-              required
-              minLength={LIMITES.contrasenaMin}
-              maxLength={LIMITES.contrasenaMax}
-            />
-            <label className="flex items-start gap-2.5 text-sm text-ink/70">
-              <input
-                type="checkbox"
-                checked={acceptedTerms}
-                onChange={(e) => setAcceptedTerms(e.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 rounded border-line accent-primary"
-              />
-              <span>
-                Acepto los{" "}
-                <Link
-                  href="/terminos"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-semibold text-primary-text hover:underline"
-                >
-                  Términos y Condiciones
-                </Link>{" "}
-                y la{" "}
-                <Link
-                  href="/privacidad"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-semibold text-primary-text hover:underline"
-                >
-                  Política de Privacidad
-                </Link>
-              </span>
-            </label>
-            {error && (
-              <p role="alert" className="text-sm text-danger-text">
-                {error}
-              </p>
-            )}
-            <TurnstileWidget resetKey={turnstileReset} onTokenChange={setTurnstileToken} />
-            {motivoBloqueo && (
-              <p className="text-center text-sm text-ink/60" data-testid="motivo-crear-cuenta">
-                {motivoBloqueo}
-              </p>
-            )}
-            <Button type="submit" fullWidth loading={submitting} disabled={Boolean(motivoBloqueo)}>
-              Crear cuenta
-            </Button>
-          </form>
-
-          {/* Cuenta nueva por Google → onboarding. `/bienvenida` reenvía solo
-              al comercio a su panel (o a "Mi plan" si eligió uno en la
-              landing). El rol y la aceptación de términos son los del formulario
-              (una sola casilla, sin volver a preguntar); el rol vuelve acá para
-              guardar el plan. */}
-          <GoogleAuthButton
-            rolElegido={role}
-            terminosAceptados={acceptedTerms}
-            nacimientoElegido={birthDate}
-            onDone={async (isNewAccount, nuevoRol, sesion) => {
-              if (isNewAccount && nuevoRol === "employer" && planElegido) guardarPlanElegido(planElegido);
-              router.replace(isNewAccount ? bienvenidaHref(next) : await destinoTrasIngreso(sesion, next));
-            }}
-          />
-        </div>
-
-        <p className="mt-5 text-center text-sm text-ink/70">
-          ¿Ya tenés cuenta?{" "}
-          <Link href={loginHref({ next })} className="font-semibold text-primary-text">
-            Ingresá
-          </Link>
-        </p>
-        {/* La recuperación existía (`/recuperar`) pero sólo se llegaba desde
-            /login: quien intentaba registrarse con un email ya usado quedaba
-            sin salida visible. */}
-        <p className="mt-2 text-center text-sm text-ink/50">
-          ¿Olvidaste tu contraseña?{" "}
-          <Link href="/recuperar" className="font-semibold text-primary-text">
-            Recuperala
-          </Link>
-        </p>
+    <PantallaAcceso titulo="Crear cuenta" bajada="Empezá a cubrir o conseguir turnos en minutos.">
+      {/* El rol: dos teclas suaves; la elegida va en azul hondo (el ámbar es de
+          «Crear cuenta»). */}
+      <div className="grid grid-cols-2 gap-3">
+        {ROLES.map((o) => (
+          <button
+            key={o.value}
+            type="button"
+            aria-pressed={role === o.value}
+            onClick={() => setRole(o.value)}
+            className="tecla min-h-12 px-3 py-2 text-sm font-semibold text-ink"
+          >
+            {o.label}
+          </button>
+        ))}
       </div>
-    </div>
+
+      <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-4">
+        <TextField
+          label="Nombre completo"
+          name="name"
+          autoComplete="name"
+          value={fullName}
+          onChange={setFullName}
+          placeholder="Nombre completo"
+          required
+          maxLength={LIMITES.nombre}
+        />
+        <div>
+          <TextField
+            type="date"
+            label="Fecha de nacimiento"
+            name="bday"
+            autoComplete="bday"
+            value={birthDate}
+            onChange={setBirthDate}
+            max={nacimientoMasReciente()}
+            required
+            // Sólo con la fecha completa: mientras se escribe no hay error.
+            error={errorNacimiento}
+          />
+          {!errorNacimiento && (
+            <p className="mt-1.5 text-xs text-ink-soft">
+              Oído es para mayores de {EDAD_MINIMA} años. No se la mostramos a nadie.
+            </p>
+          )}
+        </div>
+        <TextField
+          type="email"
+          name="email"
+          autoComplete="email"
+          label="Email"
+          value={email}
+          onChange={setEmail}
+          placeholder="Email"
+          required
+        />
+        <TextField
+          type="password"
+          name="new-password"
+          autoComplete="new-password"
+          label="Contraseña"
+          value={password}
+          onChange={setPassword}
+          placeholder="Contraseña (mín. 8 caracteres)"
+          required
+          minLength={LIMITES.contrasenaMin}
+          maxLength={LIMITES.contrasenaMax}
+        />
+        <AceptoTerminos checked={acceptedTerms} onChange={setAcceptedTerms} />
+        {error && (
+          <p role="alert" className="text-sm text-danger-text">
+            {error}
+          </p>
+        )}
+        <TurnstileWidget resetKey={turnstileReset} onTokenChange={setTurnstileToken} />
+        {motivoBloqueo && (
+          <p className="text-center text-sm text-ink-soft" data-testid="motivo-crear-cuenta">
+            {motivoBloqueo}
+          </p>
+        )}
+        <Button type="submit" fullWidth loading={submitting} disabled={Boolean(motivoBloqueo)}>
+          Crear cuenta
+        </Button>
+      </form>
+
+      {/* Cuenta nueva por Google → onboarding. `/bienvenida` reenvía solo
+          al comercio a su panel (o a "Mi plan" si eligió uno en la
+          landing). El rol y la aceptación de términos son los del formulario
+          (una sola casilla, sin volver a preguntar); el rol vuelve acá para
+          guardar el plan. */}
+      <GoogleAuthButton
+        rolElegido={role}
+        terminosAceptados={acceptedTerms}
+        nacimientoElegido={birthDate}
+        onDone={async (isNewAccount, nuevoRol, sesion) => {
+          if (isNewAccount && nuevoRol === "employer" && planElegido) guardarPlanElegido(planElegido);
+          router.replace(isNewAccount ? bienvenidaHref(next) : await destinoTrasIngreso(sesion, next));
+        }}
+      />
+
+      <p className="mt-5 text-center text-sm text-ink-soft">
+        ¿Ya tenés cuenta?{" "}
+        <Link href={loginHref({ next })} className="font-semibold text-primary-text">
+          Ingresá
+        </Link>
+      </p>
+      {/* La recuperación existía (`/recuperar`) pero sólo se llegaba desde
+          /login: quien intentaba registrarse con un email ya usado quedaba
+          sin salida visible. */}
+      <p className="mt-2 text-center text-sm text-ink-soft">
+        ¿Olvidaste tu contraseña?{" "}
+        <Link href="/recuperar" className="font-semibold text-primary-text">
+          Recuperala
+        </Link>
+      </p>
+    </PantallaAcceso>
   );
 }
 

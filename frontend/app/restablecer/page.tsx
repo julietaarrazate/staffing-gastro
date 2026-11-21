@@ -6,6 +6,7 @@ import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import { loginHref } from "@/lib/safe-next";
 import { Button, TextField } from "@/components/ui";
+import PantallaAcceso from "@/components/acceso/PantallaAcceso";
 
 function RestablecerForm() {
   const router = useRouter();
@@ -41,63 +42,52 @@ function RestablecerForm() {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-57px)] items-center justify-center px-4 py-10">
-      <div className="w-full max-w-sm">
-        <h1 className="text-center font-display text-h1 font-semibold text-ink">
-          Elegí una nueva contraseña
-        </h1>
-        <p className="mt-1 text-center text-sm text-ink/50">
-          Escribila dos veces para confirmar.
-        </p>
-
-        <div className="mt-6 rounded-[var(--radius-card)] bg-card p-6 shadow-[var(--shadow-soft)] ring-1 ring-line">
-          {!token ? (
-            <p className="text-sm text-danger-text">
-              El enlace es inválido o le falta el token. Pedí uno nuevo desde{" "}
-              <Link href="/recuperar" className="font-semibold text-primary-text">
-                recuperar contraseña
-              </Link>
-              .
-            </p>
-          ) : (
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              <TextField
-                type="password"
-                name="new-password"
-                autoComplete="new-password"
-                label="Nueva contraseña"
-                required
-                minLength={8}
-                placeholder="Mín. 8 caracteres"
-                value={password}
-                onChange={setPassword}
-              />
-              <TextField
-                type="password"
-                name="confirm-password"
-                autoComplete="new-password"
-                label="Confirmá la nueva contraseña"
-                required
-                minLength={8}
-                placeholder="Repetí la contraseña"
-                value={confirmPassword}
-                onChange={setConfirmPassword}
-              />
-              {error && <p className="text-sm text-danger-text">{error}</p>}
-              <Button type="submit" fullWidth loading={submitting}>
-                Restablecer contraseña
-              </Button>
-            </form>
-          )}
-        </div>
-
-        <p className="mt-5 text-center text-sm text-ink/60">
-          <Link href="/login" className="font-semibold text-primary-text">
-            Volver a ingresar
+    <PantallaAcceso titulo="Elegí una nueva contraseña" bajada="Escribila dos veces para confirmar.">
+      {!token ? (
+        <p className="text-sm text-danger-text">
+          El enlace es inválido o le falta el token. Pedí uno nuevo desde{" "}
+          <Link href="/recuperar" className="font-semibold text-primary-text">
+            recuperar contraseña
           </Link>
+          .
         </p>
-      </div>
-    </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <TextField
+            type="password"
+            name="new-password"
+            autoComplete="new-password"
+            label="Nueva contraseña"
+            required
+            minLength={8}
+            placeholder="Mín. 8 caracteres"
+            value={password}
+            onChange={setPassword}
+          />
+          <TextField
+            type="password"
+            name="confirm-password"
+            autoComplete="new-password"
+            label="Confirmá la nueva contraseña"
+            required
+            minLength={8}
+            placeholder="Repetí la contraseña"
+            value={confirmPassword}
+            onChange={setConfirmPassword}
+          />
+          {error && <p className="text-sm text-danger-text">{error}</p>}
+          <Button type="submit" fullWidth loading={submitting}>
+            Restablecer contraseña
+          </Button>
+        </form>
+      )}
+
+      <p className="mt-5 text-center text-sm text-ink-soft">
+        <Link href="/login" className="inline-flex min-h-11 items-center font-semibold text-primary-text">
+          Volver a ingresar
+        </Link>
+      </p>
+    </PantallaAcceso>
   );
 }
 

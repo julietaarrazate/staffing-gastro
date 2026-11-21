@@ -82,6 +82,11 @@ function AuthLinksConVuelta() {
   return <AuthLinks next={next} />;
 }
 
+/** Las pantallas de acceso con la dirección suave (`components/acceso/PantallaAcceso.tsx`). */
+function esPantallaDeAcceso(pathname: string) {
+  return ["/login", "/register", "/recuperar", "/restablecer", "/verificar-email"].includes(pathname);
+}
+
 export default function Navbar() {
   const { user, loading, reconnecting } = useAuth();
   const pathname = usePathname();
@@ -91,7 +96,12 @@ export default function Navbar() {
   // `<html>` le dice a `globals.css` que arriba ya no hay nada que descontar.
   // No en las pantallas propias, sin barras (la bienvenida trae su zona segura).
   const pantallaPropia = pathname === "/bienvenida" || pathname === "/historia" || pathname === "/encuesta";
-  const sinEncabezadoEnCelular = !pantallaPropia && (user?.role === "worker" || user?.role === "employer");
+  // El acceso y la bienvenida (2026-11-21) también arrancan con su propio cielo
+  // hasta arriba: el «oído» del cielo reemplaza al encabezado. El admin, que
+  // conserva su encabezado en el celular, queda afuera.
+  const conCieloPropio = (esPantallaDeAcceso(pathname) || pathname === "/bienvenida") && user?.role !== "admin";
+  const sinEncabezadoEnCelular =
+    conCieloPropio || (!pantallaPropia && (user?.role === "worker" || user?.role === "employer"));
   useEffect(() => {
     const raiz = document.documentElement;
     if (sinEncabezadoEnCelular) raiz.dataset.cromo = "app";
@@ -104,6 +114,9 @@ export default function Navbar() {
   // El onboarding es una pantalla de fondo ink con su propio logo: el header
   // blanco encima la cortaba al medio y duplicaba la marca.
   if (pathname === "/bienvenida") return null;
+  // El ingreso y sus pantallas hermanas llevan el «oído» en su propio cielo:
+  // sin sesión no hay encabezado (con sesión, el de siempre).
+  if (!user && esPantallaDeAcceso(pathname)) return null;
   // La landing (visitante sin sesión) lleva su propio encabezado
   // (components/landing/LandingHeader.tsx). Con sesión, "/" redirige a la home del rol y este header sigue apareciendo.
   // Con una sesión guardada que todavía no se pudo confirmar tampoco va la de

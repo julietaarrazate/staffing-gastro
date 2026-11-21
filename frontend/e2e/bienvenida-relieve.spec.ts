@@ -2,10 +2,11 @@ import { test, expect, type Page } from "@playwright/test";
 import { blockExternalHosts, injectSession, mockEmptyNotifications, setTheme, skipSplash } from "./mocks";
 
 /**
- * La bienvenida con la dirección «con relieve» (2026-11-19,
- * docs/historial/2026-11-19-bienvenida-relieve.md): el cielo arriba con el
- * «oído» plano (sin el fileteado, que Julieta vio cargado, y sin la cafetera),
- * la pregunta en brocha y los pasos en un renglón, tachando lo hecho.
+ * La bienvenida (2026-11-19, docs/historial/2026-11-19-bienvenida-relieve.md):
+ * el cielo arriba con el «oído» plano (sin el fileteado, que Julieta vio
+ * cargado, y sin la cafetera) y los pasos en un renglón, tachando lo hecho.
+ * Desde el 2026-11-21 (dirección suave, e2e/acceso-suave.spec.ts) la pregunta
+ * va en letra normal en el cielo y no en brocha adentro del paso.
  */
 const json = (body: unknown, status = 200) => ({ status, contentType: "application/json", body: JSON.stringify(body) });
 
@@ -27,10 +28,10 @@ async function abrir(page: Page, theme: "light" | "dark", role: "employer" | "wo
 }
 
 for (const theme of ["light", "dark"] as const) {
-  test(`${theme}: el comercio ve el cielo con el «oído» plano, la pregunta en brocha y los pasos`, async ({ page }) => {
+  test(`${theme}: el comercio ve el cielo con el «oído» plano, la pregunta y los pasos`, async ({ page }) => {
     await abrir(page, theme, "employer");
     const titulo = page.getByRole("heading", { level: 1, name: /Cómo se llama tu comercio/ });
-    await expect(titulo).toHaveClass(/letra-cartel/);
+    await expect(titulo).toHaveClass(/titulo-pantalla/);
     // El «oído» plano sobre el cielo; ni el fileteado ni la cafetera.
     const cielo = page.locator(".app-cielo").first();
     await expect(cielo).toContainText("oído");
@@ -46,9 +47,9 @@ for (const theme of ["light", "dark"] as const) {
     await expect(paso2.locator("li").first().locator("svg.tacha")).toHaveCount(1);
   });
 
-  test(`${theme}: el trabajador ve la pregunta en brocha y sus tres pasos`, async ({ page }) => {
+  test(`${theme}: el trabajador ve la pregunta y sus tres pasos`, async ({ page }) => {
     await abrir(page, theme, "worker");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveClass(/letra-cartel/);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveClass(/titulo-pantalla/);
     await expect(page.getByRole("list", { name: "Paso 1 de 3: Zona" })).toBeVisible();
   });
 }
