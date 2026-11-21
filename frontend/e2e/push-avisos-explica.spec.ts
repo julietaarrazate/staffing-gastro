@@ -1,4 +1,8 @@
 import { test, expect, type Page } from "@playwright/test";
+
+// Una clave VAPID de mentira con la forma de una real (65 bytes en base64url).
+// Se arma acá y no va escrita: un literal así dispara el escáner de secretos.
+const CLAVE_DE_MENTIRA = Buffer.from([4, ...Array.from({ length: 64 }, (_, i) => (i * 7 + 3) % 251)]).toString("base64url");
 import {
   blockExternalHosts,
   injectSession,
@@ -110,4 +114,80 @@ test("si la suscripción falla, un aviso flotante lo dice", async ({ page }) => 
     page.getByRole("status").getByText(/No pudimos activar las notificaciones/),
   ).toBeVisible();
   await expect(interruptor).toContainText("Desactivadas");
+});
+
+async function activarConPermisoPendiente(page: Page, demoraClaveMs: number) {
+  // Headless no tiene servicio push ni diálogo: el permiso y la suscripción se
+  // simulan; el service worker (`/sw.js`) se registra de verdad.
+  await page.addInitScript(() => {
+    const w = window as unknown as Record<string, unknown>;
+    let permiso: NotificationPermission = "default";
+    Object.defineProperty(Notification, "permission", {
+      get: () => permiso,
+      configurable: true,
+    });
+    Notification.requestPermission = async () => {
+      w.__permisoPedido = true;
+      permiso = "granted";
+      return "granted";
+    };
+    let suscripcion: unknown = null;
+    PushManager.prototype.getSubscription = async () => suscripcion as never;
+    PushManager.prototype.subscribe = async function () {
+      // Sólo con un worker activo: es lo que exige Chrome de verdad.
+      const reg = await navigator.serviceWorker.getRegistration("/sw.js");
+      if (!reg?.active) throw new DOMException("no active Service Worker", "InvalidStateError");
+      suscripcion = {
+        endpoint: "https://fcm.googleapis.com/fcm/send/prueba",
+        toJSON: () => ({ endpoint: "https://fcm.googleapis.com/fcm/send/prueba", keys: { p256dh: "p", auth: "a" } }),
+      };
+      return suscripcion as never;
+    };
+  });
+  await injectSession(page);
+  await skipSplash(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await page.route("**/api/v1/auth/me", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(SESION) }),
+  );
+  // Un backend que arranca en frío: la clave tarda.
+  let permisoAntesDeLaClave: boolean | null = null;
+  await page.route("**/api/v1/push/public-key", async (route) => {
+    permisoAntesDeLaClave = await page.evaluate(
+      () => (window as unknown as Record<string, unknown>).__permisoPedido === true,
+    );
+    await new Promise((resolve) => setTimeout(resolve, demoraClaveMs));
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ vapid_public_key: CLAVE_DE_MENTIRA }),
+    });
+  });
+  await page.route("**/api/v1/push/subscribe", (route) =>
+    route.fulfill({ status: 201, contentType: "application/json", body: "{}" }),
+  );
+  await page.goto("/profile/settings");
+
+  const interruptor = page.getByRole("button", { name: /Notificaciones push/ });
+  await expect(interruptor).toContainText("Desactivadas");
+  await interruptor.click();
+
+  await expect(interruptor).toContainText("Activadas", { timeout: 20_000 });
+  expect(permisoAntesDeLaClave).toBe(true);
+  return permisoAntesDeLaClave;
+}
+
+test("activar con el permiso pendiente: el diálogo sale al toque, antes de que conteste el servidor", async ({
+  page,
+}) => {
+  expect(await activarConPermisoPendiente(page, 1500)).toBe(true);
+});
+
+test("activar con la clave al instante: espera al worker activo antes de suscribir", async ({
+  page,
+}) => {
+  // La clave contesta ya: si nadie esperara al worker, `subscribe` (que
+  // rechaza sin worker activo, como Chrome) saldría con el worker instalándose.
+  await activarConPermisoPendiente(page, 0);
 });

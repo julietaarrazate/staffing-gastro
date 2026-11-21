@@ -25,12 +25,71 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
 }
 
-async function getRegistration(): Promise<ServiceWorkerRegistration | null> {
-  if (!isPushSupported()) return null;
+/** Cuánto se espera a que el service worker quede activo antes de suscribir. */
+export const WORKER_READY_TIMEOUT_MS = 15_000;
+
+/** Por qué falló activar las notificaciones. La persona ve siempre el mismo
+ * aviso; esto es lo que queda registrado para saber la causa. */
+export type MotivoFallaPush =
+  | "sin-clave"
+  | "sin-worker"
+  | "suscripcion"
+  | `servidor-${number | "red"}`;
+
+/** Nombre corto del error (`NotAllowedError`, `SecurityError`...), sin el
+ * mensaje: el mensaje puede traer el endpoint del navegador. */
+function nombreDe(err: unknown): string {
+  return err instanceof Error && /^[A-Za-z]{1,40}$/.test(err.name) ? err.name : "desconocido";
+}
+
+/** Deja anotada la causa donde ya se registran los errores del frontend
+ * (Sentry, si hay DSN; sin DSN es un no-op). Sólo el motivo corto y, si hay,
+ * el nombre del error: nada del mensaje original. Nunca lanza. */
+function registrarFalla(motivo: MotivoFallaPush, detalle?: string): void {
   try {
-    return await navigator.serviceWorker.register("/sw.js");
+    const texto = detalle ? `${motivo} (${detalle})` : motivo;
+    void import("@/lib/sentry-client")
+      .then(({ captureException }) =>
+        captureException(new Error(`push-activar: ${texto}`), { tags: { push_activar: motivo } })
+      )
+      .catch(() => {});
   } catch {
-    return null;
+    // Registrar la causa nunca debe romper el flujo.
+  }
+}
+
+type Registro = { registration: ServiceWorkerRegistration } | { detalle: string };
+
+/** Registra el service worker y espera a que esté ACTIVO: `register` resuelve
+ * mientras todavía se instala, y `pushManager.subscribe` rechaza en Chrome si
+ * no hay un worker activo (la primera vez, siempre). Un solo tope de tiempo
+ * cubre todo el tramo (bajar `/sw.js`, registrar, activar): si no llega, la
+ * fila no puede quedar girando para siempre. Si falla, dice cuál de los pasos
+ * fue (`registro-<error>`, `ready-<error>`, `tiempo`). */
+async function getActiveRegistration(): Promise<Registro> {
+  if (!isPushSupported()) return { detalle: "sin-soporte" };
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<Registro>((resolve) => {
+    timer = setTimeout(() => resolve({ detalle: "tiempo" }), WORKER_READY_TIMEOUT_MS);
+  });
+  const activo = (async (): Promise<Registro> => {
+    let registration: ServiceWorkerRegistration;
+    try {
+      registration = await navigator.serviceWorker.register("/sw.js");
+    } catch (err) {
+      return { detalle: `registro-${nombreDe(err)}` };
+    }
+    if (registration.active) return { registration };
+    try {
+      return { registration: await navigator.serviceWorker.ready };
+    } catch (err) {
+      return { detalle: `ready-${nombreDe(err)}` };
+    }
+  })();
+  try {
+    return await Promise.race([activo, timeout]);
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -46,29 +105,74 @@ export async function getCurrentPushSubscription(): Promise<PushSubscription | n
 /** Pide permiso al browser (si hace falta), registra el service worker y
  * suscribe este dispositivo. Devuelve `false` sin lanzar si algo no está
  * disponible (navegador sin soporte, permiso denegado, servidor sin VAPID
- * configurado) — nunca debe romper el flujo que la llama. */
+ * configurado) — nunca debe romper el flujo que la llama.
+ *
+ * El permiso se pide PRIMERO, antes de cualquier espera de red: el aviso del
+ * navegador necesita la activación del toque, que dura pocos segundos, y la
+ * clave (backend que puede estar arrancando en frío) y el worker pueden
+ * tardar más que eso. La clave y el worker se piden en paralelo. */
 export async function subscribeToPush(token: string): Promise<boolean> {
   if (!isPushSupported()) return false;
-
-  const { vapid_public_key } = await api.get<{ vapid_public_key: string | null }>(
-    "/push/public-key"
-  );
-  if (!vapid_public_key) return false;
-
   if (Notification.permission === "denied") return false;
 
-  const registration = await getRegistration();
-  if (!registration) return false;
+  // Todo lo que sigue hasta el `await` del permiso es síncrono: el pedido
+  // sale dentro del toque.
+  const permiso =
+    Notification.permission === "default"
+      ? Notification.requestPermission()
+      : Promise.resolve(Notification.permission);
+  const clave = api
+    .get<{ vapid_public_key: string | null }>("/push/public-key")
+    .then((r) => r.vapid_public_key);
+  const worker = getActiveRegistration();
+  // Si se corta antes de esperarlos, que no queden rechazos sin atender.
+  clave.catch(() => {});
+  worker.catch(() => {});
 
-  const existing = await registration.pushManager.getSubscription();
-  const subscription =
-    existing ??
-    (await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(vapid_public_key) as BufferSource,
-    }));
+  // Rechazar o cerrar el diálogo es decisión de la persona, no una falla: no
+  // se registra. (Rechazado, la fila pasa a «Bloqueadas».)
+  if ((await permiso) !== "granted") return false;
 
-  await api.post("/push/subscribe", subscription.toJSON(), token);
+  let vapid: string | null;
+  try {
+    vapid = await clave;
+  } catch (err) {
+    registrarFalla(err instanceof ApiError ? `servidor-${err.status}` : "servidor-red");
+    throw err;
+  }
+  if (!vapid) {
+    registrarFalla("sin-clave");
+    return false;
+  }
+
+  const registro = await worker;
+  if (!("registration" in registro)) {
+    registrarFalla("sin-worker", registro.detalle);
+    return false;
+  }
+  const { registration } = registro;
+
+  let subscription: PushSubscription;
+  try {
+    subscription =
+      (await registration.pushManager.getSubscription()) ??
+      (await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapid) as BufferSource,
+      }));
+  } catch (err) {
+    // Rechazar el diálogo hace que `subscribe` rechace: el permiso quedó en
+    // «denied» y la fila lo explica; no es una falla para registrar.
+    if ((Notification.permission as NotificationPermission) !== "denied") registrarFalla("suscripcion", nombreDe(err));
+    throw err;
+  }
+
+  try {
+    await api.post("/push/subscribe", subscription.toJSON(), token);
+  } catch (err) {
+    registrarFalla(err instanceof ApiError ? `servidor-${err.status}` : "servidor-red");
+    throw err;
+  }
   return true;
 }
 

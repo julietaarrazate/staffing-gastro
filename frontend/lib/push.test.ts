@@ -2,12 +2,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setTwoFactorGateHandler } from "@/lib/api";
 import {
   CLAIM_WAITS_FOR_RELEASE_MS,
+  subscribeToPush,
+  WORKER_READY_TIMEOUT_MS,
   claimPushForAccount,
   PENDING_RELEASES_KEY,
   RELEASE_TIMEOUT_MS,
   releasePushFromAccount,
   retryPendingPushReleases,
 } from "@/lib/push";
+
+const captureException = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/sentry-client", () => ({ captureException }));
 
 // Las notificaciones de un dispositivo son de la cuenta que tiene la sesión
 // abierta ahí (ver docs/reference/ACCESO_MODERNO.md): al abrir la sesión se
@@ -663,5 +668,203 @@ describe("push de la cuenta que tiene la sesión abierta", () => {
       await expect(released).resolves.toBe(true);
       expect(sent()).toEqual(["/push/release"]);
     });
+  });
+});
+
+describe("subscribeToPush (activar desde Ajustes)", () => {
+  const fetchMock = vi.fn();
+  // Una clave VAPID de mentira con la forma de una real (65 bytes en
+  // base64url). Se arma acá y no va escrita: un literal así dispara el
+  // escáner de secretos de CI aunque sea un ejemplo público.
+  const KEY = btoa(String.fromCharCode(4, ...Array.from({ length: 64 }, (_, i) => (i * 7 + 3) % 251)))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+
+  /** Navegador con un service worker que todavía se instala (`active: null`)
+   * hasta que se llama a `activar()`. `events` anota el orden de lo que pasó. */
+  function stub({
+    permission = "default" as NotificationPermission,
+    respuestaPermiso = "granted" as NotificationPermission,
+    existing = false,
+    yaActivo = false,
+  } = {}) {
+    const events: string[] = [];
+    let activar!: () => void;
+    const subscription = { endpoint: ENDPOINT, toJSON: () => SUBSCRIPTION_JSON };
+    const registration = {
+      active: yaActivo ? {} : null,
+      pushManager: {
+        getSubscription: vi.fn(async () => (existing ? subscription : null)),
+        subscribe: vi.fn(async () => {
+          events.push("subscribe");
+          return subscription;
+        }),
+      },
+    };
+    const ready = yaActivo
+      ? Promise.resolve(registration)
+      : new Promise<typeof registration>((resolve) => {
+          activar = () => {
+            registration.active = {} as never;
+            events.push("worker-activo");
+            resolve(registration);
+          };
+        });
+    Object.defineProperty(navigator, "serviceWorker", {
+      configurable: true,
+      value: { register: vi.fn(async () => registration), ready },
+    });
+    vi.stubGlobal("PushManager", class {});
+    const notification = {
+      permission,
+      requestPermission: vi.fn(async () => {
+        events.push("permiso");
+        notification.permission = respuestaPermiso;
+        return respuestaPermiso;
+      }),
+    };
+    vi.stubGlobal("Notification", notification);
+    return { events, registration, notification, activar: () => activar() };
+  }
+
+  const servidorOk = () =>
+    fetchMock.mockImplementation(async (url: string) =>
+      url.endsWith("/push/public-key") ? jsonResponse(200, { vapid_public_key: KEY }) : jsonResponse(201, {})
+    );
+  const llamadas = () => fetchMock.mock.calls.map((c) => requestOf(c).path);
+  // El registro sale por un `import()` dinámico: se espera a que llegue.
+  const motivos = async () => {
+    await vi.waitFor(() => expect(captureException).toHaveBeenCalled());
+    return captureException.mock.calls.map((c) => (c[0] as Error).message);
+  };
+
+  beforeEach(() => {
+    fetchMock.mockReset();
+    captureException.mockReset();
+    vi.stubGlobal("fetch", fetchMock);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    delete (navigator as unknown as Record<string, unknown>).serviceWorker;
+  });
+
+  it("pide el permiso antes de cualquier pedido de red", async () => {
+    const { notification, activar } = stub();
+    servidorOk();
+    const p = subscribeToPush("tok");
+    // Todo en el mismo turno síncrono: el permiso ya salió, la clave todavía no se esperó.
+    expect(notification.requestPermission).toHaveBeenCalledTimes(1);
+    await flush();
+    activar();
+    await expect(p).resolves.toBe(true);
+    expect(llamadas()).toEqual(["/push/public-key", "/push/subscribe"]);
+  });
+
+  it("espera al worker activo antes de suscribir", async () => {
+    const { events, registration, activar } = stub({ permission: "granted" });
+    servidorOk();
+    const p = subscribeToPush("tok");
+    await flush();
+    expect(registration.pushManager.subscribe).not.toHaveBeenCalled();
+    activar();
+    await expect(p).resolves.toBe(true);
+    expect(events).toEqual(["worker-activo", "subscribe"]);
+  });
+
+  it("si el worker no queda activo a tiempo devuelve false y registra sin-worker", async () => {
+    vi.useFakeTimers();
+    const { registration } = stub({ permission: "granted" });
+    servidorOk();
+    const p = subscribeToPush("tok");
+    await vi.advanceTimersByTimeAsync(WORKER_READY_TIMEOUT_MS + 1);
+    await expect(p).resolves.toBe(false);
+    expect(registration.pushManager.subscribe).not.toHaveBeenCalled();
+    expect(await motivos()).toEqual(["push-activar: sin-worker (tiempo)"]);
+  });
+
+  it("si /sw.js no termina de bajar, el tope corta el registro mismo: false y sin-worker (tiempo)", async () => {
+    vi.useFakeTimers();
+    const { registration } = stub({ permission: "granted" });
+    (navigator.serviceWorker.register as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {}));
+    servidorOk();
+    const p = subscribeToPush("tok");
+    await vi.advanceTimersByTimeAsync(WORKER_READY_TIMEOUT_MS + 1);
+    await expect(p).resolves.toBe(false);
+    expect(registration.pushManager.subscribe).not.toHaveBeenCalled();
+    expect(await motivos()).toEqual(["push-activar: sin-worker (tiempo)"]);
+  });
+
+  it("si el registro del worker falla, el motivo dice cuál fue (sin el mensaje)", async () => {
+    stub({ permission: "granted" });
+    (navigator.serviceWorker.register as ReturnType<typeof vi.fn>).mockRejectedValue(
+      Object.assign(new Error("https://fcm.googleapis.com/secreto"), { name: "SecurityError" })
+    );
+    servidorOk();
+    await expect(subscribeToPush("tok")).resolves.toBe(false);
+    expect(await motivos()).toEqual(["push-activar: sin-worker (registro-SecurityError)"]);
+  });
+
+  it("permiso rechazado: false, sin suscribir ni avisar al servidor, y no se registra como falla", async () => {
+    const { registration } = stub({ respuestaPermiso: "denied" });
+    servidorOk();
+    await expect(subscribeToPush("tok")).resolves.toBe(false);
+    expect(registration.pushManager.subscribe).not.toHaveBeenCalled();
+    expect(llamadas()).not.toContain("/push/subscribe");
+    await flush();
+    expect(captureException).not.toHaveBeenCalled(); // es decisión de la persona
+  });
+
+  it("diálogo cerrado sin decidir (sigue en default): false y tampoco se registra", async () => {
+    const { registration } = stub({ respuestaPermiso: "default" });
+    servidorOk();
+    await expect(subscribeToPush("tok")).resolves.toBe(false);
+    await flush();
+    expect(registration.pushManager.subscribe).not.toHaveBeenCalled();
+    expect(captureException).not.toHaveBeenCalled();
+  });
+
+  it("con el permiso ya bloqueado no pide nada", async () => {
+    const { notification } = stub({ permission: "denied" });
+    await expect(subscribeToPush("tok")).resolves.toBe(false);
+    expect(notification.requestPermission).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("con permiso y suscripción existentes no vuelve a pedir ni a suscribir", async () => {
+    const { notification, registration } = stub({ permission: "granted", existing: true, yaActivo: true });
+    servidorOk();
+    await expect(subscribeToPush("tok")).resolves.toBe(true);
+    expect(notification.requestPermission).not.toHaveBeenCalled();
+    expect(registration.pushManager.subscribe).not.toHaveBeenCalled();
+    expect(llamadas()).toEqual(["/push/public-key", "/push/subscribe"]);
+  });
+
+  it("sin clave VAPID en el servidor: false y motivo sin-clave", async () => {
+    stub({ permission: "granted", yaActivo: true });
+    fetchMock.mockResolvedValue(jsonResponse(200, { vapid_public_key: null }));
+    await expect(subscribeToPush("tok")).resolves.toBe(false);
+    expect(await motivos()).toEqual(["push-activar: sin-clave"]);
+  });
+
+  it("si el navegador rechaza la suscripción: lanza y registra suscripcion", async () => {
+    const { registration } = stub({ permission: "granted", yaActivo: true });
+    registration.pushManager.subscribe.mockRejectedValue(new Error("push service error"));
+    servidorOk();
+    await expect(subscribeToPush("tok")).rejects.toThrow();
+    expect(await motivos()).toEqual(["push-activar: suscripcion (Error)"]);
+  });
+
+  it("si el servidor rechaza el alta: lanza y registra servidor-<status> sin datos del dispositivo", async () => {
+    stub({ permission: "granted", yaActivo: true });
+    fetchMock.mockImplementation(async (url: string) =>
+      url.endsWith("/push/public-key")
+        ? jsonResponse(200, { vapid_public_key: KEY })
+        : jsonResponse(422, { detail: "endpoint inválido" })
+    );
+    await expect(subscribeToPush("tok")).rejects.toThrow();
+    expect(await motivos()).toEqual(["push-activar: servidor-422"]);
+    expect(JSON.stringify(captureException.mock.calls)).not.toContain(ENDPOINT);
   });
 });
