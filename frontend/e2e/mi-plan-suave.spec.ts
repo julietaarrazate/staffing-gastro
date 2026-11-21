@@ -102,6 +102,25 @@ test("con el aviso del plan elegido en la landing, el único ámbar es el del av
   expect(await aviso.evaluate((el) => getComputedStyle(el).backgroundImage)).toContain("rgb(246, 169, 42)");
 });
 
+test("una pestaña que quedó abierta hasta pasar el vencimiento pide pagar al volver, sin recargar", async ({ page }) => {
+  await page.clock.install({ time: new Date("2026-11-21T12:00:00-03:00") });
+  const sub = { status: "activa", billing_enabled: true, can_publish: true, renews: true, paid_until: "2026-11-22T00:00:00-03:00" };
+  await miPlan(page, "suscripcion_comercio", sub);
+  await expect(page.getByText(/Pagado hasta/)).toBeVisible();
+  expect(await ambares(page)).toEqual(["Mejorá tu plan"]);
+
+  // Pasan dos días con la pantalla abierta; al volver a primer plano se relee el plan.
+  await page.clock.setFixedTime(new Date("2026-11-23T12:00:00-03:00"));
+  await page.evaluate(() => {
+    Object.defineProperty(document, "visibilityState", { value: "hidden", configurable: true });
+    document.dispatchEvent(new Event("visibilitychange"));
+    Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect(page.getByRole("button", { name: "Pagar el mes" })).toBeVisible();
+  expect(await ambares(page)).toEqual(["Pagar el mes"]);
+});
+
 test("a 320 px nada corre la página y los precios entran enteros", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 640 });
   await miPlan(page, "suscripcion_cobro_pendiente");

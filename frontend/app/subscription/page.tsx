@@ -77,8 +77,10 @@ function SubscriptionContent() {
   const [subscribing, setSubscribing] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [acting, setActing] = useState(false);
-  // Hora de cuando se abrió la pantalla: alcanza para saber si el mes ya venció.
-  const [abiertaEn] = useState(() => Date.now());
+  // La hora con la que se decide si el mes ya venció: una sola para la pantalla
+  // y la tarjeta, y se renueva cada vez que llega el estado del plan (una
+  // pestaña que quedó abierta días no puede seguir diciendo «pagado»).
+  const [abiertaEn, setAbiertaEn] = useState(() => Date.now());
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
 
   // `silent` (G11, BK-898A15047291): al volver a la pestaña o a la red se
@@ -94,6 +96,7 @@ function SubscriptionContent() {
         api.get<{ plans: SubscriptionPlan[] }>("/subscription/plans", token),
       ]);
       setSubscription(sub);
+      setAbiertaEn(Date.now());
       setPlans(plansRes.plans);
       setError(null);
     } catch (err) {
@@ -166,6 +169,7 @@ function SubscriptionContent() {
     try {
       const updated = await api.post<Subscription>(path, {}, token);
       setSubscription(updated);
+      setAbiertaEn(Date.now());
       toast(
         pendingAction === "baja"
           ? "Listo, tu plan no se va a renovar"
