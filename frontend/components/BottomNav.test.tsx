@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import BottomNav from "./BottomNav";
 
@@ -112,13 +112,18 @@ describe("BottomNav: cinco pestañas para quien trabaja", () => {
 });
 
 describe("BottomNav: el «+» de «Publicar turno»", () => {
-  it("el comercio lo tiene al lado de la barra, fuera de las pestañas", () => {
+  it("el comercio lo tiene en el centro de la píldora: dos pestañas de cada lado, en ese orden de teclado", () => {
     auth = sesion("employer");
     ruta = "/shifts";
     render(<BottomNav />);
     const mas = screen.getByRole("link", { name: "Publicar turno" });
     expect(mas).toHaveAttribute("href", "/shifts/new");
-    expect(screen.getByRole("navigation", { name: "Secciones" })).not.toContainElement(mas);
+    const nav = screen.getByRole("navigation", { name: "Secciones" });
+    expect(nav).toContainElement(mas);
+    const orden = within(nav)
+      .getAllByRole("link")
+      .map((a) => a.getAttribute("aria-label") ?? a.textContent);
+    expect(orden).toEqual(["Panel", "Buscar", "Publicar turno", "Chats", "Perfil"]);
   });
 
   it.each(["/shifts/new", "/shifts/new-event"])("publicando (%s) no va", (donde) => {

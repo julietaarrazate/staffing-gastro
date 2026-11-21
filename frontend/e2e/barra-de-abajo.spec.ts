@@ -5,7 +5,7 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications, setTheme, sk
  * La barra de abajo del celular (`components/BottomNav.tsx`): las pestañas de
  * cada rol tienen que entrar enteras y repartidas en 360 y en 320 px, ahora
  * DENTRO de la píldora flotante (a 16 px de los costados; el comercio tiene
- * además el «+» de «Publicar turno» al lado, que tampoco puede salirse). Con
+ * además el «+» de «Publicar turno» en el centro, entre dos pestañas de cada lado). Con
  * seis pestañas (hoy son cinco) el trabajador veía «Perfil» cortada en el borde derecho: cada
  * pestaña pedía más ancho del que le tocaba. Se mide con la barra renderizada,
  * no con el código (el viewport es lo que decide).
@@ -66,7 +66,10 @@ for (const ancho of [360, 320]) {
 
       const barra = page.getByRole("navigation", { name: "Secciones", exact: true });
       await expect(barra).toBeVisible();
-      const pestanas = barra.getByRole("link");
+      // El «+» de «Publicar turno» del comercio vive en el centro de la píldora:
+      // no es una pestaña (se cuenta y se mide aparte).
+      const pestanas = barra.locator("a:not(.barra-app-mas)");
+      await expect(barra.getByRole("link")).toHaveCount(CUENTAS[role].pestanas + (role === "employer" ? 1 : 0));
       await expect(pestanas).toHaveCount(CUENTAS[role].pestanas);
 
       const pildora = await barra.boundingBox();
@@ -100,16 +103,25 @@ for (const ancho of [360, 320]) {
       expect(Math.max(...anchos) - Math.min(...anchos)).toBeLessThan(1);
       expect(cajas[0].x - pildora!.x).toBeLessThanOrEqual(6);
       expect(pildora!.x + pildora!.width - cajas[cajas.length - 1].right).toBeLessThanOrEqual(6);
-      // El «+» de «Publicar turno» del comercio va al lado de la píldora, sin
-      // salirse de la pantalla.
+      // El «+» de «Publicar turno» del comercio va en el centro de la píldora,
+      // con dos pestañas de cada lado, y no pisa a ninguna.
       if (role === "employer") {
-        const mas = await page
-          .locator(".barra-app")
-          .getByRole("link", { name: "Publicar turno" })
-          .boundingBox();
+        const mas = await barra.getByRole("link", { name: "Publicar turno" }).boundingBox();
         expect(mas).not.toBeNull();
-        expect(mas!.x).toBeGreaterThanOrEqual(pildora!.x + pildora!.width);
-        expect(mas!.x + mas!.width).toBeLessThanOrEqual(ancho - 12 + 0.5);
+        expect(mas!.x + mas!.width / 2).toBeCloseTo(pildora!.x + pildora!.width / 2, 0);
+        expect(mas!.x).toBeGreaterThanOrEqual(pildora!.x);
+        expect(mas!.x + mas!.width).toBeLessThanOrEqual(pildora!.x + pildora!.width);
+        const izq = cajas.filter((c) => c.right <= mas!.x + 0.5);
+        const der = cajas.filter((c) => c.x >= mas!.x + mas!.width - 0.5);
+        expect(izq).toHaveLength(2);
+        expect(der).toHaveLength(2);
+        // Nada se pisa: entre cada pestaña y el «+» no hay solapamiento y el
+        // toque de cada pestaña sigue en 44 px o más de ancho.
+        for (const c of [...izq, ...der]) expect(c.width).toBeGreaterThanOrEqual(44);
+        // Sobresale unos 10 px por arriba de la píldora, sin salirse de la pantalla.
+        const sobresale = pildora!.y - mas!.y;
+        expect(sobresale).toBeGreaterThanOrEqual(8);
+        expect(sobresale).toBeLessThanOrEqual(13);
       }
       // Y la página no se ensancha por la barra.
       const sobra = await page.evaluate(

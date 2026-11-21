@@ -70,13 +70,13 @@ test.describe("arriba del panel", () => {
   });
 
   // Las pestañas de la píldora no repiten estos destinos. El «+» de «Publicar
-  // turno» que flota al lado de la píldora (no es una pestaña) sí lleva a
+  // turno» que va en el centro de la píldora (no es una pestaña) sí lleva a
   // publicar, a propósito.
   test("ninguna de las dos repite un destino del nav de abajo", async ({ page }) => {
     const nav = page.getByRole("navigation", { name: "Secciones" });
     await expect(nav.getByRole("link").first()).toBeVisible();
     const abajo = await nav
-      .getByRole("link")
+      .locator("a:not(.barra-app-mas)")
       .evaluateAll((els) => els.map((el) => new URL((el as HTMLAnchorElement).href).pathname));
     expect(abajo).not.toContain("/shifts/new");
     expect(abajo).not.toContain("/shifts/new-event");

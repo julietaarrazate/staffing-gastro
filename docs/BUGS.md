@@ -523,3 +523,13 @@ captura al arrancar.
 - **Fix:** `saveProfilePart(token, cambios)` en `frontend/lib/worker-profile.ts` lee el perfil del servidor justo antes de escribir y manda el perfil completo con los cambios encima.
 - **Cerrado el caso del formulario completo (2026-11-19, ESC-03):** `WorkerProfileForm` ya no manda lo cargado al abrir: manda sólo lo que la persona tocó (`changedFields`) a `saveProfilePart`. Lo mismo `CompanyProfileForm` con `saveCompanyProfilePart` (`lib/company-profile.ts`, ESC-02).
 - **Cómo evitarlo:** guardar una parte del perfil siempre con `saveProfilePart`; nunca armar el payload en la pantalla ni usar la copia en memoria. Queda abierta la ventana de milisegundos entre leer y escribir: el arreglo de fondo es un guardado parcial (PATCH) en el backend.
+
+---
+
+## Activar las notificaciones push fallaba en Android/Chrome (worker sin activar, permiso tarde)
+
+**Patrón (hipótesis más probable, sin reproducir en un Android real):** una API del navegador que exige un estado previo (worker activo) o un gesto del usuario (permiso) se llama después de esperas de red o de un `register` que resuelve antes de tiempo. En pruebas locales, con backend rápido y worker ya instalado, anda; en el celular de la primera vez, no.
+
+- **Reporte (2026-11-21, Julieta: «las push no se pueden activar»):** causa **no confirmada**. Evidencia: en los logs del servidor llegaba `GET /push/public-key` 200 y nunca `POST /push/subscribe` (la falla es del navegador, antes del alta), y al reintentar se activó. Hipótesis más probable, por lectura de `subscribeToPush`: se suscribía enseguida tras `register` (`pushManager.subscribe` rechaza sin worker **activo**, la primera vez) y el permiso se pedía recién dentro de `subscribe`, después de pedidos de red (con el toque ya vencido, el diálogo puede no salir). Si el motivo que ahora queda en Sentry dice otra cosa, esta entrada se corrige.
+- **Fix:** `frontend/lib/push.ts` pide el permiso primero, espera `navigator.serviceWorker.ready` (con tope) antes de suscribir, y deja el motivo de cualquier falla (salvo que la persona rechace el diálogo) en Sentry (`push-activar: <motivo>`). Tests en `lib/push.test.ts` y `e2e/push-avisos-explica.spec.ts`.
+- **Cómo evitarlo:** el permiso del navegador se pide lo primero, dentro del gesto; nada que dependa de un worker se llama antes de `ready`. Un aviso genérico al usuario no es excusa para no registrar la causa.
