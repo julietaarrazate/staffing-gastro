@@ -44,7 +44,7 @@ export default function PlanElegidoAviso({
   return (
     <div
       data-testid="plan-elegido"
-      className="mt-5 flex flex-col gap-3 rounded-2xl bg-secondary-tint p-4 ring-1 ring-line sm:flex-row sm:items-center sm:justify-between"
+      className="nota-ayuda mb-5 flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
     >
       <div>
         <p className="text-sm font-bold text-ink">Elegiste el plan {plan.name}</p>

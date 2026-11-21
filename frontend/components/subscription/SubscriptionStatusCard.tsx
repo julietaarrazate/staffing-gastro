@@ -65,12 +65,12 @@ export default function SubscriptionStatusCard({
   const nearLimit = conTope && remaining !== null && remaining > 0 && remaining <= LOW_REMAINING_THRESHOLD;
 
   return (
-    <Card className="p-5">
+    <Card className="tarjeta-suave p-5 ring-0">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">Mi plan</p>
+          <p className="text-caption font-semibold text-ink-soft">Tu plan</p>
           <h2 className="mt-0.5 text-xl font-extrabold text-ink">{planName}</h2>
-          <p className="mt-0.5 text-sm text-ink/50">{formatArs(price_ars)}/mes</p>
+          <p className="mt-0.5 text-sm text-ink-soft">{formatArs(price_ars)}/mes</p>
         </div>
         <Badge tone={statusInfo.tone}>{statusInfo.label}</Badge>
       </div>

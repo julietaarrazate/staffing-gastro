@@ -161,14 +161,31 @@ export function Estrellas({ valor, size = 16 }: { valor: number; size?: number }
  * normal, y debajo la hoja con el contenido. Reemplaza a `SubpageHeader` en
  * esas dos pantallas.
  */
-export function SubpaginaSuave({ title, children }: { title: string; children: React.ReactNode }) {
+export function SubpaginaSuave({
+  title,
+  bajada,
+  ancha = false,
+  children,
+}: {
+  title: string;
+  /** Una línea debajo del título, sobre el cielo. */
+  bajada?: string;
+  /** Para una pantalla con grilla (Mi plan): en la compu ocupa el ancho de la app. */
+  ancha?: boolean;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="estilo-suave mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col md:min-h-[calc(100dvh-var(--chrome-top))] md:max-w-xl md:px-4 md:pt-4">
+    <div
+      className={`estilo-suave mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col md:min-h-[calc(100dvh-var(--chrome-top))] md:px-4 md:pt-4 ${
+        ancha ? "md:max-w-2xl lg:max-w-5xl" : "md:max-w-xl"
+      }`}
+    >
       <div className="app-cielo cielo-limpio px-4 pb-12 pt-4 md:rounded-t-[28px] md:px-6 md:pt-5">
         <Link href="/profile" aria-label="Volver al perfil" className="boton-vidrio h-11 w-11">
           <ChevronLeftIcon size={18} />
         </Link>
         <h1 className="titulo-pantalla mt-4 break-words">{title}</h1>
+        {bajada && <p className="mt-1 break-words text-sm font-medium">{bajada}</p>}
       </div>
       <div className="hoja -mt-7 flex-1 px-4 pb-8 pt-6 md:px-6">{children}</div>
     </div>

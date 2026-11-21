@@ -13,6 +13,7 @@ import { endOfArgentinaDay, formatPlainDate, limiteExigido, paymentReturnMessage
 import { planValido } from "@/lib/plan-elegido";
 import SubscriptionStatusCard from "@/components/subscription/SubscriptionStatusCard";
 import PlanCard from "@/components/subscription/PlanCard";
+import { SubpaginaSuave } from "@/components/profile/ProfileParts";
 import PlanElegidoAviso, { type EstadoPlanElegido } from "@/components/subscription/PlanElegidoAviso";
 import { CardSkeletons, ErrorBanner, Modal, Button, Card, useToast } from "@/components/ui";
 
@@ -241,17 +242,13 @@ function SubscriptionContent() {
   }, [hayTarjetaElegida]);
 
   return (
-    // La grilla de planes ya usaba sm:grid-cols-2 lg:grid-cols-3 (docs/STATUS.md)
-    // pero el contenedor se quedaba en max-w-2xl: en lg+ las 3 columnas se
-    // apretaban en 672px en vez de aprovechar el ancho real de la pantalla.
-    <div className="mx-auto max-w-2xl px-4 pb-10 pt-6 lg:max-w-5xl">
-      <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">Mi plan</h1>
-      <p className="mt-0.5 text-sm text-ink/50">
-        Gestioná la suscripción de tu comercio a Oído.
-      </p>
-
+    // Con la dirección suave (ADR-0028, 2026-11-21; sin maqueta): el cielo
+    // corto con el título y la vuelta al perfil, y la hoja con el plan, los
+    // planes y la baja. Los textos, los precios y las acciones no cambian.
+    // `ancha`: en lg+ los tres planes van en tres columnas.
+    <SubpaginaSuave title="Mi plan" bajada="Gestioná la suscripción de tu comercio a Oído." ancha>
       {returnMessage && (
-        <div role="status" className={`mt-5 rounded-2xl p-4 ring-1 ${RETURN_TONE[returnMessage.tone]}`}>
+        <div role="status" className={`mb-5 rounded-[20px] p-4 ring-1 ${RETURN_TONE[returnMessage.tone]}`}>
           <p className="text-sm font-bold">{returnMessage.title}</p>
           <p className="mt-0.5 text-sm">{returnMessage.text}</p>
         </div>
@@ -272,7 +269,7 @@ function SubscriptionContent() {
             />
           )}
 
-          <div className="mt-5">
+          <div>
             <SubscriptionStatusCard
               subscription={subscription}
               planName={currentPlan?.name ?? subscription.plan_code}
@@ -285,8 +282,8 @@ function SubscriptionContent() {
           </div>
 
           <div id="planes" className="mt-8 scroll-mt-4">
-            <h2 className="text-lg font-extrabold text-ink">Planes disponibles</h2>
-            <p className="mt-0.5 text-sm text-ink/50">
+            <h2 className="titulo-seccion text-ink">Planes disponibles</h2>
+            <p className="mt-0.5 text-sm text-ink-soft">
               {billing
                 ? "Pagás mes a mes con Mercado Pago, sin débito automático. El plan define cuántos turnos podés publicar."
                 : limiteExigido(subscription)
@@ -318,7 +315,7 @@ function SubscriptionContent() {
                     data-plan-elegido={plan.code}
                     aria-label={`Plan ${plan.name}, el que elegiste`}
                     role="group"
-                    className="grid rounded-[var(--radius-card)] outline-2 outline-offset-4 outline-[color:var(--focus-ring)] outline-solid"
+                    className="grid rounded-[20px] outline-2 outline-offset-4 outline-[color:var(--focus-ring)] outline-solid"
                   >
                     {card}
                   </div>
@@ -328,7 +325,7 @@ function SubscriptionContent() {
           </div>
 
           {billing && (canCancelRenewal || withdrawalUntil) && (
-            <Card className="mt-8 p-5">
+            <Card className="tarjeta-suave mt-8 p-5 ring-0">
               <h2 className="text-base font-extrabold text-ink">Baja y arrepentimiento</h2>
               <div className="mt-3 flex flex-col gap-4">
                 {canCancelRenewal && (
@@ -428,6 +425,6 @@ function SubscriptionContent() {
           </div>
         </div>
       </Modal>
-    </div>
+    </SubpaginaSuave>
   );
 }
