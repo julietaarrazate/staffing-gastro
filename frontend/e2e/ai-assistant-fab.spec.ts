@@ -230,7 +230,9 @@ test("consultar_turnos: muestra el resumen adentro del asistente y lleva al pane
 
   await expect(page.getByText("Tenés 2 turnos urgentes sin cubrir.")).toBeVisible();
   await page.getByRole("button", { name: "Ver en el panel" }).click();
-  await expect(page).toHaveURL("/shifts?tab=buscando");
+  // El enlace lleva al grupo «Buscando personal»; ya procesado, el panel saca
+  // el `?tab=` de la URL (una recarga no vuelve a saltar), así que vale cualquiera.
+  await expect(page).toHaveURL(/\/shifts(\?tab=buscando)?$/);
 });
 
 test("consultar_verificacion: responde si el postulante nombrado está verificado", async ({

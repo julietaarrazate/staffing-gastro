@@ -71,6 +71,7 @@ async function activeElementInsideDialog(page: Page): Promise<boolean> {
 test("el focus trap del Sheet 'Más acciones' no deja tabular hacia el fondo, y restaura el foco al cerrar", async ({
   page,
 }) => {
+  await page.clock.setFixedTime(new Date("2026-08-20T12:00:00-03:00")); // el Panel filtra por semana (la tira de días)
   await injectSession(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);

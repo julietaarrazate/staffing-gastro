@@ -5,7 +5,7 @@
  * cerrado no dice «esperando respuesta» (U088).
  */
 import { test, expect } from "@playwright/test";
-import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash, isoEnDias } from "./mocks";
+import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash, isoDesdeJueves as isoEnDias, AHORA_JUEVES } from "./mocks";
 
 const json = (body: unknown) => ({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
 
@@ -23,7 +23,7 @@ function shift(o: Record<string, unknown>) {
 }
 const LONG = "Restaurante y Cervecería Artesanal Los Hermanos del Puerto de Palermo Soho";
 const assigned = [
-  shift({ id: "pagado1", status: "pagado", start_at: isoEnDias(-5), end_at: isoEnDias(-4, "02:00"), company_name: LONG, worker_profile_id: "p" }),
+  shift({ id: "pagado1", status: "pagado", start_at: isoEnDias(-3), end_at: isoEnDias(-2, "02:00"), company_name: LONG, worker_profile_id: "p" }),
   shift({ id: "conf1", status: "confirmado", start_at: isoEnDias(1), company_name: "Café Belgrano", worker_profile_id: "p" }),
   shift({ id: "asig1", status: "asignado", start_at: isoEnDias(3), company_name: LONG, worker_profile_id: "p" }),
 ];
@@ -46,6 +46,8 @@ async function abrir(
   postulaciones: unknown[] = apps,
   url = "/my-shifts",
 ) {
+  // Mis turnos filtra por semana: reloj fijo en la semana de las fechas de abajo.
+  await page.clock.setFixedTime(AHORA_JUEVES);
   await injectSession(page);
   await skipSplash(page);
   await blockExternalHosts(page);
@@ -149,7 +151,7 @@ test("turno confirmado: el ámbar va en la acción que se puede usar ahora (tres
   await page.setViewportSize({ width: 360, height: 740 });
   await context.grantPermissions(["geolocation"]);
   await context.setGeolocation({ latitude: -34.58, longitude: -58.42 });
-  const en = (min: number) => new Date(Date.now() + min * 60 * 1000).toISOString();
+  const en = (min: number) => new Date(AHORA_JUEVES.getTime() + min * 60 * 1000).toISOString();
   const lejos = shift({ id: "lejos", status: "confirmado", start_at: isoEnDias(2), company_name: "Bar Demo", worker_profile_id: "p" });
   const camino = shift({ id: "camino", status: "confirmado", start_at: en(60), company_name: "Café Belgrano", worker_profile_id: "p" });
   const ahora = shift({ id: "ahora", status: "confirmado", start_at: en(10), company_name: "Bodegón Sur", worker_profile_id: "p" });

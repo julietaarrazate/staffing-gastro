@@ -26,6 +26,7 @@ import {
 import { sortByBestPay } from "@/lib/pay";
 import { FlameIcon, StarIcon } from "@/components/icons";
 import OportunidadFila from "@/components/worker/OportunidadFila";
+import { SKILL_ACCENT } from "@/lib/skill-style";
 import { EmptyState, ErrorBanner, NubesCielo, Skeleton, useToast } from "@/components/ui";
 import { EmptyFeedIllustration } from "@/components/illustrations";
 
@@ -53,6 +54,20 @@ import { EmptyFeedIllustration } from "@/components/illustrations";
 function chipClass(active: boolean, vidrio = false): string {
   return `${vidrio ? "chip-vidrio" : "chip-suave"} chip-filtro${active ? " chip-elegido" : ""}`;
 }
+
+/** El nombre del rubro como cabe bajo su ícono (la tecla mide 76 px). */
+const NOMBRE_CORTO: Record<WorkerSkill, string> = {
+  mozo: "Mozo/a",
+  bartender: "Barra",
+  barista: "Barista",
+  runner: "Runner",
+  cocinero: "Cocina",
+  cajero: "Caja",
+  recepcionista: "Recepción",
+  personal_eventos: "Eventos",
+  ayudante_cocina: "Ayudante",
+  personal_salon: "Salón",
+};
 
 /** Cuántos turnos hay y en qué orden están, en una frase. */
 function resumen(cantidad: number, opts: { urgentes: boolean; porPago: boolean; conOrigen: boolean }): string {
@@ -187,9 +202,8 @@ export default function BuscarPage() {
 
   return (
     <div className="estilo-suave mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col md:min-h-[calc(100dvh-var(--chrome-top))] md:max-w-5xl md:px-4 md:pt-4">
-      {/* El cielo corto: el título y los rubros (un carril que se desliza en el
-          celular; en la compu, donde no hay cómo deslizarlo, bajan de renglón).
-          La hoja sube 28 px encima. */}
+      {/* El cielo corto: el título y la frase. Los rubros van en la hoja. La
+          hoja sube 28 px encima. */}
       <div className="app-cielo cielo-limpio px-4 pb-10 pt-5 md:rounded-t-[28px] md:px-6 md:pt-6">
         <NubesCielo nubes={[{ forma: "a", ancho: 250, pos: { right: -100, top: -66 } }]} />
         {/* El título y, a su lado, el conmutador Lista / Mapa. */}
@@ -198,30 +212,42 @@ export default function BuscarPage() {
           <ListaMapa actual="lista" className="shrink-0" />
         </div>
         <p className="mt-1 text-sm">Explorá oportunidades de cualquier rubro, no sólo el tuyo.</p>
+      </div>
+
+      <div className="hoja -mt-7 flex-1 px-4 pb-8 pt-5 md:px-6">
+        {/* Accesos por rubro: una tecla suave con el ícono y el nombre corto de
+            cada rubro. Tocar una filtra; tocarla de nuevo la suelta (no hay
+            «Todos»). Un carril que se desliza en el celular; en la compu, donde
+            no hay cómo deslizarlo, bajan de renglón. */}
         <div
           role="group"
           aria-label="Rubro"
           data-testid="buscar-rubros"
-          className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto scroll-px-4 px-4 py-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0"
+          className="no-scrollbar -mx-4 flex gap-2.5 overflow-x-auto scroll-px-4 px-4 pb-3 pt-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0"
         >
-          {([{ value: "", label: "Todos" }, ...WORKER_SKILLS.map((s) => ({ value: s, label: SKILL_LABELS[s] }))] as Array<{
-            value: WorkerSkill | "";
-            label: string;
-          }>).map((o) => (
-            <button
-              key={o.value || "todos"}
-              type="button"
-              aria-pressed={skill === o.value}
-              onClick={() => setSkill(o.value)}
-              className={chipClass(skill === o.value, true)}
-            >
-              {o.label}
-            </button>
-          ))}
+          {WORKER_SKILLS.map((sk) => {
+            const { Icon } = SKILL_ACCENT[sk];
+            const elegido = skill === sk;
+            return (
+              <button
+                key={sk}
+                type="button"
+                aria-pressed={elegido}
+                aria-label={SKILL_LABELS[sk]}
+                onClick={() => setSkill(elegido ? "" : sk)}
+                className="tecla-rubro"
+              >
+                <span aria-hidden className="tecla-rubro-icono">
+                  <Icon size={22} />
+                </span>
+                <span aria-hidden className="tecla-rubro-nombre">
+                  {NOMBRE_CORTO[sk]}
+                </span>
+              </button>
+            );
+          })}
         </div>
-      </div>
 
-      <div className="hoja -mt-7 flex-1 px-4 pb-8 pt-5 md:px-6">
         <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 py-1 md:-mx-6 md:px-6">
           <button
             type="button"

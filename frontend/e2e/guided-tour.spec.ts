@@ -117,6 +117,7 @@ async function mockFeed(page: import("@playwright/test").Page) {
 
 test("el tour del feed recorre mazo, Buscar y nav, y no vuelve a aparecer", async ({ page }) => {
   await skipSplash(page);
+  await page.clock.setFixedTime(new Date("2026-08-12T12:00:00-03:00")); // el Panel filtra por semana (la tira de días)
   await injectSession(page);
   // Arranca desde cero: `injectSession` ya lo marcó como visto.
   await resetTourOnce(page, "staffya_tour_worker_feed");
@@ -150,6 +151,7 @@ test("el tour del feed recorre mazo, Buscar y nav, y no vuelve a aparecer", asyn
 
 test("saltar el tour lo marca como visto sin terminar los pasos", async ({ page }) => {
   await skipSplash(page);
+  await page.clock.setFixedTime(new Date("2026-08-12T12:00:00-03:00")); // el Panel filtra por semana (la tira de días)
   await injectSession(page);
   await resetTourOnce(page, "staffya_tour_worker_feed");
   await blockExternalHosts(page);
@@ -231,8 +233,9 @@ async function mockEmployerPanel(page: import("@playwright/test").Page) {
   );
 }
 
-test("el tour del panel del comercio recorre publicar, pestañas y buscar", async ({ page }) => {
+test("el tour del panel del comercio recorre publicar, la semana y buscar", async ({ page }) => {
   await skipSplash(page);
+  await page.clock.setFixedTime(new Date("2026-08-12T12:00:00-03:00")); // el Panel filtra por semana (la tira de días)
   await injectSession(page);
   await resetTourOnce(page, "staffya_tour_employer_panel");
   await blockExternalHosts(page);
@@ -242,10 +245,10 @@ test("el tour del panel del comercio recorre publicar, pestañas y buscar", asyn
   await page.goto("/shifts");
 
   await expect(page.getByText("Publicá tu primer turno", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Siguiente" }).click();
+  await page.getByRole("button", { name: "Siguiente", exact: true }).click();
 
-  await expect(page.getByText("Organizado por estado")).toBeVisible();
-  await page.getByRole("button", { name: "Siguiente" }).click();
+  await expect(page.getByText("Tu semana, día por día")).toBeVisible();
+  await page.getByRole("button", { name: "Siguiente", exact: true }).click();
 
   await expect(page.getByText("También podés buscar vos")).toBeVisible();
   await page.getByRole("button", { name: "Entendido" }).click();

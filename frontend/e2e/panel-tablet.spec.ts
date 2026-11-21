@@ -53,6 +53,7 @@ function shift(id: string, status: string, position: string) {
 }
 
 async function setup(page: Page) {
+  await page.clock.setFixedTime(new Date("2030-07-20T12:00:00-03:00")); // el Panel filtra por semana (la tira de días)
   await injectSession(page);
   await skipSplash(page);
   await blockExternalHosts(page);

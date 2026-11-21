@@ -31,6 +31,8 @@ export interface ShiftPointProps {
    *  (ADR-0012). Es el estado "match" del marcador, que quedó declarado y
    *  vacío en el #319 esperando este dato. */
   isMatch: boolean;
+  /** Nombre del local, para la pastilla que se ve al acercar el mapa. */
+  companyName: string | null;
 }
 
 type ShiftWithCoords = Shift & { latitude: number; longitude: number };
@@ -61,6 +63,7 @@ export function buildShiftClusterIndex(
         payAmount: s.pay_amount,
         payLabel: formatPayCompact(s),
         isMatch: s.pay_band === "por_encima",
+        companyName: s.company_name ?? null,
       },
       geometry: { type: "Point", coordinates: [s.longitude, s.latitude] },
     }));

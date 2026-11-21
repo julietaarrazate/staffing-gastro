@@ -97,6 +97,7 @@ const AVISO = /Paga por debajo de lo habitual/;
 test("el comercio ve por qué su turno no se cubre, y sólo mientras puede corregirlo", async ({
   page,
 }) => {
+  await page.clock.setFixedTime(new Date("2026-07-20T12:00:00-03:00")); // el Panel filtra por semana (la tira de días)
   await injectSession(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
@@ -127,6 +128,7 @@ test("el comercio ve por qué su turno no se cubre, y sólo mientras puede corre
 });
 
 test("sin referencia de mercado no se le dice nada al comercio", async ({ page }) => {
+  await page.clock.setFixedTime(new Date("2026-07-20T12:00:00-03:00")); // el Panel filtra por semana (la tira de días)
   await injectSession(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
@@ -143,6 +145,7 @@ test("sin referencia de mercado no se le dice nada al comercio", async ({ page }
 });
 
 test("en el mapa, el turno que paga por encima se distingue del resto", async ({ page }) => {
+  await page.clock.setFixedTime(new Date("2026-07-20T12:00:00-03:00")); // el Panel filtra por semana (la tira de días)
   await injectSession(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);

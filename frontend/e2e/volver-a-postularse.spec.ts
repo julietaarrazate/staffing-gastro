@@ -99,6 +99,7 @@ test("retirar la postulación devuelve el turno a Inicio y a Buscar, y permite p
   await expect(page.getByTestId("feed-hero-card")).toHaveCount(0);
 
   // Retira la postulación desde Mis turnos. El cartel promete que puede volver.
+  await page.clock.setFixedTime(new Date("2026-07-12T12:00:00-03:00")); // Mis turnos filtra por semana
   await page.goto("/my-shifts");
   await page.getByRole("button", { name: "Postulaciones (1)" }).click();
   await page.getByRole("button", { name: "Cancelar postulación" }).click();
@@ -132,6 +133,7 @@ test("retirar la postulación devuelve el turno a Inicio y a Buscar, y permite p
   expect(calls).toEqual({ withdraw: 1, apply: 1 });
 
   // Queda postulado otra vez, con la misma postulación: una sola en Mis turnos.
+  await page.clock.setFixedTime(new Date("2026-07-12T12:00:00-03:00")); // Mis turnos filtra por semana
   await page.goto("/my-shifts");
   await page.getByRole("button", { name: "Postulaciones (1)" }).click();
   await expect(page.getByText("Postulado · esperando respuesta")).toBeVisible();

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { SparklesIcon } from "@/components/icons";
+import { OrejaIcon } from "@/components/icons";
 
 /**
  * Barra prominente del asistente de IA: punto de entrada único en toda la
@@ -49,8 +49,9 @@ export default function AIAssistantBar({ recto = false, vidrio = false }: { rect
           cuatro círculos, dos de ellos del mismo naranja, contra la regla de
           "un solo acento naranja por pantalla".
           El logo identifica a la app, no a una función dentro de la app: acá va
-          el ícono convencional de asistente, en tinta, sin fondo propio. */}
-      <SparklesIcon size={18} className={`shrink-0 ${vidrio ? "text-ink-soft" : "text-ink/45"}`} />
+          la oreja (2026-11-21, la eligió Julieta entre tres dibujos), en el azul hondo
+          de los links, sin fondo propio. */}
+      <OrejaIcon size={22} aria-hidden className="shrink-0 text-primary-text" />
       <span className={`text-sm font-medium ${vidrio ? "text-ink-soft" : "text-ink/60"}`}>¿Qué necesitás?</span>
     </button>
   );

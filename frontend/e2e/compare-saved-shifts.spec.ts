@@ -131,6 +131,7 @@ test("con 2+ turnos guardados, comparar muestra pago, pago por hora y distancia"
     });
   });
 
+  await page.clock.setFixedTime(new Date("2026-08-23T12:00:00-03:00")); // Mis turnos filtra por semana
   await page.goto("/my-shifts");
   await page.getByRole("button", { name: /^Guardados/ }).click();
   await expect(page.getByText("Bar Demo Palermo")).toBeVisible();
@@ -190,6 +191,7 @@ test("un cuarto turno no se puede agregar: el tope de comparación es 3", async 
     });
   });
 
+  await page.clock.setFixedTime(new Date("2026-08-23T12:00:00-03:00")); // Mis turnos filtra por semana
   await page.goto("/my-shifts");
   await page.getByRole("button", { name: /^Guardados/ }).click();
   await page.getByRole("button", { name: "Comparar" }).click();

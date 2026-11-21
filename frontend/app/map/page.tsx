@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLiveRefresh } from "@/lib/live-refresh";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
@@ -20,6 +20,8 @@ import { Button, EmptyState, Sheet, Skeleton, useToast } from "@/components/ui";
 import { BikeIcon, CalendarIcon, CarIcon, FootprintsIcon, MapPinIcon, UsersIcon } from "@/components/icons";
 import { formatShiftRange, formatShiftTime } from "@/lib/datetime";
 import ListaMapa from "@/components/worker/ListaMapa";
+import FiltrosMapaChips from "@/components/worker/FiltrosMapa";
+import { filtrarTurnos, hayFiltros, SIN_FILTROS, type FiltrosMapa } from "@/lib/map/filtros-mapa";
 import MapSheet from "@/components/worker/MapSheet";
 import TurnoMapa, { MiniaturaTurno } from "@/components/worker/TurnoMapa";
 import ConfirmOverlay from "@/components/ui/ConfirmOverlay";
@@ -159,6 +161,17 @@ function ShiftRow({
   );
 }
 
+function SinResultadosPorFiltro({ onQuitar }: { onQuitar: () => void }) {
+  return (
+    <div className="mapa-sin-filtro" data-testid="mapa-sin-filtro" role="status">
+      <span>Sin turnos con estos filtros</span>
+      <Button size="sm" variant="surface" className="boton-quieto min-h-[44px] shrink-0" onClick={onQuitar}>
+        Quitar filtros
+      </Button>
+    </div>
+  );
+}
+
 export default function MapPage() {
   const { token, user } = useRequireAuth();
   const router = useRouter();
@@ -178,7 +191,12 @@ export default function MapPage() {
   const [profileChecked, setProfileChecked] = useState(false);
   const locationUnavailable = gpsFailed && profileChecked && !fallbackOrigin;
   const usingZone = gpsFailed && fallbackOrigin !== null;
-  const [shifts, setShifts] = useState<Shift[]>([]);
+  // `shiftsAll` es lo que llegó; `shifts`, lo que pasa los chips. Los chips
+  // filtran sólo en el cliente (no se mandan al backend ni se recuerdan entre
+  // visitas): los pines, las tarjetas y el título cuentan `shifts`.
+  const [shiftsAll, setShifts] = useState<Shift[]>([]);
+  const [filtros, setFiltros] = useState<FiltrosMapa>(SIN_FILTROS);
+  const shifts = useMemo(() => filtrarTurnos(shiftsAll, filtros), [shiftsAll, filtros]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -317,6 +335,14 @@ export default function MapPage() {
     paused: loading || applyingId !== null || justAppliedId !== null || previewShift !== null,
   });
 
+  // Cambiar un chip vuelve a la primera tarjeta (la lista cambió bajo el dedo).
+  const cambiarFiltros = useCallback((f: FiltrosMapa) => {
+    setFiltros(f);
+    setActiveIndex(0);
+    carouselRef.current?.scrollTo({ left: 0 });
+  }, []);
+  const quitarFiltros = useCallback(() => cambiarFiltros(SIN_FILTROS), [cambiarFiltros]);
+
   // Scroll del carrusel -> tarjeta activa (que el mapa sigue).
   function onCarouselScroll() {
     const el = carouselRef.current;
@@ -420,6 +446,10 @@ export default function MapPage() {
       ? goToSearch
       : { label: "Actualizar", onClick: () => load() };
   const emptySecondary = error || allFarFromHere ? undefined : goToSearch;
+  // Había turnos y los chips los dejaron en cero: no es «no hay turnos», es una
+  // línea tranquila con la salida (no el estado vacío grande).
+  const sinResultadosPorFiltro = !loading && shifts.length === 0 && shiftsAll.length > 0 && hayFiltros(filtros);
+  const hayChips = !loading && shiftsAll.length > 0;
 
   return (
     <div className="estilo-suave flex h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] overflow-hidden md:h-[calc(100dvh-var(--chrome-top))]">
@@ -448,6 +478,7 @@ export default function MapPage() {
               realmente cerca tuyo.
             </p>
           )}
+          {hayChips && <FiltrosMapaChips variante="panel" filtros={filtros} onChange={cambiarFiltros} />}
         </div>
         <div className="flex-1 px-4 pb-5 pt-1">
           {loading ? (
@@ -456,6 +487,8 @@ export default function MapPage() {
               <MapCardSkeleton wide />
               <MapCardSkeleton wide />
             </div>
+          ) : sinResultadosPorFiltro ? (
+            <SinResultadosPorFiltro onQuitar={quitarFiltros} />
           ) : shifts.length === 0 ? (
             <div className="px-2 py-6">
               <EmptyState
@@ -517,6 +550,8 @@ export default function MapPage() {
                 ? `${plural(shifts.length, "turno", "turnos")} cerca de tu zona`
                 : `${plural(shifts.length, "turno", "turnos")} cerca tuyo`}
         </h1>
+        {/* Los chips sí reciben toques (el resto del cielo no), igual que los de /buscar. */}
+        {hayChips && <FiltrosMapaChips filtros={filtros} onChange={cambiarFiltros} />}
         {!loading && locationUnavailable && (
           <p className="mapa-aviso mt-2.5">
             No pudimos ubicarte — activá la ubicación para ver lo que está
@@ -527,7 +562,13 @@ export default function MapPage() {
       {/* Sheet inferior arrastrable con el carrusel de tarjetas — SÓLO mobile,
           en desktop la lista ya vive en el panel lateral de al lado. */}
       <div className="md:hidden">
-      {!loading && shifts.length === 0 ? (
+      {sinResultadosPorFiltro ? (
+        <div className="absolute inset-x-0 bottom-4 z-10 px-4">
+          <div className="mapa-tarjeta px-4 py-2">
+            <SinResultadosPorFiltro onQuitar={quitarFiltros} />
+          </div>
+        </div>
+      ) : !loading && shifts.length === 0 ? (
         <div className="absolute inset-x-0 bottom-4 z-10 px-4">
           {/* Compacta (2026-11-20, Julieta: «esa tarjeta gigante lo tapa»): sin
               la ilustración y con los dos botones en un renglón, para que el

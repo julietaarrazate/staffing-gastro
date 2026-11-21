@@ -127,6 +127,7 @@ test("Mis turnos ya no monta MapLibre para el mapa chico, y /map sigue arrastrab
   await mockWorkerRoutes(page);
 
   // El mapa chico va sólo en la tarjeta de hoy de Mis turnos (dirección suave).
+  await page.clock.setFixedTime(new Date("2026-07-12T12:00:00-03:00")); // Mis turnos filtra por semana
   await page.goto("/my-shifts");
   const mapaChico = page.locator(".mapa-chico").first();
   await expect(mapaChico).toBeVisible();

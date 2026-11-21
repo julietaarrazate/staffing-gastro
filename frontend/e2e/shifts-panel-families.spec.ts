@@ -7,9 +7,9 @@ import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./moc
  * 1 y no muestra cuál"). Antes había 3 KPIs estáticos (uno en azul,
  * "Buscando" — fuera de la Ley de marca: un solo acento naranja) que no
  * filtraban nada; el panel entero listaba todos los turnos mezclados sin
- * agrupar. Ahora `/shifts` tiene un SegmentedControl por familia de estado
- * (Todos / Buscando / En marcha / Terminados / Cancelados) y el conteo de
- * cada pestaña es SIEMPRE el largo real de la lista que se ve al filtrar —
+ * agrupar. Ahora `/shifts` agrupa la lista por familia de estado (Buscando
+ * personal / En marcha / Terminados / Cancelados; hasta el 2026-11-21 eran
+ * pestañas) y el número de cada título es SIEMPRE el largo real de su grupo —
  * nunca un número desconectado (ese era el bug exacto).
  */
 
@@ -79,24 +79,34 @@ async function mockEmployerShifts(page: Page) {
   );
 }
 
-test("el conteo de cada pestaña del panel coincide siempre con las tarjetas que muestra esa pestaña", async ({
-  page,
-}) => {
+test("la lista va agrupada por estado: el número de cada título es el largo real de su grupo", async ({ page }) => {
+  await page.clock.setFixedTime(new Date("2026-07-20T12:00:00-03:00")); // el Panel filtra por semana (la tira de días)
   await injectSession(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
   await mockEmployerShifts(page);
 
   await page.goto("/shifts");
-  await expect(page.getByTestId("shifts-panel-list")).toBeVisible();
+  const list = page.getByTestId("shifts-panel-list");
+  await expect(list).toBeVisible();
 
-  // El segmento "Buscando" anuncia (2) — exactamente publicado +
-  // buscando_personal. Bug reportado: antes decía "buscando 1" sin
-  // relación con la lista de abajo.
-  await expect(page.getByRole("button", { name: "Buscando (2)" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "En marcha (1)" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Terminados (1)" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Cancelados (1)" })).toBeVisible();
+  // Sin pestañas (2026-11-21): cuatro grupos con título, y el número de cada
+  // uno es exactamente lo que tiene debajo. Bug reportado: antes decía
+  // "buscando 1" sin relación con la lista de abajo.
+  await expect(page.getByRole("button", { name: /^(Todos|Buscando \(|En marcha \(|Terminados \(|Cancelados \()/ })).toHaveCount(0);
+  const grupos = list.locator("[data-family]");
+  await expect(grupos).toHaveCount(4); // "borrador" no se muestra: no tiene turnos
+  const esperado: Record<string, [string, number]> = {
+    buscando: ["Buscando personal", 2], // publicado + buscando_personal
+    en_marcha: ["En marcha", 1],
+    terminado: ["Terminados", 1],
+    cancelado: ["Cancelados", 1],
+  };
+  for (const [familia, [titulo, n]] of Object.entries(esperado)) {
+    const grupo = list.locator(`[data-family="${familia}"]`);
+    await expect(grupo.getByRole("heading", { level: 2 })).toHaveText(`${titulo}${n}`);
+    await expect(grupo.locator("[data-shift-id]")).toHaveCount(n);
+  }
 
   // CERO azul: ningún elemento del panel usa los tokens de Tailwind
   // bg-blue-*/text-blue-* (el KPI "Buscando" viejo vivía en bg-blue-50
@@ -104,29 +114,14 @@ test("el conteo de cada pestaña del panel coincide siempre con las tarjetas que
   const blueCount = await page.locator('[class*="text-blue-"], [class*="bg-blue-"]').count();
   expect(blueCount).toBe(0);
 
-  // Al tocar "Buscando", el panel muestra EXACTAMENTE 2 tarjetas (las
-  // publicado/buscando_personal) y cada una expone su acción principal
-  // "Elegir a alguien" (ruta /shifts/[id]/candidates).
-  await page.getByRole("button", { name: "Buscando (2)" }).click();
-  const list = page.getByTestId("shifts-panel-list");
-  await expect(list.locator('[data-family="buscando"]')).toBeVisible();
-  await expect(list.locator('[data-family]')).toHaveCount(1); // sólo la sección "buscando" visible
-  const candidateCtas = list.getByRole("link", { name: "Elegir a alguien" });
-  await expect(candidateCtas).toHaveCount(2);
-
-  // Al tocar "En marcha", sólo esa familia queda visible con 1 tarjeta.
-  await page.getByRole("button", { name: "En marcha (1)" }).click();
-  await expect(list.locator('[data-family="en_marcha"]')).toBeVisible();
-  await expect(list.locator('[data-family]')).toHaveCount(1);
-
-  // Al volver a "Todos", reaparecen las familias con contenido (4: buscando,
-  // en_marcha, terminado, cancelado — "borrador" queda oculta por no tener
-  // turnos, no tiene sentido mostrar 5 bloques con uno vacío).
-  await page.getByRole("button", { name: "Todos" }).click();
-  await expect(list.locator('[data-family]')).toHaveCount(4);
+  // Los dos turnos de "Buscando" exponen su acción principal "Elegir a alguien"
+  // (ruta /shifts/[id]/candidates) y los demás grupos no la tienen.
+  await expect(list.locator('[data-family="buscando"]').getByRole("link", { name: "Elegir a alguien" })).toHaveCount(2);
+  await expect(list.locator('[data-family="en_marcha"]').getByRole("link", { name: "Elegir a alguien" })).toHaveCount(0);
 });
 
-test("una familia sin turnos muestra su propio estado vacío en voseo, no una lista en blanco", async ({ page }) => {
+test("una familia sin turnos no muestra título ni cartel de vacío; con ninguno de otra, el grupo aparece", async ({ page }) => {
+  await page.clock.setFixedTime(new Date("2026-07-20T12:00:00-03:00")); // el Panel filtra por semana (la tira de días)
   await injectSession(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
@@ -134,16 +129,10 @@ test("una familia sin turnos muestra su propio estado vacío en voseo, no una li
 
   await page.goto("/shifts");
   await expect(page.getByTestId("shifts-panel-list")).toBeVisible();
+  await expect(page.locator('[data-family="borrador"]')).toHaveCount(0);
+  await expect(page.getByText("No tenés borradores")).toHaveCount(0);
 
-  // "Borradores" no tiene botón propio en el segmento visible (sólo Todos +
-  // las 4 familias con conteo), pero si el operador entra directo por URL a
-  // otra pestaña sin turnos (acá simulado con "Cancelados" vacío en otra
-  // corrida) el mensaje debe hablar en voseo, no "No hay datos" genérico.
-  await page.getByRole("button", { name: "En marcha (1)" }).click();
-  await expect(page.getByText("No tenés turnos en marcha")).not.toBeVisible();
-
-  // Con una respuesta sin ningún turno "en_marcha", el estado vacío de esa
-  // familia debe aparecer con su copy propio.
+  // Sin ningún turno "en_marcha" ese grupo no existe (ni su título ni su copy de vacío).
   await page.unroute("**/api/v1/shifts/me");
   await page.route("**/api/v1/shifts/me", (route) =>
     route.fulfill({
@@ -153,11 +142,9 @@ test("una familia sin turnos muestra su propio estado vacío en voseo, no una li
     })
   );
   await page.reload();
-  await page.getByRole("button", { name: "En marcha (0)" }).click();
-  await expect(page.getByText("No tenés turnos en marcha")).toBeVisible();
-  await expect(
-    page.getByText("Cuando asignes un turno a un trabajador, va a aparecer acá hasta que se cierre.")
-  ).toBeVisible();
+  await expect(page.locator('[data-family="buscando"]')).toBeVisible();
+  await expect(page.locator('[data-family="en_marcha"]')).toHaveCount(0);
+  await expect(page.getByText("No tenés turnos en marcha")).toHaveCount(0);
 });
 
 /**
@@ -169,9 +156,10 @@ test("una familia sin turnos muestra su propio estado vacío en voseo, no una li
  *
  * El criterio de la familia es "¿queda algo por pasar?", no "¿está cerrado el
  * trato?". Este test lo fija por la vía que le importa al comercio: en qué
- * pestaña lo encuentra.
+ * grupo lo encuentra.
  */
 test("un turno confirmado está 'en marcha', no en 'terminados'", async ({ page }) => {
+  await page.clock.setFixedTime(new Date("2026-07-20T12:00:00-03:00")); // el Panel filtra por semana (la tira de días)
   await injectSession(page);
   await blockExternalHosts(page);
   await mockEmptyNotifications(page);
@@ -194,8 +182,8 @@ test("un turno confirmado está 'en marcha', no en 'terminados'", async ({ page 
 
   await page.goto("/shifts");
 
-  await expect(page.getByRole("button", { name: /En marcha \(1\)/ })).toBeVisible({
+  await expect(page.locator('[data-family="en_marcha"] [data-shift-id="shift-confirmado"]')).toBeVisible({
     timeout: 15_000,
   });
-  await expect(page.getByRole("button", { name: /Terminados \(0\)/ })).toBeVisible();
+  await expect(page.locator('[data-family="terminado"]')).toHaveCount(0);
 });

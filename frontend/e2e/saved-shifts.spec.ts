@@ -165,6 +165,7 @@ test("tab Guardados: lista el turno, permite postularse y sacarlo", async ({ pag
     });
   });
 
+  await page.clock.setFixedTime(new Date("2026-07-12T12:00:00-03:00")); // Mis turnos filtra por semana
   await page.goto("/my-shifts");
   await page.getByRole("button", { name: /^Guardados/ }).click();
   await expect(page.getByText("Mozo/a")).toBeVisible();
@@ -238,6 +239,7 @@ test("tab Guardados: 'Quitar de guardados' saca el turno sin postularse", async 
     return route.continue();
   });
 
+  await page.clock.setFixedTime(new Date("2026-07-12T12:00:00-03:00")); // Mis turnos filtra por semana
   await page.goto("/my-shifts");
   await page.getByRole("button", { name: /^Guardados/ }).click();
   await expect(page.getByText("Mozo/a")).toBeVisible();

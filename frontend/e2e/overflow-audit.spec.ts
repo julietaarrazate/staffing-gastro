@@ -152,13 +152,29 @@ async function auditOverflow(page: Page, path: string) {
       if (insideScroller(el)) continue;
       const r = el.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) continue;
-      if (r.right > vw + 1 || r.left < -1) {
+      // Lo que se ve: el rectángulo recortado por los contenedores que no dejan
+      // ver lo que se sale (overflow hidden o clip). Una nube decorativa que
+      // asoma por el borde de su cielo, que la recorta, no se sale de la
+      // pantalla (2026-11-21: con el Panel nuevo la prueba empezó a ver su
+      // nube; antes el Panel no terminaba de dibujarse en el tiempo de espera).
+      let left = r.left;
+      let right = r.right;
+      for (let a = el.parentElement; a && a !== document.documentElement; a = a.parentElement) {
+        const cs = getComputedStyle(a);
+        if (/(hidden|clip)/.test(cs.overflowX)) {
+          const ar = a.getBoundingClientRect();
+          left = Math.max(left, ar.left);
+          right = Math.min(right, ar.right);
+        }
+      }
+      if (right <= left) continue;
+      if (right > vw + 1 || left < -1) {
         out.push({
           tag: el.tagName.toLowerCase(),
           cls: (el.className || "").toString().slice(0, 100),
           text: (el.textContent || "").trim().slice(0, 50),
-          left: Math.round(r.left),
-          right: Math.round(r.right),
+          left: Math.round(left),
+          right: Math.round(right),
         });
       }
     }

@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage, isPlanLimitError } from "@/lib/errors";
 import { comercioSinPerfilTras400 } from "@/lib/perfil-faltante";
@@ -17,8 +17,23 @@ import {
   isCancellable,
   withFreshState,
 } from "@/lib/cancelar-turno";
-import { FAMILY_ORDER, familyOf, resumenPanel, type Family } from "@/lib/panel-comercio";
-import { Shift } from "@/lib/types";
+import {
+  FAMILY_ORDER,
+  diaParaFamilia,
+  familyOf,
+  ordenMasAdelante,
+  resumenPanel,
+  tituloDelDia,
+  turnosEnLaVista,
+  type Family,
+} from "@/lib/panel-comercio";
+import { claveDiaArgentina, diaEnPalabras, semanaArgentina, semanasHasta, turnosPorDia } from "@/lib/semana";
+import { useNow } from "@/lib/use-now";
+import { formatPayCompact } from "@/lib/pay";
+import { SKILL_LABELS, STATUS_LABELS, Shift } from "@/lib/types";
+import SemanaTira from "@/components/SemanaTira";
+import MasAdelante, { type FilaFutura } from "@/components/MasAdelante";
+import { CLASE_TONO, TONO_ESTADO } from "@/components/worker/TurnoSuave";
 import TurnoPanel from "@/components/employer/TurnoPanel";
 import CieloPanel from "@/components/employer/CieloPanel";
 import ShiftActions from "@/components/ShiftActions";
@@ -32,76 +47,35 @@ import { noShowConfirmCopy } from "@/lib/turno-reofrecido";
 import dynamic from "next/dynamic";
 import type { TourStep } from "@/components/GuidedTour";
 import { useTourPendiente } from "@/lib/use-tour-pendiente";
-import {
-  Button,
-  CardSkeletons,
-  EmptyState,
-  ErrorBanner,
-  Modal,
-  SegmentedControl,
-  Skeleton,
-  useToast,
-} from "@/components/ui";
-import {
-  CheckCircleIcon,
-  ClipboardIcon,
-  ClockIcon,
-  SearchIcon,
-  XCircleIcon,
-} from "@/components/icons";
+import { Button, CardSkeletons, ErrorBanner, Modal, Skeleton, useToast } from "@/components/ui";
 
 // Recorrido de una sola vez: se baja sólo si hay algo que mostrar.
 const GuidedTour = dynamic(() => import("@/components/GuidedTour"), { ssr: false });
 
-type Tab = "todos" | Family;
-
-const VALID_TABS: Tab[] = ["todos", ...FAMILY_ORDER];
-function isTab(value: string | null): value is Tab {
-  return value !== null && (VALID_TABS as string[]).includes(value);
+/**
+ * Los grupos de la lista, por estado (ya no hay pestañas: un enlace
+ * `/shifts?tab=buscando`, del asistente, baja hasta el grupo). Los vacíos no
+ * se muestran.
+ */
+const GRUPOS: Family[] = FAMILY_ORDER;
+function esGrupo(value: string | null): value is Family {
+  return value !== null && (GRUPOS as string[]).includes(value);
 }
 
-const FAMILY_META: Record<
-  Family,
-  { title: string; icon: React.ReactNode; emptyTitle: string; emptySubtitle: string }
-> = {
-  borrador: {
-    title: "Borradores",
-    icon: <ClipboardIcon size={14} />,
-    emptyTitle: "No tenés borradores",
-    emptySubtitle: "Los turnos que empezás a cargar y todavía no publicás quedan acá.",
-  },
-  buscando: {
-    title: "Buscando personal",
-    icon: <SearchIcon size={14} />,
-    emptyTitle: "Todavía no tenés turnos buscando personal",
-    emptySubtitle: "Publicá un turno y en minutos vas a tener candidatos rankeados, listos para asignar.",
-  },
-  en_marcha: {
-    title: "En marcha",
-    icon: <ClockIcon size={14} />,
-    emptyTitle: "No tenés turnos en marcha",
-    emptySubtitle: "Cuando asignes un turno a un trabajador, va a aparecer acá hasta que se cierre.",
-  },
-  terminado: {
-    title: "Terminados",
-    icon: <CheckCircleIcon size={14} />,
-    emptyTitle: "Todavía no tenés turnos terminados",
-    emptySubtitle: "Los turnos finalizados o pagados van a quedar acá.",
-  },
-  cancelado: {
-    title: "Cancelados",
-    icon: <XCircleIcon size={14} />,
-    emptyTitle: "No tenés turnos cancelados",
-    emptySubtitle: "Buena señal: todavía no cancelaste ningún turno.",
-  },
+const TITULO_GRUPO: Record<Family, string> = {
+  borrador: "Borradores",
+  buscando: "Buscando personal",
+  en_marcha: "En marcha",
+  terminado: "Terminados",
+  cancelado: "Cancelados",
 };
 
 /** Pedido de Julieta: el comercio no tenía nada parecido al mini-tour que ya
  * ve el trabajador al aterrizar en el feed por primera vez ("el onboarding
  * comercio no tiene los popups que te ayudan a conocer la app como en
  * empleado"). Mismo componente (`GuidedTour`), apuntando a lo mínimo para
- * entender el panel: cómo publicar, las pestañas por familia de estado (si
- * ya hay turnos) y dónde buscar candidatos directo. */
+ * entender el panel: cómo publicar, la semana que se toca (si ya hay turnos) y
+ * dónde buscar candidatos directo. */
 const EMPLOYER_PANEL_TOUR: TourStep[] = [
   {
     target: '[data-tour="shifts-publish"]',
@@ -109,9 +83,9 @@ const EMPLOYER_PANEL_TOUR: TourStep[] = [
     body: "Contanos el puesto, el horario y el pago. Te recomendamos los mejores candidatos disponibles cerca tuyo.",
   },
   {
-    target: '[data-tour="shifts-tabs"]',
-    title: "Organizado por estado",
-    body: "Buscando, en marcha, terminados o cancelados — para encontrar cualquier turno de un vistazo.",
+    target: '[data-tour="shifts-tira"]',
+    title: "Tu semana, día por día",
+    body: "Tocá un día para ver sólo sus turnos, o pasá de semana con las flechas. Abajo, agrupados por estado.",
   },
   {
     target: '[data-tour="nav-search"]',
@@ -179,14 +153,20 @@ function MyShiftsPanel() {
   const firstName = user?.full_name?.split(" ")[0];
   const toast = useToast();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const [shifts, setShifts] = useState<Shift[]>([]);
-  // Precargable por URL (?tab=buscando): el asistente de IA (consultar_turnos)
-  // te trae directo a la pestaña que preguntaste, en vez de dejarte en
-  // "Todos" a que la busques vos.
-  const [tab, setTab] = useState<Tab>(() => {
-    const fromUrl = searchParams.get("tab");
-    return isTab(fromUrl) ? fromUrl : "todos";
-  });
+  // La tira de días del cielo (`SemanaTira`, la misma de Mis turnos): qué
+  // semana se ve (0 = la de hoy, en pasos de semanas) y, si se tocó uno, el
+  // día (clave "YYYY-MM-DD" de Argentina). Sin día, la lista es la semana.
+  const nowMs = useNow(30_000);
+  const now = useMemo(() => new Date(nowMs), [nowMs]);
+  const [semanaOffset, setSemanaOffset] = useState(0);
+  const [diaElegido, setDiaElegido] = useState<string | null>(null);
+  // Un enlace `/shifts?tab=buscando` (el asistente de IA, consultar_turnos)
+  // baja hasta ese grupo: se guarda cuál hasta que la lista está dibujada.
+  const [grupoPendiente, setGrupoPendiente] = useState<Family | null>(null);
+  const grupoParam = searchParams.get("tab") ?? searchParams.get("familia");
+  const grupoHandledRef = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   // La cuenta del comercio todavía no tiene perfil (se cortó la bienvenida):
   // en vez del error del backend, el cartel que lleva a completarlo.
@@ -444,10 +424,14 @@ function MyShiftsPanel() {
     await run(id, "markPaid");
   }
 
-  // Agrupa una sola vez por familia; cada pestaña (incluida "Todos") lee de
-  // acá, así que el número en el segmento y lo que se ve abajo nunca pueden
-  // desincronizarse (ese era el bug: "buscando 1" sin mostrar cuál).
-  const families = useMemo(() => {
+  // La semana que se ve y, adentro, el día elegido (uno que ya no está en la
+  // semana —pasó la medianoche del domingo con la pantalla abierta— se da por
+  // soltado). Todo en el día de Argentina.
+  const semana = semanaArgentina(now, semanaOffset);
+  const dia = diaElegido && semana.some((d) => d.clave === diaElegido) ? diaElegido : null;
+  const vistos = turnosEnLaVista(shifts, semana, dia);
+  // Agrupa por familia lo que se ve; la lista y los títulos leen de acá.
+  const families = (() => {
     const grouped: Record<Family, Shift[]> = {
       borrador: [],
       buscando: [],
@@ -455,9 +439,63 @@ function MyShiftsPanel() {
       terminado: [],
       cancelado: [],
     };
-    for (const shift of shifts) grouped[familyOf(shift.status)].push(shift);
+    for (const shift of vistos) grouped[familyOf(shift.status)].push(shift);
     return grouped;
-  }, [shifts]);
+  })();
+  const claveInicio = semana[0].clave;
+  const claveFin = semana[6].clave;
+  const hayAntes = shifts.some((s) => claveDiaArgentina(s.start_at) < claveInicio);
+  const conteoPorDia = useMemo(() => turnosPorDia(shifts.map((s) => claveDiaArgentina(s.start_at))), [shifts]);
+  // «Más adelante»: lo de semanas que vienen, los que buscan personal primero.
+  const futuros: FilaFutura[] = ordenMasAdelante(shifts, claveFin).map((s) => ({
+    id: s.id,
+    clave: claveDiaArgentina(s.start_at),
+    puesto: SKILL_LABELS[s.position],
+    estado: familyOf(s.status) === "buscando" ? "Buscando" : STATUS_LABELS[s.status],
+    tono: CLASE_TONO[TONO_ESTADO[s.status] ?? "azul"],
+    pago: formatPayCompact(s),
+  }));
+  const irADia = (clave: string) => {
+    setSemanaOffset(semanasHasta(clave, now));
+    setDiaElegido(clave);
+    window.scrollTo({ top: 0 });
+  };
+
+  // Enlace a un grupo (`?tab=buscando`): con la lista cargada, si de ese grupo
+  // no hay nada en la semana que se ve salta a la semana del turno que más
+  // cerca está, y después baja hasta el grupo. Saca el parámetro de la URL
+  // (sin sumar historial): una recarga no vuelve a saltar y el mismo enlace
+  // funciona otra vez. Si la carga falló no se da por procesado.
+  useEffect(() => {
+    if (!grupoParam) {
+      grupoHandledRef.current = null;
+      return;
+    }
+    if (loading || error || sinPerfil || grupoHandledRef.current === grupoParam) return;
+    grupoHandledRef.current = grupoParam;
+    if (esGrupo(grupoParam)) {
+      const diaDelGrupo = diaParaFamilia(shifts, grupoParam, semanaArgentina(now), now);
+      if (diaDelGrupo) setSemanaOffset(semanasHasta(diaDelGrupo, now));
+      setDiaElegido(null);
+      setGrupoPendiente(grupoParam);
+    }
+    const rest = new URLSearchParams(searchParams.toString());
+    rest.delete("tab");
+    rest.delete("familia");
+    const qs = rest.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }, [grupoParam, loading, error, sinPerfil, shifts, now, router, pathname, searchParams]);
+
+  // Ya dibujada la semana, baja hasta el grupo.
+  useEffect(() => {
+    if (!grupoPendiente) return;
+    const el = document.querySelector(`[data-family="${grupoPendiente}"]`);
+    if (el) {
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      el.scrollIntoView({ block: "start", behavior: reduce ? "auto" : "smooth" });
+    }
+    setGrupoPendiente(null);
+  }, [grupoPendiente, semanaOffset, dia]);
 
   // Progreso de cobertura por evento (publicación masiva, /shifts/new-event):
   // cruza TODAS las familias — un evento de 6 roles puede tener 4 ya
@@ -480,16 +518,13 @@ function MyShiftsPanel() {
     ? shifts.find((s) => s.id === confirmNoShowId)
     : undefined;
 
-  // En "Todos" se listan sólo las familias con contenido (no tiene sentido
-  // mostrar 4 estados vacíos apilados). En una pestaña puntual se muestra
-  // igual, vacía, con su propio mensaje de marca.
-  const visibleFamilies: Family[] =
-    tab === "todos" ? FAMILY_ORDER.filter((family) => families[family].length > 0) : [tab];
+  // Se listan sólo los grupos con contenido (no tiene sentido mostrar cuatro
+  // estados vacíos apilados).
+  const visibleFamilies: Family[] = GRUPOS.filter((family) => families[family].length > 0);
   // Lo que responde el cielo: sólo cuando la lista está cargada y es de fiar.
-  const resumen = useMemo(
-    () => (loading || error || sinPerfil ? null : resumenPanel(shifts)),
-    [loading, error, sinPerfil, shifts]
-  );
+  const cargado = !loading && !error && !sinPerfil;
+  const resumen = useMemo(() => (cargado ? resumenPanel(shifts) : null), [cargado, shifts]);
+  const titulo = useMemo(() => (cargado ? tituloDelDia(shifts, dia, now) : null), [cargado, shifts, dia, now]);
 
   return (
     // Desde el 2026-11-20 el panel lleva la dirección suave (ADR-0028,
@@ -499,7 +534,36 @@ function MyShiftsPanel() {
     // 2026-11-18 al 20 fue «con relieve» (saludo en brocha, comandas de papel
     // colgando del riel). La lógica no cambió.
     <div className="estilo-suave mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col md:min-h-[calc(100dvh-var(--chrome-top))] md:max-w-5xl md:px-4 md:pt-4">
-      <CieloPanel nombre={firstName} resumen={resumen} conAcciones={!loading && !sinPerfil} />
+      <CieloPanel
+        nombre={firstName}
+        resumen={resumen}
+        titulo={titulo}
+        conAcciones={!loading && !sinPerfil}
+        vacio={cargado && shifts.length === 0}
+        tira={
+          cargado && shifts.length > 0 ? (
+            <div data-tour="shifts-tira">
+              <SemanaTira
+                dias={semana}
+                turnosPorDia={conteoPorDia}
+                elegido={dia}
+                onElegir={setDiaElegido}
+                onSemana={(paso) => {
+                  setSemanaOffset((o) => o + paso);
+                  setDiaElegido(null);
+                }}
+                esActual={semanaOffset === 0}
+                hayAntes={hayAntes}
+                hayDespues={futuros.length > 0}
+                onVolver={() => {
+                  setSemanaOffset(0);
+                  setDiaElegido(null);
+                }}
+              />
+            </div>
+          ) : null
+        }
+      />
 
       {/* La hoja sube 28 px sobre el cielo y lleva todo lo que se toca. */}
       <div className="hoja -mt-7 flex-1 px-4 pb-10 pt-5 md:px-6">
@@ -580,25 +644,6 @@ function MyShiftsPanel() {
 
       {!loading && !error && !sinPerfil && shifts.length > 0 && (
         <>
-          {/* Pestañas por familia de estado. En 390 px las cinco con su
-              conteo no entran: `w-max` les deja su ancho real y el contenedor
-              scrollea en horizontal (mismo patrón que un tab bar nativo);
-              `min-w-full` lleva el filete hasta el borde aunque entren. */}
-          <div className="-mx-4 -mb-1 mt-3 scroll-px-4 overflow-x-auto px-4 py-1 no-scrollbar md:-mx-6 md:scroll-px-6 md:px-6" data-tour="shifts-tabs">
-            <SegmentedControl<Tab>
-              value={tab}
-              onChange={setTab}
-              className="w-max min-w-full"
-              options={[
-                { value: "todos", label: "Todos" },
-                { value: "buscando", label: `Buscando (${families.buscando.length})` },
-                { value: "en_marcha", label: `En marcha (${families.en_marcha.length})` },
-                { value: "terminado", label: `Terminados (${families.terminado.length})` },
-                { value: "cancelado", label: `Cancelados (${families.cancelado.length})` },
-              ]}
-            />
-          </div>
-
           {/* Las familias se acomodan en la MISMA grilla que las filas, y
               cada una ocupa tantas columnas como turnos tiene (hasta el
               ancho completo). Antes cada familia abría su propia grilla en
@@ -606,53 +651,52 @@ function MyShiftsPanel() {
               tarjeta de 360px y media pantalla vacía, grupo tras grupo
               (auditoría visual 2026-09-24, A3). Ahora dos familias de un
               turno cada una comparten fila, cada una con su título. */}
+          {vistos.length === 0 && (
+            <p data-testid="dia-vacio" role="status" className="py-6 text-center text-body font-medium text-ink-soft">
+              {dia ? `Nada el ${diaEnPalabras(dia)}` : "Nada en esta semana"}
+            </p>
+          )}
           <div
             data-testid="shifts-panel-list"
             className="mt-6 grid items-start gap-x-4 gap-y-7 md:grid-cols-2 xl:grid-cols-3"
           >
             {visibleFamilies.map((family) => {
               const list = families[family];
-              const meta = FAMILY_META[family];
-              // Con una sola familia a la vista (una pestaña puntual) ocupa el
-              // ancho entero, como antes: no hay otra con quién compartir fila.
-              const full = tab !== "todos" || list.length >= 3;
+              const full = list.length >= 3;
               const span = full ? "md:col-span-2 xl:col-span-3" : list.length === 2 ? "md:col-span-2" : "";
               const cols = full ? "md:grid-cols-2 xl:grid-cols-3" : list.length === 2 ? "md:grid-cols-2" : "";
               return (
-                <section key={family} className={`min-w-0 ${span}`} data-family={family}>
+                <section key={family} className={`min-w-0 scroll-mt-4 ${span}`} data-family={family}>
                   <h2 className="titulo-seccion mb-3">
-                    {meta.title}
+                    {TITULO_GRUPO[family]}
                     <span className="ml-1.5 text-sm font-semibold text-ink-soft">{list.length}</span>
                   </h2>
 
-                  {list.length === 0 ? (
-                    <EmptyState icon={meta.icon} title={meta.emptyTitle} subtitle={meta.emptySubtitle} />
-                  ) : (
-                    <div className={`grid items-start gap-3 ${cols}`}>
-                      {list.map((shift) => (
-                        <TurnoPanel key={shift.id} shift={shift}>
-                          <ShiftActions
-                            shift={shift}
-                            busy={busy}
-                            locked={tapGuard.locked}
-                            onRun={run}
-                            onMarkPaid={() => askMarkPaid(shift.id)}
-                            onNoShow={() => setConfirmNoShowId(shift.id)}
-                            onCancel={() => void askCancel(shift.id)}
-                          />
-                          {(shift.status === "finalizado" || shift.status === "pagado") && (
-                            <div className="mt-3">
-                              <ReviewBox shiftId={shift.id} />
-                            </div>
-                          )}
-                        </TurnoPanel>
-                      ))}
-                    </div>
-                  )}
+                  <div className={`grid grid-cols-1 items-start gap-3 ${cols}`}>
+                    {list.map((shift) => (
+                      <TurnoPanel key={shift.id} shift={shift}>
+                        <ShiftActions
+                          shift={shift}
+                          busy={busy}
+                          locked={tapGuard.locked}
+                          onRun={run}
+                          onMarkPaid={() => askMarkPaid(shift.id)}
+                          onNoShow={() => setConfirmNoShowId(shift.id)}
+                          onCancel={() => void askCancel(shift.id)}
+                        />
+                        {(shift.status === "finalizado" || shift.status === "pagado") && (
+                          <div className="mt-3">
+                            <ReviewBox shiftId={shift.id} />
+                          </div>
+                        )}
+                      </TurnoPanel>
+                    ))}
+                  </div>
                 </section>
               );
             })}
           </div>
+          <MasAdelante filas={futuros} onElegir={irADia} />
         </>
       )}
       </div>

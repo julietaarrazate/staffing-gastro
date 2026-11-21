@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { deContrato, fulfillContrato } from "./contrato";
-import { blockExternalHosts, injectSession, isoEnDias, mockEmptyNotifications, setTheme, skipSplash } from "./mocks";
+import { blockExternalHosts, injectSession, isoDesdeJueves as isoEnDias, mockEmptyNotifications, setTheme, skipSplash } from "./mocks";
 
 /**
  * Mis turnos con la dirección suave (ADR-0028, maqueta `T-Mis-turnos`;
@@ -9,7 +9,9 @@ import { blockExternalHosts, injectSession, isoEnDias, mockEmptyNotifications, s
  * cielo y el único ámbar, y los demás como filas.
  */
 const json = (body: unknown) => ({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
-// Reloj fijo, hoy a las 18:30 de Argentina: el turno de hoy empieza en una
+// Reloj fijo, el jueves 19/11/2026 a las 18:30 de Argentina (la semana del 16
+// al 22: Mis turnos filtra por semana, así que las fechas no pueden depender del
+// día en que corre el spec): el turno de hoy empieza en una
 // hora (ya se puede avisar «voy en camino», todavía no «Llegué»).
 const AHORA = new Date(isoEnDias(0, "18:30"));
 // Turno de `GET /shifts/mine` y sesión: respuestas reales del backend (e2e/contrato).
@@ -48,13 +50,19 @@ for (const theme of ["light", "dark"] as const) {
       theme === "light" ? "rgb(15, 58, 91)" : "rgb(238, 243, 246)",
     );
 
-    // La semana: siete días, hoy marcado, y un punto en los días con turno por hacer.
-    const semana = page.getByRole("list", { name: "Esta semana" });
+    // La semana: siete días (botones), hoy marcado con el aro, y un punto en los días con turno.
+    const semana = page.getByRole("list", { name: "Días de la semana" });
     await expect(semana.getByRole("listitem")).toHaveCount(7);
-    await expect(semana.locator(".dia-cielo-hoy")).toHaveCount(1);
+    await expect(semana.getByRole("button")).toHaveCount(7);
     const hoy = isoEnDias(0).slice(0, 10);
-    await expect(semana.locator(`[data-dia="${hoy}"]`)).toContainText(", hoy, con turno");
+    await expect(semana.locator(`[data-dia="${hoy}"] button`)).toHaveAccessibleName("jueves 19, hoy, 1 turno");
+    await expect(semana.locator(`[data-dia="${hoy}"] [data-con-turno]`)).toHaveCount(1);
+    // Hoy sin elegir: aro fino sobre el cielo; elegido, la tecla blanca (igual de día y de noche).
+    await expect(semana.locator(`[data-dia="${hoy}"] .dia-cielo-aro`)).toHaveCount(1);
+    await semana.locator(`[data-dia="${hoy}"] button`).click();
+    await expect(semana.locator(".dia-cielo-hoy")).toHaveCount(1);
     await expect(semana.locator(`[data-dia="${hoy}"] .dia-cielo-hoy`)).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    await semana.locator(`[data-dia="${hoy}"] button`).click();
 
     // Hoy: la tarjeta con su propio cielo, el estado y los cuatro pasos.
     const deHoy = page.locator('[data-shift-id="hoy"]');
