@@ -63,10 +63,23 @@ qué responde cada pantalla está en
 
 - ✅ **Favoritos y Soporte** (`app/favorites`, `app/support`, `app/support/[id]`) · #716 · [historial](../historial/2026-11-21-favoritos-y-soporte-direccion-suave.md) · sin maqueta: con `SubpaginaSuave`; de paso, las tarjetas de Favoritos ya no se salen de la pantalla con un nombre largo
 
-- ⬜ **Fichas** (`/workers/[id]`, `/companies/[id]`)
+- ✅ **Fichas** (`/workers/[id]`, `/companies/[id]`) · #718 · [historial](../historial/2026-11-21-fichas-direccion-suave.md) · sin maqueta: cada ficha es lo que la persona ve en su propio perfil, visto desde afuera (`FichaSuave`); «Agregar a favoritos» y «Cómo llegar» en azul hondo, sin ámbar
 
 - ✅ **Perfil del comercio** (`components/company/PerfilComercio.tsx`) · #714 · [historial](../historial/2026-11-21-perfil-comercio-direccion-suave.md) · sin maqueta: con las piezas del Perfil de quien trabaja; el título es el nombre del local y la reputación va en grande; el logo se cambia en «Datos del comercio»
 
 - ⬜ **Administración** (`app/admin/`: Hoy, Turnos en vivo, Personas, Verificación, Soporte, Métricas, Crecimiento, Herramientas, Seguridad) · **decidido por Julieta el 2026-11-20:** toda la app pasa a la misma dirección, el admin también. Hoy conserva arriba el logo y la campanita en el celular porque sus pantallas no tienen cielo (#712); al migrarlo se decide si lleva cielo
 
 - ⬜ **Cierre:** las reglas de `.estilo-suave` pasan a `:root` y se borra lo «con relieve» que quede en la app (ADR-0028, punto 6)
+
+## Pedidos de Julieta sobre pantallas ya migradas (2026-11-21)
+
+Los vio en su celular, con capturas. Son funciones o rediseños, no piel: van
+en una tanda propia, una pantalla por PR.
+
+- ⬜ **Mis turnos: tocar un día de la tira** · hoy la tira de la semana no se toca y debajo va la lista entera. Propuesta: tocar una fecha muestra sólo los turnos de ese día (tocarla de nuevo vuelve a la semana), puntito en los días con turnos y flechas para cambiar de semana, así los terminados viejos no son una lista infinita.
+
+- ⬜ **Panel del comercio: el renglón «Todos / Buscando (0) / En marcha (0) / Terminados (2) / Cancelados»** · le resulta poco estético: largo, palabras sueltas, y el Panel queda menos prolijo que Mis turnos. **Decidido por Julieta el 2026-11-21:** se sacan las pestañas (la lista ya va agrupada con sus títulos) y va la misma tira de días de Mis turnos; el comercio toca un día y ve lo de ese día, ordenado por estado.
+
+- ⬜ **El ícono del asistente («¿Qué necesitás?»)** · las estrellitas son genéricas. Propuesta: un dibujo propio de la marca (la «o» de oído, la del ícono de la app).
+
+- ⬜ **La app instalada a veces muestra la versión anterior** · sin confirmar la causa: lo más probable es que la app abierta en segundo plano siga con el código que cargó (el service worker no guarda páginas). Propuesta: detectar que hay versión nueva y recargar al volver al frente.

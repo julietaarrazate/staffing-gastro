@@ -196,7 +196,7 @@ export default function ConversationPage() {
         </Link>
         {conversation && (
           <>
-            <Avatar src={conversation.photo} name={conversation.name} size="md" />
+            <Avatar src={conversation.photo} name={conversation.name} size="md" cielo />
             <div className="min-w-0">
               <p className="truncate text-h3 font-extrabold leading-tight">
                 {conversation.name}

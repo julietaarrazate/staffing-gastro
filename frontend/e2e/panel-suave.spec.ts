@@ -87,10 +87,11 @@ test("el cielo hondo dice cuántos turnos hay hoy y sus tres estados; debajo, la
   await expect(urgente.getByTestId("shift-status")).toHaveText("Publicado");
   // Sin foto ni persona va el cielo con el ícono del puesto, no el color del rubro.
   await expect(urgente.locator('[data-portada="mini"]')).toBeVisible();
-  // Con persona asignada, sus iniciales y su nombre.
+  // Con persona asignada, su inicial en el cielo de `SinFoto` y su nombre.
   const cubierto = lista.locator('[data-shift-id="s2"]');
   await expect(cubierto).toContainText("Camila Rojas");
   await expect(cubierto.locator('[data-portada="mini"]')).toHaveCount(0);
+  await expect(cubierto.locator("[data-sin-foto]")).toHaveText("C");
 });
 
 test("un solo ámbar: «Elegir a quién va» en el cielo; «Publicar turno» queda en el «+» de la barra y las filas van en azul hondo", async ({ page }) => {

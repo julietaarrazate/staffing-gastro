@@ -516,6 +516,7 @@ Piezas nuevas, para usar en las pantallas que siguen (antes de dibujar otra):
 |---|---|---|
 | `NubesCielo` + `.cielo-limpio` | `components/ui/NubesCielo.tsx`, `globals.css` | Las nubes con volumen adentro de un `.app-cielo`. `.cielo-limpio` apaga las manchas viejas y de noche deja sólo estrellas (a la derecha, lejos de los textos) |
 | `PortadaCielo` | `components/ui/PortadaCielo.tsx` | La portada de un turno **sin foto**: el cielo, una nube (varía con el id, estable) y el ícono del rubro en un círculo de vidrio; de noche, el azul hondo. `mini` para miniaturas. Reemplaza al bloque marrón |
+| `SinFoto` | `components/ui/SinFoto.tsx` | **La foto o el logo que falta** (personas y comercios): un pedacito de cielo (degradé de `.portada-cielo`, una nube que asoma por abajo, variante estable por id) con la inicial en la tinta del cielo; de noche, el cielo hondo con la nube tenue y la inicial clara. Llena su contenedor, que pone el radio. **Nunca un círculo o cuadrado de color liso**: pedido de Julieta, 2026-11-21. Por debajo de 36 px, degradé e inicial sin nube |
 | `build-nubes.mjs` | `frontend/scripts/` | Escribe `public/cielo/nube-{a,b,c}.webp` (mapa de altura y luz, en Node con `sharp`) |
 | `.campo-vidrio`, `.chip-foto` | `globals.css` | El buscador sobre el cielo y el chip blanco sobre una foto o una portada |
 | `--text-titular`, `--text-puesto`, `--text-pago`, `--text-fila` | `globals.css` | Los tamaños de la dirección suave (46, 19, 26 y 15 px) |

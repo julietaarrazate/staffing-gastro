@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { uploadImage } from "@/lib/cloudinary";
 import { getErrorMessage } from "@/lib/errors";
 import { CameraIcon } from "@/components/icons";
+import SinFoto from "@/components/ui/SinFoto";
 import ImageCropModal from "@/components/ImageCropModal";
 import { checkPhotoFile } from "@/lib/upload-validation";
 
@@ -84,7 +85,7 @@ export default function ImageUpload({
           disabled={uploading}
           style={avatar ? { width: size, height: size } : undefined}
           aria-label={value ? "Cambiar foto de perfil" : "Subir foto de perfil"}
-          className={`foto-subir group relative flex shrink-0 items-center justify-center overflow-hidden ${rounded} bg-secondary font-bold text-secondary-text transition active:scale-95 disabled:opacity-70 ${
+          className={`foto-subir group relative flex shrink-0 items-center justify-center overflow-hidden ${rounded} font-bold transition active:scale-95 disabled:opacity-70 ${
             avatar ? "text-3xl ring-4 ring-white/20" : "h-24 w-24 text-2xl shadow-md"
           }`}
         >
@@ -98,7 +99,8 @@ export default function ImageUpload({
               className="h-full w-full object-cover"
             />
           ) : (
-            fallbackLabel.charAt(0).toUpperCase()
+            // El cielo que reemplaza a la foto que falta (nunca un color liso).
+            <SinFoto nombre={fallbackLabel} />
           )}
           {/* En celular no hay hover: con `opacity-0 group-hover:opacity-100`
               el ícono de cámara NUNCA se veía y la foto parecía no ser tocable.
