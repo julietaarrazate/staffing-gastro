@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import NotificationBell from "./NotificationBell";
+import { AvisosProvider } from "@/lib/avisos";
 import type { Notification } from "@/lib/types";
 
 const apiGet = vi.fn();
@@ -11,7 +12,7 @@ vi.mock("@/lib/api", () => ({
     post: (...args: unknown[]) => apiPost(...args),
   },
 }));
-vi.mock("@/lib/auth-context", () => ({ useAuth: () => ({ token: "tok" }) }));
+vi.mock("@/lib/auth-context", () => ({ useAuth: () => ({ token: "tok", user: { id: "u" }, loading: false }) }));
 vi.mock("@/lib/useWebSocket", () => ({ useWebSocket: () => undefined }));
 let pathname = "/chats/s1";
 vi.mock("next/navigation", () => ({
@@ -41,7 +42,7 @@ describe("NotificationBell: chat abierto (U017)", () => {
   it("marca leídos los avisos de mensaje de la conversación abierta, y sólo esos", async () => {
     pathname = "/chats/s1";
     apiGet.mockResolvedValue([chat("a", "s1"), chat("b", "s2")]);
-    render(<NotificationBell />);
+    render(<AvisosProvider><NotificationBell /></AvisosProvider>);
     const campana = screen.getByRole("button", { name: "Notificaciones" });
     await waitFor(() => expect(apiPost).toHaveBeenCalledTimes(1));
     expect(apiPost).toHaveBeenCalledWith("/notifications/a/read", undefined, "tok");
@@ -52,7 +53,7 @@ describe("NotificationBell: chat abierto (U017)", () => {
   it("fuera de un chat no marca nada", async () => {
     pathname = "/feed";
     apiGet.mockResolvedValue([chat("a", "s1")]);
-    render(<NotificationBell />);
+    render(<AvisosProvider><NotificationBell /></AvisosProvider>);
     const campana = screen.getByRole("button", { name: "Notificaciones" });
     await waitFor(() => expect(campana).toHaveTextContent("1"));
     expect(apiPost).not.toHaveBeenCalled();
@@ -62,7 +63,7 @@ describe("NotificationBell: chat abierto (U017)", () => {
     pathname = "/chats/s1";
     apiGet.mockResolvedValue([chat("a", "s1")]);
     const vis = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
-    render(<NotificationBell />);
+    render(<AvisosProvider><NotificationBell /></AvisosProvider>);
     const campana = screen.getByRole("button", { name: "Notificaciones" });
     await waitFor(() => expect(campana).toHaveTextContent("1"));
     expect(apiPost).not.toHaveBeenCalled();

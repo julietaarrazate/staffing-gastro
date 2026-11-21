@@ -39,6 +39,20 @@ const PADDING = 8;
 const TOOLTIP_WIDTH = 300;
 const GAP = 14;
 
+/** La primera ancla del paso que se ve. Un mismo paso puede tener más de una
+ *  en el documento («Publicar turno» está en el cielo del Panel, al lado de la
+ *  barra de abajo en el celular y en la barra de arriba en la compu) y sólo
+ *  una está a la vista en cada ancho. */
+function anclaVisible(selector: string): Element | null {
+  const anclas = document.querySelectorAll(selector);
+  for (const el of anclas) {
+    const caja = el.getBoundingClientRect();
+    if (caja.width > 0 && caja.height > 0) return el;
+  }
+  // Ninguna tiene tamaño (o el entorno no mide): la primera, como antes.
+  return anclas[0] ?? null;
+}
+
 export default function GuidedTour({ steps, storageKey }: GuidedTourProps) {
   const reducedMotion = useReducedMotion();
   const [activeSteps, setActiveSteps] = useState<TourStep[] | null>(null);
@@ -60,7 +74,7 @@ export default function GuidedTour({ steps, storageKey }: GuidedTourProps) {
   // como visto igual para no reintentarlo en cada render.
   useEffect(() => {
     if (localStorage.getItem(storageKey)) return;
-    const existing = steps.filter((step) => document.querySelector(step.target));
+    const existing = steps.filter((step) => anclaVisible(step.target));
     if (existing.length === 0) {
       localStorage.setItem(storageKey, "1");
       return;
@@ -80,7 +94,7 @@ export default function GuidedTour({ steps, storageKey }: GuidedTourProps) {
 
   useEffect(() => {
     if (!activeSteps) return;
-    const target = document.querySelector(activeSteps[index].target);
+    const target = anclaVisible(activeSteps[index].target);
     if (!target) {
       finish();
       return;

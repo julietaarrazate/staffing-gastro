@@ -47,16 +47,20 @@ export function LogoMark({ size = 28 }: { size?: number }) {
 export default function Logo({
   size = 28,
   withWordmark = true,
+  sobreCielo = false,
 }: {
   size?: number;
   withWordmark?: boolean;
+  /** Sobre el cielo de una pantalla: toma la tinta del cielo (blanca en el
+   *  cielo hondo) en vez del azul hondo de la marca. */
+  sobreCielo?: boolean;
 }) {
   if (!withWordmark) return <LogoMark size={size} />;
   return (
     <span
       role="img"
       aria-label="Oído"
-      className="inline-block font-oido leading-none text-primary-text"
+      className={`inline-block font-oido leading-none ${sobreCielo ? "" : "text-primary-text"}`}
       style={{ fontSize: Math.round(size * 0.93), paddingTop: Math.round(size * 0.08) }}
     >
       oído

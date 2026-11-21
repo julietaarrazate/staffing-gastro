@@ -362,7 +362,11 @@ test("el aviso al postulante se lee en la campanita y abre el Inicio", async ({ 
   );
   await page.goto("/my-shifts");
 
-  await page.getByRole("button", { name: "Notificaciones" }).click();
+  // En el celular no hay encabezado: fuera del Inicio la cuenta de avisos va
+  // en la pestaña «Inicio», y la campanita está sobre el cielo del Inicio.
+  await page.getByRole("navigation", { name: "Secciones" }).getByRole("link", { name: /^Inicio, .* sin leer$/ }).click();
+  await expect(page).toHaveURL(/\/feed$/);
+  await page.getByTestId("inicio-cielo").getByRole("button", { name: "Notificaciones" }).click();
   await page.getByRole("button", { name: /Se canceló un turno al que te postulaste/ }).click();
 
   await expect(page).toHaveURL(/\/feed$/);

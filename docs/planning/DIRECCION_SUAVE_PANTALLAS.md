@@ -43,7 +43,7 @@ qué responde cada pantalla está en
 
 - ⬜ **«¡Oído!» al postularse, a pantalla entera** (`T-Oido`) · es una función nueva, no piel: hoy es la cinta sobre la hoja del turno
 
-- ⬜ **La barra de abajo y el encabezado** (`.barra` en `oido.css` del lienzo) · al final, solos · **decidido por Julieta el 2026-11-20** ([historial](../historial/2026-11-20-barra-y-encabezado-decidido.md)): la barra flota (píldora blanca con sombra; la activa, con un óvalo celeste detrás del ícono), se va la franja blanca del encabezado (el cielo llega arriba; «oído» y la campanita sobre el cielo sólo en Inicio y Panel) y «Publicar turno» del comercio es un «+» redondo azul hondo al lado de la barra; las tres van juntas, en un PR. Juntar Buscar y Mapa en una pestaña (seis → cinco, con el conmutador Lista / Mapa) también va, pero aparte y después: es una función, no piel
+- ✅ **La barra de abajo y el encabezado** (`.barra`, `.barra-comercio` y `.mas` en `oido.css` del lienzo) · #712 · [historial](../historial/2026-11-20-barra-flotante-y-encabezado.md) · la barra flota, sin franja de encabezado en el celular («oído» y la campanita sobre el cielo del Inicio y del Panel; en las demás, la cuenta de avisos va en esa pestaña) y «Publicar turno» del comercio es el «+» azul hondo; en la compu, la misma píldora arriba · quedó afuera juntar Buscar y Mapa en una pestaña (seis → cinco, con el conmutador Lista / Mapa): es una función, va aparte y después
 
 ## Sin maqueta todavía
 
@@ -56,5 +56,9 @@ qué responde cada pantalla está en
 - ⬜ **Las hojas compartidas** (`BottomSheet`, «¡Turno publicado!»)
 
 - ⬜ **Fichas, Favoritos, Mi plan, Soporte**
+
+- ⬜ **Perfil del comercio** (`app/profile/page.tsx`, la vista del comercio) · quedó afuera cuando se migró el Perfil de quien trabaja (#705) y no tenía renglón
+
+- ⬜ **Administración** (`app/admin/`: Hoy, Turnos en vivo, Personas, Verificación, Soporte, Métricas, Crecimiento, Herramientas, Seguridad) · **decidido por Julieta el 2026-11-20:** toda la app pasa a la misma dirección, el admin también. Hoy conserva arriba el logo y la campanita en el celular porque sus pantallas no tienen cielo (#712); al migrarlo se decide si lleva cielo
 
 - ⬜ **Cierre:** las reglas de `.estilo-suave` pasan a `:root` y se borra lo «con relieve» que quede en la app (ADR-0028, punto 6)

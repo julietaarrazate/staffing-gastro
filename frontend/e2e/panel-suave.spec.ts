@@ -93,7 +93,7 @@ test("el cielo hondo dice cuántos turnos hay hoy y sus tres estados; debajo, la
   await expect(cubierto.locator('[data-portada="mini"]')).toHaveCount(0);
 });
 
-test("un solo ámbar: «Elegir a quién va» en el cielo; «Publicar turno» pasa a vidrio y las filas van en azul hondo", async ({ page }) => {
+test("un solo ámbar: «Elegir a quién va» en el cielo; «Publicar turno» queda en el «+» de la barra y las filas van en azul hondo", async ({ page }) => {
   await panel(page, TURNOS);
   await page.goto("/shifts");
   const elegir = page.getByTestId("panel-elegir");
@@ -104,10 +104,13 @@ test("un solo ámbar: «Elegir a quién va» en el cielo; «Publicar turno» pas
   await expect(ambar).toHaveClass(/boton-relieve/);
   await expect(ambar).toHaveAttribute("href", "/shifts/s1/candidates");
   expect(await ambar.evaluate((el) => getComputedStyle(el).backgroundImage)).toContain("rgb(246, 169, 42)");
-  const publicar = page.getByRole("link", { name: "Publicar turno" });
+  // Con a quién elegir, publicar no va en el cielo: queda el «+» al lado de la
+  // barra de abajo, que no es ámbar de relieve.
+  await expect(page.getByTestId("panel-cielo").getByRole("link", { name: "Publicar turno" })).toHaveCount(0);
+  const publicar = page.locator(".barra-app").getByRole("link", { name: "Publicar turno" });
   await expect(publicar).toHaveAttribute("href", "/shifts/new");
   await expect(publicar).not.toHaveClass(/boton-relieve/);
-  await expect(page.locator("main").getByRole("link", { name: "Evento" })).toHaveAttribute("href", "/shifts/new-event");
+  await expect(page.getByTestId("panel-cielo").getByRole("link", { name: "Evento" })).toHaveAttribute("href", "/shifts/new-event");
   // La acción de cada fila sigue ahí, en azul hondo con letra blanca.
   const deLaFila = page.locator('[data-shift-id="s1"]').getByRole("link", { name: "Elegir a alguien (4)" });
   await expect(deLaFila).toHaveClass(/boton-hondo/);
@@ -185,8 +188,10 @@ test("a 320 px nada corre la página y el foco sobre el cielo hondo es blanco", 
   await expect(page.locator('[data-shift-id="s2"]')).toBeVisible();
   const ancho = await page.evaluate(() => ({ cabe: document.documentElement.clientWidth, ocupa: document.documentElement.scrollWidth }));
   expect(ancho.ocupa).toBeLessThanOrEqual(ancho.cabe);
-  const publicar = page.getByRole("link", { name: "Publicar turno" });
-  expect(await publicar.evaluate((el) => getComputedStyle(el).getPropertyValue("--focus-ring").trim())).toMatch(/^#fff(fff)?$/i);
+  // Con «Elegir a quién va» el cielo sólo trae «Evento» (publicar queda en el «+»
+  // de la barra de abajo), que sigue sobre el cielo hondo.
+  const evento = page.getByTestId("panel-cielo").getByRole("link", { name: "Evento" });
+  expect(await evento.evaluate((el) => getComputedStyle(el).getPropertyValue("--focus-ring").trim())).toMatch(/^#fff(fff)?$/i);
   // Adentro de la hoja, el de siempre.
   const mas = page.locator('[data-shift-id="s1"]').getByRole("button", { name: "Más acciones" });
   expect(await mas.evaluate((el) => getComputedStyle(el).getPropertyValue("--focus-ring").trim())).not.toMatch(/^#fff(fff)?$/i);

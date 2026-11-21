@@ -3,11 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { useAvisos } from "@/lib/avisos";
+import { estaPublicando } from "@/lib/publicando";
+import { CuentaAvisos } from "@/components/NotificationBell";
 import {
   ClipboardIcon,
   HomeIcon,
   MapPinIcon,
   MessageIcon,
+  PlusIcon,
   SearchIcon,
   ShieldIcon,
   UsersIcon,
@@ -44,6 +48,7 @@ const TABS_BY_ROLE: Record<string, typeof WORKER_TABS> = {
 
 export default function BottomNav() {
   const { user, loading, twoFactorSetupPending } = useAuth();
+  const { unreadCount } = useAvisos();
   const pathname = usePathname();
 
   if (loading || !user) return null;
@@ -61,61 +66,64 @@ export default function BottomNav() {
   if (pathname === "/encuesta") return null;
 
   const tabs = TABS_BY_ROLE[user.role] ?? EMPLOYER_TABS;
+  const conMas = user.role === "employer" && !estaPublicando(pathname);
+  // La campanita está sólo en el Inicio y en el Panel (y el admin la conserva
+  // en su encabezado): en las demás pantallas la cuenta de avisos sin leer va
+  // sobre esa pestaña, que es por donde se llega a ellos.
+  const inicio = user.role === "admin" ? null : tabs[0].href;
 
   return (
-    // `aria-label`: en la misma página vive también el `<nav>` del header, y
-    // sin nombre un lector de pantalla anuncia "navegación, navegación" sin
-    // forma de distinguirlas (auditoría de navegación, fase H).
-    <nav
-      aria-label="Secciones"
-      // Con la dirección «con relieve» (2026-11-19, ADR-0027): pegada al
-      // borde, lisa (sin vidrio: `bg-card`, sin desenfoque) y con un filete
-      // arriba. Lo activo es una raya azul hondo sobre la pestaña, el mismo
-      // gesto que las pestañas de las pantallas; la píldora celeste se fue.
-      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-card pb-[env(safe-area-inset-bottom)] md:hidden print:hidden"
-    >
-      {tabs.map(({ href, label, Icon }) => {
-        const active = pathname === href || pathname.startsWith(`${href}/`);
-        return (
-          <Link
-            key={href}
-            href={href}
-            data-tour={`nav-${href.slice(1)}`}
-            // `replace` (no push): cambiar de pestaña NO apila historial, igual
-            // que una app nativa. Antes cada tap sumaba una entrada y el botón
-            // "atrás" retrocedía pestaña por pestaña (Perfil→Chats→Matches→...)
-            // en vez de salir de la sección — el síntoma de "atrás va una
-            // página atrás y nunca sale". La navegación a detalle (turno,
-            // candidatos, chat) sigue con push, así que ahí "atrás" funciona
-            // como se espera.
-            replace
-            // La pestaña activa se distinguía SÓLO por color: quien usa lector
-            // de pantalla no tenía forma de saber en qué sección está (fase H,
-            // mismo criterio que F4/jsx-a11y).
-            aria-current={active ? "page" : undefined}
-            // La raya va como borde de arriba de la pestaña, montada sobre el
-            // filete de la barra (`-mt-px`). Las de reposo en `ink-soft` y no
-            // en `ink/40`, que sobre el blanco daba 2,6 de contraste: el
-            // nombre de una sección es texto y pide 4,5.
-            // El foco de teclado lo dibuja la pestaña por dentro (`foco-propio`,
-            // como las tarjetas del mapa): por fuera lo cortaba el borde de la
-            // pantalla y arriba se fundía con la raya, que es del mismo azul;
-            // y con el contorno global corrido hacia adentro cruzaba las
-            // letras de «Matches» a 360 px (revisión del 2026-11-19). Este
-            // anillo va a 1 px de los costados y 2 px por debajo de la raya.
-            className={`foco-propio relative -mt-px flex min-w-0 flex-1 flex-col items-center gap-1 border-t-[3px] pb-2 pt-2 text-xs font-semibold transition-colors after:pointer-events-none after:absolute after:inset-x-px after:bottom-px after:top-0.5 after:rounded-md focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-(--focus-ring) ${
-              active ? "border-primary-text text-ink" : "border-transparent text-ink-soft"
-            }`}
-          >
-            {/* Antes la activa llevaba una píldora celeste detrás del ícono
-                (2026-10-19). La prueba de la app «con relieve» la cambió por
-                la raya: sin píldoras en la interfaz. `aria-current` sigue
-                siendo lo que anuncia el lector de pantalla. */}
-            <Icon size={22} />
-            {label}
-          </Link>
-        );
-      })}
-    </nav>
+    // La barra flota (Julieta, 2026-11-20; ADR-0028): una píldora blanca con
+    // sombra difusa, separada de los bordes. El contenedor no recibe toques:
+    // por los costados y por debajo de la píldora se toca lo que hay detrás.
+    <div className="barra-app md:hidden print:hidden">
+      {/* `aria-label`: en la compu vive también el `<nav>` de la barra de
+          arriba, y sin nombre un lector de pantalla anuncia «navegación,
+          navegación» sin forma de distinguirlas (auditoría de navegación,
+          fase H). */}
+      <nav aria-label="Secciones" className="barra-app-pildora">
+        {tabs.map(({ href, label, Icon }) => {
+          const active = pathname === href || pathname.startsWith(`${href}/`);
+          // Coincidencia exacta: en una pantalla de adentro (publicar,
+          // candidatos) la pestaña está activa pero no hay campanita.
+          const avisos = href === inicio && pathname !== href ? unreadCount : 0;
+          return (
+            <Link
+              key={href}
+              href={href}
+              data-tour={`nav-${href.slice(1)}`}
+              // `replace` (no push): cambiar de pestaña NO apila historial, igual
+              // que una app nativa. Antes cada tap sumaba una entrada y el botón
+              // "atrás" retrocedía pestaña por pestaña (Perfil→Chats→Matches→...)
+              // en vez de salir de la sección — el síntoma de "atrás va una
+              // página atrás y nunca sale". La navegación a detalle (turno,
+              // candidatos, chat) sigue con push, así que ahí "atrás" funciona
+              // como se espera.
+              replace
+              // La pestaña activa no se distingue SÓLO por color: quien usa
+              // lector de pantalla tiene que saber en qué sección está (fase H,
+              // mismo criterio que F4/jsx-a11y).
+              aria-current={active ? "page" : undefined}
+              aria-label={avisos > 0 ? `${label}, ${avisos} ${avisos === 1 ? "aviso" : "avisos"} sin leer` : undefined}
+              className="barra-app-pestana"
+            >
+              {/* La activa: un óvalo celeste detrás del ícono. */}
+              <span className="barra-app-icono">
+                <Icon size={22} />
+                <CuentaAvisos cuantos={avisos} className="absolute -top-1 right-0" />
+              </span>
+              {label}
+            </Link>
+          );
+        })}
+      </nav>
+      {/* «Publicar turno» del comercio: el «+» redondo azul hondo al lado de
+          la barra. No va en ámbar: el ámbar es de la acción de cada pantalla. */}
+      {conMas && (
+        <Link href="/shifts/new" aria-label="Publicar turno" data-tour="shifts-publish" className="barra-app-mas">
+          <PlusIcon size={26} strokeWidth={2.2} />
+        </Link>
+      )}
+    </div>
   );
 }

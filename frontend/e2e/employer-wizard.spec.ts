@@ -62,7 +62,9 @@ async function completarWizard(page: Pagina, opciones: { desdePanel?: boolean } 
   if (opciones.desdePanel) {
     // Navegación del cliente (como la persona): después «Atrás» desmonta la pantalla.
     await page.goto("/shifts");
-    await page.locator('[data-tour="shifts-publish"]').click();
+    // El ancla del recorrido está en tres lugares (el cielo, la barra de abajo y
+    // la de arriba): acá, el botón del cielo del Panel.
+    await page.getByTestId("panel-cielo").locator('[data-tour="shifts-publish"]').click();
     await expect(page).toHaveURL("/shifts/new");
   } else {
     await page.goto("/shifts/new");

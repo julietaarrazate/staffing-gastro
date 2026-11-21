@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import NotificationBell from "./NotificationBell";
+import { AvisosProvider } from "@/lib/avisos";
 import type { Notification } from "@/lib/types";
 
 const apiGet = vi.fn();
@@ -11,7 +12,7 @@ vi.mock("@/lib/api", () => ({
     post: (...args: unknown[]) => apiPost(...args),
   },
 }));
-vi.mock("@/lib/auth-context", () => ({ useAuth: () => ({ token: "tok" }) }));
+vi.mock("@/lib/auth-context", () => ({ useAuth: () => ({ token: "tok", user: { id: "u" }, loading: false }) }));
 vi.mock("@/lib/useWebSocket", () => ({ useWebSocket: () => undefined }));
 const routerPush = vi.fn();
 vi.mock("next/navigation", () => ({
@@ -34,7 +35,7 @@ function aviso(id: string, read: boolean): Notification {
 const BOTON = { name: "Marcar todas como leídas" };
 
 async function abrirPanel() {
-  render(<NotificationBell />);
+  render(<AvisosProvider><NotificationBell /></AvisosProvider>);
   const campana = screen.getByRole("button", { name: "Notificaciones" });
   await waitFor(() => expect(campana).toHaveTextContent("2"));
   fireEvent.click(campana);
@@ -90,7 +91,7 @@ describe("NotificationBell: marcar todas como leídas", () => {
 
   it("sin avisos sin leer no aparece", async () => {
     apiGet.mockResolvedValue([aviso("c", true)]);
-    render(<NotificationBell />);
+    render(<AvisosProvider><NotificationBell /></AvisosProvider>);
     fireEvent.click(screen.getByRole("button", { name: "Notificaciones" }));
 
     expect(await screen.findByText("Turno c")).toBeInTheDocument();
@@ -102,7 +103,7 @@ describe("NotificationBell: abrir un aviso", () => {
   it("tocar el aviso de turno cerca navega a la página del turno", async () => {
     apiPost.mockResolvedValue({});
     apiGet.mockResolvedValue([{ ...aviso("a", false), link: "/turno/abc" }]);
-    render(<NotificationBell />);
+    render(<AvisosProvider><NotificationBell /></AvisosProvider>);
     const campana = screen.getByRole("button", { name: "Notificaciones" });
     await waitFor(() => expect(campana).toHaveTextContent("1"));
     fireEvent.click(campana);

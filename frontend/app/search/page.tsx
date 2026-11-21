@@ -369,7 +369,7 @@ function SearchPageContent() {
   );
 
   return (
-    <div className="flex h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] overflow-hidden md:h-[calc(100dvh-var(--chrome-top))]">
+    <div className="bajo-barra-hoja flex h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] overflow-hidden md:h-[calc(100dvh-var(--chrome-top))]">
       {/* Panel lateral (desktop, md+): filtros + la MISMA lista que en mobile
           vive en el BottomSheet. Antes el sheet mobile se estiraba tal cual a
           la web y dejaba media pantalla vacía (mismo patrón que tenía /map,

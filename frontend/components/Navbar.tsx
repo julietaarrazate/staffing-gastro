@@ -2,12 +2,14 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import NotificationBell from "@/components/NotificationBell";
 import Logo from "@/components/Logo";
+import { PlusIcon } from "@/components/icons";
 import { cn } from "@/lib/cn";
+import { estaPublicando } from "@/lib/publicando";
 import { loginHref, nextDeCabecera, registerHref, safeNext } from "@/lib/safe-next";
 
 /**
@@ -38,8 +40,8 @@ function NavLink({
       href={href}
       replace={replace}
       aria-current={active ? "page" : undefined}
-      className={`hidden whitespace-nowrap md:inline ${
-        active ? "font-semibold text-primary-text" : "hover:text-primary-text"
+      className={`hidden h-9 items-center whitespace-nowrap rounded-full px-2.5 md:inline-flex lg:px-3 ${
+        active ? "bg-primary-tint text-primary-text" : "text-ink-soft hover:text-primary-text"
       }`}
     >
       {children}
@@ -78,8 +80,23 @@ function AuthLinksConVuelta() {
 }
 
 export default function Navbar() {
-  const { user, logout, loading, reconnecting, twoFactorSetupPending } = useAuth();
+  const { user, loading, reconnecting } = useAuth();
   const pathname = usePathname();
+  // Quien trabaja y el comercio no llevan encabezado en el celular (Julieta,
+  // 2026-11-20): el cielo de cada pantalla llega hasta arriba, y «oído» y la
+  // campanita van sobre el cielo del Inicio y del Panel. `data-cromo="app"` en
+  // `<html>` le dice a `globals.css` que arriba ya no hay nada que descontar.
+  // No en las pantallas propias, sin barras (la bienvenida trae su zona segura).
+  const pantallaPropia = pathname === "/bienvenida" || pathname === "/historia" || pathname === "/encuesta";
+  const sinEncabezadoEnCelular = !pantallaPropia && (user?.role === "worker" || user?.role === "employer");
+  useEffect(() => {
+    const raiz = document.documentElement;
+    if (sinEncabezadoEnCelular) raiz.dataset.cromo = "app";
+    else delete raiz.dataset.cromo;
+    return () => {
+      delete raiz.dataset.cromo;
+    };
+  }, [sinEncabezadoEnCelular]);
 
   // El onboarding es una pantalla de fondo ink con su propio logo: el header
   // blanco encima la cortaba al medio y duplicaba la marca.
@@ -95,65 +112,27 @@ export default function Navbar() {
   // La encuesta para locales es una pantalla propia, con su cielo y sin barras.
   if (pathname === "/encuesta") return null;
 
+  if (user) return <BarraConSesion />;
+
   return (
     // `safe-top`: con `viewport-fit=cover` (layout raíz) la página usa el alto
     // real de la pantalla, así que en PWA instalada el header arrancaría
     // DEBAJO de la barra de estado / notch. El padding del inset lo baja a la
     // zona visible, como cualquier app nativa.
-    <header className="safe-top sticky top-0 z-40 border-b border-line bg-chrome backdrop-blur-xl backdrop-saturate-150 print:hidden">
+    // Mientras no se sabe si hay sesión (`loading`), en el celular no se
+    // dibuja: a quien tiene sesión le aparecía la franja un instante y la
+    // pantalla saltaba al irse.
+    <header
+      className={cn(
+        "safe-top sticky top-0 z-40 border-b border-line bg-chrome backdrop-blur-xl backdrop-saturate-150 print:hidden",
+        loading && "hidden md:block"
+      )}
+    >
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <Link href="/" aria-label="Inicio">
           <Logo />
         </Link>
         <nav aria-label="Principal" className="flex items-center gap-3 text-sm font-medium lg:gap-4">
-          {!loading && user?.role === "worker" && (
-            <>
-              <NavLink href="/feed">Turnos</NavLink>
-              <NavLink href="/buscar">Buscar</NavLink>
-              <NavLink href="/map">Mapa</NavLink>
-              <NavLink href="/my-shifts">Matches</NavLink>
-              <NavLink href="/chats">Mensajes</NavLink>
-              <NavLink href="/profile">Mi perfil</NavLink>
-            </>
-          )}
-          {!loading && user?.role === "employer" && (
-            <>
-              <NavLink href="/shifts">Panel</NavLink>
-              <NavLink href="/search">Buscar</NavLink>
-              <NavLink href="/favorites">Favoritos</NavLink>
-              <NavLink href="/chats">Mensajes</NavLink>
-              <NavLink href="/subscription">Mi plan</NavLink>
-              <NavLink href="/profile">Mi comercio</NavLink>
-            </>
-          )}
-          {!loading && user?.role === "admin" && !twoFactorSetupPending && (
-            <>
-              {/* `replace` como todos: era el ÚNICO link de sección sin él,
-                  aunque la barra inferior sí navega a `/admin` con replace.
-                  Con `push`, al admin el botón "atrás" le retrocedía pestaña
-                  por pestaña en vez de salir de la sección — el mismo síntoma
-                  que ya se había corregido en `BottomNav`. */}
-              <NavLink href="/admin">Administración</NavLink>
-              <NavLink href="/map">Mapa</NavLink>
-              <NavLink href="/search">Buscar</NavLink>
-            </>
-          )}
-          {!loading && user && !twoFactorSetupPending && <NotificationBell />}
-          {/* Sólo "Salir", sin el nombre: con el nombre completo del comercio
-              ("Salir (Parrilla y Vermutería Don Julián)") el header no entraba
-              en una tablet y los links pasaban a dos líneas hasta los ~1000px.
-              El nombre sigue en el nombre accesible y en el tooltip, y la
-              cuenta ya se ve en "Mi comercio"/"Mi perfil". */}
-          {!loading && user && (
-            <button
-              onClick={logout}
-              aria-label={`Salir (${user.full_name})`}
-              title={`Salir (${user.full_name})`}
-              className="hidden whitespace-nowrap rounded-[var(--radius-relieve)] bg-surface px-3 py-1.5 hover:bg-line md:inline"
-            >
-              Salir
-            </button>
-          )}
           {/* Hay una sesión guardada y el servidor todavía no contestó (U114):
               ni los links de la cuenta ni «Ingresar», que haría creer que la
               sesión se perdió. `AuthProvider` reintenta solo. */}
@@ -208,5 +187,82 @@ function AuthLink({
     >
       {children}
     </Link>
+  );
+}
+
+/**
+ * La barra de arriba con sesión (Julieta, 2026-11-20): la misma píldora blanca
+ * que flota abajo en el celular, acá arriba, con la sección activa en su óvalo
+ * celeste, la campanita y «Salir». Para el comercio, «Publicar turno» va al
+ * lado, en azul hondo, como el «+» del celular.
+ *
+ * Quien trabaja y el comercio la ven sólo en la compu (en el celular navegan
+ * con la barra de abajo); el admin, que no tiene cielo en sus pantallas, la
+ * conserva también en el celular, con el logo y la campanita.
+ */
+function BarraConSesion() {
+  const { user, logout, twoFactorSetupPending } = useAuth();
+  const pathname = usePathname();
+  if (!user) return null;
+  const soloCompu = user.role === "worker" || user.role === "employer";
+
+  return (
+    <header className={cn("barra-compu-cielo safe-top sticky top-0 z-40 print:hidden", soloCompu && "hidden md:block")}>
+      <div className="mx-auto flex max-w-5xl items-center gap-2.5 px-4 pt-3">
+        <div className="barra-compu flex h-[52px] min-w-0 flex-1 items-center justify-between gap-2 pl-5 pr-2">
+          <Link href="/" aria-label="Inicio">
+            <Logo />
+          </Link>
+          <nav aria-label="Principal" className="flex items-center gap-0.5 text-sm font-semibold lg:gap-1">
+            {user.role === "worker" && (
+              <>
+                <NavLink href="/feed">Turnos</NavLink>
+                <NavLink href="/buscar">Buscar</NavLink>
+                <NavLink href="/map">Mapa</NavLink>
+                <NavLink href="/my-shifts">Matches</NavLink>
+                <NavLink href="/chats">Mensajes</NavLink>
+                <NavLink href="/profile">Mi perfil</NavLink>
+              </>
+            )}
+            {user.role === "employer" && (
+              <>
+                <NavLink href="/shifts">Panel</NavLink>
+                <NavLink href="/search">Buscar</NavLink>
+                <NavLink href="/favorites">Favoritos</NavLink>
+                <NavLink href="/chats">Mensajes</NavLink>
+                <NavLink href="/subscription">Mi plan</NavLink>
+                <NavLink href="/profile">Mi comercio</NavLink>
+              </>
+            )}
+            {user.role === "admin" && !twoFactorSetupPending && (
+              <>
+                <NavLink href="/admin">Administración</NavLink>
+                <NavLink href="/map">Mapa</NavLink>
+                <NavLink href="/search">Buscar</NavLink>
+              </>
+            )}
+            {!twoFactorSetupPending && <NotificationBell />}
+            {/* Sólo «Salir», sin el nombre: con el nombre completo del comercio
+                la barra no entraba en una tablet. El nombre sigue en el nombre
+                accesible y en el tooltip. */}
+            <button
+              onClick={logout}
+              aria-label={`Salir (${user.full_name})`}
+              title={`Salir (${user.full_name})`}
+              className="hidden h-9 items-center whitespace-nowrap rounded-full px-2.5 text-ink-soft hover:bg-surface hover:text-ink md:inline-flex lg:px-3"
+            >
+              Salir
+            </button>
+          </nav>
+        </div>
+        {/* Publicando no va: ya se está en eso. */}
+        {user.role === "employer" && !estaPublicando(pathname) && (
+          <Link href="/shifts/new" aria-label="Publicar turno" data-tour="shifts-publish" className="barra-compu-mas">
+            <PlusIcon size={22} strokeWidth={2.2} />
+            <span className="hidden lg:inline">Publicar turno</span>
+          </Link>
+        )}
+      </div>
+    </header>
   );
 }
