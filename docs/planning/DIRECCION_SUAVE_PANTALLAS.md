@@ -45,6 +45,8 @@ qué responde cada pantalla está en
 
 - ✅ **La barra de abajo y el encabezado** (`.barra`, `.barra-comercio` y `.mas` en `oido.css` del lienzo) · #712 · [historial](../historial/2026-11-20-barra-flotante-y-encabezado.md) · la barra flota, sin franja de encabezado en el celular («oído» y la campanita sobre el cielo del Inicio y del Panel; en las demás, la cuenta de avisos va en esa pestaña) y «Publicar turno» del comercio es el «+» azul hondo; en la compu, la misma píldora arriba · quedó afuera juntar Buscar y Mapa en una pestaña (seis → cinco, con el conmutador Lista / Mapa): es una función, va aparte y después
 
+- ✅ **Buscar y Mapa en una pestaña** (el conmutador Lista / Mapa de `T-Buscar` y `T-Mapa`) · #PR · [historial](../historial/2026-11-21-buscar-y-mapa-una-pestana.md) · cinco pestañas (Inicio, Buscar, Turnos, Chats, Perfil), «Matches» pasó a «Turnos» · quedaron afuera el filtro compartido entre lista y mapa y los chips de día (son funciones nuevas)
+
 ## Sin maqueta todavía
 
 - ✅ **Editar perfil, Datos del comercio y Ajustes** (`app/profile/edit`, `app/profile/settings`) · #711 · [historial](../historial/2026-11-20-editar-perfil-y-ajustes-direccion-suave.md) · sin maqueta: con las piezas de Publicar turno y del Perfil; del formulario del comercio se migró la cáscara y los campos, no el mapa de la dirección ni las fotos
