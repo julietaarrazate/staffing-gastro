@@ -4875,9 +4875,14 @@ body:has([data-landing]) main {
    La barra flota y el contenido pasaba por detrás: se leía texto cortado por
    encima, a los costados y por debajo de la píldora, y la pantalla quedaba
    desprolija. Ahora lo que llega a la barra se esfuma en el color del fondo:
-   un degradé corto arriba de la píldora y, de ahí para abajo, el fondo liso.
-   No recibe toques (el contenedor tampoco). El color sigue a la pantalla: la
-   hoja en las pantallas suaves, el lienzo en las demás. */
+   un degradé arriba de la píldora y, de ahí para abajo, el fondo liso.
+   El degradé vive SÓLO en el hueco que la pantalla deja libre para la barra
+   (`--chrome-bottom`, unos 10 px sobre la píldora): lo que descansa al final
+   de una pantalla (el último turno, el campo del chat con su foco, «Enviar»)
+   queda por encima, entero, sin velo. Con 32 px de degradé el borde de abajo
+   de ese último elemento salía pálido. No recibe toques (el contenedor
+   tampoco). El color sigue a la pantalla: la hoja en las pantallas suaves, el
+   lienzo en las demás. */
 :root {
   --barra-velo: var(--background);
 }
@@ -4891,7 +4896,11 @@ body:has([data-landing]) main {
   z-index: -1;
   inset-inline: 0;
   bottom: 0;
-  height: calc(64px + 18px + 32px + env(safe-area-inset-bottom));
-  background: linear-gradient(to bottom, transparent, var(--barra-velo) 32px);
+  height: var(--chrome-bottom);
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--barra-velo) calc(var(--chrome-bottom) - 64px - 18px - env(safe-area-inset-bottom))
+  );
   pointer-events: none;
 }
