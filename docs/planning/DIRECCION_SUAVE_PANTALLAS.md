@@ -76,10 +76,22 @@ qué responde cada pantalla está en
 Los vio en su celular, con capturas. Son funciones o rediseños, no piel: van
 en una tanda propia, una pantalla por PR.
 
-- ⬜ **Mis turnos: tocar un día de la tira** · hoy la tira de la semana no se toca y debajo va la lista entera. Propuesta: tocar una fecha muestra sólo los turnos de ese día (tocarla de nuevo vuelve a la semana), puntito en los días con turnos y flechas para cambiar de semana, así los terminados viejos no son una lista infinita.
+### La tanda siguiente, ya vista en maqueta (2026-11-21)
 
-- ⬜ **Panel del comercio: el renglón «Todos / Buscando (0) / En marcha (0) / Terminados (2) / Cancelados»** · le resulta poco estético: largo, palabras sueltas, y el Panel queda menos prolijo que Mis turnos. **Decidido por Julieta el 2026-11-21:** se sacan las pestañas (la lista ya va agrupada con sus títulos) y va la misma tira de días de Mis turnos; el comercio toca un día y ve lo de ese día, ordenado por estado.
+Julieta vio las maquetas (dos vueltas de prototipos, rama local `claude/maquetas-tanda-5`: **no se mergea**, es código de prototipo y sirve de referencia; las capturas no quedaron en el repo) y decidió lo que sigue. **Orden para construir, una pantalla por PR, en una sesión nueva:**
 
-- ⬜ **El ícono del asistente («¿Qué necesitás?»)** · las estrellitas son genéricas. Propuesta: un dibujo propio de la marca (la «o» de oído, la del ícono de la app).
+1. ⬜ **«Urgentes» con cuenta regresiva en el Inicio de quien trabaja** · arriba de la hoja, una fila horizontal con los turnos que empiezan en las próximas ~6 h: chip rojo «Empieza en 1 h 40» (se actualiza por minuto), el pago en grande, puesto, local y distancia. Sin urgentes, la sección no aparece. Por definir al construir: si «urgente» es la cercanía del horario o la marca del comercio, y si trae turnos fuera del radio del Inicio.
+
+2. ⬜ **Mis turnos con la tira tocable** · tocar un día muestra sólo ese día (tocarlo de nuevo vuelve a la semana); puntito en los días con turnos; flechas para cambiar de semana, con puntito cuando hay turnos antes o después; «Volver a esta semana»; al final, el grupo «Más adelante» con filas de una línea que saltan a su semana. Día vacío: «Nada el martes 17».
+
+3. ⬜ **El ícono del asistente: la oreja** (decidido) · de trazo, en azul hondo, en el campo «¿Qué necesitás?».
+
+4. ⬜ **El Panel del comercio, compacto y con la tira** (decidido) · sin el renglón de pestañas; la lista agrupada por estado. El cielo más bajo, para que el primer turno se vea sin bajar: sin los tres contadores; «Evento» como chip chico junto al estado; la acción pendiente en una fila con el ámbar a la derecha; la tira debajo. **El número del cielo cuenta los turnos del día** (hoy por defecto; al tocar otro día, ese día): «Hoy tenés 3 turnos», con «1 sin cubrir» si hay; sin turnos hoy, «Hoy no tenés turnos» y el próximo. **Sin acción pendiente no va «Publicar turno» en el cielo** (queda el «+» de la barra); en el Panel vacío sí. «Más adelante» como en Mis turnos, con los «Buscando» primero. Falta mirarlo en la compu.
+
+5. ⬜ **El mapa de quien trabaja** · pines con el ícono del rubro y el pago; al acercar, el nombre del local en una pastilla del color de la tecla (se voltea a la izquierda si no entra); chips «Hoy», «Mañana», «Fin de semana» (uno a la vez) y «Paga más».
+
+6. ⬜ **Accesos por rubro en Buscar de quien trabaja** · teclas con ícono y nombre en vez de los chips del cielo.
+
+Quedó afuera, sin maqueta: el buscador de texto de turnos.
 
 - ⬜ **La app instalada a veces muestra la versión anterior** · sin confirmar la causa: lo más probable es que la app abierta en segundo plano siga con el código que cargó (el service worker no guarda páginas). Propuesta: detectar que hay versión nueva y recargar al volver al frente.
