@@ -55,14 +55,18 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
    de a una pantalla. **Qué pantalla está hecha y cuál falta, renglón por renglón, en
    [`planning/DIRECCION_SUAVE_PANTALLAS.md`](./planning/DIRECCION_SUAVE_PANTALLAS.md)**: el PR de cada
    pantalla edita ahí su renglón y **no este párrafo** (era lo que hacía chocar a las sesiones en
-   paralelo). **Hechas al 2026-11-21** todas las que tienen maqueta en el lienzo, la barra de abajo y el
-   encabezado, y de las que no tienen maqueta: Editar perfil y Ajustes, Mi plan, el Perfil del comercio,
-   Favoritos y Soporte, Buscar del comercio (#717) y las fichas públicas (#718). **Sigue:** la
-   bienvenida y el ingreso junto con la landing (prueba hecha, sin decidir), las hojas compartidas,
-   Administración y el cierre de ADR-0028; «¡Oído!» al postularse a pantalla entera es función nueva.
-   **Falta que Julieta mire** el mapa de noche con calles de verdad, en `/map` y en `/search` (el
-   filtro que lo apaga no se pudo ver en las sesiones). Anotado de Buscar del comercio: la búsqueda
-   devuelve como máximo 20 personas y el título dice «20 personas» aunque haya más.
+   paralelo). **Hechas al 2026-11-21** todas las que tienen maqueta en el lienzo, la barra de abajo (con el velo
+   y el «+» del comercio al centro, #719) y, de las que no tienen maqueta: Editar perfil y Ajustes, Mi
+   plan, el Perfil del comercio, Favoritos y Soporte, Buscar del comercio (#717), las fichas públicas
+   con el cielo cuando falta la foto (`ui/SinFoto`, #718) y el acceso: ingresar, crear cuenta y la
+   bienvenida (#721). **Sigue, en una sesión nueva:** la tanda que Julieta ya vio en maqueta y
+   decidió (Urgentes con cuenta regresiva, Mis turnos con la tira tocable, la oreja del asistente, el
+   Panel compacto, el mapa y los rubros: orden y detalle en el tablero); después la landing (prueba
+   hecha, sin decidir), las hojas compartidas, Administración y el cierre de ADR-0028. **Falta que
+   Julieta mire** el mapa de noche con calles de verdad, en `/map` y en `/search`, y que pruebe en su
+   celular activar las notificaciones después de #720 (la causa de su falla no quedó confirmada).
+   Anotado: la búsqueda del comercio devuelve como máximo 20 personas y el título dice «20 personas»
+   aunque haya más; la app instalada a veces muestra la versión anterior (sin confirmar la causa).
    Limpiezas anotadas: la variante `comanda` de `ShiftCard` quedó sin uso, y el marrón por rubro
    sigue en `ShiftCard`. **Para mirar y decidir:** la
    prueba de identidad por pantalla, dieciséis pantallas en claro y en noche

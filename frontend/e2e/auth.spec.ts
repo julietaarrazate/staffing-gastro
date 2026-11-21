@@ -181,19 +181,20 @@ test("un 503 del backend al abrir la app no cierra la sesión", async ({ page })
 });
 
 /**
- * Sin sesión, el encabezado marca la pantalla en la que estás: en /login,
- * "Ingresar"; en /register, "Crear cuenta" (Julieta, 2026-10-13: antes
- * "Crear cuenta" iba siempre en ámbar y en /login parecía el elegido).
+ * Sin sesión, el ingreso y el alta no llevan encabezado (desde el 2026-11-21,
+ * dirección suave: el «oído» del cielo lleva al inicio) y se llega de una a la
+ * otra por el link del cuerpo, con el `next` que ya traían.
  */
-test("sin sesión, el encabezado marca Ingresar o Crear cuenta según la pantalla", async ({ page }) => {
+test("sin sesión, /login y /register no llevan encabezado y se enlazan entre sí", async ({ page }) => {
   await page.route("**/api/v1/**", (route) => route.fulfill({ status: 401, body: "{}" }));
-  const header = page.locator("header");
 
-  await page.goto("/login");
-  await expect(header.getByRole("link", { name: "Ingresar" })).toHaveAttribute("aria-current", "page");
-  await expect(header.getByRole("link", { name: "Crear cuenta" })).not.toHaveAttribute("aria-current", "page");
+  await page.goto("/login?next=/turno/abc");
+  await expect(page.locator("header")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Inicio" })).toHaveAttribute("href", "/");
+  await page.getByRole("link", { name: "Creá una" }).click();
+  await expect(page).toHaveURL(/\/register\?next=/);
 
-  await page.goto("/register");
-  await expect(header.getByRole("link", { name: "Crear cuenta" })).toHaveAttribute("aria-current", "page");
-  await expect(header.getByRole("link", { name: "Ingresar" })).not.toHaveAttribute("aria-current", "page");
+  await expect(page.locator("header")).toHaveCount(0);
+  await page.getByRole("link", { name: "Ingresá" }).click();
+  await expect(page).toHaveURL(/\/login\?next=/);
 });

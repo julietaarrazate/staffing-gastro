@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { api, isRateLimited, RATE_LIMITED_MESSAGE } from "@/lib/api";
 import { Button, TextField } from "@/components/ui";
+import PantallaAcceso from "@/components/acceso/PantallaAcceso";
 
 // Mensaje anti-enumeración: siempre el mismo, exista o no el email (no
 // revela si hay o no una cuenta con ese mail). El backend responde 202
@@ -39,50 +40,39 @@ export default function RecuperarPage() {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-57px)] items-center justify-center px-4 py-10">
-      <div className="w-full max-w-sm">
-        <h1 className="text-center font-display text-h1 font-semibold text-ink">
-          Recuperar contraseña
-        </h1>
-        <p className="mt-1 text-center text-sm text-ink/50">
-          Te mandamos un enlace a tu email para elegir una nueva.
+    <PantallaAcceso titulo="Recuperar contraseña" bajada="Te mandamos un enlace a tu email para elegir una nueva.">
+      {sent ? (
+        <p className="rounded-2xl bg-success-tint px-4 py-3 text-center text-sm font-medium text-success-text">
+          {GENERIC_MESSAGE}
         </p>
-
-        <div className="mt-6 rounded-[var(--radius-card)] bg-card p-6 shadow-[var(--shadow-soft)] ring-1 ring-line">
-          {sent ? (
-            <p className="text-center text-sm font-medium text-success-text">
-              {GENERIC_MESSAGE}
+      ) : (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <TextField
+            type="email"
+            name="email"
+            autoComplete="email"
+            label="Email"
+            required
+            placeholder="Email"
+            value={email}
+            onChange={setEmail}
+          />
+          {limited && (
+            <p role="alert" className="text-sm text-danger-text">
+              {RATE_LIMITED_MESSAGE}
             </p>
-          ) : (
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              <TextField
-                type="email"
-                name="email"
-                autoComplete="email"
-                label="Email"
-                required
-                placeholder="Email"
-                value={email}
-                onChange={setEmail}
-              />
-              {limited && (
-                <p role="alert" className="text-sm text-danger-text">
-                  {RATE_LIMITED_MESSAGE}
-                </p>
-              )}
-              <Button type="submit" fullWidth loading={submitting}>
-                Enviar enlace
-              </Button>
-            </form>
           )}
-        </div>
+          <Button type="submit" fullWidth loading={submitting}>
+            Enviar enlace
+          </Button>
+        </form>
+      )}
 
-        <p className="mt-5 text-center text-sm text-ink/60">
-          <Link href="/login" className="font-semibold text-primary-text">
-            Volver a ingresar
-          </Link>
-        </p>
-      </div>
-    </div>
+      <p className="mt-5 text-center text-sm text-ink-soft">
+        <Link href="/login" className="inline-flex min-h-11 items-center font-semibold text-primary-text">
+          Volver a ingresar
+        </Link>
+      </p>
+    </PantallaAcceso>
   );
 }
