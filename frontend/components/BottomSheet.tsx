@@ -8,6 +8,8 @@ const PEEK_HEIGHT = 140;
  * Bandeja deslizable que se superpone a un mapa a
  * pantalla completa. Se puede arrastrar el handle (o tocarlo) para expandir
  * entre un estado "peek" (asoma el resultado) y uno expandido (lista completa).
+ * Con la dirección suave (ADR-0028) toma el borde redondo y la sombra de
+ * `worker/MapSheet` (`.mapa-hoja`); las alturas y el arrastre son los de antes.
  */
 export default function BottomSheet({
   header,
@@ -51,7 +53,7 @@ export default function BottomSheet({
 
   return (
     <div
-      className={`absolute inset-x-0 bottom-0 z-20 flex h-[78dvh] flex-col rounded-t-[var(--radius-relieve)] border-t-[1.5px] border-[color:var(--relieve)] bg-card ${
+      className={`absolute inset-x-0 bottom-0 z-20 flex h-[78dvh] flex-col overflow-hidden mapa-hoja bg-card ${
         dragging ? "" : "transition-transform duration-200 ease-out"
       }`}
       style={{ transform: `translateY(${transform})` }}

@@ -4728,3 +4728,145 @@ body:has([data-landing]) main {
   white-space: nowrap;
   box-shadow: 0 10px 22px rgba(28, 84, 120, 0.3);
 }
+
+/* ===== Buscar del comercio con la dirección suave (2026-11-21) ===== */
+/* Gemela de `/map`: el mapa es el cielo (reusa `.mapa-cielo`, `.mapa-hoja`,
+   `.mapa-panel` y `.mapa-turno`) y los filtros van de vidrio encima. Acá sólo
+   lo que `/map` no tiene: el cielo es más alto (título, desde dónde se mide y
+   filtros), los pines son de personas y las filas son de personas. */
+@media (max-width: 767px) {
+  /* El cielo llega hasta debajo de los filtros: el lienzo se esfuma más abajo
+     que en `/map` (150 px) para que el vidrio no flote sobre calles. */
+  .estilo-suave .buscar-mapa .maplibregl-map {
+    --mapa-funde: 230px;
+  }
+}
+/* La barra de filtros: el rubro, el radio y la lupa en una fila; a 320 px el
+   rubro es el que se achica. */
+.buscar-filtros .campo-vidrio {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  text-overflow: ellipsis;
+}
+.estilo-suave .buscar-filtros select.campo-vidrio {
+  /* La flecha propia: la nativa se pierde sobre el vidrio. */
+  padding-right: 30px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%236f8797' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+.buscar-filtros input[type="number"].campo-vidrio {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.buscar-filtros input[type="number"]::-webkit-outer-spin-button,
+.buscar-filtros input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+/* En el panel de la compu (fondo de hoja, no cielo) el vidrio blanco no se ve:
+   los campos van con el relleno del campo suave. */
+.estilo-suave .mapa-panel .buscar-filtros .campo-vidrio,
+.estilo-suave .mapa-panel .buscar-filtros .boton-vidrio {
+  background-color: var(--suave-campo);
+  backdrop-filter: none;
+  box-shadow: none;
+}
+.estilo-suave .mapa-panel .buscar-filtros {
+  color: var(--color-ink-soft);
+}
+/* El pin de una persona: una tecla redonda con la foto (o la inicial sobre el
+   celeste), su aro fino y su pico; la nota, en una pastilla blanca. «Disponible
+   ahora» es el punto verde. */
+.estilo-suave .pin-trabajador {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--suave-tecla);
+  color: var(--color-ink);
+  box-shadow:
+    0 10px 24px rgba(15, 58, 91, 0.2),
+    0 0 0 1px rgba(15, 58, 91, 0.16);
+  transition: transform 0.3s ease-out;
+}
+.estilo-suave .pin-trabajador::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  bottom: -4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--suave-tecla);
+  transform: translateX(-50%) rotate(45deg);
+}
+:root[data-theme="dark"] .estilo-suave .pin-trabajador {
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+.estilo-suave .pin-trabajador[aria-pressed="true"] {
+  transform: scale(1.2);
+  background: var(--suave-elegido);
+}
+.estilo-suave .pin-trabajador[aria-pressed="true"]::after {
+  background: #1c5478;
+}
+.pin-trabajador-inicial {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 800;
+}
+.estilo-suave .pin-vivo {
+  border: 2px solid var(--suave-tecla);
+}
+.estilo-suave .pin-nota {
+  position: absolute;
+  right: -10px;
+  bottom: -5px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--suave-tecla);
+  color: var(--color-ink);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 0 1px rgba(15, 58, 91, 0.16), 0 2px 6px rgba(15, 58, 91, 0.18);
+}
+:root[data-theme="dark"] .estilo-suave .pin-nota {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3), 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+/* Una persona en la lista: la foto redonda y los rubros chicos. */
+.persona-foto {
+  width: 56px;
+  height: 56px;
+}
+.chip-suave.persona-rubro {
+  padding: 3px 9px;
+  font-size: 0.75rem;
+}
+/* «Completar ubicación» (el estado sin local) en azul hondo: la pantalla no
+   tiene acción principal y no lleva ámbar. */
+.estilo-suave .buscar-vacio button {
+  background: var(--suave-elegido);
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(28, 84, 120, 0.22);
+}
