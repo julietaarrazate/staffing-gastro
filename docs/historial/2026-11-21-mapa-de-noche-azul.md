@@ -1,4 +1,4 @@
-# El mapa de noche, azul noche como el de Google (#PR)
+# El mapa de noche, azul noche como el de Google (#724)
 
 **Pedido:** Julieta, 2026-11-21, con dos capturas de su celular: el mapa de noche de la app salía marrón oliva; quería uno azul noche y legible, como Google Maps de noche.
 
