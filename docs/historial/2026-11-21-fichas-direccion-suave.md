@@ -1,4 +1,4 @@
-# Las fichas públicas con la dirección suave (#PR)
+# Las fichas públicas con la dirección suave (#718)
 
 **Pedido:** Julieta, 2026-11-21: toda la app pasa a la dirección suave
 (ADR-0028). Quedaban las fichas que ve el otro lado: `/workers/[id]` (la ve el

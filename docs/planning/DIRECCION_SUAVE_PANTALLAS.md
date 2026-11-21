@@ -63,7 +63,7 @@ qué responde cada pantalla está en
 
 - ✅ **Favoritos y Soporte** (`app/favorites`, `app/support`, `app/support/[id]`) · #716 · [historial](../historial/2026-11-21-favoritos-y-soporte-direccion-suave.md) · sin maqueta: con `SubpaginaSuave`; de paso, las tarjetas de Favoritos ya no se salen de la pantalla con un nombre largo
 
-- ✅ **Fichas** (`/workers/[id]`, `/companies/[id]`) · #PR · [historial](../historial/2026-11-21-fichas-direccion-suave.md) · sin maqueta: cada ficha es lo que la persona ve en su propio perfil, visto desde afuera (`FichaSuave`); «Agregar a favoritos» y «Cómo llegar» en azul hondo, sin ámbar
+- ✅ **Fichas** (`/workers/[id]`, `/companies/[id]`) · #718 · [historial](../historial/2026-11-21-fichas-direccion-suave.md) · sin maqueta: cada ficha es lo que la persona ve en su propio perfil, visto desde afuera (`FichaSuave`); «Agregar a favoritos» y «Cómo llegar» en azul hondo, sin ámbar
 
 - ✅ **Perfil del comercio** (`components/company/PerfilComercio.tsx`) · #714 · [historial](../historial/2026-11-21-perfil-comercio-direccion-suave.md) · sin maqueta: con las piezas del Perfil de quien trabaja; el título es el nombre del local y la reputación va en grande; el logo se cambia en «Datos del comercio»
 
