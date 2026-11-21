@@ -1,4 +1,4 @@
-# Un turno en curso que cruzó la medianoche del domingo ya no desaparece (#PR)
+# Un turno en curso que cruzó la medianoche del domingo ya no desaparece (#723)
 
 **Pedido:** lo encontró la revisión independiente de #722, ya publicado: el
 lunes entre las 00:00 y las ~05:00, un turno nocturno que empezó el domingo
