@@ -192,6 +192,7 @@ export default function PublicWorkerProfilePage() {
             varios="turnos hechos"
             detalle={hasRate(profile.events_completed) ? `puntualidad ${formatPunctuality(profile.punctuality_rate)}` : null}
             conHistoria={conHistoria}
+            mostrarCantidad={profile.events_completed > 0}
             vacio={<p className="text-fila font-semibold text-ink-soft">{NEW_LABEL}</p>}
           />
 

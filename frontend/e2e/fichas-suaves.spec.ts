@@ -461,3 +461,71 @@ test("el nombre se lee sobre el cielo y la letra sobre la marca no es blanca fij
     expect(clases).toBe(0);
   }
 });
+
+/** Letra al 200 % (WCAG 1.4.4): como si la persona subiera el tamaño del texto del navegador. */
+async function letraGrande(page: Page) {
+  await page.addStyleTag({ content: "html{font-size:200% !important}" });
+  await page.waitForTimeout(300);
+}
+
+test("letra al 200 %: las filas envuelven sin pisarse, la reputación no se sale y no hay scroll horizontal", async ({ page }) => {
+  await abrir(page, "/workers/wp-1", {
+    trabajador: { ...TRABAJADORA, languages: ["Español", "Inglés", "Portugués"], certifications: ["Manipulación de alimentos", "Coctelería profesional"] },
+  });
+  await letraGrande(page);
+  const filas = await page.locator("dl.perfil-filas > div").all();
+  expect(filas.length).toBeGreaterThanOrEqual(5);
+  for (const fila of filas) {
+    const dt = (await fila.locator("dt").boundingBox())!;
+    const dd = (await fila.locator("dd").boundingBox())!;
+    const cruzan = dt.x < dd.x + dd.width && dd.x < dt.x + dt.width && dt.y < dd.y + dd.height && dd.y < dt.y + dt.height;
+    expect(cruzan, `${await fila.innerText()}`).toBe(false);
+  }
+  // Ninguna palabra partida letra por letra: «Español» entero en su renglón.
+  const alto = await page.locator("dl.perfil-filas dd", { hasText: "Español" }).evaluate((el) => el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight));
+  expect(alto).toBeLessThan(4);
+  const ancho = await page.evaluate(() => document.documentElement.clientWidth);
+  const linea = (await hoja(page).getByText(/12 turnos hechos/).boundingBox())!;
+  expect(linea.x + linea.width).toBeLessThanOrEqual(ancho);
+  const favorito = (await page.getByRole("button", { name: "Agregar a favoritos" }).boundingBox())!;
+  expect(favorito.x).toBeGreaterThanOrEqual(0);
+  expect(favorito.x + favorito.width).toBeLessThanOrEqual(ancho);
+  expect(await sinScrollHorizontal(page)).toBe(true);
+});
+
+test("letra al 200 %: la ficha del comercio tampoco se pisa", async ({ page }) => {
+  await abrir(page, "/companies/c-1", { rol: "worker" });
+  await letraGrande(page);
+  for (const fila of await page.locator("dl.perfil-filas > div").all()) {
+    const dt = (await fila.locator("dt").boundingBox())!;
+    const dd = (await fila.locator("dd").boundingBox())!;
+    expect(dt.y + dt.height <= dd.y + 1 || dd.x >= dt.x + dt.width || dt.x >= dd.x + dd.width, `${await fila.innerText()}`).toBe(true);
+  }
+  expect(await sinScrollHorizontal(page)).toBe(true);
+});
+
+test("un nombre larguísimo no se recorta: ocupa los renglones que necesite", async ({ page }) => {
+  const nombre = "María de los Ángeles Fernández de la Torre y Ortiz de Zárate Villanueva Echeverría Pueyrredón";
+  await abrir(page, "/workers/wp-1", { ancho: 320, trabajador: { ...TRABAJADORA, full_name: nombre } });
+  const h1 = page.getByRole("heading", { level: 1 });
+  await expect(h1).toHaveText(`${nombre}, 29`);
+  const r = await h1.evaluate((el) => ({ clamp: getComputedStyle(el).webkitLineClamp, sobra: el.scrollHeight - el.clientHeight, renglones: el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight) }));
+  expect(r.clamp).toBe("none");
+  expect(r.sobra).toBeLessThanOrEqual(1);
+  expect(r.renglones).toBeGreaterThan(2.5);
+  expect(await sinScrollHorizontal(page)).toBe(true);
+});
+
+test("comercio con pagos registrados y sin turnos publicados ni nota: «Nuevo en Oído» y «pago a tiempo», como antes", async ({ page }) => {
+  await abrir(page, "/companies/c-1", { rol: "worker", comercio: { ...COMERCIO, rating: 0, events_published: 0, payments_recorded: 4, on_time_payment_rate: 0.75 } });
+  await expect(hoja(page)).toContainText("Nuevo en Oído");
+  await expect(hoja(page)).toContainText("pago a tiempo 75%");
+  await expect(page.locator(".perfil-numero")).toHaveCount(0);
+});
+
+test("con nota y sin turnos hechos, la ficha no escribe «0 turnos»", async ({ page }) => {
+  await abrir(page, "/workers/wp-1", { trabajador: { ...TRABAJADORA, rating: 4.2, events_completed: 0 } });
+  await expect(page.locator(".perfil-numero")).toHaveText(/4,2/);
+  await expect(hoja(page)).not.toContainText(/0 turnos/);
+  await expect(hoja(page)).not.toContainText(/puntualidad/);
+});

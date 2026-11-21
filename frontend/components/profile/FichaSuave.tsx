@@ -72,7 +72,7 @@ export default function FichaSuave({
             )}
           </>
         ) : (
-          <h1 className="titulo-pantalla line-clamp-2 break-words">{titulo}</h1>
+          <h1 className="titulo-pantalla break-words">{titulo}</h1>
         )}
         {bajada && <p className="mt-1 break-words text-fila font-semibold">{bajada}</p>}
         {/* El lugar de la foto, que asoma desde la hoja. */}

@@ -170,16 +170,18 @@ export function DatoSuave({
   largo?: boolean;
 }) {
   return (
-    <div className="flex min-h-[54px] items-center justify-between gap-3 px-4 py-2.5">
-      <dt className={`${largo ? "shrink-0" : "min-w-0"} text-fila font-semibold text-ink`}>
+    // `flex-wrap`: con la letra grande (200 %) el valor baja a su renglón en
+    // vez de pisar al nombre; con la de siempre las dos cosas caben y no se nota.
+    <div className="flex min-h-[54px] flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2.5">
+      <dt className={`${largo ? "shrink-0" : "min-w-0 flex-[1_1_6rem]"} text-fila font-semibold text-ink`}>
         {nombre}
         {detalle && <span className="block text-caption font-normal text-ink-soft">{detalle}</span>}
       </dt>
       <dd
         className={
           largo
-            ? "min-w-0 break-words text-right text-fila font-semibold text-ink"
-            : "shrink-0 text-base font-extrabold tabular-nums text-ink"
+            ? "ml-auto min-w-0 flex-[1_1_5rem] break-words text-right text-fila font-semibold text-ink"
+            : "ml-auto shrink-0 text-base font-extrabold tabular-nums text-ink"
         }
       >
         {valor}
@@ -203,6 +205,7 @@ export function ReputacionGrande({
   detalle,
   conHistoria,
   vacio = null,
+  mostrarCantidad = true,
 }: {
   rating: number;
   /** Turnos hechos o publicados. */
@@ -213,19 +216,21 @@ export function ReputacionGrande({
   detalle?: string | null;
   conHistoria: boolean;
   vacio?: React.ReactNode;
+  /** false: con nota pero sin turnos (sólo la ficha) no se escribe «0 turnos». */
+  mostrarCantidad?: boolean;
 }) {
   if (!conHistoria) return <>{vacio}</>;
   if (hasRating(rating)) {
-    const linea = [cantidad > 0 ? plural(cantidad, singular, varios) : null, detalle]
+    const linea = [mostrarCantidad ? plural(cantidad, singular, varios) : null, detalle]
       .filter(Boolean)
       .join(" · ");
     return (
-      <div className="flex items-end gap-3.5">
+      <div className="flex flex-wrap items-end gap-x-3.5 gap-y-1">
         <p className="perfil-numero">
           <span className="sr-only">Calificación: </span>
           {formatRating(rating)}
         </p>
-        <div className="min-w-0 pb-1">
+        <div className="min-w-0 flex-[1_1_9rem] pb-1">
           <Estrellas valor={rating} size={17} />
           {linea && <p className="mt-1 text-sm text-ink-soft">{linea}</p>}
         </div>
@@ -233,9 +238,9 @@ export function ReputacionGrande({
     );
   }
   return (
-    <div className="flex items-end gap-3.5">
+    <div className="flex flex-wrap items-end gap-x-3.5 gap-y-1">
       <p className="perfil-numero">{cantidad}</p>
-      <div className="min-w-0 pb-1">
+      <div className="min-w-0 flex-[1_1_9rem] pb-1">
         <p className="text-fila font-semibold text-ink">{cantidad === 1 ? singular : varios}</p>
         {detalle && <p className="mt-0.5 text-sm text-ink-soft">{detalle}</p>}
       </div>

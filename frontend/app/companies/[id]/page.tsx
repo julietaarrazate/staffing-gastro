@@ -136,7 +136,19 @@ export default function PublicCompanyProfilePage() {
             varios="turnos publicados"
             detalle={conPagos ? `pago a tiempo ${formatPunctuality(profile.on_time_payment_rate)}` : null}
             conHistoria={conHistoria}
-            vacio={<p className="text-fila font-semibold text-ink-soft">{NEW_LABEL}</p>}
+            mostrarCantidad={profile.events_published > 0}
+            vacio={
+              <div>
+                <p className="text-fila font-semibold text-ink-soft">{NEW_LABEL}</p>
+                {/* Pagos registrados sin turnos publicados: «pago a tiempo» se
+                    muestra igual, como antes (`hasPaymentRate`). */}
+                {conPagos && (
+                  <p className="mt-0.5 text-sm text-ink-soft">
+                    pago a tiempo {formatPunctuality(profile.on_time_payment_rate)}
+                  </p>
+                )}
+              </div>
+            }
           />
 
           {profile.owner_full_name && (
