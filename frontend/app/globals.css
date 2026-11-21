@@ -4785,8 +4785,8 @@ body:has([data-landing]) main {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   padding: 3px;
   border-radius: 999px;
   background: var(--suave-tecla);

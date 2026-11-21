@@ -178,3 +178,18 @@ for (const ancho of [320, 390, 430]) {
     expect((await hoja.boundingBox())!.height).toBeGreaterThan(200);
   });
 }
+
+// Con poco alto (celular de costado, teclado abierto) el cielo no se come la
+// hoja: al máximo conserva un piso de 260 px y la lista se puede leer.
+test("con 400 px de alto la hoja al máximo sigue mostrando la lista", async ({ page }) => {
+  const gente = Array.from({ length: 25 }, (_, i) => trabajador(`w${i}`, `Persona número ${i}`, { distance_km: 0.5 + i * 0.2 }));
+  await buscar(page, "light", gente, 390);
+  await page.setViewportSize({ width: 390, height: 400 });
+  await page.locator(".mapa-hoja").locator("..").locator(".cursor-grab").click();
+  const hoja = page.locator(".mapa-hoja");
+  await expect.poll(async () => (await hoja.boundingBox())!.height).toBeGreaterThanOrEqual(240);
+  // Entera dentro de la pantalla, y con al menos una persona completa a la vista.
+  const caja = (await hoja.boundingBox())!;
+  expect(caja.y).toBeGreaterThanOrEqual(0);
+  await expect(hoja.getByText("Persona número 0", { exact: true })).toBeInViewport({ ratio: 1 });
+});

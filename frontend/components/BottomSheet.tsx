@@ -59,8 +59,11 @@ export default function BottomSheet({
       // Tope de altura: 78dvh, o menos si la pantalla reserva arriba un cielo
       // con filtros (`--hoja-tope`, en px, lo mide el padre): arrastrada al
       // máximo la hoja queda debajo de ellos. Sin la variable, 78dvh como antes.
+      // Con poco alto (celular de costado, teclado abierto) el cielo se comería
+      // la hoja: ahí manda un piso de 260 px (o 78dvh si es menos), aunque tape
+      // los filtros, para que la lista se pueda leer.
       style={{
-        height: "min(78dvh, calc(100% - var(--hoja-tope, 0px)))",
+        height: "max(min(78dvh, calc(100% - var(--hoja-tope, 0px))), min(78dvh, 260px))",
         transform: `translateY(${transform})`,
       }}
     >

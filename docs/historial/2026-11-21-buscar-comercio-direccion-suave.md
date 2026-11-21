@@ -22,7 +22,7 @@ donde está), los filtros, la guarda de rol y qué hace cada toque quedó igual.
   cielo) los campos llevan el relleno del campo suave: el vidrio blanco no se
   ve sobre blanco.
 - **Pines de personas:** una tecla blanca redonda con aro fino y su pico, con
-  la foto o, sin foto, la inicial sobre el celeste; la nota en una pastilla
+  la foto o, sin foto, la inicial sobre el blanco de la tecla; la nota en una pastilla
   blanca; «Disponible ahora» es el punto verde. Antes eran círculos azul hondo
   con borde blanco y la nota en un módulo noche. El origen («estás acá») ya iba
   en el azul de la marca por `.puck-*`.
