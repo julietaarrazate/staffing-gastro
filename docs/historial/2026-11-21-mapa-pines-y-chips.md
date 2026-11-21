@@ -1,4 +1,4 @@
-# El mapa de quien trabaja: pines con ícono, nombre del local y chips de filtro (#PR)
+# El mapa de quien trabaja: pines con ícono, nombre del local y chips de filtro (#722)
 
 **Pedido:** Julieta, 2026-11-21, tanda de maquetas 5, punto 5 de
 `planning/DIRECCION_SUAVE_PANTALLAS.md`. Se construye de verdad lo aprobado en

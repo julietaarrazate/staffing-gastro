@@ -1,4 +1,4 @@
-# El ícono del asistente es la oreja (#PR)
+# El ícono del asistente es la oreja (#722)
 
 **Pedido:** Julieta vio tres dibujos en maqueta (la «o» de oído, una oreja, un globo con onda de voz) y eligió la oreja para reemplazar las estrellitas genéricas del asistente.
 

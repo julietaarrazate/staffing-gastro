@@ -1,4 +1,4 @@
-# Accesos por rubro en Buscar de quien trabaja (#PR)
+# Accesos por rubro en Buscar de quien trabaja (#722)
 
 **Pedido:** Julieta aprobó en maqueta que los chips de rubro del cielo de `/buscar` pasen a teclas con el ícono del rubro y su nombre, en la hoja.
 

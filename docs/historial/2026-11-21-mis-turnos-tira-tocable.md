@@ -1,4 +1,4 @@
-# Mis turnos: la tira de días se toca (#PR)
+# Mis turnos: la tira de días se toca (#722)
 
 **Pedido:** Julieta (2026-11-21, tras ver Mis turnos en su celular): la tira de la semana del cielo no se tocaba y debajo iba la lista entera, con los terminados viejos acumulándose sin fin. Aprobó un prototipo en maqueta (tanda 5); acá se construye de verdad.
 

@@ -1,4 +1,4 @@
-# «Urgentes» con cuenta regresiva en el Inicio de quien trabaja (#PR)
+# «Urgentes» con cuenta regresiva en el Inicio de quien trabaja (#722)
 
 **Pedido:** Julieta, 2026-11-21, tras ver la maqueta de la tanda 5 (punto 1 de
 «La tanda siguiente» en `docs/planning/DIRECCION_SUAVE_PANTALLAS.md`): una

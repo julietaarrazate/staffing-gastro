@@ -1,4 +1,4 @@
-# El Panel del comercio, compacto y con la tira de días (#PR)
+# El Panel del comercio, compacto y con la tira de días (#722)
 
 **Pedido:** Julieta (2026-11-21, tras ver el prototipo del Panel en maqueta, tanda 5): el Panel (`/shifts`) tenía tanto arriba (saludo grande, tres contadores, botones, renglón de pestañas) que el primer turno quedaba debajo del pliegue. Aprobó un cielo bajo, sin pestañas, con la tira de días de Mis turnos; acá se construye de verdad. Decisiones suyas: ver «La tanda siguiente», punto 4, de `docs/planning/DIRECCION_SUAVE_PANTALLAS.md`.
 
