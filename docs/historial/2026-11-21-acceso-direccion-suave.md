@@ -1,4 +1,4 @@
-# El acceso y la bienvenida con la dirección suave (#PR)
+# El acceso y la bienvenida con la dirección suave (#721)
 
 **Pedido:** Julieta, 2026-11-21: «cuando vas a ingresar o crear cuenta sigue con
 la estética vieja». Sin maqueta: se armó con las piezas de Publicar turno y de
