@@ -10,7 +10,10 @@ const MANANA = "2026-11-21T21:00:00-03:00";
 const AYER = "2026-11-19T23:00:00-03:00";
 
 function turno(id: string, status: Shift["status"], extra: Partial<Shift> = {}): Shift {
-  return { id, status, start_at: HOY, end_at: HOY, ...extra } as Shift;
+  // El fin acompaña al inicio: un turno movido a otro día no queda «en curso»
+  // de semanas (la vista muestra hoy lo que está en curso ahora).
+  const start_at = extra.start_at ?? HOY;
+  return { id, status, start_at, end_at: start_at, ...extra } as Shift;
 }
 
 describe("familyOf", () => {
@@ -173,5 +176,15 @@ describe("diaParaFamilia (los enlaces con ?tab=)", () => {
   });
   it("sin ninguno de ese grupo, null", () => {
     expect(diaParaFamilia([turno("a", "publicado")], "cancelado", semana, AHORA)).toBeNull();
+  });
+});
+
+describe("turnosEnLaVista con un turno que cruza la medianoche", () => {
+  it("el lunes a la 1, el turno en marcha desde el domingo 21 está en la semana nueva", () => {
+    const ahora = new Date("2026-11-23T01:00:00-03:00");
+    const enCurso = { ...turno("noche", "trabajando"), start_at: "2026-11-22T21:00:00-03:00", end_at: "2026-11-23T03:00:00-03:00" };
+    const semana = semanaArgentina(ahora);
+    expect(turnosEnLaVista([enCurso], semana, null, ahora).map((s) => s.id)).toEqual(["noche"]);
+    expect(turnosEnLaVista([enCurso], semana, "2026-11-23", ahora).map((s) => s.id)).toEqual(["noche"]);
   });
 });

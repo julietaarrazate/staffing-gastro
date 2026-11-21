@@ -37,8 +37,8 @@ const visibles = (page: Page) => page.locator("[data-shift-id]");
 const ids = async (page: Page) => (await visibles(page).evaluateAll((els) => els.map((e) => e.getAttribute("data-shift-id")))).sort();
 const dia = (page: Page, nombre: RegExp | string) => page.getByRole("button", { name: nombre });
 
-async function abrir(page: Page, turnos: unknown[] = TURNOS(), extra?: (page: Page) => Promise<void>, url = "/my-shifts") {
-  await page.clock.setFixedTime(AHORA);
+async function abrir(page: Page, turnos: unknown[] = TURNOS(), extra?: (page: Page) => Promise<void>, url = "/my-shifts", ahora: Date = AHORA) {
+  await page.clock.setFixedTime(ahora);
   await injectSession(page);
   await skipSplash(page);
   await blockExternalHosts(page);
@@ -336,4 +336,21 @@ test("en la compu (1280) la tira y «Más adelante» no se estiran por toda la p
   expect(tira!.width).toBeLessThanOrEqual(448 + 1);
   const mas = await page.getByTestId("mas-adelante").locator("ul").boundingBox();
   expect(mas!.width).toBeLessThanOrEqual(576 + 1);
+});
+
+// Un turno de 21 a 3 que cruza la medianoche del domingo: el lunes a la 1 de la
+// mañana está en curso y se ve en la semana nueva, como de hoy (antes quedaba
+// en la semana anterior y la pantalla decía «Nada en esta semana»).
+test("un turno en curso que empezó el domingo a la noche se ve el lunes de madrugada, como de hoy", async ({ page }) => {
+  const enCurso = asig("noche", "2026-11-22", { status: "trabajando", start_at: a("2026-11-22", "21:00"), end_at: a("2026-11-23", "03:00") });
+  await abrir(page, [enCurso], undefined, "/my-shifts", new Date("2026-11-23T01:00:00-03:00"));
+  await expect(page.getByText("Esta semana · 23 – 29 nov")).toBeVisible();
+  await expect(page.getByTestId("dia-vacio")).toHaveCount(0);
+  expect(await ids(page)).toEqual(["noche"]);
+  // Su puntito va en hoy (lunes 23), no en el domingo de la semana anterior.
+  const conPunto = await page.locator("[data-dia]").evaluateAll((els) => els.filter((e) => e.querySelector("[data-con-turno]")).map((e) => e.getAttribute("data-dia")));
+  expect(conPunto).toEqual(["2026-11-23"]);
+  // Y al tocar hoy sigue ahí.
+  await page.locator('[data-dia="2026-11-23"] button').click();
+  expect(await ids(page)).toEqual(["noche"]);
 });

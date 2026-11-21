@@ -11,7 +11,7 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { useTapGuard } from "@/lib/use-tap-guard";
 import { formatShiftStartPhrase, isTodayInArgentina } from "@/lib/datetime";
-import { claveDiaArgentina, diaEnPalabras, semanaArgentina, semanasHasta, turnosPorDia } from "@/lib/semana";
+import { claveDeVista, diaEnPalabras, semanaArgentina, semanasHasta, turnosPorDia } from "@/lib/semana";
 import MasAdelante, { type FilaFutura } from "@/components/MasAdelante";
 import SemanaTira from "@/components/SemanaTira";
 import { autoFinishWorkerNote } from "@/lib/shift-next-step";
@@ -253,7 +253,7 @@ function MatchesContent() {
     if (deAviso) {
       setTab("asignados");
       // La tarjeta tiene que estar en lo que se ve: va a su semana, sin día elegido.
-      setSemanaOffset(semanasHasta(claveDiaArgentina(deAviso.start_at), now));
+      setSemanaOffset(semanasHasta(claveDeVista(deAviso, now), now));
       setDiaElegido(null);
       setHighlightId(turnoParam);
     }
@@ -661,20 +661,20 @@ function MatchesContent() {
   // del domingo con la pantalla abierta) se da por soltado.
   const dia = diaElegido && clavesSemana.has(diaElegido) ? diaElegido : null;
   const enLaVista = (s: Shift) => {
-    const c = claveDiaArgentina(s.start_at);
+    const c = claveDeVista(s, now);
     return dia ? c === dia : clavesSemana.has(c);
   };
-  const turnosDelDia = turnosPorDia(fuente.map((f) => claveDiaArgentina(f.shift.start_at)));
+  const turnosDelDia = turnosPorDia(fuente.map((f) => claveDeVista(f.shift, now)));
   const primerDia = semana[0].clave;
   const ultimoDia = semana[6].clave;
-  const hayAntes = fuente.some((f) => claveDiaArgentina(f.shift.start_at) < primerDia);
+  const hayAntes = fuente.some((f) => claveDeVista(f.shift, now) < primerDia);
   // «Más adelante»: lo de semanas que vienen, en filas de una línea.
   const futuros: FilaFutura[] = fuente
-    .filter((f) => claveDiaArgentina(f.shift.start_at) > ultimoDia)
+    .filter((f) => claveDeVista(f.shift, now) > ultimoDia)
     .sort((a, b) => new Date(a.shift.start_at).getTime() - new Date(b.shift.start_at).getTime())
     .map((f) => ({
       id: f.shift.id,
-      clave: claveDiaArgentina(f.shift.start_at),
+      clave: claveDeVista(f.shift, now),
       puesto: SKILL_LABELS[f.shift.position],
       estado: f.estado,
       tono: f.tono,

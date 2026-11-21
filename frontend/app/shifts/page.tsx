@@ -27,7 +27,7 @@ import {
   turnosEnLaVista,
   type Family,
 } from "@/lib/panel-comercio";
-import { claveDiaArgentina, diaEnPalabras, semanaArgentina, semanasHasta, turnosPorDia } from "@/lib/semana";
+import { claveDeVista, claveDiaArgentina, diaEnPalabras, semanaArgentina, semanasHasta, turnosPorDia } from "@/lib/semana";
 import { useNow } from "@/lib/use-now";
 import { formatPayCompact } from "@/lib/pay";
 import { SKILL_LABELS, STATUS_LABELS, Shift } from "@/lib/types";
@@ -429,7 +429,7 @@ function MyShiftsPanel() {
   // soltado). Todo en el día de Argentina.
   const semana = semanaArgentina(now, semanaOffset);
   const dia = diaElegido && semana.some((d) => d.clave === diaElegido) ? diaElegido : null;
-  const vistos = turnosEnLaVista(shifts, semana, dia);
+  const vistos = turnosEnLaVista(shifts, semana, dia, now);
   // Agrupa por familia lo que se ve; la lista y los títulos leen de acá.
   const families = (() => {
     const grouped: Record<Family, Shift[]> = {
@@ -444,8 +444,8 @@ function MyShiftsPanel() {
   })();
   const claveInicio = semana[0].clave;
   const claveFin = semana[6].clave;
-  const hayAntes = shifts.some((s) => claveDiaArgentina(s.start_at) < claveInicio);
-  const conteoPorDia = useMemo(() => turnosPorDia(shifts.map((s) => claveDiaArgentina(s.start_at))), [shifts]);
+  const hayAntes = shifts.some((s) => claveDeVista(s, now) < claveInicio);
+  const conteoPorDia = useMemo(() => turnosPorDia(shifts.map((s) => claveDeVista(s, now))), [shifts, now]);
   // «Más adelante»: lo de semanas que vienen, los que buscan personal primero.
   const futuros: FilaFutura[] = ordenMasAdelante(shifts, claveFin).map((s) => ({
     id: s.id,
