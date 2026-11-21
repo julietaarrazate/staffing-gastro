@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { destinoTrasIngreso } from "@/lib/perfil-faltante";
 import { api, ApiError, isAccountSuspended } from "@/lib/api";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
+import PantallaAcceso from "@/components/acceso/PantallaAcceso";
 import { Button, TextField } from "@/components/ui";
 import TurnstileWidget, { TurnstileTemprano } from "@/components/TurnstileWidget";
 import TwoFactorLoginStep from "@/components/TwoFactorLoginStep";
@@ -128,48 +129,37 @@ function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-57px)] items-center justify-center px-4 py-10">
-      <div className="w-full max-w-sm">
-        <h1 className="text-center font-display text-h1 font-semibold tracking-tight text-ink">Ingresar</h1>
-        <p className="mt-1 text-center text-sm text-ink/50">
-          Entrá para ver tus turnos y mensajes.
+    <PantallaAcceso titulo="Ingresar" bajada="Entrá para ver tus turnos y mensajes.">
+      {infoMessage && (
+        <p className="mb-4 rounded-2xl bg-success-tint px-4 py-3 text-center text-sm font-medium text-success-text">
+          {infoMessage}
         </p>
+      )}
 
-        {infoMessage && (
-          <p className="mt-4 rounded-xl bg-success-tint px-3.5 py-2.5 text-center text-sm font-medium text-success-text">
-            {infoMessage}
-          </p>
-        )}
+      {notice && (
+        <p
+          role={suspended ? "alert" : "status"}
+          className={`mb-4 rounded-2xl px-4 py-3 text-center text-sm font-medium ${
+            noticeIsSuspension ? "bg-warning-tint text-warning-text" : "bg-[var(--suave-campo)] text-ink"
+          }`}
+        >
+          {notice}
+        </p>
+      )}
 
-        {notice && (
-          <p
-            role={suspended ? "alert" : "status"}
-            className={`mt-4 rounded-xl px-3.5 py-2.5 text-center text-sm font-medium ${
-              noticeIsSuspension
-                ? "bg-warning-tint text-warning-text ring-1 ring-warning/20"
-                : "bg-surface text-ink ring-1 ring-line"
-            }`}
-          >
-            {notice}
-          </p>
-        )}
-
-        {twoFactorOpen ? (
-          <div className="mt-6 rounded-[var(--radius-card)] bg-card p-6 shadow-[var(--shadow-soft)] ring-1 ring-line">
-            <TwoFactorLoginStep
-              afterLogin={afterLogin}
-              onCancel={() => setTwoFactorOpen(false)}
-              onExpired={(message) => {
-                setTwoFactorOpen(false);
-                setPassword("");
-                setError(message);
-                setTurnstileReset((n) => n + 1);
-              }}
-            />
-          </div>
-        ) : (
+      {twoFactorOpen ? (
+        <TwoFactorLoginStep
+          afterLogin={afterLogin}
+          onCancel={() => setTwoFactorOpen(false)}
+          onExpired={(message) => {
+            setTwoFactorOpen(false);
+            setPassword("");
+            setError(message);
+            setTurnstileReset((n) => n + 1);
+          }}
+        />
+      ) : (
         <>
-        <div className="mt-6 rounded-[var(--radius-card)] bg-card p-6 shadow-[var(--shadow-soft)] ring-1 ring-line">
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <TextField
               type="email"
@@ -203,7 +193,7 @@ function LoginForm() {
             </Button>
             <Link
               href="/recuperar"
-              className="text-center text-sm font-semibold text-primary-text"
+              className="-mt-1 inline-flex min-h-11 items-center justify-center text-sm font-semibold text-primary-text"
             >
               ¿Olvidaste tu contraseña?
             </Link>
@@ -214,98 +204,102 @@ function LoginForm() {
               router.replace(isNewAccount ? bienvenidaHref(next) : await destinoTrasIngreso(sesion, next))
             }
           />
-        </div>
 
-        {guestEnabled && (
-          <div className="mt-5 rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-soft)] ring-1 ring-line">
-            <p className="text-center text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">
-              Explorar sin cuenta
-            </p>
-            {guestRole === null ? (
-              <>
-                <p className="mt-2 text-center text-xs text-ink/50">
-                  Elegí cómo querés explorar la app.
-                </p>
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                  <Button
-                    variant="surface"
-                    size="sm"
-                    fullWidth
-                    onClick={() => {
-                      setError(null);
-                      setGuestRole("employer");
-                    }}
-                  >
-                    Soy comercio
-                  </Button>
-                  <Button
-                    variant="surface"
-                    size="sm"
-                    fullWidth
-                    onClick={() => {
-                      setError(null);
-                      setGuestRole("worker");
-                    }}
-                  >
-                    Soy trabajador
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <form onSubmit={handleGuestSubmit}>
-                <p className="mt-2 text-center text-xs text-ink/50">
-                  Con el PIN de la beta entrás a probar la app como{" "}
-                  {guestRole === "employer" ? "comercio" : "trabajador"}.
-                </p>
-                <div className="mt-3">
-                  <TextField
-                    label="PIN de acceso"
-                    name="pin"
-                    autoComplete="off"
-                    value={pin}
-                    onChange={setPin}
-                    placeholder="Ingresá el PIN"
-                    inputMode="numeric"
-                  />
-                </div>
-                <div className="mt-3 flex gap-3">
-                  <Button
-                    type="button"
-                    variant="surface"
-                    size="sm"
-                    onClick={() => {
-                      setError(null);
-                      setGuestRole(null);
-                    }}
-                    disabled={guestLoading !== null}
-                  >
-                    Volver
-                  </Button>
-                  <Button
-                    type="submit"
-                    size="sm"
-                    fullWidth
-                    loading={guestLoading === guestRole}
-                    disabled={guestLoading !== null}
-                  >
-                    Entrar
-                  </Button>
-                </div>
-              </form>
-            )}
-          </div>
-        )}
+          {guestEnabled && (
+            <div className="caja-suave mt-5 p-4">
+              <p className="text-center text-xs font-bold uppercase tracking-wide text-ink-soft">
+                Explorar sin cuenta
+              </p>
+              {guestRole === null ? (
+                <>
+                  <p className="mt-2 text-center text-xs text-ink-soft">
+                    Elegí cómo querés explorar la app.
+                  </p>
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <Button
+                      variant="surface"
+                      size="sm"
+                      fullWidth
+                      className="boton-quieto"
+                      onClick={() => {
+                        setError(null);
+                        setGuestRole("employer");
+                      }}
+                    >
+                      Soy comercio
+                    </Button>
+                    <Button
+                      variant="surface"
+                      size="sm"
+                      fullWidth
+                      className="boton-quieto"
+                      onClick={() => {
+                        setError(null);
+                        setGuestRole("worker");
+                      }}
+                    >
+                      Soy trabajador
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <form onSubmit={handleGuestSubmit}>
+                  <p className="mt-2 text-center text-xs text-ink-soft">
+                    Con el PIN de la beta entrás a probar la app como{" "}
+                    {guestRole === "employer" ? "comercio" : "trabajador"}.
+                  </p>
+                  <div className="mt-3">
+                    <TextField
+                      label="PIN de acceso"
+                      name="pin"
+                      autoComplete="off"
+                      value={pin}
+                      onChange={setPin}
+                      placeholder="Ingresá el PIN"
+                      inputMode="numeric"
+                    />
+                  </div>
+                  <div className="mt-3 flex gap-3">
+                    <Button
+                      type="button"
+                      variant="surface"
+                      size="sm"
+                      className="boton-quieto"
+                      onClick={() => {
+                        setError(null);
+                        setGuestRole(null);
+                      }}
+                      disabled={guestLoading !== null}
+                    >
+                      Volver
+                    </Button>
+                    {/* Quieto: el único ámbar de la pantalla es «Ingresar». */}
+                    <Button
+                      type="submit"
+                      variant="surface"
+                      size="sm"
+                      fullWidth
+                      className="boton-quieto"
+                      loading={guestLoading === guestRole}
+                      disabled={guestLoading !== null}
+                    >
+                      Entrar
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </div>
+          )}
 
-        <p className="mt-5 text-center text-sm text-ink/70">
-          ¿No tenés cuenta?{" "}
-          <Link href={registerHref({ next })} className="font-semibold text-primary-text">
-            Creá una
-          </Link>
-        </p>
+          <p className="mt-5 text-center text-sm text-ink-soft">
+            ¿No tenés cuenta?{" "}
+            <Link href={registerHref({ next })} className="font-semibold text-primary-text">
+              Creá una
+            </Link>
+          </p>
         </>
-        )}
-      </div>
-    </div>
+      )}
+    </PantallaAcceso>
   );
 }
 

@@ -80,11 +80,8 @@ test("ingresar desde un link de turno vuelve al turno, y los links del ingreso l
   await page.goto(`/login?next=${encodeURIComponent(TURNO)}`);
   const alta = page.getByRole("link", { name: "Creá una" });
   await expect(alta).toHaveAttribute("href", `/register?next=${encodeURIComponent(TURNO)}`);
-  // La cabecera hace lo mismo: «Crear cuenta» lleva la vuelta.
-  await expect(page.getByRole("link", { name: "Crear cuenta" })).toHaveAttribute(
-    "href",
-    `/register?next=${encodeURIComponent(TURNO)}`
-  );
+  // Desde el 2026-11-21 el ingreso no lleva cabecera (el cielo trae el «oído»):
+  // la vuelta viaja por los links del cuerpo.
 
   await page.getByLabel("Email").fill("nueva@staffya.com");
   await page.getByRole("textbox", { name: "Contraseña" }).fill("unaClaveLarga1");
@@ -133,7 +130,7 @@ test("un `next` externo se ignora en el alta, en el ingreso y en la bienvenida",
 test("la cabecera sólo lleva la vuelta en /turno: en otras pantallas va sin `next`", async ({ page }) => {
   await sinSesion(page);
 
-  for (const ruta of ["/recuperar", "/terminos", "/privacidad", "/una-pagina-que-no-existe"]) {
+  for (const ruta of ["/terminos", "/privacidad", "/una-pagina-que-no-existe"]) {
     await page.goto(ruta);
     await expect(page.getByRole("link", { name: "Crear cuenta" }).first()).toHaveAttribute("href", "/register");
     await expect(page.getByRole("link", { name: "Ingresar", exact: true }).first()).toHaveAttribute("href", "/login");

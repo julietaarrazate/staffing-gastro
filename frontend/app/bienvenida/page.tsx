@@ -73,10 +73,9 @@ import {
 import LocationPicker, { type LocationSelection } from "@/components/LocationPicker";
 import type { MapAddressSelection } from "@/components/map/MapAddressPicker";
 import ImageUpload from "@/components/ImageUpload";
-import Logo from "@/components/Logo";
-import { Button, PasosTachados, TextField } from "@/components/ui";
+import PantallaAcceso from "@/components/acceso/PantallaAcceso";
+import { Button, TextField } from "@/components/ui";
 import { CheckIcon, MapPinIcon } from "@/components/icons";
-import { LETRAS_APP } from "@/lib/letras";
 import { LIMITES } from "@/lib/limites";
 import { AVISO_MAIL, tomarAvisoMail } from "@/lib/aviso-mail";
 
@@ -120,15 +119,21 @@ function Bienvenida() {
   return <WorkerOnboarding next={next} />;
 }
 
-/** Envoltorio común: mismo fondo, logo y layout que ambos onboardings comparten.
- * Fondo cálido de la app, no un bloque sólido oscuro (retirado, feedback real
- * de Julieta comparando con Pasito: un fondo oscuro sostenido durante todo un
- * wizard de varios pasos "sobrecarga y apaga" — el patrón que funciona es
- * superficie clara con acentos puntuales en tarjetas, no un lienzo entero
- * pintado). El Espresso de ADR-0011 pasa del fondo al ícono de bienvenida
- * (ver más abajo), que sigue siendo el "momento de marca" del primer paso
- * pero como acento, no como pantalla completa. */
-function Shell({ children }: { children: React.ReactNode }) {
+/** Envoltorio común de los dos onboardings: el cielo arriba con el «oído», los
+ * pasos tachados y la pregunta del paso, y la hoja con el paso (la dirección
+ * suave, ADR-0028, 2026-11-21; antes, el cielo con el «oído» sobre el lienzo y
+ * la pregunta en brocha adentro de cada paso). */
+function Shell({
+  pasos,
+  titulo,
+  bajada,
+  children,
+}: {
+  pasos: { active: number; labels: readonly string[] };
+  titulo: string;
+  bajada: string;
+  children: React.ReactNode;
+}) {
   // Tras el alta con email: aviso (una sola vez) de que llegó el mail de
   // confirmación (U042).
   const [avisoMail, setAvisoMail] = useState(false);
@@ -136,33 +141,45 @@ function Shell({ children }: { children: React.ReactNode }) {
     if (tomarAvisoMail()) setAvisoMail(true);
   }, []);
   return (
-    <div className={`${LETRAS_APP} -mb-20 flex min-h-[100dvh] flex-col bg-background text-ink md:mb-0`}>
-      {/* El saludo de entrada: el cielo arriba con el «oído» plano, el mismo
-          del encabezado de la app (Julieta, 2026-11-19: le gustó el cielo
-          pero con el «oído» fileteado lo vio «muy cargado»). Antes, el ícono
-          chico sobre el papel y una cafetera en el primer paso. */}
-      <div className="app-cielo flex justify-center px-5 pb-6 pt-[calc(env(safe-area-inset-top)+1.75rem)]">
-        <Logo size={44} />
-      </div>
-      <div className="mx-auto flex w-full max-w-sm flex-1 flex-col px-5 pb-8 pt-2">
-        {avisoMail && (
-          <p
-            role="status"
-            data-testid="aviso-mail"
-            className="mt-4 rounded-xl bg-surface px-4 py-3 text-sm text-ink/70 ring-1 ring-line"
-          >
-            {AVISO_MAIL}
-          </p>
-        )}
-        {children}
-      </div>
-    </div>
+    <PantallaAcceso titulo={titulo} bajada={bajada} pasos={pasos}>
+      {avisoMail && (
+        <p
+          role="status"
+          data-testid="aviso-mail"
+          className="mb-4 rounded-2xl bg-[var(--suave-campo)] px-4 py-3 text-sm text-ink-soft"
+        >
+          {AVISO_MAIL}
+        </p>
+      )}
+      {children}
+    </PantallaAcceso>
   );
 }
+
+/** «Volver», «Dejar para después», «Omitir por ahora»: texto quieto debajo de
+ * la acción principal. */
+const SALIDA_QUIETA =
+  "min-h-[48px] w-full rounded-2xl font-semibold text-ink-soft transition active:scale-[0.98] disabled:opacity-60";
 
 const PASOS_TRABAJADOR = ["zona", "oficio", "detalles"] as const;
 const CLAVE_TRABAJADOR = `${PREFIJO_BORRADOR}bienvenida-trabajador`;
 const CLAVE_COMERCIO = `${PREFIJO_BORRADOR}bienvenida-comercio`;
+
+/** La pregunta de cada paso (va en el cielo) y su bajada. */
+const TEXTOS_TRABAJADOR: Record<(typeof PASOS_TRABAJADOR)[number], [string, string]> = {
+  zona: [
+    "¿Dónde querés trabajar?",
+    "Te mostramos primero los turnos más cerca tuyo. Podés cambiarlo cuando quieras desde tu perfil.",
+  ],
+  oficio: [
+    "¿Qué sabés hacer?",
+    "Elegí todo lo que puedas cubrir. Cuantos más elijas, más turnos vas a ver.",
+  ],
+  detalles: [
+    "Contanos más de vos",
+    "Opcional, pero un perfil completo consigue turnos más rápido. Lo podés cargar después si preferís arrancar ya.",
+  ],
+};
 
 interface BorradorTrabajador {
   location: LocationSelection | null;
@@ -308,24 +325,13 @@ function WorkerOnboarding({ next }: { next: string | null }) {
   }
 
   const stepIndex = step === "zona" ? 0 : step === "oficio" ? 1 : 2;
+  const [titulo, bajada] = TEXTOS_TRABAJADOR[step];
 
   return (
-    <Shell>
-      <PasosTachados active={stepIndex} labels={["Zona", "Oficio", "Tus datos"]} className="mt-6" />
-
+    <Shell pasos={{ active: stepIndex, labels: ["Zona", "Oficio", "Tus datos"] }} titulo={titulo} bajada={bajada}>
       {step === "zona" ? (
-        <section className="mt-8 flex flex-1 flex-col">
-          <h1 className="letra-cartel letra-cartel-pantalla break-words">
-            ¿Dónde querés trabajar?
-          </h1>
-          <p className="mt-2 text-body leading-relaxed text-ink-soft">
-            Te mostramos primero los turnos más cerca tuyo. Podés cambiarlo cuando
-            quieras desde tu perfil.
-          </p>
-
-          <div className="mt-6 rounded-[var(--radius-card)] bg-card p-5 ring-1 ring-line">
-            <LocationPicker onSelect={setLocation} />
-          </div>
+        <section className="flex flex-1 flex-col">
+          <LocationPicker onSelect={setLocation} />
 
           {location && (
             // Celeste, no naranja: confirma una ubicación ya verificada, el
@@ -341,26 +347,14 @@ function WorkerOnboarding({ next }: { next: string | null }) {
             <Button fullWidth disabled={!location} onClick={() => irA("oficio")}>
               Continuar
             </Button>
-            <button
-              type="button"
-              disabled={skippingAll}
-              onClick={skipAll}
-              className="min-h-[48px] w-full rounded-[var(--radius-relieve)] font-semibold text-ink-soft transition active:scale-[0.98] disabled:opacity-60"
-            >
+            <button type="button" disabled={skippingAll} onClick={skipAll} className={SALIDA_QUIETA}>
               {skippingAll ? "Guardando…" : "Dejar para después"}
             </button>
           </div>
         </section>
       ) : step === "oficio" ? (
-        <section className="mt-8 flex flex-1 flex-col">
-          <h1 className="letra-cartel letra-cartel-pantalla break-words">
-            ¿Qué sabés hacer?
-          </h1>
-          <p className="mt-2 text-body leading-relaxed text-ink-soft">
-            Elegí todo lo que puedas cubrir. Cuantos más elijas, más turnos vas a ver.
-          </p>
-
-          <div className="mt-6 flex flex-wrap gap-2">
+        <section className="flex flex-1 flex-col">
+          <div className="flex flex-wrap gap-2">
             {WORKER_SKILLS.map((skill) => {
               const active = skills.includes(skill);
               return (
@@ -369,13 +363,9 @@ function WorkerOnboarding({ next }: { next: string | null }) {
                   type="button"
                   aria-pressed={active}
                   onClick={() => toggleSkill(skill)}
-                  // Rectos, y el elegido lleno en azul hondo como lo actual de
-                  // un indicador (antes, píldoras con el elegido en ámbar).
-                  className={`inline-flex items-center gap-1.5 rounded-[var(--radius-relieve)] px-4 py-2.5 text-sm font-semibold ring-1 transition active:scale-95 ${
-                    active
-                      ? "bg-primary-text text-card ring-primary-text"
-                      : "bg-card text-ink ring-line hover:bg-surface"
-                  }`}
+                  // Un chip suave de 44 px; el elegido va en azul hondo (como
+                  // en «Editar perfil»): el único ámbar es «Continuar».
+                  className={`chip-suave chip-filtro${active ? " chip-elegido" : ""}`}
                 >
                   {active && <CheckIcon size={15} />}
                   {SKILL_LABELS[skill]}
@@ -388,26 +378,14 @@ function WorkerOnboarding({ next }: { next: string | null }) {
             <Button fullWidth disabled={skills.length === 0} onClick={() => irA("detalles")}>
               Continuar
             </Button>
-            <button
-              type="button"
-              onClick={() => volverA("zona")}
-              className="min-h-[48px] w-full rounded-[var(--radius-relieve)] font-semibold text-ink-soft transition active:scale-[0.98]"
-            >
+            <button type="button" onClick={() => volverA("zona")} className={SALIDA_QUIETA}>
               Volver
             </button>
           </div>
         </section>
       ) : (
-        <section className="mt-8 flex flex-1 flex-col">
-          <h1 className="letra-cartel letra-cartel-pantalla break-words">
-            Contanos más de vos
-          </h1>
-          <p className="mt-2 text-body leading-relaxed text-ink-soft">
-            Opcional, pero un perfil completo consigue turnos más rápido. Lo podés
-            cargar después si preferís arrancar ya.
-          </p>
-
-          <div className="mt-6 flex justify-center">
+        <section className="flex flex-1 flex-col">
+          <div className="flex justify-center">
             <ImageUpload
               value={photoUrl}
               onChange={setPhotoUrl}
@@ -415,7 +393,7 @@ function WorkerOnboarding({ next }: { next: string | null }) {
             />
           </div>
 
-          <div className="mt-6 rounded-[var(--radius-card)] bg-card p-5 ring-1 ring-line">
+          <div className="mt-6">
             <TextField
               label="Años de experiencia"
               type="number"
@@ -429,17 +407,13 @@ function WorkerOnboarding({ next }: { next: string | null }) {
             />
           </div>
 
-          {error && <p className="mt-4 text-sm text-danger">{error}</p>}
+          {error && <p className="mt-4 text-sm text-danger-text">{error}</p>}
 
           <div className="mt-auto flex flex-col gap-2 pt-8">
             <Button fullWidth loading={saving} onClick={finish}>
               Ver turnos cerca mío
             </Button>
-            <button
-              type="button"
-              onClick={() => volverA("oficio")}
-              className="min-h-[48px] w-full rounded-[var(--radius-relieve)] font-semibold text-ink-soft transition active:scale-[0.98]"
-            >
+            <button type="button" onClick={() => volverA("oficio")} className={SALIDA_QUIETA}>
               Volver
             </button>
           </div>
@@ -450,6 +424,14 @@ function WorkerOnboarding({ next }: { next: string | null }) {
 }
 
 const PASOS_COMERCIO = ["nombre", "ubicacion"] as const;
+
+const TEXTOS_COMERCIO: Record<(typeof PASOS_COMERCIO)[number], [string, string]> = {
+  nombre: ["¿Cómo se llama tu comercio?", "Es lo primero que ven los candidatos cuando les llega tu turno."],
+  ubicacion: [
+    "¿Dónde está?",
+    "Los turnos que publiques van a mostrar esta dirección, y les ordena la cercanía a los trabajadores.",
+  ],
+};
 
 function EmployerOnboarding({ next }: { next: string | null }) {
   const { token, user } = useAuth();
@@ -589,20 +571,13 @@ function EmployerOnboarding({ next }: { next: string | null }) {
     else setSkippingAll(false);
   }
 
+  const [titulo, bajada] = TEXTOS_COMERCIO[step];
+
   return (
-    <Shell>
-      <PasosTachados active={step === "nombre" ? 0 : 1} labels={["Tu comercio", "Ubicación"]} className="mt-6" />
-
+    <Shell pasos={{ active: step === "nombre" ? 0 : 1, labels: ["Tu comercio", "Ubicación"] }} titulo={titulo} bajada={bajada}>
       {step === "nombre" ? (
-        <section className="mt-8 flex flex-1 flex-col">
-          <h1 className="letra-cartel letra-cartel-pantalla break-words">
-            ¿Cómo se llama tu comercio?
-          </h1>
-          <p className="mt-2 text-body leading-relaxed text-ink-soft">
-            Es lo primero que ven los candidatos cuando les llega tu turno.
-          </p>
-
-          <div className="mt-6 flex justify-center">
+        <section className="flex flex-1 flex-col">
+          <div className="flex justify-center">
             <ImageUpload
               value={logoUrl}
               onChange={setLogoUrl}
@@ -611,7 +586,7 @@ function EmployerOnboarding({ next }: { next: string | null }) {
             />
           </div>
 
-          <div className="mt-6 rounded-[var(--radius-card)] bg-card p-5 ring-1 ring-line">
+          <div className="mt-6">
             <TextField
               label="Nombre del comercio"
               value={name}
@@ -621,64 +596,49 @@ function EmployerOnboarding({ next }: { next: string | null }) {
             />
           </div>
 
-          {error && <p className="mt-4 text-sm text-danger">{error}</p>}
+          {error && <p className="mt-4 text-sm text-danger-text">{error}</p>}
 
           <div className="mt-auto flex flex-col gap-2 pt-8">
             <Button fullWidth disabled={!name.trim()} onClick={() => irA("ubicacion")}>
               Continuar
             </Button>
-            <button
-              type="button"
-              disabled={skippingAll}
-              onClick={skipAll}
-              className="min-h-[48px] w-full rounded-[var(--radius-relieve)] font-semibold text-ink-soft transition active:scale-[0.98] disabled:opacity-60"
-            >
+            <button type="button" disabled={skippingAll} onClick={skipAll} className={SALIDA_QUIETA}>
               {skippingAll ? "Guardando…" : "Omitir por ahora"}
             </button>
           </div>
         </section>
       ) : (
-        <section className="mt-8 flex flex-1 flex-col">
-          <h1 className="letra-cartel letra-cartel-pantalla break-words">
-            ¿Dónde está?
-          </h1>
-          <p className="mt-2 text-body leading-relaxed text-ink-soft">
-            Los turnos que publiques van a mostrar esta dirección, y les ordena
-            la cercanía a los trabajadores.
-          </p>
-
-          <div className="mt-6 rounded-[var(--radius-card)] bg-card p-5 ring-1 ring-line">
-            {useManualPicker ? (
-              <div className="flex flex-col gap-2">
-                <LocationPicker
-                  initialCity={city}
-                  onSelect={(loc: LocationSelection) => {
-                    setCity(loc.city);
-                    setLatitude(loc.latitude);
-                    setLongitude(loc.longitude);
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setUseManualPicker(false)}
-                  className="w-fit text-xs font-medium text-ink-soft underline decoration-line underline-offset-2 hover:text-ink"
-                >
-                  Volver a buscar en el mapa
-                </button>
-              </div>
-            ) : (
-              <MapAddressPicker
-                initial={{ address, city, latitude: latitude ?? undefined, longitude: longitude ?? undefined }}
-                onChange={(loc: MapAddressSelection) => {
-                  setAddress(loc.address);
+        <section className="flex flex-1 flex-col">
+          {useManualPicker ? (
+            <div className="flex flex-col gap-2">
+              <LocationPicker
+                initialCity={city}
+                onSelect={(loc: LocationSelection) => {
                   setCity(loc.city);
                   setLatitude(loc.latitude);
                   setLongitude(loc.longitude);
                 }}
-                onFallback={() => setUseManualPicker(true)}
               />
-            )}
-          </div>
+              <button
+                type="button"
+                onClick={() => setUseManualPicker(false)}
+                className="inline-flex min-h-11 w-fit items-center text-sm font-semibold text-primary-text"
+              >
+                Volver a buscar en el mapa
+              </button>
+            </div>
+          ) : (
+            <MapAddressPicker
+              initial={{ address, city, latitude: latitude ?? undefined, longitude: longitude ?? undefined }}
+              onChange={(loc: MapAddressSelection) => {
+                setAddress(loc.address);
+                setCity(loc.city);
+                setLatitude(loc.latitude);
+                setLongitude(loc.longitude);
+              }}
+              onFallback={() => setUseManualPicker(true)}
+            />
+          )}
 
           {city && (
             // Mismo criterio que el paso de zona del trabajador: celeste de
@@ -689,7 +649,7 @@ function EmployerOnboarding({ next }: { next: string | null }) {
             </p>
           )}
 
-          {error && <p className="mt-4 text-sm text-danger">{error}</p>}
+          {error && <p className="mt-4 text-sm text-danger-text">{error}</p>}
 
           <div className="mt-auto flex flex-col gap-2 pt-8">
             <Button
@@ -700,19 +660,10 @@ function EmployerOnboarding({ next }: { next: string | null }) {
             >
               Terminar
             </Button>
-            <button
-              type="button"
-              disabled={skipping}
-              onClick={skipLocation}
-              className="min-h-[48px] w-full rounded-[var(--radius-relieve)] font-semibold text-ink-soft transition active:scale-[0.98] disabled:opacity-60"
-            >
+            <button type="button" disabled={skipping} onClick={skipLocation} className={SALIDA_QUIETA}>
               {skipping ? "Guardando…" : "Cargar la ubicación después"}
             </button>
-            <button
-              type="button"
-              onClick={() => volverA("nombre")}
-              className="min-h-[48px] w-full rounded-[var(--radius-relieve)] font-semibold text-ink-soft transition active:scale-[0.98]"
-            >
+            <button type="button" onClick={() => volverA("nombre")} className={SALIDA_QUIETA}>
               Volver
             </button>
           </div>

@@ -1,0 +1,1439 @@
+diff --git a/frontend/app/buscar/page.tsx b/frontend/app/buscar/page.tsx
+index fb9d595..a72cefc 100644
+--- a/frontend/app/buscar/page.tsx
++++ b/frontend/app/buscar/page.tsx
+@@ -25,6 +25,7 @@ import {
+ } from "@/lib/current-location";
+ import { sortByBestPay } from "@/lib/pay";
+ import { FlameIcon, StarIcon } from "@/components/icons";
++import { SKILL_ACCENT } from "@/lib/skill-style";
+ import OportunidadFila from "@/components/worker/OportunidadFila";
+ import { EmptyState, ErrorBanner, NubesCielo, Skeleton, useToast } from "@/components/ui";
+ import { EmptyFeedIllustration } from "@/components/illustrations";
+@@ -54,6 +55,20 @@ function chipClass(active: boolean, vidrio = false): string {
+   return `${vidrio ? "chip-vidrio" : "chip-suave"} chip-filtro${active ? " chip-elegido" : ""}`;
+ }
+ 
++/** El nombre del rubro como cabe bajo un ícono. */
++const NOMBRE_CORTO: Record<WorkerSkill, string> = {
++  mozo: "Mozo/a",
++  bartender: "Barra",
++  barista: "Barista",
++  runner: "Runner",
++  cocinero: "Cocina",
++  cajero: "Caja",
++  recepcionista: "Recepción",
++  personal_eventos: "Eventos",
++  ayudante_cocina: "Ayudante",
++  personal_salon: "Salón",
++};
++
+ /** Cuántos turnos hay y en qué orden están, en una frase. */
+ function resumen(cantidad: number, opts: { urgentes: boolean; porPago: boolean; conOrigen: boolean }): string {
+   const cuantos = `${cantidad} ${cantidad === 1 ? "turno" : "turnos"}${opts.urgentes ? (cantidad === 1 ? " urgente" : " urgentes") : ""}`;
+@@ -198,30 +213,40 @@ export default function BuscarPage() {
+           <ListaMapa actual="lista" className="shrink-0" />
+         </div>
+         <p className="mt-1 text-sm">Explorá oportunidades de cualquier rubro, no sólo el tuyo.</p>
++      </div>
++
++      <div className="hoja -mt-7 flex-1 px-4 pb-8 pt-5 md:px-6">
++        {/* Accesos por rubro (maqueta tanda 5): una tecla suave con el ícono y el
++            nombre de cada rubro; tocar una filtra, tocarla de nuevo la suelta. */}
+         <div
+           role="group"
+           aria-label="Rubro"
+           data-testid="buscar-rubros"
+-          className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto scroll-px-4 px-4 py-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0"
++          className="no-scrollbar -mx-4 flex gap-2.5 overflow-x-auto scroll-px-4 px-4 pb-3 pt-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0"
+         >
+-          {([{ value: "", label: "Todos" }, ...WORKER_SKILLS.map((s) => ({ value: s, label: SKILL_LABELS[s] }))] as Array<{
+-            value: WorkerSkill | "";
+-            label: string;
+-          }>).map((o) => (
+-            <button
+-              key={o.value || "todos"}
+-              type="button"
+-              aria-pressed={skill === o.value}
+-              onClick={() => setSkill(o.value)}
+-              className={chipClass(skill === o.value, true)}
+-            >
+-              {o.label}
+-            </button>
+-          ))}
++          {WORKER_SKILLS.map((sk) => {
++            const { Icon } = SKILL_ACCENT[sk];
++            const elegido = skill === sk;
++            return (
++              <button
++                key={sk}
++                type="button"
++                aria-pressed={elegido}
++                aria-label={SKILL_LABELS[sk]}
++                onClick={() => setSkill(elegido ? "" : sk)}
++                className="tecla-rubro"
++              >
++                <span aria-hidden className="tecla-rubro-icono">
++                  <Icon size={22} />
++                </span>
++                <span aria-hidden className="tecla-rubro-nombre">
++                  {NOMBRE_CORTO[sk]}
++                </span>
++              </button>
++            );
++          })}
+         </div>
+-      </div>
+ 
+-      <div className="hoja -mt-7 flex-1 px-4 pb-8 pt-5 md:px-6">
+         <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 py-1 md:-mx-6 md:px-6">
+           <button
+             type="button"
+diff --git a/frontend/app/feed/page.tsx b/frontend/app/feed/page.tsx
+index e95b0b9..a00c01e 100644
+--- a/frontend/app/feed/page.tsx
++++ b/frontend/app/feed/page.tsx
+@@ -33,6 +33,7 @@ import { CardSkeletons, EmptyState, Skeleton, useToast } from "@/components/ui";
+ import CieloInicio from "@/components/worker/CieloInicio";
+ import OpportunityCard from "@/components/worker/OpportunityCard";
+ import FeedHero from "@/components/worker/FeedHero";
++import UrgentesRow from "@/components/worker/UrgentesRow";
+ import NearbyRow from "@/components/worker/NearbyRow";
+ import DiscoverDeck from "@/components/worker/DiscoverDeck";
+ import dynamic from "next/dynamic";
+@@ -687,7 +688,9 @@ function WorkerFeedPanel() {
+           {!isDesktop && (
+             <div className="md:hidden">
+               {heroShift ? (
+-                <div className="space-y-6">
++                <div className="space-y-0">
++                  <UrgentesRow shifts={visibleShifts} distanceOf={distanceFromOrigin} />
++                  <div className="space-y-6">
+                   <div data-tour="feed-deck" className="space-y-3">
+                     <h2 className="text-h3 font-bold text-ink">Para vos</h2>
+                     <FeedHero shift={heroShift} distanceKm={distanceFromOrigin(heroShift)} />
+@@ -711,6 +714,7 @@ function WorkerFeedPanel() {
+                     </button>
+                   </div>
+                   <NearbyRow shifts={restShifts} distanceOf={distanceFromOrigin} />
++                  </div>
+                 </div>
+               ) : (
+                 emptyState
+diff --git a/frontend/app/globals.css b/frontend/app/globals.css
+index ce6b885..4b122e0 100644
+--- a/frontend/app/globals.css
++++ b/frontend/app/globals.css
+@@ -4184,6 +4184,48 @@ body:has([data-landing]) main {
+   color: #0f3a5b;
+   box-shadow: 0 6px 14px rgba(15, 58, 91, 0.18);
+ }
++/* Hoy sin elegir: un aro fino, sin relleno. */
++.dia-cielo-aro {
++  box-shadow: inset 0 0 0 1.5px currentColor;
++}
++.dia-boton {
++  -webkit-tap-highlight-color: transparent;
++  transition: transform 0.12s ease;
++}
++.dia-boton:active {
++  transform: scale(0.93);
++}
++.dia-boton:focus-visible {
++  outline: 2px solid currentColor;
++  outline-offset: 2px;
++  border-radius: 14px;
++}
++/* Flecha chica de vidrio para pasar de semana. */
++.flecha-vidrio {
++  display: inline-flex;
++  align-items: center;
++  justify-content: center;
++  width: 32px;
++  height: 32px;
++  border-radius: 999px;
++  background: rgba(255, 255, 255, 0.62);
++  color: var(--app-cielo-tinta);
++  backdrop-filter: blur(6px);
++  box-shadow:
++    inset 0 0 0 1px rgba(255, 255, 255, 0.4),
++    inset 0 1px 0 rgba(255, 255, 255, 0.7);
++}
++:root[data-theme="dark"] .flecha-vidrio {
++  background: rgba(255, 255, 255, 0.1);
++  color: #e6eef4;
++  box-shadow:
++    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
++    inset 0 1px 0 rgba(255, 255, 255, 0.18);
++}
++.app-cielo.cielo-hondo .flecha-vidrio {
++  background: rgba(255, 255, 255, 0.16);
++  color: #ffffff;
++}
+ .dia-cielo-punto {
+   width: 6px;
+   height: 6px;
+@@ -4870,3 +4912,137 @@ body:has([data-landing]) main {
+   color: #ffffff;
+   box-shadow: 0 6px 14px rgba(28, 84, 120, 0.22);
+ }
++
++/* «Urgentes» del Inicio (maqueta tanda 5): la cuenta regresiva va en el rojo
++   de «Urgente» que ya existe (nunca en ámbar). */
++.chip-urgencia {
++  display: inline-flex;
++  align-items: center;
++  gap: 4px;
++  padding: 4px 9px;
++  border-radius: 999px;
++  font-size: 12px;
++  font-weight: 700;
++  background: var(--color-danger-tint);
++  color: var(--color-danger-text);
++}
++.estilo-suave .urgente-tarjeta {
++  box-shadow:
++    var(--suave-sombra),
++    inset 0 0 0 1.5px color-mix(in srgb, var(--color-danger) 28%, transparent);
++}
++
++/* Pin del mapa con el ícono del rubro, y el nombre del local al lado cuando el
++   mapa está cerca (maqueta tanda 5). */
++.pin-turno .pin-rubro {
++  color: var(--color-primary-text);
++}
++.pin-turno[aria-pressed="true"] .pin-rubro {
++  color: #ffffff;
++}
++/* El nombre del local: una pastilla del color de la tecla del pin (blanca de
++   día, azul noche de noche), pegada a su derecha y con la misma sombra, con
++   la letra en tinta. Una línea, cortada con «…» a 140 px. Va sobre cualquier
++   calle sin depender de un halo. */
++.pin-nombre {
++  position: absolute;
++  left: calc(100% + 4px);
++  bottom: 6px;
++  box-sizing: border-box;
++  max-width: 140px;
++  height: 24px;
++  padding: 0 9px;
++  display: block;
++  overflow: hidden;
++  text-overflow: ellipsis;
++  white-space: nowrap;
++  pointer-events: none;
++  border-radius: 999px;
++  background: var(--suave-tecla, #ffffff);
++  color: var(--color-ink);
++  box-shadow:
++    0 10px 24px rgba(15, 58, 91, 0.2),
++    0 0 0 1px rgba(15, 58, 91, 0.16);
++  font-size: 12px;
++  font-weight: 700;
++  line-height: 24px;
++}
++:root[data-theme="dark"] .pin-nombre {
++  box-shadow:
++    0 10px 24px rgba(0, 0, 0, 0.5),
++    0 0 0 1px rgba(255, 255, 255, 0.3);
++}
++/* Chip del filtro del mapa, elegido: la tecla blanca. */
++.chip-vidrio.chip-mapa {
++  min-height: 36px;
++  padding: 6px 10px;
++  white-space: nowrap;
++  cursor: pointer;
++}
++.chip-vidrio.chip-mapa[aria-pressed="true"] {
++  background: #ffffff;
++  color: #0f3a5b;
++  font-weight: 700;
++  box-shadow: 0 6px 14px rgba(15, 58, 91, 0.18);
++}
++
++/* Accesos por rubro de Buscar (maqueta tanda 5): una tecla suave con el ícono
++   y el nombre; la elegida, en azul hondo (como el pin elegido del mapa). */
++.estilo-suave .tecla-rubro {
++  display: flex;
++  flex-direction: column;
++  align-items: center;
++  gap: 6px;
++  flex: 0 0 auto;
++  width: 76px;
++  padding: 10px 4px 9px;
++  border-radius: var(--radio-suave);
++  background: var(--suave-tecla);
++  color: var(--color-ink);
++  box-shadow: var(--suave-sombra);
++  transition: transform 0.12s ease;
++}
++.estilo-suave .tecla-rubro:active {
++  transform: scale(0.95);
++}
++.estilo-suave .tecla-rubro-icono {
++  display: flex;
++  align-items: center;
++  justify-content: center;
++  width: 40px;
++  height: 40px;
++  border-radius: 14px;
++  background: var(--suave-campo);
++  color: var(--color-primary-text);
++}
++.estilo-suave .tecla-rubro-nombre {
++  font-size: 12px;
++  font-weight: 700;
++  line-height: 1.15;
++}
++.estilo-suave .tecla-rubro[aria-pressed="true"] {
++  background: var(--suave-elegido, linear-gradient(180deg, #2a73a3, #1c5478));
++  color: #ffffff;
++  box-shadow: 0 8px 18px rgba(28, 84, 120, 0.32);
++}
++.estilo-suave .tecla-rubro[aria-pressed="true"] .tecla-rubro-icono {
++  background: rgba(255, 255, 255, 0.18);
++  color: #ffffff;
++}
++
++/* Puntito de la flecha de la tira de días (maqueta tanda 5, 2.ª vuelta): hay
++   turnos en las semanas de ese lado. No es ámbar (el ámbar es de la acción):
++   la tinta del cielo, con un aro del color de la tecla para despegarlo. */
++.flecha-punto {
++  position: absolute;
++  top: 0;
++  right: 0;
++  width: 9px;
++  height: 9px;
++  border-radius: 999px;
++  background: currentColor;
++  box-shadow: 0 0 0 2px #ffffff;
++}
++:root[data-theme="dark"] .flecha-punto {
++  box-shadow: 0 0 0 2px #17466a;
++}
+diff --git a/frontend/app/map/page.tsx b/frontend/app/map/page.tsx
+index 9d5dba5..f74ccaa 100644
+--- a/frontend/app/map/page.tsx
++++ b/frontend/app/map/page.tsx
+@@ -3,7 +3,8 @@
+ import dynamic from "next/dynamic";
+ import Link from "next/link";
+ import { useRouter } from "next/navigation";
+-import { useCallback, useEffect, useRef, useState } from "react";
++import { useCallback, useEffect, useMemo, useRef, useState } from "react";
++import { claveDiaArgentina } from "@/lib/semana";
+ import { useLiveRefresh } from "@/lib/live-refresh";
+ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+ import { api, ApiError } from "@/lib/api";
+@@ -178,7 +179,26 @@ export default function MapPage() {
+   const [profileChecked, setProfileChecked] = useState(false);
+   const locationUnavailable = gpsFailed && profileChecked && !fallbackOrigin;
+   const usingZone = gpsFailed && fallbackOrigin !== null;
+-  const [shifts, setShifts] = useState<Shift[]>([]);
++  const [shiftsAll, setShifts] = useState<Shift[]>([]);
++  // Maqueta tanda 5: chips bajo el título. Un día a la vez + «Paga más».
++  const [cuando, setCuando] = useState<"hoy" | "manana" | "finde" | null>(null);
++  const [pagaMas, setPagaMas] = useState(false);
++  const shifts = useMemo(() => {
++    const ahoraMs = new Date();
++    const hoy = claveDiaArgentina(ahoraMs);
++    const manana = claveDiaArgentina(new Date(ahoraMs.getTime() + 86_400_000));
++    return shiftsAll.filter((s) => {
++      const dia = claveDiaArgentina(s.start_at);
++      if (cuando === "hoy" && dia !== hoy) return false;
++      if (cuando === "manana" && dia !== manana) return false;
++      if (cuando === "finde") {
++        const d = new Date(`${dia}T12:00:00Z`).getUTCDay();
++        if (d !== 6 && d !== 0) return false;
++      }
++      if (pagaMas && s.pay_band !== "por_encima") return false;
++      return true;
++    });
++  }, [shiftsAll, cuando, pagaMas]);
+   const [activeIndex, setActiveIndex] = useState(0);
+   const [loading, setLoading] = useState(true);
+   const [error, setError] = useState<string | null>(null);
+@@ -517,6 +537,39 @@ export default function MapPage() {
+                 ? `${plural(shifts.length, "turno", "turnos")} cerca de tu zona`
+                 : `${plural(shifts.length, "turno", "turnos")} cerca tuyo`}
+         </h1>
++        {/* Chips de vidrio (maqueta tanda 5): filtran en el cliente lo ya cargado. */}
++        {!loading && shiftsAll.length > 0 && (
++          <div role="group" aria-label="Filtrar turnos" className="pointer-events-auto no-scrollbar -mx-5 mt-3 flex gap-1.5 overflow-x-auto px-5 pb-1">
++            {(
++              [
++                ["hoy", "Hoy"],
++                ["manana", "Mañana"],
++                ["finde", "Fin de semana"],
++              ] as const
++            ).map(([clave, rotulo]) => (
++              <button
++                key={clave}
++                type="button"
++                aria-pressed={cuando === clave}
++                onClick={() => setCuando((c) => (c === clave ? null : clave))}
++                className="chip-vidrio chip-mapa"
++              >
++                {rotulo}
++              </button>
++            ))}
++            <button
++              type="button"
++              aria-pressed={pagaMas}
++              onClick={() => setPagaMas((v) => !v)}
++              className="chip-vidrio chip-mapa"
++            >
++              <svg aria-hidden viewBox="0 0 10 10" width="11" height="11" className="shrink-0">
++                <path d="M5 8.5v-7M1.8 4.6 5 1.4l3.2 3.2" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
++              </svg>{" "}
++              Paga más
++            </button>
++          </div>
++        )}
+         {!loading && locationUnavailable && (
+           <p className="mapa-aviso mt-2.5">
+             No pudimos ubicarte — activá la ubicación para ver lo que está
+diff --git a/frontend/app/my-shifts/page.tsx b/frontend/app/my-shifts/page.tsx
+index 1dd7a33..55d3453 100644
+--- a/frontend/app/my-shifts/page.tsx
++++ b/frontend/app/my-shifts/page.tsx
+@@ -11,16 +11,19 @@ import { useRequireAuth } from "@/lib/use-require-auth";
+ import { useIdempotencyKeys } from "@/lib/idempotency";
+ import { useTapGuard } from "@/lib/use-tap-guard";
+ import { formatShiftStartPhrase, isTodayInArgentina } from "@/lib/datetime";
+-import { claveDiaArgentina, semanaArgentina } from "@/lib/semana";
++import { claveDiaArgentina, diaEnPalabras, semanaArgentina, semanasHasta } from "@/lib/semana";
++import MasAdelante, { type FilaFutura } from "@/components/MasAdelante";
++import SemanaTira from "@/components/SemanaTira";
+ import { autoFinishWorkerNote } from "@/lib/shift-next-step";
+-import { Shift, ShiftApplication, WorkerProfile } from "@/lib/types";
++import { SKILL_LABELS, STATUS_LABELS, Shift, ShiftApplication, WorkerProfile } from "@/lib/types";
++import { formatPayCompact } from "@/lib/pay";
+ import { getCurrentPosition } from "@/lib/geolocation";
+ import {
+   getStoredLocation,
+   originFor,
+   type CurrentLocation,
+ } from "@/lib/current-location";
+-import TurnoSuave from "@/components/worker/TurnoSuave";
++import TurnoSuave, { CLASE_TONO, TONO_ESTADO } from "@/components/worker/TurnoSuave";
+ import ShareShiftButton from "@/components/ShareShiftButton";
+ import ReviewBox from "@/components/ReviewBox";
+ import EnRouteToggle from "@/components/worker/EnRouteToggle";
+@@ -114,6 +117,8 @@ function MatchesContent() {
+   const { token } = useRequireAuth({ roles: ["worker"] });
+   const toast = useToast();
+   const [tab, setTab] = useState<Tab>("asignados");
++  const [diaElegido, setDiaElegido] = useState<string | null>(null);
++  const [semanaOffset, setSemanaOffset] = useState(0);
+   const [shifts, setShifts] = useState<Shift[]>([]);
+   const [applications, setApplications] = useState<ShiftApplication[]>([]);
+   const [appShifts, setAppShifts] = useState<Record<string, Shift>>({});
+@@ -628,8 +633,37 @@ function MatchesContent() {
+     );
+   }
+ 
+-  const activeShifts = shifts.filter((s) => !FINISHED_STATUSES.includes(s.status));
+-  const finishedShifts = shifts.filter((s) => FINISHED_STATUSES.includes(s.status));
++  // Maqueta tanda 5: la tira de días se toca. Sin día elegido, la lista es la
++  // semana que se ve; con uno, sólo ese día.
++  const semana = semanaArgentina(now, semanaOffset);
++  const clavesSemana = new Set(semana.map((d) => d.clave));
++  const diasConTurno = new Set(shifts.map((s) => claveDiaArgentina(s.start_at)));
++  const enLaVista = (s: Shift) => {
++    const c = claveDiaArgentina(s.start_at);
++    return diaElegido ? c === diaElegido : clavesSemana.has(c);
++  };
++  const vistos = shifts.filter(enLaVista);
++  // «Más adelante»: lo de semanas que vienen, en filas de una línea.
++  const ultimoDia = semana[6].clave;
++  const futuros: FilaFutura[] = shifts
++    .filter((s) => claveDiaArgentina(s.start_at) > ultimoDia && s.status !== "cancelado")
++    .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime())
++    .map((s) => ({
++      id: s.id,
++      clave: claveDiaArgentina(s.start_at),
++      puesto: SKILL_LABELS[s.position],
++      estado: STATUS_LABELS[s.status],
++      tono: CLASE_TONO[TONO_ESTADO[s.status] ?? "azul"],
++      pago: formatPayCompact(s),
++    }));
++  const hayAntes = shifts.some((s) => claveDiaArgentina(s.start_at) < semana[0].clave);
++  const irADia = (clave: string) => {
++    setSemanaOffset(semanasHasta(clave, now));
++    setDiaElegido(clave);
++    window.scrollTo({ top: 0 });
++  };
++  const activeShifts = vistos.filter((s) => !FINISHED_STATUSES.includes(s.status));
++  const finishedShifts = vistos.filter((s) => FINISHED_STATUSES.includes(s.status));
+   // La tarjeta de hoy lleva su propio cielo y el único ámbar. Es, en orden:
+   // 1. el turno en marcha (si hubiera dos, el que empezó último);
+   // 2. si no, el próximo por empezar: el primero de los asignados o
+@@ -650,9 +684,6 @@ function MatchesContent() {
+     .sort(porInicio);
+   const turnoDeHoy = enMarcha[enMarcha.length - 1] ?? porEmpezar[0] ?? null;
+   const otrosActivos = activeShifts.filter((s) => s.id !== turnoDeHoy?.id);
+-  // La semana del cielo: hoy y los días con un turno por hacer.
+-  const semana = semanaArgentina(now);
+-  const diasConTurno = new Set(activeShifts.map((s) => claveDiaArgentina(s.start_at)));
+ 
+   // Postulaciones pendientes: las que todavía no se volvieron un turno asignado.
+   const pending = applications.filter((a) => a.status === "pendiente");
+@@ -680,27 +711,25 @@ function MatchesContent() {
+         <NubesCielo nubes={[{ forma: "a", ancho: 190, pos: { right: 24, top: -52 } }]} />
+         <h1 className="titulo-pantalla break-words">Mis turnos</h1>
+         {/* eslint-disable-next-line jsx-a11y/no-redundant-roles -- sin viñetas, Safari le saca el rol de lista */}
+-        <ol role="list" aria-label="Esta semana" className="mt-4 grid grid-cols-7 text-center md:max-w-md">
+-          {semana.map((d) => {
+-            const conTurno = diasConTurno.has(d.clave);
+-            return (
+-              <li key={d.clave} data-dia={d.clave} className="flex flex-col items-center gap-1">
+-                <span aria-hidden className={`text-xs ${d.esHoy ? "font-bold" : "font-semibold"}`}>
+-                  {d.corto}
+-                </span>
+-                <span aria-hidden className={`dia-cielo ${d.esHoy ? "dia-cielo-hoy" : ""}`}>
+-                  {d.numero}
+-                </span>
+-                {conTurno && <span aria-hidden data-con-turno className="dia-cielo-punto" />}
+-                <span className="sr-only">
+-                  {d.largo} {d.numero}
+-                  {d.esHoy && ", hoy"}
+-                  {conTurno && ", con turno"}
+-                </span>
+-              </li>
+-            );
+-          })}
+-        </ol>
++        <div className="mt-4">
++          <SemanaTira
++            dias={semana}
++            conTurno={diasConTurno}
++            elegido={diaElegido}
++            onElegir={setDiaElegido}
++            onSemana={(paso) => {
++              setSemanaOffset((o) => o + paso);
++              setDiaElegido(null);
++            }}
++            esActual={semanaOffset === 0}
++            puntoAntes={hayAntes}
++            puntoDespues={futuros.length > 0}
++            onVolver={() => {
++              setSemanaOffset(0);
++              setDiaElegido(null);
++            }}
++          />
++        </div>
+       </div>
+ 
+       {/* La hoja sube 28 px sobre el cielo y lleva todo lo que se toca. */}
+@@ -755,6 +784,11 @@ function MatchesContent() {
+               </>
+             )
+           )}
++          {shifts.length > 0 && vistos.length === 0 && (
++            <p data-testid="dia-vacio" className="py-6 text-center text-body font-medium text-ink-soft">
++              {diaElegido ? `Nada el ${diaEnPalabras(diaElegido)}` : "Nada en esta semana"}
++            </p>
++          )}
+           {/* U066: lo terminado (pagado, cancelado, no cubierto) va aparte,
+               debajo de lo que todavía hay que hacer. */}
+           {finishedShifts.length > 0 && (
+@@ -769,6 +803,7 @@ function MatchesContent() {
+               </div>
+             </>
+           )}
++          {shifts.length > 0 && <MasAdelante filas={futuros} onElegir={irADia} />}
+         </div>
+       )}
+ 
+diff --git a/frontend/app/shifts/page.tsx b/frontend/app/shifts/page.tsx
+index 40960f6..4baf7fe 100644
+--- a/frontend/app/shifts/page.tsx
++++ b/frontend/app/shifts/page.tsx
+@@ -18,9 +18,14 @@ import {
+   withFreshState,
+ } from "@/lib/cancelar-turno";
+ import { FAMILY_ORDER, familyOf, resumenPanel, type Family } from "@/lib/panel-comercio";
+-import { Shift } from "@/lib/types";
++import { SKILL_LABELS, STATUS_LABELS, Shift } from "@/lib/types";
+ import TurnoPanel from "@/components/employer/TurnoPanel";
+ import CieloPanel from "@/components/employer/CieloPanel";
++import SemanaTira from "@/components/SemanaTira";
++import MasAdelante, { type FilaFutura } from "@/components/MasAdelante";
++import { CLASE_TONO, TONO_ESTADO } from "@/components/worker/TurnoSuave";
++import { formatPayCompact } from "@/lib/pay";
++import { claveDiaArgentina, diaEnPalabras, semanaArgentina, semanasHasta } from "@/lib/semana";
+ import ShiftActions from "@/components/ShiftActions";
+ import AIAssistantBar from "@/components/AIAssistantBar";
+ import PerfilFaltanteCard from "@/components/PerfilFaltanteCard";
+@@ -183,7 +188,9 @@ function MyShiftsPanel() {
+   // Precargable por URL (?tab=buscando): el asistente de IA (consultar_turnos)
+   // te trae directo a la pestaña que preguntaste, en vez de dejarte en
+   // "Todos" a que la busques vos.
+-  const [tab, setTab] = useState<Tab>(() => {
++  const [diaElegido, setDiaElegido] = useState<string | null>(null);
++  const [semanaOffset, setSemanaOffset] = useState(0);
++  const [tab] = useState<Tab>(() => {
+     const fromUrl = searchParams.get("tab");
+     return isTab(fromUrl) ? fromUrl : "todos";
+   });
+@@ -447,6 +454,38 @@ function MyShiftsPanel() {
+   // Agrupa una sola vez por familia; cada pestaña (incluida "Todos") lee de
+   // acá, así que el número en el segmento y lo que se ve abajo nunca pueden
+   // desincronizarse (ese era el bug: "buscando 1" sin mostrar cuál).
++  // Maqueta tanda 5: la tira de días del cielo reemplaza al renglón de pestañas.
++  // Sin día elegido se ve la semana; con uno, sólo ese día.
++  const semana = semanaArgentina(new Date(), semanaOffset);
++  const diasConTurno = new Set(shifts.map((s) => claveDiaArgentina(s.start_at)));
++  const shiftsVistos = useMemo(() => {
++    const claves = new Set(semana.map((d) => d.clave));
++    return shifts.filter((s) => {
++      const c = claveDiaArgentina(s.start_at);
++      return diaElegido ? c === diaElegido : claves.has(c);
++    });
++    // eslint-disable-next-line react-hooks/exhaustive-deps
++  }, [shifts, diaElegido, semanaOffset]);
++  // «Más adelante»: lo de semanas que vienen (sin lo cancelado), en filas.
++  const ultimoDia = semana[6].clave;
++  const primerDia = semana[0].clave;
++  const futuros: FilaFutura[] = shifts
++    .filter((s) => claveDiaArgentina(s.start_at) > ultimoDia && familyOf(s.status) !== "cancelado")
++    .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime())
++    .map((s) => ({
++      id: s.id,
++      clave: claveDiaArgentina(s.start_at),
++      puesto: SKILL_LABELS[s.position],
++      estado: familyOf(s.status) === "buscando" ? "Buscando" : STATUS_LABELS[s.status],
++      tono: CLASE_TONO[TONO_ESTADO[s.status] ?? "azul"],
++      pago: formatPayCompact(s),
++    }));
++  const hayAntes = shifts.some((s) => claveDiaArgentina(s.start_at) < primerDia);
++  const irADia = (clave: string) => {
++    setSemanaOffset(semanasHasta(clave));
++    setDiaElegido(clave);
++    window.scrollTo({ top: 0 });
++  };
+   const families = useMemo(() => {
+     const grouped: Record<Family, Shift[]> = {
+       borrador: [],
+@@ -455,9 +494,9 @@ function MyShiftsPanel() {
+       terminado: [],
+       cancelado: [],
+     };
+-    for (const shift of shifts) grouped[familyOf(shift.status)].push(shift);
++    for (const shift of shiftsVistos) grouped[familyOf(shift.status)].push(shift);
+     return grouped;
+-  }, [shifts]);
++  }, [shiftsVistos]);
+ 
+   // Progreso de cobertura por evento (publicación masiva, /shifts/new-event):
+   // cruza TODAS las familias — un evento de 6 roles puede tener 4 ya
+@@ -499,7 +538,32 @@ function MyShiftsPanel() {
+     // 2026-11-18 al 20 fue «con relieve» (saludo en brocha, comandas de papel
+     // colgando del riel). La lógica no cambió.
+     <div className="estilo-suave mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col md:min-h-[calc(100dvh-var(--chrome-top))] md:max-w-5xl md:px-4 md:pt-4">
+-      <CieloPanel nombre={firstName} resumen={resumen} conAcciones={!loading && !sinPerfil} />
++      <CieloPanel
++        nombre={firstName}
++        resumen={resumen}
++        conAcciones={!loading && !sinPerfil}
++        tira={
++          !loading && !error && !sinPerfil && shifts.length > 0 ? (
++            <SemanaTira
++              dias={semana}
++              conTurno={diasConTurno}
++              elegido={diaElegido}
++              onElegir={setDiaElegido}
++              onSemana={(paso) => {
++                setSemanaOffset((o) => o + paso);
++                setDiaElegido(null);
++              }}
++              esActual={semanaOffset === 0}
++              puntoAntes={hayAntes}
++              puntoDespues={futuros.length > 0}
++              onVolver={() => {
++                setSemanaOffset(0);
++                setDiaElegido(null);
++              }}
++            />
++          ) : null
++        }
++      />
+ 
+       {/* La hoja sube 28 px sobre el cielo y lleva todo lo que se toca. */}
+       <div className="hoja -mt-7 flex-1 px-4 pb-10 pt-5 md:px-6">
+@@ -580,25 +644,6 @@ function MyShiftsPanel() {
+ 
+       {!loading && !error && !sinPerfil && shifts.length > 0 && (
+         <>
+-          {/* Pestañas por familia de estado. En 390 px las cinco con su
+-              conteo no entran: `w-max` les deja su ancho real y el contenedor
+-              scrollea en horizontal (mismo patrón que un tab bar nativo);
+-              `min-w-full` lleva el filete hasta el borde aunque entren. */}
+-          <div className="-mx-4 -mb-1 mt-3 scroll-px-4 overflow-x-auto px-4 py-1 no-scrollbar md:-mx-6 md:scroll-px-6 md:px-6" data-tour="shifts-tabs">
+-            <SegmentedControl<Tab>
+-              value={tab}
+-              onChange={setTab}
+-              className="w-max min-w-full"
+-              options={[
+-                { value: "todos", label: "Todos" },
+-                { value: "buscando", label: `Buscando (${families.buscando.length})` },
+-                { value: "en_marcha", label: `En marcha (${families.en_marcha.length})` },
+-                { value: "terminado", label: `Terminados (${families.terminado.length})` },
+-                { value: "cancelado", label: `Cancelados (${families.cancelado.length})` },
+-              ]}
+-            />
+-          </div>
+-
+           {/* Las familias se acomodan en la MISMA grilla que las filas, y
+               cada una ocupa tantas columnas como turnos tiene (hasta el
+               ancho completo). Antes cada familia abría su propia grilla en
+@@ -606,6 +651,11 @@ function MyShiftsPanel() {
+               tarjeta de 360px y media pantalla vacía, grupo tras grupo
+               (auditoría visual 2026-09-24, A3). Ahora dos familias de un
+               turno cada una comparten fila, cada una con su título. */}
++          {shiftsVistos.length === 0 && (
++            <p data-testid="dia-vacio" className="py-8 text-center text-body font-medium text-ink-soft">
++              {diaElegido ? `Nada el ${diaEnPalabras(diaElegido)}` : "Nada en esta semana"}
++            </p>
++          )}
+           <div
+             data-testid="shifts-panel-list"
+             className="mt-6 grid items-start gap-x-4 gap-y-7 md:grid-cols-2 xl:grid-cols-3"
+@@ -653,6 +703,7 @@ function MyShiftsPanel() {
+               );
+             })}
+           </div>
++          <MasAdelante filas={futuros} onElegir={irADia} />
+         </>
+       )}
+       </div>
+diff --git a/frontend/components/AIAssistantBar.tsx b/frontend/components/AIAssistantBar.tsx
+index 32b190f..b04c0c3 100644
+--- a/frontend/components/AIAssistantBar.tsx
++++ b/frontend/components/AIAssistantBar.tsx
+@@ -1,6 +1,8 @@
+ "use client";
+ 
++import { useEffect, useState } from "react";
+ import { useRouter } from "next/navigation";
++import AsistenteIcono, { type VarianteAsistente } from "@/components/AsistenteIcono";
+ import { SparklesIcon } from "@/components/icons";
+ 
+ /**
+@@ -29,6 +31,12 @@ import { SparklesIcon } from "@/components/icons";
+  *  cielo: campo de vidrio, sin borde ni sombra. Misma navegación. */
+ export default function AIAssistantBar({ recto = false, vidrio = false }: { recto?: boolean; vidrio?: boolean }) {
+   const router = useRouter();
++  // Maqueta tanda 5: `?ia=o|oreja|globo` prueba cada dibujo en el campo real.
++  const [ia, setIa] = useState<VarianteAsistente | null>(null);
++  useEffect(() => {
++    const v = new URLSearchParams(window.location.search).get("ia");
++    if (v === "o" || v === "oreja" || v === "globo") setIa(v);
++  }, []);
+ 
+   return (
+     <button
+@@ -50,7 +58,11 @@ export default function AIAssistantBar({ recto = false, vidrio = false }: { rect
+           "un solo acento naranja por pantalla".
+           El logo identifica a la app, no a una función dentro de la app: acá va
+           el ícono convencional de asistente, en tinta, sin fondo propio. */}
+-      <SparklesIcon size={18} className={`shrink-0 ${vidrio ? "text-ink-soft" : "text-ink/45"}`} />
++      {ia ? (
++        <AsistenteIcono variante={ia} size={24} className="shrink-0 text-primary-text" />
++      ) : (
++        <SparklesIcon size={18} className={`shrink-0 ${vidrio ? "text-ink-soft" : "text-ink/45"}`} />
++      )}
+       <span className={`text-sm font-medium ${vidrio ? "text-ink-soft" : "text-ink/60"}`}>¿Qué necesitás?</span>
+     </button>
+   );
+diff --git a/frontend/components/AsistenteIcono.tsx b/frontend/components/AsistenteIcono.tsx
+new file mode 100644
+index 0000000..1340f2f
+--- /dev/null
++++ b/frontend/components/AsistenteIcono.tsx
+@@ -0,0 +1,59 @@
++import type { SVGProps } from "react";
++
++/**
++ * Tres dibujos propios para el ícono del asistente (maqueta tanda 5). Son de
++ * trazo, 24×24, 1,75 de grosor y `currentColor`, como los de `components/icons`.
++ *
++ * - `o`: la «o» de «oído» de la marca: la letra gorda e inclinada, con su
++ *   hueco inclinado como el de `isotipo-o`.
++ * - `oreja`: una oreja de trazo simple.
++ * - `globo`: un globo de diálogo con una onda de voz adentro.
++ */
++export type VarianteAsistente = "o" | "oreja" | "globo";
++
++export default function AsistenteIcono({
++  variante,
++  size = 22,
++  ...rest
++}: { variante: VarianteAsistente; size?: number } & Omit<SVGProps<SVGSVGElement>, "ref">) {
++  return (
++    <svg
++      xmlns="http://www.w3.org/2000/svg"
++      viewBox="0 0 24 24"
++      width={size}
++      height={size}
++      fill="none"
++      stroke="currentColor"
++      strokeWidth={1.75}
++      strokeLinecap="round"
++      strokeLinejoin="round"
++      aria-hidden
++      {...rest}
++    >
++      {variante === "o" && (
++        <>
++          {/* La «o», gorda y un poco caída hacia la derecha como la letra de la marca. */}
++          <ellipse cx="12" cy="14.2" rx="7.4" ry="6.2" transform="rotate(-9 12 14.2)" strokeWidth="2.4" />
++          {/* El acento de «oído», sobre la letra. */}
++          <path d="M14.6 4.6 17 2.8" strokeWidth="2.4" />
++        </>
++      )}
++      {variante === "oreja" && (
++        <>
++          {/* El borde de afuera, hasta el lóbulo. */}
++          <path d="M7 10.2C7 6.9 9.2 4.5 12.2 4.5c3 0 5.1 2.2 5.1 5.1 0 2.3-1.3 3.4-2.5 4.6-1 1-1.5 1.9-1.5 3.1a2.7 2.7 0 0 1-5.3.7" />
++          {/* El pliegue de adentro. */}
++          <path d="M10 10.4c0-1.3.9-2.2 2.1-2.2 1.2 0 2.1.9 2.1 2.1 0 1-.6 1.5-1.2 2" />
++        </>
++      )}
++      {variante === "globo" && (
++        <>
++          {/* El globo, con la colita abajo a la izquierda. */}
++          <path d="M6 4.5h12a2.5 2.5 0 0 1 2.5 2.5v7.5a2.5 2.5 0 0 1-2.5 2.5h-6.3L7.4 20.2V17H6a2.5 2.5 0 0 1-2.5-2.5V7A2.5 2.5 0 0 1 6 4.5Z" />
++          {/* La onda de voz. */}
++          <path d="M8 10.8v1.4M10.5 8.9v5.2M13 7.9v7.2M15.5 9.7v3.6" />
++        </>
++      )}
++    </svg>
++  );
++}
+diff --git a/frontend/components/MasAdelante.tsx b/frontend/components/MasAdelante.tsx
+new file mode 100644
+index 0000000..0dda02b
+--- /dev/null
++++ b/frontend/components/MasAdelante.tsx
+@@ -0,0 +1,66 @@
++"use client";
++
++import { useState } from "react";
++import { fechaCorta } from "@/lib/semana";
++
++/** Una fila de «Más adelante»: un turno de una semana que todavía no se ve. */
++export interface FilaFutura {
++  id: string;
++  /** "YYYY-MM-DD" en Argentina. */
++  clave: string;
++  puesto: string;
++  estado: string;
++  /** Clase de color del estado (`text-success-text`…). */
++  tono: string;
++  pago: string;
++}
++
++const TOPE = 3;
++
++/**
++ * El último grupo de la lista (maqueta tanda 5, 2.ª vuelta): los turnos de
++ * semanas que vienen, en filas de una línea y sin acciones, para que al elegir
++ * una semana no desaparezca lo que viene después. Tocar una fila salta a su
++ * semana con ese día elegido. Muestra tres; el resto, con «Ver los N que
++ * siguen». La usan Mis turnos y el Panel del comercio.
++ */
++export default function MasAdelante({ filas, onElegir }: { filas: FilaFutura[]; onElegir: (clave: string) => void }) {
++  const [todas, setTodas] = useState(false);
++  if (filas.length === 0) return null;
++  const vistas = todas ? filas : filas.slice(0, TOPE);
++  const resto = filas.length - TOPE;
++  return (
++    <section data-testid="mas-adelante" className="mt-8 min-w-0">
++      <h2 className="titulo-seccion mb-3">
++        Más adelante
++        <span className="ml-1.5 text-sm font-semibold text-ink-soft">{filas.length}</span>
++      </h2>
++      <ul role="list" className="flex flex-col gap-2 md:max-w-xl">
++        {vistas.map((f) => (
++          <li key={f.id}>
++            <button
++              type="button"
++              onClick={() => onElegir(f.clave)}
++              className="turno-fila flex min-h-[48px] w-full items-center gap-2.5 px-3.5 py-2 text-left"
++              aria-label={`${fechaCorta(f.clave)}, ${f.puesto}, ${f.estado}, ${f.pago}. Ver esa semana`}
++            >
++              <span className="w-[88px] shrink-0 whitespace-nowrap text-sm font-bold text-ink">{fechaCorta(f.clave)}</span>
++              <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{f.puesto}</span>
++              <span className={`shrink-0 text-xs font-bold ${f.tono}`}>{f.estado}</span>
++              <span className="w-[58px] shrink-0 text-right text-sm font-bold tabular-nums text-ink">{f.pago}</span>
++            </button>
++          </li>
++        ))}
++      </ul>
++      {!todas && resto > 0 && (
++        <button
++          type="button"
++          onClick={() => setTodas(true)}
++          className="mt-1 flex min-h-[44px] items-center px-1 text-sm font-bold text-primary-text"
++        >
++          Ver {resto === 1 ? "el que sigue" : `los ${resto} que siguen`}
++        </button>
++      )}
++    </section>
++  );
++}
+diff --git a/frontend/components/SemanaTira.tsx b/frontend/components/SemanaTira.tsx
+new file mode 100644
+index 0000000..5fe0896
+--- /dev/null
++++ b/frontend/components/SemanaTira.tsx
+@@ -0,0 +1,100 @@
++"use client";
++
++import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
++import type { DiaSemana } from "@/lib/semana";
++import { rotuloSemana } from "@/lib/semana";
++
++/**
++ * La semana del cielo, que se toca (maqueta tanda 5): siete días de lunes a
++ * domingo. Tocar uno lo elige (la tecla blanca) y la lista de abajo muestra
++ * sólo ese día; tocarlo de nuevo vuelve a la semana entera. «Hoy», sin
++ * elegir, lleva un aro fino. Un punto marca los días con turnos. Las flechas
++ * de vidrio cambian de semana. La usan Mis turnos y el Panel del comercio.
++ */
++export default function SemanaTira({
++  dias,
++  conTurno,
++  elegido,
++  onElegir,
++  onSemana,
++  esActual,
++  puntoAntes = false,
++  puntoDespues = false,
++  onVolver,
++}: {
++  dias: DiaSemana[];
++  conTurno: Set<string>;
++  elegido: string | null;
++  onElegir: (clave: string | null) => void;
++  onSemana: (paso: -1 | 1) => void;
++  esActual: boolean;
++  /** Hay turnos en semanas anteriores / siguientes: un puntito en la flecha. */
++  puntoAntes?: boolean;
++  puntoDespues?: boolean;
++  /** Estando en otra semana: «Volver a esta semana». */
++  onVolver?: () => void;
++}) {
++  return (
++    <div data-testid="semana-tira">
++      <div className="flex items-center justify-between gap-2">
++        <button
++          type="button"
++          onClick={() => onSemana(-1)}
++          className="flecha-vidrio relative"
++          aria-label={puntoAntes ? "Semana anterior, con turnos" : "Semana anterior"}
++        >
++          <ChevronLeftIcon size={16} />
++          {puntoAntes && <span aria-hidden data-punto="antes" className="flecha-punto" />}
++        </button>
++        <div className="flex min-w-0 flex-col items-center gap-1.5">
++          <p className="text-caption font-bold" aria-live="polite">
++            {esActual ? "Esta semana" : "Semana"} · {rotuloSemana(dias)}
++          </p>
++          {!esActual && onVolver && (
++            <button type="button" onClick={onVolver} className="chip-vidrio relative !px-3 !py-1 text-xs before:absolute before:-inset-x-2 before:-inset-y-2 before:content-['']">
++              Volver a esta semana
++            </button>
++          )}
++        </div>
++        <button
++          type="button"
++          onClick={() => onSemana(1)}
++          className="flecha-vidrio relative"
++          aria-label={puntoDespues ? "Semana siguiente, con turnos" : "Semana siguiente"}
++        >
++          <ChevronRightIcon size={16} />
++          {puntoDespues && <span aria-hidden data-punto="despues" className="flecha-punto" />}
++        </button>
++      </div>
++      <ol role="list" aria-label="Días de la semana" className="mt-2 grid grid-cols-7 text-center md:max-w-md">
++        {dias.map((d) => {
++          const hay = conTurno.has(d.clave);
++          const es = elegido === d.clave;
++          return (
++            <li key={d.clave} data-dia={d.clave} className="flex flex-col items-center">
++              <button
++                type="button"
++                aria-pressed={es}
++                onClick={() => onElegir(es ? null : d.clave)}
++                className="dia-boton flex min-h-[44px] w-full flex-col items-center gap-1 pb-1.5"
++              >
++                <span aria-hidden className={`text-xs ${d.esHoy ? "font-bold" : "font-semibold"}`}>
++                  {d.corto}
++                </span>
++                <span aria-hidden className={`dia-cielo ${es ? "dia-cielo-hoy" : d.esHoy ? "dia-cielo-aro" : ""}`}>
++                  {d.numero}
++                </span>
++                <span aria-hidden data-con-turno={hay ? "" : undefined} className={`dia-cielo-punto ${hay ? "" : "opacity-0"}`} />
++                <span className="sr-only">
++                  {d.largo} {d.numero}
++                  {d.esHoy && ", hoy"}
++                  {hay && ", con turno"}
++                </span>
++              </button>
++            </li>
++          );
++        })}
++      </ol>
++    </div>
++  );
++}
+diff --git a/frontend/components/employer/CieloPanel.tsx b/frontend/components/employer/CieloPanel.tsx
+index 7098e27..fa8d363 100644
+--- a/frontend/components/employer/CieloPanel.tsx
++++ b/frontend/components/employer/CieloPanel.tsx
+@@ -31,37 +31,52 @@ export default function CieloPanel({
+   nombre,
+   resumen,
+   conAcciones,
++  tira = null,
+ }: {
+   nombre?: string;
+   resumen: ResumenPanel | null;
+   /** «Publicar turno» y «Evento»: no van mientras carga ni sin perfil. */
+   conAcciones: boolean;
++  /** La semana que se toca (`SemanaTira`), debajo de las acciones. */
++  tira?: React.ReactNode;
+ }) {
+   const hola = nombre ? `Hola, ${nombre}.` : "Hola.";
+   const hondo = resumen?.enMarcha ?? false;
+   const elegir = resumen?.elegir ?? null;
+   const nadie = resumen?.nadie ?? null;
+   const postulados = elegir?.pending_applicants_count ?? 0;
+-  const frase = resumen?.deHoy ? "Hoy tenés" : "Tenés en curso";
+-
+-  // Con a quién elegir, el ámbar es «Elegir a quién va» y «Publicar turno» no
+-  // se repite acá: está al lado de la barra (el «+» del celular, el botón azul
+-  // hondo de la compu). Sin nadie que elegir, publicar es la acción de la
+-  // pantalla y va en ámbar.
+-  const acciones = conAcciones && (
+-    <div className="mt-4 flex gap-2">
+-      {!elegir && (
+-        <Link
+-          href="/shifts/new"
+-          data-tour="shifts-publish"
+-          className="boton-relieve flex min-h-[52px] flex-1 items-center justify-center gap-1.5 bg-primary px-4 text-body font-bold text-night"
+-        >
+-          <PlusIcon size={18} /> Publicar turno
+-        </Link>
++  
++  // Maqueta tanda 5, segunda vuelta: el cielo se achica. «Evento» es un chip
++  // chico de vidrio en la fila del estado (a la derecha); «Publicar turno»
++  // (el ámbar cuando no hay a quién elegir) baja a una fila y no se repite.
++  const chipEvento = conAcciones && (
++    <Link
++      href="/shifts/new-event"
++      className="chip-vidrio relative shrink-0 before:absolute before:-inset-2 before:content-['']"
++    >
++      <CalendarPlusIcon size={15} /> Evento
++    </Link>
++  );
++  const publicar = (
++    <Link
++      href="/shifts/new"
++      data-tour="shifts-publish"
++      className="boton-relieve flex min-h-[44px] shrink-0 items-center justify-center gap-1.5 bg-primary px-4 text-sm font-bold text-night"
++    >
++      <PlusIcon size={16} /> Publicar turno
++    </Link>
++  );
++  const filaDeChips = (
++    <div className="flex items-center justify-between gap-2">
++      {resumen?.marchando ? (
++        <span className="chip-vidrio gap-2">
++          <span aria-hidden className="pulso-cielo" />
++          Marchando
++        </span>
++      ) : (
++        <span />
+       )}
+-      <Link href="/shifts/new-event" className="chip-vidrio boton-cielo">
+-        <CalendarPlusIcon size={17} /> Evento
+-      </Link>
++      {chipEvento}
+     </div>
+   );
+ 
+@@ -69,7 +84,7 @@ export default function CieloPanel({
+     <div
+       data-testid="panel-cielo"
+       data-cielo={hondo ? "hondo" : "dia"}
+-      className={`cielo-de-pantalla panel-cielo app-cielo cielo-limpio px-5 pb-12 pt-5 md:rounded-t-[28px] md:px-6 md:pt-6 ${
++      className={`cielo-de-pantalla panel-cielo app-cielo cielo-limpio px-5 pb-11 pt-4 md:rounded-t-[28px] md:px-6 md:pt-6 ${
+         hondo ? "cielo-hondo" : ""
+       }`}
+     >
+@@ -85,94 +100,81 @@ export default function CieloPanel({
+ 
+       {/* En el celular no hay encabezado: «oído» y la campanita van acá, sobre
+           el cielo. En la compu están en la barra de arriba. */}
+-      <div className="mb-5 flex items-center justify-between md:hidden">
++      <div className="mb-3 flex items-center justify-between md:hidden">
+         <Logo size={30} sobreCielo />
+         <NotificationBell variante="vidrio" />
+       </div>
+ 
+       {!resumen ? (
+         <>
+-          <h1 className="titulo-pantalla break-words">{nombre ? `Hola, ${nombre}` : "Hola"}</h1>
+-          {acciones}
++          {filaDeChips}
++          <h1 className="titulo-pantalla mt-3 break-words">{nombre ? `Hola, ${nombre}` : "Hola"}</h1>
++          {conAcciones && <div className="mt-4 flex">{publicar}</div>}
+         </>
+       ) : hondo ? (
+         <div className="md:grid md:grid-cols-2 md:items-end md:gap-10">
+           <div className="min-w-0">
+-            {resumen.marchando && (
+-              <span className="chip-vidrio gap-2">
+-                <span aria-hidden className="pulso-cielo" />
+-                Marchando
+-              </span>
+-            )}
+-            <p aria-hidden className={`break-words text-body font-semibold ${resumen.marchando ? "mt-3" : ""}`}>
+-              {hola} {frase}
+-            </p>
+-            <h1 className="mt-1 flex items-baseline gap-2.5" data-testid="panel-titulo">
+-              <span className="sr-only">
+-                {hola} {frase}{" "}
++            {filaDeChips}
++            <h1
++              className="mt-3 break-words text-[min(1.375rem,5.6vw)] font-semibold leading-tight tracking-tight"
++              data-testid="panel-titulo"
++            >
++              {hola} {resumen.deHoy ? "Hoy tenés" : ""}{" "}
++              <span className="font-extrabold">
++                {resumen.total} {resumen.total === 1 ? "turno" : "turnos"}
+               </span>
+-              <span className="numero-gigante">{resumen.total}</span>
+-              {/* El espacio es para quien lo oye: sin él se lee «5turnos». */}
+-              <span className="sr-only"> </span>
+-              <span className="text-2xl font-extrabold tracking-tight">{resumen.total === 1 ? "turno" : "turnos"}</span>
++              {resumen.deHoy ? "" : " en curso"}
+             </h1>
+-            <dl className="mt-4 flex flex-wrap gap-x-7 gap-y-2" data-testid="panel-estados">
+-              {(
+-                [
+-                  ["Buscando", resumen.buscando],
+-                  ["En marcha", resumen.cubiertos],
+-                  ["Terminados", resumen.terminados],
+-                ] as const
+-              ).map(([nombreEstado, cuantos]) => (
+-                <div key={nombreEstado} className="flex flex-col-reverse">
+-                  <dt className="mt-1 text-caption font-semibold">{nombreEstado}</dt>
+-                  <dd className="text-2xl font-extrabold leading-none tabular-nums">{cuantos}</dd>
+-                </div>
+-              ))}
+-            </dl>
+           </div>
+ 
+-          <div className="mt-5 min-w-0 md:mt-0">
++          <div className="mt-3 min-w-0 md:mt-0">
+             {elegir && (
+-              <div className="panel-vidrio" data-testid="panel-elegir">
+-                <p className="break-words text-sm font-semibold">{cualTurno(elegir)}</p>
+-                <p className="mt-0.5 text-fila font-extrabold tracking-tight">
+-                  {postulados === 1 ? "Ya se postuló 1" : `Ya se postularon ${postulados}`}
+-                </p>
++              <div className="panel-vidrio flex items-center gap-3 !p-3" data-testid="panel-elegir">
++                <div className="min-w-0 flex-1">
++                  <p className="truncate text-[13px] font-semibold">{cualTurno(elegir)}</p>
++                  <p className="text-body font-extrabold leading-snug tracking-tight">
++                    {postulados === 1 ? "Ya se postuló 1" : `Ya se postularon ${postulados}`}
++                  </p>
++                </div>
+                 <Link
+                   href={`/shifts/${elegir.id}/candidates`}
+-                  className="boton-relieve mt-3 flex min-h-[52px] items-center justify-center bg-primary px-4 text-body font-bold text-night"
++                  className="boton-relieve flex min-h-[44px] shrink-0 items-center justify-center bg-primary px-4 text-sm font-bold text-night"
+                 >
+                   Elegir a quién va
+                 </Link>
+               </div>
+             )}
+-            {nadie && (
+-              <div data-testid="panel-nadie">
+-                <p className="break-words text-sm font-semibold">{cualTurno(nadie)}</p>
+-                <p className="mt-0.5 text-fila font-extrabold tracking-tight">Todavía nadie cantó «oído»</p>
+-                <p className="mt-0.5 text-sm font-medium">Cuando alguien se postule, lo ves acá.</p>
++            {!elegir && conAcciones && (
++              <div className="flex items-center gap-3" data-testid={nadie ? "panel-nadie" : undefined}>
++                {nadie && (
++                  <div className="min-w-0 flex-1">
++                    <p className="truncate text-[13px] font-semibold">{cualTurno(nadie)}</p>
++                    <p className="text-body font-extrabold leading-snug tracking-tight">Todavía nadie cantó «oído»</p>
++                  </div>
++                )}
++                <div className={nadie ? "" : "flex-1"}>{publicar}</div>
+               </div>
+             )}
+-            {acciones}
+           </div>
+         </div>
+       ) : (
+         <div className="md:max-w-md">
+-          <p aria-hidden className="break-words text-body font-semibold">
++          {filaDeChips}
++          <p aria-hidden className="mt-3 break-words text-body font-semibold">
+             {hola}
+           </p>
+           <h1
+-            className="mt-2 text-[min(2.875rem,12vw)] font-extrabold leading-none tracking-[-0.035em]"
++            className="mt-1 text-[min(2.25rem,9.5vw)] font-extrabold leading-none tracking-[-0.035em]"
+             data-testid="panel-titulo"
+           >
+             <span className="sr-only">{hola} </span>
+             ¿Te falta alguien hoy?
+           </h1>
+-          <p className="mt-3 text-sm font-semibold">Pedilo como lo dirías en la cocina.</p>
+-          {acciones}
++          <p className="mt-2 text-sm font-semibold">Pedilo como lo dirías en la cocina.</p>
++          {conAcciones && <div className="mt-4 flex [&>*]:flex-1">{publicar}</div>}
+         </div>
+       )}
++      {tira && <div className="mt-4">{tira}</div>}
+     </div>
+   );
+ }
+diff --git a/frontend/components/map/ShiftMarker.tsx b/frontend/components/map/ShiftMarker.tsx
+index b0b0609..0e4d8d3 100644
+--- a/frontend/components/map/ShiftMarker.tsx
++++ b/frontend/components/map/ShiftMarker.tsx
+@@ -4,6 +4,7 @@ import { memo } from "react";
+ import { Marker } from "@vis.gl/react-maplibre";
+ import { formatArs } from "@/lib/format";
+ import { SKILL_LABELS, type WorkerSkill } from "@/lib/types";
++import { SKILL_ACCENT } from "@/lib/skill-style";
+ 
+ interface ShiftMarkerProps {
+   id: string;
+@@ -20,6 +21,10 @@ interface ShiftMarkerProps {
+   isMatch: boolean;
+   /** Delay del scale-in de aparición, para el efecto stagger. */
+   delayMs?: number;
++  /** Nombre del local: se muestra al lado del pin cuando el mapa está cerca. */
++  nombre?: string | null;
++  /** Mapa cerca (zoom 15 o más): el nombre del local se ve al lado del pin. */
++  cerca?: boolean;
+   /** Recibe el `id` del turno: permite pasar un handler estable (useCallback
+    *  en el padre) sin crear una closure nueva por marcador en cada render. */
+   onClick: (id: string) => void;
+@@ -60,8 +65,11 @@ function ShiftMarker({
+   active,
+   isMatch,
+   delayMs = 0,
++  nombre = null,
++  cerca = false,
+   onClick,
+ }: ShiftMarkerProps) {
++  const { Icon } = SKILL_ACCENT[position];
+   return (
+     <Marker
+       longitude={longitude}
+@@ -109,11 +117,19 @@ function ShiftMarker({
+               <path d="M5 8.5v-7M1.8 4.6 5 1.4l3.2 3.2" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+             </svg>
+           )}
++          {/* Maqueta tanda 5: el ícono del rubro antes del pago. */}
++          <Icon size={15} aria-hidden className="pin-rubro shrink-0" />
+           <span>{payLabel ?? formatArs(payAmount)}</span>
+           {urgent && (
+             <span className="pin-urgente absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-danger [animation:urgentPulse_1.2s_infinite]" />
+           )}
+         </button>
++        {/* Con el mapa cerca, el nombre del local a un costado del pin. */}
++        {cerca && nombre && (
++          <span aria-hidden data-testid="pin-nombre" className="pin-nombre">
++            {nombre}
++          </span>
++        )}
+       </div>
+     </Marker>
+   );
+diff --git a/frontend/components/worker/ShiftMap.tsx b/frontend/components/worker/ShiftMap.tsx
+index a0e5351..5882d78 100644
+--- a/frontend/components/worker/ShiftMap.tsx
++++ b/frontend/components/worker/ShiftMap.tsx
+@@ -147,6 +147,10 @@ export default function ShiftMap({
+     easeToPoint(mapRef.current, [activeLat, activeLng], options);
+   }, [activeLat, activeLng, ready, followActive]);
+ 
++  // Maqueta tanda 5: nombre del local por turno, y «cerca» desde el zoom 15.
++  const nombrePorId = useMemo(() => new Map(shifts.map((s) => [s.id, s.company_name ?? null])), [shifts]);
++  const cerca = (viewport?.zoom ?? 0) >= 15;
++
+   const clusterIndex = useMemo(() => buildShiftClusterIndex(shifts), [shifts]);
+ 
+   const clusters = useMemo<ShiftClusterFeature[]>(() => {
+@@ -217,6 +221,8 @@ export default function ShiftMap({
+             payLabel={payLabel}
+             urgent={urgent}
+             isMatch={isMatch}
++            nombre={nombrePorId.get(shiftId) ?? null}
++            cerca={cerca}
+             active={shiftId === activeId}
+             delayMs={index * 80}
+             onClick={handleShiftSelect}
+diff --git a/frontend/components/worker/UrgentesRow.tsx b/frontend/components/worker/UrgentesRow.tsx
+new file mode 100644
+index 0000000..ac2fc47
+--- /dev/null
++++ b/frontend/components/worker/UrgentesRow.tsx
+@@ -0,0 +1,83 @@
++"use client";
++
++import Link from "next/link";
++import { SKILL_LABELS, Shift } from "@/lib/types";
++import { SKILL_ACCENT } from "@/lib/skill-style";
++import { formatPayCompact } from "@/lib/pay";
++import { formatDistance } from "@/lib/format";
++import { FlameIcon } from "@/components/icons";
++import { useAhora } from "@/lib/use-ahora";
++
++/** Ventana de «Urgentes»: lo que empieza en las próximas 6 horas. */
++const VENTANA_MS = 6 * 60 * 60 * 1000;
++
++/** «1 h 40», «2 h», «35 min». */
++export function faltaEn(ms: number): string {
++  const min = Math.max(1, Math.ceil(ms / 60_000));
++  if (min < 60) return `${min} min`;
++  const h = Math.floor(min / 60);
++  const m = min % 60;
++  return m === 0 ? `${h} h` : `${h} h ${m}`;
++}
++
++/**
++ * «Urgentes» (maqueta tanda 5): arriba de la hoja del Inicio, una fila
++ * horizontal de tarjetas compactas con los turnos que empiezan en las
++ * próximas ~6 horas y una cuenta regresiva (se actualiza por minuto, en el
++ * rojo de «Urgente» que ya existe). Sin ninguno, no se dibuja.
++ */
++export default function UrgentesRow({
++  shifts,
++  distanceOf,
++}: {
++  shifts: Shift[];
++  distanceOf: (s: Shift) => number | null;
++}) {
++  const ahora = useAhora(shifts.length > 0, 60_000);
++  const proximos = shifts
++    .map((s) => ({ s, falta: new Date(s.start_at).getTime() - ahora.getTime() }))
++    .filter((x) => x.falta > 0 && x.falta <= VENTANA_MS)
++    .sort((a, b) => a.falta - b.falta);
++  if (proximos.length === 0) return null;
++
++  return (
++    <section data-testid="feed-urgentes" aria-labelledby="urgentes-titulo" className="mb-6">
++      <h2 id="urgentes-titulo" className="flex items-center gap-1.5 text-h3 font-bold text-ink">
++        <FlameIcon size={18} className="text-danger-text" aria-hidden /> Urgentes
++      </h2>
++      <ul
++        role="list"
++        className="no-scrollbar -mx-4 mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-3 pt-1 md:-mx-6 md:px-6"
++      >
++        {proximos.map(({ s, falta }) => {
++          const { Icon } = SKILL_ACCENT[s.position];
++          const km = distanceOf(s);
++          return (
++            <li key={s.id} className="w-[232px] shrink-0 snap-start">
++              <Link href={`/turno/${s.id}`} className="tecla urgente-tarjeta flex h-full flex-col gap-2 p-3">
++                <span className="chip-urgencia self-start">
++                  <FlameIcon size={12} aria-hidden /> Empieza en {faltaEn(falta)}
++                </span>
++                <span className="text-[length:min(1.5rem,7vw)] font-extrabold leading-none tracking-tight tabular-nums text-ink">
++                  {formatPayCompact(s)}
++                </span>
++                <span className="flex min-w-0 items-center gap-2">
++                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-cielo-tint text-cielo-text">
++                    <Icon size={15} />
++                  </span>
++                  <span className="min-w-0">
++                    <span className="block truncate text-fila font-bold leading-tight text-ink">{SKILL_LABELS[s.position]}</span>
++                    <span className="block truncate text-caption text-ink-soft">
++                      {s.company_name ?? "Comercio"}
++                      {km != null && ` · ${formatDistance(km)}`}
++                    </span>
++                  </span>
++                </span>
++              </Link>
++            </li>
++          );
++        })}
++      </ul>
++    </section>
++  );
++}
+diff --git a/frontend/lib/semana.ts b/frontend/lib/semana.ts
+index db6b177..43db03e 100644
+--- a/frontend/lib/semana.ts
++++ b/frontend/lib/semana.ts
+@@ -26,11 +26,11 @@ export function claveDiaArgentina(fecha: Date | string): string {
+ }
+ 
+ /** Los siete días (lunes a domingo) de la semana de `ahora` en Argentina. */
+-export function semanaArgentina(ahora: Date = new Date()): DiaSemana[] {
++export function semanaArgentina(ahora: Date = new Date(), semanas = 0): DiaSemana[] {
+   const hoy = claveDiaArgentina(ahora);
+   const [y, m, d] = hoy.split("-").map(Number);
+   // Al mediodía UTC: sumar días no cruza ningún cambio de fecha.
+-  const base = Date.UTC(y, m - 1, d, 12);
++  const base = Date.UTC(y, m - 1, d, 12) + semanas * 7 * 86_400_000;
+   const desdeLunes = (new Date(base).getUTCDay() + 6) % 7;
+   return CORTOS.map((corto, i) => {
+     const dia = new Date(base + (i - desdeLunes) * 86_400_000);
+@@ -45,3 +45,43 @@ export function diaCortoArgentina(iso: string): { corto: string; numero: number
+   const dia = new Date(Date.UTC(y, m - 1, d, 12));
+   return { corto: CORTOS[(dia.getUTCDay() + 6) % 7], numero: d };
+ }
++
++const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"] as const;
++const DIA_LARGO_DE = (clave: string) => {
++  const [y, m, d] = clave.split("-").map(Number);
++  return LARGOS[(new Date(Date.UTC(y, m - 1, d, 12)).getUTCDay() + 6) % 7];
++};
++
++/** «16 – 22 nov» (o «30 nov – 6 dic» si la semana cruza de mes). */
++export function rotuloSemana(dias: DiaSemana[]): string {
++  const a = dias[0];
++  const b = dias[dias.length - 1];
++  const mes = (c: string) => MESES[Number(c.split("-")[1]) - 1];
++  return mes(a.clave) === mes(b.clave)
++    ? `${a.numero} – ${b.numero} ${mes(b.clave)}`
++    : `${a.numero} ${mes(a.clave)} – ${b.numero} ${mes(b.clave)}`;
++}
++
++/** «el martes 17» para el aviso de un día sin turnos. */
++export function diaEnPalabras(clave: string): string {
++  return `${DIA_LARGO_DE(clave)} ${Number(clave.split("-")[2])}`;
++}
++
++const DIA_MS = 86_400_000;
++const lunesDe = (clave: string) => {
++  const [y, m, d] = clave.split("-").map(Number);
++  const t = Date.UTC(y, m - 1, d, 12);
++  return t - ((new Date(t).getUTCDay() + 6) % 7) * DIA_MS;
++};
++
++/** Cuántas semanas (de lunes a lunes) separan el día `clave` de la semana de `ahora`. */
++export function semanasHasta(clave: string, ahora: Date = new Date()): number {
++  return Math.round((lunesDe(clave) - lunesDe(claveDiaArgentina(ahora))) / (7 * DIA_MS));
++}
++
++/** «lun 23 nov»: la fecha corta de una fila de «Más adelante». */
++export function fechaCorta(clave: string): string {
++  const [y, m, d] = clave.split("-").map(Number);
++  const dia = new Date(Date.UTC(y, m - 1, d, 12));
++  return `${CORTOS[(dia.getUTCDay() + 6) % 7]} ${d} ${MESES[m - 1]}`;
++}

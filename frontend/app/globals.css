@@ -4940,6 +4940,74 @@ body:has([data-landing]) main {
   opacity: 0.22;
 }
 
+/* ===== El acceso y la bienvenida con la dirección suave (2026-11-21) =====
+   `/login`, `/register`, `/recuperar`, `/restablecer`, `/verificar-email` y
+   `/bienvenida` (`components/acceso/PantallaAcceso.tsx`): el cielo con el
+   «oído» y el título, la hoja con el formulario. */
+/* La casilla del consentimiento legal: la nativa (`<input type="checkbox">`,
+   con su teclado y su etiqueta) vestida como la casilla suave del sí/no
+   (`.casilla`): redonda, con el relleno del campo y el borde de 3,8 de
+   contraste; marcada, se llena de azul hondo con el tilde blanco. */
+.estilo-suave .casilla-nativa {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  border-radius: 999px;
+  background-color: var(--suave-campo);
+  box-shadow: inset 0 0 0 1.5px var(--suave-casilla-borde);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.estilo-suave .casilla-nativa:checked {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E"),
+    var(--suave-elegido);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 15px 15px, auto;
+  box-shadow: 0 4px 10px rgba(28, 84, 120, 0.3);
+}
+.estilo-suave .casilla-nativa:disabled {
+  cursor: default;
+}
+/* Un campo adentro de una caja suave (el paso del rol de Google, el PIN de
+   invitado) va con el color de la hoja: con el relleno del campo se perdía
+   contra la caja. */
+.estilo-suave .caja-suave .campo {
+  background: var(--color-card);
+}
+/* El autocompletado del navegador (Chrome, Safari) pinta el campo de amarillo
+   o azul pálido y la letra en negro: se lo cubre con el relleno del campo
+   (y con el blanco de la hoja en foco) y la letra queda en la tinta. */
+.estilo-suave .campo:-webkit-autofill,
+.estilo-suave .campo:-webkit-autofill:hover {
+  -webkit-text-fill-color: var(--color-ink);
+  caret-color: var(--color-ink);
+  box-shadow: inset 0 0 0 1000px var(--suave-campo);
+  transition: background-color 600000s 0s;
+}
+.estilo-suave .campo:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--color-ink);
+  caret-color: var(--color-ink);
+  box-shadow:
+    inset 0 0 0 1px var(--color-line),
+    inset 0 0 0 1000px var(--color-card);
+  transition: background-color 600000s 0s;
+}
+.estilo-suave .caja-suave .campo:-webkit-autofill,
+.estilo-suave .caja-suave .campo:-webkit-autofill:hover {
+  box-shadow: inset 0 0 0 1000px var(--color-card);
+}
+/* El paso del código del ingreso (admin, `TwoFactorLoginStep`): el título en
+   la letra normal. */
+.estilo-suave .acceso-hoja .font-display {
+  font-family: inherit;
+  font-weight: 700;
+}
+
 /* ===== La tira de días que se toca (`components/SemanaTira.tsx`, `MasAdelante.tsx`) ===== */
 /* Cada día es un botón de 44 px como mínimo de alto. Elegido, lleva la tecla
    blanca (`.dia-cielo-hoy`); hoy sin elegir, un aro fino del color de la tinta. */

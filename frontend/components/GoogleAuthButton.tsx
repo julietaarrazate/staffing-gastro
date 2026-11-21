@@ -9,13 +9,13 @@
 // docs/reference/ACCESO_MODERNO.md): sin `NEXT_PUBLIC_GOOGLE_CLIENT_ID` seteada, este
 // componente no renderiza nada — ni carga el script de Google.
 
-import Link from "next/link";
 import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
 import { useAuth, type SesionAbierta } from "@/lib/auth-context";
 import { useResolvedTheme } from "@/lib/theme";
 import { ApiError, isAccountSuspended } from "@/lib/api";
 import { Button, TextField } from "@/components/ui";
+import AceptoTerminos from "@/components/acceso/AceptoTerminos";
 import { SESSION_END_MESSAGES } from "@/lib/safe-next";
 import { EDAD_MINIMA, motivoFechaNacimiento, nacimientoMasReciente } from "@/lib/edad";
 
@@ -199,7 +199,7 @@ export default function GoogleAuthButton({
           <div className="w-full border-t border-line" />
         </div>
         <div className="relative flex justify-center text-xs">
-          <span className="bg-card px-2 text-ink/40">o continuá con</span>
+          <span className="bg-card px-2 text-ink-soft">o continuá con</span>
         </div>
       </div>
 
@@ -209,15 +209,18 @@ export default function GoogleAuthButton({
           encima de la pregunta del rol. */}
       {pendingRole && rolElegido ? (
         // Rol y términos vienen del formulario: sólo falta tildar la casilla.
-        <div key="terminos" className="rounded-2xl bg-surface p-4 text-center ring-1 ring-line">
-          <p className="text-sm text-ink/70">
+        <div key="terminos" className="caja-suave p-4 text-center">
+          <p className="text-sm text-ink-soft">
             Para crear tu cuenta con Google como {rolElegido === "employer" ? "comercio" : "trabajador/a"},
             completá tu fecha de nacimiento y aceptá los términos y la política de privacidad (arriba).
           </p>
           <div className="mt-3">
+            {/* Quieto: el único ámbar de la pantalla es el de su formulario. */}
             <Button
+              variant="surface"
               size="sm"
               fullWidth
+              className="boton-quieto"
               loading={roleLoading !== null}
               disabled={roleLoading !== null || !terminosAceptados || Boolean(motivoNacimiento)}
               onClick={() => crearConRol(rolElegido, nacimiento)}
@@ -227,11 +230,11 @@ export default function GoogleAuthButton({
           </div>
         </div>
       ) : pendingRole ? (
-        <div key="role" className="rounded-2xl bg-surface p-4 text-center ring-1 ring-line">
+        <div key="role" className="caja-suave p-4 text-center">
           <p className="text-sm font-semibold text-ink">
             ¿Buscás trabajo o buscás personal?
           </p>
-          <p className="mt-1 text-xs text-ink/50">
+          <p className="mt-1 text-xs text-ink-soft">
             Elegí para terminar de crear tu cuenta de Google, {pendingRole.fullName}.
           </p>
           <div className="mt-3 text-left">
@@ -247,44 +250,18 @@ export default function GoogleAuthButton({
               error={birthDate && motivoNacimiento ? motivoNacimiento : undefined}
             />
             {!(birthDate && motivoNacimiento) && (
-              <p className="mt-1.5 text-xs text-ink/50">
+              <p className="mt-1.5 text-xs text-ink-soft">
                 Oído es para mayores de {EDAD_MINIMA} años. No se la mostramos a nadie.
               </p>
             )}
           </div>
-          <label className="mt-3 flex items-start gap-2.5 text-left text-sm text-ink/70">
-            <input
-              type="checkbox"
-              checked={acceptedTerms}
-              onChange={(e) => setAcceptedTerms(e.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 rounded border-line accent-primary"
-            />
-            <span>
-              Acepto los{" "}
-              <Link
-                href="/terminos"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-semibold text-primary-text hover:underline"
-              >
-                Términos y Condiciones
-              </Link>{" "}
-              y la{" "}
-              <Link
-                href="/privacidad"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-semibold text-primary-text hover:underline"
-              >
-                Política de Privacidad
-              </Link>
-            </span>
-          </label>
+          <AceptoTerminos checked={acceptedTerms} onChange={setAcceptedTerms} className="mt-3 text-left" />
           <div className="mt-3 grid grid-cols-2 gap-3">
             <Button
               variant="surface"
               size="sm"
               fullWidth
+              className="boton-quieto"
               loading={roleLoading === "worker"}
               disabled={roleLoading !== null || !acceptedTerms || Boolean(motivoNacimiento)}
               onClick={() => chooseRole("worker")}
@@ -295,6 +272,7 @@ export default function GoogleAuthButton({
               variant="surface"
               size="sm"
               fullWidth
+              className="boton-quieto"
               loading={roleLoading === "employer"}
               disabled={roleLoading !== null || !acceptedTerms || Boolean(motivoNacimiento)}
               onClick={() => chooseRole("employer")}
