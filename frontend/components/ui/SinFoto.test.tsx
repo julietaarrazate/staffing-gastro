@@ -47,3 +47,10 @@ describe("SinFoto", () => {
     expect(container.querySelector("img")).not.toBeNull();
   });
 });
+
+describe("SinFoto: nombres raros", () => {
+  it("un nombre que empieza con emoji no se parte en medio símbolo", () => {
+    const { container } = render(<SinFoto nombre="😀 Pepe" id="a" />);
+    expect(container.textContent).toBe("😀");
+  });
+});

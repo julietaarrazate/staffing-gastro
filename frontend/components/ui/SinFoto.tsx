@@ -40,7 +40,7 @@ export default function SinFoto({
   tamano?: number;
   className?: string;
 }) {
-  const inicial = (nombre ?? "").trim().charAt(0).toUpperCase();
+  const inicial = (Array.from((nombre ?? "").trim())[0] ?? "").toUpperCase();
   const variante = variantePorId(id || nombre || "");
   const n = NUBE[variante];
   const conNube = tamano === undefined || tamano >= LADO_MINIMO_NUBE;
