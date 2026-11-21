@@ -152,14 +152,16 @@ async function auditOverflow(page: Page, path: string) {
       if (insideScroller(el)) continue;
       const r = el.getBoundingClientRect();
       if (r.width === 0 || r.height === 0) continue;
-      // Lo que se ve: el rectángulo recortado por los contenedores que no dejan
-      // ver lo que se sale (overflow hidden o clip). Una nube decorativa que
-      // asoma por el borde de su cielo, que la recorta, no se sale de la
-      // pantalla (2026-11-21: con el Panel nuevo la prueba empezó a ver su
-      // nube; antes el Panel no terminaba de dibujarse en el tiempo de espera).
+      // Sólo para lo decorativo (`aria-hidden`, como las nubes del cielo): se
+      // mide lo que se ve, recortado por los contenedores con overflow hidden o
+      // clip. Una nube que asoma por el borde de su cielo, que la recorta, no
+      // se sale de la pantalla (2026-11-21: con el Panel nuevo la prueba
+      // empezó a ver su nube). Un texto o un botón cortado por su tarjeta SÍ se
+      // sigue marcando: es contenido que no se ve entero.
       let left = r.left;
       let right = r.right;
-      for (let a = el.parentElement; a && a !== document.documentElement; a = a.parentElement) {
+      const decorativo = el.closest('[aria-hidden="true"]') !== null;
+      for (let a = decorativo ? el.parentElement : null; a && a !== document.documentElement; a = a.parentElement) {
         const cs = getComputedStyle(a);
         if (/(hidden|clip)/.test(cs.overflowX)) {
           const ar = a.getBoundingClientRect();
