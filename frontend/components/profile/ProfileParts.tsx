@@ -161,13 +161,18 @@ export function Estrellas({ valor, size = 16 }: { valor: number; size?: number }
  * normal, y debajo la hoja con el contenido. Reemplaza a `SubpageHeader` en
  * esas dos pantallas.
  */
+const VOLVER_AL_PERFIL = { href: "/profile", label: "Volver al perfil" };
+
 export function SubpaginaSuave({
   title,
   bajada,
   ancha = false,
+  volver = VOLVER_AL_PERFIL,
   children,
 }: {
   title: string;
+  /** A dónde lleva la vuelta del cielo; por defecto, al perfil. */
+  volver?: { href: string; label: string };
   /** Una línea debajo del título, sobre el cielo. */
   bajada?: string;
   /** Para una pantalla con grilla (Mi plan): en la compu ocupa el ancho de la app. */
@@ -181,7 +186,7 @@ export function SubpaginaSuave({
       }`}
     >
       <div className="app-cielo cielo-limpio px-4 pb-12 pt-4 md:rounded-t-[28px] md:px-6 md:pt-5">
-        <Link href="/profile" aria-label="Volver al perfil" className="boton-vidrio h-11 w-11">
+        <Link href={volver.href} aria-label={volver.label} className="boton-vidrio h-11 w-11">
           <ChevronLeftIcon size={18} />
         </Link>
         <h1 className="titulo-pantalla mt-4 break-words">{title}</h1>

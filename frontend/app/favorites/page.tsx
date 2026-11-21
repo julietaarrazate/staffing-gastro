@@ -8,6 +8,7 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { FavoriteWorker, SKILL_LABELS } from "@/lib/types";
 import { Avatar, Badge, Button, CardSkeletons, EmptyState, ErrorBanner, useToast } from "@/components/ui";
 import { HeartIcon } from "@/components/icons";
+import { SubpaginaSuave } from "@/components/profile/ProfileParts";
 
 export default function FavoritesPage() {
   const { token } = useRequireAuth({ roles: ["employer"] });
@@ -48,19 +49,19 @@ export default function FavoritesPage() {
   }
 
   return (
-    <div className="app-container px-4 pb-10 pt-6">
-      <h1 className="font-display text-h1 font-semibold tracking-tight text-ink">
-        Trabajadores favoritos
-      </h1>
-      <p className="mt-0.5 text-sm text-ink/50">
-        La gente que ya te dio confianza. Encontralos rápido para el próximo turno.
-      </p>
-
-      {loading && <div className="mt-5"><CardSkeletons /></div>}
-      {error && <div className="mt-5"><ErrorBanner message={error} onRetry={load} /></div>}
+    // Con la dirección suave (ADR-0028, 2026-11-21; sin maqueta): el cielo
+    // corto con el título y la vuelta al perfil, y la hoja con cada persona
+    // como una tarjeta suave. Los datos y las acciones no cambian.
+    <SubpaginaSuave
+      title="Trabajadores favoritos"
+      bajada="La gente que ya te dio confianza. Encontralos rápido para el próximo turno."
+      ancha
+    >
+      {loading && <CardSkeletons />}
+      {error && <ErrorBanner message={error} onRetry={load} />}
 
       {!loading && !error && favorites.length === 0 && (
-        <div className="mt-5">
+        <div>
           <EmptyState
             icon={<HeartIcon size={28} />}
             title="Todavía no marcaste favoritos"
@@ -70,11 +71,14 @@ export default function FavoritesPage() {
       )}
 
       {!loading && !error && favorites.length > 0 && (
-        <div className="mt-5 grid gap-3 md:grid-cols-2">
+        // `grid-cols-1`: sin columnas declaradas la grilla tomaba el ancho del
+        // nombre más largo, y con un nombre largo todas las tarjetas se salían
+        // de la pantalla y «Quitar» quedaba cortado (visto al migrar, 2026-11-21).
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {favorites.map((f) => (
             <div
               key={f.worker_profile_id}
-              className="no-select flex items-center gap-3 rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line"
+              className="tarjeta-suave no-select flex min-w-0 items-center gap-3 p-4"
             >
               <Link href={`/workers/${f.worker_profile_id}`}>
                 <Avatar src={f.photo_url} name={f.full_name} size="lg" />
@@ -83,13 +87,13 @@ export default function FavoritesPage() {
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <Link
                     href={`/workers/${f.worker_profile_id}`}
-                    className="truncate font-semibold text-ink"
+                    className="min-w-0 truncate font-semibold text-ink"
                   >
                     {f.full_name}
                   </Link>
                   {f.is_available && <Badge tone="secondary">Disponible</Badge>}
                 </div>
-                <p className="mt-1 text-sm text-ink/50">
+                <p className="mt-1 text-sm text-ink-soft">
                   {f.skills.map((s) => SKILL_LABELS[s]).join(", ") || "Sin rubro"}
                   {f.shifts_together > 0 && (
                     <>
@@ -112,6 +116,6 @@ export default function FavoritesPage() {
           ))}
         </div>
       )}
-    </div>
+    </SubpaginaSuave>
   );
 }
