@@ -1303,6 +1303,23 @@ body:has([data-landing]) main {
   font-size: 9px;
   line-height: 1.3;
 }
+/* El mapa chico de noche (2026-11-21): la misma paleta azul noche del mapa
+   grande (`NOCHE` en lib/map/style.ts; si cambia uno, cambia el otro). Va en
+   <html>: una tarjeta que se queda en papel claro de noche (`[data-theme="light"]`
+   anidado) vuelve a declarar estos tokens y conserva el mapa de día. El local y
+   su etiqueta (`--mapa-papel`, `--mapa-local`) no cambian. */
+:root[data-theme="dark"] {
+  --mapa-fondo: #1a283f;
+  --mapa-parque: #1d4a48;
+  --mapa-agua: #14406b;
+  --mapa-borde: #202f49;
+  --mapa-calle: #2a3a59;
+  --mapa-avenida: #3d527d;
+  --mapa-borde-avenida: #2c3e63;
+  --mapa-rotulo: #a9bddb;
+  --mapa-credito-fondo: rgb(26 40 63 / 0.78);
+  --mapa-credito-tinta: #a9bddb;
+}
 /* Un estado como sello de goma: borde del color de la letra, apenas torcido.
    Va siempre sobre el papel de la comanda, que es claro en los dos temas
    (blanco de día, `#eef3f6` de noche): sus cuatro tintas son fijas y se
@@ -4300,11 +4317,8 @@ body:has([data-landing]) main {
   font-weight: 600;
   line-height: 1.35;
 }
-/* De noche el mapa base se apaga (es el de día, invertido), para que el cielo
-   de noche no se funda con un mapa claro. Sólo el lienzo: los pines no. */
-:root[data-theme="dark"] .estilo-suave .maplibregl-canvas {
-  filter: invert(0.9) hue-rotate(180deg) brightness(0.85) saturate(0.7);
-}
+/* De noche el mapa base ya no lleva filtro: `lib/map/style.ts` lo pinta capa
+   por capa en azul noche (`estiloDeNoche`), sobre el mismo estilo. */
 /* El pin de un turno: una tecla con el pago y su pico. El elegido, en azul
    hondo y más grande (blanco sobre el tono más claro del degradé: 5,2). */
 .pin-turno {

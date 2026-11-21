@@ -62,9 +62,10 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
    bienvenida (#721). **Sigue, en una sesión nueva:** la tanda que Julieta ya vio en maqueta y
    decidió (Urgentes con cuenta regresiva, Mis turnos con la tira tocable, la oreja del asistente, el
    Panel compacto, el mapa y los rubros: orden y detalle en el tablero); después la landing (prueba
-   hecha, sin decidir), las hojas compartidas, Administración y el cierre de ADR-0028. **Falta que
-   Julieta mire** el mapa de noche con calles de verdad, en `/map` y en `/search`, y que pruebe en su
-   celular activar las notificaciones después de #720 (la causa de su falla no quedó confirmada).
+   hecha, sin decidir), las hojas compartidas, Administración y el cierre de ADR-0028. **El mapa de
+   noche se rehízo** (azul noche capa por capa, ya no el de día invertido; ver su historial): **falta
+   el visto bueno de Julieta** en su celular, en `/map`, `/search` y el mapa chico. **Falta que
+   pruebe** en su celular activar las notificaciones después de #720 (la causa de su falla no quedó confirmada).
    Anotado: la búsqueda del comercio devuelve como máximo 20 personas y el título dice «20 personas»
    aunque haya más; la app instalada a veces muestra la versión anterior (sin confirmar la causa).
    Limpiezas anotadas: la variante `comanda` de `ShiftCard` quedó sin uso, y el marrón por rubro
