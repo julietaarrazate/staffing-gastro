@@ -2,38 +2,20 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
-import Link from "next/link";
 import { reportCompanyHref } from "@/lib/support-reference";
 import { CompanyProfile } from "@/lib/types";
 import { cldThumb } from "@/lib/cloudinary";
-import { Button, ErrorBanner, Skeleton } from "@/components/ui";
-import RatingOrNew from "@/components/RatingOrNew";
-import RateMeter from "@/components/RateMeter";
-import { hasPaymentRate, hasRating } from "@/lib/reputation";
+import { ErrorBanner, Skeleton } from "@/components/ui";
+import FichaSuave from "@/components/profile/FichaSuave";
+import { DatoSuave, FilasSuaves, ReputacionGrande } from "@/components/profile/ProfileParts";
+import { formatPunctuality, hasPaymentRate, hasRating, NEW_LABEL } from "@/lib/reputation";
 import MiniMap from "@/components/MiniMap";
-import { MapPinIcon, RouteIcon } from "@/components/icons";
+import { RouteIcon } from "@/components/icons";
 import { plural } from "@/lib/format";
-
-function ProfilePageSkeleton() {
-  return (
-    <div className="app-container px-4 py-8" aria-hidden>
-      <div className="overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line">
-        <Skeleton className="h-56 w-full rounded-none" />
-        <div className="space-y-4 px-5 py-5">
-          <Skeleton className="h-5 w-1/3" />
-          <Skeleton className="h-4 w-2/3" />
-          <div className="grid grid-cols-2 gap-3">
-            <Skeleton className="h-16 rounded-2xl" />
-            <Skeleton className="h-16 rounded-2xl" />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 const CATEGORY_LABELS: Record<string, string> = {
   restaurante: "Restaurante",
@@ -44,6 +26,24 @@ const CATEGORY_LABELS: Record<string, string> = {
   empresa_gastronomica: "Empresa gastronómica",
 };
 
+/** El esqueleto de la hoja: la reputación, unas líneas y las filas de datos. */
+function EsqueletoHoja() {
+  return (
+    <div aria-hidden>
+      <Skeleton className="h-16 w-56" />
+      <Skeleton className="mt-5 h-4 w-full" />
+      <Skeleton className="mt-2 h-4 w-2/3" />
+      <Skeleton className="mt-5 h-32 w-full rounded-[18px]" />
+    </div>
+  );
+}
+
+/**
+ * La ficha pública del comercio, con la dirección suave (ADR-0028): lo mismo
+ * que el comercio ve en su propio perfil (`company/PerfilComercio`), visto
+ * desde afuera. Sólo cambia la piel: los datos, y a quién se muestran, son los
+ * de antes («Reportar un problema» sólo para quien trabaja).
+ */
 export default function PublicCompanyProfilePage() {
   const { token, user } = useRequireAuth();
   const router = useRouter();
@@ -51,6 +51,14 @@ export default function PublicCompanyProfilePage() {
   const [profile, setProfile] = useState<CompanyProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // Una foto del local que no carga se esconde (el logo, en cambio, vuelve a la inicial).
+  const [portadaRota, setPortadaRota] = useState(false);
+  // Sin historial (entrada directa, notificación, pestaña nueva) `back()` no
+  // hace nada: se cae a Buscar, el origen razonable de quien trabaja.
+  const goBack = () => {
+    if (window.history.length > 1) router.back();
+    else router.push("/search");
+  };
 
   const load = useCallback(() => {
     if (!token) return;
@@ -69,145 +77,97 @@ export default function PublicCompanyProfilePage() {
     load();
   }, [load]);
 
-  if (loading) return <ProfilePageSkeleton />;
+  if (loading) {
+    return (
+      <FichaSuave cargando>
+        <EsqueletoHoja />
+      </FichaSuave>
+    );
+  }
   if (error) {
     return (
-      <div className="app-container px-4 py-8">
+      <FichaSuave>
         <ErrorBanner message={error} onRetry={load} />
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="mt-3 text-sm font-semibold text-ink/50 underline underline-offset-2 hover:text-ink"
-        >
+        <button type="button" onClick={goBack} className="boton boton-quieto mt-4 min-h-[44px] px-5 text-sm font-semibold">
           Volver
         </button>
-      </div>
+      </FichaSuave>
     );
   }
   if (!profile) return null;
 
   const hasCoords = profile.latitude != null && profile.longitude != null;
-  const hasImage = Boolean(profile.cover_photo_url || profile.logo_url);
+  const rubro = profile.category ? (CATEGORY_LABELS[profile.category] ?? profile.category) : null;
+  const bajada = [rubro, profile.city || null].filter(Boolean).join(" · ");
+  const conPagos = hasPaymentRate(profile.payments_recorded, profile.events_published);
+  const conHistoria = profile.events_published > 0 || hasRating(profile.rating);
+  const hayDatos = profile.capacity != null || Boolean(profile.opening_hours) || Boolean(profile.address);
 
   return (
-    <div className="app-container px-4 py-8">
-      {/* En lg+, si hay coordenadas, la ubicación (mapa + dirección + "cómo
-          llegar") pasa a una columna secundaria al lado (mismo criterio que
-          /profile y /workers/[id], docs/STATUS.md) — sin eso, la tarjeta
-          quedaba angosta y sola en medio de la pantalla. Sin coordenadas no
-          hay contenido real para una segunda columna, así que no se fuerza
-          la grilla (mismo criterio "no forzar layouts artificiales" que
-          /shifts/new). */}
-      <div className={hasCoords ? "lg:grid lg:grid-cols-3 lg:items-start lg:gap-6" : ""}>
-      <div
-        className={`overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line ${hasCoords ? "lg:col-span-2" : ""}`}
-      >
-        <div
-          className={`relative w-full bg-gradient-to-br from-primary to-primary-strong ${hasImage ? "h-56" : "flex min-h-56 flex-col justify-end"}`}
-        >
-          {/* Foto del local primero; el logo estirado queda de respaldo. */}
-          {hasImage ? (
-            <img
-              src={cldThumb(profile.cover_photo_url || profile.logo_url, 800)}
-              alt={profile.name}
-              loading="lazy"
-              decoding="async"
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            // Sin foto: la inicial y el nombre juntos abajo, en el flujo (no encima),
-            // así un nombre de varios renglones no la tapa y la tarjeta crece.
-            <div className="flex w-full items-center justify-center pt-5 text-5xl font-bold text-night/85">
-              {profile.name.charAt(0).toUpperCase()}
-            </div>
-          )}
-          {/* Letra blanca sobre el velo negro (no sobre la marca): `on-brand` es tinta en
-              claro y sobre el ámbar sin velo no alcanza en oscuro; mismo criterio que ShiftCard. */}
-          <div
-            className={`inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-5 pb-4 pt-10 ${hasImage ? "absolute" : ""}`}
-          >
-            <h1 className="font-display text-h1 font-semibold text-white drop-shadow-sm">{profile.name}</h1>
-            {profile.city && (
-              <p className="mt-0.5 inline-flex items-center gap-1 text-sm text-white/90">
-                <MapPinIcon size={14} /> {profile.city}
-              </p>
-            )}
-          </div>
-        </div>
+    <FichaSuave
+      titulo={profile.name}
+      bajada={bajada || undefined}
+      fotoUrl={profile.logo_url}
+      inicial={profile.name}
+      onVolver={goBack}
+    >
+      {profile.cover_photo_url && !portadaRota && (
+        // eslint-disable-next-line @next/next/no-img-element -- foto del local, ancho de la hoja
+        <img
+          src={cldThumb(profile.cover_photo_url, 800)}
+          alt={profile.name}
+          loading="lazy"
+          decoding="async"
+          onError={() => setPortadaRota(true)}
+          className="mb-6 h-44 w-full rounded-[20px] object-cover md:h-56"
+        />
+      )}
 
-        <div className="px-5 py-5">
-          <div className="flex items-center gap-2">
-            <RatingOrNew rating={profile.rating} completed={profile.events_published} />
-            {profile.events_published > 0 && (
-              <span className="text-sm text-ink/40">
-                {hasRating(profile.rating) ? "· " : ""}
-                {plural(profile.events_published, "turno publicado", "turnos publicados")}
-              </span>
-            )}
-          </div>
+      {/* Con coordenadas, la ubicación (mapa y «Cómo llegar») pasa a la columna
+          de al lado en lg+: es lo que hace falta para decidir si conviene ir
+          (Julieta, 2026-07-29). Sin ellas no hay contenido para una segunda
+          columna y no se fuerza la grilla. */}
+      <div className={hasCoords ? "lg:grid lg:grid-cols-5 lg:items-start lg:gap-10" : "lg:max-w-2xl"}>
+        <div className="flex flex-col gap-5 lg:col-span-3">
+          <ReputacionGrande
+            rating={profile.rating}
+            cantidad={profile.events_published}
+            singular="turno publicado"
+            varios="turnos publicados"
+            detalle={conPagos ? `pago a tiempo ${formatPunctuality(profile.on_time_payment_rate)}` : null}
+            conHistoria={conHistoria}
+            vacio={<p className="text-fila font-semibold text-ink-soft">{NEW_LABEL}</p>}
+          />
 
           {profile.owner_full_name && (
-            <p className="mt-2 text-sm text-ink/50">A cargo de {profile.owner_full_name}</p>
+            <p className="px-1 text-sm text-ink-soft">A cargo de {profile.owner_full_name}</p>
           )}
 
-          {profile.description && <p className="mt-4 text-sm text-ink/75">{profile.description}</p>}
+          {profile.description && <p className="break-words text-base text-ink">{profile.description}</p>}
 
-          {profile.category && (
-            <div className="mt-4">
-              <span className="rounded-full bg-surface px-3 py-1.5 text-sm font-semibold text-ink/70">
-                {CATEGORY_LABELS[profile.category] ?? profile.category}
-              </span>
-            </div>
-          )}
-
-          {hasPaymentRate(profile.payments_recorded, profile.events_published) && (
-            <div className="mt-5">
-              <RateMeter label="Pago a tiempo" rate={profile.on_time_payment_rate} />
-            </div>
-          )}
-
-          <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-            {profile.capacity != null && (
-              <Metric label="Capacidad" value={plural(profile.capacity, "persona", "personas")} />
-            )}
-            {profile.opening_hours && <Metric label="Horario" value={profile.opening_hours} />}
-            {profile.address && <Metric label="Dirección" value={profile.address} />}
-          </div>
-
-          {/* U110: discreto, sin acento (el ámbar de la pantalla es otro). */}
-          {user?.role === "worker" && (
-            <p className="mt-5 text-center">
-              <Link
-                href={reportCompanyHref(profile.id)}
-                className="text-sm font-semibold text-ink/50 underline-offset-2 hover:text-ink hover:underline"
-              >
-                Reportar un problema
-              </Link>
-            </p>
+          {hayDatos && (
+            <FilasSuaves as="dl">
+              {profile.capacity != null && (
+                <DatoSuave nombre="Capacidad" valor={plural(profile.capacity, "persona", "personas")} />
+              )}
+              {profile.opening_hours && <DatoSuave largo nombre="Horario" valor={profile.opening_hours} />}
+              {profile.address && <DatoSuave largo nombre="Dirección" valor={profile.address} />}
+            </FilasSuaves>
           )}
         </div>
-      </div>
 
-      {/* Ubicación: mapa + "cómo llegar" — antes era sólo el botón, apilado
-          debajo de la tarjeta principal. Acá también hace falta saber si
-          conviene ir, antes de postularse a un turno de este comercio
-          (Julieta, 2026-07-29). */}
-      {hasCoords && (
-        <div className="mt-7 lg:mt-0">
-          <p className="px-1 text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">
-            Ubicación
-          </p>
-          <div className="mt-2 overflow-hidden rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
+        {hasCoords && (
+          <section aria-labelledby="ubicacion" className="mt-7 lg:col-span-2 lg:mt-0">
+            <h2 id="ubicacion" className="px-1 text-caption font-semibold text-ink-soft">
+              Ubicación
+            </h2>
             <MiniMap
               latitude={profile.latitude as number}
               longitude={profile.longitude as number}
-              className="h-40 w-full"
+              className="mt-2 h-40 w-full !rounded-[20px]"
             />
-            <Button
-              variant="surface"
-              fullWidth
-              className="mt-3"
-              leftIcon={<RouteIcon size={16} />}
+            <button
+              type="button"
               onClick={() =>
                 window.open(
                   `https://www.google.com/maps/dir/?api=1&destination=${profile.latitude},${profile.longitude}`,
@@ -215,22 +175,25 @@ export default function PublicCompanyProfilePage() {
                   "noopener,noreferrer"
                 )
               }
+              className="boton boton-hondo mt-3 inline-flex min-h-[48px] w-full items-center justify-center gap-2 px-5 py-2 text-sm font-semibold transition active:scale-[0.98]"
             >
-              Cómo llegar
-            </Button>
-          </div>
-        </div>
-      )}
+              <RouteIcon size={16} /> Cómo llegar
+            </button>
+          </section>
+        )}
       </div>
-    </div>
-  );
-}
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl bg-surface px-3 py-2.5 ring-1 ring-line">
-      <p className="text-xs text-ink/50">{label}</p>
-      <p className="font-semibold text-ink">{value}</p>
-    </div>
+      {/* U110: discreto, sin acento. */}
+      {user?.role === "worker" && (
+        <p className="mt-8 text-center">
+          <Link
+            href={reportCompanyHref(profile.id)}
+            className="text-sm font-semibold text-ink-soft underline-offset-2 hover:text-ink hover:underline"
+          >
+            Reportar un problema
+          </Link>
+        </p>
+      )}
+    </FichaSuave>
   );
 }

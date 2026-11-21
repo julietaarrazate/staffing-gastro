@@ -6,15 +6,21 @@ import { api, ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { SKILL_LABELS, WorkerProfile } from "@/lib/types";
-import IdentityVerifiedBadge from "@/components/IdentityVerifiedBadge";
-import { SKILL_ACCENT } from "@/lib/skill-style";
-import { cldThumb } from "@/lib/cloudinary";
 import { CV_OPEN_ERROR, openCv } from "@/lib/cv";
-import { BADGE_ICONS, BADGE_LABELS, formatPunctuality, hasRate, hasRating, levelLabel } from "@/lib/reputation";
-import { BOTON_LISO, ErrorBanner, Skeleton } from "@/components/ui";
-import RatingOrNew from "@/components/RatingOrNew";
+import {
+  BADGE_ICONS,
+  BADGE_LABELS,
+  formatPunctuality,
+  hasRate,
+  hasRating,
+  levelLabel,
+  NEW_LABEL,
+} from "@/lib/reputation";
+import { ErrorBanner, Skeleton } from "@/components/ui";
+import FichaSuave from "@/components/profile/FichaSuave";
+import { DatoSuave, FilasSuaves, ReputacionGrande } from "@/components/profile/ProfileParts";
 import WorkerReviews from "@/components/WorkerReviews";
-import { BriefcaseIcon, ChevronLeftIcon, ClipboardIcon, DownloadIcon, HeartIcon, MapPinIcon } from "@/components/icons";
+import { AwardIcon, CheckIcon, ClipboardIcon, DownloadIcon, HeartIcon } from "@/components/icons";
 import { plural } from "@/lib/format";
 
 /** Botón "Favorito" (comercio → trabajador), sólo visible para empleadores
@@ -62,16 +68,16 @@ function FavoriteToggle({ workerProfileId, token }: { workerProfileId: string; t
 
   if (isFavorite === null) return null;
 
+  // «Agregar» es la acción de la pantalla (azul hondo, el ámbar no se usa acá);
+  // ya favorito, queda quieto con el corazón lleno.
   return (
     <button
       type="button"
       onClick={toggle}
       disabled={busy}
       aria-pressed={isFavorite}
-      className={`inline-flex min-h-[40px] items-center gap-1.5 rounded-[var(--radius-relieve)] px-3 py-1.5 text-sm font-semibold ring-1 transition active:scale-95 disabled:opacity-60 ${
-        isFavorite
-          ? "bg-primary/10 text-primary-text ring-primary/30"
-          : "bg-card text-ink ring-line hover:bg-surface"
+      className={`boton inline-flex min-h-[48px] w-full items-center justify-center gap-2 px-5 py-2 text-sm font-semibold transition active:scale-[0.98] disabled:opacity-60 ${
+        isFavorite ? "boton-quieto" : "boton-hondo"
       }`}
     >
       <HeartIcon size={16} filled={isFavorite} />
@@ -80,20 +86,14 @@ function FavoriteToggle({ workerProfileId, token }: { workerProfileId: string; t
   );
 }
 
-function ProfilePageSkeleton() {
+/** El esqueleto de la hoja: la reputación, unas líneas y las filas de datos. */
+function EsqueletoHoja() {
   return (
-    <div className="app-container px-4 py-8" aria-hidden>
-      <div className="overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line">
-        <Skeleton className="h-56 w-full rounded-none" />
-        <div className="space-y-4 px-5 py-5">
-          <Skeleton className="h-5 w-1/3" />
-          <Skeleton className="h-4 w-2/3" />
-          <div className="grid grid-cols-2 gap-3">
-            <Skeleton className="h-16 rounded-2xl" />
-            <Skeleton className="h-16 rounded-2xl" />
-          </div>
-        </div>
-      </div>
+    <div aria-hidden>
+      <Skeleton className="h-16 w-56" />
+      <Skeleton className="mt-5 h-4 w-full" />
+      <Skeleton className="mt-2 h-4 w-2/3" />
+      <Skeleton className="mt-5 h-40 w-full rounded-[18px]" />
     </div>
   );
 }
@@ -130,19 +130,21 @@ export default function PublicWorkerProfilePage() {
     load();
   }, [load]);
 
-  if (loading) return <ProfilePageSkeleton />;
+  if (loading) {
+    return (
+      <FichaSuave cargando>
+        <EsqueletoHoja />
+      </FichaSuave>
+    );
+  }
   if (error) {
     return (
-      <div className="app-container px-4 py-8">
+      <FichaSuave>
         <ErrorBanner message={error} onRetry={load} />
-        <button
-          type="button"
-          onClick={goBack}
-          className="mt-3 text-sm font-semibold text-ink/50 underline underline-offset-2 hover:text-ink"
-        >
+        <button type="button" onClick={goBack} className="boton boton-quieto mt-4 min-h-[44px] px-5 text-sm font-semibold">
           Volver
         </button>
-      </div>
+      </FichaSuave>
     );
   }
   if (!profile) return null;
@@ -157,120 +159,75 @@ export default function PublicWorkerProfilePage() {
     if (!(await openCv(profile.id, token, download))) setCvError(CV_OPEN_ERROR);
   };
 
+  // Un puesto que esta versión de la app no conoce no se nombra.
+  const puestos = profile.skills.filter((skill) => SKILL_LABELS[skill]);
+  const conHistoria = hasRate(profile.events_completed) || hasRating(profile.rating);
+
   return (
-    <div className="app-container px-4 py-8">
-      {/* Se llega desde Candidatos, Buscar, Favoritos o un chat: «volver»
-          retrocede a donde estaba la persona. */}
-      <button
-        type="button"
-        onClick={goBack}
-        className="mb-3 inline-flex min-h-[44px] items-center gap-1 text-sm font-semibold text-ink/60 transition hover:text-ink"
-      >
-        <ChevronLeftIcon size={16} /> Volver
-      </button>
-      {/* En lg+ las reseñas pasan a una columna secundaria al lado (mismo
-          criterio que /profile, docs/STATUS.md): es contenido de largo
-          variable que antes quedaba apilado debajo de la tarjeta principal,
-          dejando media pantalla vacía a los costados. Sin `lg:grid`, en
-          mobile/tablet sigue siendo un único stack en el mismo orden. */}
-      <div className="lg:grid lg:grid-cols-3 lg:items-start lg:gap-6">
-      <div className="lg:col-span-2 overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line">
-        <div className="relative h-56 w-full bg-gradient-to-br from-primary to-primary-strong">
-          {profile.photo_url ? (
-            <img src={cldThumb(profile.photo_url, 800)} alt={name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-6xl font-bold text-night/85">
-              {name.charAt(0).toUpperCase()}
-            </div>
+    <FichaSuave
+      titulo={profile.age != null ? `${name}, ${profile.age}` : name}
+      bajada={profile.city ?? undefined}
+      fotoUrl={profile.photo_url}
+      inicial={name}
+      onVolver={goBack}
+      sello={
+        profile.identidad_verificada && (
+          <span className="chip-suave text-success-text">
+            <CheckIcon size={14} strokeWidth={2.6} aria-hidden />
+            Identidad verificada
+          </span>
+        )
+      }
+    >
+      {/* En lg+ las reseñas pasan a la columna de al lado, sobre la misma
+          hoja (mismo criterio que el perfil propio); en el celular van debajo,
+          en el mismo orden. Lo que más ayuda al comercio a vetear antes de
+          asignar. */}
+      <div className="lg:grid lg:grid-cols-5 lg:items-start lg:gap-10">
+        <div className="flex flex-col gap-5 lg:col-span-3">
+          <ReputacionGrande
+            rating={profile.rating}
+            cantidad={profile.events_completed}
+            singular="turno hecho"
+            varios="turnos hechos"
+            detalle={hasRate(profile.events_completed) ? `puntualidad ${formatPunctuality(profile.punctuality_rate)}` : null}
+            conHistoria={conHistoria}
+            vacio={<p className="text-fila font-semibold text-ink-soft">{NEW_LABEL}</p>}
+          />
+
+          {/* Sólo el comercio (el propio trabajador no ve ni sabe quién lo
+              favoriteó: bookmark privado y unidireccional). */}
+          {user?.role === "employer" && token && <FavoriteToggle workerProfileId={params.id} token={token} />}
+
+          {profile.bio && <p className="break-words text-base text-ink">{profile.bio}</p>}
+
+          {puestos.length > 0 && (
+            <ul className="flex flex-wrap gap-1.5">
+              {puestos.map((skill) => (
+                <li key={skill} className="chip-suave">
+                  {SKILL_LABELS[skill]}
+                </li>
+              ))}
+            </ul>
           )}
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-5 pb-4 pt-10">
-            <h1 className="font-display text-h1 font-semibold text-white drop-shadow-sm">
-              {name}
-              {profile.age != null && <span className="font-normal">, {profile.age}</span>}
-            </h1>
-            {profile.city && (
-              <p className="mt-0.5 inline-flex items-center gap-1 text-sm text-white/90">
-                <MapPinIcon size={14} /> {profile.city}
-              </p>
+
+          <FilasSuaves as="dl">
+            <DatoSuave nombre="Experiencia" valor={plural(profile.years_experience, "año", "años")} />
+            <DatoSuave nombre="Nivel" valor={levelLabel(profile.level)} />
+            <DatoSuave nombre="Disponibilidad" valor={profile.is_available ? "Disponible" : "No disponible"} />
+            {profile.languages.length > 0 && <DatoSuave largo nombre="Idiomas" valor={profile.languages.join(", ")} />}
+            {profile.certifications.length > 0 && (
+              <DatoSuave largo nombre="Certificaciones" valor={profile.certifications.join(", ")} />
             )}
-          </div>
-        </div>
-
-        <div className="px-5 py-5">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <RatingOrNew rating={profile.rating} completed={profile.events_completed} />
-              {profile.events_completed > 0 && (
-                <span className="text-sm text-ink/40">
-                  {hasRating(profile.rating) ? "· " : ""}
-                  {plural(profile.events_completed, "evento", "eventos")}
-                </span>
-              )}
-            </div>
-            {user?.role === "employer" && token && (
-              <FavoriteToggle workerProfileId={params.id} token={token} />
-            )}
-          </div>
-
-          {profile.identidad_verificada && (
-            <div className="mt-3">
-              <IdentityVerifiedBadge verified />
-            </div>
-          )}
-
-          {profile.bio && <p className="mt-4 text-sm text-ink/75">{profile.bio}</p>}
-
-          {profile.skills.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              {profile.skills.map((skill) => {
-                const { Icon, bg, fg } = SKILL_ACCENT[skill];
-                return (
-                  <span
-                    key={skill}
-                    className={`inline-flex items-center gap-1.5 rounded-full ${bg} ${fg} px-3 py-1.5 text-sm font-semibold`}
-                  >
-                    <Icon size={14} /> {SKILL_LABELS[skill]}
-                  </span>
-                );
-              })}
-            </div>
-          )}
-
-          <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
-            <Metric label="Experiencia" value={`${profile.years_experience} años`} />
-            {hasRate(profile.events_completed) && (
-              <Metric label="Puntualidad" value={formatPunctuality(profile.punctuality_rate)} />
-            )}
-            <Metric label="Nivel" value={levelLabel(profile.level)} />
-            <Metric
-              label="Disponibilidad"
-              value={profile.is_available ? "Disponible" : "No disponible"}
-            />
-          </div>
-
-          {profile.languages.length > 0 && (
-            <div className="mt-5">
-              <p className="text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">Idiomas</p>
-              <p className="mt-1 text-sm text-ink/75">{profile.languages.join(", ")}</p>
-            </div>
-          )}
-
-          {profile.certifications.length > 0 && (
-            <div className="mt-4">
-              <p className="text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">
-                Certificaciones
-              </p>
-              <p className="mt-1 text-sm text-ink/75">{profile.certifications.join(", ")}</p>
-            </div>
-          )}
+          </FilasSuaves>
 
           {profile.cv_kind && (
-            <div className="mt-4">
+            <div>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => void abrirCv(false)}
-                  className={`${BOTON_LISO} gap-2 px-4 py-2 text-sm`}
+                  className="boton boton-quieto inline-flex min-h-[44px] items-center justify-center gap-2 px-4 py-2 text-sm font-semibold transition active:scale-95"
                 >
                   <ClipboardIcon size={16} /> Ver CV
                 </button>
@@ -279,7 +236,7 @@ export default function PublicWorkerProfilePage() {
                   <button
                     type="button"
                     onClick={() => void abrirCv(true)}
-                    className={`${BOTON_LISO} gap-2 px-4 py-2 text-sm`}
+                    className="boton boton-quieto inline-flex min-h-[44px] items-center justify-center gap-2 px-4 py-2 text-sm font-semibold transition active:scale-95"
                   >
                     <DownloadIcon size={16} /> Descargar
                   </button>
@@ -294,48 +251,32 @@ export default function PublicWorkerProfilePage() {
           )}
 
           {profile.badges.length > 0 && (
-            <div className="mt-4">
-              <p className="text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">
-                Insignias
-              </p>
-              <div className="mt-1.5 flex flex-wrap gap-2">
+            <div>
+              <h2 className="px-1 text-caption font-semibold text-ink-soft">Insignias</h2>
+              <ul className="mt-2 flex flex-wrap gap-1.5">
                 {profile.badges.map((badge) => {
-                  const Icon = BADGE_ICONS[badge] ?? BriefcaseIcon;
+                  const Icon = BADGE_ICONS[badge] ?? AwardIcon;
                   return (
-                    <span
-                      key={badge}
-                      className="inline-flex items-center gap-1 rounded-full bg-primary-tint px-2.5 py-1 text-xs font-bold text-primary-text shadow-sm"
-                    >
-                      <Icon size={12} /> {BADGE_LABELS[badge] ?? badge}
-                    </span>
+                    <li key={badge} className="chip-suave">
+                      <Icon size={14} className="text-primary-text" aria-hidden />
+                      {BADGE_LABELS[badge] ?? badge}
+                    </li>
                   );
                 })}
-              </div>
+              </ul>
             </div>
           )}
-
         </div>
-      </div>
 
-      {/* Reseñas: lo que más ayuda al comercio a vetear antes de asignar. */}
-      <div className="mt-7 lg:mt-0">
-        <p className="px-1 text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">
-          Reseñas
-        </p>
-        <div className="mt-2 rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
-          <WorkerReviews workerProfileId={params.id} />
-        </div>
+        <section aria-labelledby="resenas" className="mt-7 lg:col-span-2 lg:mt-0">
+          <h2 id="resenas" className="px-1 text-caption font-semibold text-ink-soft">
+            Reseñas
+          </h2>
+          <div className="mt-2">
+            <WorkerReviews workerProfileId={params.id} suave />
+          </div>
+        </section>
       </div>
-      </div>
-    </div>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl bg-surface px-3 py-2.5 ring-1 ring-line">
-      <p className="text-xs text-ink/50">{label}</p>
-      <p className="font-semibold text-ink">{value}</p>
-    </div>
+    </FichaSuave>
   );
 }

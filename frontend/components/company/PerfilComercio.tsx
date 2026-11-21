@@ -5,15 +5,14 @@ import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import type { CompanyProfile } from "@/lib/types";
-import { formatPunctuality, formatRating, hasPaymentRate, hasRating } from "@/lib/reputation";
+import { formatPunctuality, hasPaymentRate } from "@/lib/reputation";
 import { ErrorBanner, NubesCielo, Skeleton } from "@/components/ui";
 import BusinessVerificationCard from "@/components/company/BusinessVerificationCard";
 import LateCancellations from "@/components/company/LateCancellations";
 import EditableName from "@/components/EditableName";
 import ReceivedReviews from "@/components/ReceivedReviews";
-import { Estrellas, FilaSuave, FilasSuaves } from "@/components/profile/ProfileParts";
+import { FilaSuave, FilasSuaves, ReputacionGrande } from "@/components/profile/ProfileParts";
 import { CheckIcon, PencilIcon } from "@/components/icons";
-import { plural } from "@/lib/format";
 
 /**
  * El Perfil del comercio, con la dirección suave (ADR-0028; sin maqueta: con
@@ -145,44 +144,21 @@ export default function PerfilComercio() {
             {error && <ErrorBanner message={error} />}
 
             {/* La reputación, como la ve quien trabaja en la ficha del local. */}
-            {profile &&
-              (conHistoria ? (
-                <div className="flex items-end gap-3.5">
-                  {hasRating(profile.rating) ? (
-                    <>
-                      <p className="perfil-numero">
-                        <span className="sr-only">Calificación: </span>
-                        {formatRating(profile.rating)}
-                      </p>
-                      <div className="min-w-0 pb-1">
-                        <Estrellas valor={profile.rating} size={17} />
-                        <p className="mt-1 text-sm text-ink-soft">
-                          {plural(profile.events_published, "turno publicado", "turnos publicados")}
-                          {conPagos && <> · pago a tiempo {formatPunctuality(profile.on_time_payment_rate)}</>}
-                        </p>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <p className="perfil-numero">{profile.events_published}</p>
-                      <div className="min-w-0 pb-1">
-                        <p className="text-fila font-semibold text-ink">
-                          {profile.events_published === 1 ? "turno publicado" : "turnos publicados"}
-                        </p>
-                        {conPagos && (
-                          <p className="mt-0.5 text-sm text-ink-soft">
-                            pago a tiempo {formatPunctuality(profile.on_time_payment_rate)}
-                          </p>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              ) : (
-                <p className="text-fila font-semibold text-ink-soft">
-                  Tu reputación arranca con tu primer turno.
-                </p>
-              ))}
+            {profile && (
+              <ReputacionGrande
+                rating={profile.rating}
+                cantidad={profile.events_published}
+                singular="turno publicado"
+                varios="turnos publicados"
+                detalle={conPagos ? `pago a tiempo ${formatPunctuality(profile.on_time_payment_rate)}` : null}
+                conHistoria={conHistoria}
+                vacio={
+                  <p className="text-fila font-semibold text-ink-soft">
+                    Tu reputación arranca con tu primer turno.
+                  </p>
+                }
+              />
+            )}
 
             {/* Sin reseñas no se muestra nada (sobrecarga visual, 2026-09-30). */}
             <ReceivedReviews suave />

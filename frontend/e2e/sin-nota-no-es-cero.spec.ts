@@ -77,16 +77,15 @@ test("perfil público: persona nueva sin 0,0 ni Puntualidad; con historial, nota
   await page.goto("/workers/wp-nueva");
   await expect(page.getByRole("heading", { name: /Nueva Sinhistoria/ })).toBeVisible();
   await expect(page.getByText("Nuevo en Oído")).toBeVisible();
-  await expect(page.getByText("Puntualidad", { exact: true })).toHaveCount(0);
+  await expect(page.getByText(/puntualidad/i)).toHaveCount(0);
   const cuerpo = (await page.locator("main").innerText()) + "";
   expect(cuerpo).not.toMatch(/0[.,]0\b/);
   await expect(page.getByRole("button", { name: /estrella/ })).toHaveCount(0);
 
   await page.goto("/workers/wp-vet");
   await expect(page.getByRole("heading", { name: /Vera Veterana/ })).toBeVisible();
-  await expect(page.getByText("4,6", { exact: true })).toBeVisible();
-  await expect(page.getByText("Puntualidad", { exact: true })).toBeVisible();
-  await expect(page.getByText("95%", { exact: true })).toBeVisible();
+  await expect(page.locator(".perfil-numero")).toHaveText(/4,6/);
+  await expect(page.getByText(/puntualidad 95%/)).toBeVisible();
   await expect(page.getByText("Nuevo en Oído")).toHaveCount(0);
 });
 
@@ -205,26 +204,26 @@ test("perfil del comercio: con turnos pero sin pagos no hay «Pago a tiempo» ni
 
   await page.goto("/companies/c-nuevo");
   await expect(page.getByRole("heading", { name: "Bar Nuevo" })).toBeVisible();
-  await expect(page.getByText("3 turnos publicados")).toBeVisible();
+  await expect(page.locator(".perfil-numero")).toHaveText("3");
+  await expect(page.getByText("turnos publicados", { exact: true })).toBeVisible();
   await expect(page.getByText("Nuevo en Oído")).toHaveCount(0);
   await expect(page.getByText("Pago a tiempo")).toHaveCount(0);
   expect(await page.locator("main").innerText()).not.toMatch(/0[.,]0\b|\b0%/);
 
   await page.goto("/companies/c-hist");
   await expect(page.getByRole("heading", { name: "Bar Historia" })).toBeVisible();
-  await expect(page.getByText("Pago a tiempo")).toBeVisible();
-  await expect(page.getByText("90%")).toBeVisible();
-  await expect(page.getByText("4,2", { exact: true })).toBeVisible();
+  await expect(page.getByText(/pago a tiempo 90%/)).toBeVisible();
+  await expect(page.locator(".perfil-numero")).toHaveText(/4,2/);
 });
 
-test("perfil público: con turnos y sin reseñas no dice «Nuevo en Oído» junto a «3 eventos»", async ({ page }) => {
+test("perfil público: con turnos y sin reseñas no dice «Nuevo en Oído» junto a «3 turnos hechos»", async ({ page }) => {
   await setup(page);
   await page.route("**/api/v1/workers/wp-turnos", (r) =>
     r.fulfill(json(perfil({ id: "wp-turnos", full_name: "Tomás Turnos", events_completed: 3, punctuality_rate: 1 })))
   );
   await page.goto("/workers/wp-turnos");
   await expect(page.getByRole("heading", { name: /Tomás Turnos/ })).toBeVisible();
-  await expect(page.getByText("3 eventos")).toBeVisible();
+  await expect(page.locator(".perfil-numero")).toHaveText("3");
+  await expect(page.getByText("turnos hechos", { exact: true })).toBeVisible();
   await expect(page.getByText("Nuevo en Oído")).toHaveCount(0);
-  await expect(page.getByText("· 3 eventos")).toHaveCount(0);
 });

@@ -61,7 +61,9 @@ qué responde cada pantalla está en
 
 - ✅ **Mi plan** (`app/subscription/page.tsx`) · #715 · [historial](../historial/2026-11-21-mi-plan-direccion-suave.md) · sin maqueta: con `SubpaginaSuave`; un solo botón ámbar (`accionesDelPlanActual` y `planDestacado` en `lib/subscription.ts`); textos y precios sin cambios
 
-- ⬜ **Fichas, Favoritos, Soporte**
+- ✅ **Fichas** (`/workers/[id]`, `/companies/[id]`) · #PR · [historial](../historial/2026-11-21-fichas-direccion-suave.md) · sin maqueta: cada ficha es lo que la persona ve en su propio perfil, visto desde afuera (`FichaSuave`); «Agregar a favoritos» y «Cómo llegar» en azul hondo, sin ámbar
+
+- ⬜ **Favoritos y Soporte**
 
 - ✅ **Perfil del comercio** (`components/company/PerfilComercio.tsx`) · #714 · [historial](../historial/2026-11-21-perfil-comercio-direccion-suave.md) · sin maqueta: con las piezas del Perfil de quien trabaja; el título es el nombre del local y la reputación va en grande; el logo se cambia en «Datos del comercio»
 
