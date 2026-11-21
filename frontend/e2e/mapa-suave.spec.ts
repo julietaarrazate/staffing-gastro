@@ -163,12 +163,17 @@ for (const theme of ["light", "dark"] as const) {
   });
 }
 
-test("de noche el mapa base se apaga (sólo el lienzo, no los pines); de día no lleva filtro", async ({ page }) => {
+test("de noche el mapa base se pinta capa por capa (sin filtro sobre el lienzo) y cambiar de tema no recarga la página", async ({ page }) => {
   await mapa(page, "dark");
-  await expect(page.locator(".maplibregl-canvas").first()).toHaveCSS("filter", /invert/);
+  // Ya no se invierte el mapa de día con un filtro CSS (salía marrón): el estilo de noche lo pinta.
+  await expect(page.locator(".maplibregl-canvas").first()).toHaveCSS("filter", "none");
   await expect(page.getByRole("button", { name: /^Turno de Bartender/ })).toHaveCSS("filter", "none");
+  await page.evaluate(() => ((window as unknown as { __marca: number }).__marca = 7));
   await page.evaluate(() => document.documentElement.setAttribute("data-theme", "light"));
   await expect(page.locator(".maplibregl-canvas").first()).toHaveCSS("filter", "none");
+  // El mapa sigue ahí, con sus pines, y la página no se recargó.
+  await expect(page.getByRole("button", { name: /^Turno de Bartender/ })).toBeVisible();
+  expect(await page.evaluate(() => (window as unknown as { __marca?: number }).__marca)).toBe(7);
 });
 
 test("sin turnos, en el celular el aviso es una tarjeta baja que deja ver el mapa, con sus dos acciones", async ({ page }) => {

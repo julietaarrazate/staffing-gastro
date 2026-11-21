@@ -13,6 +13,7 @@ import {
   forwardRef,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useRef,
   useState,
   type ReactNode,
@@ -24,7 +25,43 @@ import {
   type MapRef,
   type ViewStateChangeEvent,
 } from "@vis.gl/react-maplibre";
-import { MAP_STYLE_URL } from "@/lib/map/style";
+import {
+  MAP_STYLE_URL,
+  aplicarTemaAlMapa,
+  cargarEstilos,
+  estilosCargados,
+  type EstilosDelMapa,
+} from "@/lib/map/style";
+import type { StyleSpecification } from "maplibre-gl";
+
+type Tema = "light" | "dark";
+
+/** El tema que está pintado en <html> (lo escribe `lib/theme.tsx`; el CSS lee lo mismo). */
+function leerTemaPintado(): Tema {
+  return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+}
+
+/**
+ * El tema pintado ahora, en vivo. Se lee del atributo `data-theme` y no del
+ * contexto de `ThemeProvider` a propósito: el contexto arranca en «claro» y
+ * recién después de montar lee lo guardado, así que el primer render de un
+ * mapa en oscuro se construía con el estilo de día (un destello claro). El
+ * atributo ya lo puso el script anti-flash antes del primer pintado. Hasta
+ * medirlo devuelve `null` y el mapa todavía no se construye.
+ */
+function useTemaPintado(): Tema | null {
+  const [tema, setTema] = useState<Tema | null>(null);
+  useLayoutEffect(() => {
+    setTema(leerTemaPintado());
+    const ob = new MutationObserver(() => setTema(leerTemaPintado()));
+    ob.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+    return () => ob.disconnect();
+  }, []);
+  return tema;
+}
 
 export interface MapViewProps {
   /**
@@ -170,10 +207,36 @@ const MapView = forwardRef<MapRef, MapViewProps>(function MapView(
     attribution = true,
     cooperativeGestures = false,
   },
-  forwardedRef
+  forwardedRef,
 ) {
   const mapRef = useRef<MapRef>(null);
   useImperativeHandle(forwardedRef, () => mapRef.current as MapRef, []);
+
+  // Mapa de noche: no es un filtro sobre el de día sino el mismo estilo con la
+  // pintura de cada capa recoloreada (`lib/map/style.ts`). Entrando de noche
+  // el mapa no se construye hasta tener el estilo de noche, así nunca se ve
+  // primero el claro; de día se sigue pasando la URL de siempre. Cambiar de
+  // tema con el mapa abierto repinta las capas en el lugar (`setPaintProperty`):
+  // no recarga el estilo, así que no se mueve la cámara ni se caen las capas
+  // que las pantallas montan encima.
+  const tema = useTemaPintado();
+  const temaRef = useRef<Tema | null>(tema);
+  useLayoutEffect(() => {
+    temaRef.current = tema;
+  }, [tema]);
+  const [estilos, setEstilos] = useState<EstilosDelMapa | null>(() => estilosCargados());
+  const [estiloFallo, setEstiloFallo] = useState(false);
+  useEffect(() => {
+    if (tema !== "dark" || estilos) return;
+    let vivo = true;
+    cargarEstilos().then(
+      (e) => vivo && setEstilos(e),
+      () => vivo && setEstiloFallo(true),
+    );
+    return () => {
+      vivo = false;
+    };
+  }, [tema, estilos]);
 
   // Los hijos se montan DESPUÉS del `load`, nunca antes. Un `Source`/`Layer`
   // agregado mientras el estilo todavía está cargando deja a maplibre 6 con
@@ -205,12 +268,47 @@ const MapView = forwardRef<MapRef, MapViewProps>(function MapView(
   // reintentar sobre la misma instancia no sirve, el estilo ya falló en ella.
   const [intento, setIntento] = useState(0);
 
+  // El estilo con el que se construye cada `Map` queda fijo (cambiar `mapStyle`
+  // después haría `setStyle` y tiraría las capas de las pantallas): se elige una
+  // vez por intento, con el tema de ese momento.
+  const puedeMontar = tema !== null && (tema === "light" || estilos !== null || estiloFallo);
+  const [construccion, setConstruccion] = useState<{
+    intento: number;
+    estilo: string | StyleSpecification;
+  } | null>(null);
+  useLayoutEffect(() => {
+    if (!puedeMontar || construccion?.intento === intento) return;
+    setConstruccion({
+      intento,
+      estilo: tema === "dark" && estilos ? estilos.noche : MAP_STYLE_URL,
+    });
+  }, [puedeMontar, construccion, intento, tema, estilos]);
+  const mapStyle = construccion?.intento === intento ? construccion.estilo : null;
+
+  // Con el mapa cargado, el tema vigente: cubre el cambio en vivo y el mapa
+  // reciclado de otro tema (ver `onLoad`, que lo hace antes del primer pintado).
+  useEffect(() => {
+    if (!loaded || !tema) return;
+    const raw = mapRef.current?.getMap();
+    if (!raw) return;
+    const e = estilosCargados();
+    if (e) aplicarTemaAlMapa(raw, tema, e);
+    else if (tema === "dark") {
+      void cargarEstilos().then(
+        (est) => temaRef.current && aplicarTemaAlMapa(raw, temaRef.current, est),
+        () => {},
+      );
+    }
+  }, [loaded, tema, intento]);
+
   // `onLoad` se avisa desde un efecto y no dentro del evento `load`: en un mapa
   // reciclado (`reuseMaps`) ese evento llega antes de que React asigne
   // `mapRef.current`, y quien esperaba el `MapRef` (el encuadre de
   // `EnRouteMap`, U071) no se enteraba nunca al volver a una pantalla.
   const onLoadRef = useRef(onLoad);
-  onLoadRef.current = onLoad;
+  useLayoutEffect(() => {
+    onLoadRef.current = onLoad;
+  });
   useEffect(() => {
     if (loaded && mapRef.current) onLoadRef.current?.(mapRef.current);
   }, [loaded, intento]);
@@ -230,35 +328,49 @@ const MapView = forwardRef<MapRef, MapViewProps>(function MapView(
           por Tailwind, no el orden en el atributo, así que agregarlo ahí era
           jugarse el posicionamiento del mapa a pantalla completa. */}
       <div className="relative h-full w-full">
-        <MapGl
-          key={intento}
-          ref={mapRef}
-          reuseMaps
-          interactive={interactive}
-          cooperativeGestures={cooperativeGestures}
-          locale={MAP_LOCALE_ES}
-          initialViewState={{ longitude: center[1], latitude: center[0], zoom }}
-          mapStyle={MAP_STYLE_URL}
-          attributionControl={false}
-          style={{ width: "100%", height: "100%" }}
-          onLoad={(e: MapEvent) => {
-            // En un mapa reciclado (`reuseMaps`) este evento se dispara de forma
-            // SÍNCRONA dentro de `Maplibre.reuse()` (maplibre/maplibre.js) si el
-            // estilo ya estaba cargado de un montaje anterior — antes de que
-            // React actualice `mapRef.current` vía `useImperativeHandle`. Por
-            // eso usamos `e.target` (el `mapboxgl.Map` real, disponible ya) en
-            // vez de `mapRef.current` para sincronizar los handlers.
-            syncInteractiveHandlers(e.target, interactive);
-            syncCooperativeGestures(e.target, cooperativeGestures);
-            syncCamera(e.target, center, zoom);
-            setLoaded(true);
-            setFalloCarga(false);
-          }}
-          onMoveEnd={onMoveEnd}
-        >
-          {attribution && <AttributionControl compact position="bottom-right" />}
-          {loaded && children}
-        </MapGl>
+        {!mapStyle ? (
+          // Mientras llega el estilo de noche: el mismo lienzo (en la dirección
+          // suave, el cielo) y no un mapa claro.
+          <div className="maplibregl-map" style={{ width: "100%", height: "100%" }} />
+        ) : (
+          <MapGl
+            key={intento}
+            ref={mapRef}
+            reuseMaps
+            interactive={interactive}
+            cooperativeGestures={cooperativeGestures}
+            locale={MAP_LOCALE_ES}
+            initialViewState={{
+              longitude: center[1],
+              latitude: center[0],
+              zoom,
+            }}
+            mapStyle={mapStyle}
+            attributionControl={false}
+            style={{ width: "100%", height: "100%" }}
+            onLoad={(e: MapEvent) => {
+              // En un mapa reciclado (`reuseMaps`) este evento se dispara de forma
+              // SÍNCRONA dentro de `Maplibre.reuse()` (maplibre/maplibre.js) si el
+              // estilo ya estaba cargado de un montaje anterior — antes de que
+              // React actualice `mapRef.current` vía `useImperativeHandle`. Por
+              // eso usamos `e.target` (el `mapboxgl.Map` real, disponible ya) en
+              // vez de `mapRef.current` para sincronizar los handlers.
+              syncInteractiveHandlers(e.target, interactive);
+              syncCooperativeGestures(e.target, cooperativeGestures);
+              syncCamera(e.target, center, zoom);
+              // Un mapa reciclado puede venir pintado en el otro tema: se corrige
+              // acá, en el mismo `load`, antes del primer cuadro.
+              const est = estilosCargados();
+              if (est && temaRef.current) aplicarTemaAlMapa(e.target, temaRef.current, est);
+              setLoaded(true);
+              setFalloCarga(false);
+            }}
+            onMoveEnd={onMoveEnd}
+          >
+            {attribution && <AttributionControl compact position="bottom-right" />}
+            {loaded && children}
+          </MapGl>
+        )}
         {falloCarga && !loaded && (
           <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-3 bg-surface p-6 text-center">
             <p className="text-sm font-semibold text-ink">No pudimos cargar el mapa</p>
