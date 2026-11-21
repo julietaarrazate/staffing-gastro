@@ -88,7 +88,7 @@ Julieta vio las maquetas (dos vueltas de prototipos; el código, **que no se mer
 
 4. ⬜ **El Panel del comercio, compacto y con la tira** (decidido) · sin el renglón de pestañas; la lista agrupada por estado. El cielo más bajo, para que el primer turno se vea sin bajar: sin los tres contadores; «Evento» como chip chico junto al estado; la acción pendiente en una fila con el ámbar a la derecha; la tira debajo. **El número del cielo cuenta los turnos del día** (hoy por defecto; al tocar otro día, ese día): «Hoy tenés 3 turnos», con «1 sin cubrir» si hay; sin turnos hoy, «Hoy no tenés turnos» y el próximo. **Sin acción pendiente no va «Publicar turno» en el cielo** (queda el «+» de la barra); en el Panel vacío sí. «Más adelante» como en Mis turnos, con los «Buscando» primero. Falta mirarlo en la compu.
 
-5. ⬜ **El mapa de quien trabaja** · pines con el ícono del rubro y el pago; al acercar, el nombre del local en una pastilla del color de la tecla (se voltea a la izquierda si no entra); chips «Hoy», «Mañana», «Fin de semana» (uno a la vez) y «Paga más».
+5. ✅ **El mapa de quien trabaja** (2026-11-21, #PR) · pines con el ícono del rubro y el pago; al acercar, el nombre del local en una pastilla del color de la tecla (se voltea a la izquierda si no entra); chips «Hoy», «Mañana», «Fin de semana» (uno a la vez) y «Paga más».
 
 6. ⬜ **Accesos por rubro en Buscar de quien trabaja** · teclas con ícono y nombre en vez de los chips del cielo.
 

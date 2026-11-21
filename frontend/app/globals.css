@@ -5007,3 +5007,115 @@ body:has([data-landing]) main {
   font-family: inherit;
   font-weight: 700;
 }
+
+/* ===== `/map`: pines con ícono, nombre del local y chips (2026-11-21) ===== */
+/* El ícono del rubro en el pin, antes del pago: azul hondo sobre la tecla
+   blanca; en el pin elegido (azul hondo), blanco. */
+.estilo-suave .pin-turno .pin-rubro {
+  color: var(--color-primary-text);
+}
+.estilo-suave .pin-turno[aria-pressed="true"] .pin-rubro {
+  color: #ffffff;
+}
+/* El nombre del local: una pastilla del color de la tecla (blanca de día,
+   azul noche de noche), con la misma sombra, una línea y «…» al pasar de
+   140 px (el ancho exacto lo fija `lib/map/pastillas.ts`). Vive dentro del
+   botón del pin: tocarla es tocar el pin. A la derecha del pin o, si ahí no
+   entra, a la izquierda (`data-lado`). */
+.estilo-suave .pin-nombre {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 4px);
+  transform: translateY(-50%);
+  box-sizing: border-box;
+  max-width: 140px;
+  height: 24px;
+  padding: 0 9px;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 999px;
+  background: var(--suave-tecla, #ffffff);
+  color: var(--color-ink);
+  box-shadow:
+    0 10px 24px rgba(15, 58, 91, 0.2),
+    0 0 0 1px rgba(15, 58, 91, 0.16);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 24px;
+}
+.estilo-suave .pin-nombre[data-lado="izquierda"] {
+  left: auto;
+  right: calc(100% + 4px);
+}
+:root[data-theme="dark"] .estilo-suave .pin-nombre {
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+/* Los chips del mapa: una fila bajo el título que se desliza de costado. El
+   botón mide 44 px (lo que se toca) y la cara de vidrio, 36. El elegido, en la
+   tecla blanca (en el panel de la compu, azul hondo como los chips de Buscar). */
+.estilo-suave .chips-mapa {
+  display: flex;
+  gap: 0;
+  margin: 2px -20px 0;
+  padding: 0 20px;
+  overflow-x: auto;
+}
+.estilo-suave .chips-mapa[data-variante="panel"] {
+  margin: 6px -4px 0;
+  padding: 0 4px;
+}
+.estilo-suave .chip-mapa {
+  flex: none;
+  min-height: 44px;
+  padding: 4px 3px;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.estilo-suave .chip-mapa-cara {
+  min-height: 36px;
+  padding: 0 10px;
+  white-space: nowrap;
+  transition: transform 0.12s ease;
+}
+.estilo-suave .chip-mapa:active .chip-mapa-cara {
+  transform: scale(0.96);
+}
+.estilo-suave .chip-mapa:focus-visible {
+  outline: 2px solid var(--color-primary-text);
+  outline-offset: -2px;
+  border-radius: 999px;
+}
+.estilo-suave .chip-mapa[aria-pressed="true"] .chip-vidrio,
+:root[data-theme="dark"] .estilo-suave .chip-mapa[aria-pressed="true"] .chip-vidrio {
+  background: #ffffff;
+  color: #0f3a5b;
+  font-weight: 700;
+  box-shadow: 0 6px 14px rgba(15, 58, 91, 0.18);
+}
+.estilo-suave .chip-mapa[aria-pressed="true"] .chip-suave {
+  background: var(--suave-elegido);
+  color: #ffffff;
+  font-weight: 700;
+}
+@media (prefers-reduced-motion: reduce) {
+  .estilo-suave .chip-mapa-cara {
+    transition: none;
+  }
+}
+/* Sin resultados con un filtro puesto: una línea tranquila en la hoja. */
+.estilo-suave .mapa-sin-filtro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0;
+  color: var(--color-ink-soft);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
