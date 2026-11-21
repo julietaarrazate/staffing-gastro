@@ -1,4 +1,4 @@
-# Buscar del comercio con la dirección suave (#PR)
+# Buscar del comercio con la dirección suave (#717)
 
 **Pedido:** Julieta, 2026-11-21, tanda de pantallas en paralelo para seguir la
 migración a la dirección suave (ADR-0028). Sin maqueta: `/search` es la gemela

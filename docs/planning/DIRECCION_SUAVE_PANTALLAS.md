@@ -55,7 +55,7 @@ qué responde cada pantalla está en
 
 - ⬜ **La landing** (`components/landing/`, estilos `.landing-*`) · es la híbrida del 2026-11-18, anterior a la dirección suave: conserva los botones con relieve (los negros), el cielo y las nubes de antes y los títulos de sección en serif · **prueba hecha el 2026-11-21, sin decidir** (Julieta la vio y dijo «lo que quede mejor con la app, la landing lo vemos después»): el cielo y las nubes de la app, botones suaves con el principal en ámbar, títulos de sección en la letra de la app, tarjetas con sombra difusa y la sección de quien trabaja en azul hondo; se quedan la brocha del inicio, el cierre y la carta, la rueda de fotos, la comanda y el filete. El cambio está guardado como parche en [`design-system/pruebas/2026-11-21-landing-suave.patch`](../design-system/pruebas/2026-11-21-landing-suave.patch) (`git apply` sobre `main`). Quedó por decidir: si el botón principal va en ámbar (convive con la palabra ámbar del inicio) o en azul hondo, y si los títulos de sección dejan la serif. Va junto con la bienvenida y el ingreso
 
-- ✅ **Buscar del comercio** (`app/search/page.tsx`) · #PR · [historial](../historial/2026-11-21-buscar-comercio-direccion-suave.md) · sin maqueta: gemela de `/map` (el mapa es el cielo, filtros de vidrio, pines y filas de personas); quedó afuera: el mapa real no se vio (sin mosaicos en la sesión)
+- ✅ **Buscar del comercio** (`app/search/page.tsx`) · #717 · [historial](../historial/2026-11-21-buscar-comercio-direccion-suave.md) · sin maqueta: gemela de `/map` (el mapa es el cielo, filtros de vidrio, pines y filas de personas); quedó afuera: el mapa real no se vio (sin mosaicos en la sesión)
 
 - ⬜ **Las hojas compartidas** (`BottomSheet`, «¡Turno publicado!»)
 
