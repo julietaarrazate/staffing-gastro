@@ -268,6 +268,22 @@ veía el interruptor "Activadas" sin recibir nada.
   que es peor. El frontend, además, no distingue una sesión de invitado de
   otra.
 
+### Activar desde Ajustes: orden de los pasos (2026-11-21)
+
+Contexto: la dueña no podía activar en Android/Chrome; la causa **no está confirmada** (no se reprodujo en un Android real; los logs mostraban `GET /push/public-key` 200 y ningún `POST /push/subscribe`). Estos pasos corrigen la hipótesis más probable.
+
+`subscribeToPush` (`frontend/lib/push.ts`) pide el permiso **primero**, dentro
+del toque (`Notification.requestPermission()` cuando está en `default`): el
+aviso del navegador necesita la activación del toque, que dura pocos segundos,
+y la clave VAPID (backend que puede arrancar en frío) tarda más. La clave y el
+registro del service worker salen en paralelo; antes de `pushManager.subscribe`
+se espera al worker **activo** (`navigator.serviceWorker.ready`; un solo tope,
+`WORKER_READY_TIMEOUT_MS`, cubre bajar `/sw.js`, registrar y activar), porque `register` resuelve mientras se instala y
+Chrome rechaza `subscribe` sin worker activo. La persona ve siempre el mismo
+aviso; la causa queda en Sentry (`push-activar: <motivo>`, etiqueta
+`push_activar`): `sin-clave`, `sin-worker`, `suscripcion`,
+`servidor-<status>` o `servidor-red`, con el nombre del error entre paréntesis cuando hay (`sin-worker (registro-SecurityError)`, `sin-worker (tiempo)`, `suscripcion (NotAllowedError)`). Que la persona rechace o cierre el diálogo de permiso no se registra (es su decisión). Nunca el mensaje ni el endpoint.
+
 ### Baja del dispositivo (2026-11-18)
 
 `/privacidad` dice que el identificador del dispositivo «se borra al
