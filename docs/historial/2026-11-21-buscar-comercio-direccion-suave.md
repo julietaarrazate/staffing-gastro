@@ -33,9 +33,16 @@ donde está), los filtros, la guarda de rol y qué hace cada toque quedó igual.
   fueron la ficha con filete y relieve para quien está disponible, la
   banda/`heroTile` de color por rubro y el cuadradito.
 - **La hoja** (`BottomSheet`) toma el borde y la sombra de `MapSheet`
-  (`.mapa-hoja`); alturas y arrastre, los de antes. Ya no lleva encabezado con
+  (`.mapa-hoja`); el arrastre es el de antes. Su tope de altura es el menor
+  entre 78 dvh y lo que deja libre el cielo: la página mide hasta dónde llegan
+  título, filtros y avisos y se lo pasa como `--hoja-tope`, así arrastrada al
+  máximo queda debajo de los filtros (320, 390 y 430 px, con el título en dos
+  renglones). Sin la variable, 78 dvh como antes. Ya no lleva encabezado con
   el conteo: el conteo es el título.
-- **Sin ámbar:** la pantalla no tiene acción principal (cada fila lleva a la
+- **Sin ámbar, tampoco en las estrellas:** las de la nota van en el azul de los
+  links (`Estrellas` del Perfil en la fila; `text-primary-text` en el pin); el
+  spec mide el color computado. «Nuevo en Oído» sigue igual (`RatingOrNew` no
+  se tocó). La pantalla no tiene acción principal (cada fila lleva a la
   ficha). El estado «Tu local no tiene ubicación» lleva «Completar ubicación»
   en azul hondo (antes, ámbar). Los demás estados, con los mismos textos.
 
@@ -63,10 +70,6 @@ ninguna de estas piezas (replica el pin por su cuenta): no se tocó.
 
 **Queda abierto:**
 
-- **Con la hoja arrastrada al máximo (78 % del alto) tapa los filtros** en el
-  celular: el título y desde dónde se mide quedan a la vista, los filtros no
-  (antes eran más bajos y se veían). Para verlos se baja la hoja. Arreglarlo es
-  tocar las alturas de `BottomSheet` (el brief las dejó como estaban).
 - Con muchas personas los pines que quedan bajo el cielo se ven a través del
   vidrio de los filtros (los pines no se esfuman, sólo el lienzo; igual que en
   `/map`).

@@ -89,6 +89,23 @@ for (const theme of ["light", "dark"] as const) {
     });
     expect(ambar).toBe(0);
 
+    // Las estrellas de la nota (en las filas y en los pines) no son el ámbar de
+    // `text-rating`: van en el azul de los links.
+    await expect(page.locator(".pin-nota svg").first()).toBeAttached();
+    const estrellas = await page.evaluate(() => {
+      const sonda = document.createElement("span");
+      sonda.className = "text-rating";
+      document.body.appendChild(sonda);
+      const ambar = getComputedStyle(sonda).color;
+      sonda.remove();
+      const colores = [...document.querySelectorAll(".persona-fila svg[class], .persona-fila [role=img] svg, .pin-nota svg")]
+        .filter((el) => (el.closest("[role=img], .pin-nota") !== null))
+        .map((el) => getComputedStyle(el).color);
+      return { ambar, colores };
+    });
+    expect(estrellas.colores.length).toBeGreaterThan(4);
+    for (const c of estrellas.colores) expect(c).not.toBe(estrellas.ambar);
+
     // Todo lo escrito en las filas se lee contra la fila.
     const peor = await filas.evaluateAll((links) =>
       links.flatMap((link) => {
@@ -133,3 +150,31 @@ test("sin local: mismos textos, y «Completar ubicación» sin ámbar", async ({
   const fondo = await boton.evaluate((el) => getComputedStyle(el).backgroundImage);
   expect(fondo).toContain("gradient");
 });
+
+// La hoja arrastrada al máximo queda debajo de los filtros (con el título en
+// dos renglones y 25 personas), en tres anchos de celular.
+for (const ancho of [320, 390, 430]) {
+  test(`${ancho} px: con la hoja al máximo los filtros y el título siguen a la vista`, async ({ page }) => {
+    const gente = Array.from({ length: 25 }, (_, i) => trabajador(`w${i}`, `Persona número ${i}`, { distance_km: 0.5 + i * 0.2 }));
+    await buscar(page, "light", gente, ancho);
+    await page.setViewportSize({ width: ancho, height: 740 });
+    const cielo = page.locator(".mapa-cielo");
+    const titulo = cielo.getByRole("heading", { name: "25 personas cerca de tu local" });
+    await expect(titulo).toBeVisible();
+    // Dos renglones: el título es más alto que una línea de 32 px.
+    expect((await titulo.boundingBox())!.height).toBeGreaterThan(50);
+    await page.locator(".mapa-hoja").locator("..").locator(".cursor-grab").click();
+    const hoja = page.locator(".mapa-hoja");
+    const lupa = cielo.getByRole("button", { name: "Buscar" });
+    // Asentada (la animación dura 200 ms): la hoja empieza debajo de los filtros.
+    await expect
+      .poll(async () => (await hoja.boundingBox())!.y - (await lupa.boundingBox())!.y - (await lupa.boundingBox())!.height)
+      .toBeGreaterThanOrEqual(0);
+    // Y se puede tocar la lupa: lo que hay en su centro es ella, no la hoja.
+    const c = (await lupa.boundingBox())!;
+    const arriba = await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.closest("button")?.getAttribute("aria-label"), [c.x + c.width / 2, c.y + c.height / 2]);
+    expect(arriba).toBe("Buscar");
+    // La hoja sigue siendo útil: ocupa más que el peek.
+    expect((await hoja.boundingBox())!.height).toBeGreaterThan(200);
+  });
+}

@@ -98,7 +98,7 @@ function WorkerMarker({
           )}
           {hasRating(rating) && (
             <span className="pin-nota">
-              <StarIcon size={9} filled className="text-rating" />
+              <StarIcon size={9} filled className="text-primary-text" />
               {formatRating(rating)}
             </span>
           )}

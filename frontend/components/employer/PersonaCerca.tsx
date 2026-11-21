@@ -7,6 +7,8 @@ import { SKILL_ACCENT } from "@/lib/skill-style";
 import { formatAgo } from "@/lib/datetime";
 import { formatDistance } from "@/lib/format";
 import RatingOrNew from "@/components/RatingOrNew";
+import { Estrellas } from "@/components/profile/ProfileParts";
+import { formatRating, hasRating } from "@/lib/reputation";
 
 /**
  * La foto de quien aparece en Buscar del comercio: redonda; sin foto (o si no
@@ -60,7 +62,16 @@ export default function PersonaCerca({ worker }: { worker: WorkerMapResult }) {
           {worker.full_name}
         </p>
         <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-          <RatingOrNew rating={worker.rating} size={13} numberClassName="text-xs font-medium text-ink-soft" />
+          {/* Las estrellas en el azul de los links (`Estrellas` del Perfil), no
+              las ámbar de `RatingOrNew`: esta pantalla no lleva ámbar. */}
+          {hasRating(worker.rating) ? (
+            <>
+              <Estrellas valor={worker.rating} size={13} />
+              <span className="text-xs font-medium text-ink-soft">{formatRating(worker.rating)}</span>
+            </>
+          ) : (
+            <RatingOrNew rating={worker.rating} numberClassName="text-xs font-medium text-ink-soft" />
+          )}
           {worker.distance_km != null && (
             <span className="text-xs font-medium text-ink-soft">· {formatDistance(worker.distance_km)}</span>
           )}

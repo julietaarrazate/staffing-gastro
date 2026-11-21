@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
@@ -206,6 +206,37 @@ function SearchPageContent() {
 
   // Los filtros, de vidrio sobre el cielo del mapa (celular) y sobre el panel
   // (compu). Misma función y mismos nombres accesibles que antes.
+  // La hoja, arrastrada al máximo, no tapa el cielo: se mide hasta dónde llega
+  // lo de arriba (título, desde dónde se mide, filtros y avisos) y se le pasa
+  // a `BottomSheet` como `--hoja-tope`. En la compu el cielo no se ve (alto 0)
+  // y no hay tope.
+  const mapaRef = useRef<HTMLDivElement>(null);
+  const cieloRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const mapa = mapaRef.current;
+    const cielo = cieloRef.current;
+    if (!mapa || !cielo) return;
+    const medir = () => {
+      const ultimo = cielo.lastElementChild as HTMLElement | null;
+      if (cielo.offsetHeight === 0 || !ultimo) {
+        mapa.style.removeProperty("--hoja-tope");
+        return;
+      }
+      // El último renglón con contenido (el de avisos puede estar vacío).
+      let fin = cielo.firstElementChild as HTMLElement;
+      for (const hijo of Array.from(cielo.children) as HTMLElement[]) {
+        if (hijo.offsetHeight > 0) fin = hijo;
+      }
+      const tope = fin.getBoundingClientRect().bottom - mapa.getBoundingClientRect().top + 12;
+      mapa.style.setProperty("--hoja-tope", `${Math.max(0, Math.round(tope))}px`);
+    };
+    medir();
+    const observer = new ResizeObserver(medir);
+    observer.observe(cielo);
+    observer.observe(mapa);
+    return () => observer.disconnect();
+  }, []);
+
   const filterControls = (
     <div className="buscar-filtros flex items-center gap-2">
       <select
@@ -343,7 +374,7 @@ function SearchPageContent() {
       </aside>
 
       {/* Mapa + overlays mobile */}
-      <div className="buscar-mapa relative h-full flex-1 overflow-hidden">
+      <div ref={mapaRef} className="buscar-mapa relative h-full flex-1 overflow-hidden">
         <WorkerSearchMap center={center} workers={workers} showOrigin={origin === "local" || origin === "cerca"} className="absolute inset-0 h-full w-full" />
 
         {/* El mapa es el cielo (ADR-0028, como `/map`): arriba se funde con el
@@ -351,7 +382,7 @@ function SearchPageContent() {
             título, desde dónde se mide y los filtros de vidrio. Sólo mobile: en
             la compu van en el panel. El cielo no recibe toques (el mapa se
             mueve también por debajo del título); los filtros sí. */}
-        <div className="mapa-cielo buscar-cielo pointer-events-none absolute inset-x-0 top-0 z-10 px-4 pb-8 pt-5 md:hidden">
+        <div ref={cieloRef} className="mapa-cielo buscar-cielo pointer-events-none absolute inset-x-0 top-0 z-10 px-4 pb-8 pt-5 md:hidden">
           <h1 className="titulo-pantalla break-words px-1">{titulo}</h1>
           {originNote && <div className="mt-1.5 px-1">{originNote}</div>}
           <div className="pointer-events-auto mt-3">{filterControls}</div>
