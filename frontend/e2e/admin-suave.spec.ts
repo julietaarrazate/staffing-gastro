@@ -101,7 +101,7 @@ test("la ficha vuelve a Personas desde el botón del cielo", async ({ page }) =>
 });
 
 test("sin scroll horizontal a 320 px ni con la letra al 200 %", async ({ page }) => {
-  for (const [w, fs] of [[320, "100%"], [390, "200%"]] as const) {
+  for (const [w, fs] of [[320, "100%"], [390, "200%"], [360, "200%"]] as const) {
     await page.setViewportSize({ width: w, height: 800 });
     await mock(page);
     for (const ruta of RUTAS) {

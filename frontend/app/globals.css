@@ -5420,3 +5420,11 @@ body:has([data-landing]) main {
 :root .admin-tarjeta-link:active {
   background: var(--suave-campo);
 }
+
+/* Las tarjetas del admin en grilla de dos columnas: con la letra al 200 % en
+   un celular angosto el texto («Ver ausencias →», «8 con un turno cubierto»)
+   no entraba en la columna y corría la página. Se parte donde haga falta. */
+.admin-suave .tarjeta-suave {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

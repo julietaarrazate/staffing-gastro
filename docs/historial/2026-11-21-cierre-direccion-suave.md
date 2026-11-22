@@ -96,3 +96,14 @@ app»); cuando se decida, se borran `.estilo-relieve`, el bloque de
 `.boton-relieve` bajo ese ámbito y los tokens `--relieve*` / `--shadow-relieve*`
 que sólo usa `.landing-*`. `.rubro-tile` y `.landing-mano` no las usa nadie,
 pero no son de esta dirección y no se tocaron.
+
+**Agregado después de la revisión independiente:** además de `/assistant` y
+`/encuesta`, cambió una tercera pantalla que había quedado «con relieve» por
+error: la de «no encontrado» (`app/not-found.tsx` y el turno que ya no existe,
+`components/PaginaAviso.tsx`/`TurnoNoDisponible.tsx`). Su botón «Volver al
+inicio» pasa del relieve duro al ámbar suave, como el resto de la app. Se dejó
+así a propósito. En el admin, las tarjetas en grilla de dos columnas parten el
+texto si no entra (`.admin-suave .tarjeta-suave`), porque a 360 px con la
+letra al 200 % corrían la página 9 px en Hoy y Métricas; `admin-suave.spec.ts`
+mide ahora también 360 px. Queda anotado, de antes: el aviso de error
+(`ui/Toast`) usa `text-white` sobre el rojo.
