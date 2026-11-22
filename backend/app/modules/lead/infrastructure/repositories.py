@@ -1,14 +1,20 @@
-"""Adaptador SQLAlchemy del LeadRepository."""
+"""Adaptadores SQLAlchemy del módulo lead: LeadRepository y
+PlaceSnapshotRepository (copia semanal de OSM, ADR-0029)."""
 
+from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.lead.domain.entities import Lead
-from app.modules.lead.domain.repositories import LeadRepository
+from app.modules.lead.domain.entities import Lead, PlaceCandidate, PlaceSnapshot
+from app.modules.lead.domain.repositories import LeadRepository, PlaceSnapshotRepository
 from app.modules.lead.domain.value_objects import LeadKind, LeadStatus
-from app.modules.lead.infrastructure.models import LeadModel
+from app.modules.lead.infrastructure.models import (
+    LeadModel,
+    PlaceSnapshotBarrioModel,
+    PlaceSnapshotModel,
+)
 
 _FIELDS = (
     "osm_ref",
@@ -105,3 +111,72 @@ class SqlAlchemyLeadRepository(LeadRepository):
             stmt = stmt.where(LeadModel.barrio == barrio)
         result = await self._session.execute(stmt)
         return {LeadStatus(status): count for status, count in result.all()}
+
+
+_PLACE_FIELDS = (
+    "osm_ref",
+    "name",
+    "latitude",
+    "longitude",
+    "address",
+    "phone",
+    "website",
+    "instagram",
+    "email",
+)
+
+
+def _utc(value: datetime) -> datetime:
+    """SQLite (tests) devuelve las fechas sin zona; Postgres, con. Se guardan en UTC."""
+    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
+
+
+class SqlAlchemyPlaceSnapshotRepository(PlaceSnapshotRepository):
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def get(self, barrio: str) -> PlaceSnapshot | None:
+        meta = await self._session.get(PlaceSnapshotBarrioModel, barrio)
+        if meta is None:
+            return None
+        result = await self._session.execute(
+            select(PlaceSnapshotModel)
+            .where(PlaceSnapshotModel.barrio == barrio)
+            .order_by(PlaceSnapshotModel.osm_ref)
+        )
+        places = tuple(
+            PlaceCandidate(
+                barrio=m.barrio,
+                kind=LeadKind(m.kind),
+                **{name: getattr(m, name) for name in _PLACE_FIELDS},
+            )
+            for m in result.scalars().all()
+        )
+        return PlaceSnapshot(barrio=barrio, fetched_at=_utc(meta.fetched_at), places=places)
+
+    async def fetched_at_by_barrio(self) -> dict[str, datetime]:
+        result = await self._session.execute(
+            select(PlaceSnapshotBarrioModel.barrio, PlaceSnapshotBarrioModel.fetched_at)
+        )
+        return {barrio: _utc(fetched_at) for barrio, fetched_at in result.all()}
+
+    async def replace(self, snapshot: PlaceSnapshot) -> None:
+        await self._session.execute(
+            delete(PlaceSnapshotModel).where(PlaceSnapshotModel.barrio == snapshot.barrio)
+        )
+        for place in snapshot.places:
+            self._session.add(
+                PlaceSnapshotModel(
+                    barrio=snapshot.barrio,
+                    kind=place.kind.value,
+                    fetched_at=snapshot.fetched_at,
+                    **{name: getattr(place, name) for name in _PLACE_FIELDS},
+                )
+            )
+        meta = await self._session.get(PlaceSnapshotBarrioModel, snapshot.barrio)
+        if meta is None:
+            meta = PlaceSnapshotBarrioModel(barrio=snapshot.barrio)
+            self._session.add(meta)
+        meta.fetched_at = snapshot.fetched_at
+        meta.places = len(snapshot.places)
+        await self._session.commit()

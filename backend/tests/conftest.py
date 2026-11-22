@@ -54,6 +54,7 @@ from app.modules.company.infrastructure import models as company_models  # noqa:
 from app.modules.encuesta.infrastructure import models as encuesta_models  # noqa: F401
 from app.modules.favorite.infrastructure import models as favorite_models  # noqa: F401
 from app.modules.identity.infrastructure import models as identity_models  # noqa: F401
+# lead: `leads` y la copia semanal de OSM (`lead_place_snapshots`, `lead_snapshot_barrios`).
 from app.modules.lead.infrastructure import models as lead_models  # noqa: F401
 from app.modules.notification.infrastructure import models as notification_models  # noqa: F401
 from app.modules.review.infrastructure import models as review_models  # noqa: F401

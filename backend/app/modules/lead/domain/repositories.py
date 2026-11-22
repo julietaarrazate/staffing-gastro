@@ -1,9 +1,10 @@
-"""Puertos del módulo lead: persistencia y fuente pública de comercios."""
+"""Puertos del módulo lead: persistencia, copia de OSM y fuente pública de comercios."""
 
 from abc import ABC, abstractmethod
+from datetime import datetime
 from uuid import UUID
 
-from app.modules.lead.domain.entities import Lead, PlaceCandidate
+from app.modules.lead.domain.entities import Lead, PlaceCandidate, PlaceSnapshot
 from app.modules.lead.domain.value_objects import LeadStatus
 
 
@@ -56,3 +57,19 @@ class PlaceSource(ABC):
 
         Lanza `PlaceSourceUnavailableError` si la fuente no responde.
         """
+
+
+class PlaceSnapshotRepository(ABC):
+    """Puerto de la copia semanal de OpenStreetMap por barrio (ADR-0029)."""
+
+    @abstractmethod
+    async def get(self, barrio: str) -> PlaceSnapshot | None:
+        """La copia del barrio, o `None` si todavía no se bajó nunca."""
+
+    @abstractmethod
+    async def fetched_at_by_barrio(self) -> dict[str, datetime]:
+        """De cuándo es la copia de cada barrio que tiene una (UTC)."""
+
+    @abstractmethod
+    async def replace(self, snapshot: PlaceSnapshot) -> None:
+        """Reemplaza la copia del barrio entera, en una sola transacción."""

@@ -21,10 +21,11 @@ from app.modules.lead.application.services import LeadService
 from app.modules.lead.domain.entities import Lead
 from app.modules.lead.domain.exceptions import (
     LeadNotFoundError,
-    PlaceSourceUnavailableError,
+    PlaceSnapshotMissingError,
     UnknownBarrioError,
 )
 from app.modules.lead.domain.value_objects import BARRIOS_CABA, LeadStatus
+from app.modules.lead.infrastructure.place_snapshot_job import request_refresh
 
 router = APIRouter(prefix="/admin/leads", tags=["admin"])
 
@@ -61,13 +62,15 @@ async def list_leads(
 @router.get("/summary", response_model=LeadSummaryResponse, summary="Comercios por estado")
 async def summary(_: AdminDep, service: ServiceDep, barrio: str | None = None):
     counts = await service.summary(barrio=barrio)
-    return LeadSummaryResponse(counts=counts, total=sum(counts.values()))
+    return LeadSummaryResponse(
+        counts=counts, total=sum(counts.values()), snapshots=await service.snapshot_dates()
+    )
 
 
 @router.post(
     "/import",
     response_model=LeadImportResponse,
-    summary="Importar los comercios gastronómicos de un barrio desde OpenStreetMap",
+    summary="Importar los comercios gastronómicos de un barrio desde la copia de OpenStreetMap",
 )
 async def import_barrio(body: LeadImportRequest, _: AdminDep, service: ServiceDep):
     try:
@@ -77,10 +80,18 @@ async def import_barrio(body: LeadImportRequest, _: AdminDep, service: ServiceDe
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Ese barrio no está en la lista de barrios de la Ciudad",
         ) from exc
-    except PlaceSourceUnavailableError as exc:
+    except PlaceSnapshotMissingError as exc:
+        # No se consulta OSM en vivo (ADR-0029): se pide la copia y se avisa.
+        request_refresh(body.barrio)
         raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="OpenStreetMap no respondió. Probá de nuevo en unos minutos.",
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "snapshot_pending",
+                "message": (
+                    "Todavía no tenemos la copia de este barrio; "
+                    "se baja en los próximos minutos."
+                ),
+            },
         ) from exc
     return LeadImportResponse(**asdict(result))
 

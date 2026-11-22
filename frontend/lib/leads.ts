@@ -5,6 +5,7 @@
 import type { Lead, LeadKind, LeadStatus } from "./types";
 import { toCsv } from "./csv";
 import { normalizeUserLink, safeHttpsUrl } from "./safe-url";
+import { formatShiftDate } from "./datetime";
 
 export const LEAD_STATUSES: LeadStatus[] = [
   "nuevo",
@@ -57,6 +58,18 @@ export function instagramHref(instagram: string | null): string | null {
 export function mapsHref(lead: Pick<Lead, "latitude" | "longitude" | "name">): string {
   const query = encodeURIComponent(`${lead.name} ${lead.latitude},${lead.longitude}`);
   return `https://www.google.com/maps/search/?api=1&query=${query}`;
+}
+
+/** Código del 409 de «Traer comercios del barrio» cuando el barrio todavía
+ *  no tiene copia de OpenStreetMap (ADR-0029): se baja sola en minutos. */
+export const SNAPSHOT_PENDING_CODE = "snapshot_pending";
+
+/** De qué fecha son los datos del barrio, o qué pasa si todavía no hay copia
+ *  (la copia de OSM se baja una vez por semana, ADR-0029). */
+export function snapshotLabel(fetchedAt: string | null | undefined): string {
+  return fetchedAt
+    ? `Datos de OpenStreetMap del ${formatShiftDate(fetchedAt)}`
+    : "Todavía no tenemos la copia de OpenStreetMap de este barrio.";
 }
 
 /** Ficha del comercio en OpenStreetMap ("node/123" → su página). */

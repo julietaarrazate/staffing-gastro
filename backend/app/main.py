@@ -37,11 +37,13 @@ from app.modules.matching.api.routes import router as matching_router
 from app.modules.matching.api.routes import search_router as matching_search_router
 from app.modules.notification.api.routes import push_router
 from app.modules.notification.api.routes import router as notification_router
+from app.modules.lead.infrastructure import place_snapshot_job
 from app.modules.notification.infrastructure.device_sweep_job import run_device_sweep
 from app.modules.notification.infrastructure.push_tasks import shutdown_pending_pushes
 from app.modules.review.api.routes import router as review_router
 from app.modules.shift.api.routes import router as shift_router
 from app.modules.shift.application.scheduler import start_scheduler
+from app.modules.shift.application.scheduler_signal import notify_scheduler
 from app.modules.shift.domain.exceptions import ShiftConcurrentModificationError
 from app.modules.subscription.api.routes import router as subscription_router
 from app.modules.support.api.routes import router as support_router
@@ -79,13 +81,21 @@ async def lifespan(_: FastAPI):
     # Scheduler del ciclo de vida del turno (asistencia + escalada de
     # urgencia): no-op fuera de producción. Se le suma el reintento del
     # borrado de documentos de verificación (ADR-0021): entra por acá para
-    # que el scheduler no importe la infraestructura de otro módulo.
+    # que el scheduler no importe la infraestructura de otro módulo. Y el
+    # refresco semanal de la copia de OpenStreetMap por barrio (ADR-0029).
     scheduler_task = start_scheduler(
-        extra_checks=(run_evidence_file_cleanup,),
+        extra_checks=(
+            run_evidence_file_cleanup,
+            place_snapshot_job.run_place_snapshot_refresh,
+        ),
         # Paso de la pasada de retención (una vez por día): los dispositivos
         # push de las cuentas que se quedaron sin sesión por una revocación.
         retention_steps=(run_device_sweep,),
     )
+    if scheduler_task is not None:
+        # Con el scheduler andando, el refresco de la copia lo despierta al
+        # terminar un barrio y cuando la pantalla pide uno sin copia.
+        place_snapshot_job.enable(notify_scheduler)
     # Cierra la conexión ociosa del pool para que Neon pueda dormirse con
     # Render siempre prendido (`core/database.py`): no-op fuera de producción.
     idle_closer_task = start_idle_connection_closer()

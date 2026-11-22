@@ -54,7 +54,7 @@ Antes de tocar algo, leé lo relevante. No dupliques info: referenciá.
   escalón de entrada del comercio es pago) · 0021 documentos de identidad
   privados con link que vence · 0022 cobro mensual sin débito automático ·
   0023 verificación en dos pasos obligatoria para las cuentas admin ·
-  0024 efectos de una suspensión · 0025 encuesta para locales (módulo propio, sin IP, retención a 12 meses) · 0026 postulación `desasignada` (quien tuvo el turno y lo dejó queda al final, con su marca) · 0027 el relieve del filete como profundidad (vigente en la landing) · 0028 la dirección suave en la app («la hoja sobre el cielo», de a una pantalla).
+  0024 efectos de una suspensión · 0025 encuesta para locales (módulo propio, sin IP, retención a 12 meses) · 0026 postulación `desasignada` (quien tuvo el turno y lo dejó queda al final, con su marca) · 0027 el relieve del filete como profundidad (vigente en la landing) · 0028 la dirección suave en la app («la hoja sobre el cielo», de a una pantalla) · 0029 comercios a captar desde una copia semanal de OpenStreetMap por barrio (actualiza 0019).
 - Fases siguientes (a construir): negocio por módulo, reglas operativas,
   arquitectura técnica, desarrollo, diseño, IA, integraciones, producto y ADRs.
 

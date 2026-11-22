@@ -963,6 +963,9 @@ export interface Lead {
 export interface LeadSummary {
   counts: Record<LeadStatus, number>;
   total: number;
+  /** De cuándo es la copia de OpenStreetMap de cada barrio que tiene una
+   *  (ISO, UTC). Un barrio que no está todavía no tiene copia (ADR-0029). */
+  snapshots?: Record<string, string>;
 }
 
 export interface LeadImportResult {
@@ -970,4 +973,6 @@ export interface LeadImportResult {
   found: number;
   created: number;
   updated: number;
+  /** De cuándo es la copia de OpenStreetMap que se importó (ISO, UTC). */
+  fetched_at?: string | null;
 }

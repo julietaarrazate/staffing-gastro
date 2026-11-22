@@ -1,9 +1,11 @@
-"""Modelo ORM de los comercios a captar (tabla `leads`)."""
+"""Modelos ORM del módulo lead: los comercios a captar (`leads`) y la copia
+semanal de OpenStreetMap por barrio (`lead_place_snapshots` y
+`lead_snapshot_barrios`, ADR-0029)."""
 
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, String, Text, UniqueConstraint, func
+from sqlalchemy import DateTime, Float, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -42,3 +44,39 @@ class LeadModel(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
+
+
+class PlaceSnapshotBarrioModel(Base):
+    """De cuándo es la copia de cada barrio. Va aparte de los comercios para
+    que una copia vacía (un barrio sin comercios con nombre en OSM) cuente
+    como copia y no se vuelva a pedir en cada pasada del scheduler."""
+
+    __tablename__ = "lead_snapshot_barrios"
+
+    barrio: Mapped[str] = mapped_column(String(60), primary_key=True)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    places: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+
+class PlaceSnapshotModel(Base):
+    """Un comercio de la copia de OSM de un barrio (los campos de
+    `PlaceCandidate`, con los mismos largos que `leads`)."""
+
+    __tablename__ = "lead_place_snapshots"
+    __table_args__ = (
+        UniqueConstraint("barrio", "osm_ref", name="uq_lead_place_snapshots_barrio_osm_ref"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(GUID(), primary_key=True, default=uuid.uuid4)
+    barrio: Mapped[str] = mapped_column(String(60), nullable=False)
+    osm_ref: Mapped[str] = mapped_column(String(40), nullable=False)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    latitude: Mapped[float] = mapped_column(Float, nullable=False)
+    longitude: Mapped[float] = mapped_column(Float, nullable=False)
+    address: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    website: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    instagram: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

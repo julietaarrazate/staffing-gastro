@@ -2,10 +2,11 @@
 
 // Comercios a captar para la beta (pedido de Julieta, 2026-10-20; ADR-0019).
 // La lista sale de OpenStreetMap por barrio, no de scrapear Google Maps; cada
-// comercio lleva su estado y notas de seguimiento. Sólo admin.
+// comercio lleva su estado y notas de seguimiento. Sólo admin. Desde el
+// ADR-0029 se importa de una copia semanal por barrio que baja el backend.
 
 import { useCallback, useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { ApiError, api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import { useAuth } from "@/lib/auth-context";
 import { AdminHeading } from "@/components/admin/AdminStats";
@@ -16,11 +17,13 @@ import {
   LEAD_KIND_LABELS,
   LEAD_STATUSES,
   LEAD_STATUS_LABELS,
+  SNAPSHOT_PENDING_CODE,
   instagramHref,
   leadsToCsv,
   mapsHref,
   osmHref,
   priorityLabel,
+  snapshotLabel,
   websiteHref,
 } from "@/lib/leads";
 import {
@@ -128,13 +131,8 @@ function ComerciosACaptar() {
     if (!token) return;
     setImporting(true);
     try {
-      // Overpass puede tardar con barrios grandes: más margen que el default.
-      const result = await api.post<LeadImportResult>(
-        "/admin/leads/import",
-        { barrio },
-        token,
-        100_000
-      );
+      // Lee la copia semanal del barrio (ADR-0029): no espera a OpenStreetMap.
+      const result = await api.post<LeadImportResult>("/admin/leads/import", { barrio }, token);
       toast(
         result.found === 0
           ? `OpenStreetMap no devolvió comercios para ${result.barrio}`
@@ -143,7 +141,9 @@ function ComerciosACaptar() {
       );
       load();
     } catch (err) {
-      toast(getErrorMessage(err, "No se pudo importar el barrio"), "error");
+      // Sin copia todavía no es un error: el backend la pidió y llega sola.
+      const pending = err instanceof ApiError && err.code === SNAPSHOT_PENDING_CODE;
+      toast(getErrorMessage(err, "No se pudo importar el barrio"), pending ? "info" : "error");
     } finally {
       setImporting(false);
     }
@@ -211,9 +211,9 @@ function ComerciosACaptar() {
             <PrinterIcon size={16} /> Imprimir
           </Button>
         </div>
-        {importing && (
+        {summary && (
           <p className="mt-2 text-sm text-ink-soft" role="status">
-            Buscando… puede tardar hasta un minuto y medio. No cierres esta pantalla.
+            {snapshotLabel(summary.snapshots?.[barrio])}
           </p>
         )}
 

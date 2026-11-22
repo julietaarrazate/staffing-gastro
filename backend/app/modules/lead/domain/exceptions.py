@@ -15,3 +15,7 @@ class UnknownBarrioError(LeadError):
 
 class PlaceSourceUnavailableError(LeadError):
     """La fuente de comercios (OpenStreetMap) no respondió o respondió mal."""
+
+
+class PlaceSnapshotMissingError(LeadError):
+    """Todavía no hay copia de OpenStreetMap de ese barrio (ADR-0029)."""

@@ -5,6 +5,7 @@ import {
   mapsHref,
   osmHref,
   priorityLabel,
+  snapshotLabel,
   websiteHref,
 } from "./leads";
 import type { Lead } from "./types";
@@ -68,5 +69,20 @@ describe("leadsToCsv", () => {
     expect(row).toContain("'+54 11 4000-0000");
     expect(row).toContain('"Volver el martes, habló con Ana"');
     expect(row).toContain("Interesado");
+  });
+});
+
+describe("snapshotLabel", () => {
+  it("dice de qué fecha (hora argentina) son los datos de OpenStreetMap", () => {
+    // 02:00 UTC del 21 es todavía el 20 en Buenos Aires.
+    expect(snapshotLabel("2026-11-21T02:00:00+00:00")).toBe(
+      "Datos de OpenStreetMap del 20/11/2026"
+    );
+  });
+
+  it("sin copia lo dice, sin fecha", () => {
+    expect(snapshotLabel(undefined)).toBe(
+      "Todavía no tenemos la copia de OpenStreetMap de este barrio."
+    );
   });
 });
