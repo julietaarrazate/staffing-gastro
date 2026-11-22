@@ -26,6 +26,25 @@ esa entrada está en ese archivo: buscala por la fecha o el número de PR.
 
 Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
 
+- 🟠 **Tanda del 2026-11-22 (pedido de Julieta), lo que falta.** Hecho: la
+  app se recarga sola con una versión nueva (#727; confirmar en el primer
+  deploy que `/version.json` coincide con el bundle). Falta, en este orden:
+  1. **«Traer comercios del barrio» no trae nada** (admin, Crecimiento): los
+     servidores públicos de Overpass no responden desde Render (logs del
+     2026-11-22 01:35: `overpass-api.de` rechaza la conexión, `maps.mail.ru`
+     504, los otros dos sin respuesta en 80 s → la importación devuelve 502).
+     Propuesta, **esperando el sí de Julieta** (cambia ADR-0019, va con ADR
+     nuevo): una tarea semanal que baja todos los comercios gastronómicos de
+     CABA con reintentos y el botón lee esa copia.
+  2. Arreglos chicos en un PR: Buscar del comercio corta en 20 y el título
+     dice «20 personas»; tarjeta destacada de Candidatos sin foto → `SinFoto`;
+     el aviso de error con `text-white` sobre rojo → token; mirar
+     `/admin/metricas` a 360 px/200 %; sacar el marrón por rubro de
+     `ShiftCard`. **Preguntar antes:** «Sí, dar de baja» en ámbar en Mi plan.
+  3. Etapa 6 (SEO y GEO), sin arrancar: es lo que recomiendo después.
+  4. Mails (plantillas del backend) y piezas de redes/campañas/videos con la
+     marca vigente (`design-system/marca-hoy.md`); la landing queda como está.
+
 - 🔴 **Salida a beta (etapa 3 cerrada el 2026-11-17).** De lo que quedó
   «para revisar con Fable», el 2026-11-18 entraron G4, U081, U072, la
   segunda mirada a G6, los dos arreglos chicos de la baja del dispositivo y
