@@ -75,7 +75,7 @@ async function getActiveRegistration(): Promise<Registro> {
   const activo = (async (): Promise<Registro> => {
     let registration: ServiceWorkerRegistration;
     try {
-      registration = await navigator.serviceWorker.register("/sw.js");
+      registration = await navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" });
     } catch (err) {
       return { detalle: `registro-${nombreDe(err)}` };
     }
