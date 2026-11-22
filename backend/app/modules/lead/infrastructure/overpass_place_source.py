@@ -194,10 +194,24 @@ class OverpassPlaceSource(PlaceSource):
                             httpx.URL(url).host,
                             remark[:120],
                         )
-                        if partial is None:
-                            partial = (remark[:120], parse_elements(payload, barrio))
+                        found = parse_elements(payload, barrio)
+                        if partial is None and found:
+                            partial = (remark[:120], found)
+                        last_error = ValueError(f"respuesta parcial: {remark[:100]}")
                         continue
-                    return parse_elements(payload, barrio)
+                    found = parse_elements(payload, barrio)
+                    if not found:
+                        # 200 sin `remark` y sin comercios: en la Ciudad es un
+                        # servidor que respondió mal (p. ej. sin las áreas
+                        # armadas), no un barrio vacío. Se prueba el próximo.
+                        logger.warning(
+                            "lead.overpass_empty barrio=%s servidor=%s 0 comercios",
+                            barrio,
+                            httpx.URL(url).host,
+                        )
+                        last_error = ValueError("respuesta sin comercios")
+                        continue
+                    return found
         if partial is not None:
             raise PlaceSourcePartialError(f"respuesta parcial: {partial[0]}", partial[1])
         raise PlaceSourceUnavailableError(str(last_error))

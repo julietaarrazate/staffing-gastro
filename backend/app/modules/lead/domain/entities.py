@@ -135,9 +135,9 @@ class PlaceSnapshot:
     """Copia de los comercios gastronómicos de un barrio tal como los devolvió
     OpenStreetMap la última vez que la consulta salió bien (ADR-0029).
 
-    `fetched_at` es UTC. Una copia vacía es válida (el barrio no tiene
-    comercios con nombre en OSM): por eso la fecha se guarda aparte de los
-    comercios y "sin copia" no es lo mismo que "copia sin comercios".
+    `fetched_at` es UTC. Una copia con 0 comercios no se guarda como éxito
+    y, si quedó alguna de antes (2026-11-22), cuenta como faltante: ningún
+    barrio de la Ciudad tiene 0 bares, restaurantes ni cafés en OSM.
     """
 
     barrio: str

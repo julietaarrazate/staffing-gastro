@@ -293,12 +293,16 @@ async def test_import_without_snapshot_queues_the_barrio_first(client, session_f
     assert (await client.get("/api/v1/admin/leads", headers=admin)).json() == []
 
 
-async def test_import_from_an_empty_snapshot_is_ok(client, session_factory):
+async def test_import_from_an_empty_snapshot_counts_as_no_copy(client, session_factory):
+    # Las copias vacías que quedaron en producción el 2026-11-22.
     admin = await _make_admin(client, session_factory, "lead_admin6@staffya.com")
-    await _seed(session_factory, barrio="Villa Real", places=[])
-    res = await client.post("/api/v1/admin/leads/import", json={"barrio": "Villa Real"}, headers=admin)
-    assert res.status_code == 200
-    assert res.json()["found"] == 0
+    await _seed(session_factory, barrio="Almagro", places=[])
+    res = await client.post("/api/v1/admin/leads/import", json={"barrio": "Almagro"}, headers=admin)
+    assert res.status_code == 409
+    assert res.json()["detail"]["code"] == "snapshot_pending"
+    assert place_snapshot_job._requested == ["Almagro"]
+    summary = await client.get("/api/v1/admin/leads/summary", headers=admin)
+    assert "Almagro" not in summary.json()["snapshots"]
 
 
 async def test_patch_unknown_lead_is_404(client, session_factory):
@@ -381,7 +385,13 @@ def test_main_le_pasa_el_refresco_de_la_copia_al_scheduler():
 async def _fresh_everywhere_but(session_factory, missing: str | None, fetched_at: datetime) -> None:
     for barrio in BARRIOS_CABA:
         if barrio != missing:
-            await _seed(session_factory, barrio=barrio, places=[], fetched_at=fetched_at)
+            # Una copia con 0 comercios cuenta como faltante: se siembra con uno.
+            await _seed(
+                session_factory,
+                barrio=barrio,
+                places=[_candidate(f"node/{barrio}", f"Bar de {barrio}")],
+                fetched_at=fetched_at,
+            )
 
 
 async def test_refresh_check_downloads_the_missing_barrio_in_a_task(session_factory):
@@ -562,6 +572,7 @@ async def test_global_pause_backs_off_and_a_failure_does_not_wake(session_factor
 
     # El primer éxito la vuelve a cero y sí despierta al scheduler.
     source.fail = False
+    source.places = _PALERMO
     clock.advance(hours=1)
     await place_snapshot_job.run_place_snapshot_refresh(session_factory, source, pause_s=0)
     await place_snapshot_job.wait_until_idle()
@@ -693,6 +704,108 @@ async def test_partial_answer_is_saved_when_there_is_no_copy_yet(session_factory
         snapshot = await SqlAlchemyPlaceSnapshotRepository(session).get("Palermo")
     assert snapshot is not None
     assert [p.name for p in snapshot.places] == ["Sólo uno"]
+
+
+# --- 2026-11-22: copias vacías guardadas como éxito -------------------------
+
+
+def _overpass(handler) -> OverpassPlaceSource:
+    return OverpassPlaceSource(
+        urls=("https://uno.test/api", "https://dos.test/api", "https://tres.test/api"),
+        transport=httpx.MockTransport(handler),
+        request_timeout_s=1,
+        retry_waits_s=(),
+    )
+
+
+async def _palermo_copy(session_factory):
+    async with session_factory() as session:
+        return await SqlAlchemyPlaceSnapshotRepository(session).get("Palermo")
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        # Un servidor que responde 200 sin `remark` y sin comercios (p. ej.
+        # sin las áreas armadas) mientras los demás fallan.
+        {"elements": []},
+        # Uno que corta la consulta y trae elementos que no son comercios.
+        {"remark": "runtime error: Query timed out", "elements": [{"type": "area", "id": 1}]},
+    ],
+    ids=["200_vacio", "parcial_sin_comercios"],
+)
+async def test_failing_servers_never_leave_an_empty_copy(session_factory, answer):
+    await _fresh_everywhere_but(session_factory, "Palermo", datetime.now(timezone.utc))
+
+    def handler(request):
+        if request.url.host == "uno.test":
+            raise httpx.ConnectError("All connection attempts failed", request=request)
+        if request.url.host == "dos.test":
+            return httpx.Response(504)
+        return httpx.Response(200, json=answer)
+
+    await place_snapshot_job.run_place_snapshot_refresh(
+        session_factory, _overpass(handler), pause_s=0
+    )
+    await place_snapshot_job.wait_until_idle()
+    assert await _palermo_copy(session_factory) is None
+    assert "Palermo" in place_snapshot_job._resting_until  # falla con backoff
+
+
+async def test_zero_places_is_a_failure_even_from_a_healthy_server(session_factory):
+    await _fresh_everywhere_but(session_factory, "Palermo", datetime.now(timezone.utc))
+    source = _overpass(lambda request: httpx.Response(200, json={"elements": []}))
+    with pytest.raises(PlaceSourceUnavailableError):
+        await source.find_gastronomy("Palermo")
+
+    await place_snapshot_job.run_place_snapshot_refresh(
+        session_factory, FakePlaceSource([]), pause_s=0
+    )
+    await place_snapshot_job.wait_until_idle()
+    assert await _palermo_copy(session_factory) is None
+    assert place_snapshot_job._barrio_failures["Palermo"] == 1
+
+
+async def test_partial_with_places_replaces_an_empty_copy(session_factory):
+    await _fresh_everywhere_but(session_factory, "Palermo", datetime.now(timezone.utc))
+    await _seed(session_factory, barrio="Palermo", places=[], fetched_at=datetime.now(timezone.utc))
+
+    await place_snapshot_job.run_place_snapshot_refresh(
+        session_factory, _PartialSource([_candidate("node/9", "Sólo uno")]), pause_s=0
+    )
+    await place_snapshot_job.wait_until_idle()
+    snapshot = await _palermo_copy(session_factory)
+    assert snapshot is not None
+    assert [p.name for p in snapshot.places] == ["Sólo uno"]
+
+
+async def test_an_empty_200_moves_on_to_the_next_server(session_factory):
+    await _fresh_everywhere_but(session_factory, "Palermo", datetime.now(timezone.utc))
+
+    def handler(request):
+        if request.url.host == "uno.test":
+            return httpx.Response(200, json={"elements": []})
+        return httpx.Response(200, json=_ONE_CAFE)
+
+    await place_snapshot_job.run_place_snapshot_refresh(
+        session_factory, _overpass(handler), pause_s=0
+    )
+    await place_snapshot_job.wait_until_idle()
+    snapshot = await _palermo_copy(session_factory)
+    assert snapshot is not None
+    assert [p.name for p in snapshot.places] == ["Café Respaldo"]
+
+
+async def test_plan_treats_an_empty_copy_as_missing(session_factory):
+    await _fresh_everywhere_but(session_factory, "Palermo", datetime.now(timezone.utc))
+    await _seed(session_factory, barrio="Palermo", places=[], fetched_at=datetime.now(timezone.utc))
+    source = FakePlaceSource(_PALERMO)
+
+    await place_snapshot_job.run_place_snapshot_refresh(session_factory, source, pause_s=0)
+    await place_snapshot_job.wait_until_idle()
+    assert source.calls == ["Palermo"]
+    snapshot = await _palermo_copy(session_factory)
+    assert snapshot is not None and len(snapshot.places) == 3
 
 
 async def test_requested_barrio_is_refreshed_first(session_factory):

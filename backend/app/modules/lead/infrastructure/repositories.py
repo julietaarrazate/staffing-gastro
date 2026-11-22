@@ -156,7 +156,9 @@ class SqlAlchemyPlaceSnapshotRepository(PlaceSnapshotRepository):
 
     async def fetched_at_by_barrio(self) -> dict[str, datetime]:
         result = await self._session.execute(
-            select(PlaceSnapshotBarrioModel.barrio, PlaceSnapshotBarrioModel.fetched_at)
+            select(PlaceSnapshotBarrioModel.barrio, PlaceSnapshotBarrioModel.fetched_at).where(
+                PlaceSnapshotBarrioModel.places > 0
+            )
         )
         return {barrio: _utc(fetched_at) for barrio, fetched_at in result.all()}
 
