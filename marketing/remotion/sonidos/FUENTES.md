@@ -42,3 +42,28 @@ En `src/kit/sonido.tsx` (`GANANCIA`) y en los datos de cada pieza (`sonido.cues`
 dB). Balance medido con `bash scripts/niveles.sh como-funciona-comercios`: efectos ≈ -20 LUFS,
 murmullo ≈ -30, música ≈ -37 (unos 16–17 dB debajo de los efectos), con fundido de entrada y de
 salida. El total se lleva a -14 LUFS en `scripts/normalizar.sh`.
+
+## De Mixkit (música y efectos de la versión con tomas reales)
+
+[Mixkit](https://mixkit.co): «Stock Music Free License» y «Sound Effects Free License», uso comercial
+en redes sin atribución (no cubren TV, radio ni juegos). No van a git: `bash sonidos/bajar-mixkit.sh`
+los baja a `public/sonidos/mixkit/`. Se usan por nombre en `sonido.musica`, `sonido.ambiente` y
+`sonido.cues` (ver `src/kit/sonido.tsx`).
+
+| Archivo | Descarga | Qué es |
+|---|---|---|
+| `mixkit/upbeat-jazz.mp3` | [Upbeat Jazz, Francisco Alvear](https://assets.mixkit.co/music/644/644.mp3) | Música: jazz alegre, 99 bpm |
+| `mixkit/bar-lleno.mp3` | [Very crowded pub or party loop (360)](https://assets.mixkit.co/active_storage/sfx/360/360-preview.mp3) | Bar repleto, para el arranque |
+| `mixkit/restaurante.mp3` | [Restaurant crowd talking ambience (444)](https://assets.mixkit.co/active_storage/sfx/444/444-preview.mp3) | Ambiente de restaurante |
+| `mixkit/whoosh.mp3` | [Fast whoosh transition (1490)](https://assets.mixkit.co/active_storage/sfx/1490/1490-preview.mp3) | Paso entre tomas |
+| `mixkit/pop.mp3` | [Dry pop up notification alert (2356)](https://assets.mixkit.co/active_storage/sfx/2356/2356-preview.mp3) | Aparece la hoja del texto |
+| `mixkit/cubiertos.mp3` | [Taking cutlery from a plate (133)](https://assets.mixkit.co/active_storage/sfx/133/133-preview.mp3) | Cubiertos |
+| `mixkit/puerta-campanita.mp3` | [Cartoon door melodic bell (110)](https://assets.mixkit.co/active_storage/sfx/110/110-preview.mp3) | Campanita de la puerta |
+| `mixkit/risas.mp3` | [Small man crowd laughing (423)](https://assets.mixkit.co/active_storage/sfx/423/423-preview.mp3) | Grupo que se ríe |
+| `mixkit/campana-pase.mp3` | [Service bell (931)](https://assets.mixkit.co/active_storage/sfx/931/931-preview.mp3) | Campana del pase |
+| `mixkit/plato.mp3` | [Plate over a plate (2935)](https://assets.mixkit.co/active_storage/sfx/2935/2935-preview.mp3) | Plato sobre plato |
+| `mixkit/platos-cocina.mp3` | [Kitchen plates rattle (1848)](https://assets.mixkit.co/active_storage/sfx/1848/1848-preview.mp3) | Platos en la cocina |
+| `mixkit/copas.mp3` | [A couple of glasses clink (154)](https://assets.mixkit.co/active_storage/sfx/154/154-preview.mp3) | Copas que chocan |
+| `mixkit/copa-clink.mp3` | [Wine glass clink (2936)](https://assets.mixkit.co/active_storage/sfx/2936/2936-preview.mp3) | Una copa |
+| `mixkit/plato-suave.mp3` | [Gentle plate grab (1853)](https://assets.mixkit.co/active_storage/sfx/1853/1853-preview.mp3) | Plato que se levanta |
+| `mixkit/campanitas.mp3` | [Happy bells notification (937)](https://assets.mixkit.co/active_storage/sfx/937/937-preview.mp3) | Cierre |
