@@ -1,4 +1,4 @@
-# Las hojas y ventanas compartidas con la dirección suave (#PR)
+# Las hojas y ventanas compartidas con la dirección suave (#725)
 
 **Pedido:** Julieta, terminar de pasar la app a la dirección suave (ADR-0028).
 Sólo la piel: qué abre cada cosa, qué hace cada botón, el foco, el arrastre,

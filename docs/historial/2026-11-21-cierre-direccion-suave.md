@@ -1,4 +1,4 @@
-# Cierre de la dirección suave: lo suave es la base de la app (#PR)
+# Cierre de la dirección suave: lo suave es la base de la app (#725)
 
 **Pedido:** Julieta. Ejecutar el punto 6 de [ADR-0028](../adr/ADR-0028-direccion-suave.md):
 cuando estén todas las pantallas, las reglas de `.estilo-suave` pasan a ser la

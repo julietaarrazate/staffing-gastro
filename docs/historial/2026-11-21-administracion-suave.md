@@ -1,4 +1,4 @@
-# La Administración con la dirección suave (#PR)
+# La Administración con la dirección suave (#725)
 
 **Pedido:** Julieta, 2026-11-20: «toda la app pasa a la misma dirección, el
 admin también». Sólo la piel: los datos, los permisos, las acciones de
