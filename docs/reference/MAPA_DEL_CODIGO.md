@@ -147,6 +147,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | CV privado del trabajador (subida `authenticated` con la marca de quien lo sube, `GET /workers/{id}/cv-link` que vence, borrado del archivo viejo por la cola del ADR-0021, migración de los viejos y de la raíz) | `backend/app/core/cloudinary.py` (`sign_cv_upload`, `is_cv_upload_of`), `backend/app/modules/worker/infrastructure/cv_files.py`, `.../worker/api/routes.py` (`get_cv_link`), `backend/scripts/privatize_worker_cvs.py`; frontend `lib/cv.ts`, `components/CvUpload.tsx` (ADR-0021, actualización 2026-11-19) |
 | Encuesta para locales: respuestas, regla de contacto/consentimiento, resumen con mediana, borrado del contacto (nombre, teléfono y email) por respuesta o de todas, sin borrado automático | `backend/app/modules/encuesta/` (`application/services.py`), `backend/scripts/clear_survey_contacts.py`; ADR-0025 |
 | Videos promocionales (se renderizan desde HTML) | `marketing/videos/` |
+| Videos verticales para redes en Remotion (10 piezas y 5 historias, pantallas reales de la app, datos de cada pieza aparte, sonidos CC0) | `marketing/remotion/` (`src/piezas/*.tsx` y `*.datos.ts`, `src/kit/`, `capturar/`, `sonidos/FUENTES.md`; [`README.md`](../../marketing/remotion/README.md)) |
 | Probar la app de punta a punta en local: backend y base reales, terceros simulados, kit de Playwright para dos sesiones a la vez | `tools/e2e-local/` (`README.md`; receta en [`SESION_CLOUD.md`](./SESION_CLOUD.md) §7) |
 
 ## Endpoints por módulo (`/api/v1/…`)

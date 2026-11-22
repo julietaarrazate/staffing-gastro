@@ -1,0 +1,2434 @@
+{
+"c-camino-0-abajo": {
+"f": "cap/c-camino-0-abajo.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#1e5c85"
+},
+"c-camino-0-noche-abajo": {
+"f": "cap/c-camino-0-noche-abajo.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#0f2e47"
+},
+"c-camino-0-noche": {
+"f": "cap/c-camino-0-noche.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#162a3b"
+},
+"c-camino-0": {
+"f": "cap/c-camino-0.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#215578"
+},
+"c-camino-1-abajo": {
+"f": "cap/c-camino-1-abajo.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#1e5c85"
+},
+"c-camino-1-noche-abajo": {
+"f": "cap/c-camino-1-noche-abajo.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#0f2e47"
+},
+"c-camino-1-noche": {
+"f": "cap/c-camino-1-noche.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#162a3b"
+},
+"c-camino-1": {
+"f": "cap/c-camino-1.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#215578"
+},
+"c-camino-2-abajo": {
+"f": "cap/c-camino-2-abajo.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#1e5c85"
+},
+"c-camino-2-noche-abajo": {
+"f": "cap/c-camino-2-noche-abajo.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#0f2e47"
+},
+"c-camino-2-noche": {
+"f": "cap/c-camino-2-noche.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#162a3b"
+},
+"c-camino-2": {
+"f": "cap/c-camino-2.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#215578"
+},
+"c-camino-3-abajo": {
+"f": "cap/c-camino-3-abajo.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#1e5c85"
+},
+"c-camino-3-noche-abajo": {
+"f": "cap/c-camino-3-noche-abajo.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#0f2e47"
+},
+"c-camino-3-noche": {
+"f": "cap/c-camino-3-noche.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#162a3b"
+},
+"c-camino-3": {
+"f": "cap/c-camino-3.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#215578"
+},
+"c-candidatos-barra": {
+"f": "cap/c-candidatos-barra.png",
+"w": 1170,
+"h": 2532,
+"top": "#000000"
+},
+"c-candidatos-full": {
+"f": "cap/c-candidatos-full.jpg",
+"w": 1170,
+"h": 3198,
+"top": "#6bb1e4"
+},
+"c-candidatos": {
+"f": "cap/c-candidatos.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb1e4"
+},
+"c-ficha-barra": {
+"f": "cap/c-ficha-barra.png",
+"w": 1170,
+"h": 2532,
+"top": "#000000"
+},
+"c-ficha-full": {
+"f": "cap/c-ficha-full.jpg",
+"w": 1170,
+"h": 3480,
+"top": "#6bb1e4"
+},
+"c-ficha": {
+"f": "cap/c-ficha.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb1e4"
+},
+"c-llego-abajo": {
+"f": "cap/c-llego-abajo.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#215578"
+},
+"c-llego-full": {
+"f": "cap/c-llego-full.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#215578"
+},
+"c-llego-noche-abajo": {
+"f": "cap/c-llego-noche-abajo.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#162a3b"
+},
+"c-llego-noche-full": {
+"f": "cap/c-llego-noche-full.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#162a3b"
+},
+"c-llego-noche": {
+"f": "cap/c-llego-noche.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#162a3b"
+},
+"c-llego": {
+"f": "cap/c-llego.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#215578"
+},
+"c-oido-anim-00-0": {
+"f": "cap/c-oido-anim-00-0.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-01-59": {
+"f": "cap/c-oido-anim-01-59.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-01-80": {
+"f": "cap/c-oido-anim-01-80.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-02-119": {
+"f": "cap/c-oido-anim-02-119.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-02-164": {
+"f": "cap/c-oido-anim-02-164.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-03-184": {
+"f": "cap/c-oido-anim-03-184.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-03-242": {
+"f": "cap/c-oido-anim-03-242.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-04-247": {
+"f": "cap/c-oido-anim-04-247.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-04-316": {
+"f": "cap/c-oido-anim-04-316.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-05-318": {
+"f": "cap/c-oido-anim-05-318.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-05-380": {
+"f": "cap/c-oido-anim-05-380.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-06-382": {
+"f": "cap/c-oido-anim-06-382.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-06-484": {
+"f": "cap/c-oido-anim-06-484.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-07-459": {
+"f": "cap/c-oido-anim-07-459.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-07-619": {
+"f": "cap/c-oido-anim-07-619.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-08-569": {
+"f": "cap/c-oido-anim-08-569.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-08-735": {
+"f": "cap/c-oido-anim-08-735.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-09-663": {
+"f": "cap/c-oido-anim-09-663.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-09-873": {
+"f": "cap/c-oido-anim-09-873.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-10-1012": {
+"f": "cap/c-oido-anim-10-1012.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-10-754": {
+"f": "cap/c-oido-anim-10-754.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-11-1100": {
+"f": "cap/c-oido-anim-11-1100.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-11-870": {
+"f": "cap/c-oido-anim-11-870.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-12-1203": {
+"f": "cap/c-oido-anim-12-1203.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-12-966": {
+"f": "cap/c-oido-anim-12-966.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-13-1043": {
+"f": "cap/c-oido-anim-13-1043.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-13-1302": {
+"f": "cap/c-oido-anim-13-1302.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-14-1124": {
+"f": "cap/c-oido-anim-14-1124.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-14-1397": {
+"f": "cap/c-oido-anim-14-1397.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-15-1212": {
+"f": "cap/c-oido-anim-15-1212.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-15-1504": {
+"f": "cap/c-oido-anim-15-1504.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-16-1293": {
+"f": "cap/c-oido-anim-16-1293.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-16-1594": {
+"f": "cap/c-oido-anim-16-1594.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-17-1375": {
+"f": "cap/c-oido-anim-17-1375.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-17-1678": {
+"f": "cap/c-oido-anim-17-1678.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-18-1455": {
+"f": "cap/c-oido-anim-18-1455.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-19-1533": {
+"f": "cap/c-oido-anim-19-1533.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido-anim-20-1616": {
+"f": "cap/c-oido-anim-20-1616.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-oido": {
+"f": "cap/c-oido.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb0e3"
+},
+"c-publicado": {
+"f": "cap/c-publicado.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#447eaa"
+},
+"c-publicar-0": {
+"f": "cap/c-publicar-0.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb1e4"
+},
+"c-publicar-boton": {
+"f": "cap/c-publicar-boton.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#68acde"
+},
+"c-publicar-donde-barra": {
+"f": "cap/c-publicar-donde-barra.png",
+"w": 1170,
+"h": 2532,
+"top": "#000000"
+},
+"c-publicar-donde-full": {
+"f": "cap/c-publicar-donde-full.jpg",
+"w": 1170,
+"h": 2583,
+"top": "#68addf"
+},
+"c-publicar-donde": {
+"f": "cap/c-publicar-donde.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#68addf"
+},
+"c-publicar-tipeo-1": {
+"f": "cap/c-publicar-tipeo-1.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb1e4"
+},
+"c-publicar-tipeo-2": {
+"f": "cap/c-publicar-tipeo-2.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb1e4"
+},
+"c-publicar-tipeo-3": {
+"f": "cap/c-publicar-tipeo-3.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb1e4"
+},
+"c-publicar-tipeo-4": {
+"f": "cap/c-publicar-tipeo-4.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb1e4"
+},
+"c-publicar-tipeo-5": {
+"f": "cap/c-publicar-tipeo-5.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb1e4"
+},
+"c-publicar-tipeo-6": {
+"f": "cap/c-publicar-tipeo-6.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb1e4"
+},
+"c-publicar-tipeo-7": {
+"f": "cap/c-publicar-tipeo-7.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb1e4"
+},
+"c-recomendados-barra": {
+"f": "cap/c-recomendados-barra.png",
+"w": 1170,
+"h": 2532,
+"top": "#000000"
+},
+"c-recomendados-full": {
+"f": "cap/c-recomendados-full.jpg",
+"w": 1170,
+"h": 3198,
+"top": "#6bb1e4"
+},
+"c-recomendados": {
+"f": "cap/c-recomendados.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb1e4"
+},
+"l-landing-app-full": {
+"f": "cap/l-landing-app-full.jpg",
+"w": 1170,
+"h": 14898,
+"top": "#ffffff"
+},
+"l-landing-app": {
+"f": "cap/l-landing-app.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#ffffff"
+},
+"l-landing-chrome": {
+"f": "cap/l-landing-chrome.jpg",
+"w": 1170,
+"h": 2196,
+"top": "#ffffff"
+},
+"l-landing-safari": {
+"f": "cap/l-landing-safari.jpg",
+"w": 1170,
+"h": 2160,
+"top": "#ffffff"
+},
+"l-registro-comercio": {
+"f": "cap/l-registro-comercio.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb1e4"
+},
+"l-registro": {
+"f": "cap/l-registro.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb1e4"
+},
+"t-antes-barra": {
+"f": "cap/t-antes-barra.png",
+"w": 1170,
+"h": 2532,
+"top": "#000000"
+},
+"t-antes-full": {
+"f": "cap/t-antes-full.jpg",
+"w": 1170,
+"h": 3621,
+"top": "#6bb1e4"
+},
+"t-antes": {
+"f": "cap/t-antes.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb1e4"
+},
+"t-aviso-campana": {
+"f": "cap/t-aviso-campana.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb1e3"
+},
+"t-aviso": {
+"f": "cap/t-aviso.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#447faa"
+},
+"t-buscar-barra": {
+"f": "cap/t-buscar-barra.png",
+"w": 1170,
+"h": 2532,
+"top": "#000000"
+},
+"t-buscar-full": {
+"f": "cap/t-buscar-full.jpg",
+"w": 1170,
+"h": 4119,
+"top": "#6bb1e4"
+},
+"t-buscar": {
+"f": "cap/t-buscar.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb1e4"
+},
+"t-califica-1": {
+"f": "cap/t-califica-1.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb1e4"
+},
+"t-califica-2": {
+"f": "cap/t-califica-2.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb1e4"
+},
+"t-califica-3": {
+"f": "cap/t-califica-3.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb1e4"
+},
+"t-califica-4": {
+"f": "cap/t-califica-4.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb1e4"
+},
+"t-califica-5": {
+"f": "cap/t-califica-5.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb1e4"
+},
+"t-califica-texto": {
+"f": "cap/t-califica-texto.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb1e4"
+},
+"t-calificado": {
+"f": "cap/t-calificado.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb1e4"
+},
+"t-confirmado": {
+"f": "cap/t-confirmado.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#4780ab"
+},
+"t-elegida-barra": {
+"f": "cap/t-elegida-barra.png",
+"w": 1170,
+"h": 2532,
+"top": "#000000"
+},
+"t-elegida-full": {
+"f": "cap/t-elegida-full.jpg",
+"w": 1170,
+"h": 3063,
+"top": "#6bb1e4"
+},
+"t-elegida": {
+"f": "cap/t-elegida.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb1e4"
+},
+"t-en-camino": {
+"f": "cap/t-en-camino.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#7dbbea"
+},
+"t-inicio-barra": {
+"f": "cap/t-inicio-barra.png",
+"w": 1170,
+"h": 2532,
+"top": "#000000"
+},
+"t-inicio-full": {
+"f": "cap/t-inicio-full.jpg",
+"w": 1170,
+"h": 4584,
+"top": "#6bb1e3"
+},
+"t-inicio": {
+"f": "cap/t-inicio.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb1e3"
+},
+"t-mapa-hoja-000": {
+"f": "cap/t-mapa-hoja-000.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#5ba8e0"
+},
+"t-mapa-hoja-001": {
+"f": "cap/t-mapa-hoja-001.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#5ba8e0"
+},
+"t-mapa-hoja-002": {
+"f": "cap/t-mapa-hoja-002.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#5ba8e0"
+},
+"t-mapa-hoja-003": {
+"f": "cap/t-mapa-hoja-003.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#5ba8e0"
+},
+"t-mapa-hoja-004": {
+"f": "cap/t-mapa-hoja-004.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#5ba8e0"
+},
+"t-mapa-hoja-005": {
+"f": "cap/t-mapa-hoja-005.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#5ba8e0"
+},
+"t-mapa-hoja-006": {
+"f": "cap/t-mapa-hoja-006.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#5ba8e0"
+},
+"t-mapa-hoja-007": {
+"f": "cap/t-mapa-hoja-007.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#5ba8e0"
+},
+"t-mapa-hoja-008": {
+"f": "cap/t-mapa-hoja-008.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#5ba8e0"
+},
+"t-mapa-hoja-009": {
+"f": "cap/t-mapa-hoja-009.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#5ba8e0"
+},
+"t-mapa-hoja-010": {
+"f": "cap/t-mapa-hoja-010.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#5ba8e0"
+},
+"t-mapa-hoja-011": {
+"f": "cap/t-mapa-hoja-011.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#5ba8e0"
+},
+"t-mapa-hoja-arriba": {
+"f": "cap/t-mapa-hoja-arriba.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#5ba8e0"
+},
+"t-mapa-hoja-suelta-000-00000": {
+"f": "cap/t-mapa-hoja-suelta-000-00000.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#5ba8e0"
+},
+"t-mapa-hoja-suelta-001-00664": {
+"f": "cap/t-mapa-hoja-suelta-001-00664.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#5ba8e0"
+},
+"t-mapa-hoja-suelta-002-00973": {
+"f": "cap/t-mapa-hoja-suelta-002-00973.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#5ba8e0"
+},
+"t-mapa-pin": {
+"f": "cap/t-mapa-pin.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#5ba8e0"
+},
+"t-mapa-vuelo-000-00000": {
+"f": "cap/t-mapa-vuelo-000-00000.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#5ba8e0"
+},
+"t-mapa-vuelo-001-01870": {
+"f": "cap/t-mapa-vuelo-001-01870.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#5ba8e0"
+},
+"t-mapa-vuelo-002-03628": {
+"f": "cap/t-mapa-vuelo-002-03628.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#5ba8e0"
+},
+"t-mapa-vuelo-003-04044": {
+"f": "cap/t-mapa-vuelo-003-04044.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#5ba8e0"
+},
+"t-mapa-vuelo-004-04477": {
+"f": "cap/t-mapa-vuelo-004-04477.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#5ba8e0"
+},
+"t-mapa": {
+"f": "cap/t-mapa.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#5ba8e0"
+},
+"t-perfil-barra": {
+"f": "cap/t-perfil-barra.png",
+"w": 1170,
+"h": 2532,
+"top": "#000000"
+},
+"t-perfil-full": {
+"f": "cap/t-perfil-full.jpg",
+"w": 1170,
+"h": 3780,
+"top": "#6bb1e4"
+},
+"t-perfil": {
+"f": "cap/t-perfil.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb1e4"
+},
+"t-postulado": {
+"f": "cap/t-postulado.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#68addf"
+},
+"t-terminado-barra": {
+"f": "cap/t-terminado-barra.png",
+"w": 1170,
+"h": 2532,
+"top": "#000000"
+},
+"t-terminado-full": {
+"f": "cap/t-terminado-full.jpg",
+"w": 1170,
+"h": 2856,
+"top": "#6bb1e4"
+},
+"t-terminado": {
+"f": "cap/t-terminado.jpg",
+"w": 1170,
+"h": 2532,
+"top": "#6bb1e4"
+},
+"rec:t-mapa-hoja": {
+"cuadros": [
+{
+"f": "cap/rec__t-mapa-hoja__0000.jpg",
+"t": 0
+},
+{
+"f": "cap/rec__t-mapa-hoja__0001.jpg",
+"t": 0.03333333333333333
+},
+{
+"f": "cap/rec__t-mapa-hoja__0002.jpg",
+"t": 0.06666666666666667
+},
+{
+"f": "cap/rec__t-mapa-hoja__0003.jpg",
+"t": 0.1
+},
+{
+"f": "cap/rec__t-mapa-hoja__0004.jpg",
+"t": 0.13333333333333333
+},
+{
+"f": "cap/rec__t-mapa-hoja__0005.jpg",
+"t": 0.16666666666666666
+},
+{
+"f": "cap/rec__t-mapa-hoja__0006.jpg",
+"t": 0.2
+},
+{
+"f": "cap/rec__t-mapa-hoja__0007.jpg",
+"t": 0.23333333333333334
+},
+{
+"f": "cap/rec__t-mapa-hoja__0008.jpg",
+"t": 0.26666666666666666
+},
+{
+"f": "cap/rec__t-mapa-hoja__0009.jpg",
+"t": 0.3
+},
+{
+"f": "cap/rec__t-mapa-hoja__0010.jpg",
+"t": 0.3333333333333333
+},
+{
+"f": "cap/rec__t-mapa-hoja__0011.jpg",
+"t": 0.36666666666666664
+},
+{
+"f": "cap/rec__t-mapa-hoja__0012.jpg",
+"t": 0.4
+},
+{
+"f": "cap/rec__t-mapa-hoja__0013.jpg",
+"t": 0.43333333333333335
+},
+{
+"f": "cap/rec__t-mapa-hoja__0014.jpg",
+"t": 0.4666666666666667
+},
+{
+"f": "cap/rec__t-mapa-hoja__0015.jpg",
+"t": 0.5
+},
+{
+"f": "cap/rec__t-mapa-hoja__0016.jpg",
+"t": 0.5333333333333333
+},
+{
+"f": "cap/rec__t-mapa-hoja__0017.jpg",
+"t": 0.5666666666666667
+},
+{
+"f": "cap/rec__t-mapa-hoja__0018.jpg",
+"t": 0.6
+},
+{
+"f": "cap/rec__t-mapa-hoja__0019.jpg",
+"t": 0.6333333333333333
+},
+{
+"f": "cap/rec__t-mapa-hoja__0020.jpg",
+"t": 0.6666666666666666
+},
+{
+"f": "cap/rec__t-mapa-hoja__0021.jpg",
+"t": 0.7
+},
+{
+"f": "cap/rec__t-mapa-hoja__0022.jpg",
+"t": 0.7333333333333333
+},
+{
+"f": "cap/rec__t-mapa-hoja__0023.jpg",
+"t": 0.7666666666666667
+},
+{
+"f": "cap/rec__t-mapa-hoja__0024.jpg",
+"t": 0.8
+},
+{
+"f": "cap/rec__t-mapa-hoja__0025.jpg",
+"t": 0.8333333333333334
+},
+{
+"f": "cap/rec__t-mapa-hoja__0026.jpg",
+"t": 0.8666666666666667
+},
+{
+"f": "cap/rec__t-mapa-hoja__0027.jpg",
+"t": 0.9
+},
+{
+"f": "cap/rec__t-mapa-hoja__0028.jpg",
+"t": 0.9333333333333333
+},
+{
+"f": "cap/rec__t-mapa-hoja__0029.jpg",
+"t": 0.9666666666666667
+},
+{
+"f": "cap/rec__t-mapa-hoja__0030.jpg",
+"t": 1
+},
+{
+"f": "cap/rec__t-mapa-hoja__0031.jpg",
+"t": 1.0333333333333334
+},
+{
+"f": "cap/rec__t-mapa-hoja__0032.jpg",
+"t": 1.0666666666666667
+},
+{
+"f": "cap/rec__t-mapa-hoja__0033.jpg",
+"t": 1.1
+},
+{
+"f": "cap/rec__t-mapa-hoja__0034.jpg",
+"t": 1.1333333333333333
+},
+{
+"f": "cap/rec__t-mapa-hoja__0035.jpg",
+"t": 1.1666666666666667
+},
+{
+"f": "cap/rec__t-mapa-hoja__0036.jpg",
+"t": 1.2
+},
+{
+"f": "cap/rec__t-mapa-hoja__0037.jpg",
+"t": 1.2333333333333334
+}
+]
+},
+"rec:t-mapa-toque": {
+"cuadros": [
+{
+"f": "cap/rec__t-mapa-toque__0000.jpg",
+"t": 0
+},
+{
+"f": "cap/rec__t-mapa-toque__0001.jpg",
+"t": 0.03333333333333333
+},
+{
+"f": "cap/rec__t-mapa-toque__0002.jpg",
+"t": 0.06666666666666667
+},
+{
+"f": "cap/rec__t-mapa-toque__0003.jpg",
+"t": 0.1
+},
+{
+"f": "cap/rec__t-mapa-toque__0004.jpg",
+"t": 0.13333333333333333
+},
+{
+"f": "cap/rec__t-mapa-toque__0005.jpg",
+"t": 0.16666666666666666
+},
+{
+"f": "cap/rec__t-mapa-toque__0006.jpg",
+"t": 0.2
+},
+{
+"f": "cap/rec__t-mapa-toque__0007.jpg",
+"t": 0.23333333333333334
+},
+{
+"f": "cap/rec__t-mapa-toque__0008.jpg",
+"t": 0.26666666666666666
+},
+{
+"f": "cap/rec__t-mapa-toque__0009.jpg",
+"t": 0.3
+},
+{
+"f": "cap/rec__t-mapa-toque__0010.jpg",
+"t": 0.3333333333333333
+},
+{
+"f": "cap/rec__t-mapa-toque__0011.jpg",
+"t": 0.36666666666666664
+},
+{
+"f": "cap/rec__t-mapa-toque__0012.jpg",
+"t": 0.4
+},
+{
+"f": "cap/rec__t-mapa-toque__0013.jpg",
+"t": 0.43333333333333335
+},
+{
+"f": "cap/rec__t-mapa-toque__0014.jpg",
+"t": 0.4666666666666667
+},
+{
+"f": "cap/rec__t-mapa-toque__0015.jpg",
+"t": 0.5
+},
+{
+"f": "cap/rec__t-mapa-toque__0016.jpg",
+"t": 0.5333333333333333
+},
+{
+"f": "cap/rec__t-mapa-toque__0017.jpg",
+"t": 0.5666666666666667
+},
+{
+"f": "cap/rec__t-mapa-toque__0018.jpg",
+"t": 0.6
+},
+{
+"f": "cap/rec__t-mapa-toque__0019.jpg",
+"t": 0.6333333333333333
+},
+{
+"f": "cap/rec__t-mapa-toque__0020.jpg",
+"t": 0.6666666666666666
+},
+{
+"f": "cap/rec__t-mapa-toque__0021.jpg",
+"t": 0.7
+},
+{
+"f": "cap/rec__t-mapa-toque__0022.jpg",
+"t": 0.7333333333333333
+},
+{
+"f": "cap/rec__t-mapa-toque__0023.jpg",
+"t": 0.7666666666666667
+},
+{
+"f": "cap/rec__t-mapa-toque__0024.jpg",
+"t": 0.8
+},
+{
+"f": "cap/rec__t-mapa-toque__0025.jpg",
+"t": 0.8333333333333334
+},
+{
+"f": "cap/rec__t-mapa-toque__0026.jpg",
+"t": 0.8666666666666667
+},
+{
+"f": "cap/rec__t-mapa-toque__0027.jpg",
+"t": 0.9
+},
+{
+"f": "cap/rec__t-mapa-toque__0028.jpg",
+"t": 0.9333333333333333
+},
+{
+"f": "cap/rec__t-mapa-toque__0029.jpg",
+"t": 0.9666666666666667
+},
+{
+"f": "cap/rec__t-mapa-toque__0030.jpg",
+"t": 1
+},
+{
+"f": "cap/rec__t-mapa-toque__0031.jpg",
+"t": 1.0333333333333334
+},
+{
+"f": "cap/rec__t-mapa-toque__0032.jpg",
+"t": 1.0666666666666667
+},
+{
+"f": "cap/rec__t-mapa-toque__0033.jpg",
+"t": 1.1
+},
+{
+"f": "cap/rec__t-mapa-toque__0034.jpg",
+"t": 1.1333333333333333
+},
+{
+"f": "cap/rec__t-mapa-toque__0035.jpg",
+"t": 1.1666666666666667
+}
+]
+},
+"rec:t-mapa-vuelo": {
+"cuadros": [
+{
+"f": "cap/rec__t-mapa-vuelo__0000.jpg",
+"t": 0
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0001.jpg",
+"t": 0.157
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0002.jpg",
+"t": 0.167
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0003.jpg",
+"t": 0.183
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0004.jpg",
+"t": 0.203
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0005.jpg",
+"t": 0.217
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0006.jpg",
+"t": 0.235
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0007.jpg",
+"t": 0.255
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0008.jpg",
+"t": 0.269
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0009.jpg",
+"t": 0.285
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0010.jpg",
+"t": 0.3
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0011.jpg",
+"t": 0.328
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0012.jpg",
+"t": 0.34
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0013.jpg",
+"t": 0.353
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0014.jpg",
+"t": 0.375
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0015.jpg",
+"t": 0.402
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0016.jpg",
+"t": 0.431
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0017.jpg",
+"t": 0.445
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0018.jpg",
+"t": 0.452
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0019.jpg",
+"t": 0.468
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0020.jpg",
+"t": 0.484
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0021.jpg",
+"t": 0.5
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0022.jpg",
+"t": 0.523
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0023.jpg",
+"t": 0.535
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0024.jpg",
+"t": 0.552
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0025.jpg",
+"t": 0.57
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0026.jpg",
+"t": 0.586
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0027.jpg",
+"t": 0.602
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0028.jpg",
+"t": 0.619
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0029.jpg",
+"t": 0.636
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0030.jpg",
+"t": 0.652
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0031.jpg",
+"t": 0.669
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0032.jpg",
+"t": 0.686
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0033.jpg",
+"t": 0.7
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0034.jpg",
+"t": 0.718
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0035.jpg",
+"t": 0.736
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0036.jpg",
+"t": 0.76
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0037.jpg",
+"t": 0.771
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0038.jpg",
+"t": 0.788
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0039.jpg",
+"t": 0.802
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0040.jpg",
+"t": 0.824
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0041.jpg",
+"t": 0.856
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0042.jpg",
+"t": 0.862
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0043.jpg",
+"t": 0.934
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0044.jpg",
+"t": 0.987
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0045.jpg",
+"t": 1.176
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0046.jpg",
+"t": 1.285
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0047.jpg",
+"t": 1.399
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0048.jpg",
+"t": 1.681
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0049.jpg",
+"t": 1.958
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0050.jpg",
+"t": 2.078
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0051.jpg",
+"t": 2.07
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0052.jpg",
+"t": 2.117
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0053.jpg",
+"t": 2.14
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0054.jpg",
+"t": 2.167
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0055.jpg",
+"t": 2.186
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0056.jpg",
+"t": 2.204
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0057.jpg",
+"t": 2.224
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0058.jpg",
+"t": 2.243
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0059.jpg",
+"t": 2.253
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0060.jpg",
+"t": 2.272
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0061.jpg",
+"t": 2.286
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0062.jpg",
+"t": 2.304
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0063.jpg",
+"t": 2.321
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0064.jpg",
+"t": 2.337
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0065.jpg",
+"t": 2.355
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0066.jpg",
+"t": 2.371
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0067.jpg",
+"t": 2.398
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0068.jpg",
+"t": 2.421
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0069.jpg",
+"t": 2.432
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0070.jpg",
+"t": 2.454
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0071.jpg",
+"t": 2.471
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0072.jpg",
+"t": 2.487
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0073.jpg",
+"t": 2.52
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0074.jpg",
+"t": 2.507
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0075.jpg",
+"t": 2.537
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0076.jpg",
+"t": 2.553
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0077.jpg",
+"t": 2.571
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0078.jpg",
+"t": 2.583
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0079.jpg",
+"t": 2.604
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0080.jpg",
+"t": 2.619
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0081.jpg",
+"t": 2.654
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0082.jpg",
+"t": 2.643
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0083.jpg",
+"t": 2.672
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0084.jpg",
+"t": 2.687
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0085.jpg",
+"t": 2.703
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0086.jpg",
+"t": 2.714
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0087.jpg",
+"t": 2.737
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0088.jpg",
+"t": 2.774
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0089.jpg",
+"t": 2.787
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0090.jpg",
+"t": 2.803
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0091.jpg",
+"t": 2.821
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0092.jpg",
+"t": 2.836
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0093.jpg",
+"t": 2.853
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0094.jpg",
+"t": 2.868
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0095.jpg",
+"t": 2.879
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0096.jpg",
+"t": 2.902
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0097.jpg",
+"t": 2.926
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0098.jpg",
+"t": 2.941
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0099.jpg",
+"t": 2.951
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0100.jpg",
+"t": 2.967
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0101.jpg",
+"t": 2.987
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0102.jpg",
+"t": 3.008
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0103.jpg",
+"t": 3.026
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0104.jpg",
+"t": 3.054
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0105.jpg",
+"t": 3.074
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0106.jpg",
+"t": 3.089
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0107.jpg",
+"t": 3.104
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0108.jpg",
+"t": 3.121
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0109.jpg",
+"t": 3.138
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0110.jpg",
+"t": 3.154
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0111.jpg",
+"t": 3.171
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0112.jpg",
+"t": 3.191
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0113.jpg",
+"t": 3.206
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0114.jpg",
+"t": 3.222
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0115.jpg",
+"t": 3.238
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0116.jpg",
+"t": 3.252
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0117.jpg",
+"t": 3.269
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0118.jpg",
+"t": 3.289
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0119.jpg",
+"t": 3.301
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0120.jpg",
+"t": 3.32
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0121.jpg",
+"t": 3.337
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0122.jpg",
+"t": 3.354
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0123.jpg",
+"t": 3.371
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0124.jpg",
+"t": 3.386
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0125.jpg",
+"t": 3.405
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0126.jpg",
+"t": 3.419
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0127.jpg",
+"t": 3.442
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0128.jpg",
+"t": 3.454
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0129.jpg",
+"t": 3.471
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0130.jpg",
+"t": 3.488
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0131.jpg",
+"t": 3.504
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0132.jpg",
+"t": 3.521
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0133.jpg",
+"t": 3.54
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0134.jpg",
+"t": 3.554
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0135.jpg",
+"t": 3.571
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0136.jpg",
+"t": 3.588
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0137.jpg",
+"t": 3.605
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0138.jpg",
+"t": 3.621
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0139.jpg",
+"t": 3.638
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0140.jpg",
+"t": 3.655
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0141.jpg",
+"t": 3.671
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0142.jpg",
+"t": 3.688
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0143.jpg",
+"t": 3.704
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0144.jpg",
+"t": 3.723
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0145.jpg",
+"t": 3.74
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0146.jpg",
+"t": 3.754
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0147.jpg",
+"t": 3.771
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0148.jpg",
+"t": 3.79
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0149.jpg",
+"t": 3.804
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0150.jpg",
+"t": 3.821
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0151.jpg",
+"t": 3.838
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0152.jpg",
+"t": 3.854
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0153.jpg",
+"t": 3.871
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0154.jpg",
+"t": 3.887
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0155.jpg",
+"t": 3.905
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0156.jpg",
+"t": 3.922
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0157.jpg",
+"t": 3.941
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0158.jpg",
+"t": 3.956
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0159.jpg",
+"t": 3.975
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0160.jpg",
+"t": 3.988
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0161.jpg",
+"t": 4.005
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0162.jpg",
+"t": 4.023
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0163.jpg",
+"t": 4.038
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0164.jpg",
+"t": 4.059
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0165.jpg",
+"t": 4.074
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0166.jpg",
+"t": 4.091
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0167.jpg",
+"t": 4.107
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0168.jpg",
+"t": 4.124
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0169.jpg",
+"t": 4.139
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0170.jpg",
+"t": 4.158
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0171.jpg",
+"t": 4.172
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0172.jpg",
+"t": 4.188
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0173.jpg",
+"t": 4.205
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0174.jpg",
+"t": 4.222
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0175.jpg",
+"t": 4.239
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0176.jpg",
+"t": 4.256
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0177.jpg",
+"t": 4.272
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0178.jpg",
+"t": 4.288
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0179.jpg",
+"t": 4.305
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0180.jpg",
+"t": 4.323
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0181.jpg",
+"t": 4.342
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0182.jpg",
+"t": 4.355
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0183.jpg",
+"t": 4.375
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0184.jpg",
+"t": 4.391
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0185.jpg",
+"t": 4.408
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0186.jpg",
+"t": 4.424
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0187.jpg",
+"t": 4.44
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0188.jpg",
+"t": 4.455
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0189.jpg",
+"t": 4.471
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0190.jpg",
+"t": 4.488
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0191.jpg",
+"t": 4.506
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0192.jpg",
+"t": 4.522
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0193.jpg",
+"t": 4.539
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0194.jpg",
+"t": 4.555
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0195.jpg",
+"t": 4.572
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0196.jpg",
+"t": 4.588
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0197.jpg",
+"t": 4.605
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0198.jpg",
+"t": 4.622
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0199.jpg",
+"t": 4.638
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0200.jpg",
+"t": 4.657
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0201.jpg",
+"t": 4.674
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0202.jpg",
+"t": 4.691
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0203.jpg",
+"t": 4.708
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0204.jpg",
+"t": 4.725
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0205.jpg",
+"t": 4.741
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0206.jpg",
+"t": 4.755
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0207.jpg",
+"t": 4.777
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0208.jpg",
+"t": 4.789
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0209.jpg",
+"t": 4.808
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0210.jpg",
+"t": 4.822
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0211.jpg",
+"t": 4.84
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0212.jpg",
+"t": 4.855
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0213.jpg",
+"t": 4.872
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0214.jpg",
+"t": 4.889
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0215.jpg",
+"t": 4.906
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0216.jpg",
+"t": 4.923
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0217.jpg",
+"t": 4.938
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0218.jpg",
+"t": 4.956
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0219.jpg",
+"t": 4.972
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0220.jpg",
+"t": 4.989
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0221.jpg",
+"t": 5.006
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0222.jpg",
+"t": 5.024
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0223.jpg",
+"t": 5.041
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0224.jpg",
+"t": 5.055
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0225.jpg",
+"t": 5.072
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0226.jpg",
+"t": 5.094
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0227.jpg",
+"t": 5.106
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0228.jpg",
+"t": 5.126
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0229.jpg",
+"t": 5.138
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0230.jpg",
+"t": 5.159
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0231.jpg",
+"t": 5.178
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0232.jpg",
+"t": 5.2
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0233.jpg",
+"t": 5.213
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0234.jpg",
+"t": 5.231
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0235.jpg",
+"t": 5.239
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0236.jpg",
+"t": 5.256
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0237.jpg",
+"t": 5.274
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0238.jpg",
+"t": 5.289
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0239.jpg",
+"t": 5.309
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0240.jpg",
+"t": 5.325
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0241.jpg",
+"t": 5.341
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0242.jpg",
+"t": 5.364
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0243.jpg",
+"t": 5.374
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0244.jpg",
+"t": 5.417
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0245.jpg",
+"t": 5.427
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0246.jpg",
+"t": 5.451
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0247.jpg",
+"t": 5.461
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0248.jpg",
+"t": 5.474
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0249.jpg",
+"t": 5.489
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0250.jpg",
+"t": 5.51
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0251.jpg",
+"t": 5.524
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0252.jpg",
+"t": 5.541
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0253.jpg",
+"t": 5.558
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0254.jpg",
+"t": 5.571
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0255.jpg",
+"t": 5.588
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0256.jpg",
+"t": 5.605
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0257.jpg",
+"t": 5.621
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0258.jpg",
+"t": 5.644
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0259.jpg",
+"t": 5.656
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0260.jpg",
+"t": 5.671
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0261.jpg",
+"t": 5.687
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0262.jpg",
+"t": 5.705
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0263.jpg",
+"t": 5.726
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0264.jpg",
+"t": 5.74
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0265.jpg",
+"t": 5.756
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0266.jpg",
+"t": 5.773
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0267.jpg",
+"t": 5.789
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0268.jpg",
+"t": 5.806
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0269.jpg",
+"t": 5.822
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0270.jpg",
+"t": 5.838
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0271.jpg",
+"t": 5.855
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0272.jpg",
+"t": 5.872
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0273.jpg",
+"t": 5.89
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0274.jpg",
+"t": 5.911
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0275.jpg",
+"t": 5.922
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0276.jpg",
+"t": 5.939
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0277.jpg",
+"t": 5.955
+},
+{
+"f": "cap/rec__t-mapa-vuelo__0278.jpg",
+"t": 5.976
+}
+]
+},
+"seq:c-oido": {
+"cuadros": [
+{
+"f": "cap/c-oido-anim-00-0.jpg",
+"t": 0.0
+},
+{
+"f": "cap/c-oido-anim-01-59.jpg",
+"t": 0.059
+},
+{
+"f": "cap/c-oido-anim-01-80.jpg",
+"t": 0.08
+},
+{
+"f": "cap/c-oido-anim-02-119.jpg",
+"t": 0.119
+},
+{
+"f": "cap/c-oido-anim-02-164.jpg",
+"t": 0.164
+},
+{
+"f": "cap/c-oido-anim-03-184.jpg",
+"t": 0.184
+},
+{
+"f": "cap/c-oido-anim-03-242.jpg",
+"t": 0.242
+},
+{
+"f": "cap/c-oido-anim-04-247.jpg",
+"t": 0.247
+},
+{
+"f": "cap/c-oido-anim-04-316.jpg",
+"t": 0.316
+},
+{
+"f": "cap/c-oido-anim-05-318.jpg",
+"t": 0.318
+},
+{
+"f": "cap/c-oido-anim-05-380.jpg",
+"t": 0.38
+},
+{
+"f": "cap/c-oido-anim-06-382.jpg",
+"t": 0.382
+},
+{
+"f": "cap/c-oido-anim-06-484.jpg",
+"t": 0.484
+},
+{
+"f": "cap/c-oido-anim-07-459.jpg",
+"t": 0.459
+},
+{
+"f": "cap/c-oido-anim-07-619.jpg",
+"t": 0.619
+},
+{
+"f": "cap/c-oido-anim-08-569.jpg",
+"t": 0.569
+},
+{
+"f": "cap/c-oido-anim-08-735.jpg",
+"t": 0.735
+},
+{
+"f": "cap/c-oido-anim-09-663.jpg",
+"t": 0.663
+},
+{
+"f": "cap/c-oido-anim-09-873.jpg",
+"t": 0.873
+},
+{
+"f": "cap/c-oido-anim-10-1012.jpg",
+"t": 1.012
+},
+{
+"f": "cap/c-oido-anim-10-754.jpg",
+"t": 0.754
+},
+{
+"f": "cap/c-oido-anim-11-1100.jpg",
+"t": 1.1
+},
+{
+"f": "cap/c-oido-anim-11-870.jpg",
+"t": 0.87
+},
+{
+"f": "cap/c-oido-anim-12-1203.jpg",
+"t": 1.203
+},
+{
+"f": "cap/c-oido-anim-12-966.jpg",
+"t": 0.966
+},
+{
+"f": "cap/c-oido-anim-13-1043.jpg",
+"t": 1.043
+},
+{
+"f": "cap/c-oido-anim-13-1302.jpg",
+"t": 1.302
+},
+{
+"f": "cap/c-oido-anim-14-1124.jpg",
+"t": 1.124
+},
+{
+"f": "cap/c-oido-anim-14-1397.jpg",
+"t": 1.397
+},
+{
+"f": "cap/c-oido-anim-15-1212.jpg",
+"t": 1.212
+},
+{
+"f": "cap/c-oido-anim-15-1504.jpg",
+"t": 1.504
+},
+{
+"f": "cap/c-oido-anim-16-1293.jpg",
+"t": 1.293
+},
+{
+"f": "cap/c-oido-anim-16-1594.jpg",
+"t": 1.594
+},
+{
+"f": "cap/c-oido-anim-17-1375.jpg",
+"t": 1.375
+},
+{
+"f": "cap/c-oido-anim-17-1678.jpg",
+"t": 1.678
+},
+{
+"f": "cap/c-oido-anim-18-1455.jpg",
+"t": 1.455
+},
+{
+"f": "cap/c-oido-anim-19-1533.jpg",
+"t": 1.533
+},
+{
+"f": "cap/c-oido-anim-20-1616.jpg",
+"t": 1.616
+}
+]
+}
+}
