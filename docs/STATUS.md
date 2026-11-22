@@ -62,8 +62,12 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
      link que mande el mensaje automático.
   3. **Guía de entrevista** para 5 a 10 encargados de la beta (diciembre),
      con la maqueta de horarios.
-  4. Herramienta de comentario → mensaje privado (Zernio o ManyChat): plan
-     gratis y conexión oficial de Meta.
+  4. **Comentario → mensaje privado con Zernio** (elegida el 22/11; mensajes,
+     reglas de Meta y respuesta pública en la sección Embudo del documento de
+     crecimiento). Configurar por su API (`POST /v1/comment-automations`) las
+     palabras TURNO (@turnosgastro) y CUBRIR (@oidoapp), con los links
+     etiquetados, para el **30/11**. Necesita `ZERNIO_API_KEY` en el entorno
+     (la carga Julieta; nunca por el chat). Sin tarjeta en Zernio (ADR-0030).
   5. Después de la beta: calculadora de personal, Favoritos más visibles y,
      si las entrevistas validan, el ADR de horarios del equipo.
 
@@ -368,6 +372,16 @@ pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
   tiene la identidad verificada» (la verificación es opcional, decisión del
   2026-08-07) y «publicás el turno en 1 minuto» (confirmado por Julieta).
   Aprobar C1-10 (primer turno gratis) y C2-10 (precios) antes de usarlas.
+- **Zernio (antes del 30/11):** crear la cuenta gratis, conectar @oidoapp y
+  @turnosgastro, crear una clave de API y cargarla en el entorno de Claude
+  como `ZERNIO_API_KEY` (menú del entorno → Editar → Network secrets o
+  variable de entorno). **No cargar tarjeta** (ADR-0030).
+- **Revisar facturación (ADR-0030, «A verificar»):** que el proyecto de
+  Google de la clave de Gemini no tenga facturación activa (o tenga
+  presupuesto con alerta); plan de Vercel (Hobby) y Cloudinary sin tarjeta;
+  Sentry con pay-as-you-go en USD 0; GitHub con límite de gasto en USD 0;
+  Render con una sola instancia y alerta de facturación; condiciones de uso
+  comercial de los mapas de CARTO.
 
 - **Estrategia de crecimiento, fase 2 (plan de 90 días):** está en el mismo
   documento privado, una pestaña por entregable
@@ -452,6 +466,9 @@ El detalle de cada env var, y cuáles ya están cargadas, está en `CLAUDE.md`,
 - **Pagos con Mercado Pago diferidos por decisión de Julieta** (2026-08-15):
   la beta cobra fuera de la app y se marca pagado
   (`POST /shifts/{id}/mark-paid`).
+- **Cupo gratis siempre** (ADR-0030, 2026-11-22): nada pasa a pago sin el «sí»
+  de Julieta; mejor que un servicio corte a que cobre; toda API externa con
+  tope propio debajo del cupo gratis; integración nueva = fila nueva en el ADR.
 - **Infraestructura nueva o cambio de arquitectura = ADR nuevo**
   (`docs/adr/ADR-00NN-*.md`).
 
