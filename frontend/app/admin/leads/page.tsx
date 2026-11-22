@@ -44,7 +44,7 @@ import { downloadCsv } from "@/lib/csv";
 type Filter = LeadStatus | "todos";
 
 const SELECT_CLASS =
-  "rounded-full bg-surface px-3 py-2 text-sm font-medium text-ink/75 ring-1 ring-line transition focus:bg-card";
+  "campo min-h-[44px] px-3.5 text-sm font-medium text-ink";
 
 type Seccion = "comercios" | "encuesta";
 
@@ -212,7 +212,7 @@ function ComerciosACaptar() {
           </Button>
         </div>
         {importing && (
-          <p className="mt-2 text-sm text-ink/50" role="status">
+          <p className="mt-2 text-sm text-ink-soft" role="status">
             Buscando… puede tardar hasta un minuto y medio. No cierres esta pantalla.
           </p>
         )}
@@ -268,7 +268,7 @@ function ComerciosACaptar() {
           </ul>
         )}
 
-        <p className="mt-8 text-xs text-ink/40">
+        <p className="mt-8 text-xs text-ink-soft">
           Datos de comercios ©{" "}
           <a
             href="https://www.openstreetmap.org/copyright"
@@ -304,13 +304,7 @@ function FilterChip({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={
-        active
-          ? // Chip de filtro (no pestaña): `bg-raised` + `text-ink`, con un
-            // anillo de tinta: `bg-night` se perdía sobre el lienzo oscuro.
-            "rounded-full bg-raised px-3 py-1.5 text-xs font-semibold text-ink shadow-[var(--shadow-soft)] ring-1 ring-ink/50"
-          : "rounded-full bg-surface px-3 py-1.5 text-xs font-semibold text-ink/60 ring-1 ring-line transition hover:bg-line"
-      }
+      className={`chip-suave chip-filtro${active ? " chip-elegido" : ""}`}
     >
       {label}
     </button>
@@ -332,11 +326,11 @@ function LeadCard({
   useEffect(() => setNotes(lead.notes), [lead.notes]);
 
   return (
-    <li className="rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line">
+    <li className="tarjeta-suave min-w-0 p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate font-semibold text-ink">{lead.name}</p>
-          <p className="mt-0.5 text-sm text-ink/50">
+          <p className="mt-0.5 text-sm text-ink-soft">
             {LEAD_KIND_LABELS[lead.kind]}
             {lead.address ? ` · ${lead.address}` : ""}
           </p>
@@ -365,10 +359,10 @@ function LeadCard({
             Instagram
           </a>
         )}
-        <a href={mapsHref(lead)} target="_blank" rel="noopener noreferrer" className="font-medium text-ink/60 underline">
+        <a href={mapsHref(lead)} target="_blank" rel="noopener noreferrer" className="font-medium text-ink-soft underline">
           Ver en Maps
         </a>
-        <a href={osmHref(lead.osm_ref)} target="_blank" rel="noopener noreferrer" className="font-medium text-ink/60 underline">
+        <a href={osmHref(lead.osm_ref)} target="_blank" rel="noopener noreferrer" className="font-medium text-ink-soft underline">
           OSM
         </a>
       </div>
@@ -397,7 +391,7 @@ function LeadCard({
         onBlur={() => {
           if (notes !== lead.notes) onPatch(lead, { notes });
         }}
-        className="mt-2 w-full resize-y rounded-[var(--radius-input)] bg-surface px-3 py-2 text-sm text-ink ring-1 ring-line placeholder:text-ink/40 focus:bg-card"
+        className="campo mt-2 w-full resize-y px-3 py-2 text-sm text-ink"
       />
     </li>
   );

@@ -65,11 +65,6 @@
    * sombras se declaran con la paleta, más abajo, porque cambian con el tema. */
   --radius-relieve: 0.625rem; /* 10px — botón recto con relieve */
   --relieve-btn: 3px; /* cuánto se corre el botón al apretarlo */
-  /* El papel de la comanda (`components/ui/Comanda.tsx`): blanco, y un punto
-   * más bajo sobre la noche. Va acá y no con la paleta a propósito: adentro
-   * la comanda se fuerza a claro, y este color tiene que seguir al tema de
-   * afuera. */
-  --comanda-papel: #ffffff;
 
   /* Glows semánticos de acción (2026-09). Un botón de acción no proyecta una
    * sombra neutra: proyecta su PROPIO color, apenas, para despegarse del
@@ -505,7 +500,6 @@
   /* Relieve sobre la noche azul: un azul más claro que el lienzo, para que
      la sombra dura se despegue (el #1c5478 de claro se perdía). */
   --relieve: #2e6e99;
-  --comanda-papel: #eef3f6;
   /* De noche el cielo es azul noche, con las nubes apenas insinuadas. */
   --app-cielo-0: #0b1a28;
   --app-cielo-1: #0f2233;
@@ -513,10 +507,6 @@
   --app-cielo-nube: 0.08;
   --app-cielo-luz: rgba(154, 201, 231, 0.06);
   --app-cielo-tinta: #eef3f6;
-  --color-cartel: #eef3f6;
-  --app-banda: #0f3a5b;
-  --app-banda-tinta: #eef3f6;
-  --app-banda-relieve: #2e6e99;
 
   /* MODO OSCURO REAL (board v5.0). A diferencia del híbrido anterior (lienzo
      claro que no invertía, sólo las tarjetas), acá el LIENZO también se
@@ -774,18 +764,13 @@
   --mapa-credito-fondo: rgb(255 255 255 / 0.75);
   --mapa-credito-tinta: rgb(17 17 17 / 0.6);
   /* El cielo de arriba de una pantalla de la app (`.app-cielo`) y la tinta
-     que se lee encima; el azul de los títulos en brocha (`.letra-cartel`). */
+     que se lee encima. */
   --app-cielo-0: #5ba8e0;
   --app-cielo-1: #84c0ec;
   --app-cielo-2: #bfe1f6;
   --app-cielo-nube: 0.85;
   --app-cielo-luz: rgba(255, 255, 255, 0.2);
   --app-cielo-tinta: #0f3a5b;
-  --color-cartel: #0f3a5b;
-  /* La banda azul hondo (`.app-banda`): el fondo del riel del comercio. */
-  --app-banda: #1c5478;
-  --app-banda-tinta: #ffffff;
-  --app-banda-relieve: #0f3a5b;
   /* PROTOTIPO esmerilado (2026-10-09). */
   --color-chrome: rgba(255, 255, 255, 0.92);
   /* El cielo de la landing arriba de cada pantalla (2026-10-19); antes era
@@ -1091,43 +1076,6 @@ body:has([data-landing]) main {
   padding-bottom: 0;
 }
 
-/* ── Dirección «con relieve» en la app (ADR-0027): piezas compartidas ──
-   Las letras llegan por `lib/letras.ts`: cada pantalla migrada pone
-   `LETRAS_APP` en su contenedor. */
-
-/* La brocha: el título de la pantalla y el puesto de la comanda. */
-.letra-cartel {
-  font-family: var(--font-brocha), "Trebuchet MS", sans-serif;
-  font-weight: 400;
-  font-synthesis-weight: none;
-  text-transform: uppercase;
-  line-height: 1.02;
-  letter-spacing: 0;
-  color: var(--color-cartel);
-}
-/* Sus dos tamaños. La brocha es angosta y pide un punto más que la escala
-   de texto (`text-h1` son 28 px): 32 para el título de la pantalla y 30
-   para el puesto de la comanda. Van acá, con nombre, y no como
-   `text-[2rem]` suelto en cada pantalla (lo exige `lib/type-scale.test.ts`). */
-.letra-cartel-pantalla {
-  font-size: 2rem;
-}
-.letra-cartel-puesto {
-  font-size: 1.875rem;
-}
-/* El título en brocha directo sobre la banda azul hondo (Mis turnos): en la
-   tinta de la banda. Va con clase propia y no como `.app-banda
-   .letra-cartel`, que le pegaría también al puesto de las comandas que
-   cuelgan del riel. */
-.letra-cartel-sobre-banda {
-  color: var(--app-banda-tinta);
-}
-/* La barra de «Mozo/a», en la letra de texto (ver `textoCartel`). */
-.letra-cartel .barra {
-  margin-inline: 0.06em;
-  font-family: var(--font-inter), system-ui, sans-serif;
-  font-weight: 300;
-}
 /* Lo anotado a mano, en azul hondo (celeste sobre la noche). */
 .letra-mano {
   font-family: var(--font-mano), "Comic Sans MS", cursive;
@@ -1135,41 +1083,6 @@ body:has([data-landing]) main {
   font-synthesis-weight: none;
   line-height: 1.1;
   color: var(--color-primary-text);
-}
-.apunte {
-  position: relative;
-  display: inline-block;
-  padding: 2px 8px;
-  font-size: 1.25rem;
-  white-space: nowrap;
-  transform: rotate(-6deg);
-}
-.apunte svg {
-  position: absolute;
-  inset: -4px -6px;
-  width: calc(100% + 12px);
-  height: calc(100% + 8px);
-  pointer-events: none;
-}
-.apunte path {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2.2;
-  stroke-linecap: round;
-  vector-effect: non-scaling-stroke;
-}
-.flechita {
-  display: inline-block;
-  width: 34px;
-  height: 26px;
-  flex: none;
-}
-.flechita path {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2.2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 /* Los pasos del turno tachados a mano (`ShiftLifecycleStepper`): el trazo
    va encima de la palabra, en azul hondo (celeste de noche fuera del papel),
@@ -1191,14 +1104,6 @@ body:has([data-landing]) main {
   stroke-width: 2;
   stroke-linecap: round;
   vector-effect: non-scaling-stroke;
-}
-/* Lo destacado de una lista (el candidato que se recomienda): blanco, con el
-   borde y el relieve del filete. Uno por pantalla. */
-.tarjeta-relieve {
-  background: var(--color-card);
-  box-shadow:
-    inset 0 0 0 1.5px var(--relieve),
-    var(--shadow-relieve-md);
 }
 /* El mapa chico de un turno o un local (components/MiniMap.tsx): calles,
    avenidas, plazas y agua dibujadas en SVG; el local como un cuadradito azul
@@ -1320,40 +1225,6 @@ body:has([data-landing]) main {
   --mapa-credito-fondo: rgb(26 40 63 / 0.78);
   --mapa-credito-tinta: #a9bddb;
 }
-/* Un estado como sello de goma: borde del color de la letra, apenas torcido.
-   Va siempre sobre el papel de la comanda, que es claro en los dos temas
-   (blanco de día, `#eef3f6` de noche): sus cuatro tintas son fijas y se
-   eligieron para dar 4,5 o más sobre los dos papeles (2026-11-19; el verde
-   de antes, `success-text`, daba 4,49 sobre el papel de noche).
-   - verde: lo que salió bien (confirmado, llegó, finalizado, pagado);
-   - azul hondo: lo que está en curso (publicado, asignado, en camino…);
-   - rojo: cancelado y «Urgente»;
-   - gris: lo que no arrancó o no se cubrió (borrador, no cubierto). */
-.sello-goma {
-  display: inline-block;
-  padding: 3px 7px;
-  border: 2px solid currentColor;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  transform: rotate(-3deg);
-}
-.sello-verde {
-  color: #166534;
-}
-.sello-azul {
-  color: #1c5478;
-}
-.sello-rojo {
-  color: #c22f2f;
-}
-.sello-gris {
-  color: #4b5563;
-}
-
 /* El cielo de arriba de una pantalla: celeste pleno con dos nubes de día,
    azul noche de noche. Lo que va encima se lee en `--app-cielo-tinta`. */
 .app-cielo {
@@ -1518,124 +1389,6 @@ body:has([data-landing]) main {
 }
 :root[data-theme="dark"] .portada-tinta {
   color: #ffffff;
-}
-
-/* La banda azul hondo: donde cuelgan las comandas en curso del comercio.
-   A todo el ancho en el celular; con esquinas en pantallas anchas. El foco
-   de lo que va directo sobre la banda es claro (el de siempre es este azul). */
-.app-banda {
-  --focus-ring: #ffffff;
-  /* Sobre la banda, el relieve de la comanda va un tono más hondo (más
-     claro de noche): el azul de siempre es el de la banda y no se vería. */
-  --relieve: var(--app-banda-relieve);
-  background: var(--app-banda);
-  color: var(--app-banda-tinta);
-}
-@media (min-width: 768px) {
-  .app-banda {
-    border-radius: var(--radius-card);
-  }
-}
-/* El riel de la cocina: la barra de donde cuelgan las comandas, con sus
-   remaches. Va arriba de la banda, sobresaliendo un poco a los costados. */
-.riel {
-  position: relative;
-  z-index: 1;
-  height: 18px;
-  margin: 0 -6px;
-  border: 1.5px solid #0f3a5b;
-  border-radius: 5px;
-  background: linear-gradient(180deg, #ffffff, #dcedf7);
-  box-shadow: 0 4px 0 #0f3a5b;
-}
-.riel i {
-  position: absolute;
-  top: 50%;
-  width: 8px;
-  height: 8px;
-  margin-top: -4px;
-  border: 1.5px solid #1c5478;
-  border-radius: 50%;
-  background: #9ac9e7;
-}
-
-/* El botón con relieve de una pantalla de la app (uno por pantalla): recto,
-   con borde azul hondo y la sombra dura del filete; al tocarlo se corre lo
-   que mide la sombra. El color de fondo y de letra los pone quien lo usa. */
-.boton-relieve {
-  /* El borde va como sombra hacia adentro y no como `border`: un borde de
-     verdad agranda el botón y lo dejaba 2 px más alto que el secundario de
-     al lado (lo midió la revisión del 2026-11-18). */
-  --relieve-borde: inset 0 0 0 1.5px var(--relieve);
-  border-radius: var(--radius-relieve);
-  box-shadow: var(--relieve-borde), var(--shadow-relieve);
-  transition:
-    transform 0.12s ease,
-    box-shadow 0.12s ease,
-    filter 0.15s ease,
-    background-color 0.15s ease;
-}
-.boton-relieve:active {
-  transform: translate(var(--relieve-btn), var(--relieve-btn));
-  box-shadow: var(--relieve-borde), 0 0 0 var(--relieve);
-}
-/* El anillo de foco, separado del botón: pegado se confundía con el borde y
-   con el relieve, que en claro son del mismo azul. */
-.boton-relieve:focus-visible {
-  outline-offset: 4px;
-}
-/* Desactivado: sin borde de color ni relieve, con un filete. No se aprieta. */
-.boton-relieve:disabled {
-  box-shadow: 0 0 0 1px var(--color-line);
-  transform: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .boton-relieve {
-    transition: none;
-  }
-}
-
-/* La comanda: papel de cocina con el relieve del filete. */
-.comanda {
-  position: relative;
-  border-radius: 2px;
-  background: var(--comanda-papel);
-  box-shadow: 4px 4px 0 var(--relieve);
-}
-.comanda-papel {
-  /* El foco de adentro va siempre en el azul hondo de claro: sobre la banda
-     (`.app-banda`) heredaba el blanco de la banda y no se veía en el papel. */
-  --focus-ring: #1c5478;
-  border-radius: inherit;
-  color: var(--color-ink);
-}
-/* Una comanda que ya no tiene nada pendiente (pagada, cancelada, no
-   cubierta) pierde el relieve y queda apoyada, con un filete: se la ve
-   apagada sin bajarle la opacidad, que dejaba el sello y la letra chica por
-   debajo de contraste (2,7 a 3,2). */
-.comanda-apagada {
-  box-shadow: 0 0 0 1px var(--color-line);
-  filter: saturate(0.8);
-}
-/* El foco de un link de la comanda va por dentro del papel. Por fuera caía
-   sobre el cielo o el lienzo con el azul de claro (adentro la comanda está
-   forzada a claro), y de noche no llegaba a 3:1. */
-.comanda a:focus-visible {
-  outline-offset: -4px;
-}
-.comanda-fila {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 0;
-  border-top: 1px solid var(--color-line);
-  font-size: 14px;
-  color: var(--color-ink-soft);
-}
-.comanda-fila dd {
-  font-weight: 600;
-  color: var(--color-ink);
-  text-align: right;
 }
 
 /* La cinta «¡Oído!» del detalle del turno, cuando la persona se postuló:
@@ -3309,11 +3062,15 @@ body:has([data-landing]) main {
    sombra difusa), campos con relleno, el título en letra normal grande y la
    brocha sólo para la marca.
 
-   Entra de a una pantalla: la que se migra lleva `.estilo-suave` en su raíz, y
-   los componentes compartidos (el botón, el campo, el sí/no) se ven suaves
-   sólo adentro. Cuando estén todas, estas reglas pasan a `:root` y se borra lo
-   de «con relieve» (lo dice el ADR). */
-.estilo-suave {
+   Cierre (2026-11-21, ADR-0028 punto 6): las reglas que vivían bajo
+   `.estilo-suave` son la base de toda la app. Se escriben con `:root` donde
+   iba `.estilo-suave`: pesa lo mismo que una clase, así que la cascada contra
+   las demás reglas no cambió. `.estilo-suave` ya no estiliza nada: queda en
+   las raíces de las pantallas sólo como marca para tres reglas de abajo que
+   preguntan «¿esta pantalla termina en una hoja?» (`main:has(.estilo-suave)`
+   y la del velo de la barra). La landing no usa ninguna de estas clases:
+   conserva lo suyo en `.landing-*`. */
+:root {
   --suave-campo: #edf4f8;
   --suave-tecla: #ffffff;
   --suave-sombra: 0 1px 2px rgba(15, 58, 91, 0.06), 0 6px 16px rgba(15, 58, 91, 0.08);
@@ -3327,7 +3084,7 @@ body:has([data-landing]) main {
   --suave-ayuda: linear-gradient(135deg, #dcedf8, #eef7fc);
   --radio-suave: 18px;
 }
-:root[data-theme="dark"] .estilo-suave {
+:root[data-theme="dark"] {
   --suave-campo: #243241;
   --suave-tecla: #1d2833;
   --suave-sombra: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 16px rgba(0, 0, 0, 0.25);
@@ -3421,7 +3178,7 @@ body:has([data-landing]) main {
 }
 /* Lo que se toca: una tecla blanca con sombra difusa; al apretarla se achica
    apenas, y la elegida se llena de azul hondo. */
-.estilo-suave .tecla {
+:root .tecla {
   border-radius: var(--radio-suave);
   background: var(--suave-tecla);
   box-shadow: var(--suave-sombra);
@@ -3430,17 +3187,17 @@ body:has([data-landing]) main {
     box-shadow 0.12s ease,
     background-color 0.15s ease;
 }
-.estilo-suave .tecla:active:not(:disabled) {
+:root .tecla:active:not(:disabled) {
   transform: scale(0.98);
   box-shadow: 0 1px 2px rgba(15, 58, 91, 0.06);
 }
-.estilo-suave .tecla[aria-pressed="true"] {
+:root .tecla[aria-pressed="true"] {
   background: var(--suave-elegido);
   color: #ffffff;
   box-shadow: 0 8px 20px rgba(28, 84, 120, 0.3);
 }
 @media (prefers-reduced-motion: reduce) {
-  .estilo-suave .tecla {
+  :root .tecla {
     transition: none;
   }
 }
@@ -3450,44 +3207,44 @@ body:has([data-landing]) main {
 .casilla {
   display: none;
 }
-.estilo-suave .interruptor {
+:root .interruptor {
   display: none;
 }
-.estilo-suave .casilla {
+:root .casilla {
   display: flex;
   border-radius: 999px;
   background: var(--suave-campo);
   box-shadow: inset 0 0 0 1.5px var(--suave-casilla-borde);
 }
-.estilo-suave [aria-checked="true"] .casilla {
+:root [aria-checked="true"] .casilla {
   background: var(--suave-elegido);
   color: #ffffff;
   box-shadow: 0 4px 10px rgba(28, 84, 120, 0.3);
 }
 /* Donde se escribe: relleno suave, sin borde; en foco pasa a blanco (el
    contorno de foco es el de siempre, uno solo). */
-.estilo-suave .campo {
+:root .campo {
   border-radius: 14px;
   background: var(--suave-campo);
   box-shadow: none;
 }
-.estilo-suave .campo:focus,
-.estilo-suave .campo:focus-within {
+:root .campo:focus,
+:root .campo:focus-within {
   background: var(--color-card);
   box-shadow: inset 0 0 0 1px var(--color-line);
 }
 /* El texto de ejemplo, en `ink-soft`: el gris al 50 % de siempre daba 3,4
    sobre el relleno. */
-.estilo-suave .campo::placeholder,
-.estilo-suave .campo input::placeholder {
+:root .campo::placeholder,
+:root .campo input::placeholder {
   color: var(--color-ink-soft);
 }
-.estilo-suave .campo[aria-invalid="true"],
-.estilo-suave .campo:has([aria-invalid="true"]) {
+:root .campo[aria-invalid="true"],
+:root .campo:has([aria-invalid="true"]) {
   box-shadow: inset 0 0 0 2px var(--color-danger);
 }
 /* Una tarjeta suave que agrupa (un rol del evento). */
-.estilo-suave .tarjeta-suave {
+:root .tarjeta-suave {
   border-radius: 20px;
   background: var(--color-card);
   box-shadow: var(--suave-sombra);
@@ -3502,12 +3259,17 @@ body:has([data-landing]) main {
 }
 /* Los botones, redondeados. El principal: ámbar en degradé con sombra de su
    color, sin borde ni canto. */
-.estilo-suave .boton {
+:root .boton:not(:where(.estilo-relieve *)) {
   border-radius: 16px;
 }
-.estilo-suave .boton-relieve {
+:root .boton-relieve:not(:where(.estilo-relieve *)) {
   border-radius: 18px;
   background: linear-gradient(180deg, #f6a92a, #e58e0f);
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease,
+    filter 0.15s ease,
+    background-color 0.15s ease;
   /* Brillo de tecla (2026-11-19): un canto de luz arriba y uno de sombra
      abajo, sutiles; sin reflejos de colores. */
   box-shadow:
@@ -3515,15 +3277,62 @@ body:has([data-landing]) main {
     inset 0 1px 0 rgba(255, 255, 255, 0.45),
     inset 0 -2px 0 rgba(0, 0, 0, 0.08);
 }
-.estilo-suave .boton-relieve:active {
+:root .boton-relieve:active:not(:where(.estilo-relieve *)) {
+  /* Al apretarlo se corre lo que mide `--relieve-btn` (3 px), como siempre. */
+  transform: translate(var(--relieve-btn), var(--relieve-btn));
   box-shadow:
     0 4px 10px rgba(217, 119, 6, 0.22),
     inset 0 1px 0 rgba(255, 255, 255, 0.45),
     inset 0 -2px 0 rgba(0, 0, 0, 0.08);
 }
-.estilo-suave .boton-relieve:disabled {
+/* El anillo de foco, separado del botón. */
+:root .boton-relieve:focus-visible:not(:where(.estilo-relieve *)) {
+  outline-offset: 4px;
+}
+:root .boton-relieve:disabled:not(:where(.estilo-relieve *)) {
   background: var(--suave-campo);
   box-shadow: none;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root .boton-relieve:not(:where(.estilo-relieve *)) {
+    transition: none;
+  }
+}
+/* La landing y `/historia` (`.estilo-relieve`, en la raíz de cada una)
+   conservan el botón con relieve del filete (ADR-0027): la historia muestra
+   réplicas de la app de antes (`CandidateCard`, `OpportunityCard`) con el
+   `Button` compartido. Es lo único «con relieve» que queda fuera de la
+   landing misma; se borra cuando la landing se decida (ADR-0028, cierre).
+   Con `:where` pesa lo mismo que cuando era la base: una clase. */
+:where(.estilo-relieve) .boton-relieve {
+  /* El borde va como sombra hacia adentro y no como `border`: un borde de
+     verdad agranda el botón y lo dejaba 2 px más alto que el secundario de
+     al lado. */
+  --relieve-borde: inset 0 0 0 1.5px var(--relieve);
+  border-radius: var(--radius-relieve);
+  box-shadow: var(--relieve-borde), var(--shadow-relieve);
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease,
+    filter 0.15s ease,
+    background-color 0.15s ease;
+}
+:where(.estilo-relieve) .boton-relieve:active {
+  transform: translate(var(--relieve-btn), var(--relieve-btn));
+  box-shadow: var(--relieve-borde), 0 0 0 var(--relieve);
+}
+:where(.estilo-relieve) .boton-relieve:focus-visible {
+  outline-offset: 4px;
+}
+:where(.estilo-relieve) .boton-relieve:disabled {
+  box-shadow: 0 0 0 1px var(--color-line);
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  :where(.estilo-relieve) .boton-relieve {
+    transition: none;
+  }
 }
 /* El pedido: la tarjeta del turno con el cielo arriba y el pago grande. */
 .pedido-tarjeta {
@@ -3536,7 +3345,7 @@ body:has([data-landing]) main {
 }
 /* Los esqueletos de carga dentro de la hoja: en oscuro el `surface` no se
    distingue de la hoja, así que usan el tono del campo. */
-.estilo-suave .hoja [data-skeleton] {
+:root .hoja [data-skeleton] {
   background-color: var(--suave-campo);
 }
 /* Una fila de «Cerca tuyo» (`components/worker/NearbyRow.tsx`): una grilla con
@@ -3622,16 +3431,16 @@ body:has([data-landing]) main {
 }
 /* Brillo de tecla del vidrio (2026-11-19): un borde de luz y un canto más
    claro arriba, sólo en la dirección suave. De noche, más tenues. */
-.estilo-suave .campo-vidrio,
-.estilo-suave .chip-vidrio,
-.estilo-suave .boton-vidrio {
+:root .campo-vidrio,
+:root .chip-vidrio,
+:root .boton-vidrio {
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
-:root[data-theme="dark"] .estilo-suave .campo-vidrio,
-:root[data-theme="dark"] .estilo-suave .chip-vidrio,
-:root[data-theme="dark"] .estilo-suave .boton-vidrio {
+:root:root[data-theme="dark"] .campo-vidrio,
+:root:root[data-theme="dark"] .chip-vidrio,
+:root:root[data-theme="dark"] .boton-vidrio {
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.18);
@@ -3690,7 +3499,7 @@ body:has([data-landing]) main {
    trazo en el ámbar de marca, que sumaba un segundo ámbar a la pantalla. En la
    dirección suave va en el azul de los links (`primary-text`). Fuera de ella no
    cambia. */
-.estilo-suave .empty-state-icono svg [stroke]:not([stroke="none"]) {
+:root .empty-state-icono svg [stroke]:not([stroke="none"]) {
   stroke: var(--color-primary-text);
 }
 
@@ -3716,8 +3525,8 @@ body:has([data-landing]) main {
     transition: none;
   }
 }
-.estilo-suave .chip-elegido,
-:root[data-theme="dark"] .estilo-suave .chip-elegido {
+:root .chip-elegido,
+:root:root[data-theme="dark"] .chip-elegido {
   background: var(--suave-elegido);
   color: #ffffff;
   box-shadow: 0 6px 14px rgba(28, 84, 120, 0.28);
@@ -3766,7 +3575,7 @@ body:has([data-landing]) main {
    foto es la tarjeta y el nombre va encima, sobre un velo que oscurece sólo
    el tramo de la letra; sin foto, una tarjeta con el cielo hondo arriba y
    sus datos en grande abajo. */
-.estilo-suave .foto-destacada {
+:root .foto-destacada {
   background: var(--suave-campo);
   box-shadow: var(--suave-sombra-alta);
 }
@@ -3788,7 +3597,7 @@ body:has([data-landing]) main {
 .foto-destacada .chip-foto {
   box-shadow: 0 1px 3px rgba(10, 25, 38, 0.28);
 }
-.estilo-suave .tarjeta-destacada {
+:root .tarjeta-destacada {
   overflow: hidden;
   border-radius: 24px;
   background: var(--suave-tecla);
@@ -3809,15 +3618,15 @@ body:has([data-landing]) main {
 }
 /* «Elegir» en una fila: quieto (relleno del campo, letra azul hondo), para
    que el único ámbar sea el de la destacada. */
-.estilo-suave .boton-quieto {
+:root .boton-quieto {
   background: var(--suave-campo);
   color: var(--color-primary-text);
   box-shadow: none;
 }
-.estilo-suave .boton-quieto:hover {
+:root .boton-quieto:hover {
   filter: brightness(0.97);
 }
-.estilo-suave .boton-quieto:disabled {
+:root .boton-quieto:disabled {
   color: var(--color-ink-mute);
 }
 /* «¡Oído!» al elegir (`OidoElegido`): las dos fotos llegan de los costados y
@@ -3903,20 +3712,6 @@ body:has([data-landing]) main {
     animation: none;
   }
 }
-/* Un botón de vidrio con texto sobre el cielo («Publicar turno» cuando el
-   ámbar es otro, «Evento»): el vidrio del chip, con el tamaño de un botón. */
-.chip-vidrio.boton-cielo {
-  justify-content: center;
-  min-height: 52px;
-  padding: 0 18px;
-  border-radius: 18px;
-  font-size: 1rem;
-  font-weight: 700;
-  transition: transform 0.15s ease;
-}
-.chip-vidrio.boton-cielo:active {
-  transform: scale(0.97);
-}
 /* El turno que espera que el comercio elija, sobre el cielo hondo: una caja
    de vidrio con su ámbar adentro. */
 .panel-vidrio {
@@ -3928,16 +3723,16 @@ body:has([data-landing]) main {
    pantalla es otro: azul hondo, letra blanca (5,2 sobre el tono más claro).
    La usan las filas del panel (`ShiftActions`) y «Enviar calificación»
    (`ReviewBox`, también en Mis turnos). */
-.estilo-suave .boton-hondo,
-.estilo-suave .boton-hondo:hover {
+:root .boton-hondo,
+:root .boton-hondo:hover {
   background: var(--suave-elegido);
   color: #ffffff;
   box-shadow: 0 6px 14px rgba(28, 84, 120, 0.22);
 }
-.estilo-suave .boton-hondo:hover {
+:root .boton-hondo:hover {
   filter: brightness(1.06);
 }
-.estilo-suave .boton-hondo:disabled {
+:root .boton-hondo:disabled {
   background: var(--suave-campo);
   color: var(--color-ink-mute);
   box-shadow: none;
@@ -3946,37 +3741,37 @@ body:has([data-landing]) main {
 /* Apagado no se pierde contra su fondo: sobre el relleno del campo (la caja
    de la calificación, una fila apagada) va del color de la tarjeta, y en la
    caja de una fila apagada (que es de la tarjeta), del campo. */
-.estilo-suave .caja-resena .boton-hondo:disabled,
-.estilo-suave .turno-apagado .boton-hondo:disabled {
+:root .caja-resena .boton-hondo:disabled,
+:root .turno-apagado .boton-hondo:disabled {
   background: var(--color-card);
 }
-.estilo-suave .turno-apagado .caja-resena .boton-hondo:disabled {
+:root .turno-apagado .caja-resena .boton-hondo:disabled {
   background: var(--suave-campo);
 }
 /* La caja de la calificación (`ReviewBox`) y la nota de «última señal»:
    relleno del campo, sin el crema de antes; adentro de una fila apagada (que
    ya es del color del campo) pasa al de la tarjeta. */
-.estilo-suave .caja-resena {
+:root .caja-resena {
   border-radius: 14px;
   background: var(--suave-campo);
 }
-.estilo-suave .caja-resena textarea {
+:root .caja-resena textarea {
   border-color: transparent;
   border-radius: 12px;
   background: var(--color-card);
   color: var(--color-ink);
 }
-.estilo-suave .caja-resena textarea::placeholder {
+:root .caja-resena textarea::placeholder {
   color: var(--color-ink-soft);
 }
-.estilo-suave .turno-apagado .caja-resena {
+:root .turno-apagado .caja-resena {
   background: var(--color-card);
 }
-.estilo-suave .turno-apagado .caja-resena textarea {
+:root .turno-apagado .caja-resena textarea {
   background: var(--suave-campo);
 }
 /* El asistente en la hoja del panel: un campo con relleno, sin filete. */
-.estilo-suave .panel-asistente > button {
+:root .panel-asistente > button {
   border-radius: 16px;
   background: var(--suave-campo);
   box-shadow: none;
@@ -4017,8 +3812,8 @@ body:has([data-landing]) main {
     box-shadow: 0 -10px 30px rgba(15, 58, 91, 0.1);
   }
 }
-.estilo-suave .hoja-compu [data-skeleton],
-.estilo-suave .hoja-celular [data-skeleton] {
+:root .hoja-compu [data-skeleton],
+:root .hoja-celular [data-skeleton] {
   background-color: var(--suave-campo);
 }
 /* Una fila de la lista: la raya que la separa de la anterior arranca después
@@ -4036,21 +3831,21 @@ body:has([data-landing]) main {
   height: 1px;
   background: var(--color-line);
 }
-.estilo-suave .chat-fila a[aria-current="page"] {
+:root .chat-fila a[aria-current="page"] {
   background: var(--suave-campo);
 }
 /* Con la fila rellena, el chip del turno pasa al tono de la hoja para no
    fundirse. */
-.estilo-suave .chat-fila a[aria-current="page"] .chip-suave {
+:root .chat-fila a[aria-current="page"] .chip-suave {
   background: var(--color-card);
 }
 /* El relleno al pasar por encima, sólo donde hay puntero: en el celular
    quedaba pegado después del toque. */
 @media (hover: hover) {
-  .estilo-suave .chat-fila a:hover {
+  :root .chat-fila a:hover {
     background: var(--suave-campo);
   }
-  .estilo-suave .chat-fila a:hover .chip-suave {
+  :root .chat-fila a:hover .chip-suave {
     background: var(--color-card);
   }
 }
@@ -4078,22 +3873,22 @@ body:has([data-landing]) main {
 /* Las burbujas (`components/ui/MessageBubble.tsx`): lo propio en celeste y lo
    ajeno con el relleno del campo, las dos sin borde. La hora, en `ink-soft`
    (el gris al 45 % daba menos de 4,5 sobre el celeste). */
-.estilo-suave .burbuja {
+:root .burbuja {
   border-radius: 20px;
   box-shadow: none;
 }
-.estilo-suave .burbuja-mia {
+:root .burbuja-mia {
   border-bottom-right-radius: 6px;
   background: #d3e8f5;
 }
-:root[data-theme="dark"] .estilo-suave .burbuja-mia {
+:root:root[data-theme="dark"] .burbuja-mia {
   background: #1f4460;
 }
-.estilo-suave .burbuja-ajena {
+:root .burbuja-ajena {
   border-bottom-left-radius: 6px;
   background: var(--suave-campo);
 }
-.estilo-suave .burbuja-meta {
+:root .burbuja-meta {
   color: var(--color-ink-soft);
 }
 
@@ -4101,7 +3896,7 @@ body:has([data-landing]) main {
 /* La foto a caballo de la hoja (`worker/PerfilTrabajador`): el borde es del
    color de la hoja, así parece recortada sobre el cielo. Sin foto, la inicial
    va en celeste y azul hondo (el relleno de siempre sumaba otro color). */
-.estilo-suave .perfil-foto .foto-subir {
+:root .perfil-foto .foto-subir {
   /* Relleno lleno (el del campo): un tinte transparente dejaba ver, de noche,
      el borde entre el cielo y la hoja a través del círculo. */
   background: var(--suave-campo);
@@ -4112,7 +3907,7 @@ body:has([data-landing]) main {
 }
 /* El nombre es el título: si es largo ocupa dos renglones en vez de cortarse
    en el primero (`EditableName` lo corta en uno, para la tarjeta del comercio). */
-.estilo-suave .titulo-pantalla .truncate {
+:root .titulo-pantalla .truncate {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -4131,53 +3926,53 @@ body:has([data-landing]) main {
 }
 /* Un grupo de filas (datos o accesos) sobre una tecla blanca. No es una
    `.tecla`: el grupo no se aprieta entero, se toca cada fila. */
-.estilo-suave .perfil-filas {
+:root .perfil-filas {
   overflow: hidden;
   margin: 0;
   border-radius: var(--radio-suave);
   background: var(--suave-tecla);
   box-shadow: var(--suave-sombra);
 }
-.estilo-suave .perfil-filas > * + * {
+:root .perfil-filas > * + * {
   position: relative;
 }
-.estilo-suave .perfil-filas > * + *::before {
+:root .perfil-filas > * + *::before {
   content: "";
   position: absolute;
   inset: 0 0 auto 16px;
   height: 1px;
   background: var(--color-line);
 }
-.estilo-suave .perfil-filas > a:active,
-.estilo-suave .perfil-filas > button:active {
+:root .perfil-filas > a:active,
+:root .perfil-filas > button:active {
   background: var(--suave-campo);
 }
 @media (hover: hover) {
-  .estilo-suave .perfil-filas > a:hover,
-  .estilo-suave .perfil-filas > button:hover {
+  :root .perfil-filas > a:hover,
+  :root .perfil-filas > button:hover {
     background: var(--suave-campo);
   }
 }
 /* Una caja con el relleno del campo, sin filete: la reseña a la vista, la
    verificación de identidad y «Disponible ahora». */
-.estilo-suave .caja-suave {
+:root .caja-suave {
   border-radius: 20px;
   background: var(--suave-campo);
   box-shadow: none;
 }
 /* Adentro de la caja, lo quieto y lo desactivado van con el color de la hoja:
    con el relleno del campo se perdían contra la caja. */
-.estilo-suave .caja-suave .boton-quieto,
-.estilo-suave .caja-suave .boton-relieve:disabled {
+:root .caja-suave .boton-quieto,
+:root .caja-suave .boton-relieve:disabled {
   background: var(--color-card);
 }
 /* El título de la caja, en la letra normal (la de títulos queda para la marca). */
-.estilo-suave .caja-suave .font-display {
+:root .caja-suave .font-display {
   font-family: inherit;
   font-weight: 700;
 }
 /* «Estás disponible ahora»: el ícono en azul hondo, no en ámbar. */
-.estilo-suave .disponible-activo {
+:root .disponible-activo {
   background: var(--suave-elegido);
   color: #ffffff;
 }
@@ -4210,25 +4005,25 @@ body:has([data-landing]) main {
 /* Un turno que no es el de hoy (`worker/TurnoSuave`): una fila blanca con
    sombra difusa. No es una `.tecla`: lleva botones adentro y no se achica al
    tocarla. */
-.estilo-suave .turno-fila {
+:root .turno-fila {
   border-radius: var(--radio-suave);
   background: var(--suave-tecla);
   box-shadow: var(--suave-sombra);
 }
 /* El bloque con el día del turno. */
-.estilo-suave .turno-fecha {
+:root .turno-fecha {
   border-radius: 14px;
   background: var(--suave-campo);
 }
 /* Lo que ya no tiene nada pendiente (pagado, cancelado, no cubierto) queda
    hundido: pierde la sombra, no el contraste de la letra. */
-.estilo-suave .turno-fila.turno-apagado {
+:root .turno-fila.turno-apagado {
   background: var(--suave-campo);
   box-shadow: none;
 }
-.estilo-suave .turno-apagado .turno-fecha,
-.estilo-suave .turno-apagado .boton-quieto,
-.estilo-suave .turno-apagado .chip-suave {
+:root .turno-apagado .turno-fecha,
+:root .turno-apagado .boton-quieto,
+:root .turno-apagado .chip-suave {
   background: var(--color-card);
 }
 /* Los cuatro pasos del turno con su barra (`ShiftLifecycleStepper`,
@@ -4267,7 +4062,7 @@ body:has([data-landing]) main {
   background: var(--color-card);
 }
 /* «Voy en camino» (`worker/EnRouteToggle`): relleno suave, sin filete. */
-.estilo-suave .caja-en-camino {
+:root .caja-en-camino {
   border-radius: var(--radio-suave);
   background: var(--suave-campo);
   box-shadow: none;
@@ -4278,17 +4073,17 @@ body:has([data-landing]) main {
    DETRÁS del mapa y lo que se esfuma es el lienzo (una máscara): así los pines
    que quedan arriba no se lavan (un degradé encima los bajaba a 2:1). El
    título va encima, en la tinta del cielo, y no recibe toques. */
-.estilo-suave .maplibregl-map {
+:root .maplibregl-map {
   --mapa-funde: 150px;
   background: linear-gradient(180deg, var(--app-cielo-0), var(--app-cielo-1) var(--mapa-funde));
 }
-.estilo-suave .maplibregl-canvas {
+:root .maplibregl-canvas {
   -webkit-mask-image: linear-gradient(180deg, transparent 8px, #000 var(--mapa-funde));
   mask-image: linear-gradient(180deg, transparent 8px, #000 var(--mapa-funde));
 }
 @media (min-width: 768px) {
   /* En la compu el título está en el panel: el cielo sólo asoma. */
-  .estilo-suave .maplibregl-map {
+  :root .maplibregl-map {
     --mapa-funde: 104px;
   }
 }
@@ -4383,21 +4178,20 @@ body:has([data-landing]) main {
   background: rgba(42, 115, 163, 0.4);
 }
 /* Varios turnos juntos y el punto de «estás acá»: en el azul hondo, sin ámbar.
-   Las dos piezas son compartidas con el mapa de Buscar del comercio, que no
-   lleva `.estilo-suave` y no cambia. */
-.estilo-suave .pin-grupo {
+   Las dos piezas son compartidas con el mapa de Buscar del comercio. */
+:root .pin-grupo {
   background: var(--suave-tecla);
   color: var(--color-ink);
   box-shadow:
     var(--suave-sombra-alta),
     0 0 0 4px rgba(42, 115, 163, 0.25);
 }
-.estilo-suave .puck-punto {
+:root .puck-punto {
   border-width: 4px;
   background: #2a73a3;
   box-shadow: 0 2px 6px rgba(15, 58, 91, 0.3);
 }
-.estilo-suave .puck-halo {
+:root .puck-halo {
   background: rgba(42, 115, 163, 0.25);
 }
 /* La hoja con los turnos (celular, `worker/MapSheet`) y el panel (compu). */
@@ -4415,17 +4209,17 @@ body:has([data-landing]) main {
 }
 /* Un turno en la hoja o en el panel: fila suave. No es una `.tecla`: lleva
    un botón adentro. La elegida (la del pin en azul hondo) lleva su aro. */
-.estilo-suave .mapa-turno {
+:root .mapa-turno {
   border-radius: 20px;
   background: var(--suave-tecla);
   box-shadow: var(--suave-sombra);
 }
-.estilo-suave .mapa-turno[data-elegido] {
+:root .mapa-turno[data-elegido] {
   box-shadow:
     var(--suave-sombra),
     0 0 0 2px #2a73a3;
 }
-:root[data-theme="dark"] .estilo-suave .mapa-turno[data-elegido] {
+:root:root[data-theme="dark"] .mapa-turno[data-elegido] {
   box-shadow:
     var(--suave-sombra),
     0 0 0 2px #5fa3cf;
@@ -4440,7 +4234,7 @@ body:has([data-landing]) main {
   white-space: nowrap;
 }
 /* La miniatura y el pago se achican cuando la fila es angosta (a 320 px). */
-.estilo-suave .mapa-turno {
+:root .mapa-turno {
   container-type: inline-size;
 }
 .mapa-turno-foto {
@@ -4466,7 +4260,7 @@ body:has([data-landing]) main {
   white-space: nowrap;
 }
 /* El estado vacío sobre el mapa (celular): una tarjeta que flota. */
-.estilo-suave .mapa-tarjeta {
+:root .mapa-tarjeta {
   overflow: hidden;
   border-radius: 24px;
   background: var(--suave-tecla);
@@ -4476,7 +4270,7 @@ body:has([data-landing]) main {
 /* ===== Editar perfil y Ajustes con la dirección suave (2026-11-20) ===== */
 /* Donde se suelta el CV (`CvUpload`): relleno del campo y el borde punteado
    en el tono del contorno de las casillas (3,8 sobre la hoja). */
-.estilo-suave .cv-soltar {
+:root .cv-soltar {
   border-radius: 18px;
   border-color: var(--suave-casilla-borde);
   border-width: 1.5px;
@@ -4484,30 +4278,30 @@ body:has([data-landing]) main {
 }
 /* Apariencia (`AppearanceControl`): una pista con el relleno del campo y la
    elegida en azul hondo, con letra blanca (5,2). Antes, ámbar. */
-.estilo-suave .apariencia {
+:root .apariencia {
   border-radius: 18px;
   background: var(--suave-campo);
   box-shadow: none;
 }
-.estilo-suave .apariencia > button {
+:root .apariencia > button {
   border-radius: 14px;
   color: var(--color-ink-soft);
 }
-.estilo-suave .apariencia > button[aria-checked="true"],
-:root[data-theme="dark"] .estilo-suave .apariencia > button[aria-checked="true"] {
+:root .apariencia > button[aria-checked="true"],
+:root:root[data-theme="dark"] .apariencia > button[aria-checked="true"] {
   background: var(--suave-elegido);
   color: #ffffff;
   box-shadow: 0 6px 14px rgba(28, 84, 120, 0.28);
 }
 /* El texto y el ícono de la caja del CV, en `ink-soft` (el gris al 40 % daba
    2,6 sobre el relleno), y la ayuda de arriba también. */
-.estilo-suave .cv-soltar span,
-.estilo-suave .cv-soltar svg,
-.estilo-suave .cv-ayuda {
+:root .cv-soltar span,
+:root .cv-soltar svg,
+:root .cv-ayuda {
   color: var(--color-ink-soft);
 }
 /* Al arrastrar un archivo encima, la caja lo sigue mostrando. */
-.estilo-suave .cv-soltar[data-arrastrando] {
+:root .cv-soltar[data-arrastrando] {
   border-style: solid;
   border-color: var(--color-primary-text);
   background: var(--color-card);
@@ -4515,7 +4309,7 @@ body:has([data-landing]) main {
 /* El foco por teclado de una fila suave va hacia adentro: el grupo recorta lo
    que sale (`overflow: hidden`) y el contorno se veía cortado. También en el
    Perfil, que usa las mismas filas. */
-.estilo-suave .perfil-filas :is(a, button):focus-visible {
+:root .perfil-filas :is(a, button):focus-visible {
   outline-offset: -3px;
 }
 
@@ -4766,7 +4560,7 @@ body:has([data-landing]) main {
 @media (max-width: 767px) {
   /* El cielo llega hasta debajo de los filtros: el lienzo se esfuma más abajo
      que en `/map` (150 px) para que el vidrio no flote sobre calles. */
-  .estilo-suave .buscar-mapa .maplibregl-map {
+  :root .buscar-mapa .maplibregl-map {
     --mapa-funde: 230px;
   }
 }
@@ -4778,7 +4572,7 @@ body:has([data-landing]) main {
   border: 0;
   text-overflow: ellipsis;
 }
-.estilo-suave .buscar-filtros select.campo-vidrio {
+:root .buscar-filtros select.campo-vidrio {
   /* La flecha propia: la nativa se pierde sobre el vidrio. */
   padding-right: 30px;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%236f8797' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
@@ -4796,19 +4590,19 @@ body:has([data-landing]) main {
 }
 /* En el panel de la compu (fondo de hoja, no cielo) el vidrio blanco no se ve:
    los campos van con el relleno del campo suave. */
-.estilo-suave .mapa-panel .buscar-filtros .campo-vidrio,
-.estilo-suave .mapa-panel .buscar-filtros .boton-vidrio {
+:root .mapa-panel .buscar-filtros .campo-vidrio,
+:root .mapa-panel .buscar-filtros .boton-vidrio {
   background-color: var(--suave-campo);
   backdrop-filter: none;
   box-shadow: none;
 }
-.estilo-suave .mapa-panel .buscar-filtros {
+:root .mapa-panel .buscar-filtros {
   color: var(--color-ink-soft);
 }
 /* El pin de una persona: una tecla redonda con la foto (o la inicial sobre el
    celeste), su aro fino y su pico; la nota, en una pastilla blanca. «Disponible
    ahora» es el punto verde. */
-.estilo-suave .pin-trabajador {
+:root .pin-trabajador {
   position: relative;
   isolation: isolate;
   display: flex;
@@ -4825,7 +4619,7 @@ body:has([data-landing]) main {
     0 0 0 1px rgba(15, 58, 91, 0.16);
   transition: transform 0.3s ease-out;
 }
-.estilo-suave .pin-trabajador::after {
+:root .pin-trabajador::after {
   content: "";
   position: absolute;
   z-index: -1;
@@ -4837,16 +4631,16 @@ body:has([data-landing]) main {
   background: var(--suave-tecla);
   transform: translateX(-50%) rotate(45deg);
 }
-:root[data-theme="dark"] .estilo-suave .pin-trabajador {
+:root:root[data-theme="dark"] .pin-trabajador {
   box-shadow:
     0 10px 24px rgba(0, 0, 0, 0.5),
     0 0 0 1px rgba(255, 255, 255, 0.3);
 }
-.estilo-suave .pin-trabajador[aria-pressed="true"] {
+:root .pin-trabajador[aria-pressed="true"] {
   transform: scale(1.2);
   background: var(--suave-elegido);
 }
-.estilo-suave .pin-trabajador[aria-pressed="true"]::after {
+:root .pin-trabajador[aria-pressed="true"]::after {
   background: #1c5478;
 }
 .pin-trabajador-inicial {
@@ -4859,10 +4653,10 @@ body:has([data-landing]) main {
   font-size: 1rem;
   font-weight: 800;
 }
-.estilo-suave .pin-vivo {
+:root .pin-vivo {
   border: 2px solid var(--suave-tecla);
 }
-.estilo-suave .pin-nota {
+:root .pin-nota {
   position: absolute;
   right: -10px;
   bottom: -5px;
@@ -4880,7 +4674,7 @@ body:has([data-landing]) main {
   font-variant-numeric: tabular-nums;
   box-shadow: 0 0 0 1px rgba(15, 58, 91, 0.16), 0 2px 6px rgba(15, 58, 91, 0.18);
 }
-:root[data-theme="dark"] .estilo-suave .pin-nota {
+:root:root[data-theme="dark"] .pin-nota {
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3), 0 2px 6px rgba(0, 0, 0, 0.4);
 }
 /* Una persona en la lista: la foto redonda y los rubros chicos. */
@@ -4894,7 +4688,7 @@ body:has([data-landing]) main {
 }
 /* «Completar ubicación» (el estado sin local) en azul hondo: la pantalla no
    tiene acción principal y no lleva ámbar. */
-.estilo-suave .buscar-vacio button {
+:root .buscar-vacio button {
   background: var(--suave-elegido);
   color: #ffffff;
   box-shadow: 0 6px 14px rgba(28, 84, 120, 0.22);
@@ -4962,7 +4756,7 @@ body:has([data-landing]) main {
    con su teclado y su etiqueta) vestida como la casilla suave del sí/no
    (`.casilla`): redonda, con el relleno del campo y el borde de 3,8 de
    contraste; marcada, se llena de azul hondo con el tilde blanco. */
-.estilo-suave .casilla-nativa {
+:root .casilla-nativa {
   appearance: none;
   -webkit-appearance: none;
   flex: none;
@@ -4975,7 +4769,7 @@ body:has([data-landing]) main {
   cursor: pointer;
   transition: background-color 0.15s ease;
 }
-.estilo-suave .casilla-nativa:checked {
+:root .casilla-nativa:checked {
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E"),
     var(--suave-elegido);
@@ -4984,26 +4778,26 @@ body:has([data-landing]) main {
   background-size: 15px 15px, auto;
   box-shadow: 0 4px 10px rgba(28, 84, 120, 0.3);
 }
-.estilo-suave .casilla-nativa:disabled {
+:root .casilla-nativa:disabled {
   cursor: default;
 }
 /* Un campo adentro de una caja suave (el paso del rol de Google, el PIN de
    invitado) va con el color de la hoja: con el relleno del campo se perdía
    contra la caja. */
-.estilo-suave .caja-suave .campo {
+:root .caja-suave .campo {
   background: var(--color-card);
 }
 /* El autocompletado del navegador (Chrome, Safari) pinta el campo de amarillo
    o azul pálido y la letra en negro: se lo cubre con el relleno del campo
    (y con el blanco de la hoja en foco) y la letra queda en la tinta. */
-.estilo-suave .campo:-webkit-autofill,
-.estilo-suave .campo:-webkit-autofill:hover {
+:root .campo:-webkit-autofill,
+:root .campo:-webkit-autofill:hover {
   -webkit-text-fill-color: var(--color-ink);
   caret-color: var(--color-ink);
   box-shadow: inset 0 0 0 1000px var(--suave-campo);
   transition: background-color 600000s 0s;
 }
-.estilo-suave .campo:-webkit-autofill:focus {
+:root .campo:-webkit-autofill:focus {
   -webkit-text-fill-color: var(--color-ink);
   caret-color: var(--color-ink);
   box-shadow:
@@ -5011,13 +4805,13 @@ body:has([data-landing]) main {
     inset 0 0 0 1000px var(--color-card);
   transition: background-color 600000s 0s;
 }
-.estilo-suave .caja-suave .campo:-webkit-autofill,
-.estilo-suave .caja-suave .campo:-webkit-autofill:hover {
+:root .caja-suave .campo:-webkit-autofill,
+:root .caja-suave .campo:-webkit-autofill:hover {
   box-shadow: inset 0 0 0 1000px var(--color-card);
 }
 /* El paso del código del ingreso (admin, `TwoFactorLoginStep`): el título en
    la letra normal. */
-.estilo-suave .acceso-hoja .font-display {
+:root .acceso-hoja .font-display {
   font-family: inherit;
   font-weight: 700;
 }
@@ -5025,7 +4819,7 @@ body:has([data-landing]) main {
 /* ===== La tira de días que se toca (`components/SemanaTira.tsx`, `MasAdelante.tsx`) ===== */
 /* Cada día es un botón de 44 px como mínimo de alto. Elegido, lleva la tecla
    blanca (`.dia-cielo-hoy`); hoy sin elegir, un aro fino del color de la tinta. */
-.estilo-suave .dia-boton {
+:root .dia-boton {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -5036,27 +4830,27 @@ body:has([data-landing]) main {
   -webkit-tap-highlight-color: transparent;
   transition: transform 0.12s ease;
 }
-.estilo-suave .dia-boton:active {
+:root .dia-boton:active {
   transform: scale(0.93);
 }
-.estilo-suave .dia-boton:focus-visible,
-.estilo-suave .flecha-vidrio:focus-visible,
-.estilo-suave .volver-semana:focus-visible {
+:root .dia-boton:focus-visible,
+:root .flecha-vidrio:focus-visible,
+:root .volver-semana:focus-visible {
   outline: 2px solid currentColor;
   outline-offset: 2px;
   border-radius: 14px;
 }
 /* «lun», «mar»…: crece un poco con la letra del sistema pero con tope, para que
    los siete nombres no se pisen en 320 px con la letra al 200 %. */
-.estilo-suave .dia-nombre {
+:root .dia-nombre {
   font-size: clamp(11px, 0.75rem, 13px);
   line-height: 1.2;
 }
-.estilo-suave .dia-cielo-aro {
+:root .dia-cielo-aro {
   box-shadow: inset 0 0 0 1.5px currentColor;
 }
 /* Las flechas para pasar de semana: vidrio chico, con el área de toque de 44 px. */
-.estilo-suave .flecha-vidrio {
+:root .flecha-vidrio {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -5072,26 +4866,26 @@ body:has([data-landing]) main {
     inset 0 0 0 1px rgba(255, 255, 255, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
-.estilo-suave .flecha-vidrio::before,
-.estilo-suave .volver-semana::before {
+:root .flecha-vidrio::before,
+:root .volver-semana::before {
   content: "";
   position: absolute;
   inset: -6px;
 }
-:root[data-theme="dark"] .estilo-suave .flecha-vidrio {
+:root:root[data-theme="dark"] .flecha-vidrio {
   background: rgba(255, 255, 255, 0.1);
   color: #e6eef4;
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
-.estilo-suave .app-cielo.cielo-hondo .flecha-vidrio {
+:root .app-cielo.cielo-hondo .flecha-vidrio {
   background: rgba(255, 255, 255, 0.16);
   color: #ffffff;
 }
 /* El puntito de la flecha: hay turnos de ese lado. No es ámbar (el ámbar es de
    la acción): la tinta del cielo, con un aro del color del cielo para despegarlo. */
-.estilo-suave .flecha-punto {
+:root .flecha-punto {
   position: absolute;
   top: -1px;
   right: -1px;
@@ -5101,7 +4895,7 @@ body:has([data-landing]) main {
   background: currentColor;
   box-shadow: 0 0 0 2px var(--app-cielo-1);
 }
-.estilo-suave .volver-semana {
+:root .volver-semana {
   position: relative;
   padding: 3px 12px;
   font-size: 12px;
@@ -5109,7 +4903,7 @@ body:has([data-landing]) main {
 /* «Más adelante»: la fila, de una línea mientras entre. Con la pantalla angosta
    o la letra grande el estado y el pago bajan a una segunda línea (el puesto
    conserva un mínimo y se corta con «…») en vez de salirse del ancho. */
-.estilo-suave .mas-adelante-fila {
+:root .mas-adelante-fila {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -5120,14 +4914,14 @@ body:has([data-landing]) main {
   padding: 8px 14px;
   text-align: left;
 }
-.estilo-suave .mas-adelante-fecha {
+:root .mas-adelante-fecha {
   flex: none;
   white-space: nowrap;
   font-size: 14px;
   font-weight: 700;
   color: var(--color-ink);
 }
-.estilo-suave .mas-adelante-puesto {
+:root .mas-adelante-puesto {
   flex: 1 1 3.5rem;
   min-width: 0;
   overflow: hidden;
@@ -5137,7 +4931,7 @@ body:has([data-landing]) main {
   font-weight: 600;
   color: var(--color-ink);
 }
-.estilo-suave .mas-adelante-pago {
+:root .mas-adelante-pago {
   flex: none;
   margin-left: auto;
   text-align: right;
@@ -5147,10 +4941,10 @@ body:has([data-landing]) main {
   color: var(--color-ink);
 }
 @media (prefers-reduced-motion: reduce) {
-  .estilo-suave .dia-boton {
+  :root .dia-boton {
     transition: none;
   }
-  .estilo-suave .dia-boton:active {
+  :root .dia-boton:active {
     transform: none;
   }
 }
@@ -5158,10 +4952,10 @@ body:has([data-landing]) main {
 /* «Urgentes» del Inicio de quien trabaja (`worker/UrgentesRow`): una fila
    horizontal de tarjetas compactas. La cuenta regresiva va en el rojo de
    «Urgente» que ya existe (`danger-tint` / `danger-text`), nunca en ámbar. */
-.estilo-suave .urgentes {
+:root .urgentes {
   margin-bottom: 24px;
 }
-.estilo-suave .urgentes-carril {
+:root .urgentes-carril {
   display: flex;
   gap: 12px;
   margin: 12px -16px 0;
@@ -5172,7 +4966,7 @@ body:has([data-landing]) main {
   list-style: none;
 }
 @media (min-width: 768px) {
-  .estilo-suave .urgentes-carril {
+  :root .urgentes-carril {
     margin-inline: -24px;
     padding-inline: 24px;
     scroll-padding-inline: 24px;
@@ -5180,12 +4974,12 @@ body:has([data-landing]) main {
 }
 /* Ancho en rem para que crezca con la letra, y nunca más que el 80 % de la
    pantalla (a 200 % de letra una tarjeta no se sale del celular). */
-.estilo-suave .urgente-item {
+:root .urgente-item {
   flex: 0 0 auto;
   width: min(14.5rem, 80vw);
   scroll-snap-align: start;
 }
-.estilo-suave .urgente-tarjeta {
+:root .urgente-tarjeta {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -5195,7 +4989,7 @@ body:has([data-landing]) main {
     var(--suave-sombra),
     inset 0 0 0 1.5px color-mix(in srgb, var(--color-danger) 28%, transparent);
 }
-.estilo-suave .chip-urgencia {
+:root .chip-urgencia {
   display: inline-flex;
   align-items: center;
   align-self: flex-start;
@@ -5209,7 +5003,7 @@ body:has([data-landing]) main {
   background: var(--color-danger-tint);
   color: var(--color-danger-text);
 }
-.estilo-suave .urgente-pago {
+:root .urgente-pago {
   font-size: min(1.5rem, 7vw);
   font-weight: 800;
   line-height: 1;
@@ -5222,7 +5016,7 @@ body:has([data-landing]) main {
 /* Accesos por rubro de Buscar (`app/buscar/page.tsx`): una tecla suave con el
    ícono y el nombre corto del rubro; la elegida, en azul hondo (como el pin
    elegido del mapa). Mide bastante más de 44 px de alto. */
-.estilo-suave .tecla-rubro {
+:root .tecla-rubro {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -5239,10 +5033,10 @@ body:has([data-landing]) main {
     transform 0.12s ease,
     background-color 0.15s ease;
 }
-.estilo-suave .tecla-rubro:active {
+:root .tecla-rubro:active {
   transform: scale(0.95);
 }
-.estilo-suave .tecla-rubro-icono {
+:root .tecla-rubro-icono {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -5252,22 +5046,22 @@ body:has([data-landing]) main {
   background: var(--suave-campo);
   color: var(--color-primary-text);
 }
-.estilo-suave .tecla-rubro-nombre {
+:root .tecla-rubro-nombre {
   font-size: 12px;
   font-weight: 700;
   line-height: 1.15;
 }
-.estilo-suave .tecla-rubro[aria-pressed="true"] {
+:root .tecla-rubro[aria-pressed="true"] {
   background: var(--suave-elegido);
   color: #ffffff;
   box-shadow: 0 8px 18px rgba(28, 84, 120, 0.32);
 }
-.estilo-suave .tecla-rubro[aria-pressed="true"] .tecla-rubro-icono {
+:root .tecla-rubro[aria-pressed="true"] .tecla-rubro-icono {
   background: rgba(255, 255, 255, 0.18);
   color: #ffffff;
 }
 @media (prefers-reduced-motion: reduce) {
-  .estilo-suave .tecla-rubro {
+  :root .tecla-rubro {
     transition: none;
   }
 }
@@ -5275,10 +5069,10 @@ body:has([data-landing]) main {
 /* ===== `/map`: pines con ícono, nombre del local y chips (2026-11-21) ===== */
 /* El ícono del rubro en el pin, antes del pago: azul hondo sobre la tecla
    blanca; en el pin elegido (azul hondo), blanco. */
-.estilo-suave .pin-turno .pin-rubro {
+:root .pin-turno .pin-rubro {
   color: var(--color-primary-text);
 }
-.estilo-suave .pin-turno[aria-pressed="true"] .pin-rubro {
+:root .pin-turno[aria-pressed="true"] .pin-rubro {
   color: #ffffff;
 }
 /* El nombre del local: una pastilla del color de la tecla (blanca de día,
@@ -5286,7 +5080,7 @@ body:has([data-landing]) main {
    140 px (el ancho exacto lo fija `lib/map/pastillas.ts`). Vive dentro del
    botón del pin: tocarla es tocar el pin. A la derecha del pin o, si ahí no
    entra, a la izquierda (`data-lado`). */
-.estilo-suave .pin-nombre {
+:root .pin-nombre {
   position: absolute;
   top: 50%;
   left: calc(100% + 4px);
@@ -5310,11 +5104,11 @@ body:has([data-landing]) main {
   letter-spacing: 0;
   line-height: 24px;
 }
-.estilo-suave .pin-nombre[data-lado="izquierda"] {
+:root .pin-nombre[data-lado="izquierda"] {
   left: auto;
   right: calc(100% + 4px);
 }
-:root[data-theme="dark"] .estilo-suave .pin-nombre {
+:root:root[data-theme="dark"] .pin-nombre {
   box-shadow:
     0 10px 24px rgba(0, 0, 0, 0.5),
     0 0 0 1px rgba(255, 255, 255, 0.3);
@@ -5322,18 +5116,18 @@ body:has([data-landing]) main {
 /* Los chips del mapa: una fila bajo el título que se desliza de costado. El
    botón mide 44 px (lo que se toca) y la cara de vidrio, 36. El elegido, en la
    tecla blanca (en el panel de la compu, azul hondo como los chips de Buscar). */
-.estilo-suave .chips-mapa {
+:root .chips-mapa {
   display: flex;
   gap: 0;
   margin: 2px -20px 0;
   padding: 0 20px;
   overflow-x: auto;
 }
-.estilo-suave .chips-mapa[data-variante="panel"] {
+:root .chips-mapa[data-variante="panel"] {
   margin: 6px -4px 0;
   padding: 0 4px;
 }
-.estilo-suave .chip-mapa {
+:root .chip-mapa {
   flex: none;
   min-height: 44px;
   padding: 4px 3px;
@@ -5341,39 +5135,39 @@ body:has([data-landing]) main {
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
-.estilo-suave .chip-mapa-cara {
+:root .chip-mapa-cara {
   min-height: 36px;
   padding: 0 10px;
   white-space: nowrap;
   transition: transform 0.12s ease;
 }
-.estilo-suave .chip-mapa:active .chip-mapa-cara {
+:root .chip-mapa:active .chip-mapa-cara {
   transform: scale(0.96);
 }
-.estilo-suave .chip-mapa:focus-visible {
+:root .chip-mapa:focus-visible {
   outline: 2px solid var(--color-primary-text);
   outline-offset: -2px;
   border-radius: 999px;
 }
-.estilo-suave .chip-mapa[aria-pressed="true"] .chip-vidrio,
-:root[data-theme="dark"] .estilo-suave .chip-mapa[aria-pressed="true"] .chip-vidrio {
+:root .chip-mapa[aria-pressed="true"] .chip-vidrio,
+:root:root[data-theme="dark"] .chip-mapa[aria-pressed="true"] .chip-vidrio {
   background: #ffffff;
   color: #0f3a5b;
   font-weight: 700;
   box-shadow: 0 6px 14px rgba(15, 58, 91, 0.18);
 }
-.estilo-suave .chip-mapa[aria-pressed="true"] .chip-suave {
+:root .chip-mapa[aria-pressed="true"] .chip-suave {
   background: var(--suave-elegido);
   color: #ffffff;
   font-weight: 700;
 }
 @media (prefers-reduced-motion: reduce) {
-  .estilo-suave .chip-mapa-cara {
+  :root .chip-mapa-cara {
     transition: none;
   }
 }
 /* Sin resultados con un filtro puesto: una línea tranquila en la hoja. */
-.estilo-suave .mapa-sin-filtro {
+:root .mapa-sin-filtro {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -5382,4 +5176,255 @@ body:has([data-landing]) main {
   color: var(--color-ink-soft);
   font-size: 0.875rem;
   font-weight: 600;
+}
+
+/* ===== Las hojas y ventanas compartidas con la dirección suave (ADR-0028, 2026-11-21) =====
+   `Sheet`, `Modal`, el aviso flotante, el recorrido guiado y la campanita se
+   dibujan en un portal, fuera de la raíz de cada pantalla, así que ya no
+   dependen de la pantalla de atrás (desde el cierre, lo suave es la base de
+   toda la app y cada capa conserva su `.estilo-suave` sólo como marca);
+   `.ventana-suave` marca lo que sólo vale en una ventana.
+   La landing no usa ninguna de estas piezas (tiene sus réplicas). */
+/* El velo detrás de una hoja o un diálogo: azul de tinta, no negro puro. */
+.velo-suave {
+  background: rgba(15, 58, 91, 0.42);
+}
+:root[data-theme="dark"] .velo-suave {
+  background: rgba(3, 8, 14, 0.66);
+}
+/* La hoja que sube desde abajo: blanca, con las esquinas de arriba grandes y
+   la sombra difusa hacia arriba. De noche, la noche azul de la hoja. */
+.hoja-flotante {
+  background: var(--color-card);
+  border-radius: 28px 28px 0 0;
+  box-shadow: 0 -10px 30px rgba(15, 58, 91, 0.16);
+}
+:root[data-theme="dark"] .hoja-flotante {
+  box-shadow:
+    0 -10px 30px rgba(0, 0, 0, 0.45),
+    0 -1px 0 rgba(255, 255, 255, 0.06);
+}
+/* La cabecera pegajosa de la hoja (manija, título y cruz): del color de la
+   hoja, para que el contenido se esconda por detrás al desplazarse. */
+.hoja-flotante-cabeza {
+  background: var(--color-card);
+  border-radius: 28px 28px 0 0;
+}
+/* La manija de arrastre: una barrita suave, visible sobre la hoja. */
+.manija-suave {
+  width: 40px;
+  height: 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--suave-casilla-borde) 55%, transparent);
+}
+/* La cruz de cerrar: una tecla redonda con el relleno del campo. */
+.cruz-suave {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: var(--suave-campo);
+  color: var(--color-ink-soft);
+  transition:
+    transform 0.12s ease,
+    filter 0.15s ease;
+}
+.cruz-suave:hover {
+  filter: brightness(0.96);
+}
+.cruz-suave:active {
+  transform: scale(0.94);
+}
+@media (prefers-reduced-motion: reduce) {
+  .cruz-suave {
+    transition: none;
+  }
+}
+/* El diálogo centrado (las confirmaciones): una hoja blanca de esquinas
+   grandes con la sombra difusa alta. */
+.dialogo-suave {
+  background: var(--color-card);
+  border-radius: 28px;
+  box-shadow: var(--suave-sombra-alta);
+}
+/* El secundario de una ventana («Volver», «Ahora no»): quieto, con el relleno
+   del campo y la letra azul hondo, sin filete. El principal sigue siendo el
+   único ámbar (o el rojo de peligro de una confirmación destructiva). */
+.ventana-suave .boton-secundario {
+  background: var(--suave-campo);
+  color: var(--color-primary-text);
+  box-shadow: none;
+}
+.ventana-suave .boton-secundario:hover {
+  filter: brightness(0.97);
+}
+.ventana-suave .boton-secundario:disabled {
+  color: var(--color-ink-mute);
+}
+/* Una fila de una lista dentro de una hoja (el menú «Más acciones», los
+   avisos): redonda, de 48 px de alto como mínimo, sin rayas entre filas. */
+.ventana-suave .fila-hoja {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+.ventana-suave button.fila-hoja:hover:not(:disabled),
+.ventana-suave a.fila-hoja:hover {
+  background: var(--suave-campo);
+}
+.ventana-suave .fila-hoja:disabled {
+  opacity: 0.5;
+}
+/* Los avisos de la campanita: cada uno una tarjeta; el que no se leyó, con el
+   relleno del campo y un punto azul hondo. */
+.ventana-suave .aviso-fila {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 2px;
+  font-weight: 400;
+  background: var(--color-card);
+}
+.ventana-suave .aviso-fila[data-sin-leer="true"] {
+  background: var(--suave-campo);
+}
+.aviso-punto {
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 999px;
+  background: var(--suave-elegido);
+}
+/* El desplegable de avisos en la barra de arriba (la compu). */
+.panel-avisos {
+  border-radius: 22px;
+  background: var(--color-card);
+  box-shadow: var(--suave-sombra-alta);
+}
+/* El aviso flotante (`ToastProvider`): una tecla oscura con sombra difusa; el
+   texto largo lo envuelve en dos renglones sin deformar la píldora. */
+.aviso-flotante {
+  border-radius: 20px;
+  box-shadow: 0 10px 28px rgba(15, 58, 91, 0.28);
+}
+:root[data-theme="dark"] .aviso-flotante {
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+}
+/* El recorrido guiado: el hueco que deja el velo, y la tarjeta con su pregunta. */
+.recorrido-hueco {
+  border-radius: 22px;
+}
+.recorrido-tarjeta {
+  border-radius: 24px;
+  background: var(--color-card);
+  box-shadow: var(--suave-sombra-alta);
+}
+/* Un paso de «Esto es lo que sigue»: el número en una chapita redonda (el
+   primero, en azul hondo; los demás, con el relleno del campo). */
+.paso-chapa {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--suave-campo);
+  color: var(--color-primary-text);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.paso-chapa[data-actual="true"] {
+  background: var(--suave-elegido);
+  color: #ffffff;
+}
+.chip-suave-chico {
+  padding: 2px 8px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-primary-text);
+}
+
+/* ---- La Administración con la dirección suave (2026-11-21, ADR-0028) ----
+   Una herramienta de trabajo con listas y tablas densas: lleva el cielo corto
+   y liso de las subpantallas y debajo la hoja (`PantallaAdmin`). Todo va bajo
+   `.admin-suave`, la raíz de la cáscara. */
+:root .admin-nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: var(--suave-campo);
+  color: var(--color-ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color 0.15s ease;
+}
+@media (min-width: 768px) {
+  :root .admin-nav-item {
+    border-radius: 14px;
+    background: transparent;
+  }
+  :root .admin-nav-item:hover {
+    background: var(--suave-campo);
+  }
+}
+:root .admin-nav-item[aria-current="page"] {
+  background: var(--suave-elegido);
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(28, 84, 120, 0.22);
+}
+/* El segundo botón (blanco con filete) pasa a quieto: relleno del campo y
+   letra azul hondo; el ámbar queda para la acción principal. */
+.admin-suave .boton.ring-line {
+  background: var(--suave-campo);
+  color: var(--color-primary-text);
+  box-shadow: none;
+}
+.admin-suave .boton.ring-line:hover {
+  filter: brightness(0.97);
+}
+.admin-suave .boton.ring-line:disabled {
+  color: var(--color-ink-mute);
+}
+/* Las tarjetas y filas que llevan a otra pantalla. */
+:root .admin-tarjeta-link {
+  transition: background-color 0.15s ease;
+}
+:root .admin-fila-link {
+  transition: background-color 0.15s ease;
+}
+@media (hover: hover) {
+  :root .admin-tarjeta-link:hover,
+  :root .admin-fila-link:hover {
+    background: var(--suave-campo);
+  }
+}
+:root .admin-fila-link:active,
+:root .admin-tarjeta-link:active {
+  background: var(--suave-campo);
+}
+
+/* Las tarjetas del admin en grilla de dos columnas: con la letra al 200 % en
+   un celular angosto el texto («Ver ausencias →», «8 con un turno cubierto»)
+   no entraba en la columna y corría la página. Se parte donde haga falta. */
+.admin-suave .tarjeta-suave {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }

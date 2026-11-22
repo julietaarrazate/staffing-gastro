@@ -96,7 +96,7 @@ export default function CerrarTurnoDialog({
         ))}
       </ul>
       {error && (
-        <p role="alert" className="mt-3 rounded-xl bg-danger-tint px-3.5 py-2.5 text-sm font-medium text-danger-text ring-1 ring-danger/15">
+        <p role="alert" className="mt-3 rounded-[14px] bg-danger-tint px-3.5 py-2.5 text-sm font-medium text-danger-text">
           {error}
         </p>
       )}

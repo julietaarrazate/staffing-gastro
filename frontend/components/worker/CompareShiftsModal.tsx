@@ -36,7 +36,7 @@ export default function CompareShiftsModal({
             return (
               <div
                 key={shift.id}
-                className="w-[168px] shrink-0 rounded-2xl bg-surface p-3 ring-1 ring-line"
+                className="w-[168px] shrink-0 rounded-[20px] bg-[var(--suave-campo)] p-3"
               >
                 <p className="line-clamp-1 text-sm font-bold text-ink">
                   {shift.company_name ?? "Local"}

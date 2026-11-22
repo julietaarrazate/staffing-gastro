@@ -31,8 +31,10 @@ const VARIANTS: Record<Variant, string> = {
   // (`.btn-liso` de la prueba de la app «con relieve», 2026-11-19).
   // Desactivados como el de `primary`: sin opacidad (a opacity-50 la tinta sobre
   // la tarjeta blanca quedaba tenue en claro), fondo `surface` y tinta apagada.
+  // `boton-secundario`: el gancho de la dirección suave dentro de una hoja o un
+  // diálogo (`.ventana-suave`), donde pasa a «quieto».
   surface:
-    "bg-card text-ink ring-1 ring-line hover:bg-surface disabled:bg-surface disabled:text-ink-mute disabled:opacity-100",
+    "boton-secundario bg-card text-ink ring-1 ring-line hover:bg-surface disabled:bg-surface disabled:text-ink-mute disabled:opacity-100",
   ghost: "bg-transparent text-ink/80 hover:bg-surface disabled:text-ink-mute disabled:opacity-100",
 };
 

@@ -85,7 +85,7 @@ export default function AdminSupportPage() {
             <Link
               key={t.id}
               href={`/support/${t.id}`}
-              className="block min-w-0 rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-soft)] ring-1 ring-line transition hover:bg-surface"
+              className="tarjeta-suave admin-tarjeta-link block min-w-0 p-4"
             >
               <div className="flex min-w-0 items-center justify-between gap-2">
                 <p className="min-w-0 truncate font-semibold text-ink">{t.subject}</p>
@@ -93,20 +93,20 @@ export default function AdminSupportPage() {
                   {t.status === "abierto" ? "Abierto" : "Cerrado"}
                 </Badge>
               </div>
-              <p className="mt-1 break-words text-sm text-ink/50">
+              <p className="mt-1 break-words text-sm text-ink-soft">
                 {t.user_full_name} · {t.user_role === "worker" ? "Trabajador" : "Comercio"} ·{" "}
                 {TICKET_CATEGORY_LABELS[t.category]}
               </p>
               {/* La tarjeta entera es un link: la referencia va como texto, el
                   link al turno o al comercio está en el detalle del ticket. */}
               {(t.shift_title || t.company_name) && (
-                <p className="mt-1 break-words text-sm text-ink/70">
+                <p className="mt-1 break-words text-sm text-ink-soft">
                   {t.shift_title
                     ? `Turno: ${t.shift_title}${t.shift_start_at ? ` · ${formatShiftDate(t.shift_start_at)}` : ""}`
                     : `Comercio: ${t.company_name}`}
                 </p>
               )}
-              <p className="mt-1 text-xs text-ink/40">
+              <p className="mt-1 text-xs text-ink-soft">
                 {t.message_count} mensaje{t.message_count !== 1 ? "s" : ""}
               </p>
             </Link>

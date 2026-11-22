@@ -41,7 +41,7 @@ export default function LandingCorta() {
     // son tramos, no un tema). globals.css redeclara los tokens claros para
     // este subárbol. `overflow-x-clip` y no `hidden`: `hidden` rompería el
     // encabezado `sticky`.
-    <div data-landing data-theme="light" data-palette="celeste" className={`${LETRAS_LANDING} overflow-x-clip bg-card text-ink`}>
+    <div data-landing data-theme="light" data-palette="celeste" className={`${LETRAS_LANDING} estilo-relieve overflow-x-clip bg-card text-ink`}>
       <PrecargaIngreso />
       <LandingHeader heroCtaId={HERO_CTA_ID} />
       <HeroRueda />

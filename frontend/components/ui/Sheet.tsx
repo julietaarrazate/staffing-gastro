@@ -98,14 +98,17 @@ export default function Sheet({
   const content = (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end">
+        // `estilo-suave` en la propia capa: se dibuja en un portal, fuera de la
+        // raíz de la pantalla, y la piel suave (ADR-0028) no puede depender de
+        // que la pantalla de atrás la lleve (Administración todavía no).
+        <div className="estilo-suave ventana-suave fixed inset-0 z-50 flex flex-col justify-end">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={reducedMotion ? { duration: 0 } : undefined}
             onClick={onClose}
-            className="absolute inset-0 bg-black/40"
+            className="velo-suave absolute inset-0"
           />
           <motion.div
             ref={dialogRef}
@@ -117,9 +120,9 @@ export default function Sheet({
             exit={{ y: "100%" }}
             transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 320, damping: 32 }}
             style={{ y }}
-            className="relative z-10 max-h-[88dvh] overflow-y-auto overscroll-contain rounded-t-[var(--radius-sheet)] bg-card pb-[max(env(safe-area-inset-bottom),1.25rem)] shadow-[var(--shadow-float)]"
+            className="hoja-flotante relative z-10 max-h-[88dvh] overflow-y-auto overscroll-contain pb-[max(env(safe-area-inset-bottom),1.25rem)]"
           >
-            <div className="sticky top-0 z-10 flex flex-col items-center gap-2 rounded-t-[var(--radius-sheet)] bg-card pb-2 pt-3">
+            <div className="hoja-flotante-cabeza sticky top-0 z-10 flex flex-col items-center gap-2 pb-2 pt-3">
               {/* El arrastre sólo arranca acá (la manija), nunca en la X ni
                   en el título — evita cualquier ambigüedad de a qué elemento
                   capturarle el puntero (ver nota de arriba del componente). */}
@@ -130,14 +133,14 @@ export default function Sheet({
                 onPointerCancel={handlePointerUp}
                 className="flex w-full touch-none justify-center py-1"
               >
-                <span className="h-1.5 w-10 rounded-full bg-line" />
+                <span className="manija-suave" />
               </div>
-              {title && <h3 className="text-base font-bold text-ink">{title}</h3>}
+              {title && <h3 className="px-14 text-center text-lg font-extrabold leading-tight text-ink">{title}</h3>}
               <button
                 type="button"
                 onClick={onClose}
                 aria-label="Cerrar"
-                className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-surface text-ink/60 transition hover:bg-line hover:text-ink active:scale-95"
+                className="cruz-suave absolute right-3 top-1.5"
               >
                 <CloseIcon size={18} />
               </button>

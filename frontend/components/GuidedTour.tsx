@@ -132,15 +132,15 @@ export default function GuidedTour({ steps, storageKey }: GuidedTourProps) {
   );
 
   const content = (
-    <div ref={capaRef} className="fixed inset-0 z-[70]">
+    <div ref={capaRef} className="estilo-suave ventana-suave fixed inset-0 z-[70]">
       <div
-        className="pointer-events-none absolute rounded-2xl transition-all duration-300"
+        className="recorrido-hueco pointer-events-none absolute transition-all duration-300"
         style={{
           top: rect.top - PADDING,
           left: rect.left - PADDING,
           width: rect.width + PADDING * 2,
           height: rect.height + PADDING * 2,
-          boxShadow: "0 0 0 3px var(--color-primary), 0 0 0 9999px rgba(17,17,17,0.65)",
+          boxShadow: "0 0 0 3px var(--color-card), 0 0 0 9999px rgba(15,58,91,0.62)",
         }}
       />
       <AnimatePresence mode="wait">
@@ -153,7 +153,7 @@ export default function GuidedTour({ steps, storageKey }: GuidedTourProps) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
           transition={reducedMotion ? { duration: 0 } : MOTION_UI}
-          className="absolute rounded-2xl bg-card p-4 shadow-[var(--shadow-float)]"
+          className="recorrido-tarjeta absolute p-4"
           style={{
             top: placeBelow ? rect.bottom + GAP : undefined,
             bottom: placeBelow ? undefined : window.innerHeight - rect.top + GAP,
@@ -165,18 +165,18 @@ export default function GuidedTour({ steps, storageKey }: GuidedTourProps) {
             type="button"
             onClick={finish}
             aria-label="Saltar recorrido"
-            className="absolute right-3 top-3 text-ink/40"
+            className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center text-ink-soft"
           >
             <CloseIcon size={16} />
           </button>
-          <p className="pr-5 font-display text-base font-semibold text-ink">{step.title}</p>
-          <p className="mt-1 text-sm text-ink/60">{step.body}</p>
+          <p className="pr-5 text-base font-extrabold leading-tight text-ink">{step.title}</p>
+          <p className="mt-1 text-sm text-ink-soft">{step.body}</p>
           <div className="mt-3 flex items-center justify-between">
             <div className="flex gap-1" aria-hidden>
               {activeSteps.map((_, i) => (
                 <span
                   key={i}
-                  className={`h-1.5 w-1.5 rounded-full ${i === index ? "bg-primary" : "bg-line"}`}
+                  className={`h-1.5 w-1.5 rounded-full ${i === index ? "bg-primary-text" : "bg-[var(--suave-casilla-borde)]"}`}
                 />
               ))}
             </div>

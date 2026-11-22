@@ -169,12 +169,12 @@ Palermo dibujado, la rueda de fotos del inicio y la miniatura al compartir.
 - **Fileteador para el isotipo (opcional):** el pinche con «oído» ya es el
   ícono en el código, dibujado por nosotros. Si se encarga a un fileteador,
   que parta de `marca/isotipo-pinche*.svg` y mantenga el concepto cerrado.
-- **Llevar la dirección «con relieve» a la app** (Julieta, 2026-11-17: la sombra
-  dura azul hondo del filete como profundidad de la interfaz), pantalla por
-  pantalla: [`direccion-relieve.md`](./direccion-relieve.md). En la landing
-  ya rige desde el 2026-11-18, con la letra mixta
-  ([`typography.md`](./typography.md)) y los tokens de
-  [ADR-0027](../adr/ADR-0027-relieve-como-profundidad.md).
+- **La dirección «con relieve» ya no rige en la app** (2026-11-21): la app
+  entera usa la dirección suave ([ADR-0028](../adr/ADR-0028-direccion-suave.md):
+  el cielo, la hoja y sombras difusas). El relieve del filete
+  ([ADR-0027](../adr/ADR-0027-relieve-como-profundidad.md)) sigue sólo en la
+  landing (`/` y `/historia`, con la letra mixta de
+  [`typography.md`](./typography.md)) hasta que se decida aparte.
 - **Fotos propias** de locales porteños (hoy son de banco); qué va en cada
   lugar, en [`fotos-landing.md`](./fotos-landing.md).
 - Una **cita real** de un local cuando haya locales usando Oído.

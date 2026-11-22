@@ -7,7 +7,7 @@ import { Sheet, Skeleton } from "@/components/ui";
 
 function NotificationRowSkeleton() {
   return (
-    <div className="flex items-center gap-2 border-b border-line px-4 py-3" aria-hidden>
+    <div className="flex items-center gap-2 rounded-2xl bg-[var(--suave-campo)] px-4 py-3" aria-hidden>
       <div className="flex-1 space-y-1.5">
         <Skeleton className="h-3.5 w-2/3" />
         <Skeleton className="h-3 w-full" />
@@ -60,7 +60,7 @@ export default function NotificationBell({ variante = "barra" }: { variante?: "b
     <button
       type="button"
       onClick={markAllAsRead}
-      className="min-h-[44px] px-2 text-xs font-semibold text-primary-text underline-offset-2 hover:underline"
+      className="min-h-[44px] rounded-full px-3 text-xs font-semibold text-primary-text underline-offset-2 hover:underline"
     >
       Marcar todas como leídas
     </button>
@@ -69,10 +69,10 @@ export default function NotificationBell({ variante = "barra" }: { variante?: "b
   const lista = (
     <>
       {loading && (
-        <>
+        <div className="flex flex-col gap-2 px-2">
           <NotificationRowSkeleton />
           <NotificationRowSkeleton />
-        </>
+        </div>
       )}
       {!loading && error && (
         <div className="px-4 py-6 text-center text-sm text-danger-text">
@@ -87,25 +87,29 @@ export default function NotificationBell({ variante = "barra" }: { variante?: "b
         </div>
       )}
       {!loading && !error && notifications.length === 0 && (
-        <p className="px-4 py-6 text-center text-sm text-ink/50">No tenés notificaciones.</p>
+        <p className="px-4 py-6 text-center text-sm text-ink-soft">No tenés notificaciones.</p>
       )}
-      {!loading &&
-        !error &&
-        notifications.map((n) => (
-          <button
-            key={n.id}
-            onClick={() => {
-              setOpen(false);
-              openNotification(n);
-            }}
-            className={`block w-full border-b px-4 py-3 text-left text-sm hover:bg-surface ${
-              n.read ? "border-line bg-card" : "border-secondary bg-primary-tint"
-            }`}
-          >
-            <p className="font-medium text-ink/80">{n.title}</p>
-            <p className="mt-0.5 text-ink/60">{n.message}</p>
-          </button>
-        ))}
+      {!loading && !error && notifications.length > 0 && (
+        <div className="flex flex-col gap-2 px-2">
+          {notifications.map((n) => (
+            <button
+              key={n.id}
+              onClick={() => {
+                setOpen(false);
+                openNotification(n);
+              }}
+              data-sin-leer={!n.read}
+              className="fila-hoja aviso-fila py-3"
+            >
+              <p className="flex items-center font-semibold text-ink">
+                {!n.read && <span className="aviso-punto" aria-hidden />}
+                {n.title}
+              </p>
+              <p className="text-ink-soft">{n.message}</p>
+            </button>
+          ))}
+        </div>
+      )}
     </>
   );
 
@@ -122,7 +126,7 @@ export default function NotificationBell({ variante = "barra" }: { variante?: "b
           <CuentaAvisos cuantos={unreadCount} className="absolute right-0 top-0" />
         </button>
         <Sheet open={open} onClose={() => setOpen(false)} title="Notificaciones">
-          {marcarTodas && <div className="flex justify-end border-b border-line px-2">{marcarTodas}</div>}
+          {marcarTodas && <div className="flex justify-end px-2">{marcarTodas}</div>}
           {lista}
         </Sheet>
       </>
@@ -141,12 +145,12 @@ export default function NotificationBell({ variante = "barra" }: { variante?: "b
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-float)] ring-1 ring-line">
-          <div className="flex min-h-[44px] items-center justify-between gap-2 border-b border-line pl-4 pr-2">
-            <span className="text-sm font-semibold text-ink/70">Notificaciones</span>
+        <div className="estilo-suave ventana-suave panel-avisos absolute right-0 z-50 mt-2 w-80 overflow-hidden">
+          <div className="flex min-h-[44px] items-center justify-between gap-2 pl-4 pr-2 pt-1">
+            <span className="text-sm font-extrabold text-ink">Notificaciones</span>
             {marcarTodas}
           </div>
-          <div className="max-h-96 overflow-y-auto">{lista}</div>
+          <div className="max-h-96 overflow-y-auto pb-2">{lista}</div>
         </div>
       )}
     </div>

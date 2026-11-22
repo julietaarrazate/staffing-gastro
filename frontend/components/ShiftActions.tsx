@@ -158,14 +158,14 @@ export default function ShiftActions({
           se puede recortar ni desalinear, y es el mismo patrón que ya usan
           `/map` y `/shifts/new` para acciones desde una tarjeta. */}
       <Sheet open={menuOpen} onClose={() => setMenuOpen(false)} title="Más acciones">
-        <div className="flex flex-col divide-y divide-line pb-2">
+        <div className="flex flex-col gap-1 pb-2">
           {hasWorker && (
             <MenuLink href={`/workers/${shift.worker_profile_id}`}>
               Ver perfil del trabajador
             </MenuLink>
           )}
           {shift.status === "publicado" && (
-            <div className="py-2.5">
+            <div className="px-3.5 py-1.5">
               <ShareShiftButton shift={shift} shiftId={shift.id} />
             </div>
           )}
@@ -205,7 +205,7 @@ function MenuLink({ href, children }: { href: string; children: React.ReactNode 
   return (
     <Link
       href={href}
-      className="flex items-center gap-2 px-3.5 py-2.5 text-sm font-medium text-ink/80 hover:bg-surface"
+      className="fila-hoja"
     >
       {children}
     </Link>
@@ -228,9 +228,7 @@ function MenuButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-sm font-medium hover:bg-surface disabled:opacity-50 ${
-        danger ? "text-danger-text" : "text-ink/80"
-      }`}
+      className={`fila-hoja ${danger ? "text-danger-text" : ""}`}
     >
       {children}
     </button>

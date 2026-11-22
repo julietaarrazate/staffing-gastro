@@ -1085,7 +1085,7 @@ function MatchesContent() {
           asignado no daba ningún feedback de éxito. */}
       <Modal open={justConfirmedId !== null} onClose={() => setJustConfirmedId(null)}>
         <div className="flex flex-col items-center text-center">
-          <ShiftCoveredIllustration size={56} color="var(--color-primary)" />
+          <ShiftCoveredIllustration size={56} color="var(--color-primary-text)" />
           <h3 className="mt-3 text-xl font-extrabold tracking-tight text-ink">¡Turno confirmado!</h3>
           <p className="mt-1 text-sm text-ink/60">Ya estás en la lista. Nos vemos en el turno.</p>
         </div>

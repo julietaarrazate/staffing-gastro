@@ -25,7 +25,7 @@ import {
   type TwoFactorSetup,
   type TwoFactorStatus,
 } from "@/lib/two-factor";
-import { Button, Card, ErrorBanner, Skeleton, TextField } from "@/components/ui";
+import { Button, ErrorBanner, Skeleton, TextField } from "@/components/ui";
 import { CheckIcon, CopyIcon, ShieldIcon, SmartphoneIcon } from "@/components/icons";
 import { AdminHeading } from "@/components/admin/AdminStats";
 import RecoveryCodesPanel from "@/components/admin/RecoveryCodesPanel";
@@ -150,8 +150,8 @@ export default function AdminSecurityPage() {
       {phase.name === "loading" && !error && <Skeleton className="mt-5 h-48 w-full" />}
 
       {phase.name === "intro" && (
-        <Card className="mt-5 p-5">
-          <p className="text-sm text-ink/70">
+        <div className="tarjeta-suave mt-5 p-5">
+          <p className="text-sm text-ink-soft">
             El panel de admin muestra datos de personas y sus documentos. Para entrar vas a usar tu
             contraseña y un código de 6 dígitos que cambia cada 30 segundos en una app
             autenticadora (Google Authenticator, Microsoft Authenticator, 1Password…).
@@ -159,7 +159,7 @@ export default function AdminSecurityPage() {
           <Button className="mt-4" fullWidth loading={busy} onClick={() => start()}>
             Activar la verificación
           </Button>
-        </Card>
+        </div>
       )}
 
       {phase.name === "scan" && (
@@ -235,7 +235,7 @@ function ScanStep({
   }
 
   return (
-    <Card className="mt-5 p-5">
+    <div className="tarjeta-suave mt-5 p-5">
       <StepLabel n={1}>
         {changingPhone ? "En el celular nuevo, escaneá" : "Escaneá"} este código con tu app
         autenticadora.
@@ -243,9 +243,9 @@ function ScanStep({
       <div className="mt-4 flex justify-center">
         <TotpQr value={setup.otpauth_uri} />
       </div>
-      <p className="mt-4 text-sm text-ink/60">¿No podés escanearlo? Cargá esta clave a mano:</p>
+      <p className="mt-4 text-sm text-ink-soft">¿No podés escanearlo? Cargá esta clave a mano:</p>
       <div className="mt-2 flex items-center gap-2">
-        <code className="min-w-0 flex-1 select-all break-words rounded-xl bg-surface px-3 py-2.5 font-mono text-sm text-ink ring-1 ring-line">
+        <code className="min-w-0 flex-1 select-all break-words campo px-3 py-2.5 font-mono text-sm text-ink">
           {formatSecret(setup.secret)}
         </code>
         <Button
@@ -281,7 +281,7 @@ function ScanStep({
           </Button>
         )}
       </form>
-    </Card>
+    </div>
   );
 }
 
@@ -300,21 +300,21 @@ function CodesStep({
 }) {
   const [saved, setSaved] = useState(false);
   return (
-    <Card className="mt-5 p-5">
-      <p className="flex items-center gap-2 font-display text-h3 font-semibold text-ink">
+    <div className="tarjeta-suave mt-5 p-5">
+      <p className="flex items-center gap-2 text-h3 font-bold text-ink">
         <span className="flex h-7 w-7 items-center justify-center rounded-full bg-success-tint text-success-text">
           <CheckIcon size={16} />
         </span>
         {title}
       </p>
-      <p className="mt-2 text-sm text-ink/70">
+      <p className="mt-2 text-sm text-ink-soft">
         Guardá estos códigos de recuperación fuera del celular. Si no lo tenés a mano, cada código
         te deja entrar una vez. <span className="font-semibold text-ink">No los vamos a volver a mostrar.</span>
       </p>
       <div className="mt-4">
         <RecoveryCodesPanel codes={codes} email={email} />
       </div>
-      <label className="mt-5 flex items-start gap-2.5 text-sm text-ink/70">
+      <label className="mt-5 flex items-start gap-2.5 text-sm text-ink-soft">
         <input
           type="checkbox"
           checked={saved}
@@ -326,7 +326,7 @@ function CodesStep({
       <Button className="mt-4" fullWidth disabled={!saved} onClick={onDone}>
         {doneLabel}
       </Button>
-    </Card>
+    </div>
   );
 }
 
@@ -366,14 +366,14 @@ function ActiveStep({
 
   return (
     <>
-      <Card className="mt-5 p-5">
+      <div className="tarjeta-suave mt-5 p-5">
         <div className="flex items-start gap-3">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-success-tint text-success-text">
             <ShieldIcon size={18} />
           </span>
           <div>
             <p className="font-semibold text-ink">Activa</p>
-            <p className="text-sm text-ink/60">
+            <p className="text-sm text-ink-soft">
               Desde el {status.enabled_at ? formatShiftDate(status.enabled_at) : "—"}.
             </p>
           </div>
@@ -382,15 +382,15 @@ function ActiveStep({
           className={
             fewLeft
               ? "mt-4 rounded-xl bg-warning-tint px-3.5 py-2.5 text-sm font-medium text-warning-text"
-              : "mt-4 text-sm text-ink/70"
+              : "mt-4 text-sm text-ink-soft"
           }
         >
           Te quedan {status.recovery_codes_left} códigos de recuperación.
           {fewLeft && " Generá códigos nuevos."}
         </p>
-      </Card>
+      </div>
 
-      <Card className="mt-4 p-5">
+      <div className="tarjeta-suave mt-4 p-5">
         <div className="grid gap-3 sm:grid-cols-2">
           <Button
             variant="surface"
@@ -414,7 +414,7 @@ function ActiveStep({
         </div>
         {action && (
           <form onSubmit={submit} className="mt-4 flex flex-col gap-3">
-            <p className="text-sm text-ink/70">
+            <p className="text-sm text-ink-soft">
               {action === "codes"
                 ? "Los códigos anteriores dejan de servir."
                 : "El celular actual deja de servir cuando confirmes el nuevo."}{" "}
@@ -438,7 +438,7 @@ function ActiveStep({
             </Button>
           </form>
         )}
-      </Card>
+      </div>
     </>
   );
 }

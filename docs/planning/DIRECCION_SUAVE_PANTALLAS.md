@@ -57,7 +57,7 @@ qué responde cada pantalla está en
 
 - ✅ **Buscar del comercio** (`app/search/page.tsx`) · #717 · [historial](../historial/2026-11-21-buscar-comercio-direccion-suave.md) · sin maqueta: gemela de `/map` (el mapa es el cielo, filtros de vidrio, pines y filas de personas); quedó afuera: el mapa real no se vio (sin mosaicos en la sesión)
 
-- ⬜ **Las hojas compartidas** (`BottomSheet`, «¡Turno publicado!»)
+- ✅ **Las hojas compartidas** (`ui/Sheet`, `ui/Modal`, «¡Turno publicado!», los avisos de la campanita, el aviso flotante y el recorrido guiado; `BottomSheet` y `ConfirmOverlay` ya estaban bien) · #725 · [historial](../historial/2026-11-21-hojas-compartidas-suaves.md) · sin maqueta: cada capa lleva su propia `.estilo-suave` (se dibujan en un portal) y no depende de la pantalla de atrás; un solo ámbar por ventana (en una confirmación destructiva, ninguno: confirmar va en rojo); quedó afuera la landing, que no usa ninguna de estas piezas
 
 - ✅ **Mi plan** (`app/subscription/page.tsx`) · #715 · [historial](../historial/2026-11-21-mi-plan-direccion-suave.md) · sin maqueta: con `SubpaginaSuave`; un solo botón ámbar (`accionesDelPlanActual` y `planDestacado` en `lib/subscription.ts`); textos y precios sin cambios
 
@@ -67,9 +67,9 @@ qué responde cada pantalla está en
 
 - ✅ **Perfil del comercio** (`components/company/PerfilComercio.tsx`) · #714 · [historial](../historial/2026-11-21-perfil-comercio-direccion-suave.md) · sin maqueta: con las piezas del Perfil de quien trabaja; el título es el nombre del local y la reputación va en grande; el logo se cambia en «Datos del comercio»
 
-- ⬜ **Administración** (`app/admin/`: Hoy, Turnos en vivo, Personas, Verificación, Soporte, Métricas, Crecimiento, Herramientas, Seguridad) · **decidido por Julieta el 2026-11-20:** toda la app pasa a la misma dirección, el admin también. Hoy conserva arriba el logo y la campanita en el celular porque sus pantallas no tienen cielo (#712); al migrarlo se decide si lleva cielo
+- ✅ **Administración** (`app/admin/`: Hoy, Turnos en vivo, Personas, Verificación, Soporte, Métricas, Crecimiento, Herramientas, Seguridad, y la vista del admin en `/profile`) · 2026-11-21 (#725) · una cáscara para todo el admin (`components/admin/PantallaAdmin.tsx`): **cielo corto y liso, sin las nubes altas** (es una herramienta de listas y tablas), con el título sobre el cielo, y debajo la hoja con el menú del panel; en la compu la hoja aprovecha hasta 72 rem. Sin maqueta
 
-- ⬜ **Cierre:** las reglas de `.estilo-suave` pasan a `:root` y se borra lo «con relieve» que quede en la app (ADR-0028, punto 6)
+- ✅ **Cierre** (ADR-0028, punto 6) · 2026-11-21 (#725) · [historial](../historial/2026-11-21-cierre-direccion-suave.md) · las reglas de `.estilo-suave` son la base de la app (`:root`) y se borró lo «con relieve» sin uso; queda para la landing (`/` y `/historia`, con `.estilo-relieve`) lo suyo hasta que se decida
 
 ## Pedidos de Julieta sobre pantallas ya migradas (2026-11-21)
 

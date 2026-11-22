@@ -46,7 +46,7 @@ export default function LandingStory() {
         data-landing
         data-theme="light"
         data-palette="celeste"
-        className="overflow-x-clip bg-background text-ink"
+        className="estilo-relieve overflow-x-clip bg-background text-ink"
       >
         <LandingHeader heroCtaId={HERO_CTA_ID} reloj={enhanced} />
         {enhanced ? <ActoNoche /> : <ActoNocheStatic />}

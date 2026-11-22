@@ -124,7 +124,7 @@ export default function EncuestaPanel() {
           />
         </div>
 
-        <p className="mt-6 text-sm text-ink/60">
+        <p className="mt-6 text-sm text-ink-soft">
           Las distribuciones y la mediana del pago cuentan sólo las {resumen.deciders} respuestas de
           dueños y encargados, que son quienes deciden.
         </p>
@@ -155,12 +155,12 @@ export default function EncuestaPanel() {
             />
           </div>
         ) : (
-          <ul className="mt-3 divide-y divide-line rounded-[var(--radius-card)] bg-card ring-1 ring-line">
+          <ul className="perfil-filas !mt-3">
             {lista.items.map((r) => (
               <li key={r.id} className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 p-4">
                 <div className="min-w-0">
                   <p className="font-semibold text-ink">{r.business_name}</p>
-                  <p className="mt-0.5 text-sm text-ink/60">
+                  <p className="mt-0.5 text-sm text-ink-soft">
                     {[
                       r.contact_name,
                       etiquetaDe(RESPONDENT_ROLES, r.respondent_role),
@@ -182,7 +182,7 @@ export default function EncuestaPanel() {
                       </a>
                     )}
                   </div>
-                  <p className="mt-1.5 text-xs text-ink/50">
+                  <p className="mt-1.5 text-xs text-ink-soft">
                     {[
                       `Eventuales: ${etiquetaDe(EVENTUAL_RANGES, r.eventuals_normal_month).toLowerCase()}`,
                       r.roles.length > 0
@@ -196,7 +196,7 @@ export default function EncuestaPanel() {
                       .join(" · ")}
                   </p>
                 </div>
-                <div className="flex flex-col items-end gap-1 text-xs text-ink/50">
+                <div className="flex flex-col items-end gap-1 text-xs text-ink-soft">
                   {r.wants_beta && <Badge tone="secondary">Quiere la beta</Badge>}
                   <span>{new Date(r.created_at).toLocaleDateString("es-AR")}</span>
                   {r.source && <span className="font-mono">ref: {r.source}</span>}
@@ -215,7 +215,7 @@ export default function EncuestaPanel() {
                         <Button size="sm" variant="surface" onClick={() => setConfirmando(null)} disabled={borrando}>
                           Cancelar
                         </Button>
-                        <Button size="sm" variant="dark" onClick={() => borrarContacto(r.id)} loading={borrando}>
+                        <Button size="sm" variant="danger" onClick={() => borrarContacto(r.id)} loading={borrando}>
                           Borrar contacto
                         </Button>
                       </span>
@@ -265,7 +265,7 @@ function Distribucion<T extends string>({
       <ul className="mt-2 space-y-1.5">
         {filas.map((f) => (
           <li key={f.etiqueta} className="grid grid-cols-[minmax(0,11rem)_1fr_2rem] items-center gap-2 text-sm">
-            <span className="text-ink/75">{f.etiqueta}</span>
+            <span className="text-ink-soft">{f.etiqueta}</span>
             <span className="h-2 overflow-hidden rounded-full bg-surface" aria-hidden>
               <span
                 className="block h-full rounded-full bg-primary-text"

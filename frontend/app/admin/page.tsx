@@ -11,7 +11,6 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import type { PlatformStats } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
-import { Card } from "@/components/ui";
 import {
   AlertTriangleIcon,
   BuildingIcon,
@@ -46,16 +45,16 @@ function PendingCard({
   return (
     <Link
       href={href}
-      className="block rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-soft)] ring-1 ring-line transition hover:bg-surface"
+      className="tarjeta-suave admin-tarjeta-link block p-5"
     >
-      <div className="flex items-center gap-2 text-ink/50">
+      <div className="flex items-center gap-2 text-ink-soft">
         {icon}
-        <p className="text-xs font-medium">{label}</p>
+        <p className="min-w-0 break-words text-xs font-medium">{label}</p>
       </div>
-      <p className={`mt-1 text-2xl font-extrabold ${pending ? "text-ink" : "text-ink/40"}`}>
+      <p className={`mt-1 text-2xl font-extrabold ${pending ? "text-ink" : "text-ink-mute"}`}>
         {count ?? "—"}
       </p>
-      <p className="mt-1 text-sm font-semibold text-ink/70">
+      <p className="mt-1 text-sm font-semibold text-ink-soft">
         {pending ? `${action} →` : doneLabel}
       </p>
     </Link>
@@ -178,7 +177,7 @@ export default function AdminTodayPage() {
                 }
               />
             </div>
-            <p className="mt-1.5 px-1 text-xs text-ink/40">
+            <p className="mt-1.5 px-1 text-xs text-ink-soft">
               Sobre {stats.coverage_sample_size} turno
               {stats.coverage_sample_size === 1 ? "" : "s"} cubierto
               {stats.coverage_sample_size === 1 ? "" : "s"} hasta ahora.{" "}
@@ -188,9 +187,9 @@ export default function AdminTodayPage() {
             </p>
           </>
         ) : statsFailed ? (
-          <Card className="mt-2 p-5">
-            <p className="text-sm text-ink/60">No se pudieron cargar los números.</p>
-          </Card>
+          <div className="tarjeta-suave mt-2 p-5">
+            <p className="text-sm text-ink-soft">No se pudieron cargar los números.</p>
+          </div>
         ) : (
           <div className="mt-2 grid grid-cols-2 gap-3" aria-hidden>
             <StatCardSkeleton />

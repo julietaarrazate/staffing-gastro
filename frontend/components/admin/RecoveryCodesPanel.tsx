@@ -39,7 +39,7 @@ export default function RecoveryCodesPanel({ codes, email }: { codes: string[]; 
     <div>
       <ul
         aria-label="Códigos de recuperación"
-        className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-2xl bg-surface p-4 font-mono text-sm text-ink ring-1 ring-line"
+        className="grid grid-cols-2 gap-x-4 gap-y-2 caja-suave p-4 font-mono text-sm text-ink"
       >
         {codes.map((code) => (
           <li key={code} className="select-all tabular-nums">

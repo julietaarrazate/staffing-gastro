@@ -1,6 +1,5 @@
 export { default as Button, BOTON_LISO } from "./Button";
 export { default as Card } from "./Card";
-export { Comanda, ComandaFila, Apunte, Flechita, textoCartel } from "./Comanda";
 export { default as Avatar } from "./Avatar";
 export { default as Badge } from "./Badge";
 export { default as Rating } from "./Rating";

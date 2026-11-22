@@ -79,3 +79,36 @@ que Julieta dijo «dale, seguí así», con el título en letra normal grande.
   (`--suave-campo`, `--suave-tecla`, `--suave-sombra`,
   `--suave-sombra-alta`, `--suave-elegido`, `--suave-casilla-borde`,
   `--suave-ayuda`, `--radio-suave`), con sus valores de noche.
+
+## Nota de cierre (2026-11-21)
+
+Se ejecutó el punto 6, menos lo que depende de la landing:
+
+- **Lo suave es la base.** Las reglas que vivían bajo `.estilo-suave` en
+  `frontend/app/globals.css` ahora llevan `:root` donde iba esa clase (pesa
+  lo mismo que una clase, así que la cascada contra las demás reglas no
+  cambió; de noche, `:root:root[data-theme="dark"]` conserva la especificidad
+  de antes). Los tokens `--suave-*` y `--radio-suave` viven en `:root`. Una
+  pantalla o pieza nueva sale suave sin acordarse de nada.
+- **`.estilo-suave` ya no estiliza nada.** Queda en las raíces de las pantallas
+  y de las capas (`Sheet`, `Modal`…) sólo como marca para tres reglas de
+  chrome que preguntan «¿esta pantalla termina en una hoja?»
+  (`main:has(.estilo-suave …)` y el velo de la barra). No hace falta ponerla
+  en una pantalla nueva salvo que termine en una hoja.
+- **Se borró lo «con relieve» sin uso:** el botón con relieve de la base
+  (`.boton-relieve` pasó a ser el ámbar suave), la comanda de papel
+  (`ui/Comanda`, `.comanda*`, `.sello-*`, `.riel`, `.app-banda`, la variante
+  `comanda` de `ShiftCard`), la brocha de título (`.letra-cartel*`), el
+  apunte y la flechita, `.tarjeta-relieve`, `Row`/`RowGroup` del perfil.
+  Detalle en el historial de ese día.
+- **Qué queda para la landing.** `/` y `/historia` conservan su estética: no
+  usan ninguna regla suave, salvo que `/historia` muestra réplicas de la app de
+  antes (`CandidateCard`, `OpportunityCard`) con el `Button` compartido. Su raíz
+  lleva `.estilo-relieve` (también la de la landing corta), y bajo ese ámbito
+  `.boton-relieve` sigue siendo el botón recto con sombra dura. Se borra
+  cuando se decida la landing. También quedan los tokens `--relieve`,
+  `--shadow-relieve*`, `--radius-relieve` y `--relieve-btn` (los usa
+  `.landing-btn*`), `.letra-mano` y la brocha como fuente (`LETRAS_APP`).
+- **Pantallas que seguían «con relieve» por error** y ahora son suaves:
+  `/encuesta` (botón «Siguiente» y opciones) y `/assistant` (campo y botón).
+

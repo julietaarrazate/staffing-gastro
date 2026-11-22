@@ -47,37 +47,35 @@ export default function ShiftPublishedNextSteps({
   return (
     <Modal open={open} onClose={onClose}>
       <div className="flex flex-col items-center text-center">
-        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary-tint text-primary-text">
+        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--suave-campo)] text-primary-text">
           <SparklesIcon size={26} />
         </span>
         <h3 className="mt-3 text-xl font-extrabold tracking-tight text-ink">¡Turno publicado!</h3>
-        <p className="mt-1 text-sm text-ink/60">Ya estamos buscando personal para vos.</p>
+        <p className="mt-1 text-sm text-ink-soft">Ya estamos buscando personal para vos.</p>
       </div>
 
       <ol className="mt-5 flex flex-col">
         {NEXT_STEPS.map((item, i) => (
           <li key={item.title} className="flex gap-3">
             <div className="flex flex-col items-center">
-              <span
-                className={cn(
-                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold",
-                  i === 0 ? "bg-primary text-night" : "bg-primary-tint text-primary-text"
-                )}
-              >
+              {/* El primero, en azul hondo: el único ámbar de la ventana es «Ver mi turno». */}
+              <span className="paso-chapa" data-actual={i === 0}>
                 {i + 1}
               </span>
-              {i < NEXT_STEPS.length - 1 && <span className="my-0.5 w-0.5 flex-1 bg-line" />}
+              {i < NEXT_STEPS.length - 1 && (
+                <span className="my-0.5 w-0.5 flex-1 rounded-full bg-[var(--suave-campo)]" />
+              )}
             </div>
             <div className={cn("min-w-0 flex-1 pb-4 pt-0.5 text-left", i === NEXT_STEPS.length - 1 && "pb-1")}>
               <p className="flex flex-wrap items-center gap-1.5 text-sm font-bold text-ink">
                 {item.title}
                 {item.tag && (
-                  <span className="rounded-full bg-primary-tint px-2 py-0.5 text-label font-bold font-mono uppercase tracking-wide text-primary-text">
+                  <span className="chip-suave chip-suave-chico">
                     {item.tag}
                   </span>
                 )}
               </p>
-              <p className="mt-0.5 text-xs leading-relaxed text-ink/55">{item.detail}</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-ink-soft">{item.detail}</p>
             </div>
           </li>
         ))}

@@ -60,9 +60,11 @@ test("sesión vencida: lleva al ingreso con el motivo y, al ingresar, vuelve a l
 
   await page.getByLabel("Email").fill(EMPLOYER.email);
   await page.getByRole("textbox", { name: "Contraseña" }).fill("una-clave-cualquiera");
+  // Se espera la llegada desde antes del toque: el Panel usa `?familia=` y
+  // enseguida lo saca de la dirección (#722).
+  const vuelta = page.waitForURL(/\/shifts\?familia=buscando$/);
   await page.getByRole("button", { name: "Ingresar", exact: true }).click();
-
-  await expect(page).toHaveURL(/\/shifts\?familia=buscando$/);
+  await vuelta;
 });
 
 test("sesión vencida con «Publicar» a medio hacer: al volver a entrar con la misma cuenta el borrador sigue", async ({
@@ -99,8 +101,12 @@ test("sesión vencida con «Publicar» a medio hacer: al volver a entrar con la 
 
   await page.getByLabel("Email").fill(EMPLOYER.email);
   await page.getByRole("textbox", { name: "Contraseña" }).fill("una-clave-cualquiera");
+  // Se espera la llegada a la pantalla con su `next` desde antes del toque: el
+  // Panel usa `?familia=` para llevar al grupo y enseguida lo saca de la
+  // dirección (#722), así que mirar la URL después llegaba tarde a veces.
+  const vuelta = page.waitForURL(/\/shifts\?familia=buscando$/);
   await page.getByRole("button", { name: "Ingresar", exact: true }).click();
-  await expect(page).toHaveURL(/\/shifts\?familia=buscando$/);
+  await vuelta;
 
   expect(await page.evaluate((k) => sessionStorage.getItem(k), CLAVE)).not.toBeNull();
 });

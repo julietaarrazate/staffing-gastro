@@ -16,7 +16,6 @@ import type { LiveShift, LiveShiftsBoard } from "@/lib/types";
 import {
   Badge,
   Button,
-  Card,
   CardSkeletons,
   EmptyState,
   ErrorBanner,
@@ -68,14 +67,14 @@ function LiveShiftCard({ shift, showAbsence }: { shift: LiveShift; showAbsence: 
     .filter(Boolean)
     .join(" · ");
   return (
-    <Card className="min-w-0 p-4 sm:p-5">
+    <div className="tarjeta-suave min-w-0 p-4 sm:p-5">
       <div className="flex min-w-0 items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <p className="truncate font-semibold text-ink">
             {shift.title || SKILL_LABELS[shift.position] || "Turno"}
           </p>
-          <p className="mt-0.5 truncate text-sm text-ink/60">{where}</p>
-          <p className="mt-1.5 flex items-center gap-1.5 text-sm text-ink/70">
+          <p className="mt-0.5 truncate text-sm text-ink-soft">{where}</p>
+          <p className="mt-1.5 flex items-center gap-1.5 text-sm text-ink-soft">
             <ClockIcon size={14} />
             {formatShiftWhen(shift.start_at, shift.end_at)}
           </p>
@@ -86,7 +85,7 @@ function LiveShiftCard({ shift, showAbsence }: { shift: LiveShift; showAbsence: 
               <p className="text-2xl font-extrabold tabular-nums text-danger-text">
                 {formatShiftTime(shift.no_show_at as string)}
               </p>
-              <p className="text-xs font-medium text-ink/50">ausencia</p>
+              <p className="text-xs font-medium text-ink-soft">ausencia</p>
             </>
           ) : (
             <>
@@ -95,7 +94,7 @@ function LiveShiftCard({ shift, showAbsence }: { shift: LiveShift; showAbsence: 
               >
                 {formatMinutesOpen(shift.minutes_open)}
               </p>
-              <p className="text-xs font-medium text-ink/50">
+              <p className="text-xs font-medium text-ink-soft">
                 {assigned ? "publicado" : "sin cubrir"}
               </p>
             </>
@@ -116,7 +115,7 @@ function LiveShiftCard({ shift, showAbsence }: { shift: LiveShift; showAbsence: 
           {plural(shift.applications, "postulación", "postulaciones")}
         </Badge>
       </div>
-    </Card>
+    </div>
   );
 }
 
@@ -224,8 +223,9 @@ export default function AdminLiveShiftsPage() {
             ]}
           />
         </div>
-        <div className="flex items-center justify-between gap-3 sm:justify-end">
-          <p className="text-xs text-ink/50" aria-live="polite">
+        {/* `flex-wrap`: con la letra grande, «Actualizar» baja de renglón en vez de salirse. */}
+        <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end">
+          <p className="min-w-0 text-xs text-ink-soft" aria-live="polite">
             {board ? `Actualizado ${formatShiftTime(board.generated_at)} · cada 30 s` : "Cargando…"}
           </p>
           <Button variant="surface" size="sm" onClick={() => void load()} disabled={refreshing}>
@@ -243,7 +243,7 @@ export default function AdminLiveShiftsPage() {
       {board && filter !== "ausencias" && board.limit != null && board.limit > 0 && (board.shown_live ?? 0) >= board.limit && (board.shown_live ?? 0) < board.total && (
         <p
           role="status"
-          className="mt-4 rounded-xl bg-warning-tint px-4 py-3 text-sm font-medium text-warning-text ring-1 ring-warning/20"
+          className="mt-4 rounded-[14px] bg-warning-tint px-4 py-3 text-sm font-medium text-warning-text"
         >
           Mostrando {board.shown_live} de {plural(board.total, "turno", "turnos")} en vivo: faltan los más viejos.
           Los totales de arriba cuentan todos.
@@ -260,7 +260,7 @@ export default function AdminLiveShiftsPage() {
             subtitle={EMPTY_TEXT[filter].subtitle}
           />
         ) : (
-          <ul className="grid grid-cols-1 gap-3" aria-label="Turnos sin cubrir">
+          <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2" aria-label="Turnos sin cubrir">
             {board.shifts.map((shift) => (
               <li key={shift.id} className="min-w-0">
                 <LiveShiftCard

@@ -101,8 +101,8 @@ export default function AdminPeoplePage() {
         subtitle="Buscá a alguien por nombre, email o nombre del local y abrí su ficha."
       />
 
-      <label className="foco-contenedor mt-5 flex items-center gap-2 rounded-full bg-surface px-4 py-2.5 ring-1 ring-line focus-within:bg-card">
-        <SearchIcon size={16} className="shrink-0 text-ink/40" />
+      <label className="campo foco-contenedor flex min-h-[48px] items-center gap-2 px-4">
+        <SearchIcon size={16} className="shrink-0 text-ink-soft" />
         <input
           type="search"
           value={search}
@@ -111,7 +111,7 @@ export default function AdminPeoplePage() {
           aria-label="Buscar por nombre, email o nombre del local"
           maxLength={100}
           data-foco-contenedor
-          className="w-full bg-transparent text-sm text-ink placeholder:text-ink/40"
+          className="w-full bg-transparent text-sm text-ink placeholder:text-ink-soft"
         />
       </label>
 
@@ -122,11 +122,7 @@ export default function AdminPeoplePage() {
             type="button"
             onClick={() => setFilter(f.value)}
             aria-pressed={filter === f.value}
-            className={
-              filter === f.value
-                ? "rounded-full bg-raised px-3 py-1.5 text-xs font-semibold text-ink shadow-[var(--shadow-soft)] ring-1 ring-ink/50"
-                : "rounded-full bg-surface px-3 py-1.5 text-xs font-semibold text-ink/60 ring-1 ring-line transition hover:bg-line"
-            }
+            className={`chip-suave chip-filtro${filter === f.value ? " chip-elegido" : ""}`}
           >
             {f.label}
           </button>
@@ -156,24 +152,24 @@ export default function AdminPeoplePage() {
       )}
 
       {!loading && users.length > 0 && (
-        <ul className="mt-5 divide-y divide-line overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line">
+        <ul className="perfil-filas !mt-5">
           {users.map((u) => (
             <li key={u.id}>
               <Link
                 href={`/admin/personas/${u.id}`}
-                className="flex items-center gap-3 px-4 py-3 transition hover:bg-surface"
+                className="admin-fila-link flex items-center gap-3 px-4 py-3"
               >
                 <Avatar src={u.photo_url} name={u.full_name} size="md" />
                 <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-1.5 truncate font-semibold text-ink">
-                    {u.full_name}
+                  <p className="flex items-center gap-1.5 font-semibold text-ink">
+                    <span className="min-w-0 break-words">{u.full_name}</span>
                     {u.is_verified && (
                       <CheckCircleIcon size={15} className="shrink-0 text-success-text" />
                     )}
                   </p>
-                  <p className="truncate text-xs text-ink/50">{u.email}</p>
+                  <p className="break-all text-xs text-ink-soft">{u.email}</p>
                 </div>
-                <div className="flex shrink-0 flex-col items-end gap-1">
+                <div className="flex shrink-0 flex-col items-end gap-1 md:flex-row md:items-center md:gap-2">
                   <Badge tone="neutral">{ROLE_LABELS[u.role] ?? u.role}</Badge>
                   {u.status !== "active" && (
                     <Badge tone="danger">{STATUS_LABELS[u.status] ?? u.status}</Badge>

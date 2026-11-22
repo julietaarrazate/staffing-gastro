@@ -11,7 +11,8 @@ type ToastItem = { id: number; message: string; tone: ToastTone };
 const TONE_STYLES: Record<ToastTone, string> = {
   // `bg-toast`, no `bg-night`: en oscuro se invierte (ver globals.css).
   success: "bg-toast text-toast-ink",
-  error: "bg-danger text-white",
+  // `danger-strong`, como el botón rojo de una confirmación: la letra blanca da 5,6 (con `danger`, 3,8).
+  error: "bg-danger-strong text-white",
   info: "bg-toast text-toast-ink",
 };
 
@@ -90,7 +91,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               }}
               transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 400, damping: 30 }}
               onClick={() => dismiss(t.id)}
-              className={`pointer-events-auto flex cursor-pointer items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold shadow-[var(--shadow-float)] ${TONE_STYLES[t.tone]}`}
+              className={`aviso-flotante pointer-events-auto flex min-h-[44px] max-w-full cursor-pointer items-center gap-2 px-4 py-3 text-sm font-semibold ${TONE_STYLES[t.tone]}`}
             >
               {/* Verde, no blanco: sobre la píldora negra el tilde en blanco
                   era un adorno más del texto. En color dice "salió bien" antes

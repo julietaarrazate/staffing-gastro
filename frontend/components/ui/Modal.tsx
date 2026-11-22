@@ -30,14 +30,14 @@ function ModalLayer({
     if (dialog) dialog.inert = !isPresent;
   }, [isPresent]);
   return (
-    <div ref={layerRef} className="fixed inset-0 z-[60] flex items-center justify-center p-5">
+    <div ref={layerRef} className="estilo-suave ventana-suave fixed inset-0 z-[60] flex items-center justify-center p-5">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={reducedMotion ? { duration: 0 } : undefined}
         onClick={isPresent ? onClose : undefined}
-        className="absolute inset-0 bg-black/40"
+        className="velo-suave absolute inset-0"
       />
       {children}
     </div>
@@ -102,9 +102,9 @@ export default function Modal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: reducedMotion ? 1 : 0.96 }}
             transition={reducedMotion ? { duration: 0 } : { type: "spring", stiffness: 360, damping: 28 }}
-            className="relative z-10 max-h-[85vh] w-full max-w-sm overflow-y-auto overscroll-contain rounded-[var(--radius-card)] bg-card p-6 shadow-[var(--shadow-float)]"
+            className="dialogo-suave relative z-10 max-h-[85vh] w-full max-w-sm overflow-y-auto overscroll-contain p-6"
           >
-            {title && <h3 className="text-lg font-extrabold text-ink">{title}</h3>}
+            {title && <h3 className="text-xl font-extrabold leading-tight tracking-tight text-ink">{title}</h3>}
             <div className={title ? "mt-2" : ""}>{children}</div>
           </motion.div>
         </ModalLayer>
