@@ -59,4 +59,5 @@ Antes de tocar algo, leé lo relevante. No dupliques info: referenciá.
   arquitectura técnica, desarrollo, diseño, IA, integraciones, producto y ADRs.
 
 Arranque técnico y pasos de DB: `backend/README.md` y `frontend/README.md`.
+Videos para redes en Remotion (instalar, previsualizar, renderizar cada pieza, capturas y sonidos): [`marketing/remotion/README.md`](../../marketing/remotion/README.md).
 
