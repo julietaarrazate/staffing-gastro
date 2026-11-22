@@ -29,13 +29,14 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
 - 🟠 **Tanda del 2026-11-22 (pedido de Julieta), lo que falta.** Hecho: la
   app se recarga sola con una versión nueva (#727; confirmar en el primer
   deploy que `/version.json` coincide con el bundle). Falta, en este orden:
-  1. **«Traer comercios del barrio» no trae nada** (admin, Crecimiento): los
-     servidores públicos de Overpass no responden desde Render (logs del
-     2026-11-22 01:35: `overpass-api.de` rechaza la conexión, `maps.mail.ru`
-     504, los otros dos sin respuesta en 80 s → la importación devuelve 502).
-     Propuesta, **esperando el sí de Julieta** (cambia ADR-0019, va con ADR
-     nuevo): una tarea semanal que baja todos los comercios gastronómicos de
-     CABA con reintentos y el botón lee esa copia.
+  1. **«Traer comercios del barrio»:** copia semanal de OpenStreetMap por
+     barrio, refrescada por el scheduler (#PR, ADR-0029); el botón lee la copia.
+     Después del deploy: mirar en Render `lead.snapshot_refreshed` /
+     `lead.snapshot_failed` (el primer llenado son 48 barrios en serie).
+     **Sigue:** sumar Overture Maps (decidido por Julieta el 2026-11-22; en
+     Palermo da 3.255 comercios contra 1.506, el 85 % con teléfono) con una
+     GitHub Action mensual que manda la copia al backend: en Render no entra
+     (DuckDB pide ~600 MB).
   2. ~~Arreglos chicos~~ hechos (#729): baja neutra en Mi plan, Buscar del
      comercio con «Ver más» (el tope era 50; la API no da total), Candidatos
      sin foto con `SinFoto`, toast de error con tokens, `/admin/metricas` ya no
