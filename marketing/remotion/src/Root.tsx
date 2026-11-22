@@ -19,6 +19,7 @@ import { datos as dCierre } from "./piezas/cierre-comercios.datos";
 import { Historias } from "./piezas/historias";
 import { Sabado } from "./piezas/sabado";
 import { datos as dSabado } from "./piezas/sabado.datos";
+import { datos as dSabadoReal } from "./piezas/sabado-real.datos";
 import { Hielo } from "./piezas/hielo";
 import { datos as dHielo } from "./piezas/hielo.datos";
 import { Cebolla } from "./piezas/cebolla";
@@ -47,6 +48,7 @@ export const Root: React.FC = () => (
     <Composition id={dCierre.id} component={CierreComercios} durationInFrames={dCierre.duracion} defaultProps={{ d: dCierre }} {...base} />
     {/* Guiones del 1 al 4/12 (pestaña Guiones del documento de crecimiento) */}
     <Composition id={dSabado.id} component={Sabado} durationInFrames={seg(dSabado.duracion)} defaultProps={{ d: dSabado }} {...base} />
+    <Composition id={dSabadoReal.id} component={Sabado} durationInFrames={seg(dSabadoReal.duracion)} defaultProps={{ d: dSabadoReal }} {...base} />
     <Composition id={dHielo.id} component={Hielo} durationInFrames={seg(dHielo.duracion)} defaultProps={{ d: dHielo }} {...base} />
     <Composition id={dCebolla.id} component={Cebolla} durationInFrames={seg(dCebolla.duracion)} defaultProps={{ d: dCebolla }} {...base} />
     <Composition id={dOrden.id} component={OrdenServicio} durationInFrames={seg(dOrden.duracion)} defaultProps={{ d: dOrden }} {...base} />

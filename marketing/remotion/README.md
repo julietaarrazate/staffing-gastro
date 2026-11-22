@@ -88,6 +88,9 @@ Deja los PNG en `capturas/` y los que usa el video en `public/cap/`, y reescribe
   textos, tiempos y sonido, en su `.datos.ts`). Las de @oidoapp suman las pantallas reales con
   `src/piezas/tramo-publicar.tsx`. Una pieza nueva: copiar una `.datos.ts`, dibujar sus láminas y
   sumar la `<Composition>` en `src/Root.tsx` (y el id en `scripts/renderizar.sh`).
+- **Tomas reales de stock** (opcional por escena: `toma` en vez de `dibujo`): video gratis de Mixkit,
+  sólo con licencia libre; lista y verificación en `tomas/FUENTES.md`, `bash tomas/bajar-tomas.sh` antes de
+  renderizar. Ejemplo: `t6-05-sabado-real`.
 - `src/kit/`: el cielo y las nubes (`base.tsx`), el teléfono con su cámara, toques, resaltados y
   lupas (`telefono.tsx`), Chrome y Safari dibujados sin logos (`navegador.tsx`), el cierre con el
   «oído» fileteado (`cierre.tsx`), la mezcla (`sonido.tsx`) y los tipos de los datos (`datos.tsx`).

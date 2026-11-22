@@ -35,5 +35,13 @@ mensajes de TURNO y CUBRIR, los textos de las publicaciones, las metas y el cale
 viernes 11 anuncia «El 12/12 abre Oído», el sábado 12 suma la pieza de apertura y el plan de
 contenido sigue desde el domingo 13 como estaba); en el repo, `docs/planning/BETA_TABLERO.md`.
 
+**Prueba con video real (22/11):** Julieta sintió las láminas «muy básicas». Sin gasto, se probó
+T6-05 con tomas de stock de Mixkit (`t6-05-sabado-real`): sólo clips con «Stock Video Free
+License»; los «Restricted» son de uso personal y quedan afuera. El kit suma `toma` por escena
+(video a pantalla completa, recortado a vertical, con el texto en una hoja blanca arriba);
+`tomas/FUENTES.md` lista las tomas y `tomas/bajar-tomas.sh` las baja (no van a git). Pexels y
+Pixabay piden clave o bloquean la descarga automática. En stock libre no hay toma de «la carta
+en la mesa» ni de un ticket imprimiéndose: se usaron una mesa vista desde el mozo y una mesa larga.
+
 **Queda abierto:** revisión de Julieta de los seis mp4; después, subirlos con los links
 etiquetados. Zernio sigue esperando `ZERNIO_API_KEY` en el entorno.

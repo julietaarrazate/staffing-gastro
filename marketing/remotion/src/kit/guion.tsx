@@ -2,7 +2,7 @@
 // su texto arriba (zona segura de títulos) y una lámina blanca con un dibujo animado en el medio.
 // Los textos y los tiempos van en los datos de cada pieza; los dibujos, en el archivo de la pieza.
 import React from "react";
-import { Img, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig, Easing } from "remotion";
+import { Img, interpolate, OffthreadVideo, Sequence, spring, staticFile, useCurrentFrame, useVideoConfig, Easing } from "remotion";
 import { BancoNubes, BotonAmbar, C, ChipVidrio, Cielo, F, Hoja, Nube, Titular } from "./base";
 import { Mezcla, type Sonido } from "./sonido";
 import type { Cuenta } from "./datos";
@@ -17,8 +17,14 @@ export type Escena = {
   nota?: string;
   /** segundos después del arranque de la escena en que aparece la nota (por defecto 0,6) */
   notaEn?: number;
-  dibujo: string;
+  /** la lámina dibujada (si no hay toma) */
+  dibujo?: string;
+  /** o una toma de video de stock a pantalla completa (ver public/tomas/ y scripts/bajar-tomas.mjs) */
+  toma?: Toma;
 };
+
+/** Una toma de stock: archivo en public/tomas/, desde qué segundo del clip, encuadre horizontal (0 izq, 0,5 centro, 1 der) y zoom. */
+export type Toma = { id: string; desde?: number; x?: number; zoom?: number; vel?: number };
 
 /** El cierre: el logo de la cuenta y el llamado del guion. */
 export type CierreGuion = {
@@ -66,16 +72,18 @@ export const Escenas: React.FC<{ lista: Escena[]; dibujos: Record<string, Dibujo
     <>
       {lista.map((e, i) => {
         const a = seg(e.desde), b = seg(e.hasta) - 8;
-        const D = dibujos[e.dibujo];
-        if (!D) throw new Error("falta el dibujo " + e.dibujo);
+        const D = e.dibujo ? dibujos[e.dibujo] : null;
+        if (!e.toma && !D) throw new Error("falta el dibujo " + e.dibujo);
         const n = e.lineas.length;
         const size = e.size ?? (n >= 3 ? 66 : 76);
         const y = 400 - (n * size * 1.04) / 2 + 10;
         return (
           <React.Fragment key={i}>
-            <Titular lineas={e.lineas} desde={a} hasta={b} y={Math.max(200, y)} size={size} acento={e.acento} />
-            <Lamina desde={a} hasta={b}>{frame >= a - 1 && frame <= b + 10 ? <D t={frame - a} dur={b - a} /> : null}</Lamina>
-            {e.nota && <Nota desde={a + seg(e.notaEn ?? 0.6)} hasta={b} texto={e.nota} />}
+            {e.toma ? <TomaVideo toma={e.toma} desde={a} hasta={seg(e.hasta)} /> : null}
+            {e.toma ? <TituloHoja lineas={e.lineas} desde={a} hasta={b} size={size} acento={e.acento} />
+              : <Titular lineas={e.lineas} desde={a} hasta={b} y={Math.max(200, y)} size={size} acento={e.acento} />}
+            {D && <Lamina desde={a} hasta={b}>{frame >= a - 1 && frame <= b + 10 ? <D t={frame - a} dur={b - a} /> : null}</Lamina>}
+            {e.nota && <Nota desde={a + seg(e.notaEn ?? 0.6)} hasta={b} texto={e.nota} top={e.toma ? 1380 : undefined} />}
           </React.Fragment>
         );
       })}
@@ -83,14 +91,14 @@ export const Escenas: React.FC<{ lista: Escena[]; dibujos: Record<string, Dibujo
   );
 };
 
-const Nota: React.FC<{ desde: number; hasta: number; texto: string }> = ({ desde, hasta, texto }) => {
+const Nota: React.FC<{ desde: number; hasta: number; texto: string; top?: number }> = ({ desde, hasta, texto, top }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   if (frame < desde || frame > hasta + 10) return null;
   const s = spring({ frame: frame - desde, fps, config: { damping: 14, stiffness: 170 } });
   const o = interpolate(frame, [hasta, hasta + 8], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return (
-    <div style={{ position: "absolute", left: 0, right: 0, top: LAMINA.y + LAMINA.h - 40, display: "flex", justifyContent: "center", zIndex: 7,
+    <div style={{ position: "absolute", left: 0, right: 0, top: top ?? LAMINA.y + LAMINA.h - 40, display: "flex", justifyContent: "center", zIndex: 7,
       opacity: Math.min(1, s * 1.5) * (1 - o), transform: `translateY(${(1 - s) * 30}px) scale(${0.85 + 0.15 * s})` }}>
       <ChipVidrio style={{ fontSize: 40, padding: "18px 34px", background: "rgba(255,255,255,.88)", whiteSpace: "normal", maxWidth: 820, textAlign: "center", justifyContent: "center", borderRadius: 40, lineHeight: 1.2 }}>{texto}</ChipVidrio>
     </div>
@@ -136,6 +144,45 @@ export const CierreDeGuion: React.FC<{ c: CierreGuion; cuenta: string }> = ({ c,
       <div style={{ position: "absolute", left: 60, right: 60, top: c.boton ? 1300 : pinche ? 1060 : 1150, textAlign: "center", fontFamily: F.texto, fontWeight: 800, fontSize: pinche ? 56 : 42, letterSpacing: "-0.01em", color: C.hondo, opacity: Math.min(1, l * 1.3), transform: `translateY(${(1 - l) * 30}px)` }}>{cuenta}</div>
       <BancoNubes y={1560} op={lim} />
     </div>
+  );
+};
+
+// La toma de stock a pantalla completa: el clip 16:9 recortado a vertical, con un zoom lento (Ken Burns),
+// entrada por fundido y un velo suave arriba y abajo para que se lean la hoja del título y la nota.
+export const TomaVideo: React.FC<{ toma: Toma; desde: number; hasta: number }> = ({ toma, desde, hasta }) => {
+  const frame = useCurrentFrame();
+  if (frame < desde - 1 || frame > hasta + 6) return null;
+  const t = frame - desde, dur = hasta - desde;
+  const op = interpolate(frame, [desde, desde + 6, hasta, hasta + 6], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const z = (toma.zoom ?? 1) * (1.0 + 0.08 * (t / Math.max(1, dur)));
+  // 1280×720 cubriendo 1080×1920: alto 1920 → ancho 3413; se mueve en x según el encuadre.
+  const ancho = 1920 * (16 / 9) * z, alto = 1920 * z;
+  const x = -(ancho - 1080) * (toma.x ?? 0.5), y = -(alto - 1920) / 2;
+  return (
+    <div style={{ position: "absolute", inset: 0, zIndex: 3, opacity: op, overflow: "hidden", background: "#0B1A28" }}>
+      <Sequence from={desde} durationInFrames={hasta - desde + 6} layout="none">
+        <OffthreadVideo src={staticFile(`tomas/${toma.id}.mp4`)} muted startFrom={Math.round((toma.desde ?? 0) * 30)} playbackRate={toma.vel ?? 1}
+          style={{ position: "absolute", left: x, top: y, width: ancho, height: alto }} />
+      </Sequence>
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(11,26,40,.45), rgba(11,26,40,0) 30%, rgba(11,26,40,0) 70%, rgba(11,26,40,.45))" }} />
+    </div>
+  );
+};
+
+// El título sobre una toma: la hoja blanca de la app, arriba (zona segura), con el texto palabra por palabra.
+export const TituloHoja: React.FC<{ lineas: string[]; desde: number; hasta: number; size: number; acento?: string }> = ({ lineas, desde, hasta, size, acento }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  if (frame < desde - 1 || frame > hasta + 12) return null;
+  const s = spring({ frame: frame - desde, fps, config: { damping: 18, stiffness: 160 } });
+  const o = interpolate(frame, [hasta, hasta + 10], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const alto = lineas.length * size * 1.06 + 70;
+  return (
+    <>
+      <div style={{ position: "absolute", left: 60, right: 60, top: 400 - alto / 2, height: alto, zIndex: 5, borderRadius: 40, background: "rgba(255,255,255,.94)",
+        boxShadow: "0 20px 50px rgba(11,26,40,.35)", opacity: Math.min(1, s * 1.5) * (1 - o), transform: `translateY(${(1 - s) * -30}px) scale(${0.96 + 0.04 * s})` }} />
+      <Titular lineas={lineas} desde={desde + 3} hasta={hasta} y={400 - alto / 2 + 35} size={size} acento={acento} izq={90} />
+    </>
   );
 };
 
