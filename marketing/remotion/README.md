@@ -50,6 +50,19 @@ y están a -14 LUFS.
 | Historia · No elijas a ciegas | 7 s | @oidoapp | `npm run render -- historia-match` |
 | Historia · Instalar en Android | 10 s | @oidoapp | `npm run render -- historia-instalar-android` |
 | Historia · Instalar en iPhone | 10 s | @oidoapp | `npm run render -- historia-instalar-iphone` |
+| 1/12 · Cosas que solo entiende quien laburó un sábado | 25 s | @turnosgastro | `npm run render -- t6-05-sabado` |
+| 1/12 · Qué es Oído, en 30 segundos | 30 s | @oidoapp | `npm run render -- que-es-oido-30s` |
+| 2/12 · El hielo es la mitad del trago | 29 s | @turnosgastro | `npm run render -- t2-09-hielo` |
+| 3/12 · Una cebolla en 20 segundos | 28 s | @turnosgastro | `npm run render -- t3-05-cebolla` |
+| 4/12 · El orden de servicio que nadie te explicó | 28 s | @turnosgastro | `npm run render -- t1-04-orden-de-servicio` |
+| 4/12 · El costo que no ves: el encargado buscando gente | 30 s | @oidoapp | `npm run render -- c2-07-costo-encargado` |
+
+Las seis de diciembre salen de la pestaña Guiones del documento de crecimiento: textos y tiempos en
+`src/piezas/diciembre.datos.ts`, dibujos en `src/piezas/diciembre.tsx` (láminas de `src/kit/lamina.tsx`:
+una hoja blanca con un dibujo SVG por escena). Las de @oidoapp usan las capturas de la app; las de
+@turnosgastro cierran con la cuenta y el «oído» fileteado.
+
+En los datos, `sonido.musicaDesde` (cuadro en que arranca la música) y `sonido.murmulloDb` ajustan la mezcla por pieza.
 
 Sólo el video, sin la mezcla: `npx remotion render src/index.ts <id> out/<id>.mp4`.
 Balance de sonido por pista: `bash scripts/niveles.sh <id>`.

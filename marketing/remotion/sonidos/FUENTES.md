@@ -16,6 +16,10 @@ vuelve a armar los recortes desde ahí.
 | `vibracion.mp3` | Celular que vibra | [«Mobile_Phone_iphone_Vibrate_Metal_Tin.wav»](https://freesound.org/people/tompallant/sounds/260955/) | tompallant | CC0 |
 | `tipeo.mp3` | Tipeo en el celular | [«Smartphone Touchscreen Tapping, Texting or Messaging, Gaming»](https://freesound.org/people/ahriik/sounds/631822/) | ahriik | CC0 |
 | `impresora-corta.mp3` | Tic-tic corto de impresora de comandas | [«epson receipt printer7»](https://freesound.org/people/azumarill/sounds/345057/) | azumarill | CC0 |
+| `hielo.mp3` | Hielo que cae en el vaso | [«Ice dropped into glass-rattled»](https://freesound.org/people/dr19/sounds/427090/) | dr19 | CC0 |
+| `coctelera.mp3` | Coctelera | [«Cocktail Shaker.wav»](https://freesound.org/people/KenRT/sounds/319995/) | KenRT | CC0 |
+| `cuchillo.mp3` | Cuchillo sobre la tabla | [«Chopping Board»](https://freesound.org/people/Ultra-Edward/sounds/795433/) | Ultra-Edward | CC0 |
+| `copa.mp3` | Copa que se apoya en la mesa | [«glass_set_down 04.wav»](https://freesound.org/people/ShadowSilhouette/sounds/489737/) | ShadowSilhouette | CC0 |
 | `bossa.mp3` | Música de fondo: guitarra de nylon, acordes de bossa | [«Rozenbaum Chords Bossa.wav»](https://freesound.org/people/FullMetalJedi/sounds/400698/) | FullMetalJedi | CC0 |
 
 ## Cómo se prepararon (`recortar.sh`)
