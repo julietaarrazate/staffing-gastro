@@ -50,9 +50,10 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
   pestañas Banco de ideas, Calendario y Guiones) y en
   [`planning/PROPUESTA_HORARIOS_EQUIPO.md`](./planning/PROPUESTA_HORARIOS_EQUIPO.md).
   Sigue, en este orden:
-  1. **Videos del 1 al 4/12** desde los guiones aprobados, con el código de
-     Remotion que otra sesión está guardando en `marketing/remotion/` (PR
-     aparte; si no está mergeado, arrancar de esa rama).
+  1. **Videos del 1 al 4/12** desde los guiones aprobados (pestaña Guiones),
+     con el código de Remotion que ya está en `main` (#732):
+     `marketing/remotion/`, `npm ci` y `npm run render -- <id>`; el resto en
+     su README. Cada guion pasa a una pieza nueva con sus datos aparte.
   2. **Links etiquetados por cuenta y pieza: ya existe, sin código.** El alta
      guarda su origen (`users.signup_origin`, `identity/domain/origen_alta.py`;
      la serie M7 lo agrupa). Convención: `?utm_source=<cuenta>&utm_campaign=<pieza>`

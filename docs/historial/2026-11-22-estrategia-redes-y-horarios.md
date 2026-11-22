@@ -28,5 +28,5 @@ y Oído no le ofrece turnos al equipo de un comercio, para que el dueño no lo l
 como que le sacan la gente. Stock y mermas se descartaron (otro producto).
 
 **Queda abierto:** ver `../STATUS.md` → «Crecimiento en redes y propuesta de
-horarios». El código de los videos (Remotion) lo está guardando otra sesión en
-`marketing/remotion/` con su PR.
+horarios». El código de los videos (Remotion) quedó en
+`marketing/remotion/` (#732, ya en `main`).
