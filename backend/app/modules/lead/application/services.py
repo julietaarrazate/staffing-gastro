@@ -155,7 +155,10 @@ class PlaceSnapshotService:
         try:
             candidates = await self._places.find_gastronomy(barrio)
         except PlaceSourcePartialError as exc:
-            if await self._snapshots.get(barrio) is not None:
+            # Sólo se protege una copia con comercios: una vacía (las que
+            # quedaron el 2026-11-22) cuenta como faltante y la parcial gana.
+            previous = await self._snapshots.get(barrio)
+            if previous is not None and previous.places:
                 raise
             candidates = exc.candidates
         # 0 comercios nunca es éxito: en la Ciudad no hay barrio sin bares ni

@@ -766,6 +766,36 @@ async def test_zero_places_is_a_failure_even_from_a_healthy_server(session_facto
     assert place_snapshot_job._barrio_failures["Palermo"] == 1
 
 
+async def test_partial_with_places_replaces_an_empty_copy(session_factory):
+    await _fresh_everywhere_but(session_factory, "Palermo", datetime.now(timezone.utc))
+    await _seed(session_factory, barrio="Palermo", places=[], fetched_at=datetime.now(timezone.utc))
+
+    await place_snapshot_job.run_place_snapshot_refresh(
+        session_factory, _PartialSource([_candidate("node/9", "Sólo uno")]), pause_s=0
+    )
+    await place_snapshot_job.wait_until_idle()
+    snapshot = await _palermo_copy(session_factory)
+    assert snapshot is not None
+    assert [p.name for p in snapshot.places] == ["Sólo uno"]
+
+
+async def test_an_empty_200_moves_on_to_the_next_server(session_factory):
+    await _fresh_everywhere_but(session_factory, "Palermo", datetime.now(timezone.utc))
+
+    def handler(request):
+        if request.url.host == "uno.test":
+            return httpx.Response(200, json={"elements": []})
+        return httpx.Response(200, json=_ONE_CAFE)
+
+    await place_snapshot_job.run_place_snapshot_refresh(
+        session_factory, _overpass(handler), pause_s=0
+    )
+    await place_snapshot_job.wait_until_idle()
+    snapshot = await _palermo_copy(session_factory)
+    assert snapshot is not None
+    assert [p.name for p in snapshot.places] == ["Café Respaldo"]
+
+
 async def test_plan_treats_an_empty_copy_as_missing(session_factory):
     await _fresh_everywhere_but(session_factory, "Palermo", datetime.now(timezone.utc))
     await _seed(session_factory, barrio="Palermo", places=[], fetched_at=datetime.now(timezone.utc))
