@@ -24,7 +24,10 @@ from collections.abc import Sequence
 import httpx
 
 from app.modules.lead.domain.entities import PlaceCandidate
-from app.modules.lead.domain.exceptions import PlaceSourceUnavailableError
+from app.modules.lead.domain.exceptions import (
+    PlaceSourcePartialError,
+    PlaceSourceUnavailableError,
+)
 from app.modules.lead.domain.repositories import PlaceSource
 from app.modules.lead.domain.value_objects import OSM_AMENITY_TO_KIND
 
@@ -167,6 +170,10 @@ class OverpassPlaceSource(PlaceSource):
         query = build_query(barrio)
         timeout = httpx.Timeout(self._request_timeout_s, connect=_CONNECT_TIMEOUT_S)
         last_error: Exception | None = None
+        # Una respuesta con `remark` de error de ejecución trae comercios,
+        # pero quizás no todos: se sigue probando y sólo se devuelve (como
+        # `PlaceSourcePartialError`) si ningún servidor da una completa.
+        partial: tuple[str, list[PlaceCandidate]] | None = None
         async with httpx.AsyncClient(
             timeout=timeout, headers={"User-Agent": _USER_AGENT}, transport=self._transport
         ) as client:
@@ -179,5 +186,18 @@ class OverpassPlaceSource(PlaceSource):
                     except Exception as exc:
                         last_error = exc
                         continue
+                    remark = payload.get("remark")
+                    if isinstance(remark, str) and "runtime error" in remark.lower():
+                        logger.warning(
+                            "lead.overpass_partial barrio=%s servidor=%s %s",
+                            barrio,
+                            httpx.URL(url).host,
+                            remark[:120],
+                        )
+                        if partial is None:
+                            partial = (remark[:120], parse_elements(payload, barrio))
+                        continue
                     return parse_elements(payload, barrio)
+        if partial is not None:
+            raise PlaceSourcePartialError(f"respuesta parcial: {partial[0]}", partial[1])
         raise PlaceSourceUnavailableError(str(last_error))

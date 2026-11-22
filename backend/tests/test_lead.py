@@ -10,7 +10,10 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.modules.lead.domain.entities import Lead, PlaceCandidate, PlaceSnapshot
-from app.modules.lead.domain.exceptions import PlaceSourceUnavailableError
+from app.modules.lead.domain.exceptions import (
+    PlaceSourcePartialError,
+    PlaceSourceUnavailableError,
+)
 from app.modules.lead.domain.repositories import PlaceSource
 from app.modules.lead.domain.snapshots import SNAPSHOT_MAX_AGE, next_refresh
 from app.modules.lead.domain.value_objects import BARRIOS_CABA, LeadKind, LeadStatus
@@ -279,7 +282,10 @@ async def test_import_without_snapshot_queues_the_barrio_first(client, session_f
     assert res.status_code == 409
     assert res.json()["detail"] == {
         "code": "snapshot_pending",
-        "message": "Todavía no tenemos la copia de este barrio; se baja en los próximos minutos.",
+        "message": (
+            "Todavía no tenemos la copia de este barrio. "
+            "La estamos pidiendo; probá de nuevo en un rato."
+        ),
     }
     # El último pedido va primero en la cola, y se despierta al scheduler.
     assert place_snapshot_job._requested == ["Palermo", "Boedo"]
@@ -512,6 +518,183 @@ async def test_refresh_check_never_runs_two_at_once(session_factory):
     await place_snapshot_job.wait_until_idle()
 
 
+class _Clock:
+    def __init__(self, start: datetime) -> None:
+        self.now = start
+
+    def __call__(self) -> datetime:
+        return self.now
+
+    def advance(self, **kwargs) -> datetime:
+        self.now += timedelta(**kwargs)
+        return self.now
+
+
+def _naive(dt: datetime) -> datetime:
+    return dt.replace(tzinfo=None)
+
+
+async def test_global_pause_backs_off_and_a_failure_does_not_wake(session_factory):
+    clock = _Clock(_NOW)
+    place_snapshot_job.set_clock(clock)
+    woken: list[bool] = []
+    place_snapshot_job.enable(lambda: woken.append(True))
+    source = FakePlaceSource(fail=True)
+
+    t0 = clock.now
+    await place_snapshot_job.run_place_snapshot_refresh(session_factory, source, pause_s=0)
+    await place_snapshot_job.wait_until_idle()
+    assert woken == []  # lo que sigue es una pausa: no se despierta a nadie
+    clock.advance(minutes=1)
+    assert await place_snapshot_job.run_place_snapshot_refresh(
+        session_factory, source, pause_s=0
+    ) == _naive(t0 + timedelta(minutes=30))
+
+    # Segunda falla seguida: la pausa se duplica.
+    t1 = clock.advance(minutes=30)
+    await place_snapshot_job.run_place_snapshot_refresh(session_factory, source, pause_s=0)
+    await place_snapshot_job.wait_until_idle()
+    assert source.calls == [BARRIOS_CABA[0], BARRIOS_CABA[1]]
+    clock.advance(minutes=1)
+    assert await place_snapshot_job.run_place_snapshot_refresh(
+        session_factory, source, pause_s=0
+    ) == _naive(t1 + timedelta(hours=1))
+
+    # El primer éxito la vuelve a cero y sí despierta al scheduler.
+    source.fail = False
+    clock.advance(hours=1)
+    await place_snapshot_job.run_place_snapshot_refresh(session_factory, source, pause_s=0)
+    await place_snapshot_job.wait_until_idle()
+    assert woken == [True]
+    assert place_snapshot_job._global_failures == 0
+    assert place_snapshot_job._paused_until is None
+
+
+def test_backoff_caps_at_24_hours_globally_and_7_days_per_barrio():
+    for _ in range(12):
+        place_snapshot_job._record_failure("Palermo", _NOW)
+    assert place_snapshot_job._paused_until == _NOW + timedelta(hours=24)
+    assert place_snapshot_job._resting_until["Palermo"] == _NOW + timedelta(days=7)
+
+    place_snapshot_job.reset()
+    rests = []
+    for _ in range(4):
+        place_snapshot_job._record_failure("Palermo", _NOW)
+        rests.append(place_snapshot_job._resting_until["Palermo"] - _NOW)
+    assert rests == [timedelta(hours=h) for h in (1, 2, 4, 8)]
+    place_snapshot_job._record_success("Palermo")
+    assert "Palermo" not in place_snapshot_job._resting_until
+    assert place_snapshot_job._barrio_failures == {}
+
+
+async def test_a_request_skips_the_pause_at_most_every_15_minutes(session_factory):
+    clock = _Clock(_NOW)
+    place_snapshot_job.set_clock(clock)
+    place_snapshot_job._record_failure("Agronomía", _NOW)  # pausa hasta +30 min
+    place_snapshot_job._last_bypass["Palermo"] = _NOW
+    place_snapshot_job.request_refresh("Palermo")
+    source = FakePlaceSource(_PALERMO)
+
+    clock.advance(minutes=5)
+    assert await place_snapshot_job.run_place_snapshot_refresh(
+        session_factory, source, pause_s=0
+    ) == _naive(_NOW + timedelta(minutes=15))
+    assert source.calls == []
+
+    clock.advance(minutes=10)
+    assert await place_snapshot_job.run_place_snapshot_refresh(
+        session_factory, source, pause_s=0
+    ) is None
+    await place_snapshot_job.wait_until_idle()
+    assert source.calls == ["Palermo"]
+
+
+async def test_a_hung_refresh_is_cancelled_after_an_hour(session_factory):
+    clock = _Clock(_NOW)
+    place_snapshot_job.set_clock(clock)
+
+    class HungSource(FakePlaceSource):
+        async def find_gastronomy(self, barrio):
+            self.calls.append(barrio)
+            await asyncio.Event().wait()
+            return []
+
+    source = HungSource()
+    await place_snapshot_job.run_place_snapshot_refresh(session_factory, source, pause_s=0)
+    await asyncio.sleep(0)
+    task = place_snapshot_job._task
+
+    clock.advance(minutes=30)
+    assert await place_snapshot_job.run_place_snapshot_refresh(
+        session_factory, source, pause_s=0
+    ) is None
+    assert place_snapshot_job.is_refreshing()
+
+    hung_at = clock.advance(minutes=31)
+    next_at = await place_snapshot_job.run_place_snapshot_refresh(
+        session_factory, source, pause_s=0
+    )
+    await asyncio.gather(task, return_exceptions=True)
+    assert task.cancelled()
+    # Cuenta como falla: el barrio descansa y sigue la pausa general.
+    assert place_snapshot_job._resting_until[BARRIOS_CABA[0]] == hung_at + timedelta(hours=1)
+    assert next_at == _naive(hung_at + timedelta(minutes=30))
+    assert source.calls == [BARRIOS_CABA[0]]
+
+
+async def test_cancel_stops_the_running_refresh(session_factory):
+    release = asyncio.Event()
+
+    class SlowSource(FakePlaceSource):
+        async def find_gastronomy(self, barrio):
+            await release.wait()
+            return []
+
+    await place_snapshot_job.run_place_snapshot_refresh(
+        session_factory, SlowSource(), pause_s=0
+    )
+    task = place_snapshot_job._task
+    place_snapshot_job.cancel()
+    await asyncio.gather(task, return_exceptions=True)
+    assert task.cancelled()
+
+
+class _PartialSource(FakePlaceSource):
+    async def find_gastronomy(self, barrio):
+        self.calls.append(barrio)
+        raise PlaceSourcePartialError("respuesta parcial", self.places)
+
+
+async def test_partial_answer_never_replaces_an_existing_copy(session_factory):
+    clock = _Clock(_NOW)
+    place_snapshot_job.set_clock(clock)
+    old = _NOW - timedelta(days=8)
+    await _fresh_everywhere_but(session_factory, None, _NOW)
+    await _seed(session_factory, barrio="Palermo", fetched_at=old)
+
+    await place_snapshot_job.run_place_snapshot_refresh(
+        session_factory, _PartialSource([_candidate("node/9", "Sólo uno")]), pause_s=0
+    )
+    await place_snapshot_job.wait_until_idle()
+    async with session_factory() as session:
+        snapshot = await SqlAlchemyPlaceSnapshotRepository(session).get("Palermo")
+    assert snapshot is not None and len(snapshot.places) == 3
+    assert snapshot.fetched_at == old
+    assert "Palermo" in place_snapshot_job._resting_until  # contó como falla
+
+
+async def test_partial_answer_is_saved_when_there_is_no_copy_yet(session_factory):
+    await _fresh_everywhere_but(session_factory, "Palermo", datetime.now(timezone.utc))
+    await place_snapshot_job.run_place_snapshot_refresh(
+        session_factory, _PartialSource([_candidate("node/9", "Sólo uno")]), pause_s=0
+    )
+    await place_snapshot_job.wait_until_idle()
+    async with session_factory() as session:
+        snapshot = await SqlAlchemyPlaceSnapshotRepository(session).get("Palermo")
+    assert snapshot is not None
+    assert [p.name for p in snapshot.places] == ["Sólo uno"]
+
+
 async def test_requested_barrio_is_refreshed_first(session_factory):
     source = FakePlaceSource(_PALERMO)
     place_snapshot_job.request_refresh("Villa Urquiza")
@@ -648,11 +831,24 @@ async def test_overpass_runtime_error_remark_is_not_a_valid_answer():
     assert hosts == ["uno.test", "dos.test"]
 
 
-async def test_overpass_remark_with_elements_is_accepted():
-    payload = {**_ONE_CAFE, "remark": "runtime error: algo parcial"}
-    source, _ = _source(lambda request: httpx.Response(200, json=payload))
+async def test_overpass_partial_answer_is_kept_only_if_no_server_gives_a_full_one():
+    partial = {**_ONE_CAFE, "remark": "runtime error: algo parcial"}
+
+    def one_full(request):
+        if request.url.host == "uno.test":
+            return httpx.Response(200, json=partial)
+        return httpx.Response(200, json=_ONE_CAFE)
+
+    source, hosts = _source(one_full)
     places = await source.find_gastronomy("Palermo")
     assert [p.name for p in places] == ["Café Respaldo"]
+    assert hosts == ["uno.test", "dos.test"]
+
+    source, hosts = _source(lambda request: httpx.Response(200, json=partial), retry_waits_s=())
+    with pytest.raises(PlaceSourcePartialError) as exc:
+        await source.find_gastronomy("Palermo")
+    assert [p.name for p in exc.value.candidates] == ["Café Respaldo"]
+    assert len(hosts) == 3
 
 
 async def test_overpass_discards_a_json_list_response():

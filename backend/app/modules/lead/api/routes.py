@@ -88,8 +88,8 @@ async def import_barrio(body: LeadImportRequest, _: AdminDep, service: ServiceDe
             detail={
                 "code": "snapshot_pending",
                 "message": (
-                    "Todavía no tenemos la copia de este barrio; "
-                    "se baja en los próximos minutos."
+                    "Todavía no tenemos la copia de este barrio. "
+                    "La estamos pidiendo; probá de nuevo en un rato."
                 ),
             },
         ) from exc

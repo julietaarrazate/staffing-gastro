@@ -10,22 +10,28 @@ red). Julieta decidió una copia semanal.
 barrio»: la lista se arma al instante desde la copia guardada, y debajo de
 los botones se lee «Datos de OpenStreetMap del <fecha>». Si el barrio todavía
 no tiene copia, la pantalla lo dice y el botón avisa «Todavía no tenemos la
-copia de este barrio; se baja en los próximos minutos» (aviso, no error).
+copia de este barrio. La estamos pidiendo; probá de nuevo en un rato» (aviso,
+no error).
 
 - Tablas nuevas `lead_place_snapshots` y `lead_snapshot_barrios` (migración
   `0062_copia_semanal_osm.py`); puerto `PlaceSnapshotRepository` y adaptador
   `SqlAlchemyPlaceSnapshotRepository` (`backend/app/modules/lead/`).
 - Regla de qué barrio refrescar en `lead/domain/snapshots.py` (sin copia o
   de más de 7 días; los pedidos desde la pantalla primero; un barrio que
-  falló descansa una hora y, tras una falla, todo el refresco se frena 30
-  minutos salvo un barrio pedido desde la pantalla).
+  falló descansa 1 h, el doble por falla seguida hasta 7 días; tras una
+  falla todo el refresco se frena 30 min, el doble por falla seguida hasta
+  24 h, y vuelve a cero con el primer éxito; un barrio pedido desde la
+  pantalla se salta esa pausa como mucho una vez cada 15 min).
 - Caso de uso `PlaceSnapshotService` (`lead/application/services.py`):
-  consulta primero y escribe después; si la consulta falla o vuelve vacía
-  con una copia anterior llena, la copia anterior queda.
+  consulta primero y escribe después; si la consulta falla, vuelve vacía
+  con una copia anterior llena o trae `remark` «runtime error» (parcial), la
+  copia anterior queda. Una parcial sólo se guarda si no había ninguna.
 - Chequeo del scheduler `lead/infrastructure/place_snapshot_job.py`,
   enganchado en `app/main.py` por `extra_checks`: baja un barrio por vez en
-  una tarea aparte (nunca dos), despierta al scheduler al terminar y, con
-  todo al día, devuelve la fecha de vencimiento de la copia más vieja.
+  una tarea aparte (nunca dos), despierta al scheduler al terminar bien (tras
+  una falla no: sigue una pausa) y, con todo al día, devuelve la fecha de
+  vencimiento de la copia más vieja. Una tarea de más de 60 min se cancela
+  como colgada, y al apagar se cancela con el scheduler.
 - `OverpassPlaceSource` ahora consulta los servidores de a uno, en serie,
   180 s cada uno, hasta 3 vueltas con 1 y 5 minutos de espera
   (`[timeout:170]` en la consulta).

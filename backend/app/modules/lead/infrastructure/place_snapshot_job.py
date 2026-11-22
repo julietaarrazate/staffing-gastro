@@ -37,22 +37,42 @@ from app.modules.lead.infrastructure.repositories import SqlAlchemyPlaceSnapshot
 
 logger = logging.getLogger(__name__)
 
-# Un barrio que falló (todos los servidores, con sus reintentos) no se vuelve
-# a probar hasta dentro de un rato: los servidores públicos se saturan por
-# horas y no conviene insistirles.
+# Un barrio que falló (todos los servidores, con sus reintentos) descansa
+# antes de volver a probarse: 1 h, y el doble por cada falla seguida, hasta
+# 7 días. Un barrio que falla siempre (p. ej. su nombre no coincide en OSM)
+# termina probándose una vez por semana, no cada hora para siempre.
 REST_AFTER_FAILURE = timedelta(hours=1)
-# Y después de una falla se frena todo el refresco un rato: casi siempre el
-# problema es de los servidores, no del barrio, y seguir con el próximo sería
-# insistirles igual. Un barrio pedido desde la pantalla no espera esta pausa
-# (sí la de su propio barrio, si falló).
+MAX_REST = timedelta(days=7)
+# Y tras una falla se frena todo el refresco: casi siempre el problema es de
+# los servidores, no del barrio. 30 min, el doble por cada falla seguida de
+# cualquier barrio, hasta 24 h; vuelve a cero con el primer éxito. Así, con
+# Overpass caído, Neon no se despierta una o dos veces por hora.
 PAUSE_AFTER_FAILURE = timedelta(minutes=30)
+MAX_PAUSE = timedelta(hours=24)
+# Un barrio pedido desde la pantalla se salta la pausa general, pero como
+# mucho una vez cada 15 min (apretar el botón muchas veces no insiste más).
+REQUEST_BYPASS_EVERY = timedelta(minutes=15)
+# Una consulta legítima tarda a lo sumo ~42 min (3 vueltas × 4 servidores ×
+# 180 s, más las esperas). Pasada 1 h, la tarea se da por colgada.
+HUNG_AFTER = timedelta(minutes=60)
 # Pausa entre un barrio y el siguiente, por cortesía con Overpass.
 PAUSE_BETWEEN_BARRIOS_S = 30.0
 
+
+def _system_clock() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+_clock: Callable[[], datetime] = _system_clock
 _requested: list[str] = []
 _resting_until: dict[str, datetime] = {}
+_barrio_failures: dict[str, int] = {}
+_last_bypass: dict[str, datetime] = {}
 _paused_until: datetime | None = None
+_global_failures = 0
 _task: asyncio.Task | None = None
+_task_barrio: str | None = None
+_task_started_at: datetime | None = None
 _wake: Callable[[], None] | None = None
 
 
@@ -61,6 +81,12 @@ def enable(wake: Callable[[], None]) -> None:
     `wake` despierta al scheduler; lo pasa `app/main.py`."""
     global _wake
     _wake = wake
+
+
+def set_clock(clock: Callable[[], datetime]) -> None:
+    """Reloj del refresco (UTC con zona). Sólo los tests lo cambian."""
+    global _clock
+    _clock = clock
 
 
 def request_refresh(barrio: str) -> None:
@@ -76,6 +102,13 @@ def is_refreshing() -> bool:
     return _task is not None and not _task.done()
 
 
+def cancel() -> None:
+    """Cancela la tarea de refresco en curso (al apagar, desde `app/main.py`)."""
+    if is_refreshing():
+        assert _task is not None
+        _task.cancel()
+
+
 async def wait_until_idle() -> None:
     """Espera a que termine la tarea de refresco en curso (para los tests)."""
     if _task is not None:
@@ -84,12 +117,46 @@ async def wait_until_idle() -> None:
 
 def reset() -> None:
     """Vacía el estado en memoria (para los tests)."""
-    global _task, _wake, _paused_until
+    global _task, _task_barrio, _task_started_at, _wake, _paused_until
+    global _global_failures, _clock
+    try:
+        cancel()
+    except RuntimeError:  # la tarea era del event loop de otro test, ya cerrado
+        pass
     _requested.clear()
     _resting_until.clear()
+    _barrio_failures.clear()
+    _last_bypass.clear()
     _task = None
+    _task_barrio = None
+    _task_started_at = None
     _wake = None
     _paused_until = None
+    _global_failures = 0
+    _clock = _system_clock
+
+
+def _record_failure(barrio: str, failed_at: datetime) -> None:
+    """Descanso del barrio y pausa general, los dos con backoff exponencial."""
+    global _paused_until, _global_failures
+    n = _barrio_failures.get(barrio, 0)
+    _resting_until[barrio] = failed_at + min(REST_AFTER_FAILURE * 2**n, MAX_REST)
+    _barrio_failures[barrio] = n + 1
+    _paused_until = failed_at + min(PAUSE_AFTER_FAILURE * 2**_global_failures, MAX_PAUSE)
+    _global_failures += 1
+
+
+def _record_success(barrio: str) -> None:
+    global _paused_until, _global_failures
+    _resting_until.pop(barrio, None)
+    _barrio_failures.pop(barrio, None)
+    _paused_until = None
+    _global_failures = 0
+
+
+def _can_bypass(barrio: str, now: datetime) -> bool:
+    last = _last_bypass.get(barrio)
+    return barrio in _requested and (last is None or now - last >= REQUEST_BYPASS_EVERY)
 
 
 async def _refresh_one(
@@ -98,35 +165,57 @@ async def _refresh_one(
     barrio: str,
     pause_s: float,
 ) -> None:
-    global _paused_until
-    now = datetime.now(timezone.utc)
+    failed = False
     try:
         # La sesión no toma conexión hasta la primera consulta, y el caso de
         # uso consulta a Overpass antes de tocar la base.
         async with sessions() as session:
             count = await PlaceSnapshotService(
                 SqlAlchemyPlaceSnapshotRepository(session), places
-            ).refresh(barrio, now)
+            ).refresh(barrio, _clock())
     except Exception as exc:
-        failed_at = datetime.now(timezone.utc)
-        _resting_until[barrio] = failed_at + REST_AFTER_FAILURE
-        _paused_until = failed_at + PAUSE_AFTER_FAILURE
+        failed = True
+        _record_failure(barrio, _clock())
         logger.warning(
-            "lead.snapshot_failed barrio=%s error=%s %s; queda la copia anterior",
+            "lead.snapshot_failed barrio=%s error=%s %s; queda la copia anterior "
+            "(pausa general hasta %s)",
             barrio,
             type(exc).__name__,
             str(exc)[:160],
+            _paused_until.isoformat() if _paused_until else "-",
         )
     else:
-        _resting_until.pop(barrio, None)
+        _record_success(barrio)
         logger.info("lead.snapshot_refreshed barrio=%s comercios=%d", barrio, count)
     finally:
         if barrio in _requested:
             _requested.remove(barrio)
+    # Tras una falla sigue una pausa: no hace falta despertar al scheduler
+    # (sería despertar a Neon para nada). La próxima pasada del loop, a su
+    # hora, ve la pausa y devuelve cuándo termina. Sólo se despierta si hay
+    # un barrio pedido desde la pantalla que puede saltársela.
+    if failed and not any(_can_bypass(b, _clock()) for b in _requested):
+        return
     if pause_s > 0:
         await asyncio.sleep(pause_s)
     if _wake is not None:
         _wake()
+
+
+def _drop_hung_task(now: datetime) -> None:
+    """Una tarea que lleva más de `HUNG_AFTER` se cancela y cuenta como falla."""
+    global _task
+    if _task_started_at is None or now - _task_started_at < HUNG_AFTER:
+        return
+    assert _task is not None and _task_barrio is not None
+    logger.error(
+        "lead.snapshot_hung barrio=%s desde=%s; se cancela",
+        _task_barrio,
+        _task_started_at.isoformat(),
+    )
+    _task.cancel()
+    _task = None
+    _record_failure(_task_barrio, now)
 
 
 async def run_place_snapshot_refresh(
@@ -138,19 +227,32 @@ async def run_place_snapshot_refresh(
     """Chequeo del scheduler. Devuelve la próxima deadline (naive UTC, como
     el resto de los chequeos) o `None`. Los parámetros son para los tests;
     el scheduler lo llama sin ninguno."""
-    global _task
+    global _task, _task_barrio, _task_started_at
+    now = now or _clock()
     if is_refreshing():
-        return None
+        _drop_hung_task(now)
+        if is_refreshing():
+            # Al terminar bien despierta al scheduler. Si falla, no (sigue una
+            # pausa) y una tarea colgada se detecta en la próxima pasada que
+            # el loop haga por su cuenta: no se agregan despertares.
+            return None
     sessions = sessions or AsyncSessionLocal
-    now = now or datetime.now(timezone.utc)
     async with sessions() as session:
         barrio, next_at = await PlaceSnapshotService(
             SqlAlchemyPlaceSnapshotRepository(session), places or OverpassPlaceSource()
         ).plan(now, requested=tuple(_requested), resting_until=dict(_resting_until))
     if barrio is None:
         return naive(next_at) if next_at is not None else None
-    if _paused_until is not None and now < _paused_until and barrio not in _requested:
-        return naive(_paused_until)
+    if _paused_until is not None and now < _paused_until:
+        if not _can_bypass(barrio, now):
+            wake_at = _paused_until
+            last = _last_bypass.get(barrio)
+            if barrio in _requested and last is not None:
+                wake_at = min(wake_at, last + REQUEST_BYPASS_EVERY)
+            return naive(wake_at)
+        _last_bypass[barrio] = now
+    _task_barrio = barrio
+    _task_started_at = now
     _task = asyncio.create_task(
         _refresh_one(sessions, places or OverpassPlaceSource(), barrio, pause_s),
         name=f"lead-snapshot-{barrio}",

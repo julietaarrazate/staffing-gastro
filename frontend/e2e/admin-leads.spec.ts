@@ -150,7 +150,7 @@ test("barrio sin copia de OpenStreetMap: lo dice y avisa que se baja sola", asyn
       body: JSON.stringify({
         detail: {
           code: "snapshot_pending",
-          message: "Todavía no tenemos la copia de este barrio; se baja en los próximos minutos.",
+          message: "Todavía no tenemos la copia de este barrio. La estamos pidiendo; probá de nuevo en un rato.",
         },
       }),
     })
@@ -164,7 +164,7 @@ test("barrio sin copia de OpenStreetMap: lo dice y avisa que se baja sola", asyn
 
   await page.getByRole("button", { name: "Traer comercios del barrio" }).click();
   await expect(
-    page.getByText("Todavía no tenemos la copia de este barrio; se baja en los próximos minutos.")
+    page.getByText("Todavía no tenemos la copia de este barrio. La estamos pidiendo; probá de nuevo en un rato.")
   ).toBeVisible();
 });
 

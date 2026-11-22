@@ -37,15 +37,30 @@ sumó carga. No hay plazo que entre en un pedido HTTP y alcance.
    servidor y hasta 3 vueltas con 1 y 5 minutos de espera entre vueltas.
    Entre un barrio y el siguiente hay 30 s de pausa.
 3. **La copia sólo se reemplaza si la consulta salió bien.** Si falla, queda
-   la anterior, ese barrio descansa una hora antes de volver a probarse y
-   todo el refresco se frena 30 minutos (casi siempre el problema es de los
-   servidores, no del barrio); un barrio pedido desde la pantalla no espera
-   esa pausa general. Una
-   respuesta vacía cuando la copia anterior tenía comercios cuenta como falla
-   (Overpass a veces responde vacío al cortar una consulta).
+   la anterior y hay dos esperas, las dos con backoff exponencial en memoria:
+   - **el barrio** descansa 1 h, el doble por cada falla seguida suya, hasta
+     7 días (un barrio que falla siempre termina probándose una vez por
+     semana);
+   - **todo el refresco** se frena 30 min, el doble por cada falla seguida
+     de cualquier barrio, hasta 24 h, y vuelve a cero con el primer éxito
+     (casi siempre el problema es de los servidores, no del barrio).
+
+   Un barrio pedido desde la pantalla se salta la pausa general (no la
+   suya), como mucho una vez cada 15 min. Cuenta como falla una respuesta
+   vacía cuando la copia anterior tenía comercios (Overpass a veces responde
+   vacío al cortar una consulta) y una respuesta con `remark` «runtime
+   error»: puede estar incompleta, así que nunca pisa una copia existente
+   (sólo se guarda si el barrio no tenía ninguna). Una tarea que lleva más
+   de 60 min (la más larga legítima ronda los 42) se da por colgada: se
+   cancela, se loguea (`lead.snapshot_hung`) y cuenta como falla. Al apagar,
+   `app/main.py` cancela la tarea junto con el scheduler.
 4. **Despertares.** Mientras corre la tarea, el chequeo no pide deadline; la
-   tarea despierta al scheduler al terminar (`notify_scheduler`, inyectado
-   desde `app/main.py`). Con todas las copias al día, la próxima deadline es
+   tarea despierta al scheduler al terminar **bien** (`notify_scheduler`,
+   inyectado desde `app/main.py`). Tras una falla no lo despierta (lo que
+   sigue es una pausa, salvo que haya un pedido de la pantalla que pueda
+   saltársela): la próxima pasada del loop, a su hora (a lo sumo 6 h),
+   devuelve el fin de la pausa. Con Overpass caído, Neon no se despierta
+   por esto. Con todas las copias al día, la próxima deadline es
    cuando vence la más vieja (días): no agrega despertares (cuota de Neon).
    Llenar las 48 copias la primera vez son ~48 pasadas del scheduler,
    después unas 48 por semana.
@@ -54,7 +69,8 @@ sumó carga. No hay plazo que entre en un pedido HTTP y alcance.
    (`osm_ref`, sin pisar estado ni notas), y devuelve `fetched_at`. Si el
    barrio no tiene copia todavía responde **409** con
    `{code: "snapshot_pending", message: "Todavía no tenemos la copia de este
-   barrio; se baja en los próximos minutos."}`, lo pone primero en la cola
+   barrio. La estamos pidiendo; probá de nuevo en un rato."}` (no promete
+   minutos: con los servidores caídos puede tardar), lo pone primero en la cola
    del refresco y despierta al scheduler. `GET /admin/leads/summary` suma
    `snapshots` (barrio → fecha de la copia) y la pantalla muestra «Datos de
    OpenStreetMap del <fecha>», o que todavía no hay copia. La atribución ODbL
@@ -78,8 +94,12 @@ demasiado pesado para lo que se usa.
 
 ## Consecuencias
 
-- La cola en memoria (pedidos de la pantalla y barrios en pausa) se pierde
-  al reiniciar el proceso; no importa, los barrios sin copia se bajan igual.
+- La cola en memoria (pedidos de la pantalla, barrios en descanso, contadores
+  de fallas y pausa general) se pierde al reiniciar el proceso; no importa,
+  los barrios sin copia se bajan igual.
+- Tras una falla, el refresco puede retomar hasta 6 h después del fin de la
+  pausa (el loop no se despierta sólo por esto). Es a propósito: cuidar la
+  cuota de Neon pesa más que unas horas en una copia semanal.
 - Sólo corre en producción (el scheduler está gateado a
   `settings.is_production`): en local o en los E2E «Traer comercios» dice
   que no hay copia, salvo que se cargue una a mano.

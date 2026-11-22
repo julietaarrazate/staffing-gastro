@@ -102,6 +102,8 @@ async def lifespan(_: FastAPI):
     yield
     if scheduler_task is not None:
         scheduler_task.cancel()
+        # La consulta a Overpass corre en su propia tarea (ADR-0029).
+        place_snapshot_job.cancel()
     if idle_closer_task is not None:
         idle_closer_task.cancel()
     # Los push de los avisos salen después de responder, en tareas de fondo

@@ -8,6 +8,7 @@ from app.modules.lead.domain.entities import ImportResult, Lead, PlaceSnapshot
 from app.modules.lead.domain.exceptions import (
     LeadNotFoundError,
     PlaceSnapshotMissingError,
+    PlaceSourcePartialError,
     PlaceSourceUnavailableError,
     UnknownBarrioError,
 )
@@ -142,11 +143,18 @@ class PlaceSnapshotService:
         anterior queda como estaba. Una respuesta vacía cuando la copia
         anterior tenía comercios se toma como falla (Overpass a veces
         responde vacío cuando corta la consulta), no como un barrio que se
-        quedó sin bares.
+        quedó sin bares. Una respuesta parcial (`PlaceSourcePartialError`)
+        nunca pisa una copia existente: cuenta como falla. Sólo se guarda si
+        el barrio no tenía ninguna, porque algo es mejor que nada.
         """
         if barrio not in BARRIOS_CABA:
             raise UnknownBarrioError(barrio)
-        candidates = await self._places.find_gastronomy(barrio)
+        try:
+            candidates = await self._places.find_gastronomy(barrio)
+        except PlaceSourcePartialError as exc:
+            if await self._snapshots.get(barrio) is not None:
+                raise
+            candidates = exc.candidates
         if not candidates:
             previous = await self._snapshots.get(barrio)
             if previous is not None and previous.places:
