@@ -96,7 +96,8 @@ for (const theme of ["light", "dark"] as const) {
         expect(await filas.count()).toBeGreaterThan(1);
         for (const fila of await filas.all()) {
           await expect(fila).toHaveCSS("border-top-left-radius", "16px");
-          expect(await fila.evaluate((el) => el.getBoundingClientRect().height)).toBeGreaterThanOrEqual(48);
+          // Redondeado: a 320 px el alto sale 47,99997 por el redondeo de subpíxeles.
+          expect(Math.round(await fila.evaluate((el) => el.getBoundingClientRect().height))).toBeGreaterThanOrEqual(48);
         }
         await expect(hoja.locator(".divide-y")).toHaveCount(0);
         // El velo es de tinta, no negro puro.
