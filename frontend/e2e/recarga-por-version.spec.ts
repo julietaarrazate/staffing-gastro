@@ -52,3 +52,38 @@ test("no se recarga si la versión servida es la del bundle", async ({ page }) =
   await page.waitForTimeout(2000);
   expect(cargas).toBe(1);
 });
+
+test("con la app en uso no corta la pantalla: recarga al cambiar de pantalla", async ({ page }) => {
+  await setTheme(page, "light");
+  await skipSplash(page);
+  await blockExternalHosts(page);
+  await page.route("**/api/v1/**", (r) => r.fulfill(json({ detail: "no" }, 404)));
+  await page.route("**/api/v1/auth/guest", (r) => r.fulfill(json({ enabled: false })));
+  const real = await (await page.request.get("/version.json")).json();
+  let servida = real;
+  let pedidos = 0;
+  await page.route("**/version.json*", (r) => {
+    pedidos += 1;
+    return r.fulfill(json(servida));
+  });
+  let cargas = 0;
+  page.on("load", () => {
+    cargas += 1;
+  });
+  await page.goto("/login");
+  await expect.poll(() => pedidos).toBeGreaterThanOrEqual(1);
+  // Se publica una versión nueva y la app vuelve a primer plano enseguida
+  // (p. ej. tras elegir una foto): avisa, pero no recarga.
+  servida = { version: "version-nueva-e2e" };
+  const antes = pedidos;
+  await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+  await expect.poll(() => pedidos).toBeGreaterThan(antes);
+  await page.waitForTimeout(1000);
+  expect(cargas).toBe(1);
+  // Al pasar a otra pantalla, recarga una vez, ya en la pantalla nueva.
+  await page.getByRole("link", { name: /recuper|olvid/i }).first().click();
+  await expect.poll(() => cargas, { timeout: 15_000 }).toBe(2);
+  await expect(page).toHaveURL(/\/recuperar/);
+  await page.waitForTimeout(1000);
+  expect(cargas).toBe(2);
+});

@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   CLAVE_RECARGADO,
   debeRecargar,
-  estaEscribiendo,
   marcarRecargadoPor,
   pedirVersionRemota,
 } from "./version-app";
@@ -40,22 +39,6 @@ describe("marcarRecargadoPor", () => {
       throw new Error("bloqueado");
     });
     expect(marcarRecargadoPor("b")).toBe(false);
-  });
-});
-
-describe("estaEscribiendo", () => {
-  afterEach(() => {
-    document.body.innerHTML = "";
-  });
-  it("detecta foco en un input", () => {
-    document.body.innerHTML = "<input id='x'>";
-    (document.getElementById("x") as HTMLInputElement).focus();
-    expect(estaEscribiendo()).toBe(true);
-  });
-  it("false sin foco en campos", () => {
-    document.body.innerHTML = "<button id='b'>ok</button>";
-    (document.getElementById("b") as HTMLButtonElement).focus();
-    expect(estaEscribiendo()).toBe(false);
   });
 });
 

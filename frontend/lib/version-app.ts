@@ -39,13 +39,6 @@ export function marcarRecargadoPor(version: string): boolean {
   }
 }
 
-/** Hay un campo de texto con foco: recargar le comería lo que está escribiendo. */
-export function estaEscribiendo(doc: Document = document): boolean {
-  const el = doc.activeElement as HTMLElement | null;
-  if (!el) return false;
-  return el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable === true;
-}
-
 /** Pide la versión servida, sin caché. `null` si no se pudo (offline, etc.). */
 export async function pedirVersionRemota(): Promise<string | null> {
   try {
