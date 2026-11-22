@@ -45,6 +45,27 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
   4. Mails (plantillas del backend) y piezas de redes/campañas/videos con la
      marca vigente (`design-system/marca-hoy.md`); la landing queda como está.
 
+- 🟠 **Crecimiento en redes y propuesta de horarios (2026-11-22).** Estado en
+  el documento de crecimiento (https://claude.ai/artifact/HPGMp7JFA9prJmBdEazLPP:
+  pestañas Banco de ideas, Calendario y Guiones) y en
+  [`planning/PROPUESTA_HORARIOS_EQUIPO.md`](./planning/PROPUESTA_HORARIOS_EQUIPO.md).
+  Sigue, en este orden:
+  1. **Videos del 1 al 4/12** desde los guiones aprobados, con el código de
+     Remotion que otra sesión está guardando en `marketing/remotion/` (PR
+     aparte; si no está mergeado, arrancar de esa rama).
+  2. **Links etiquetados por cuenta y pieza: ya existe, sin código.** El alta
+     guarda su origen (`users.signup_origin`, `identity/domain/origen_alta.py`;
+     la serie M7 lo agrupa). Convención: `?utm_source=<cuenta>&utm_campaign=<pieza>`
+     (por ejemplo `utm_source=turnosgastro&utm_campaign=t1-09` → etiqueta
+     `turnosgastro/t1-09`); en la bio, `?ref=bio-turnosgastro`. Usarla en cada
+     link que mande el mensaje automático.
+  3. **Guía de entrevista** para 5 a 10 encargados de la beta (diciembre),
+     con la maqueta de horarios.
+  4. Herramienta de comentario → mensaje privado (Zernio o ManyChat): plan
+     gratis y conexión oficial de Meta.
+  5. Después de la beta: calculadora de personal, Favoritos más visibles y,
+     si las entrevistas validan, el ADR de horarios del equipo.
+
 - 🔴 **Salida a beta (etapa 3 cerrada el 2026-11-17).** De lo que quedó
   «para revisar con Fable», el 2026-11-18 entraron G4, U081, U072, la
   segunda mirada a G6, los dos arreglos chicos de la baja del dispositivo y
@@ -337,6 +358,15 @@ Deuda técnica priorizada: [`TECH_DEBT.md`](./TECH_DEBT.md). Bugs que ya
 pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
 
 ## Pendiente de Julieta (operativo, no es código)
+
+- **Redes (2026-11-22):** crear **@oidoapp** y **@turnosgastro** en Instagram,
+  Facebook y TikTok (mismo Centro de cuentas de Meta, sin sincronizar nombre y
+  foto; las dos como cuenta profesional, cada una con su página de Facebook),
+  con foto y bio para el **26/11**. Aprobar o corregir los 6 guiones del 1 al
+  4/12 (pestaña Guiones) y responder: qué verifica hoy la app de quien se
+  postula (la pieza dice «verificada») y cuánto se tarda en publicar un turno
+  (la pieza dice «1 minuto»). Aprobar C1-10 (primer turno gratis) y C2-10
+  (precios) antes de usarlas.
 
 - **Estrategia de crecimiento, fase 2 (plan de 90 días):** está en el mismo
   documento privado, una pestaña por entregable
