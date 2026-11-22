@@ -26,6 +26,19 @@ const MAPLIBRE_VERSION: string = JSON.parse(
 // NEXT_PUBLIC_* se inlinean en el bundle del browser de todos modos.
 const PROD_API_URL = "https://staffya-backend.onrender.com/api/v1";
 
+// Identificador de este build: lo usa `/version.json` (servido sin caché) y el
+// bundle del navegador (`NEXT_PUBLIC_BUILD_ID`, inlineado) para saber si hay
+// una versión nueva (`components/ActualizadorVersion.tsx`). Sale del commit
+// que construye Cloudflare/GitHub/Vercel; sin commit (build local) cae a la
+// hora del build. Se calcula UNA vez por proceso de build.
+const BUILD_ID: string =
+  process.env.NEXT_PUBLIC_BUILD_ID ||
+  process.env.WORKERS_CI_COMMIT_SHA ||
+  process.env.CF_PAGES_COMMIT_SHA ||
+  process.env.GITHUB_SHA ||
+  process.env.VERCEL_GIT_COMMIT_SHA ||
+  `local-${Date.now().toString(36)}`;
+
 const API_ORIGIN = new URL(process.env.NEXT_PUBLIC_API_URL ?? PROD_API_URL).origin;
 const API_WS_ORIGIN = API_ORIGIN.replace(/^http/, "ws");
 
@@ -86,7 +99,9 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL ?? PROD_API_URL,
     NEXT_PUBLIC_MAPLIBRE_VERSION: MAPLIBRE_VERSION,
+    NEXT_PUBLIC_BUILD_ID: BUILD_ID,
   },
+  generateBuildId: async () => BUILD_ID,
   async headers() {
     if (process.env.NODE_ENV !== "production") return [];
     return [{ source: "/:path*", headers: securityHeaders }];

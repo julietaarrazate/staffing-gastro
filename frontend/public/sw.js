@@ -1,4 +1,7 @@
 // Service worker mínimo, sólo para Web Push (ver docs/reference/ACCESO_MODERNO.md).
+// No tiene handler `fetch`: ni navegaciones ni /_next/static pasan por acá, así
+// que nunca sirve HTML ni código viejo. La recarga por versión nueva la hace
+// `components/ActualizadorVersion.tsx`.
 // El repo NO tenía service worker antes de esto: no se agrega ningún tipo de
 // caching/offline (eso sería un cambio de alcance mucho mayor, con sus
 // propios riesgos de servir assets viejos post-deploy) — sólo lo
@@ -9,7 +12,19 @@ self.addEventListener("install", () => {
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+  // Por si alguna versión anterior dejó cachés: se borran todas (hoy este
+  // worker no guarda ninguna) y se toma el control de las pestañas abiertas.
+  event.waitUntil(
+    (async () => {
+      try {
+        const claves = await self.caches.keys();
+        await Promise.all(claves.map((k) => self.caches.delete(k)));
+      } catch {
+        // Sin Cache API o sin permiso: no es motivo para no activar.
+      }
+      await self.clients.claim();
+    })()
+  );
 });
 
 self.addEventListener("push", (event) => {

@@ -13,6 +13,7 @@ import BottomNav from "@/components/BottomNav";
 import { AvisosProvider } from "@/lib/avisos";
 import ImpersonationBanner from "@/components/ImpersonationBanner";
 import CapturaOrigen from "@/components/CapturaOrigen";
+import ActualizadorVersion from "@/components/ActualizadorVersion";
 import { SITE_URL } from "@/lib/site";
 import { OG_ALT, OG_IMAGE_URL, OG_SQUARE } from "@/lib/og";
 
@@ -140,6 +141,7 @@ export default function RootLayout({
                 <AvisosProvider>
                 <SplashScreen />
                 <CapturaOrigen />
+                <ActualizadorVersion />
                 <ImpersonationBanner />
                 <Navbar />
                 {/* Sin botones flotantes globales (Julieta, 2026-08-16: "no
