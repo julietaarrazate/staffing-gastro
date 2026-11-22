@@ -8,23 +8,37 @@ import { Cierre } from "../kit/cierre";
 import { Mezcla } from "../kit/sonido";
 import { Pantalla, Resalte, Secuencia, Telefono, Toque } from "../kit/telefono";
 import {
-  CierreCuenta, CopaArriba, Cubo, Cuchillo, Escena, Flecha, MesaArriba, Persona, Plato, Rotulo, Sello, T, Tabla, Vaso, rampa,
+  CierreCuenta, CopaArriba, Cubo, Cuchillo, Escena, Flecha, Foto, MesaArriba, Persona, Plato, Rotulo, Sello, T, Tabla, Vaso, rampa,
 } from "../kit/lamina";
 import { cebolla, encargado, hielo, NOMBRE_TURNOS, queEs, sabado, servicio, type DatosLaminas } from "./diciembre.datos";
 
 type Dibujo = (t: number) => React.ReactNode;
+/** Una escena con foto (HTML, sin hoja): `{ html: (t) => ... }`. */
+type Entrada = Dibujo | { html: Dibujo } | null;
+
+// Escena con una foto de la landing al centro; `encima` va en SVG sobre la foto (viewBox 900 × 860).
+const EscenaFoto = (f: string, rot = -2, encima?: (t: number) => React.ReactNode) => ({
+  html: (t: number) => (
+    <div style={{ position: "absolute", inset: 0 }}>
+      <div style={{ position: "absolute", left: (900 - 588) / 2, top: 30 }}><Foto f={f} t={t} w={560} rot={rot} /></div>
+      {encima && <svg viewBox="0 0 900 860" width={900} height={860} style={{ position: "absolute", inset: 0 }}>{encima(t)}</svg>}
+    </div>
+  ),
+});
 
 // El armado común: cielo, títulos, una lámina por escena, nubes abajo y el cierre.
-const Piezas: React.FC<{ d: DatosLaminas; dibujos: (Dibujo | null)[]; extra?: React.ReactNode; y?: number[]; alto?: number[] }> = ({ d, dibujos, extra, y = [], alto = [] }) => (
+const Piezas: React.FC<{ d: DatosLaminas; dibujos: Entrada[]; extra?: React.ReactNode; y?: number[]; alto?: number[] }> = ({ d, dibujos, extra, y = [], alto = [] }) => (
   <Cielo>
     <Titulos lista={d.titulos} />
     {dibujos.map((dib, i) => dib && (
-      <Escena key={i} desde={d.escenas[i]} hasta={(d.escenas[i + 1] ?? d.cierre) - 10} y={y[i] ?? 1050} alto={alto[i] ?? 860}>{dib}</Escena>
+      <Escena key={i} desde={d.escenas[i]} hasta={(d.escenas[i + 1] ?? d.cierre) - 10} y={y[i] ?? 1050} alto={alto[i] ?? 860} sinHoja={typeof dib !== "function"}>
+        {typeof dib === "function" ? dib : dib.html}
+      </Escena>
     ))}
     {extra}
     <BancoNubes y={1640} />
-    {d.cierreCuenta && <CierreCuenta desde={d.cierre} lineas={d.cierreCuenta.lineas} acento={d.cierreCuenta.acento} size={d.cierreCuenta.size} cuenta={d.cuenta} nombre={NOMBRE_TURNOS} />}
-    {d.cierreApp && <Cierre desde={d.cierre} {...d.cierreApp} cuenta={d.cuenta} />}
+    {d.cierreCuenta && <CierreCuenta desde={d.cierre} lineas={d.cierreCuenta.lineas} acento={d.cierreCuenta.acento} size={d.cierreCuenta.size} cuenta={d.cuenta} nombre={NOMBRE_TURNOS} fotos={d.fotosCierre} />}
+    {d.cierreApp && <Cierre desde={d.cierre} {...d.cierreApp} cuenta={d.cuenta} fotos={d.fotosCierre} />}
     <Mezcla s={d.sonido} />
   </Cielo>
 );
@@ -119,7 +133,7 @@ const Publicar: React.FC<{ p: Record<string, number> }> = ({ p }) => {
 };
 
 // ── 1/12 · @turnosgastro · Sábado ─────────────────────────────────────
-const dSabado: Dibujo[] = [
+const dSabado: Entrada[] = [
   (t) => <Salon t={t} mueve={5} />,
   (t) => {
     const pulso = t > 22 ? 0.5 + 0.5 * Math.sin((t - 22) / 4) : 0;
@@ -167,27 +181,15 @@ const dSabado: Dibujo[] = [
       </g>
     );
   },
-  (t) => (
+  EscenaFoto("cocina3", -2, (t) => (
     <g>
-      <rect width={900} height={860} fill="#F4F8FA" />
-      {[0, 1, 2].map((i) => <path key={i} d={`M ${150 + i * 300} 70 L ${110 + i * 300} 150 L ${190 + i * 300} 150 Z`} fill="#FCE7B0" opacity={0.7} />)}
-      {[0, 1, 2].map((i) => <rect key={i} x={120 + i * 300} y={40} width={60} height={34} rx={8} fill={T.tinta} />)}
-      <rect x={30} y={330} width={840} height={26} rx={8} fill={T.hondo} />
-      {[0, 1, 2, 3, 4, 5].map((i) => (
-        <g key={i} transform={`translate(${105 + i * 138} 318)`}>
-          <ellipse cx={0} cy={0} rx={60} ry={14} fill={T.papel} stroke={T.hondo} strokeWidth={4} />
-          <path d="M -36 -4 Q 0 -60 36 -4 Z" fill={["#E4B878", "#C9DFEE", "#D9A35B", "#B8D4A0", "#E4B878", "#D99A7A"][i]} />
-          {[0, 1].map((k) => <path key={k} d={`M ${-10 + k * 20} -60 q 8 -14 0 -28 q -8 -14 0 -28`} fill="none" stroke={T.suave} strokeWidth={4} opacity={0.5 + 0.5 * Math.sin(t / 5 + i + k)} />)}
-        </g>
-      ))}
-      <Sello t={t} desde={10} x={450} y={560} size={78} />
+      <Sello t={t} desde={10} x={450} y={640} size={74} fondo />
       {[0, 1, 2].map((i) => {
         const p = ((t - 22 - i * 8) % 36) / 36;
-        return t > 22 + i * 8 && <circle key={i} cx={450} cy={560} r={230 + p * 220} fill="none" stroke={T.hondo} strokeWidth={4} opacity={(1 - p) * 0.35} />;
+        return t > 22 + i * 8 && <circle key={i} cx={450} cy={640} r={200 + p * 200} fill="none" stroke="#FFFFFF" strokeWidth={5} opacity={(1 - p) * 0.6} />;
       })}
-      <Rotulo x={450} y={800} size={34} mono col={T.suave} op={rampa(t, 34, 46)}>(SILENCIO DE RADIO)</Rotulo>
     </g>
-  ),
+  )),
   (t) => (
     <g>
       <rect width={900} height={860} fill="#F4F8FA" />
@@ -253,7 +255,7 @@ const dSabado: Dibujo[] = [
 const cubosLlenos = (y: number, n = 9, s = 70) =>
   Array.from({ length: n }, (_, i) => ({ x: ((i % 3) - 1) * 72 + (Math.floor(i / 3) % 2) * 10, y: y - 56 - Math.floor(i / 3) * 80, s, r: (i * 23) % 30 - 15 }));
 
-const dHielo: Dibujo[] = [
+const dHielo: Entrada[] = [
   (t) => (
     <g>
       <rect width={900} height={860} fill="#F4F8FA" />
@@ -316,28 +318,7 @@ const dHielo: Dibujo[] = [
       <Rotulo x={450} y={800} size={38} mono col={T.hondo}>MOJITO</Rotulo>
     </g>
   ),
-  (t) => {
-    const cae = rampa(t, 10, 40, Easing.in(Easing.quad));
-    const nuevo = rampa(t, 46, 70);
-    return (
-      <g>
-        <rect width={900} height={860} fill="#F4F8FA" />
-        <g transform={`rotate(${-15 - cae * 50} 300 300)`}>
-          <path d="M 200 120 L 400 120 L 372 470 L 228 470 Z" fill="#DCE3E8" stroke={T.hondo} strokeWidth={6} strokeLinejoin="round" />
-          <path d="M 200 120 L 400 120" stroke={T.hondo} strokeWidth={14} strokeLinecap="round" />
-          <line x1={232} y1={150} x2={252} y2={440} stroke="#FFFFFF" strokeWidth={12} strokeLinecap="round" opacity={0.8} />
-          <Rotulo x={300} y={330} size={28} mono col={T.hondo}>COCTELERA</Rotulo>
-        </g>
-        {[0, 1, 2, 3, 4].map((i) => <Cubo key={i} x={330 + i * 22 + cae * 30} y={150 + cae * (500 + i * 30)} s={50} r={i * 30 + t * 4} op={1 - rampa(t, 36, 44)} />)}
-        <path d="M 260 760 L 300 640 L 470 640 L 510 760 Z" fill="#E6EEF3" stroke={T.suave} strokeWidth={5} />
-        <Rotulo x={385} y={720} size={30} mono col={T.suave}>SE TIRA</Rotulo>
-        <g opacity={nuevo} transform={`translate(0 ${(1 - nuevo) * 40})`}>
-          <Vaso x={690} y={700} cubos={cubosLlenos(700, 6, 62)} liquido="#E9A23B" nivel={0.6} />
-          <Rotulo x={690} y={790} size={30} mono col={T.hondo}>HIELO NUEVO</Rotulo>
-        </g>
-      </g>
-    );
-  },
+  EscenaFoto("bar2", 2),
 ];
 
 // ── 3/12 · @turnosgastro · Cebolla ────────────────────────────────────
@@ -494,17 +475,8 @@ const Comensal: React.FC = () => (
   </g>
 );
 
-const dServicio: Dibujo[] = [
-  (t) => (
-    <g>
-      <rect width={900} height={860} fill="#F4F8FA" />
-      <MesaCuadrada />
-      {[[330, 330], [570, 330], [330, 530], [570, 530]].map(([x, y], i) => (
-        <g key={i} transform={`translate(${Math.sin(t / 5 + i * 2) * 10} ${Math.cos(t / 6 + i) * 10 - (1 - rampa(t, i * 4, 14 + i * 4)) * 600})`}><Plato x={x} y={y} r={70} /></g>
-      ))}
-      <Rotulo x={450} y={470} size={140} col={T.hondo} peso={900} op={rampa(t, 24, 32)}>?</Rotulo>
-    </g>
-  ),
+const dServicio: Entrada[] = [
+  EscenaFoto("mozo1", -2),
   (t) => {
     const f = rampa(t, 8, 40);
     const p = rampa(t, 40, 64, Easing.inOut(Easing.quad));
@@ -655,7 +627,7 @@ export const QueEs: React.FC<{ d?: typeof queEs }> = ({ d = queEs }) => {
   const f = useCurrentFrame();
   const verOido = f >= p.oido;
   return (
-    <Piezas d={d} dibujos={[(t) => <Salon t={t} mueve={3} />, null, null, null, null]} extra={
+    <Piezas d={d} dibujos={[EscenaFoto("bar3", -2), null, null, null, null]} extra={
       <>
         <Burbuja de={d.mensaje.de} texto={d.mensaje.texto} desde={16} hasta={50} />
         <Escena desde={d.escenas[1]} hasta={d.escenas[2] - 10} sinHoja>{(t) => <Chat t={t} lineas={d.chat} total={40} titulo="Turno de hoy" />}</Escena>

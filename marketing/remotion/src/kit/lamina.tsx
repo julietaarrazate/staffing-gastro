@@ -51,19 +51,19 @@ export const NumeroPaso: React.FC<{ n: string; desde: number; hasta: number; x?:
 };
 
 // Sello «¡OÍDO!» que cae sobre algo.
-export const Sello: React.FC<{ t: number; desde: number; x: number; y: number; texto?: string; rot?: number; size?: number }> = ({ t, desde, x, y, texto = "¡OÍDO!", rot = -8, size = 64 }) => {
+export const Sello: React.FC<{ t: number; desde: number; x: number; y: number; texto?: string; rot?: number; size?: number; fondo?: boolean }> = ({ t, desde, x, y, texto = "¡OÍDO!", rot = -8, size = 64, fondo }) => {
   if (t < desde) return null;
   const p = rampa(t, desde, desde + 10, Easing.bezier(0.34, 1.56, 0.64, 1));
   return (
     <g transform={`translate(${x} ${y}) rotate(${rot}) scale(${2 - p})`} opacity={Math.min(1, (t - desde) / 4)}>
-      <rect x={-size * 2.3} y={-size * 0.78} width={size * 4.6} height={size * 1.56} rx={size * 0.3} fill="none" stroke={C.hondo} strokeWidth={8} />
+      <rect x={-size * 2.3} y={-size * 0.78} width={size * 4.6} height={size * 1.56} rx={size * 0.3} fill={fondo ? "rgba(255,255,255,.94)" : "none"} stroke={C.hondo} strokeWidth={8} />
       <text x={0} y={size * 0.36} textAnchor="middle" fontFamily="Inter" fontWeight={900} fontSize={size} fill={C.hondo} letterSpacing="2">{texto}</text>
     </g>
   );
 };
 
 // Cierre de las cuentas de contenido (@turnosgastro): el «oído» fileteado chico, la frase y la cuenta.
-export const CierreCuenta: React.FC<{ desde: number; lineas: string[]; cuenta: string; nombre: string; acento?: string; size?: number }> = ({ desde, lineas, cuenta, nombre, acento, size = 92 }) => {
+export const CierreCuenta: React.FC<{ desde: number; lineas: string[]; cuenta: string; nombre: string; acento?: string; size?: number; fotos?: [string, string] }> = ({ desde, lineas, cuenta, nombre, acento, size = 92, fotos }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   if (frame < desde) return null;
@@ -76,7 +76,8 @@ export const CierreCuenta: React.FC<{ desde: number; lineas: string[]; cuenta: s
     <div style={{ position: "absolute", inset: 0, zIndex: 30 }}>
       <div style={{ position: "absolute", inset: 0, opacity: lim,
         background: `radial-gradient(120% 70% at 88% 0%, rgba(255,255,255,.24), transparent 60%), linear-gradient(180deg, ${C.cielo0}, ${C.cielo1} 52%, ${C.cielo2})` }} />
-      <div style={{ position: "absolute", left: 90, right: 90, top: 330, textAlign: "center", fontFamily: F.texto, fontWeight: 800, fontSize: size, lineHeight: 1.04,
+      {fotos && <FotosCierre t={t} fotos={fotos} y={860} w={360} />}
+      <div style={{ position: "absolute", left: 90, right: 90, top: fotos ? 240 : 330, textAlign: "center", fontFamily: F.texto, fontWeight: 800, fontSize: size, lineHeight: 1.04,
         letterSpacing: "-0.025em", color: C.tintaCielo, opacity: lim }}>
         {lineas.map((ln, i) => (
           <div key={i} style={{ whiteSpace: "nowrap" }}>
@@ -88,10 +89,10 @@ export const CierreCuenta: React.FC<{ desde: number; lineas: string[]; cuenta: s
           </div>
         ))}
       </div>
-      <div style={{ position: "absolute", left: 540, top: 1010, width: 620, transform: `translate(-50%,-50%) scale(${0.7 + 0.3 * s}) rotate(${(1 - s) * -6}deg)`, opacity: Math.min(1, s * 2) }}>
+      <div style={{ position: "absolute", left: 540, top: fotos ? 1250 : 1010, width: fotos ? 420 : 620, zIndex: 5, transform: `translate(-50%,-50%) scale(${0.7 + 0.3 * s}) rotate(${(1 - s) * -6}deg)`, opacity: Math.min(1, s * 2) }}>
         <Img src={staticFile("marca/oido-filete.svg")} style={{ width: "100%", filter: "drop-shadow(0 22px 34px rgba(15,58,91,.26))" }} />
       </div>
-      <div style={{ position: "absolute", left: 60, right: 60, top: 1250, textAlign: "center", opacity: Math.min(1, l * 1.4), transform: `translateY(${(1 - l) * 30}px)` }}>
+      <div style={{ position: "absolute", left: 60, right: 60, top: fotos ? 1380 : 1250, textAlign: "center", opacity: Math.min(1, l * 1.4), transform: `translateY(${(1 - l) * 30}px)` }}>
         <div style={{ fontFamily: F.texto, fontWeight: 800, fontSize: 54, color: C.hondo, letterSpacing: "-0.01em" }}>{cuenta}</div>
         <div style={{ fontFamily: F.mono, fontWeight: 500, fontSize: 32, letterSpacing: "0.06em", color: C.tintaCielo, marginTop: 10 }}>{nombre}</div>
       </div>
@@ -225,3 +226,34 @@ export const CopaArriba: React.FC<{ x: number; y: number; r?: number; vino?: boo
 export const Rotulo: React.FC<{ x: number; y: number; children: React.ReactNode; size?: number; col?: string; peso?: number; mono?: boolean; anchor?: "start" | "middle" | "end"; op?: number }> = ({ x, y, children, size = 34, col = T.tinta, peso = 700, mono, anchor = "middle", op = 1 }) => (
   <text x={x} y={y} textAnchor={anchor} fontFamily={mono ? "DM Mono" : "Inter"} fontWeight={mono ? 500 : peso} fontSize={size} fill={col} opacity={op} letterSpacing={mono ? "0.06em" : "-0.01em"}>{children}</text>
 );
+
+// ── Fotos (las de la landing, 480 × 600: se muestran casi a su tamaño) ──
+/** Tarjeta de foto con borde blanco y un zoom lento adentro. */
+export const Foto: React.FC<{ f: string; t: number; w?: number; rot?: number; style?: React.CSSProperties }> = ({ f, t, w = 560, rot = 0, style }) => (
+  <div style={{ width: w, height: w * 1.25, padding: 14, background: C.papel, borderRadius: 30, transform: `rotate(${rot}deg)`,
+    boxShadow: "0 2px 4px rgba(15,58,91,.08), 0 26px 60px rgba(15,58,91,.26)", ...style }}>
+    <div style={{ width: "100%", height: "100%", borderRadius: 20, overflow: "hidden" }}>
+      <Img src={staticFile(`fotos/${f}.webp`)} style={{ width: "100%", height: "100%", objectFit: "cover", transform: `scale(${1.02 + t * 0.0009})` }} />
+    </div>
+  </div>
+);
+
+/** El par de fotos del cierre: un comercio y alguien trabajando, que entran girando. */
+export const FotosCierre: React.FC<{ t: number; fotos: [string, string]; y: number; w?: number }> = ({ t, fotos, y, w = 380 }) => {
+  const { fps } = useVideoConfig();
+  return (
+    <>
+      {fotos.map((f, i) => {
+        const s = spring({ frame: t - 6 - i * 5, fps, config: { damping: 14, stiffness: 130 } });
+        const x = i === 0 ? 540 - w * 0.52 : 540 + w * 0.52;
+        const rot = i === 0 ? -6 : 5;
+        return (
+          <div key={f} style={{ position: "absolute", left: x - w / 2 - 14, top: y - (w * 1.25) / 2 - 14 + (i ? 30 : -10), zIndex: 2 + i,
+            opacity: Math.min(1, s * 1.6), transform: `translateY(${(1 - s) * 120}px) scale(${0.8 + 0.2 * s})` }}>
+            <Foto f={f} t={t} w={w} rot={rot * s} />
+          </div>
+        );
+      })}
+    </>
+  );
+};

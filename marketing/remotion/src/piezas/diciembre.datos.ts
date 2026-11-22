@@ -17,6 +17,8 @@ export type DatosLaminas = {
   cierreCuenta?: { lineas: string[]; acento?: string; size?: number };
   /** cierre de @oidoapp: el llamado */
   cierreApp?: { boton: string; bajada?: string; linea2?: string };
+  /** el cierre lleva dos fotos de la landing: un comercio y alguien trabajando (frontend/public/landing/) */
+  fotosCierre?: [string, string];
   sonido: Sonido;
 };
 
@@ -25,6 +27,7 @@ export const NOMBRE_TURNOS = "Turnos Gastro CABA · Oído";
 // 1/12 · @turnosgastro · T6-05 Cosas que solo entiende quien laburó un sábado (25 s)
 export const sabado: DatosLaminas & { textos: Record<string, string> } = {
   id: "t6-05-sabado",
+  fotosCierre: ["cocina1", "mozo3"],
   titulo: "Cosas que solo entiende quien laburó un sábado",
   duracion: 750,
   cuenta: "@turnosgastro",
@@ -52,6 +55,7 @@ export const sabado: DatosLaminas & { textos: Record<string, string> } = {
 // 1/12 · @oidoapp · Qué es Oído, en 30 segundos
 export const queEs: DatosLaminas & { mensaje: { de: string; texto: string }; chat: string[]; pantallas: Record<string, number> } = {
   id: "que-es-oido-30s",
+  fotosCierre: ["bar3", "barista1"],
   titulo: "Qué es Oído, en 30 segundos",
   duracion: 900,
   cuenta: "@oidoapp",
@@ -80,6 +84,7 @@ export const queEs: DatosLaminas & { mensaje: { de: string; texto: string }; cha
 // 2/12 · @turnosgastro · T2-09 El hielo es la mitad del trago (29 s)
 export const hielo: DatosLaminas = {
   id: "t2-09-hielo",
+  fotosCierre: ["bar3", "mozo2"],
   titulo: "El hielo es la mitad del trago",
   duracion: 870,
   cuenta: "@turnosgastro",
@@ -104,6 +109,7 @@ export const hielo: DatosLaminas = {
 // 3/12 · @turnosgastro · T3-05 Una cebolla en 20 segundos (28 s)
 export const cebolla: DatosLaminas = {
   id: "t3-05-cebolla",
+  fotosCierre: ["cocina1", "cocinera"],
   titulo: "Una cebolla en 20 segundos",
   duracion: 840,
   cuenta: "@turnosgastro",
@@ -128,6 +134,7 @@ export const cebolla: DatosLaminas = {
 // 4/12 · @turnosgastro · T1-04 El orden de servicio que nadie te explicó (28 s)
 export const servicio: DatosLaminas = {
   id: "t1-04-orden-de-servicio",
+  fotosCierre: ["cocina2", "mozo3"],
   titulo: "El orden de servicio que nadie te explicó",
   duracion: 840,
   cuenta: "@turnosgastro",
@@ -151,6 +158,7 @@ export const servicio: DatosLaminas = {
 // 4/12 · @oidoapp · C2-07 El costo que no ves: el encargado buscando gente (30 s)
 export const encargado: DatosLaminas & { chat: string[]; pantallas: Record<string, number> } = {
   id: "c2-07-costo-encargado",
+  fotosCierre: ["bar3", "barista2"],
   titulo: "El costo que no ves: el encargado buscando gente",
   duracion: 900,
   cuenta: "@oidoapp",

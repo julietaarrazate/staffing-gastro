@@ -16,4 +16,11 @@ todos CC0 (hielo, coctelera, cuchillo, copa), anotados en `sonidos/FUENTES.md`.
 son capturas reales. Sin manos, así que no aplica la nota de los dedos doblados. Única corrección
 de texto: «Mandáselo», con tilde.
 
+**Fotos (pedido de Julieta, mismo día):** «el final quedaría mejor con una foto de comercio y de un
+empleado», y foto donde el guion pide imagen real. Los bancos gratis no se pudieron usar desde la sesión
+(Unsplash pide verificar navegador, Pexels y Openverse devuelven 403; Commons CC0 casi no tiene fotos útiles).
+Julieta señaló las fotos de la landing: los seis cierres llevan un comercio y alguien trabajando, y cuatro
+escenas pasan a foto (el pase con el sello «¡OÍDO!», el salón de «Qué es Oído», el hielo nuevo y el mozo con
+los platos). Las escenas que explican (flechas, pasos de la cebolla, la fórmula) siguen dibujadas.
+
 **Queda abierto:** el «sí» o las correcciones de Julieta sobre los seis videos.

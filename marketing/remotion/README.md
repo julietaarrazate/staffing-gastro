@@ -60,7 +60,11 @@ y están a -14 LUFS.
 Las seis de diciembre salen de la pestaña Guiones del documento de crecimiento: textos y tiempos en
 `src/piezas/diciembre.datos.ts`, dibujos en `src/piezas/diciembre.tsx` (láminas de `src/kit/lamina.tsx`:
 una hoja blanca con un dibujo SVG por escena). Las de @oidoapp usan las capturas de la app; las de
-@turnosgastro cierran con la cuenta y el «oído» fileteado.
+@turnosgastro cierran con la cuenta y el «oído» fileteado. Los seis cierres llevan dos fotos (un comercio y
+alguien trabajando) y algunas escenas usan una foto en vez de dibujo: son las fotos de la landing
+(`frontend/public/landing/`, CC0 o dominio público; fuentes en `docs/historial/2026-10-18-landing-cielo.md`),
+que `npm run preparar` copia a `public/fotos/`. Si se reemplazan por fotos de locales porteños con el mismo
+nombre (`docs/design-system/fotos-landing.md`), los videos las toman solos al volver a renderizar.
 
 En los datos, `sonido.musicaDesde` (cuadro en que arranca la música) y `sonido.murmulloDb` ajustan la mezcla por pieza.
 
