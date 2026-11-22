@@ -30,7 +30,7 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
   app se recarga sola con una versión nueva (#727; confirmar en el primer
   deploy que `/version.json` coincide con el bundle). Falta, en este orden:
   1. **«Traer comercios del barrio»:** copia semanal de OpenStreetMap por
-     barrio, refrescada por el scheduler (#PR, ADR-0029); el botón lee la copia.
+     barrio, refrescada por el scheduler (#730, ADR-0029); el botón lee la copia.
      Después del deploy: mirar en Render `lead.snapshot_refreshed` /
      `lead.snapshot_failed` (el primer llenado son 48 barrios en serie).
      **Sigue:** sumar Overture Maps (decidido por Julieta el 2026-11-22; en
