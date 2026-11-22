@@ -361,6 +361,17 @@ def test_next_refresh_skips_a_barrio_resting_after_a_failure():
 # --- refresco de la copia (chequeo del scheduler, sin red) ---------------------
 
 
+def test_main_le_pasa_el_refresco_de_la_copia_al_scheduler():
+    import inspect
+
+    from app import main
+
+    source = inspect.getsource(main.lifespan)
+    checks = source.split("extra_checks=(", 1)[1].split(")", 1)[0]
+    assert "place_snapshot_job.run_place_snapshot_refresh" in checks
+    assert "place_snapshot_job.enable(notify_scheduler)" in source
+
+
 async def _fresh_everywhere_but(session_factory, missing: str | None, fetched_at: datetime) -> None:
     for barrio in BARRIOS_CABA:
         if barrio != missing:
