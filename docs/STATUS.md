@@ -363,10 +363,10 @@ pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
   Facebook y TikTok (mismo Centro de cuentas de Meta, sin sincronizar nombre y
   foto; las dos como cuenta profesional, cada una con su página de Facebook),
   con foto y bio para el **26/11**. Aprobar o corregir los 6 guiones del 1 al
-  4/12 (pestaña Guiones) y responder: qué verifica hoy la app de quien se
-  postula (la pieza dice «verificada») y cuánto se tarda en publicar un turno
-  (la pieza dice «1 minuto»). Aprobar C1-10 (primer turno gratis) y C2-10
-  (precios) antes de usarlas.
+  4/12 (pestaña Guiones). Ya resuelto el 22/11: las piezas dicen «ves quién
+  tiene la identidad verificada» (la verificación es opcional, decisión del
+  2026-08-07) y «publicás el turno en 1 minuto» (confirmado por Julieta).
+  Aprobar C1-10 (primer turno gratis) y C2-10 (precios) antes de usarlas.
 
 - **Estrategia de crecimiento, fase 2 (plan de 90 días):** está en el mismo
   documento privado, una pestaña por entregable
