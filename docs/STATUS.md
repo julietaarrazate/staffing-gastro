@@ -59,17 +59,19 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
    y el «+» del comercio al centro, #719) y, de las que no tienen maqueta: Editar perfil y Ajustes, Mi
    plan, el Perfil del comercio, Favoritos y Soporte, Buscar del comercio (#717), las fichas públicas
    con el cielo cuando falta la foto (`ui/SinFoto`, #718) y el acceso: ingresar, crear cuenta y la
-   bienvenida (#721). **Sigue, en una sesión nueva:** la tanda que Julieta ya vio en maqueta y
-   decidió (Urgentes con cuenta regresiva, Mis turnos con la tira tocable, la oreja del asistente, el
-   Panel compacto, el mapa y los rubros: orden y detalle en el tablero); después la landing (prueba
-   hecha, sin decidir), las hojas compartidas, Administración y el cierre de ADR-0028. **El mapa de
-   noche se rehízo** (azul noche capa por capa, ya no el de día invertido; ver su historial): **falta
-   el visto bueno de Julieta** en su celular, en `/map`, `/search` y el mapa chico. **Falta que
-   pruebe** en su celular activar las notificaciones después de #720 (la causa de su falla no quedó confirmada).
-   Anotado: la búsqueda del comercio devuelve como máximo 20 personas y el título dice «20 personas»
-   aunque haya más; la app instalada a veces muestra la versión anterior (sin confirmar la causa).
-   Limpiezas anotadas: la variante `comanda` de `ShiftCard` quedó sin uso, y el marrón por rubro
-   sigue en `ShiftCard`. **Para mirar y decidir:** la
+   bienvenida (#721). **Hecho también el 2026-11-21/22:** la tanda vista en maqueta (Urgentes, Mis turnos con la tira
+   tocable, la oreja del asistente, el Panel compacto, el mapa con chips y los rubros, #722; el turno que
+   cruza la medianoche, #723), el mapa de noche en azul (#724) y las hojas compartidas, la
+   Administración y **el cierre de ADR-0028** (#725: lo suave es la base de toda la app). **Queda de la
+   dirección suave sólo la landing** (prueba hecha, sin decidir: botón principal ámbar o azul hondo, y si
+   los títulos de sección dejan la serif); es lo único que conserva el relieve (`.estilo-relieve`).
+   **Falta que Julieta mire en su celular:** el mapa de noche nuevo, activar las notificaciones
+   después de #720 (la causa de su falla no quedó confirmada) y si al tocar un pin del mapa el título
+   y los chips se van de la pantalla. Anotado: la búsqueda del comercio devuelve como máximo 20
+   personas y el título dice «20 personas» aunque haya más; la app instalada a veces muestra la
+   versión anterior (sin confirmar la causa); en Candidatos la tarjeta destacada sigue con su círculo
+   de iniciales; «Sí, dar de baja» en Mi plan sigue en ámbar (regla del producto, a decidir); el aviso
+   de error usa `text-white` sobre el rojo. Limpieza anotada: el marrón por rubro sigue en `ShiftCard`. **Para mirar y decidir:** la
    prueba de identidad por pantalla, dieciséis pantallas en claro y en noche
    (https://claude.ai/artifact/WJn8NkYTpvSsa81RpoR2Jg; qué propone y qué cambia de lo decidido, en
    `direccion-relieve.md`, «Identidad por pantalla»). Julieta eligió el
