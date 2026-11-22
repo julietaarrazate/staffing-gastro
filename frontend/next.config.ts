@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import type { NextConfig } from "next";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -31,12 +32,25 @@ const PROD_API_URL = "https://staffya-backend.onrender.com/api/v1";
 // una versión nueva (`components/ActualizadorVersion.tsx`). Sale del commit
 // que construye Cloudflare/GitHub/Vercel; sin commit (build local) cae a la
 // hora del build. Se calcula UNA vez por proceso de build.
+// Sin variable de commit (build a mano), el commit del checkout: es el mismo
+// aunque Next cargue esta config más de una vez durante el build.
+function commitLocal(): string | undefined {
+  try {
+    return execSync("git rev-parse HEAD", { stdio: ["ignore", "pipe", "ignore"] })
+      .toString()
+      .trim();
+  } catch {
+    return undefined;
+  }
+}
+
 const BUILD_ID: string =
   process.env.NEXT_PUBLIC_BUILD_ID ||
   process.env.WORKERS_CI_COMMIT_SHA ||
   process.env.CF_PAGES_COMMIT_SHA ||
   process.env.GITHUB_SHA ||
   process.env.VERCEL_GIT_COMMIT_SHA ||
+  commitLocal() ||
   `local-${Date.now().toString(36)}`;
 
 const API_ORIGIN = new URL(process.env.NEXT_PUBLIC_API_URL ?? PROD_API_URL).origin;
