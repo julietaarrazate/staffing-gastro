@@ -1,0 +1,14 @@
+node_modules/
+out/
+*.mp4
+*.mov
+*.webm
+*.wav
+*.aiff
+# generado por scripts/preparar.mjs y capturar/ (las capturas de la app no van a git)
+public/cap/
+public/marca/
+public/sonidos/
+capturas/
+capturar/.cache/
+sonidos/originales/
