@@ -36,7 +36,7 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
      Propuesta, **esperando el sí de Julieta** (cambia ADR-0019, va con ADR
      nuevo): una tarea semanal que baja todos los comercios gastronómicos de
      CABA con reintentos y el botón lee esa copia.
-  2. ~~Arreglos chicos~~ hechos (#PR): baja neutra en Mi plan, Buscar del
+  2. ~~Arreglos chicos~~ hechos (#729): baja neutra en Mi plan, Buscar del
      comercio con «Ver más» (el tope era 50; la API no da total), Candidatos
      sin foto con `SinFoto`, toast de error con tokens, `ShiftCard` sin
      marrón, `/admin/metricas` ya no desbordaba (quedó con test).
