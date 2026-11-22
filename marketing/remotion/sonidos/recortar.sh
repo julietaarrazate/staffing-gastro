@@ -15,6 +15,11 @@ pico $O/vibracion.mp3  1.25 1.30 vibracion.mp3
 pico $O/tipeo.mp3      2.33 1.90 tipeo.mp3
 # La impresora, corta y sin el chirrido de arriba: un tic-tic de medio segundo.
 pico $O/impresora.mp3  0.05 0.55 impresora-corta.mp3 "lowpass=f=4200,highpass=f=180"
+# Barra y cocina (piezas de tips): hielo cayendo en el vaso, coctelera, cuchillo sobre tabla y copa apoyada.
+pico $O/hielo.mp3      78.45 1.80 hielo.mp3
+pico $O/coctelera.mp3  0.20 2.00 coctelera.mp3
+pico $O/tabla.mp3      2.15 2.10 tabla.mp3
+pico $O/copa.mp3       8.45 0.60 copa.mp3 "highpass=f=120"
 # Murmullo de salón: el tramo de 22 a 58 s (el menos hablado de la toma), filtrado como si viniera
 # del salón de al lado (pasa bajos y un eco corto) para que no quede habla inteligible.
 # Verificado con faster-whisper small: sin segmentos de voz. Se repite con fundido para cubrir 30 s+.

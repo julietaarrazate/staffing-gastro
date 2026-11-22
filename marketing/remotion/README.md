@@ -50,6 +50,12 @@ y están a -14 LUFS.
 | Historia · No elijas a ciegas | 7 s | @oidoapp | `npm run render -- historia-match` |
 | Historia · Instalar en Android | 10 s | @oidoapp | `npm run render -- historia-instalar-android` |
 | Historia · Instalar en iPhone | 10 s | @oidoapp | `npm run render -- historia-instalar-iphone` |
+| T6-05 · Cosas que solo entiende quien laburó un sábado (1/12) | 25 s | @turnosgastro | `npm run render -- t6-05-sabado` |
+| Qué es Oído, en 30 segundos (1/12) | 30 s | @oidoapp | `npm run render -- que-es-oido-30s` |
+| T2-09 · El hielo es la mitad del trago (2/12) | 29 s | @turnosgastro | `npm run render -- t2-09-hielo` |
+| T3-05 · Una cebolla en 20 segundos (3/12) | 28 s | @turnosgastro | `npm run render -- t3-05-cebolla` |
+| T1-04 · El orden de servicio (4/12) | 28 s | @turnosgastro | `npm run render -- t1-04-orden-servicio` |
+| C2-07 · El costo que no ves (4/12) | 30 s | @oidoapp | `npm run render -- c2-07-costo-encargado` |
 
 Sólo el video, sin la mezcla: `npx remotion render src/index.ts <id> out/<id>.mp4`.
 Balance de sonido por pista: `bash scripts/niveles.sh <id>`.
@@ -77,6 +83,11 @@ Deja los PNG en `capturas/` y los que usa el video en `public/cap/`, y reescribe
 
 ## Cómo está armado
 
+- **Piezas de guion** (las del 1/12 en adelante): `src/kit/guion.tsx`. Cada escena del guion es el
+  texto arriba y una lámina blanca con un dibujo animado (los dibujos, en el `.tsx` de la pieza;
+  textos, tiempos y sonido, en su `.datos.ts`). Las de @oidoapp suman las pantallas reales con
+  `src/piezas/tramo-publicar.tsx`. Una pieza nueva: copiar una `.datos.ts`, dibujar sus láminas y
+  sumar la `<Composition>` en `src/Root.tsx` (y el id en `scripts/renderizar.sh`).
 - `src/kit/`: el cielo y las nubes (`base.tsx`), el teléfono con su cámara, toques, resaltados y
   lupas (`telefono.tsx`), Chrome y Safari dibujados sin logos (`navegador.tsx`), el cierre con el
   «oído» fileteado (`cierre.tsx`), la mezcla (`sonido.tsx`) y los tipos de los datos (`datos.tsx`).

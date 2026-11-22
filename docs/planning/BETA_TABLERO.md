@@ -724,7 +724,7 @@ de quien trabaja).
 ## Etapa 5: lista de salida a beta (escrita el 2026-11-19)
 
 Lo que tiene que estar antes de abrir la beta a comercios y trabajadores
-reales (fecha de la fase 0 del plan de crecimiento: 13/12). Lo de código va
+reales (fecha de la fase 0 del plan de crecimiento: 12/12, movida del 13 por Julieta el 22/11). Lo de código va
 con su PR; lo operativo lo hace Julieta, o lo pide.
 
 **Código**
@@ -762,14 +762,14 @@ prueba, y las invitadas quedan sin entrada al vaciar el PIN.
 
 ## Crecimiento y producto después de la beta (anotado el 2026-11-22)
 
-Nada de esto va antes del 13/12, salvo las cuentas.
+Nada de esto va antes del 12/12, salvo las cuentas.
 Detalle en [`PROPUESTA_HORARIOS_EQUIPO.md`](./PROPUESTA_HORARIOS_EQUIPO.md) y
 en `../STATUS.md` («Crecimiento en redes y propuesta de horarios»).
 
 | Ítem | Cuándo | Estado |
 |---|---|---|
 | Cuentas @oidoapp y @turnosgastro, prelanzamiento con tips desde el 1/12 | 1/12 | ⚪ Julieta crea las cuentas |
-| Links etiquetados por cuenta y pieza (origen de cada alta) | antes del 13/12 | ✅ ya existe (`origen_alta.py`); falta usar la convención `utm_source=<cuenta>&utm_campaign=<pieza>` en los links |
+| Links etiquetados por cuenta y pieza (origen de cada alta) | antes del 12/12 | ✅ ya existe (`origen_alta.py`); falta usar la convención `utm_source=<cuenta>&utm_campaign=<pieza>` en los links |
 | Entrevistas a 5 a 10 encargados con la maqueta de horarios | diciembre | ⚪ |
 | Calculadora de personal (pública, termina en publicar turnos) | enero | ⚪ |
 | Favoritos más visibles en el comercio | enero | ⚪ |
