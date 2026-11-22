@@ -4,6 +4,8 @@
 2026-11-22 · **Actualiza:** [ADR-0019](./ADR-0019-comercios-a-captar-desde-openstreetmap.md)
 (la fuente sigue siendo OSM vía Overpass; cambia cuándo se la consulta).
 
+> **Corrección (2026-11-22, tras el deploy):** una respuesta con 0 comercios nunca es éxito (falla con backoff) y una copia con 0 comercios cuenta como faltante; antes se guardaban copias vacías por 7 días. Ver `historial/2026-11-22-copia-osm-vacia.md`.
+
 ## Contexto
 
 «Traer comercios del barrio» (`POST /api/v1/admin/leads/import`) consultaba

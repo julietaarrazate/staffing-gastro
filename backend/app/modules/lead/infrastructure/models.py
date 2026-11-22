@@ -47,9 +47,9 @@ class LeadModel(Base):
 
 
 class PlaceSnapshotBarrioModel(Base):
-    """De cuándo es la copia de cada barrio. Va aparte de los comercios para
-    que una copia vacía (un barrio sin comercios con nombre en OSM) cuente
-    como copia y no se vuelva a pedir en cada pasada del scheduler."""
+    """De cuándo es la copia de cada barrio y cuántos comercios trae. Una
+    copia con 0 comercios no cuenta como copia (ADR-0029, 2026-11-22): el
+    refresco la vuelve a pedir sola."""
 
     __tablename__ = "lead_snapshot_barrios"
 

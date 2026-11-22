@@ -45,7 +45,9 @@ class LeadService:
             raise UnknownBarrioError(barrio)
 
         snapshot = await self._snapshots.get(barrio)
-        if snapshot is None:
+        # Una copia con 0 comercios es una consulta que salió mal (ADR-0029):
+        # se trata como si no hubiera copia, y la pantalla la vuelve a pedir.
+        if snapshot is None or not snapshot.places:
             raise PlaceSnapshotMissingError(barrio)
         candidates = snapshot.places
         # La misma referencia puede venir repetida; gana la última.
@@ -140,12 +142,13 @@ class PlaceSnapshotService:
         Primero la consulta (que puede tardar minutos) y después la base: así
         no se tiene una conexión tomada mientras se espera a Overpass. Si la
         consulta falla, lanza `PlaceSourceUnavailableError` y la copia
-        anterior queda como estaba. Una respuesta vacía cuando la copia
-        anterior tenía comercios se toma como falla (Overpass a veces
-        responde vacío cuando corta la consulta), no como un barrio que se
-        quedó sin bares. Una respuesta parcial (`PlaceSourcePartialError`)
+        anterior queda como estaba. Una respuesta con 0 comercios es siempre
+        falla (Overpass a veces responde vacío cuando corta la consulta o le
+        faltan las áreas), nunca un barrio que se quedó sin bares. Una
+        respuesta parcial (`PlaceSourcePartialError`)
         nunca pisa una copia existente: cuenta como falla. Sólo se guarda si
-        el barrio no tenía ninguna, porque algo es mejor que nada.
+        el barrio no tenía ninguna y trae comercios, porque algo es mejor que
+        nada.
         """
         if barrio not in BARRIOS_CABA:
             raise UnknownBarrioError(barrio)
@@ -155,12 +158,12 @@ class PlaceSnapshotService:
             if await self._snapshots.get(barrio) is not None:
                 raise
             candidates = exc.candidates
+        # 0 comercios nunca es éxito: en la Ciudad no hay barrio sin bares ni
+        # cafés en OSM, así que es una consulta que salió mal (2026-11-22:
+        # Almagro y otros quedaron con copias vacías por 7 días). Falla y se
+        # reintenta con el backoff del refresco.
         if not candidates:
-            previous = await self._snapshots.get(barrio)
-            if previous is not None and previous.places:
-                raise PlaceSourceUnavailableError(
-                    f"respuesta vacía; la copia anterior tenía {len(previous.places)}"
-                )
+            raise PlaceSourceUnavailableError(f"0 comercios en {barrio}: sospechoso")
         # La misma referencia puede venir repetida; gana la última.
         by_ref = {c.osm_ref: c for c in candidates}
         await self._snapshots.replace(

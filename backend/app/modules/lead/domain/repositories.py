@@ -68,7 +68,9 @@ class PlaceSnapshotRepository(ABC):
 
     @abstractmethod
     async def fetched_at_by_barrio(self) -> dict[str, datetime]:
-        """De cuándo es la copia de cada barrio que tiene una (UTC)."""
+        """De cuándo es la copia de cada barrio que tiene una con al menos un
+        comercio (UTC). Una copia con 0 comercios no cuenta: en la Ciudad es
+        siempre una consulta que salió mal, y así se vuelve a pedir sola."""
 
     @abstractmethod
     async def replace(self, snapshot: PlaceSnapshot) -> None:
