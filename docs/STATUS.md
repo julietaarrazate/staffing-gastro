@@ -38,8 +38,8 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
      CABA con reintentos y el botón lee esa copia.
   2. ~~Arreglos chicos~~ hechos (#729): baja neutra en Mi plan, Buscar del
      comercio con «Ver más» (el tope era 50; la API no da total), Candidatos
-     sin foto con `SinFoto`, toast de error con tokens, `ShiftCard` sin
-     marrón, `/admin/metricas` ya no desbordaba (quedó con test).
+     sin foto con `SinFoto`, toast de error con tokens, `/admin/metricas` ya no
+     desbordaba (quedó con test). `ShiftCard` no se tocó: solo la usa la landing.
   3. Etapa 6 (SEO y GEO), sin arrancar: es lo que recomiendo después.
   4. Mails (plantillas del backend) y piezas de redes/campañas/videos con la
      marca vigente (`design-system/marca-hoy.md`); la landing queda como está.

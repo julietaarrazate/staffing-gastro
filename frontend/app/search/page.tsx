@@ -148,6 +148,9 @@ function SearchPageContent() {
   // La última página vino llena: puede haber más personas que las que se ven.
   const [hayMas, setHayMas] = useState(false);
   const [cargandoMas, setCargandoMas] = useState(false);
+  // Filas pedidas a la API hasta ahora (no el largo de la lista, que está
+  // deduplicada): es el `offset` de la página siguiente.
+  const pedidas = useRef(0);
   const [error, setError] = useState<string | null>(null);
   // Arranca en `true`: la búsqueda inicial se dispara en un efecto apenas hay
   // token/ubicación, así el sheet nunca llega a mostrar "0 trabajadores" antes
@@ -193,10 +196,11 @@ function SearchPageContent() {
     setError(null);
     try {
       const mas = await api.get<WorkerMapResult[]>(
-        `/matching/search?${paramsDeBusqueda(workers.length).toString()}`,
+        `/matching/search?${paramsDeBusqueda(pedidas.current).toString()}`,
         token
       );
       if (seq !== searchSeq.current) return;
+      pedidas.current += mas.length;
       const vistos = new Set(workers.map((w) => w.profile_id));
       setWorkers([...workers, ...mas.filter((w) => !vistos.has(w.profile_id))]);
       setHayMas(mas.length >= PAGINA);
@@ -227,10 +231,16 @@ function SearchPageContent() {
         token
       );
       if (seq !== searchSeq.current) return;
+      pedidas.current = results.length;
       setWorkers(results);
       setHayMas(results.length >= PAGINA);
     } catch (err) {
       if (seq !== searchSeq.current) return;
+      // Sin resultados de los filtros nuevos no queda la lista de los viejos
+      // (ni «Ver más» pidiendo con los filtros nuevos a partir de ella).
+      pedidas.current = 0;
+      setWorkers([]);
+      setHayMas(false);
       setError(getErrorMessage(err, "No se pudo buscar trabajadores"));
     } finally {
       if (seq === searchSeq.current) setLoading(false);
