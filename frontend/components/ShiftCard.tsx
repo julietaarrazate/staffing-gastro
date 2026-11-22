@@ -4,8 +4,8 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useState } from "react";
 import { SKILL_LABELS, STATUS_LABELS, Shift } from "@/lib/types";
-import { SKILL_ACCENT, SKILL_HERO_TONE, heroInk } from "@/lib/skill-style";
-import { Avatar, Badge, Button } from "@/components/ui";
+import { SKILL_ACCENT, heroInk } from "@/lib/skill-style";
+import { Avatar, Badge, Button, PortadaCielo } from "@/components/ui";
 import {
   CalendarPlusIcon,
   ClockIcon,
@@ -119,7 +119,17 @@ export default function ShiftCard({
   const durationMin = shiftDurationMinutes(shift.start_at, shift.end_at);
   const heroPhoto = shiftHeroPhoto(shift);
   const hasPhoto = Boolean(heroPhoto) && !broken;
-  const ink = heroInk(shift.position, hasPhoto);
+  // Sin foto la portada es el cielo (`PortadaCielo`), como en `OpportunityCard`:
+  // la letra va en su tinta (de día tinta, de noche blanco), no en el tono por
+  // rubro de la estética vieja (marrones, terracota, oliva).
+  const ink = hasPhoto
+    ? heroInk(shift.position, true)
+    : {
+        strong: "portada-tinta",
+        soft: "portada-tinta",
+        softer: "portada-tinta",
+        chip: "bg-card/70 text-ink",
+      };
 
   return (
     // `.no-select` (bug C0 #2, docs/planning/PULIDO_ROADMAP.md fix 2): esta tarjeta es
@@ -149,7 +159,7 @@ export default function ShiftCard({
           lista de varias, todas se leían iguales. Ahora arranca con el mismo
           tratamiento que `OpportunityCard`: foto real del local si el
           comercio la subió, y si no el tono del rubro
-          (`SKILL_HERO_TONE`) — así dos turnos seguidos se distinguen de
+          (hoy el cielo de `PortadaCielo`) — así dos turnos seguidos se distinguen de
           un vistazo.
 
           BANDA ACOTADA, no medio tarjeta (auditoría de distribución de
@@ -192,12 +202,7 @@ export default function ShiftCard({
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/45 to-black/35" />
           </>
         ) : (
-          <div className={`absolute inset-0 ${SKILL_HERO_TONE[shift.position]}`}>
-            {/* Velo: los extremos claros de algunos gradientes (ámbar, naranja)
-                no dan contraste suficiente para el texto blanco por sí solos. */}
-            <div className={`absolute inset-0 ${ink.veil}`} />
-            <Icon size={132} className={`absolute -right-5 -top-6 ${ink.mark}`} />
-          </div>
+          <PortadaCielo id={shift.id} Icon={Icon} />
         )}
 
         <div className="relative flex min-h-[116px] flex-col justify-between px-5 pb-4 pt-3.5">

@@ -438,14 +438,14 @@ function SubscriptionContent() {
           <div className="flex flex-col gap-2">
             <Button
               fullWidth
-              variant={pendingAction === "arrepentimiento" ? "danger" : "primary"}
+              variant={pendingAction === "arrepentimiento" ? "danger" : "surface"}
               loading={acting}
               disabled={acting}
               onClick={confirmAction}
             >
               {pendingAction === "baja" ? "Sí, dar de baja" : "Sí, quiero la devolución"}
             </Button>
-            <Button fullWidth variant="surface" disabled={acting} onClick={() => setPendingAction(null)}>
+            <Button fullWidth variant="ghost" disabled={acting} onClick={() => setPendingAction(null)}>
               Volver
             </Button>
           </div>

@@ -205,3 +205,27 @@ test("celular sin local: «Completar ubicación del local» del cielo se puede t
   await page.locator(".mapa-cielo").getByRole("link", { name: "Completar ubicación del local" }).click();
   await expect(page).toHaveURL(/\/profile\/edit/);
 });
+
+// La API no da el total: con una página llena (50) el título dice «50 o más» y
+// «Ver más personas» pide la siguiente (`offset`); al venir corta, el título
+// vuelve a ser el total exacto.
+test("con 50 resultados el título dice «50 o más» y «Ver más personas» trae el resto", async ({ page }) => {
+  const pagina1 = Array.from({ length: 50 }, (_, i) => trabajador(`w${i}`, `Persona número ${i}`, { distance_km: 0.5 + i * 0.1 }));
+  const pagina2 = Array.from({ length: 3 }, (_, i) => trabajador(`x${i}`, `Persona extra ${i}`, { distance_km: 9 + i }));
+  const pedidos: string[] = [];
+  await buscar(page, "light", pagina1);
+  await page.route("**/api/v1/matching/search**", (r) => {
+    const url = new URL(r.request().url());
+    pedidos.push(`${url.searchParams.get("limit")}/${url.searchParams.get("offset")}`);
+    return r.fulfill(json(url.searchParams.get("offset") === "50" ? pagina2 : pagina1));
+  });
+  await page.goto("/search");
+  const panel = page.locator("aside");
+  await expect(panel.getByRole("heading", { name: "50 o más personas cerca de tu local" })).toBeVisible();
+  await panel.getByRole("button", { name: "Ver más personas" }).click();
+  await expect(panel.getByRole("heading", { name: "53 personas cerca de tu local" })).toBeVisible();
+  await expect(panel.getByRole("button", { name: "Ver más personas" })).toHaveCount(0);
+  await expect(panel.getByRole("link").filter({ hasText: "Persona extra 2" })).toBeVisible();
+  expect(pedidos).toContain("50/0");
+  expect(pedidos).toContain("50/50");
+});
