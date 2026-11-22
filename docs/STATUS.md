@@ -36,11 +36,10 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
      Propuesta, **esperando el sí de Julieta** (cambia ADR-0019, va con ADR
      nuevo): una tarea semanal que baja todos los comercios gastronómicos de
      CABA con reintentos y el botón lee esa copia.
-  2. Arreglos chicos en un PR: Buscar del comercio corta en 20 y el título
-     dice «20 personas»; tarjeta destacada de Candidatos sin foto → `SinFoto`;
-     el aviso de error con `text-white` sobre rojo → token; mirar
-     `/admin/metricas` a 360 px/200 %; sacar el marrón por rubro de
-     `ShiftCard`. **Preguntar antes:** «Sí, dar de baja» en ámbar en Mi plan.
+  2. ~~Arreglos chicos~~ hechos (#729): baja neutra en Mi plan, Buscar del
+     comercio con «Ver más» (el tope era 50; la API no da total), Candidatos
+     sin foto con `SinFoto`, toast de error con tokens, `/admin/metricas` ya no
+     desbordaba (quedó con test). `ShiftCard` no se tocó: solo la usa la landing.
   3. Etapa 6 (SEO y GEO), sin arrancar: es lo que recomiendo después.
   4. Mails (plantillas del backend) y piezas de redes/campañas/videos con la
      marca vigente (`design-system/marca-hoy.md`); la landing queda como está.

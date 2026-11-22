@@ -9,7 +9,7 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { useCompanyPlace } from "@/lib/company-place";
 import Link from "next/link";
 import { SKILL_LABELS, WORKER_SKILLS, WorkerMapResult, WorkerSkill } from "@/lib/types";
-import { EmptyState, ErrorBanner, Skeleton } from "@/components/ui";
+import { Button, EmptyState, ErrorBanner, Skeleton } from "@/components/ui";
 import { MapPinIcon, SearchIcon, UsersIcon } from "@/components/icons";
 import PersonaCerca from "@/components/employer/PersonaCerca";
 import BottomSheet from "@/components/BottomSheet";
@@ -38,6 +38,11 @@ const DEFAULT_CENTER: [number, number] = [-34.6037, -58.3816];
 function isWorkerSkill(value: string | null): value is WorkerSkill {
   return value !== null && (WORKER_SKILLS as string[]).includes(value);
 }
+
+// Tamaño de página de `/matching/search` (el backend devuelve 50 por defecto y
+// acepta hasta 100, con `offset`). La API no informa el total: si la página
+// vino llena, puede haber más.
+const PAGINA = 50;
 
 const FILTERS_KEY = "oido.buscar.filtros";
 
@@ -140,6 +145,12 @@ function SearchPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [workers, setWorkers] = useState<WorkerMapResult[]>([]);
+  // La última página vino llena: puede haber más personas que las que se ven.
+  const [hayMas, setHayMas] = useState(false);
+  const [cargandoMas, setCargandoMas] = useState(false);
+  // Filas pedidas a la API hasta ahora (no el largo de la lista, que está
+  // deduplicada): es el `offset` de la página siguiente.
+  const pedidas = useRef(0);
   const [error, setError] = useState<string | null>(null);
   // Arranca en `true`: la búsqueda inicial se dispara en un efecto apenas hay
   // token/ubicación, así el sheet nunca llega a mostrar "0 trabajadores" antes
@@ -166,11 +177,47 @@ function SearchPageContent() {
     );
   }, [origin, token]);
 
+  function paramsDeBusqueda(offset: number) {
+    const params = new URLSearchParams({
+      latitude: String(center[0]),
+      longitude: String(center[1]),
+      radius_km: String(radiusKm),
+      limit: String(PAGINA),
+      offset: String(offset),
+    });
+    if (skill) params.set("skill", skill);
+    return params;
+  }
+
+  async function verMas() {
+    if (!token || cargandoMas) return;
+    const seq = searchSeq.current;
+    setCargandoMas(true);
+    setError(null);
+    try {
+      const mas = await api.get<WorkerMapResult[]>(
+        `/matching/search?${paramsDeBusqueda(pedidas.current).toString()}`,
+        token
+      );
+      if (seq !== searchSeq.current) return;
+      pedidas.current += mas.length;
+      const vistos = new Set(workers.map((w) => w.profile_id));
+      setWorkers([...workers, ...mas.filter((w) => !vistos.has(w.profile_id))]);
+      setHayMas(mas.length >= PAGINA);
+    } catch (err) {
+      if (seq !== searchSeq.current) return;
+      setError(getErrorMessage(err, "No se pudo buscar trabajadores"));
+    } finally {
+      setCargandoMas(false);
+    }
+  }
+
   async function search() {
     if (!token || !filtersRestored) return;
     if (origin === "esperando" || origin === "sin-local" || origin === "error") {
       if (origin === "sin-local" || origin === "error") {
         setWorkers([]);
+        setHayMas(false);
         setLoading(false);
       }
       return;
@@ -179,20 +226,21 @@ function SearchPageContent() {
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams({
-        latitude: String(center[0]),
-        longitude: String(center[1]),
-        radius_km: String(radiusKm),
-      });
-      if (skill) params.set("skill", skill);
       const results = await api.get<WorkerMapResult[]>(
-        `/matching/search?${params.toString()}`,
+        `/matching/search?${paramsDeBusqueda(0).toString()}`,
         token
       );
       if (seq !== searchSeq.current) return;
+      pedidas.current = results.length;
       setWorkers(results);
+      setHayMas(results.length >= PAGINA);
     } catch (err) {
       if (seq !== searchSeq.current) return;
+      // Sin resultados de los filtros nuevos no queda la lista de los viejos
+      // (ni «Ver más» pidiendo con los filtros nuevos a partir de ella).
+      pedidas.current = 0;
+      setWorkers([]);
+      setHayMas(false);
       setError(getErrorMessage(err, "No se pudo buscar trabajadores"));
     } finally {
       if (seq === searchSeq.current) setLoading(false);
@@ -289,7 +337,7 @@ function SearchPageContent() {
     ? "Falta la ubicación de tu local"
     : loading
     ? "Buscando..."
-    : `${workers.length} ${workers.length === 1 ? "persona" : "personas"} ${cerca}`;
+    : `${workers.length}${hayMas ? " o más" : ""} ${workers.length === 1 && !hayMas ? "persona" : "personas"} ${cerca}`;
 
   // Desde dónde se mide, dicho en pantalla (el comercio no debería adivinarlo).
   const originNote =
@@ -346,6 +394,11 @@ function SearchPageContent() {
             </>
           ) : (
             workers.map((worker) => <PersonaCerca key={worker.profile_id} worker={worker} />)
+          )}
+          {!loading && hayMas && (
+            <Button variant="surface" fullWidth loading={cargandoMas} disabled={cargandoMas} onClick={verMas} className="sm:col-span-2 md:col-span-1">
+              Ver más personas
+            </Button>
           )}
         </div>
       )}

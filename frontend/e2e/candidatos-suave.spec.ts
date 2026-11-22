@@ -51,7 +51,7 @@ test("cielo corto con el título y el turno; la destacada sin foto va en el ciel
   await expect(destacada).toHaveClass(/tarjeta-destacada/);
   await expect(destacada).toContainText("Mejor calificación");
   await expect(destacada.getByRole("link", { name: "Sofía Ramírez" })).toHaveAttribute("href", "/workers/wp-1");
-  await expect(destacada).toContainText("SR");
+  await expect(destacada.locator("[data-sin-foto]")).toHaveText("S");
   await expect(destacada).toContainText("Identidad verificada");
   await expect(destacada.locator("dl")).toContainText("4,9");
   await expect(destacada.locator("dl")).toContainText("turnos hechos38");

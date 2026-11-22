@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
-import { CheckCircleIcon } from "@/components/icons";
+import { AlertTriangleIcon, CheckCircleIcon } from "@/components/icons";
 import { SESSION_EXPIRED_MESSAGE } from "@/lib/api";
 
 type ToastTone = "success" | "error" | "info";
@@ -11,8 +11,11 @@ type ToastItem = { id: number; message: string; tone: ToastTone };
 const TONE_STYLES: Record<ToastTone, string> = {
   // `bg-toast`, no `bg-night`: en oscuro se invierte (ver globals.css).
   success: "bg-toast text-toast-ink",
-  // `danger-strong`, como el botón rojo de una confirmación: la letra blanca da 5,6 (con `danger`, 3,8).
-  error: "bg-danger-strong text-white",
+  // El error usa la misma píldora que los demás (`toast` / `toast-ink`: más de 15 a 1
+  // de letra en claro y de noche; la letra blanca o `on-brand` sobre rojo no
+  // sirve en los dos temas: `on-brand` es tinta de día y da 3,2 sobre
+  // `danger-strong`) y se distingue por el filete y el ícono en `danger`.
+  error: "bg-toast text-toast-ink ring-2 ring-danger",
   info: "bg-toast text-toast-ink",
 };
 
@@ -99,6 +102,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                   superficies oscuras de la app — adentro de negro, el ícono
                   lleva su acento. */}
               {t.tone === "success" && <CheckCircleIcon size={18} className="text-success" />}
+              {t.tone === "error" && <AlertTriangleIcon size={18} className="shrink-0 text-danger" />}
               {t.message}
             </motion.div>
           ))}

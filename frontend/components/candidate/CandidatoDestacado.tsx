@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Button, NubesCielo } from "@/components/ui";
+import SinFoto from "@/components/ui/SinFoto";
 import { ShieldIcon, StarIcon } from "@/components/icons";
 import { cldThumb } from "@/lib/cloudinary";
 import { NEW_LABEL } from "@/lib/reputation";
@@ -127,11 +128,9 @@ export default function CandidatoDestacado({
         {rotulo && <span className="chip-vidrio">{rotulo}</span>}
         {/* Con la letra muy grande el nombre baja debajo de las iniciales. */}
         <div className={`flex flex-wrap items-center gap-x-3.5 gap-y-2 ${rotulo ? "mt-3.5" : ""}`}>
-          <span
-            aria-hidden
-            className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-white text-h2 font-extrabold text-[#1c5478]"
-          >
-            {iniciales(nombre)}
+          {/* El cielo con la inicial (`SinFoto`), no un círculo de color liso. */}
+          <span aria-hidden className="block h-16 w-16 shrink-0 overflow-hidden rounded-full ring-2 ring-white/70">
+            <SinFoto nombre={nombre} id={perfilId} tamano={64} />
           </span>
           <div className="min-w-[min(100%,8rem)] flex-1">
             <Link

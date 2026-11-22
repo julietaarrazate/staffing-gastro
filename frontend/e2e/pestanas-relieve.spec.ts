@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { blockExternalHosts, injectSession, isoEnDias, mockEmptyNotifications, setTheme, skipSplash } from "./mocks";
+import { AHORA_JUEVES, blockExternalHosts, injectSession, isoDesdeJueves, mockEmptyNotifications, setTheme, skipSplash } from "./mocks";
 
 /**
  * Las pestañas con la dirección «con relieve» (2026-11-19,
@@ -12,12 +12,15 @@ import { blockExternalHosts, injectSession, isoEnDias, mockEmptyNotifications, s
 const json = (body: unknown) => ({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
 const WORKER = { id: "user-1", email: "w@oido.test", full_name: "Sofía Demo", role: "worker", status: "activo", is_active: true, is_verified: true };
 const turno = (id: string, status: string, position: string) => ({
-  id, company_id: "c1", position, quantity: 1, start_at: isoEnDias(1, "21:00"), end_at: isoEnDias(2, "02:00"), pay_amount: "20000", currency: "ARS",
+  id, company_id: "c1", position, quantity: 1, start_at: isoDesdeJueves(1, "21:00"), end_at: isoDesdeJueves(2, "02:00"), pay_amount: "20000", currency: "ARS",
   tips: true, meal: false, dress_code: null, urgent: false, address: null, city: "Palermo, CABA", latitude: null, longitude: null,
   title: null, description: null, status, worker_profile_id: status === "publicado" ? null : "wp-1", created_at: "2026-07-01T12:00:00-03:00", company_name: "Bar Lavalle", company_logo_url: null,
 });
 
 async function abrir(page: Page, theme: "light" | "dark", user: object) {
+  // Reloj fijo: con `isoEnDias`, un domingo el turno de mañana caía en la
+  // semana siguiente y la tira de días lo dejaba afuera.
+  await page.clock.setFixedTime(AHORA_JUEVES);
   await setTheme(page, theme);
   await injectSession(page);
   await skipSplash(page);
@@ -99,7 +102,7 @@ test("a 320 px, Mis turnos con contadores de una cifra muestra los tres nombres 
   await abrir(page, "light", WORKER);
   await page.route("**/api/v1/shifts/mine**", (r) => r.fulfill(json([turno("s1", "confirmado", "bartender"), turno("s2", "confirmado", "mozo")])));
   await page.route("**/api/v1/applications/mine**", (r) =>
-    r.fulfill(json([1, 2, 3].map((i) => ({ id: `a${i}`, shift_id: `p${i}`, worker_profile_id: "wp-1", status: "pendiente", created_at: isoEnDias(-1), shift: turno(`p${i}`, "publicado", "mozo") })))),
+    r.fulfill(json([1, 2, 3].map((i) => ({ id: `a${i}`, shift_id: `p${i}`, worker_profile_id: "wp-1", status: "pendiente", created_at: isoDesdeJueves(-1), shift: turno(`p${i}`, "publicado", "mozo") })))),
   );
   await page.route("**/api/v1/saved-shifts", (r) => (r.request().method() === "GET" ? r.fulfill(json([turno("g1", "publicado", "barista"), turno("g2", "publicado", "cocinero")])) : r.continue()));
   await page.goto("/my-shifts");

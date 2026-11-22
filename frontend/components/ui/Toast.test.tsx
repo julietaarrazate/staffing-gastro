@@ -95,4 +95,10 @@ describe("ToastProvider", () => {
     expect(initial).toContain("opacity: 0");
     expect(initial).not.toMatch(/\by:/);
   });
+
+  it("el error lleva la letra del sistema (`toast-ink`), nunca `text-white`", () => {
+    const fuente = readFileSync(resolve(__dirname, "Toast.tsx"), "utf8");
+    expect(fuente).toMatch(/error: "bg-toast text-toast-ink ring-2 ring-danger"/);
+    expect(fuente).not.toMatch(/text-white/);
+  });
 });

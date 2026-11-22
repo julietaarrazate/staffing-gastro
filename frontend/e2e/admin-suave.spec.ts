@@ -124,3 +124,24 @@ test("el perfil del admin lleva la misma dirección: cielo corto, hoja y filas s
   await expect(page.locator(".tarjeta-relieve")).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
 });
+
+test("/admin/metricas a 360 px y letra al 200 %, en claro y de noche: sin scroll horizontal ni nada fuera de la hoja", async ({ page }) => {
+  for (const theme of ["light", "dark"] as const) {
+    await setTheme(page, theme);
+    await page.setViewportSize({ width: 360, height: 800 });
+    await mock(page);
+    await page.goto("/admin/metricas");
+    await page.addStyleTag({ content: "html{font-size:200%!important}" });
+    await page.waitForTimeout(400);
+    const { exceso, fuera } = await page.evaluate(() => {
+      const ancho = window.innerWidth;
+      const fuera = [...document.querySelectorAll("main *")]
+        .filter((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && (r.right > ancho + 1 || r.left < -1) && !el.closest("[data-scroll-x], .overflow-x-auto"); })
+        .map((el) => `${el.tagName}.${(el.className?.toString() ?? "").slice(0, 40)}`)
+        .slice(0, 5);
+      return { exceso: document.documentElement.scrollWidth - ancho, fuera };
+    });
+    expect(exceso, `${theme}: scroll horizontal`).toBeLessThanOrEqual(0);
+    expect(fuera, `${theme}: elementos fuera de pantalla`).toEqual([]);
+  }
+});

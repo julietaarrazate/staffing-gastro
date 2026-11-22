@@ -215,7 +215,13 @@ test("plan pago: muestra hasta cuándo, permite renovar, dar de baja y arrepenti
 
   await page.getByRole("button", { name: "Dar de baja" }).click();
   await expect(page.getByRole("heading", { name: "¿Dar de baja tu plan?" })).toBeVisible();
-  await page.getByRole("button", { name: "Sí, dar de baja" }).click();
+  // «Sí, dar de baja» es neutro (blanco con filete), no el ámbar del principal.
+  const confirmar = page.getByRole("button", { name: "Sí, dar de baja" });
+  expect(await confirmar.evaluate((el) => getComputedStyle(el).backgroundImage)).not.toContain("rgb(246, 169, 42)");
+  expect(await confirmar.evaluate((el) => getComputedStyle(el).backgroundColor)).not.toBe(
+    await page.evaluate(() => { const d = document.createElement("i"); d.style.color = getComputedStyle(document.documentElement).getPropertyValue("--color-primary").trim(); document.body.appendChild(d); const c = getComputedStyle(d).color; d.remove(); return c; })
+  );
+  await confirmar.click();
 
   expect(cancelled).toBe(true);
   await expect(page.getByText("No se renueva", { exact: true })).toBeVisible();
