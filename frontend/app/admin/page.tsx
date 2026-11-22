@@ -49,7 +49,7 @@ function PendingCard({
     >
       <div className="flex items-center gap-2 text-ink-soft">
         {icon}
-        <p className="text-xs font-medium">{label}</p>
+        <p className="min-w-0 break-words text-xs font-medium">{label}</p>
       </div>
       <p className={`mt-1 text-2xl font-extrabold ${pending ? "text-ink" : "text-ink-mute"}`}>
         {count ?? "—"}

@@ -223,8 +223,9 @@ export default function AdminLiveShiftsPage() {
             ]}
           />
         </div>
-        <div className="flex items-center justify-between gap-3 sm:justify-end">
-          <p className="text-xs text-ink-soft" aria-live="polite">
+        {/* `flex-wrap`: con la letra grande, «Actualizar» baja de renglón en vez de salirse. */}
+        <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end">
+          <p className="min-w-0 text-xs text-ink-soft" aria-live="polite">
             {board ? `Actualizado ${formatShiftTime(board.generated_at)} · cada 30 s` : "Cargando…"}
           </p>
           <Button variant="surface" size="sm" onClick={() => void load()} disabled={refreshing}>
