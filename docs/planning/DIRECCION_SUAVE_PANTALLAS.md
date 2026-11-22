@@ -69,7 +69,7 @@ qué responde cada pantalla está en
 
 - ✅ **Administración** (`app/admin/`: Hoy, Turnos en vivo, Personas, Verificación, Soporte, Métricas, Crecimiento, Herramientas, Seguridad, y la vista del admin en `/profile`) · 2026-11-21 (#PR) · una cáscara para todo el admin (`components/admin/PantallaAdmin.tsx`): **cielo corto y liso, sin las nubes altas** (es una herramienta de listas y tablas), con el título sobre el cielo, y debajo la hoja con el menú del panel; en la compu la hoja aprovecha hasta 72 rem. Sin maqueta
 
-- ⬜ **Cierre:** las reglas de `.estilo-suave` pasan a `:root` y se borra lo «con relieve» que quede en la app (ADR-0028, punto 6)
+- ✅ **Cierre** (ADR-0028, punto 6) · 2026-11-21 (#PR) · [historial](../historial/2026-11-21-cierre-direccion-suave.md) · las reglas de `.estilo-suave` son la base de la app (`:root`) y se borró lo «con relieve» sin uso; queda para la landing (`/` y `/historia`, con `.estilo-relieve`) lo suyo hasta que se decida
 
 ## Pedidos de Julieta sobre pantallas ya migradas (2026-11-21)
 

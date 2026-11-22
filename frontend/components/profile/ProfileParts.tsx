@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { formatDecimal1, plural } from "@/lib/format";
 import { formatRating, hasRating } from "@/lib/reputation";
-import IconChip, { type IconChipTone } from "@/components/ui/IconChip";
 import { ChevronLeftIcon, ChevronRightIcon, StarIcon } from "@/components/icons";
 
 /**
@@ -18,57 +17,6 @@ export function SectionLabel({ children }: { children: React.ReactNode }) {
     <p className="px-1 text-xs font-semibold font-mono uppercase tracking-wide text-ink/40">
       {children}
     </p>
-  );
-}
-
-const ROW_CLASS =
-  "flex w-full items-center gap-3 px-4 py-3.5 text-left transition first:rounded-t-[var(--radius-card)] last:rounded-b-[var(--radius-card)] hover:bg-surface active:bg-surface";
-
-/**
- * Fila de menú tocable. Con `href` es un link (lleva a otra pantalla); con
- * `onClick` es un botón (hace algo acá, como cerrar sesión).
- */
-export function Row({
-  icon,
-  tone,
-  children,
-  href,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  tone: IconChipTone;
-  children: React.ReactNode;
-  href?: string;
-  onClick?: () => void;
-}) {
-  const content = (
-    <>
-      <IconChip tone={tone}>{icon}</IconChip>
-      <span className="flex-1 text-sm font-medium text-ink">{children}</span>
-      {/* Affordance de fila tocable (sensación de app nativa): sin esto las
-          filas parecían texto suelto y no se leía que llevaban a otro lado. */}
-      <ChevronRightIcon size={17} className="shrink-0 text-ink/25" />
-    </>
-  );
-  if (href) {
-    return (
-      <Link href={href} className={ROW_CLASS}>
-        {content}
-      </Link>
-    );
-  }
-  return (
-    <button type="button" onClick={onClick} className={ROW_CLASS}>
-      {content}
-    </button>
-  );
-}
-
-export function RowGroup({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="divide-y divide-line rounded-[var(--radius-card)] bg-card shadow-[var(--shadow-soft)] ring-1 ring-line">
-      {children}
-    </div>
   );
 }
 
