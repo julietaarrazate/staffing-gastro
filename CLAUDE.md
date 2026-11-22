@@ -41,7 +41,7 @@ Backend `pytest -q`. Frontend `npm run typecheck` (TypeScript 7), `npm run lint`
 
 ## No hacer
 
-Duplicar componentes o lógica · acoplar módulos por dentro · credenciales en código o chat · `localhost` en config de producto · infraestructura pesada sin ADR · cambiar una decisión arquitectónica sin **ADR nuevo** (`docs/adr/`).
+Duplicar componentes o lógica · acoplar módulos por dentro · credenciales en código o chat · `localhost` en config de producto · infraestructura pesada sin ADR · cambiar una decisión arquitectónica sin **ADR nuevo** (`docs/adr/`) · **pasarse del cupo gratis**: ningún servicio pago, tarjeta ni generación con créditos sin el «sí» de Julieta, y toda API externa con tope propio debajo del cupo ([ADR-0030](./docs/adr/ADR-0030-cupo-gratis-y-topes-de-gasto.md)).
 
 ## Reglas de dominio que se rompen fácil
 

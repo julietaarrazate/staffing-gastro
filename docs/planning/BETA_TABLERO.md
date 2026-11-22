@@ -760,6 +760,21 @@ prueba, y las invitadas quedan sin entrada al vaciar el PIN.
 - [ ] El cobro sigue apagado: los comercios fundadores no pagan hasta el 28/2
   (STATUS, ítem 6).
 
+## Crecimiento y producto después de la beta (anotado el 2026-11-22)
+
+Nada de esto va antes del 13/12, salvo las cuentas.
+Detalle en [`PROPUESTA_HORARIOS_EQUIPO.md`](./PROPUESTA_HORARIOS_EQUIPO.md) y
+en `../STATUS.md` («Crecimiento en redes y propuesta de horarios»).
+
+| Ítem | Cuándo | Estado |
+|---|---|---|
+| Cuentas @oidoapp y @turnosgastro, prelanzamiento con tips desde el 1/12 | 1/12 | ⚪ Julieta crea las cuentas |
+| Links etiquetados por cuenta y pieza (origen de cada alta) | antes del 13/12 | ✅ ya existe (`origen_alta.py`); falta usar la convención `utm_source=<cuenta>&utm_campaign=<pieza>` en los links |
+| Entrevistas a 5 a 10 encargados con la maqueta de horarios | diciembre | ⚪ |
+| Calculadora de personal (pública, termina en publicar turnos) | enero | ⚪ |
+| Favoritos más visibles en el comercio | enero | ⚪ |
+| Horarios del equipo (vista Equipo del Panel, marcas, resumen): ADR primero | si las entrevistas validan | ⚪ propuesta |
+
 ## Cómo se trabaja (acordado con Julieta el 2026-11-13)
 
 Está en [`CLAUDE.md`](../../CLAUDE.md), secciones «Ahorro de tokens» y «Git y
