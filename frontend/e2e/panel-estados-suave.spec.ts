@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { blockExternalHosts, injectSession, isoEnDias, mockEmptyNotifications, setTheme, skipSplash } from "./mocks";
+import { AHORA_JUEVES, blockExternalHosts, injectSession, isoDesdeJueves, mockEmptyNotifications, setTheme, skipSplash } from "./mocks";
 
 /**
  * El estado de cada turno en el panel del comercio, con la dirección suave
@@ -12,7 +12,7 @@ import { blockExternalHosts, injectSession, isoEnDias, mockEmptyNotifications, s
 const json = (body: unknown) => ({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
 const EMPLOYER = { id: "u-e", email: "e@oido.test", full_name: "Julieta Demo", role: "employer", status: "activo", is_active: true, is_verified: true };
 const turno = (id: string, status: string, extra: Record<string, unknown> = {}) => ({
-  id, company_id: "c1", position: "mozo", quantity: 1, start_at: isoEnDias(1, "21:00"), end_at: isoEnDias(2, "02:00"), pay_amount: "20000", currency: "ARS",
+  id, company_id: "c1", position: "mozo", quantity: 1, start_at: isoDesdeJueves(1, "21:00"), end_at: isoDesdeJueves(2, "02:00"), pay_amount: "20000", currency: "ARS",
   tips: true, meal: false, dress_code: null, urgent: false, address: null, city: "Palermo, CABA", latitude: null, longitude: null,
   title: null, description: null, status, worker_profile_id: ["publicado", "borrador", "cancelado", "no_cubierto"].includes(status) ? null : "wp-1",
   created_at: "2026-07-01T12:00:00-03:00", company_name: "Bar Lavalle", company_logo_url: null, ...extra,
@@ -37,6 +37,9 @@ const ESTADOS: [string, keyof typeof TINTA][] = [
 ];
 
 async function panel(page: Page, theme: "light" | "dark") {
+  // Reloj fijo: con `isoEnDias`, un domingo el turno de mañana caía en la
+  // semana siguiente y la tira de días lo dejaba afuera.
+  await page.clock.setFixedTime(AHORA_JUEVES);
   await setTheme(page, theme);
   await injectSession(page);
   await skipSplash(page);
