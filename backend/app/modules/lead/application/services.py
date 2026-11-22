@@ -1,10 +1,23 @@
 """Casos de uso del módulo lead: armar y seguir la lista de comercios a captar."""
 
+from collections.abc import Mapping, Sequence
+from datetime import datetime
 from uuid import UUID
 
-from app.modules.lead.domain.entities import ImportResult, Lead
-from app.modules.lead.domain.exceptions import LeadNotFoundError, UnknownBarrioError
-from app.modules.lead.domain.repositories import LeadRepository, PlaceSource
+from app.modules.lead.domain.entities import ImportResult, Lead, PlaceSnapshot
+from app.modules.lead.domain.exceptions import (
+    LeadNotFoundError,
+    PlaceSnapshotMissingError,
+    PlaceSourcePartialError,
+    PlaceSourceUnavailableError,
+    UnknownBarrioError,
+)
+from app.modules.lead.domain.repositories import (
+    LeadRepository,
+    PlaceSnapshotRepository,
+    PlaceSource,
+)
+from app.modules.lead.domain.snapshots import next_refresh
 from app.modules.lead.domain.value_objects import BARRIOS_CABA, LeadStatus
 
 
@@ -12,23 +25,29 @@ class LeadService:
     """Lista de captación de comercios para la beta (solo admin).
 
     Los comercios salen de OpenStreetMap (datos abiertos, ODbL) y no de
-    scrapear Google Maps: ver ADR-0019.
+    scrapear Google Maps: ver ADR-0019. Desde el ADR-0029 no se consulta
+    OSM en vivo: se importa desde la copia semanal del barrio
+    (`PlaceSnapshotService`).
     """
 
-    def __init__(self, leads: LeadRepository, places: PlaceSource) -> None:
+    def __init__(self, leads: LeadRepository, snapshots: PlaceSnapshotRepository) -> None:
         self._leads = leads
-        self._places = places
+        self._snapshots = snapshots
 
     async def import_barrio(self, barrio: str) -> ImportResult:
-        """Trae los comercios gastronómicos del barrio y los suma a la lista.
+        """Suma a la lista los comercios gastronómicos de la copia del barrio.
 
         Idempotente: un comercio que ya estaba (misma referencia de OSM) se
         actualiza con los datos nuevos, sin perder su estado ni sus notas.
+        Lanza `PlaceSnapshotMissingError` si el barrio todavía no tiene copia.
         """
         if barrio not in BARRIOS_CABA:
             raise UnknownBarrioError(barrio)
 
-        candidates = await self._places.find_gastronomy(barrio)
+        snapshot = await self._snapshots.get(barrio)
+        if snapshot is None:
+            raise PlaceSnapshotMissingError(barrio)
+        candidates = snapshot.places
         # La misma referencia puede venir repetida; gana la última.
         by_ref = {c.osm_ref: c for c in candidates}
         existing = await self._leads.get_by_osm_refs(list(by_ref))
@@ -45,8 +64,16 @@ class LeadService:
                 updated += 1
         await self._leads.save_many(to_save)
         return ImportResult(
-            barrio=barrio, found=len(by_ref), created=created, updated=updated
+            barrio=barrio,
+            found=len(by_ref),
+            created=created,
+            updated=updated,
+            fetched_at=snapshot.fetched_at,
         )
+
+    async def snapshot_dates(self) -> dict[str, datetime]:
+        """De cuándo es la copia de OSM de cada barrio que tiene una."""
+        return await self._snapshots.fetched_at_by_barrio()
 
     async def list_leads(
         self,
@@ -78,3 +105,65 @@ class LeadService:
         if lead is None:
             raise LeadNotFoundError(str(lead_id))
         return await self._leads.update(lead.with_follow_up(status=status, notes=notes))
+
+
+class PlaceSnapshotService:
+    """Refresco de la copia semanal de OpenStreetMap, de a un barrio (ADR-0029).
+
+    Lo maneja el chequeo del scheduler en proceso
+    (`infrastructure/place_snapshot_job.py`), que decide cuándo llamar y
+    guarda en memoria qué barrios pidió la pantalla y cuáles fallaron hace
+    poco.
+    """
+
+    def __init__(self, snapshots: PlaceSnapshotRepository, places: PlaceSource) -> None:
+        self._snapshots = snapshots
+        self._places = places
+
+    async def plan(
+        self,
+        now: datetime,
+        *,
+        requested: Sequence[str] = (),
+        resting_until: Mapping[str, datetime] | None = None,
+    ) -> tuple[str | None, datetime | None]:
+        """El barrio a refrescar ahora, o cuándo vence la próxima copia."""
+        fetched = await self._snapshots.fetched_at_by_barrio()
+        return next_refresh(
+            fetched, now, requested=requested, resting_until=resting_until
+        )
+
+    async def refresh(self, barrio: str, now: datetime) -> int:
+        """Baja el barrio de la fuente y reemplaza su copia. Devuelve cuántos
+        comercios quedaron.
+
+        Primero la consulta (que puede tardar minutos) y después la base: así
+        no se tiene una conexión tomada mientras se espera a Overpass. Si la
+        consulta falla, lanza `PlaceSourceUnavailableError` y la copia
+        anterior queda como estaba. Una respuesta vacía cuando la copia
+        anterior tenía comercios se toma como falla (Overpass a veces
+        responde vacío cuando corta la consulta), no como un barrio que se
+        quedó sin bares. Una respuesta parcial (`PlaceSourcePartialError`)
+        nunca pisa una copia existente: cuenta como falla. Sólo se guarda si
+        el barrio no tenía ninguna, porque algo es mejor que nada.
+        """
+        if barrio not in BARRIOS_CABA:
+            raise UnknownBarrioError(barrio)
+        try:
+            candidates = await self._places.find_gastronomy(barrio)
+        except PlaceSourcePartialError as exc:
+            if await self._snapshots.get(barrio) is not None:
+                raise
+            candidates = exc.candidates
+        if not candidates:
+            previous = await self._snapshots.get(barrio)
+            if previous is not None and previous.places:
+                raise PlaceSourceUnavailableError(
+                    f"respuesta vacía; la copia anterior tenía {len(previous.places)}"
+                )
+        # La misma referencia puede venir repetida; gana la última.
+        by_ref = {c.osm_ref: c for c in candidates}
+        await self._snapshots.replace(
+            PlaceSnapshot(barrio=barrio, fetched_at=now, places=tuple(by_ref.values()))
+        )
+        return len(by_ref)

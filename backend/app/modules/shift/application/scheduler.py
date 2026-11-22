@@ -38,10 +38,13 @@ Siete chequeos independientes (más los que entran de afuera), un solo loop:
    `subscription/infrastructure/expiry_job.py`).
 8. **Chequeos que entran de afuera (`extra_checks`):** `app/main.py` los
    pasa a `start_scheduler` para que este archivo no importe la
-   infraestructura de otro módulo (candado de capas). Hoy uno: el borrado de
+   infraestructura de otro módulo (candado de capas). Hoy dos: el borrado de
    los documentos de verificación que Cloudinary no pudo borrar al decidir
-   (`verification/infrastructure/file_cleanup_job.py`, ADR-0021). Con la
-   cola vacía no agrega despertares.
+   (`verification/infrastructure/file_cleanup_job.py`, ADR-0021; con la
+   cola vacía no agrega despertares) y el refresco semanal de la copia de
+   OpenStreetMap por barrio (`lead/infrastructure/place_snapshot_job.py`,
+   ADR-0029; la consulta corre en una tarea aparte y, con todas las copias
+   al día, la próxima deadline es dentro de días).
 
 Corre como un loop `asyncio` arrancado en el `lifespan` de FastAPI
 (`app/main.py`) — no un servicio de Cron aparte: el plan free de Render sólo

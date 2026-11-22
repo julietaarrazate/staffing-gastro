@@ -9,7 +9,8 @@ import {
 
 /**
  * Comercios a captar (`/admin/leads`, ADR-0019): la admin trae los comercios
- * de un barrio desde OpenStreetMap y va marcando el seguimiento. API mockeada.
+ * de un barrio desde la copia semanal de OpenStreetMap (ADR-0029) y va
+ * marcando el seguimiento. API mockeada.
  */
 
 const ADMIN_SESSION = {
@@ -66,6 +67,8 @@ const LEADS = [
 const SUMMARY = {
   counts: { nuevo: 1, contactado: 0, visitado: 1, interesado: 0, alta: 0, descartado: 0 },
   total: 2,
+  // 02:00 UTC del 21 es el 20 en Buenos Aires.
+  snapshots: { Palermo: "2026-11-21T02:00:00+00:00" },
 };
 
 async function mockLeads(page: Page, onPatch?: (body: unknown) => void) {
@@ -82,7 +85,13 @@ async function mockLeads(page: Page, onPatch?: (body: unknown) => void) {
     route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ barrio: "Palermo", found: 2, created: 0, updated: 2 }),
+      body: JSON.stringify({
+        barrio: "Palermo",
+        found: 2,
+        created: 0,
+        updated: 2,
+        fetched_at: "2026-11-21T02:00:00+00:00",
+      }),
     })
   );
   await page.route(/\/api\/v1\/admin\/leads(\?.*)?$/, (route) =>
@@ -122,12 +131,41 @@ test("lista los comercios por prioridad, importa y cambia el estado", async ({ p
     "https://www.instagram.com/donpepe/"
   );
   await expect(page.getByRole("button", { name: "Todos · 2" })).toBeVisible();
+  await expect(page.getByText("Datos de OpenStreetMap del 20/11/2026")).toBeVisible();
 
   await page.getByRole("button", { name: "Traer comercios del barrio" }).click();
   await expect(page.getByText("2 comercios: 0 nuevos, 2 actualizados")).toBeVisible();
 
   await page.getByLabel("Estado de Bodegón Don Pepe").selectOption("contactado");
   await expect.poll(() => patched).toEqual({ status: "contactado" });
+});
+
+test("barrio sin copia de OpenStreetMap: lo dice y avisa que se baja sola", async ({ page }) => {
+  await setup(page);
+  // Las rutas registradas después ganan: Villa Crespo todavía no tiene copia.
+  await page.route("**/api/v1/admin/leads/import", (route) =>
+    route.fulfill({
+      status: 409,
+      contentType: "application/json",
+      body: JSON.stringify({
+        detail: {
+          code: "snapshot_pending",
+          message: "Todavía no tenemos la copia de este barrio. La estamos pidiendo; probá de nuevo en un rato.",
+        },
+      }),
+    })
+  );
+  await page.goto("/admin/leads");
+  await expect(page.getByText("Café Tranquilo").first()).toBeVisible();
+  await page.getByLabel("Barrio").selectOption("Villa Crespo");
+  await expect(
+    page.getByText("Todavía no tenemos la copia de OpenStreetMap de este barrio.")
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Traer comercios del barrio" }).click();
+  await expect(
+    page.getByText("Todavía no tenemos la copia de este barrio. La estamos pidiendo; probá de nuevo en un rato.")
+  ).toBeVisible();
 });
 
 for (const theme of ["light", "dark"] as const) {

@@ -90,7 +90,8 @@ for (const theme of ["light", "dark"] as const) {
         expect(letra).not.toMatch(/serif|young|shrikhand|brocha/i);
         const cruz = hoja.getByRole("button", { name: "Cerrar" });
         const caja = (await cruz.boundingBox())!;
-        expect(Math.min(caja.width, caja.height)).toBeGreaterThanOrEqual(44);
+        // Redondeado: la hoja entra con un transform y la caja mide 43,99997 px.
+        expect(Math.round(Math.min(caja.width, caja.height))).toBeGreaterThanOrEqual(44);
         // Las filas: redondas, de 48 px o más y sin rayas entre una y otra.
         const filas = hoja.locator(".fila-hoja");
         expect(await filas.count()).toBeGreaterThan(1);

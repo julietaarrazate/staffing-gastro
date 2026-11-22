@@ -131,11 +131,27 @@ class Lead:
 
 
 @dataclass(frozen=True)
+class PlaceSnapshot:
+    """Copia de los comercios gastronómicos de un barrio tal como los devolvió
+    OpenStreetMap la última vez que la consulta salió bien (ADR-0029).
+
+    `fetched_at` es UTC. Una copia vacía es válida (el barrio no tiene
+    comercios con nombre en OSM): por eso la fecha se guarda aparte de los
+    comercios y "sin copia" no es lo mismo que "copia sin comercios".
+    """
+
+    barrio: str
+    fetched_at: datetime
+    places: tuple[PlaceCandidate, ...] = ()
+
+
+@dataclass(frozen=True)
 class ImportResult:
     """Resultado de importar un barrio: cuántos encontró la fuente y cuántos
-    entraron nuevos o se actualizaron."""
+    entraron nuevos o se actualizaron, y de qué fecha es la copia de OSM."""
 
     barrio: str
     found: int
     created: int
     updated: int
+    fetched_at: datetime | None = None

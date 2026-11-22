@@ -42,8 +42,13 @@ class LeadImportResponse(BaseModel):
     found: int
     created: int
     updated: int
+    # De cuándo es la copia de OpenStreetMap que se importó (UTC).
+    fetched_at: datetime | None = None
 
 
 class LeadSummaryResponse(BaseModel):
     counts: dict[LeadStatus, int]
     total: int
+    # De cuándo es la copia de OpenStreetMap de cada barrio que tiene una
+    # (UTC). Un barrio que no está todavía no tiene copia (ADR-0029).
+    snapshots: dict[str, datetime] = {}

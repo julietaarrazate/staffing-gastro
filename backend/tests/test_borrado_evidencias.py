@@ -382,7 +382,10 @@ def test_main_le_pasa_el_reintento_del_borrado_al_scheduler():
 
     from app import main
 
-    assert "extra_checks=(run_evidence_file_cleanup,)" in inspect.getsource(main.lifespan)
+    # Desde el ADR-0029 la tupla trae también el refresco de la copia de OSM.
+    source = inspect.getsource(main.lifespan)
+    checks = source.split("extra_checks=(", 1)[1].split(")", 1)[0]
+    assert "run_evidence_file_cleanup" in checks
 
 
 # --- Adaptador de Cloudinary ---------------------------------------------------

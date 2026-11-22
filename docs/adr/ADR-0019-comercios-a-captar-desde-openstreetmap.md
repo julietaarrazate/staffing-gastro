@@ -1,6 +1,9 @@
 # ADR-0019 — Comercios a captar: lista desde OpenStreetMap, no scraping de Google Maps
 
-**Estado:** aceptado · **Fecha:** 2026-10-20
+**Estado:** aceptado · **Fecha:** 2026-10-20 · **Actualizado por:**
+[ADR-0029](./ADR-0029-copia-semanal-de-openstreetmap.md) (2026-11-22: la
+importación lee una copia semanal por barrio; Overpass ya no se consulta en
+vivo).
 
 ## Contexto
 
