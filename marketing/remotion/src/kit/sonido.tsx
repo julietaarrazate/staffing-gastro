@@ -6,15 +6,17 @@
 import React from "react";
 import { Audio, getInputProps, interpolate, Sequence, staticFile, useVideoConfig } from "remotion";
 
-export type Efecto = "toque" | "campanita" | "vibracion" | "tipeo" | "impresora";
+export type Efecto = "toque" | "campanita" | "vibracion" | "tipeo" | "impresora" | "hielo" | "coctelera" | "cuchillo" | "copa";
 /** [efecto, cuadro, ganancia en dB, duración en s (opcional)] */
 export type Cue = [Efecto, number, number, number?];
-export type Sonido = { murmullo: boolean; cues: Cue[] };
+/** `musicaDesde`: cuadro en que arranca la música (por defecto, al principio); `murmulloDb`: ajuste del murmullo. */
+export type Sonido = { murmullo: boolean; cues: Cue[]; musicaDesde?: number; murmulloDb?: number };
 
 const ARCHIVO: Record<Efecto, string> = {
   toque: "toque.mp3", campanita: "campanita.mp3", vibracion: "vibracion.mp3", tipeo: "tipeo.mp3", impresora: "impresora-corta.mp3",
+  hielo: "hielo.mp3", coctelera: "coctelera.mp3", cuchillo: "cuchillo.mp3", copa: "copa.mp3",
 };
-const DUR: Record<Efecto, number> = { toque: 0.45, campanita: 1.99, vibracion: 1.3, tipeo: 1.9, impresora: 0.55 };
+const DUR: Record<Efecto, number> = { toque: 0.45, campanita: 1.99, vibracion: 1.3, tipeo: 1.9, impresora: 0.55, hielo: 2.1, coctelera: 3.8, cuchillo: 3.7, copa: 0.95 };
 
 // Balance (medido por pista con scripts/niveles.sh): la música queda 15–18 dB debajo de los efectos.
 export const GANANCIA = { efectos: 0, murmullo: -7, musica: -14 };
@@ -34,12 +36,16 @@ export const Mezcla: React.FC<{ s: Sonido }> = ({ s }) => {
   const conMusica = p.musica !== false;
   const va = (x: Pista) => pista === "todo" || pista === x;
   const fin = durationInFrames;
-  const fundido = (f: number, entra: number, sale: number, g: number) =>
-    lin(g) * interpolate(f, [0, entra, fin - sale, fin], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const fundido = (f: number, entra: number, sale: number, g: number, ini = 0) =>
+    lin(g) * interpolate(f, [ini, ini + entra, fin - sale, fin], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return (
     <>
-      {s.murmullo && va("murmullo") && <Audio src={staticFile("sonidos/murmullo.mp3")} volume={(f) => fundido(f, 15, 36, GANANCIA.murmullo)} />}
-      {conMusica && va("musica") && <Audio src={staticFile("sonidos/bossa.mp3")} volume={(f) => fundido(f, 30, 45, GANANCIA.musica)} />}
+      {s.murmullo && va("murmullo") && <Audio src={staticFile("sonidos/murmullo.mp3")} volume={(f) => fundido(f, 15, 36, GANANCIA.murmullo + (s.murmulloDb ?? 0))} />}
+      {conMusica && va("musica") && (
+        <Sequence from={s.musicaDesde ?? 0} layout="none">
+          <Audio src={staticFile("sonidos/bossa.mp3")} volume={(f) => fundido(f + (s.musicaDesde ?? 0), 30, 45, GANANCIA.musica, s.musicaDesde ?? 0)} />
+        </Sequence>
+      )}
       {va("efectos") && s.cues.map(([e, cuadro, db, d], i) => {
         const dur = Math.round((d ?? DUR[e]) * fps);
         return (
