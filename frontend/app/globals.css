@@ -5440,3 +5440,25 @@ body:has([data-landing]) main {
   min-width: 0;
   overflow-wrap: anywhere;
 }
+
+/* Buscar de quien trabaja en la compu (escritorio, renglón 10): el mapa al lado
+   de la lista. Alto de la ventana menos la barra de arriba y los márgenes; el
+   lienzo del mapa lleva el borde redondo de la hoja. */
+.buscar-mapa-lateral {
+  height: calc(100dvh - var(--chrome-top) - 2rem);
+  min-height: 420px;
+  border-radius: 20px;
+  background: var(--color-surface);
+  box-shadow: var(--suave-sombra);
+}
+/* La fila resaltada (por el pin o por el mouse): el aro azul de `/map`. */
+:root .fila-buscar-celda {
+  height: 100%;
+  border-radius: var(--radio-suave);
+}
+:root .fila-buscar-celda[data-elegido] {
+  box-shadow: 0 0 0 2px #2a73a3;
+}
+:root:root[data-theme="dark"] .fila-buscar-celda[data-elegido] {
+  box-shadow: 0 0 0 2px #5fa3cf;
+}

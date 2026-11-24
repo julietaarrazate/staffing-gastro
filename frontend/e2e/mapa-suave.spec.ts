@@ -195,3 +195,16 @@ test("sin turnos, en el celular el aviso es una tarjeta baja que deja ver el map
   }
   expect(await ambares(page)).toBe(1);
 });
+
+// Escritorio, renglón 10 (2026-11-24): en la compu los turnos van en un panel
+// a la izquierda (no más de 400 px) y el mapa ocupa el resto, hasta abajo.
+test("en la compu el panel de turnos va a la izquierda y el mapa ocupa el resto", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await mapa(page, "light");
+  const panel = (await page.locator("aside").first().boundingBox())!;
+  const lienzo = (await page.locator(".maplibregl-map").first().boundingBox())!;
+  expect(panel.width).toBeLessThanOrEqual(401);
+  expect(lienzo.x).toBeGreaterThanOrEqual(panel.x + panel.width - 2);
+  expect(lienzo.width).toBeGreaterThan(900);
+  expect(lienzo.height).toBeGreaterThan(700);
+});

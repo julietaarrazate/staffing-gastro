@@ -1,7 +1,8 @@
 "use client";
 
 import ListaMapa from "@/components/worker/ListaMapa";
-import { useCallback, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { api, ApiError } from "@/lib/api";
 import { appliedShiftIds } from "@/lib/applications";
 import { getErrorMessage } from "@/lib/errors";
@@ -47,6 +48,28 @@ import { EmptyFeedIllustration } from "@/components/illustrations";
  * 2026-11-19 al 20 fue «con relieve» (título en brocha, pestañas con raya y
  * comandas). Qué se pide, cómo se filtra y qué hace cada botón no cambió.
  */
+
+const ShiftMap = dynamic(() => import("@/components/worker/ShiftMap"), {
+  ssr: false,
+  loading: () => <div className="absolute inset-0 animate-pulse bg-surface" />,
+});
+
+// Último recurso para abrir el mapa: sin ubicación ni turnos con coordenadas.
+const DEFAULT_CENTER: [number, number] = [-34.6037, -58.3816]; // Obelisco
+
+/** ¿La pantalla es de compu (`lg`, 1024 px o más)? Ahí el mapa va al lado de la
+ *  lista; en el celular no se monta (ni se baja MapLibre). */
+function useEsCompu(): boolean {
+  return useSyncExternalStore(
+    (avisar) => {
+      const mq = window.matchMedia("(min-width: 1024px)");
+      mq.addEventListener("change", avisar);
+      return () => mq.removeEventListener("change", avisar);
+    },
+    () => window.matchMedia("(min-width: 1024px)").matches,
+    () => false
+  );
+}
 
 /** Un chip de filtro: de vidrio sobre el cielo (`vidrio`) o suave en la hoja.
  *  El elegido va en azul hondo (`.chip-elegido`); el ámbar queda para la
@@ -98,6 +121,12 @@ export default function BuscarPage() {
   const [urgentOnly, setUrgentOnly] = useState(false);
   const [sort, setSort] = useState<"nearby" | "pay">("nearby");
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
+  // En la compu, el mapa al lado: el turno resaltado (por el pin o por pasar el
+  // mouse sobre su fila) y si la cámara lo acompaña (sólo cuando se toca un pin).
+  const esCompu = useEsCompu();
+  const [activoId, setActivoId] = useState<string | null>(null);
+  const [seguir, setSeguir] = useState(false);
+  const listaRef = useRef<HTMLDivElement>(null);
 
   // Turnos que la persona descartó o a los que se postuló desde esta pantalla:
   // una recarga (aviso, vuelta a la pestaña) no los vuelve a mostrar aunque el
@@ -200,6 +229,20 @@ export default function BuscarPage() {
   const sorted = sort === "pay" ? sortByBestPay(byDistance) : byDistance;
   const sortedShifts = urgentOnly ? sorted.filter((s) => s.urgent) : sorted;
 
+  // El mapa abre donde está la persona; sin ubicación, en el primer turno con
+  // coordenadas (y sin el punto azul, que no sería ella).
+  const primeroConCoords = sortedShifts.find((s) => s.latitude != null && s.longitude != null);
+  const centroLat = origin?.[0] ?? primeroConCoords?.latitude ?? DEFAULT_CENTER[0];
+  const centroLng = origin?.[1] ?? primeroConCoords?.longitude ?? DEFAULT_CENTER[1];
+  const centro: [number, number] = [centroLat, centroLng];
+
+  const elegirEnMapa = useCallback((id: string) => {
+    setSeguir(true);
+    setActivoId(id);
+    const fila = listaRef.current?.querySelector(`[data-turno-id="${CSS.escape(id)}"]`);
+    fila?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, []);
+
   return (
     <div className="estilo-suave mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col md:min-h-[calc(100dvh-var(--chrome-top))] md:max-w-5xl md:px-4 md:pt-4">
       {/* El cielo corto: el título y la frase. Los rubros van en la hoja. La
@@ -214,7 +257,8 @@ export default function BuscarPage() {
         <p className="mt-1 text-sm">Explorá oportunidades de cualquier rubro, no sólo el tuyo.</p>
       </div>
 
-      <div className="hoja -mt-7 flex-1 px-4 pb-8 pt-5 md:px-6">
+      <div className="hoja -mt-7 flex-1 px-4 pb-8 pt-5 md:px-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
+        <div className="min-w-0">
         {/* Accesos por rubro: una tecla suave con el ícono y el nombre corto de
             cada rubro. Tocar una filtra; tocarla de nuevo la suelta (no hay
             «Todos»). Un carril que se desliza en el celular; en la compu, donde
@@ -299,22 +343,50 @@ export default function BuscarPage() {
               {/* Cada turno es una fila suave con el pago en grande. Un solo
                   ámbar por pantalla: «Postularme» va en ámbar en el primero de
                   la lista y quieto en los demás (como «Elegir» en Candidatos). */}
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div ref={listaRef} className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-1">
                 {sortedShifts.map((shift, i) => (
-                  <OportunidadFila
+                  <div
                     key={shift.id}
-                    shift={shift}
-                    distanceKm={distanceOf(shift, origin)}
-                    destacado={i === 0}
-                    applying={decidingId === shift.id}
-                    onApply={() => handleDecide(shift, "like")}
-                    onPass={() => handleDecide(shift, "pass")}
-                  />
+                    data-turno-id={shift.id}
+                    data-elegido={esCompu && activoId === shift.id ? "" : undefined}
+                    onMouseEnter={esCompu ? () => { setSeguir(false); setActivoId(shift.id); } : undefined}
+                    className="fila-buscar-celda"
+                  >
+                    <OportunidadFila
+                      shift={shift}
+                      distanceKm={distanceOf(shift, origin)}
+                      destacado={i === 0}
+                      applying={decidingId === shift.id}
+                      onApply={() => handleDecide(shift, "like")}
+                      onPass={() => handleDecide(shift, "pass")}
+                    />
+                  </div>
                 ))}
               </div>
             </>
           )}
         </div>
+        </div>
+
+        {/* En la compu, el mapa al lado de la lista (escritorio, renglón 4/10):
+            los turnos con su pago en el pin; tocar un pin resalta su fila. Pegado
+            arriba mientras se baja por la lista. En el celular no se monta. */}
+        {esCompu && (
+          <aside
+            aria-label="Mapa de turnos"
+            data-testid="buscar-mapa"
+            className="buscar-mapa-lateral relative overflow-hidden lg:sticky lg:top-[calc(var(--chrome-top)+1rem)]"
+          >
+            <ShiftMap
+              shifts={sortedShifts}
+              center={centro}
+              activeId={activoId}
+              onSelect={elegirEnMapa}
+              followActive={seguir}
+              sinOrigen={origin === null}
+            />
+          </aside>
+        )}
       </div>
     </div>
   );

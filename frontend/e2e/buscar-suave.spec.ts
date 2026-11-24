@@ -313,3 +313,38 @@ test("el aire entre los botones de la fila también abre el detalle", async ({ p
   await page.mouse.click(compartir.x + compartir.width + 4, compartir.y + compartir.height / 2);
   await expect(page).toHaveURL(/\/turno\/a1$/);
 });
+
+// Escritorio, renglones 4 y 10 (2026-11-24): en la compu (1440) el mapa va al
+// lado de la lista, con el pin de cada turno; en el celular y la tablet no se
+// monta.
+test("en la compu la lista y el mapa van lado a lado, y tocar un pin resalta su fila", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await conTurnos(page, [turno("c1", "bartender", "Bar Lavalle"), turno("c2", "mozo", "Café Belgrano", { pay_amount: "15000", latitude: -34.5885, longitude: -58.4262 })]);
+  const filas = page.getByTestId("buscar-card");
+  const mapa = page.getByTestId("buscar-mapa");
+  await expect(mapa).toBeVisible();
+  const [f1, f2, m] = [(await filas.nth(0).boundingBox())!, (await filas.nth(1).boundingBox())!, (await mapa.boundingBox())!];
+  // Una sola columna de turnos a la izquierda y el mapa a la derecha, a la altura de la lista.
+  expect(Math.abs(f1.x - f2.x)).toBeLessThan(2);
+  expect(f2.y).toBeGreaterThan(f1.y + f1.height - 1);
+  expect(m.x).toBeGreaterThan(f1.x + f1.width);
+  expect(m.width).toBeGreaterThan(380);
+  expect(m.height).toBeGreaterThan(500);
+  expect(m.y).toBeLessThan(f1.y + 40);
+  // Nada corre la página, ni se sale del marco de 1024 px.
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(1440);
+  expect(m.x + m.width).toBeLessThanOrEqual(1440 - (1440 - 1024) / 2 + 1);
+  // Tocar el pin del segundo turno resalta su fila.
+  await page.getByRole("button", { name: /^Turno de Mozo/ }).click({ timeout: 20_000 });
+  await expect(page.locator('[data-turno-id="c2"]')).toHaveAttribute("data-elegido", "");
+  await expect(page.locator('[data-turno-id="c1"]')).not.toHaveAttribute("data-elegido", "");
+});
+
+test("en el celular y en la tablet no hay mapa al lado de la lista", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await conTurnos(page, [turno("c1", "bartender", "Bar Lavalle")]);
+  await expect(page.getByTestId("buscar-card")).toHaveCount(1);
+  await expect(page.getByTestId("buscar-mapa")).toHaveCount(0);
+  await page.setViewportSize({ width: 800, height: 900 });
+  await expect(page.getByTestId("buscar-mapa")).toHaveCount(0);
+});
