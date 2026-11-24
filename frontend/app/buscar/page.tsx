@@ -2,6 +2,7 @@
 
 import ListaMapa from "@/components/worker/ListaMapa";
 import dynamic from "next/dynamic";
+import { useEsCompu } from "@/lib/use-es-compu";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { api, ApiError } from "@/lib/api";
 import { appliedShiftIds } from "@/lib/applications";
@@ -56,19 +57,6 @@ const ShiftMap = dynamic(() => import("@/components/worker/ShiftMap"), {
 // Último recurso para abrir el mapa: sin ubicación ni turnos con coordenadas.
 const DEFAULT_CENTER: [number, number] = [-34.6037, -58.3816]; // Obelisco
 
-/** ¿La pantalla es de compu (`lg`, 1024 px o más)? Ahí el mapa va al lado de la
- *  lista; en el celular no se monta (ni se baja MapLibre). */
-function useEsCompu(): boolean {
-  return useSyncExternalStore(
-    (avisar) => {
-      const mq = window.matchMedia("(min-width: 1024px)");
-      mq.addEventListener("change", avisar);
-      return () => mq.removeEventListener("change", avisar);
-    },
-    () => window.matchMedia("(min-width: 1024px)").matches,
-    () => false
-  );
-}
 
 /** El turno resaltado en la compu (por un pin, el mouse o el teclado) y si la
  *  cámara lo acompaña. Vive fuera de React: resaltar una fila no vuelve a

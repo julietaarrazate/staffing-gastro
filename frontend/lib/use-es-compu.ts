@@ -3,10 +3,11 @@ import { useSyncExternalStore } from "react";
 /** El ancho desde el que Tailwind pone `lg:` (1024 px): la compu. */
 const COMPU = "(min-width: 1024px)";
 
+// Sin `matchMedia` (jsdom en los tests, navegadores muy viejos) es el celular.
 function suscribir(avisar: () => void) {
-  const mq = window.matchMedia(COMPU);
-  mq.addEventListener("change", avisar);
-  return () => mq.removeEventListener("change", avisar);
+  const mq = typeof window.matchMedia === "function" ? window.matchMedia(COMPU) : null;
+  mq?.addEventListener("change", avisar);
+  return () => mq?.removeEventListener("change", avisar);
 }
 
 /**
@@ -19,7 +20,7 @@ function suscribir(avisar: () => void) {
 export function useEsCompu(): boolean {
   return useSyncExternalStore(
     suscribir,
-    () => window.matchMedia(COMPU).matches,
+    () => typeof window.matchMedia === "function" && window.matchMedia(COMPU).matches,
     () => false
   );
 }
