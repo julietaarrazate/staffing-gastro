@@ -78,6 +78,11 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
   5. Después de la beta: calculadora de personal, Favoritos más visibles y,
      si las entrevistas validan, el ADR de horarios del equipo.
 
+- 🟠 **Versión de escritorio de toda la app (decisión de Julieta, 2026-11-24, opción B).** Hoy casi
+  todas las pantallas son una columna de celular centrada y en la compu se ven como un celular. Se
+  adaptan todas, de los dos lados, sin cambiar el celular: primero la navegación común, después el
+  comercio, quien trabaja, lo público y la admin. Un renglón por pantalla en
+  [`planning/ESCRITORIO_PANTALLAS.md`](./planning/ESCRITORIO_PANTALLAS.md) (cada PR edita sólo el suyo).
 - 🔴 **Salida a beta (etapa 3 cerrada el 2026-11-17).** De lo que quedó
   «para revisar con Fable», el 2026-11-18 entraron G4, U081, U072, la
   segunda mirada a G6, los dos arreglos chicos de la baja del dispositivo y
