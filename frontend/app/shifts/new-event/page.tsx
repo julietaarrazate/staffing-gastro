@@ -131,8 +131,8 @@ function NewEventForm() {
   const latitude = place?.latitude ?? null;
   const longitude = place?.longitude ?? null;
   const hasPlace = place != null && city.trim() !== "";
-  const totalRequested = roles.reduce((sum, r) => sum + (Number(r.count) || 0), 0);
-  const totalPagar = roles.reduce((sum, r) => sum + (Number(r.count) || 0) * (Number(r.payAmount) || 0), 0);
+  const totalRequested = roles.reduce((sum, r) => sum + Math.max(0, Number(r.count) || 0), 0);
+  const totalPagar = roles.reduce((sum, r) => sum + Math.max(0, Number(r.count) || 0) * Math.max(0, Number(r.payAmount) || 0), 0);
   // Misma regla que /shifts/new y que el servidor (G14): cada puesto del
   // evento es un turno, así que el inicio no puede haber pasado y la jornada
   // dura de 1 a 16 horas; «de 21:00 a 02:00» termina al día siguiente.
@@ -518,7 +518,7 @@ function NewEventForm() {
             </p>
             {roles.every((r) => Number(r.payAmount) > 0) && totalRequested > 0 && (
               <p className="mt-1 text-sm font-semibold text-ink">
-                Jornadas a pagar: {formatArs(totalPagar)}
+                Total en pagos: {formatArs(totalPagar)}
               </p>
             )}
             {(tips || meal || urgent || dressCode.trim() !== "") && (

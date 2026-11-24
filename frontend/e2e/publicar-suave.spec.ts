@@ -190,7 +190,7 @@ test("en la compu, publicar evento suma un resumen al costado y el formulario qu
   await page.getByPlaceholder("15.000").fill("30000");
   await expect(resumen.getByText("Boda Martínez")).toBeVisible();
   await expect(resumen.getByText("1 × Mozo/a")).toBeVisible();
-  await expect(resumen.getByText("Jornadas a pagar: $30.000")).toBeVisible();
+  await expect(resumen.getByText("Total en pagos: $30.000")).toBeVisible();
   const hoja = await page.locator(".hoja").boundingBox();
   const lado = await resumen.boundingBox();
   expect(hoja!.width).toBeLessThanOrEqual(660);
