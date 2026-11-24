@@ -19,6 +19,7 @@ import {
 } from "@/lib/applicants";
 import CandidatoDestacado from "@/components/candidate/CandidatoDestacado";
 import CandidatoFila from "@/components/candidate/CandidatoFila";
+import FichaCandidato from "@/components/candidate/FichaCandidato";
 import GuaranteeCard from "@/components/candidate/GuaranteeCard";
 import OidoElegido from "@/components/candidate/OidoElegido";
 import {
@@ -30,6 +31,7 @@ import {
   useToast,
 } from "@/components/ui";
 import { useLiveRefresh } from "@/lib/live-refresh";
+import { useEsCompu } from "@/lib/use-es-compu";
 import { ChevronLeftIcon, UsersIcon } from "@/components/icons";
 
 type Tab = "postulantes" | "recomendados";
@@ -125,7 +127,32 @@ function ShiftCandidatesContent() {
   // (esos van al final, en fila y con su marca). «Mejor calificación» sólo si
   // tiene turnos hechos que lo respalden (`standoutApplicant`).
   const primero = rankedApplicants[0] && !isUnassigned(rankedApplicants[0]) ? rankedApplicants[0] : null;
-  const restoPostulantes = primero ? rankedApplicants.slice(1) : rankedApplicants;
+  // En la compu (desde `lg`) la lista y la ficha de la persona elegida van lado
+  // a lado, y «Elegir a <nombre>» vive en la ficha (el único ámbar): no hay
+  // tarjeta destacada, todos van en filas y se elige a quién mirar. En el
+  // celular nada cambia.
+  const compu = useEsCompu();
+  const [verId, setVerId] = useState<string | null>(null);
+  const idsDeLaLista =
+    tab === "postulantes" ? rankedApplicants.map((a) => a.worker_profile_id) : candidates.map((c) => c.profile_id);
+  const fichaId = compu ? (verId !== null && idsDeLaLista.includes(verId) ? verId : (idsDeLaLista[0] ?? null)) : null;
+  // La persona que se ve queda FIJA: al cargar se elige la primera y sigue
+  // siendo esa aunque un aviso en vivo reordene la lista (si no, «Elegir a X»
+  // podría cambiar de persona bajo el cursor). Sólo cambia si deja de estar.
+  const idsClave = idsDeLaLista.join("|");
+  useEffect(() => {
+    if (!compu || idsDeLaLista.length === 0) return;
+    if (verId === null || !idsDeLaLista.includes(verId)) setVerId(idsDeLaLista[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `idsClave` resume la lista
+  }, [compu, idsClave, verId]);
+  const fichaDe = (id: string) => {
+    const a = tab === "postulantes" ? applicants.find((x) => x.worker_profile_id === id) : undefined;
+    if (a) return { nombre: a.full_name, foto: a.photo_url };
+    const c = candidates.find((x) => x.profile_id === id);
+    return c ? { nombre: c.full_name, foto: c.photo_url } : null;
+  };
+  const destacar = !compu && primero;
+  const restoPostulantes = destacar ? rankedApplicants.slice(1) : rankedApplicants;
   // La pestaña cuenta a quienes están en carrera, como el panel: quien tuvo
   // el turno y lo dejó se lista al final pero no suma (G4).
   const activeApplicants = useMemo(() => activeApplicantCount(applicants), [applicants]);
@@ -201,6 +228,7 @@ function ShiftCandidatesContent() {
         : `Se postularon ${activeApplicants}`;
   const elegir = (id: string, nombre: string, foto: string | null) =>
     canAssign ? () => assign(id, { nombre, foto }) : undefined;
+  const ficha = fichaId ? fichaDe(fichaId) : null;
 
   return (
     // Con la dirección suave desde el 2026-11-20 (ADR-0028,
@@ -212,8 +240,8 @@ function ShiftCandidatesContent() {
     // Del 2026-11-18 al 19 fue «con relieve» (título en brocha, el turno
     // como comanda, el destacado con el relieve del filete). El orden, quién
     // se destaca, las dos pestañas y la asignación no cambiaron.
-    <div className="estilo-suave mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col md:min-h-[calc(100dvh-var(--chrome-top))] md:max-w-2xl md:px-4 md:pt-4">
-      <div className="app-cielo cielo-limpio px-5 pb-12 pt-4 md:rounded-t-[28px] md:px-6 md:pt-6">
+    <div className="estilo-suave mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col md:min-h-[calc(100dvh-var(--chrome-top))] md:max-w-2xl md:px-4 md:pt-4 lg:max-w-[var(--app-frame)]">
+      <div className="app-cielo cielo-limpio px-5 pb-12 pt-4 md:rounded-t-[28px] md:px-6 md:pt-6 lg:px-8">
         {/* Una sola nube, que asoma a la derecha detrás del título. */}
         <NubesCielo nubes={[{ forma: "a", ancho: 230, pos: { right: -90, top: 10 } }]} />
         <div className="flex min-h-11 items-center gap-3">
@@ -239,7 +267,9 @@ function ShiftCandidatesContent() {
       </div>
 
       {/* La hoja sube 28 px sobre el cielo y lleva todo lo que se toca. */}
-      <div className="hoja -mt-7 flex-1 px-5 pb-8 pt-3 md:px-6">
+      <div className="hoja -mt-7 flex-1 px-5 pb-8 pt-3 md:px-6 lg:px-8">
+        <div className={ficha ? "lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start lg:gap-8" : undefined}>
+        <div className="min-w-0">
         {!shift && shiftError && (
           <ErrorBanner message="No pudimos cargar el estado del turno, así que por ahora no se puede asignar." onRetry={() => load()} />
         )}
@@ -319,7 +349,7 @@ function ShiftCandidatesContent() {
                     por persona. La Garantía va DESPUÉS de la lista: antes
                     ocupaba la mitad de la pantalla antes del primer
                     postulante. */}
-                {primero && (
+                {destacar && primero && (
                   <CandidatoDestacado
                     perfilId={primero.worker_profile_id}
                     nombre={primero.full_name}
@@ -334,8 +364,8 @@ function ShiftCandidatesContent() {
                 )}
                 {restoPostulantes.length > 0 && (
                   <>
-                    {primero && <h2 className="titulo-seccion mt-6">También se postularon</h2>}
-                    <ul className={`space-y-2.5 ${primero ? "mt-3" : ""}`}>
+                    {destacar && <h2 className="titulo-seccion mt-6">También se postularon</h2>}
+                    <ul className={`space-y-2.5 ${destacar ? "mt-3" : ""}`}>
                       {restoPostulantes.map((a) => (
                         <li key={a.application_id}>
                           <CandidatoFila
@@ -349,6 +379,9 @@ function ShiftCandidatesContent() {
                             // (`rankApplicants`), con su marca, y se le puede
                             // volver a asignar (G4).
                             marca={unassignedLabel(a)}
+                            rotulo={compu && primero && standout?.application_id === a.application_id ? "Mejor calificación" : null}
+                            seleccionada={compu && fichaId === a.worker_profile_id}
+                            onSeleccionar={compu ? () => setVerId(a.worker_profile_id) : undefined}
                             onElegir={elegir(a.worker_profile_id, a.full_name, a.photo_url)}
                             eligiendo={assigning === a.worker_profile_id}
                             bloqueado={assigning !== null}
@@ -380,6 +413,7 @@ function ShiftCandidatesContent() {
               <>
                 {/* El primero del matching, en la tarjeta grande; los demás,
                     en filas. */}
+                {!compu && (
                 <CandidatoDestacado
                   perfilId={candidates[0].profile_id}
                   nombre={candidates[0].full_name}
@@ -391,11 +425,12 @@ function ShiftCandidatesContent() {
                   eligiendo={assigning === candidates[0].profile_id}
                   bloqueado={assigning !== null}
                 />
-                {candidates.length > 1 && (
+                )}
+                {(compu || candidates.length > 1) && (
                   <>
-                    <h2 className="titulo-seccion mt-6">También te recomendamos</h2>
-                    <ul className="mt-3 space-y-2.5">
-                      {candidates.slice(1).map((c) => (
+                    {!compu && <h2 className="titulo-seccion mt-6">También te recomendamos</h2>}
+                    <ul className={`space-y-2.5 ${compu ? "" : "mt-3"}`}>
+                      {(compu ? candidates : candidates.slice(1)).map((c, i) => (
                         <li key={c.profile_id}>
                           <CandidatoFila
                             perfilId={c.profile_id}
@@ -403,6 +438,9 @@ function ShiftCandidatesContent() {
                             foto={c.photo_url}
                             verificada={c.identidad_verificada}
                             signals={c}
+                            rotulo={compu && i === 0 ? "Recomendación de Oído" : null}
+                            seleccionada={compu && fichaId === c.profile_id}
+                            onSeleccionar={compu ? () => setVerId(c.profile_id) : undefined}
                             onElegir={elegir(c.profile_id, c.full_name, c.photo_url)}
                             eligiendo={assigning === c.profile_id}
                             bloqueado={assigning !== null}
@@ -421,6 +459,21 @@ function ShiftCandidatesContent() {
             )}
           </div>
         )}
+        </div>
+        {ficha && fichaId && (
+          <div className="lg:sticky lg:top-[calc(var(--chrome-top)+1rem)] lg:max-h-[calc(100dvh-var(--chrome-top)-2rem)] lg:overflow-y-auto lg:border-l lg:border-line lg:pl-8">
+            <FichaCandidato
+              perfilId={fichaId}
+              nombre={ficha.nombre}
+              foto={ficha.foto}
+              token={token}
+              onElegir={elegir(fichaId, ficha.nombre, ficha.foto)}
+              eligiendo={assigning === fichaId}
+              bloqueado={assigning !== null}
+            />
+          </div>
+        )}
+        </div>
       </div>
 
       {elegido && (

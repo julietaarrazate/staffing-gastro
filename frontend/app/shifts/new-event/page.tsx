@@ -8,7 +8,7 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { getErrorMessage } from "@/lib/errors";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { EventResult, SKILL_LABELS, WORKER_SKILLS, WorkerSkill } from "@/lib/types";
-import { argentinaISOToLocalInput, localInputToArgentinaISO } from "@/lib/datetime";
+import { argentinaISOToLocalInput, formatShiftDayLong, formatShiftTime, localInputToArgentinaISO } from "@/lib/datetime";
 import { AI_EVENT_DRAFT_STORAGE_KEY, AssistantEventDraft } from "@/lib/use-ai-assistant";
 import LocationPicker, { LocationSelection } from "@/components/LocationPicker";
 import { useCompanyPlace } from "@/lib/company-place";
@@ -16,10 +16,10 @@ import ShiftDayHint from "@/components/ShiftDayHint";
 import { resolverHorario } from "@/lib/turno-horario";
 import { Button, PesosInput, TextField, Toggle, useToast } from "@/components/ui";
 import { pesosDesdeApi } from "@/lib/pesos";
-import { ChevronLeftIcon, FlameIcon, MapPinIcon, PlusIcon, TrashIcon, UtensilsIcon } from "@/components/icons";
+import { CalendarIcon, ChevronLeftIcon, FlameIcon, MapPinIcon, PlusIcon, TrashIcon, UtensilsIcon } from "@/components/icons";
 import { LIMITES } from "@/lib/limites";
 import { LETRAS_APP } from "@/lib/letras";
-import { plural } from "@/lib/format";
+import { formatArs, plural } from "@/lib/format";
 
 interface RoleRow {
   key: string;
@@ -131,7 +131,8 @@ function NewEventForm() {
   const latitude = place?.latitude ?? null;
   const longitude = place?.longitude ?? null;
   const hasPlace = place != null && city.trim() !== "";
-  const totalRequested = roles.reduce((sum, r) => sum + (Number(r.count) || 0), 0);
+  const totalRequested = roles.reduce((sum, r) => sum + Math.max(0, Number(r.count) || 0), 0);
+  const totalPagar = roles.reduce((sum, r) => sum + Math.max(0, Number(r.count) || 0) * Math.max(0, Number(r.payAmount) || 0), 0);
   // Misma regla que /shifts/new y que el servidor (G14): cada puesto del
   // evento es un turno, así que el inicio no puede haber pasado y la jornada
   // dura de 1 a 16 horas; «de 21:00 a 02:00» termina al día siguiente.
@@ -225,7 +226,7 @@ function NewEventForm() {
             </p>
           )}
         </div>
-        <Button fullWidth size="lg" onClick={() => router.push("/shifts")}>
+        <Button fullWidth size="lg" className="lg:mx-auto lg:max-w-sm" onClick={() => router.push("/shifts")}>
           Ver mi panel
         </Button>
       </div>
@@ -233,7 +234,8 @@ function NewEventForm() {
   }
 
   return (
-    <div className={`${LETRAS_APP} estilo-suave mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col px-4 pt-4 md:min-h-[calc(100dvh-var(--chrome-top))] lg:max-w-2xl`}>
+    <div className={`${LETRAS_APP} estilo-suave mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col px-4 pt-4 md:min-h-[calc(100dvh-var(--chrome-top))] lg:max-w-5xl lg:flex-row lg:items-start lg:gap-10 lg:px-6 lg:pt-10`}>
+      <div className="flex flex-1 flex-col">
       {/* La dirección suave (ADR-0028, 2026-11-19), como «Publicar turno»:
           arriba el cielo con la vuelta y el título en letra grande, abajo la
           hoja blanca con el formulario. */}
@@ -462,6 +464,74 @@ function NewEventForm() {
         Publicar evento
       </Button>
       </div>
+      </div>
+
+      {/* Resumen del evento (lg+): como la vista previa de «Publicar turno»,
+          el costado deja de ser aire. Lo que se va cargando, a la vista, con
+          el total de personas y lo que cuesta la jornada. */}
+      <aside
+        aria-label="Resumen del evento"
+        className="hidden lg:block lg:w-[320px] lg:shrink-0"
+      >
+        <div className="sticky top-24">
+          <p className="font-semibold text-ink">Resumen</p>
+          <p className="mt-1 text-sm text-ink-soft">Así se va armando el evento.</p>
+          <div className="tarjeta-suave mt-4 p-5">
+            <h2 className="break-words text-lg font-extrabold leading-tight text-ink">
+              {name.trim() || <span className="text-ink-soft">Sin nombre todavía</span>}
+            </h2>
+            <ul className="mt-3 space-y-1.5 text-sm text-ink-soft">
+              <li className="flex items-start gap-2">
+                <CalendarIcon size={15} className="mt-0.5 shrink-0" />
+                {horario.valido ? (
+                  <span>
+                    <span className="first-letter:uppercase">
+                      {formatShiftDayLong(localInputToArgentinaISO(startAt))}
+                    </span>
+                    {" · "}
+                    {formatShiftTime(localInputToArgentinaISO(startAt))} →{" "}
+                    {formatShiftTime(localInputToArgentinaISO(horario.fin))}
+                  </span>
+                ) : (
+                  <span>Cuándo: todavía sin definir</span>
+                )}
+              </li>
+              <li className="flex items-start gap-2">
+                <MapPinIcon size={15} className="mt-0.5 shrink-0" />
+                <span>{hasPlace ? (usingCompanyPlace && companyPlace ? companyPlace.label : city) : "Dónde: todavía sin definir"}</span>
+              </li>
+            </ul>
+            <ul className="mt-4 divide-y divide-line border-t border-line">
+              {roles.map((r) => (
+                <li key={r.key} className="flex items-baseline justify-between gap-3 py-2 text-sm">
+                  <span className="font-semibold text-ink">
+                    {Number(r.count) || 0} × {SKILL_LABELS[r.position]}
+                  </span>
+                  <span className="text-ink-soft">
+                    {Number(r.payAmount) > 0 ? `${formatArs(Number(r.payAmount))} c/u` : "Sin pago"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-sm text-ink-soft">
+              {plural(totalRequested, "persona", "personas")} en total
+            </p>
+            {roles.every((r) => Number(r.payAmount) > 0) && totalRequested > 0 && (
+              <p className="mt-1 text-sm font-semibold text-ink">
+                Total en pagos: {formatArs(totalPagar)}
+              </p>
+            )}
+            {(tips || meal || urgent || dressCode.trim() !== "") && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {tips && <span className="chip-suave">+ propinas</span>}
+                {meal && <span className="chip-suave">Comida</span>}
+                {urgent && <span className="chip-suave">Urgente</span>}
+                {dressCode.trim() !== "" && <span className="chip-suave">Dress code: {dressCode.trim()}</span>}
+              </div>
+            )}
+          </div>
+        </div>
+      </aside>
     </div>
   );
 }

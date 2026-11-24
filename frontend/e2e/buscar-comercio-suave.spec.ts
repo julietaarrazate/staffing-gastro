@@ -229,3 +229,19 @@ test("con 50 resultados el título dice «50 o más» y «Ver más personas» tr
   expect(pedidos).toContain("50/0");
   expect(pedidos).toContain("50/50");
 });
+
+// Escritorio, renglón 4 (2026-11-24): en la compu el comercio ya ve la lista de
+// personas a la izquierda (panel de 400 px) y el mapa ocupando el resto.
+test("en la compu el panel de personas va a la izquierda y el mapa ocupa el resto", async ({ page }) => {
+  await buscar(page, "light", null, 1440);
+  const panel = (await page.locator("aside").boundingBox())!;
+  const mapa = (await page.locator(".buscar-mapa").boundingBox())!;
+  expect(panel.width).toBeLessThanOrEqual(401);
+  expect(Math.abs(mapa.x - (panel.x + panel.width))).toBeLessThan(2);
+  expect(mapa.width).toBeGreaterThan(900);
+  expect(Math.abs(mapa.y - panel.y)).toBeLessThan(2);
+  const filas = page.locator("aside").getByRole("link").filter({ hasText: /Ramírez|Medina/ });
+  const [a, b] = [(await filas.nth(0).boundingBox())!, (await filas.nth(1).boundingBox())!];
+  expect(Math.abs(a.x - b.x)).toBeLessThan(2);
+  expect(b.y).toBeGreaterThan(a.y + a.height - 1);
+});

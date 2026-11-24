@@ -83,7 +83,7 @@ const publicar = (page: Page) => page.getByRole("button", { name: "Publicar even
 
 test("con local cargado: toma su zona, la muestra y publica con ella", async ({ page }) => {
   const publicados = await abrirFormulario(page, LOCAL);
-  await expect(page.getByText("Honduras 5200, Palermo")).toBeVisible();
+  await expect(page.getByText("Honduras 5200, Palermo").first()).toBeVisible();
   await expect(page.getByText("En tu local. Avisamos a la gente que está cerca.")).toBeVisible();
 
   await completarLoDemas(page);
@@ -111,7 +111,7 @@ test("el pago de cada puesto con coma se redondea al peso", async ({ page }) => 
 
 test("con local cargado: se puede cambiar la zona y se publica la elegida", async ({ page }) => {
   const publicados = await abrirFormulario(page, LOCAL);
-  await expect(page.getByText("Honduras 5200, Palermo")).toBeVisible();
+  await expect(page.getByText("Honduras 5200, Palermo").first()).toBeVisible();
   await page.getByRole("button", { name: "Cambiar" }).click();
 
   await page.getByLabel("Barrio").selectOption("Almagro");

@@ -21,7 +21,7 @@ export default function SettingsPage() {
   // Mismo criterio que `/profile`, que espera a la sesión con un skeleton.
   if (loading || !user) {
     return (
-      <SubpaginaSuave title="">
+      <SubpaginaSuave formulario title="">
         <div aria-hidden>
           <Skeleton className="h-20 w-full" />
           <Skeleton className="mt-8 h-44 w-full" />
@@ -34,7 +34,7 @@ export default function SettingsPage() {
   // el título; en la hoja, la apariencia y la cuenta como filas suaves, sin
   // íconos de colores.
   return (
-    <SubpaginaSuave title="Ajustes">
+    <SubpaginaSuave formulario title="Ajustes">
       <h2 className="titulo-seccion">Apariencia</h2>
       <div className="mt-3">
         <AppearanceControl />

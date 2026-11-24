@@ -1,7 +1,9 @@
 "use client";
 
 import ListaMapa from "@/components/worker/ListaMapa";
-import { useCallback, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
+import { useEsCompu } from "@/lib/use-es-compu";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { api, ApiError } from "@/lib/api";
 import { appliedShiftIds } from "@/lib/applications";
 import { getErrorMessage } from "@/lib/errors";
@@ -20,7 +22,6 @@ import {
 import {
   distanceOf,
   getStoredLocation,
-  originFor,
   sortByDistance,
 } from "@/lib/current-location";
 import { sortByBestPay } from "@/lib/pay";
@@ -47,6 +48,70 @@ import { EmptyFeedIllustration } from "@/components/illustrations";
  * 2026-11-19 al 20 fue «con relieve» (título en brocha, pestañas con raya y
  * comandas). Qué se pide, cómo se filtra y qué hace cada botón no cambió.
  */
+
+const ShiftMap = dynamic(() => import("@/components/worker/ShiftMap"), {
+  ssr: false,
+  loading: () => <div className="absolute inset-0 animate-pulse bg-surface" />,
+});
+
+// Último recurso para abrir el mapa: sin ubicación ni turnos con coordenadas.
+const DEFAULT_CENTER: [number, number] = [-34.6037, -58.3816]; // Obelisco
+
+
+/** El turno resaltado en la compu (por un pin, el mouse o el teclado) y si la
+ *  cámara lo acompaña. Vive fuera de React: resaltar una fila no vuelve a
+ *  dibujar la página ni la lista; sólo el mapa se entera (`useSyncExternalStore`)
+ *  y la fila se marca a mano con `data-elegido`. */
+type Resaltado = { id: string | null; seguir: boolean };
+function crearResaltado() {
+  let actual: Resaltado = { id: null, seguir: false };
+  let bloqueadoHasta = 0;
+  const oyentes = new Set<() => void>();
+  return {
+    leer: () => actual,
+    suscribir(fn: () => void) {
+      oyentes.add(fn);
+      return () => void oyentes.delete(fn);
+    },
+    poner(id: string | null, seguir: boolean) {
+      if (actual.id === id && actual.seguir === seguir) return;
+      actual = { id, seguir };
+      oyentes.forEach((fn) => fn());
+    },
+    /** Elegido desde el mapa: la lista se desplaza y el mouse queda sobre otra
+     *  fila; un rato después de elegir se ignora el hover. */
+    bloquearHover: () => void (bloqueadoHasta = Date.now() + 700),
+    hoverBloqueado: () => Date.now() < bloqueadoHasta,
+  };
+}
+type StoreResaltado = ReturnType<typeof crearResaltado>;
+
+/** El mapa de turnos al lado de la lista (`lg`). Memoizado: sólo se redibuja si
+ *  cambian los turnos o el centro, o el turno resaltado (que lee del store). */
+const MapaLateral = memo(function MapaLateral({
+  shifts,
+  center,
+  sinOrigen,
+  store,
+  onSelect,
+}: {
+  shifts: Shift[];
+  center: [number, number];
+  sinOrigen: boolean;
+  store: StoreResaltado;
+  onSelect: (id: string) => void;
+}) {
+  const { id, seguir } = useSyncExternalStore(store.suscribir, store.leer, store.leer);
+  return (
+    <aside
+      aria-label="Mapa de turnos"
+      data-testid="buscar-mapa"
+      className="buscar-mapa-lateral relative overflow-hidden lg:sticky lg:top-[calc(var(--chrome-top)+1rem)]"
+    >
+      <ShiftMap shifts={shifts} center={center} activeId={id} onSelect={onSelect} followActive={seguir} sinOrigen={sinOrigen} />
+    </aside>
+  );
+});
 
 /** Un chip de filtro: de vidrio sobre el cielo (`vidrio`) o suave en la hoja.
  *  El elegido va en azul hondo (`.chip-elegido`); el ámbar queda para la
@@ -98,6 +163,22 @@ export default function BuscarPage() {
   const [urgentOnly, setUrgentOnly] = useState(false);
   const [sort, setSort] = useState<"nearby" | "pay">("nearby");
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
+  // En la compu, el mapa al lado: el turno resaltado (por el pin o por pasar el
+  // mouse sobre su fila) y si la cámara lo acompaña (sólo cuando se toca un pin).
+  const esCompu = useEsCompu();
+  const [resaltado] = useState(crearResaltado);
+  const listaRef = useRef<HTMLDivElement>(null);
+  // La fila resaltada se marca en el DOM, sin pasar por el estado de la página.
+  useEffect(() => {
+    let marcada: Element | null = null;
+    const marcar = () => {
+      const { id } = resaltado.leer();
+      marcada?.removeAttribute("data-elegido");
+      marcada = id ? (listaRef.current?.querySelector(`[data-turno-id="${CSS.escape(id)}"]`) ?? null) : null;
+      marcada?.setAttribute("data-elegido", "");
+    };
+    return resaltado.suscribir(marcar);
+  }, [resaltado]);
 
   // Turnos que la persona descartó o a los que se postuló desde esta pantalla:
   // una recarga (aviso, vuelta a la pestaña) no los vuelve a mostrar aunque el
@@ -195,10 +276,45 @@ export default function BuscarPage() {
     }
   }
 
-  const origin = originFor(getStoredLocation(), profile);
-  const byDistance = sortByDistance(shifts, origin);
-  const sorted = sort === "pay" ? sortByBestPay(byDistance) : byDistance;
-  const sortedShifts = urgentOnly ? sorted.filter((s) => s.urgent) : sorted;
+  const stored = getStoredLocation();
+  const originLat = stored?.latitude ?? profile?.latitude ?? null;
+  const originLng = stored?.longitude ?? profile?.longitude ?? null;
+  const origin = useMemo<[number, number] | null>(
+    () => (originLat != null && originLng != null ? [originLat, originLng] : null),
+    [originLat, originLng]
+  );
+  const sortedShifts = useMemo(() => {
+    const byDistance = sortByDistance(shifts, origin);
+    const sorted = sort === "pay" ? sortByBestPay(byDistance) : byDistance;
+    return urgentOnly ? sorted.filter((s) => s.urgent) : sorted;
+  }, [shifts, origin, sort, urgentOnly]);
+  // Si cambia la lista (filtro, orden, turnos nuevos) o se pasa a celular, se
+  // suelta el resaltado: su fila puede haber desaparecido y el pin quedaría
+  // activo sin fila marcada.
+  useEffect(() => {
+    resaltado.poner(null, false);
+  }, [resaltado, sortedShifts, esCompu]);
+
+  // El mapa abre donde está la persona; sin ubicación, en el primer turno con
+  // coordenadas (y sin el punto azul, que no sería ella).
+  const primeroConCoords = sortedShifts.find((s) => s.latitude != null && s.longitude != null);
+  const centroLat = origin?.[0] ?? primeroConCoords?.latitude ?? DEFAULT_CENTER[0];
+  const centroLng = origin?.[1] ?? primeroConCoords?.longitude ?? DEFAULT_CENTER[1];
+  const centro = useMemo<[number, number]>(() => [centroLat, centroLng], [centroLat, centroLng]);
+
+  const elegirEnMapa = useMemo(
+    () => (id: string) => {
+      resaltado.bloquearHover();
+      resaltado.poner(id, true);
+      const fila = listaRef.current?.querySelector(`[data-turno-id="${CSS.escape(id)}"]`);
+      fila?.scrollIntoView({ block: "center", behavior: "smooth" });
+    },
+    [resaltado]
+  );
+  // Con el mouse o el teclado sobre una fila: se resalta su pin (la cámara no se mueve).
+  const resaltarFila = (id: string) => {
+    if (!resaltado.hoverBloqueado()) resaltado.poner(id, false);
+  };
 
   return (
     <div className="estilo-suave mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col md:min-h-[calc(100dvh-var(--chrome-top))] md:max-w-5xl md:px-4 md:pt-4">
@@ -214,7 +330,8 @@ export default function BuscarPage() {
         <p className="mt-1 text-sm">Explorá oportunidades de cualquier rubro, no sólo el tuyo.</p>
       </div>
 
-      <div className="hoja -mt-7 flex-1 px-4 pb-8 pt-5 md:px-6">
+      <div className="hoja -mt-7 flex-1 px-4 pb-8 pt-5 md:px-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
+        <div className="min-w-0">
         {/* Accesos por rubro: una tecla suave con el ícono y el nombre corto de
             cada rubro. Tocar una filtra; tocarla de nuevo la suelta (no hay
             «Todos»). Un carril que se desliza en el celular; en la compu, donde
@@ -299,22 +416,48 @@ export default function BuscarPage() {
               {/* Cada turno es una fila suave con el pago en grande. Un solo
                   ámbar por pantalla: «Postularme» va en ámbar en el primero de
                   la lista y quieto en los demás (como «Elegir» en Candidatos). */}
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div
+                ref={listaRef}
+                className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-1"
+                onMouseLeave={esCompu ? () => resaltado.poner(null, false) : undefined}
+                onBlurCapture={
+                  esCompu
+                    ? (e) => {
+                        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) resaltado.poner(null, false);
+                      }
+                    : undefined
+                }
+              >
                 {sortedShifts.map((shift, i) => (
-                  <OportunidadFila
+                  <div
                     key={shift.id}
-                    shift={shift}
-                    distanceKm={distanceOf(shift, origin)}
-                    destacado={i === 0}
-                    applying={decidingId === shift.id}
-                    onApply={() => handleDecide(shift, "like")}
-                    onPass={() => handleDecide(shift, "pass")}
-                  />
+                    data-turno-id={shift.id}
+                    onMouseEnter={esCompu ? () => resaltarFila(shift.id) : undefined}
+                    onFocusCapture={esCompu ? () => resaltarFila(shift.id) : undefined}
+                    className="fila-buscar-celda"
+                  >
+                    <OportunidadFila
+                      shift={shift}
+                      distanceKm={distanceOf(shift, origin)}
+                      destacado={i === 0}
+                      applying={decidingId === shift.id}
+                      onApply={() => handleDecide(shift, "like")}
+                      onPass={() => handleDecide(shift, "pass")}
+                    />
+                  </div>
                 ))}
               </div>
             </>
           )}
         </div>
+        </div>
+
+        {/* En la compu, el mapa al lado de la lista (escritorio, renglón 4/10):
+            los turnos con su pago en el pin; tocar un pin resalta su fila. Pegado
+            arriba mientras se baja por la lista. En el celular no se monta. */}
+        {esCompu && (
+          <MapaLateral shifts={sortedShifts} center={centro} sinOrigen={origin === null} store={resaltado} onSelect={elegirEnMapa} />
+        )}
       </div>
     </div>
   );

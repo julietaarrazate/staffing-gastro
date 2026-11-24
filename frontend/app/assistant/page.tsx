@@ -37,7 +37,7 @@ export default function AssistantPage() {
 
   if (authLoading || !user || user.role === "admin") {
     return (
-      <div className="mx-auto max-w-md px-4 py-4">
+      <div className="mx-auto max-w-md px-4 py-4 md:max-w-[var(--app-reading)]">
         <Skeleton className="h-9 w-9 rounded-full" />
         <Skeleton className="mt-6 h-24 w-full" />
       </div>
@@ -122,7 +122,7 @@ function AssistantChatShell({
   }, []);
 
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col px-4 pb-4 pt-4 md:min-h-[calc(100dvh-var(--chrome-top))]">
+    <div className="mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col px-4 pb-4 pt-4 md:min-h-[calc(100dvh-var(--chrome-top))] md:max-w-[var(--app-reading)]">
       <div className="flex items-center gap-3">
         <button
           type="button"

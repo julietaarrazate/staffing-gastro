@@ -266,3 +266,23 @@ for (const theme of ["light", "dark"] as const) {
 
 // El perfil del comercio también pasó a la dirección suave (2026-11-21): lo
 // prueba `perfil-comercio-suave.spec.ts`.
+
+// En la compu (1440 px) el perfil va en dos columnas dentro del marco de 1024 px:
+// la reputación y las reseñas a la izquierda, los datos y los accesos a la derecha.
+test("en la compu el perfil va en dos columnas dentro del marco, y el celular sigue en una", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await perfil(page);
+  await page.goto("/profile");
+  const numero = page.locator(".perfil-numero");
+  const ajustes = page.locator(".hoja").getByRole("link", { name: "Ajustes", exact: true });
+  await expect(numero).toBeVisible();
+  const [n, a, hoja] = await Promise.all([numero.boundingBox(), ajustes.boundingBox(), page.locator(".hoja").boundingBox()]);
+  expect(a!.x).toBeGreaterThan(n!.x + 450);
+  expect(hoja!.width).toBeLessThanOrEqual(1024);
+  expect(hoja!.width).toBeGreaterThan(900);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const [n2, a2] = await Promise.all([numero.boundingBox(), ajustes.boundingBox()]);
+  expect(a2!.y).toBeGreaterThan(n2!.y);
+});

@@ -165,3 +165,20 @@ for (const tema of ["light", "dark"] as const) {
     expect(contraste).toBeGreaterThanOrEqual(4.5);
   });
 }
+
+// Escritorio, renglón 14 (2026-11-24): ya estaba bien en la compu (lista al
+// costado y conversación al lado). Se mide que siga así: las burbujas no pasan
+// de ~560 px y el campo de escribir queda en el panel, sin estirarse al marco.
+test("en la compu (1440) las burbujas no pasan de 560 px y el campo no se estira", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await chats(page);
+  await page.goto("/chats/s1");
+  await expect(page.getByText("Sí, llego 19:45.")).toBeVisible();
+  for (const burbuja of await page.locator(".burbuja").all()) {
+    expect((await burbuja.boundingBox())!.width).toBeLessThanOrEqual(560);
+  }
+  const lista = (await page.getByRole("link", { name: /Bar Mirasol/ }).boundingBox())!;
+  const form = (await page.getByPlaceholder("Escribí un mensaje...").boundingBox())!;
+  expect(form.width).toBeLessThanOrEqual(640);
+  expect(form.x).toBeGreaterThan(lista.x + lista.width);
+});

@@ -237,3 +237,20 @@ test("el admin ve el perfil con la cáscara de la Administración", async ({ pag
   await expect(page.locator(".estilo-suave .app-cielo.cielo-limpio")).toHaveCount(1);
   await expect(page.getByRole("link", { name: "Ajustes" })).toBeVisible();
 });
+
+test("en la compu el perfil del comercio va en dos columnas dentro del marco, y el celular sigue en una", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await perfil(page, { perfil: CON_HISTORIA });
+  const numero = page.locator(".perfil-numero");
+  const ajustes = hoja(page).getByRole("link", { name: "Ajustes", exact: true });
+  await expect(numero).toBeVisible();
+  const [n, a, h] = await Promise.all([numero.boundingBox(), ajustes.boundingBox(), hoja(page).boundingBox()]);
+  expect(a!.x).toBeGreaterThan(n!.x + 450);
+  expect(h!.width).toBeLessThanOrEqual(1024);
+  expect(h!.width).toBeGreaterThan(900);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const [n2, a2] = await Promise.all([numero.boundingBox(), ajustes.boundingBox()]);
+  expect(a2!.y).toBeGreaterThan(n2!.y);
+});

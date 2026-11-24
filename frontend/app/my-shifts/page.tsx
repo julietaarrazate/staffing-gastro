@@ -713,7 +713,7 @@ function MatchesContent() {
     })
     .sort(porInicio);
   const turnoDeHoy = enMarcha[enMarcha.length - 1] ?? porEmpezar[0] ?? null;
-  const otrosActivos = activeShifts.filter((s) => s.id !== turnoDeHoy?.id);
+  const otrosActivos = activeShifts.filter((s) => s.id !== turnoDeHoy?.id).sort(porInicio);
 
   const origin = originFor(here, profile);
   // En el orden en que se fueron tocando (no el orden de la lista): más
@@ -797,13 +797,20 @@ function MatchesContent() {
                 {/* Oculto: los puestos de las comandas son h3 y no tienen que
                     saltar desde el h1. */}
                 <h2 className="sr-only">Asignados</h2>
-                {turnoDeHoy && <div className="md:max-w-xl">{renderAssigned(turnoDeHoy, true)}</div>}
-                {otrosActivos.length > 0 && (
-                  <div
-                    className={`grid grid-cols-1 items-start gap-3 md:grid-cols-2 xl:grid-cols-3 ${
-                      turnoDeHoy ? "mt-3" : ""
-                    }`}
-                  >
+                {/* En la compu (escritorio, renglones 5 y 11): con tarjeta de hoy,
+                    dos columnas explícitas (hoy a la izquierda, los demás en
+                    orden cronológico a la derecha), así ninguna salta de
+                    columna cuando una tarjeta cambia de alto; sin ella, una
+                    grilla de dos por fila. */}
+                {turnoDeHoy ? (
+                  <div data-testid="turnos-activos" className="flex flex-col gap-3 md:grid md:grid-cols-2 md:items-start">
+                    {renderAssigned(turnoDeHoy, true)}
+                    {otrosActivos.length > 0 && (
+                      <div className="flex flex-col gap-3">{otrosActivos.map((s) => renderAssigned(s))}</div>
+                    )}
+                  </div>
+                ) : (
+                  <div data-testid="turnos-activos" className="grid grid-cols-1 items-start gap-3 md:grid-cols-2">
                     {otrosActivos.map((s) => renderAssigned(s))}
                   </div>
                 )}
@@ -820,7 +827,7 @@ function MatchesContent() {
               >
                 Terminados
               </h2>
-              <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2">
                 {finishedShifts.map((s) => renderAssigned(s))}
               </div>
             </>
@@ -840,7 +847,7 @@ function MatchesContent() {
           ) : (
             <>
             <h2 className="sr-only">Postulaciones</h2>
-            <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2">
             {pending.map((application) => {
               const shift = appShifts[application.shift_id];
               if (!shift || !enLaVista(shift)) return null;
@@ -928,7 +935,7 @@ function MatchesContent() {
               )}
 
               <h2 className="sr-only">Guardados</h2>
-              <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2">
                 {savedShifts.filter(enLaVista).map((shift) => {
                   const selected = selectedForCompare.includes(shift.id);
                   return (

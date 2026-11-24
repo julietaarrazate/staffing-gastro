@@ -167,6 +167,6 @@ test("evento: la fecha también se lee en oscuro y confirma el día", async ({ p
     `dark (evento): texto ${medida.color} sobre ${medida.fondo}`
   ).toBeGreaterThan(4.5);
 
-  await expect(page.getByText(/sábado.*19 de septiembre/i)).toBeVisible();
-  await expect(page.getByText(/domingo.*20 de septiembre/i)).toBeVisible();
+  await expect(page.getByText(/sábado.*19 de septiembre/i).first()).toBeVisible();
+  await expect(page.getByText(/domingo.*20 de septiembre/i).first()).toBeVisible();
 });

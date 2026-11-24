@@ -274,3 +274,97 @@ test("las cifras de la destacada no se pisan con la letra al 200 % a 320 px, y a
   }
   for (const sobra of grande.rotulos) expect(sobra).toBeLessThanOrEqual(0);
 });
+
+// Escritorio, renglón 2 (2026-11-24): en la compu la lista y la ficha de la
+// persona elegida van lado a lado; «Elegir a <nombre>» vive en la ficha (el
+// único ámbar) y tocar a otra persona cambia la ficha sin salir de la pantalla.
+test.describe("en la compu, la lista con la ficha al lado", () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  const PERFIL = (id: string, nombre: string) => ({
+    id, user_id: `u-${id}`, full_name: nombre, photo_url: null, birth_date: null, age: 27, city: "Palermo, CABA",
+    bio: `Bio de ${nombre}.`, latitude: null, longitude: null, skills: ["mozo"], years_experience: 7, languages: [], certifications: [],
+    cv_url: null, cv_filename: null, cv_kind: null, is_available: true, rating: 4.8, events_completed: 38, punctuality_rate: 0.95,
+    cancellations: 0, level: "plata", badges: [], identidad_verificada: true,
+  });
+
+  async function conFichas(page: Page) {
+    await candidatos(page, [SOFIA, persona("2", "Lucas Medina"), persona("3", "Ana Paz")]);
+    const nombres: Record<string, string> = { "wp-1": "Sofía Ramírez", "wp-2": "Lucas Medina", "wp-3": "Ana Paz" };
+    await page.route(/\/api\/v1\/workers\/wp-\d+$/, (r) => {
+      const id = r.request().url().split("/").pop()!;
+      return r.fulfill(json(PERFIL(id, nombres[id])));
+    });
+    await page.route(/\/api\/v1\/favorites\/wp-\d+\/status/, (r) => r.fulfill(json({ is_favorite: false })));
+    await page.route("**/api/v1/reviews/workers/**", (r) => r.fulfill(json([])));
+  }
+
+  test("la ficha de la primera persona queda a la derecha de la lista, con un solo ámbar", async ({ page }) => {
+    await conFichas(page);
+    await page.goto("/shifts/shift-1/candidates");
+    const ficha = page.getByTestId("ficha-candidato");
+    await expect(ficha).toBeVisible();
+    await expect(ficha.getByRole("heading", { level: 2, name: "Sofía Ramírez, 27" })).toBeVisible();
+    await expect(ficha).toContainText("Bio de Sofía Ramírez.");
+    // Sin tarjeta destacada: todos en filas; la primera con su rótulo.
+    await expect(page.locator("[data-destacado]")).toHaveCount(0);
+    const filas = page.locator("[data-fila-candidato]");
+    await expect(filas).toHaveCount(3);
+    await expect(filas.first()).toContainText("Mejor calificación");
+    // Lista a la izquierda, ficha a la derecha, a la misma altura de arriba.
+    const lista = (await filas.first().boundingBox())!;
+    const caja = (await ficha.boundingBox())!;
+    expect(caja.x).toBeGreaterThan(lista.x + lista.width);
+    expect(Math.abs(caja.y - lista.y)).toBeLessThan(120);
+    expect(lista.width).toBeLessThan(480);
+    // El único ámbar es «Elegir a Sofía», en la ficha.
+    await expect(page.locator("button.boton-relieve")).toHaveCount(1);
+    await expect(ficha.getByRole("button", { name: "Elegir a Sofía", exact: true })).toHaveClass(/boton-relieve/);
+  });
+
+  test("tocar a otra persona cambia la ficha sin salir de la pantalla; elegirla asigna a esa persona", async ({ page }) => {
+    await conFichas(page);
+    let asignado: unknown = null;
+    await page.route("**/api/v1/shifts/shift-1/assign", (r) => {
+      asignado = r.request().postDataJSON();
+      return r.fulfill(json({ ...SHIFT, status: "asignado", worker_profile_id: "wp-2" }));
+    });
+    await page.goto("/shifts/shift-1/candidates");
+    await page.locator("[data-fila-candidato]").filter({ hasText: "Lucas Medina" }).getByRole("link").click();
+    await expect(page).toHaveURL(/\/shifts\/shift-1\/candidates/);
+    const ficha = page.getByTestId("ficha-candidato");
+    await expect(ficha.getByRole("heading", { level: 2, name: "Lucas Medina, 27" })).toBeVisible();
+    await expect(ficha).toContainText("Bio de Lucas Medina.");
+    await expect(ficha.getByRole("link", { name: "Ver ficha completa" })).toHaveAttribute("href", "/workers/wp-2");
+    await ficha.getByRole("button", { name: "Elegir a Lucas", exact: true }).click();
+    await expect.poll(() => asignado).toEqual({ worker_profile_id: "wp-2" });
+  });
+
+  test("si un refresco en vivo reordena la lista, la ficha sigue siendo la misma persona", async ({ page }) => {
+    await conFichas(page);
+    let reordenada = false;
+    // Se pisa la lista con una que cambia de orden en el siguiente pedido (el último `route` gana).
+    await page.route("**/api/v1/applications/shifts/shift-1", (r) =>
+      r.fulfill(json(reordenada ? [persona("2", "Lucas Medina", { rating: 5, events_completed: 90 }), persona("3", "Ana Paz"), SOFIA] : [SOFIA, persona("2", "Lucas Medina"), persona("3", "Ana Paz")]))
+    );
+    await page.goto("/shifts/shift-1/candidates");
+    const ficha = page.getByTestId("ficha-candidato");
+    await expect(ficha.getByRole("heading", { level: 2, name: "Sofía Ramírez, 27" })).toBeVisible();
+    reordenada = true;
+    await page.evaluate(() => window.dispatchEvent(new Event("online")));
+    // El orden cambió (la lista se ordena por turnos hechos y nota): la primera ya es otra persona...
+    await expect(page.locator("[data-fila-candidato]").first()).toContainText("Lucas Medina");
+    // ...y la ficha (y su «Elegir a») sigue siendo la de Sofía.
+    await expect(ficha.getByRole("heading", { level: 2, name: "Sofía Ramírez, 27" })).toBeVisible();
+    await expect(ficha.getByRole("button", { name: "Elegir a Sofía", exact: true })).toBeVisible();
+    await expect(page.locator('[data-fila-candidato] a[aria-current="true"]')).toContainText("Sofía Ramírez");
+  });
+
+  test("en el celular no hay ficha al lado y la destacada sigue donde estaba", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await conFichas(page);
+    await page.goto("/shifts/shift-1/candidates");
+    await expect(page.locator("[data-destacado]")).toHaveCount(1);
+    await expect(page.getByTestId("ficha-candidato")).toHaveCount(0);
+  });
+});

@@ -29,6 +29,7 @@ export default function OpportunityCard({
   locked = false,
   applied = false,
   shareable = false,
+  acento = true,
   preview = false,
   href,
 }: {
@@ -54,6 +55,10 @@ export default function OpportunityCard({
    *  fijo y sobra lugar; en el mazo mobile no, porque ahí cada píxel del
    *  cuerpo compite con "Cómo llegar" (ver más abajo). */
   shareable?: boolean;
+  /** «Postularme» en ámbar (por defecto). En la grilla de escritorio sólo la
+   *  primera tarjeta lo lleva (un solo ámbar por pantalla, como en `/buscar`):
+   *  las demás pasan `acento={false}` y van en azul hondo (`.boton-hondo`). */
+  acento?: boolean;
   /** Como imagen (la landing): el puesto va como texto y no como `h2`, y el
    *  comercio sin link, así los buscadores no leen títulos ni links de un
    *  turno de ejemplo. */
@@ -126,7 +131,7 @@ export default function OpportunityCard({
           la fila "1 persona") y a 31% quedaba un hueco blanco de ~300px entre
           el horario y "Cómo llegar". El `min-h` y el flex en flujo de abajo
           siguen evitando que los bloques del banner se pisen. */}
-      <div className="relative flex h-[42%] min-h-[148px] shrink-0 flex-col justify-between overflow-hidden">
+      <div data-hero className="relative flex h-[42%] min-h-[148px] shrink-0 flex-col justify-between overflow-hidden">
         {hasPhoto ? (
           <img
             src={cldThumb(heroPhoto, 800)}
@@ -289,7 +294,7 @@ export default function OpportunityCard({
             {shift.tips && <span className="rounded-full bg-surface px-2.5 py-1 text-xs font-semibold text-ink/70">Propinas</span>}
             {shift.meal && <span className="rounded-full bg-surface px-2.5 py-1 text-xs font-semibold text-ink/70">Comida del personal</span>}
             {shift.dress_code && (
-              <span className="rounded-full bg-surface px-2.5 py-1 text-xs font-semibold text-ink/70">
+              <span className="max-w-full break-words rounded-2xl bg-surface px-2.5 py-1 text-xs font-semibold text-ink/70">
                 Vestimenta: {shift.dress_code}
               </span>
             )}
@@ -367,7 +372,15 @@ export default function OpportunityCard({
                     <CheckIcon size={16} /> Postulado
                   </p>
                 ) : (
-                  <Button fullWidth size="sm" loading={applying} disabled={applying || locked} onClick={onApply}>
+                  <Button
+                    fullWidth
+                    size="sm"
+                    variant={acento ? "primary" : "surface"}
+                    className={acento ? "" : "boton-hondo"}
+                    loading={applying}
+                    disabled={applying || locked}
+                    onClick={onApply}
+                  >
                     Postularme
                   </Button>
                 ))}

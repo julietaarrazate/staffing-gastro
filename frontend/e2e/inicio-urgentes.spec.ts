@@ -17,7 +17,7 @@ function turno(id: string, min: number, extra: Record<string, unknown> = {}) {
   return { id, start_at: en(min), end_at: fin(min), company_name: `Local ${id}`, position: "bartender", ...extra };
 }
 
-async function inicio(page: Page, turnos: Record<string, unknown>[], tema: "light" | "dark" = "light") {
+async function inicio(page: Page, turnos: Record<string, unknown>[], tema: "light" | "dark" = "light", postulaciones: unknown[] = []) {
   await page.clock.install({ time: AHORA });
   await setTheme(page, tema);
   await injectSession(page);
@@ -26,7 +26,7 @@ async function inicio(page: Page, turnos: Record<string, unknown>[], tema: "ligh
   await mockEmptyNotifications(page);
   await page.route("**/api/v1/auth/me", (r) => r.fulfill(json(deContrato("auth_me_worker", { full_name: "Sofía Demo" }))));
   await page.route("**/api/v1/shifts/feed**", (r) => r.fulfill(json(deContrato("feed", turnos))));
-  await page.route("**/api/v1/applications/mine**", (r) => r.fulfill(json([])));
+  await page.route("**/api/v1/applications/mine**", (r) => r.fulfill(json(postulaciones)));
   await page.route("**/api/v1/workers/me/profile", (r) =>
     r.fulfill(json(deContrato("perfil_trabajador", { city: "Palermo, CABA", skills: ["mozo"] })))
   );
@@ -194,3 +194,62 @@ test("en la compu (1280) la fila va arriba de la grilla y no desborda", async ({
   expect(await alto(region(page))).toBeLessThan(await alto(page.getByTestId("feed-grid-card").first()));
   expect(await sinScrollDePagina(page)).toBe(true);
 });
+
+test("en la compu (1440) «Urgentes» es una grilla de 4 por fila que reparte el ancho y la grilla de turnos lleva su título", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await inicio(page, [
+    turno("a", 30, { pay_amount: "30000" }), turno("b", 60, { pay_amount: "30000" }), turno("c", 90, { pay_amount: "30000" }),
+    turno("d", 120, { pay_amount: "30000" }), turno("e", 150, { pay_amount: "30000" }),
+  ]);
+  const tarjetas = region(page).getByTestId("feed-urgente-card");
+  await expect(tarjetas).toHaveCount(5);
+  const lista = (await region(page).locator("ul").boundingBox())!;
+  const cajas = [];
+  for (let i = 0; i < 5; i++) cajas.push((await tarjetas.nth(i).boundingBox())!);
+  // Cuatro en la primera fila, la quinta abajo; todas del mismo ancho y sin scroll de costado.
+  expect(new Set(cajas.slice(0, 4).map((c) => Math.round(c.y))).size).toBe(1);
+  expect(cajas[4].y).toBeGreaterThan(cajas[0].y + cajas[0].height - 1);
+  expect(Math.abs(cajas[0].width - cajas[3].width)).toBeLessThan(1);
+  // Reparten el ancho de la lista (no quedan 232 px con media pantalla vacía).
+  expect(cajas[3].x + cajas[3].width).toBeGreaterThan(lista.x + lista.width - 4);
+  expect(await region(page).locator("ul").evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+  expect(await sinScrollDePagina(page)).toBe(true);
+  await expect(page.getByRole("heading", { name: "Para vos" })).toBeVisible();
+  await expect(page.getByTestId("feed-grid-cuenta")).toHaveText("5 turnos");
+});
+
+for (const [caso, post] of [["sin turno de hoy", []], ["con turno de hoy", [{ status: "aceptada", shift_id: "h1", shift: { id: "h1", position: "bartender", status: "confirmado", company_name: "Bar Mirasol", address: "Thames 1840", city: "Palermo", start_at: "2026-11-21T20:00:00-03:00", end_at: "2026-11-22T02:00:00-03:00" } }]]] as const) {
+  test(`en la compu (1440) ${caso}: un solo ámbar visible en toda la pantalla`, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await inicio(page, [turno("a", 30, { pay_amount: "30000" }), turno("b", 60), turno("c", 400), turno("d", 500)], "light", deContrato("postulaciones_mias", post as never));
+    await expect(page.getByTestId("feed-grid-card")).toHaveCount(4);
+    const ambares = page.locator("main a.boton-relieve:visible, main button.boton-relieve:visible");
+    await expect(ambares).toHaveCount(1);
+    // Sin turno de hoy es el «Postularme» de la primera tarjeta; con turno de hoy, el del cielo.
+    if (post.length === 0) await expect(page.getByTestId("feed-grid-card").first().locator(".boton-relieve")).toHaveCount(1);
+    else await expect(page.getByTestId("feed-grid-card").locator(".boton-relieve")).toHaveCount(0);
+    await expect(page.getByTestId("feed-grid-card").nth(1).locator(".boton-hondo")).toHaveCount(1);
+  });
+}
+
+for (const ancho of [1440, 768]) {
+  test(`en la compu (${ancho}) con una vestimenta de 255 caracteres «Postularme» queda adentro de la tarjeta, la fila iguala su alto y el hero no crece`, async ({ page }) => {
+    await page.setViewportSize({ width: ancho, height: 900 });
+    const larga = "Camisa blanca, pantalón negro de vestir, delantal negro liso, zapatos cerrados antiderrapantes, pelo recogido, sin accesorios llamativos, buena presencia y sonrisa. ".repeat(3).slice(0, 255);
+    expect(larga.length).toBe(255);
+    await inicio(page, [turno("a", 400, { dress_code: larga, pay_amount: "30000" }), turno("b", 500, { pay_amount: "30000" }), turno("c", 600), turno("d", 700)]);
+    const tarjetas = page.getByTestId("feed-grid-card");
+    await expect(tarjetas).toHaveCount(4);
+    const caja = (await tarjetas.nth(0).boundingBox())!;
+    const post = (await tarjetas.nth(0).getByRole("button", { name: "Postularme" }).boundingBox())!;
+    expect(post.y + post.height).toBeLessThanOrEqual(caja.y + caja.height);
+    // Las tarjetas de una misma fila igualan su alto (y nunca bajan de 560).
+    const b = (await tarjetas.nth(1).boundingBox())!;
+    expect(Math.abs(b.height - caja.height)).toBeLessThan(1);
+    expect(caja.height).toBeGreaterThanOrEqual(560);
+    // El hero no se estira de forma rara con una tarjeta más alta (mismo alto que en la tarjeta corta de otra fila).
+    const hero = async (i: number) => (await tarjetas.nth(i).locator("[data-hero]").boundingBox())!.height;
+    expect(Math.abs((await hero(0)) - (await hero(3)))).toBeLessThan(1);
+    expect(caja.height).toBeGreaterThan(560);
+  });
+}

@@ -54,6 +54,7 @@ export default function ShiftMap({
   onSelect,
   followActive,
   bottomPadding = 0,
+  sinOrigen = false,
 }: {
   shifts: Shift[];
   center: [number, number];
@@ -66,6 +67,9 @@ export default function ShiftMap({
   /** Alto en px que la hoja de tarjetas tapa abajo (mobile). La cámara lo deja
    * libre para que el encuadre y los vuelos caigan arriba de la hoja. */
   bottomPadding?: number;
+  /** `true` si `center` no es dónde está la persona (sólo un lugar para abrir el
+   * mapa): no se dibuja el punto azul ni el anillo de cercanía. */
+  sinOrigen?: boolean;
 }) {
   const mapRef = useRef<MapRef | null>(null);
   const [viewport, setViewport] = useState<Viewport | null>(null);
@@ -215,8 +219,8 @@ export default function ShiftMap({
       onMoveEnd={handleMoveEnd}
       className="absolute inset-0 h-full w-full"
     >
-      <UserPuck center={center} />
-      <RadiusRing center={center} radiusKm={SEARCH_RADIUS_KM} />
+      {!sinOrigen && <UserPuck center={center} />}
+      {!sinOrigen && <RadiusRing center={center} radiusKm={SEARCH_RADIUS_KM} />}
       {orderedClusters.map((feature, index) => {
         const [lng, lat] = feature.geometry.coordinates;
         if (isCluster(feature)) {

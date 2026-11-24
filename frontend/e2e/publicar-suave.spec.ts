@@ -151,9 +151,59 @@ for (const theme of ["light", "dark"] as const) {
     await expect(page.locator(".estilo-suave")).toHaveCount(1);
     const titulo = page.getByRole("heading", { level: 1, name: "Publicar para un evento" });
     await expect(titulo).toHaveClass(/titulo-pantalla/);
-    await expect(page.getByText("Honduras 5200")).toBeVisible();
+    await expect(page.getByText("Honduras 5200").first()).toBeVisible();
     const propinas = page.getByRole("switch", { name: /Acepta propinas/ });
     await expect(propinas.locator(".casilla")).toBeVisible();
     await sinScrollHorizontal(page);
   });
 }
+
+test("en la compu, el último paso no repite la tarjeta del turno: queda sólo la vista previa", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await preparar(page);
+  await page.goto("/shifts/new");
+  await page.getByRole("button", { name: "Bartender" }).click();
+  const fechas = page.locator('input[type="datetime-local"]');
+  await fechas.nth(0).fill(enDias(3, "20:00"));
+  await fechas.nth(1).fill(enDias(4, "03:00"));
+  await page.getByRole("button", { name: "Continuar" }).click();
+  await page.getByPlaceholder("48.000").fill("48000");
+  await page.getByRole("button", { name: "Continuar" }).click();
+  await expect(page.getByRole("heading", { name: "¿Dónde es?" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "El turno", exact: true })).toBeHidden();
+  const vista = page.getByRole("region", { name: "Vista previa del turno" });
+  await expect(vista.getByText("$48.000")).toBeVisible();
+  // Formulario con ancho de lectura, a la izquierda de la vista previa.
+  const hoja = await page.locator(".hoja").boundingBox();
+  const caja = await vista.boundingBox();
+  expect(hoja!.width).toBeLessThanOrEqual(660);
+  expect(caja!.x).toBeGreaterThanOrEqual(hoja!.x + hoja!.width);
+});
+
+test("en la compu, publicar evento suma un resumen al costado y el formulario queda en ancho de lectura", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await preparar(page);
+  await page.goto("/shifts/new-event");
+  const resumen = page.getByRole("complementary", { name: "Resumen del evento" });
+  await expect(resumen).toBeVisible();
+  await page.getByLabel("Nombre del evento").fill("Boda Martínez");
+  await page.getByPlaceholder("15.000").fill("30000");
+  await expect(resumen.getByText("Boda Martínez")).toBeVisible();
+  await expect(resumen.getByText("1 × Mozo/a")).toBeVisible();
+  await expect(resumen.getByText("Total en pagos: $30.000")).toBeVisible();
+  const hoja = await page.locator(".hoja").boundingBox();
+  const lado = await resumen.boundingBox();
+  expect(hoja!.width).toBeLessThanOrEqual(660);
+  expect(lado!.x).toBeGreaterThanOrEqual(hoja!.x + hoja!.width);
+  await expect(page.getByLabel("Nombre del evento")).toBeVisible();
+  const campo = await page.getByLabel("Nombre del evento").boundingBox();
+  expect(campo!.width).toBeLessThanOrEqual(640);
+});
+
+test("en el celular, publicar evento no muestra el resumen del costado", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await preparar(page);
+  await page.goto("/shifts/new-event");
+  await expect(page.getByRole("heading", { name: "Publicar para un evento" })).toBeVisible();
+  await expect(page.getByRole("complementary", { name: "Resumen del evento" })).toBeHidden();
+});
