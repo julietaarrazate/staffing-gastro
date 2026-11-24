@@ -206,3 +206,25 @@ test("«Enviar calificación» va en azul hondo: con las estrellas puestas no su
   expect(await enviar.evaluate((el) => getComputedStyle(el).backgroundImage)).toContain("rgb(42, 115, 163)");
   await expect(page.locator("button.boton-relieve:not(:disabled)")).toHaveCount(1);
 });
+
+// Escritorio, renglones 5 y 11 (2026-11-24): en la compu la tarjeta de hoy y las
+// demás fluyen en dos columnas (nunca tres) y la tarjeta de hoy no queda sola
+// con un hueco al lado.
+test("en la compu los turnos van en dos columnas: hoy a la izquierda y los demás al lado", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const mas = [
+    turno({ id: "a", position: "mozo", status: "confirmado", start_at: isoEnDias(2, "21:00"), end_at: isoEnDias(3, "02:00") }),
+    turno({ id: "b", position: "barista", status: "asignado", start_at: isoEnDias(2, "22:00"), end_at: isoEnDias(3, "02:00") }),
+  ];
+  await misTurnos(page, [...TURNOS(), ...mas]);
+  const caja = async (id: string) => (await page.locator(`[data-shift-id="${id}"]`).boundingBox())!;
+  const [hoy, s1, a] = [await caja("hoy"), await caja("s1"), await caja("a")];
+  const xs = [hoy.x, s1.x, a.x];
+  expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThan(300); // hay segunda columna
+  expect(new Set(xs.map((x) => Math.round(x / 10))).size).toBe(2); // y no una tercera
+  expect(hoy.x).toBeLessThan(s1.x + 1);
+  expect(hoy.width).toBeGreaterThan(380);
+  // Al lado de la tarjeta de hoy empieza otro turno (no queda un hueco bajo ella).
+  const otro = [s1, a, await caja("b")].find((c) => c.x > hoy.x + 100)!;
+  expect(otro.y).toBeLessThan(hoy.y + hoy.height);
+});

@@ -26,13 +26,13 @@ cualquiera), después lo del comercio (es quien más usa la compu), quien trabaj
 | 2 | Candidatos, con la ficha al lado | `shifts` / `turno/[id]` | comercio | ⚪ |
 | 3 | Publicar turno y publicar evento | `shifts/new`, `shifts/new-event` | comercio | 🔵 «Publicar turno» ya tenía el formulario a la izquierda (ancho de lectura, ~575 px) y la vista previa a la derecha; se quitó la tarjeta repetida del último paso en compu. «Publicar evento» pasa a formulario + «Resumen» a la derecha (nombre, cuándo, zona, puestos, personas y total a pagar) y el botón de la confirmación deja de ocupar 480 px |
 | 4 | Buscar y Mapa del comercio | `buscar`, `map` | comercio | ⚪ |
-| 5 | Mis turnos del comercio | `my-shifts` | comercio | ⚪ |
+| 5 | Mis turnos del comercio | `my-shifts` | comercio | 🔵 `/my-shifts` es sólo de quien trabaja (`useRequireAuth({ roles: ["worker"] })`; al comercio lo manda a `/shifts`): lo suyo es el Panel (renglón 1), con su misma tira de días y «Más adelante». Nada propio que adaptar |
 | 6 | Mi plan | `subscription` | comercio | 🔵 mirado a 1440 px el 2026-11-24: ya estaba bien (los tres planes lado a lado desde `lg`, marco de 1024 px); sin cambios de código, con test de la disposición (`e2e/mi-plan-suave.spec.ts`) |
 | 7 | Perfil del comercio y ficha pública | `profile`, `companies/[id]` | comercio | ⚪ |
 | 8 | Favoritos | `favorites` | comercio | 🔵 mirado a 1440 px el 2026-11-24: ya estaba bien (grilla de dos columnas desde `lg`); sin cambios de código, con test de la disposición (`e2e/favoritos-soporte-suave.spec.ts`) |
 | 9 | Inicio de quien trabaja | `feed` (trabajador) | trabajador | ⚪ |
 | 10 | Buscar y Mapa de quien trabaja | `search`, `map` | trabajador | ⚪ |
-| 11 | Mis turnos de quien trabaja | `my-shifts` | trabajador | ⚪ |
+| 11 | Mis turnos de quien trabaja | `my-shifts` | trabajador | 🔵 desde el 2026-11-24 la tarjeta de hoy y los demás turnos fluyen en dos columnas desde `md` (antes tres en `xl`, de ~300 px, con huecos y la tarjeta de hoy sola); Terminados, Postulaciones y Guardados también de a dos. Sin panel de detalle aparte: cada turno ya trae todo y sus acciones adentro (`app/my-shifts/page.tsx`) |
 | 12 | Detalle del turno | `turno/[id]` | trabajador | ⚪ |
 | 13 | Perfil de quien trabaja y ficha pública | `profile`, `workers/[id]` | trabajador | ⚪ |
 | 14 | Chats (ya en dos columnas: revisar) | `chats` | los dos | ⚪ revisar |

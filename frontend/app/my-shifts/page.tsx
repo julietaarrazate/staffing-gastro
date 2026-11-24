@@ -797,16 +797,16 @@ function MatchesContent() {
                 {/* Oculto: los puestos de las comandas son h3 y no tienen que
                     saltar desde el h1. */}
                 <h2 className="sr-only">Asignados</h2>
-                {turnoDeHoy && <div className="md:max-w-xl">{renderAssigned(turnoDeHoy, true)}</div>}
-                {otrosActivos.length > 0 && (
-                  <div
-                    className={`grid grid-cols-1 items-start gap-3 md:grid-cols-2 xl:grid-cols-3 ${
-                      turnoDeHoy ? "mt-3" : ""
-                    }`}
-                  >
-                    {otrosActivos.map((s) => renderAssigned(s))}
-                  </div>
-                )}
+                {/* En la compu (escritorio, renglón 5/11) la tarjeta de hoy y las
+                    demás fluyen en dos columnas (la de hoy es mucho más alta:
+                    con filas de grilla dejaba un hueco al lado). */}
+                <div
+                  data-testid="turnos-activos"
+                  className="flex flex-col gap-3 md:block md:columns-2 md:gap-x-3 md:[&>*]:mb-3 md:[&>*]:break-inside-avoid"
+                >
+                  {turnoDeHoy && renderAssigned(turnoDeHoy, true)}
+                  {otrosActivos.map((s) => renderAssigned(s))}
+                </div>
               </>
             )
           )}
@@ -820,7 +820,7 @@ function MatchesContent() {
               >
                 Terminados
               </h2>
-              <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2">
                 {finishedShifts.map((s) => renderAssigned(s))}
               </div>
             </>
@@ -840,7 +840,7 @@ function MatchesContent() {
           ) : (
             <>
             <h2 className="sr-only">Postulaciones</h2>
-            <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2">
             {pending.map((application) => {
               const shift = appShifts[application.shift_id];
               if (!shift || !enLaVista(shift)) return null;
@@ -928,7 +928,7 @@ function MatchesContent() {
               )}
 
               <h2 className="sr-only">Guardados</h2>
-              <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2">
                 {savedShifts.filter(enLaVista).map((shift) => {
                   const selected = selectedForCompare.includes(shift.id);
                   return (
