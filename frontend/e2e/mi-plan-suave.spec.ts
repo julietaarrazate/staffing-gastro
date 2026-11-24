@@ -137,3 +137,23 @@ test("en la compu los tres planes van en tres columnas", async ({ page }) => {
   expect(cajas).toHaveLength(3);
   expect(Math.max(...cajas) - Math.min(...cajas)).toBeLessThan(2);
 });
+
+// Escritorio, renglón 6 (2026-11-24): en la compu los tres planes van lado a
+// lado, dentro del marco (1024 px), y el celular los sigue apilando.
+test("en la compu los tres planes van lado a lado, dentro del marco; en el celular, apilados", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await miPlan(page, "suscripcion_comercio");
+  const tarjetas = page.locator("#planes .tarjeta-suave");
+  const cajas = await Promise.all([0, 1, 2].map(async (i) => (await tarjetas.nth(i).boundingBox())!));
+  expect(Math.max(...cajas.map((c) => c.y)) - Math.min(...cajas.map((c) => c.y))).toBeLessThan(2);
+  expect(cajas[0].x + cajas[0].width).toBeLessThan(cajas[1].x);
+  expect(cajas[1].x + cajas[1].width).toBeLessThan(cajas[2].x);
+  for (const c of cajas) expect(c.width).toBeGreaterThan(260);
+  const hoja = (await page.locator(".hoja").boundingBox())!;
+  expect(hoja.width).toBeLessThanOrEqual(1024);
+  expect(cajas[2].x + cajas[2].width).toBeLessThanOrEqual(hoja.x + hoja.width);
+  await page.setViewportSize({ width: 390, height: 844 });
+  const ys = await tarjetas.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().top));
+  expect(ys[1]).toBeGreaterThan(ys[0]);
+  expect(ys[2]).toBeGreaterThan(ys[1]);
+});

@@ -160,3 +160,23 @@ test("el admin entra al mismo ticket y su vuelta lleva a la lista de Administrac
   await abrir(page, "/support/t1", { rol: "admin" });
   await expect(cielo(page).getByRole("link", { name: "Volver a los tickets" })).toHaveAttribute("href", "/admin/support");
 });
+
+// Escritorio, renglón 8 (2026-11-24): en la compu Favoritos es una grilla de
+// dos columnas dentro del marco; en el celular, una columna.
+test("Favoritos en la compu (1440 px): grilla de dos columnas con «Quitar» a la vista", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await abrir(page, "/favorites", {
+    favoritos: [fav("w1", "Juana Pérez"), fav("w2", "Lucía Gómez"), fav("w3", "Tomás Rivero")],
+  });
+  const tarjetas = page.locator(".hoja .tarjeta-suave");
+  await expect(tarjetas).toHaveCount(3);
+  const c = await Promise.all([0, 1, 2].map(async (i) => (await tarjetas.nth(i).boundingBox())!));
+  expect(Math.abs(c[0].y - c[1].y)).toBeLessThan(2);
+  expect(c[1].x).toBeGreaterThan(c[0].x + c[0].width - 1);
+  expect(c[2].y).toBeGreaterThan(c[0].y + c[0].height - 1);
+  expect(c[0].width).toBeGreaterThan(380);
+  const hoja = (await page.locator(".hoja").boundingBox())!;
+  expect(hoja.width).toBeLessThanOrEqual(1024);
+  expect(c[1].x + c[1].width).toBeLessThanOrEqual(hoja.x + hoja.width);
+  for (const q of await page.getByRole("button", { name: "Quitar" }).all()) await expect(q).toBeInViewport();
+});
