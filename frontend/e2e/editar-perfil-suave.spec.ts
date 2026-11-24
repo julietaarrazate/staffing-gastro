@@ -96,3 +96,23 @@ test("cambiar la apariencia desde Ajustes sigue cambiando el tema", async ({ pag
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await expect(page.getByRole("radio", { name: "Oscuro" })).toHaveCSS("background-image", HONDO);
 });
+
+// En la compu (1440 px) los formularios y los ajustes miden unos 640 px de
+// lectura, centrados bajo la barra de arriba: ni un celular perdido en el medio
+// ni renglones de 1000 px. El celular no cambia.
+for (const [rol, ruta] of [["worker", "/profile/edit"], ["employer", "/profile/edit"], ["worker", "/profile/settings"]] as const) {
+  test(`en la compu ${ruta} (${rol}) mide 640 px de ancho, centrado y sin scroll horizontal`, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await abrir(page, "light", rol, ruta);
+    const hoja = page.locator(".estilo-suave .hoja");
+    await expect(hoja).toBeVisible();
+    const cascara = page.locator(".estilo-suave").first();
+    const caja = (await cascara.boundingBox())!;
+    expect(caja.width).toBeGreaterThanOrEqual(639);
+    expect(caja.width).toBeLessThanOrEqual(641);
+    expect(Math.abs(caja.x + caja.width / 2 - 720)).toBeLessThanOrEqual(1);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect((await cascara.boundingBox())!.width).toBeLessThanOrEqual(390);
+  });
+}

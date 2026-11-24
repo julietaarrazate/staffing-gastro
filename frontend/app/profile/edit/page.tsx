@@ -26,7 +26,7 @@ export default function EditProfilePage() {
 
   if (loading || !user) {
     return (
-      <SubpaginaSuave title="">
+      <SubpaginaSuave formulario title="">
         <div aria-hidden>
           <Skeleton className="h-24 w-full" />
           <Skeleton className="mt-5 h-64 w-full" />
@@ -41,7 +41,7 @@ export default function EditProfilePage() {
     // La dirección suave (ADR-0028, 2026-11-20): el cielo corto con la vuelta
     // y el título, y el formulario directo sobre la hoja (antes, una tarjeta
     // con filete sobre el lienzo).
-    <SubpaginaSuave title={isWorker ? "Editar perfil" : "Datos del comercio"}>
+    <SubpaginaSuave formulario title={isWorker ? "Editar perfil" : "Datos del comercio"}>
       {isWorker ? <WorkerProfileForm /> : user.role === "employer" ? <CompanyProfileForm /> : null}
     </SubpaginaSuave>
   );

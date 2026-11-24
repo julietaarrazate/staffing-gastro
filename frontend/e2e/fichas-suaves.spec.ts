@@ -532,3 +532,23 @@ test("con nota y sin turnos hechos, la ficha no escribe «0 turnos»", async ({ 
   await expect(hoja(page)).not.toContainText(/0 turnos/);
   await expect(hoja(page)).not.toContainText(/puntualidad/);
 });
+
+// En la compu las fichas públicas van en dos columnas dentro del marco de 1024 px:
+// identidad y datos a la izquierda; las reseñas (persona) o el mapa (comercio) a la derecha.
+test("en la compu la ficha de una persona lleva las reseñas al lado de los datos, y la del comercio el mapa", async ({ page }) => {
+  await abrir(page, "/workers/wp-1", { ancho: 1440, alto: 900 });
+  const reputacion = page.locator(".perfil-numero");
+  const resenas = page.getByRole("region", { name: "Reseñas" });
+  await expect(resenas).toBeVisible();
+  const [r, s, h] = await Promise.all([reputacion.boundingBox(), resenas.boundingBox(), hoja(page).boundingBox()]);
+  expect(s!.x).toBeGreaterThan(r!.x + 450);
+  expect(h!.width).toBeLessThanOrEqual(1024);
+  expect(await sinScrollHorizontal(page)).toBe(true);
+
+  await page.goto("/companies/c-1");
+  const ubicacion = page.getByRole("region", { name: "Ubicación" });
+  await expect(ubicacion).toBeVisible();
+  const [r2, u] = await Promise.all([page.locator(".perfil-numero").boundingBox(), ubicacion.boundingBox()]);
+  expect(u!.x).toBeGreaterThan(r2!.x + 450);
+  expect(await sinScrollHorizontal(page)).toBe(true);
+});
