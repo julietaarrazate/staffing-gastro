@@ -5451,14 +5451,17 @@ body:has([data-landing]) main {
   background: var(--color-surface);
   box-shadow: var(--suave-sombra);
 }
-/* La fila resaltada (por el pin o por el mouse): el aro azul de `/map`. */
+/* La fila resaltada (por el pin, el mouse o el teclado): el aro azul de `/map`. */
+:root {
+  --suave-aro: #2a73a3;
+}
+:root:root[data-theme="dark"] {
+  --suave-aro: #5fa3cf;
+}
 :root .fila-buscar-celda {
   height: 100%;
   border-radius: var(--radio-suave);
 }
 :root .fila-buscar-celda[data-elegido] {
-  box-shadow: 0 0 0 2px #2a73a3;
-}
-:root:root[data-theme="dark"] .fila-buscar-celda[data-elegido] {
-  box-shadow: 0 0 0 2px #5fa3cf;
+  box-shadow: 0 0 0 2px var(--suave-aro);
 }

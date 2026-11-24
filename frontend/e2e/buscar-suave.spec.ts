@@ -340,6 +340,23 @@ test("en la compu la lista y el mapa van lado a lado, y tocar un pin resalta su 
   await expect(page.locator('[data-turno-id="c1"]')).not.toHaveAttribute("data-elegido", "");
 });
 
+test("en la compu, con el teclado sobre una fila se resalta su fila y su pin, y al salir se suelta", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await conTurnos(page, [turno("c1", "bartender", "Bar Lavalle"), turno("c2", "mozo", "Café Belgrano", { pay_amount: "15000", latitude: -34.5885, longitude: -58.4262 })]);
+  const pinMozo = page.getByRole("button", { name: /^Turno de Mozo/ });
+  await expect(pinMozo).toBeVisible({ timeout: 20_000 });
+  const antes = await pinMozo.evaluate((el) => el.outerHTML);
+  await page.locator('[data-turno-id="c2"]').getByRole("button", { name: "Compartir" }).focus();
+  await expect(page.locator('[data-turno-id="c2"]')).toHaveAttribute("data-elegido", "");
+  await expect(page.locator('[data-turno-id="c1"]')).not.toHaveAttribute("data-elegido", "");
+  // El pin del turno resaltado cambia (queda activo).
+  await expect.poll(() => pinMozo.evaluate((el) => el.outerHTML)).not.toBe(antes);
+  // Con el foco fuera de la lista se suelta.
+  await page.getByRole("heading", { level: 1, name: "Buscar turnos" }).evaluate((el) => (el as HTMLElement).focus());
+  await page.getByRole("link", { name: "Lista" }).focus();
+  await expect(page.locator("[data-elegido]")).toHaveCount(0);
+});
+
 test("en el celular y en la tablet no hay mapa al lado de la lista", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await conTurnos(page, [turno("c1", "bartender", "Bar Lavalle")]);
