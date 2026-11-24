@@ -72,7 +72,7 @@ export const queEs: DatosLaminas & { mensaje: { de: string; texto: string }; cha
   mensaje: { de: "Mati · mozo", texto: "Perdón, hoy no llego." },
   chat: ["¿Alguien libre hoy a las 20?", "¿Conocés a alguien?", "Hoy no puedo, perdón", "¿Hasta qué hora es?", "Te paso un contacto", "Le pregunto a mi primo", "¿Cuánto pagan?", "Visto", "¿Sigue en pie?", "Ya conseguí, perdón"],
   pantallas: { entra: 176, toqueCampo: 200, tipeo: 206, completar: 262, donde: 268, publicar: 330, publicado: 336, candidatos: 360, verificada: 450, elegir: 552, oido: 558, oidoFin: 606 },
-  cierreApp: { boton: "Comentá CUBRIR", bajada: "Abre el 13/12 en CABA", linea2: "Y te aviso cuando abra." },
+  cierreApp: { boton: "Comentá CUBRIR", bajada: "Abre el 12/12 en CABA", linea2: "Y te aviso cuando abra." },
   sonido: {
     murmullo: true, musicaDesde: 180,
     cues: [["impresora", 6, -24], ["impresora", 28, -25], ["vibracion", 18, -10],
@@ -173,7 +173,7 @@ export const encargado: DatosLaminas & { chat: string[]; pantallas: Record<strin
   ],
   chat: ["¿Conocés a alguien?", "audio", "¿Alguien para el sábado?", "audio", "Pregunto y te digo", "¿Me pasás el número?", "audio", "Mañana te confirmo"],
   pantallas: { entra: 536, toqueCampo: 556, tipeo: 562, completar: 606, donde: 612, publicar: 660, publicado: 666 },
-  cierreApp: { boton: "Comentá CUBRIR", bajada: "Abre el 13/12", linea2: "Te mando el acceso para publicar tu primer turno." },
+  cierreApp: { boton: "Comentá CUBRIR", bajada: "Abre el 12/12", linea2: "Te mando el acceso para publicar tu primer turno." },
   sonido: {
     murmullo: true, murmulloDb: -4, musicaDesde: 210,
     cues: [["vibracion", 70, -16], ["toque", 82, -18], ["toque", 100, -18], ["vibracion", 118, -17], ["toque", 136, -18], ["toque", 152, -18], ["vibracion", 168, -17], ["toque", 184, -19],

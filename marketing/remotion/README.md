@@ -103,3 +103,19 @@ Deja los PNG en `capturas/` y los que usa el video en `public/cap/`, y reescribe
 - **Marca**: dirección suave de la app (ADR-0028): cielo, hojas blancas, sombras difusas, azul
   hondo y un solo ámbar; el filete «oído» va en el cierre.
 - **Sonido**: ver `sonidos/FUENTES.md`.
+
+## Tomas reales y sonido de Mixkit (prueba con T6-05)
+
+`t6-05-sabado-real` es T6-05 con video real de stock en vez de láminas: mismos textos, tiempos y cierre
+que `t6-05-sabado`, cada escena con una toma a pantalla completa (`src/kit/toma.tsx`) y el texto en una
+hoja blanca arriba. Las tomas son de [Mixkit](https://mixkit.co), **sólo las de «Stock Video Free
+License»** (las «Restricted» son de uso personal); lista y cómo verificar una nueva en `tomas/FUENTES.md`.
+El sonido suma música y efectos de Mixkit (licencias libres para redes): `sonido.musica`,
+`sonido.musicaDb`, `sonido.ambiente` y efectos nuevos en `sonido.cues` (`src/kit/sonido.tsx`). Ni las
+tomas ni los archivos de Mixkit van a git:
+
+```bash
+bash tomas/bajar-tomas.sh       # → public/tomas/
+bash sonidos/bajar-mixkit.sh    # → public/sonidos/mixkit/
+npm run render -- t6-05-sabado-real
+```

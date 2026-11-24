@@ -55,6 +55,12 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
      (`t6-05-sabado`, `que-es-oido-30s`, `t2-09-hielo`, `t3-05-cebolla`,
      `t1-04-orden-de-servicio`, `c2-07-costo-encargado`) y el kit de láminas y
      fotos (`src/kit/lamina.tsx`): un video nuevo se arma cambiando los datos.
+     **Video real (22/11):** Julieta prefirió tomas reales a las láminas; la
+     prueba es `t6-05-sabado-real` (stock gratis de Mixkit, sólo licencia
+     libre, y sonido nuevo con música y efectos de Mixkit; ver el README de
+     `marketing/remotion`). Siguiente: pasar las otras cinco con ese formato.
+     **La apertura pasó al 12/12** (Julieta, 22/11): videos, documento de
+     crecimiento y tablero de la beta actualizados.
   2. **Links etiquetados por cuenta y pieza: ya existe, sin código.** El alta
      guarda su origen (`users.signup_origin`, `identity/domain/origen_alta.py`;
      la serie M7 lo agrupa). Convención: `?utm_source=<cuenta>&utm_campaign=<pieza>`
@@ -79,8 +85,9 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
   La pasada por clase de error (2026-11-19) quedó auditada y arreglada en
   once PRs (#661 a #675, más los tests de contrato en #666), salvo el cobro
   con Mercado Pago (CON-06, CON-07, CON-09: latente, va antes de prender el
-  cobro) y tres decisiones de Julieta (PRI-06, PRI-07 y PRI-09, más el
-  texto de `/privacidad` sobre el CV). Detalle en el tablero («Pasada por
+  cobro) y PRI-07 y PRI-09, ya decididas por Julieta el 2026-11-24 (PRI-06
+  queda así): corregir `/privacidad` (con el texto del CV, una sola subida de
+  la versión legal) y «Ver como» sólo para mirar, con registro de cada uso. Detalle en el tablero («Pasada por
   clase de error» y «Para la próxima sesión»). **Sigue, en una sesión
   nueva: P1 a P5** en el orden del tablero (antes de P3 y P4, la opinión de
   la asesoría). Falta de Julieta, después del deploy del #669: los dos
@@ -108,9 +115,9 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
    bienvenida (#721). **Hecho también el 2026-11-21/22:** la tanda vista en maqueta (Urgentes, Mis turnos con la tira
    tocable, la oreja del asistente, el Panel compacto, el mapa con chips y los rubros, #722; el turno que
    cruza la medianoche, #723), el mapa de noche en azul (#724) y las hojas compartidas, la
-   Administración y **el cierre de ADR-0028** (#725: lo suave es la base de toda la app). **Queda de la
-   dirección suave sólo la landing** (prueba hecha, sin decidir: botón principal ámbar o azul hondo, y si
-   los títulos de sección dejan la serif); es lo único que conserva el relieve (`.estilo-relieve`).
+   Administración y **el cierre de ADR-0028** (#725: lo suave es la base de toda la app). **La landing queda
+   como está** (decidido por Julieta el 2026-11-24): no pasa a la dirección suave y es lo único que
+   conserva el relieve (`.estilo-relieve`). La dirección suave queda cerrada.
    **Falta que Julieta mire en su celular:** el mapa de noche nuevo, activar las notificaciones
    después de #720 (la causa de su falla no quedó confirmada) y si al tocar un pin del mapa el título
    y los chips se van de la pantalla. Anotado: la búsqueda del comercio devuelve como máximo 20

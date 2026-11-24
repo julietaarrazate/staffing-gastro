@@ -54,7 +54,7 @@ cubre desde ahí.
 
 ## Orden propuesto
 
-1. Antes del 13/12: nada de esto; la beta prueba lo central.
+1. Antes del 12/12: nada de esto; la beta prueba lo central.
 2. Diciembre: entrevistas a 5 a 10 encargados con la maqueta. Preguntas: cómo
    arman hoy la grilla y cuánto tardan; qué le mandan al contador; si invitarían
    a su equipo a marcar en la app; si pagarían por esto dentro del plan. Seguir
