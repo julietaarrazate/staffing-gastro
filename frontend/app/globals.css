@@ -2516,6 +2516,13 @@ body:has([data-landing]) main {
     padding: 28px 32px 36px;
   }
 }
+/* En compu el texto del cielo se alinea con la columna de las preguntas
+   (544 px de contenido: max-w-xl menos su px-4) en vez de pegarse al borde. */
+@media (min-width: 768px) {
+  .encuesta-cielo {
+    padding-inline: max(32px, calc((100% - 544px) / 2));
+  }
+}
 /* «Para trabajar»: la noche azul de la app, en un panel. */
 .landing-noche {
   margin: var(--l-margen) var(--l-margen) 0;

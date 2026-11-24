@@ -201,3 +201,16 @@ test("a 390 px no hay scroll horizontal y no hay barras de la app", async ({ pag
   expect(ancho).toBeLessThanOrEqual(390);
   await expect(page.getByRole("navigation")).toHaveCount(0);
 });
+
+test("en compu el título del cielo queda alineado con la columna de las preguntas", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await preparar(page);
+  await page.goto("/encuesta");
+  const titulo = page.getByRole("heading", { name: "¿Cuál es tu rol en el local?" });
+  await expect(titulo).toBeVisible();
+  const t = (await titulo.boundingBox())!;
+  const o = (await page.getByRole("radio", { name: "Dueño o dueña" }).boundingBox())!;
+  // Mismo borde izquierdo (±20 px: la opción tiene su propio borde) y no pegado al costado.
+  expect(Math.abs(t.x - o.x)).toBeLessThanOrEqual(20);
+  expect(t.x).toBeGreaterThan(300);
+});

@@ -40,7 +40,7 @@ cualquiera), después lo del comercio (es quien más usa la compu), quien trabaj
 | 16 | Asistente | `assistant` | los dos | 🔵 desde `md` la conversación mide el ancho de lectura (`--app-reading`, 640 px de contenido) en vez de los 448 del celular, con burbujas de hasta el 85 % de esa columna (~545 px) y el campo de escribir en esa columna (`app/assistant/page.tsx`); sigue en la piel vieja, sin la dirección suave |
 | 17 | Soporte | `support` | los dos | 🔵 revisado el 2026-11-24: la lista (544 px) y el ticket (ancho de lectura) ya estaban bien; sin cambios de código, sólo la prueba de disposición del ticket en `e2e/favoritos-soporte-suave.spec.ts` |
 | 18 | Ingresar, crear cuenta, recuperar, bienvenida, verificar email | `login`, `register`, `recuperar`, `restablecer`, `bienvenida`, `verificar-email` | los dos | 🔵 dos columnas desde `lg` en `components/acceso/PantallaAcceso.tsx`: el cielo grande con el título, qué es Oído y dos fotos; la hoja con el formulario |
-| 19 | Términos, privacidad, historia, encuesta | `terminos`, `privacidad`, `historia`, `encuesta` | público | ⚪ |
+| 19 | Términos, privacidad, historia, encuesta | `terminos`, `privacidad`, `historia`, `encuesta` | público | 🔵 legales con índice lateral fijo desde `lg` (`components/legal/IndiceLegal.tsx`, texto intacto) y tarjeta de 736 px; encuesta con el cielo alineado a la columna de preguntas; `/historia` ya era responsive y no se tocó |
 | 20 | Administración (métricas, personas, leads, soporte, verificación, seguridad, en vivo, herramientas) | `admin/*` | admin | ⚪ |
 
 La landing (`/`) queda como está (decisión del 2026-11-24): ya es responsive.
