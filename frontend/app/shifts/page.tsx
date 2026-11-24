@@ -593,7 +593,8 @@ function MyShiftsPanel() {
       {!loading && !error && !sinPerfil && shifts.length === 0 && (
         <section className="mt-7" data-testid="panel-primer-dia">
           <h2 className="titulo-seccion">Así sale un turno</h2>
-          <ol className="mt-5 flex flex-col gap-5 md:max-w-xl">
+          {/* En la compu los tres pasos van en fila, uno por columna. */}
+          <ol className="mt-5 flex flex-col gap-5 md:max-w-xl lg:grid lg:max-w-none lg:grid-cols-3 lg:gap-8">
             {PRIMER_DIA.map((paso, i) => (
               <li key={paso.titulo} className="flex gap-3.5">
                 <span
@@ -658,13 +659,15 @@ function MyShiftsPanel() {
           )}
           <div
             data-testid="shifts-panel-list"
-            className="mt-6 grid items-start gap-x-4 gap-y-7 md:grid-cols-2 xl:grid-cols-3"
+            className="mt-6 grid items-start gap-x-4 gap-y-7 md:grid-cols-2"
           >
+            {/* En la compu, dos columnas como mucho (escritorio, renglón 1,
+                2026-11-24): en el marco de 1024 px, tres dejaban tarjetas de
+                ~300 px que partían el horario y la persona en dos líneas. */}
             {visibleFamilies.map((family) => {
               const list = families[family];
-              const full = list.length >= 3;
-              const span = full ? "md:col-span-2 xl:col-span-3" : list.length === 2 ? "md:col-span-2" : "";
-              const cols = full ? "md:grid-cols-2 xl:grid-cols-3" : list.length === 2 ? "md:grid-cols-2" : "";
+              const span = list.length >= 2 ? "md:col-span-2" : "";
+              const cols = list.length >= 2 ? "md:grid-cols-2" : "";
               return (
                 <section key={family} className={`min-w-0 scroll-mt-4 ${span}`} data-family={family}>
                   <h2 className="titulo-seccion mb-3">
