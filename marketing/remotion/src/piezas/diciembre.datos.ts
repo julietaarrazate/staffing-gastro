@@ -134,7 +134,7 @@ export const cebolla: DatosLaminas = {
 // 4/12 · @turnosgastro · T1-04 El orden de servicio que nadie te explicó (28 s)
 export const servicio: DatosLaminas = {
   id: "t1-04-orden-de-servicio",
-  fotosCierre: ["cocina2", "mozo3"],
+  fotosCierre: ["cocina1", "mozo3"],
   titulo: "El orden de servicio que nadie te explicó",
   duracion: 840,
   cuenta: "@turnosgastro",

@@ -23,4 +23,7 @@ Julieta señaló las fotos de la landing: los seis cierres llevan un comercio y 
 escenas pasan a foto (el pase con el sello «¡OÍDO!», el salón de «Qué es Oído», el hielo nuevo y el mozo con
 los platos). Las escenas que explican (flechas, pasos de la cebolla, la fórmula) siguen dibujadas.
 
-**Queda abierto:** el «sí» o las correcciones de Julieta sobre los seis videos.
+**Queda abierto:** Julieta decidió (24/11) mergearlos como base y guía, sin publicarlos tal cual. Antes del
+merge, el cierre de «Orden de servicio» pasó de `cocina2` (cocina de una cadena con su logo a la vista) a
+`cocina1`. Para publicar alguno, revisar: «Elegís y listo» contra la pantalla que dice «falta que confirme»,
+el dibujo de la medialuna y la nitidez de las fotos de 480 × 600.
