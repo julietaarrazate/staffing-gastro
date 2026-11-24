@@ -231,3 +231,25 @@ for (const [caso, post] of [["sin turno de hoy", []], ["con turno de hoy", [{ st
     await expect(page.getByTestId("feed-grid-card").nth(1).locator(".boton-hondo")).toHaveCount(1);
   });
 }
+
+for (const ancho of [1440, 768]) {
+  test(`en la compu (${ancho}) con una vestimenta de 255 caracteres «Postularme» queda adentro de la tarjeta, la fila iguala su alto y el hero no crece`, async ({ page }) => {
+    await page.setViewportSize({ width: ancho, height: 900 });
+    const larga = "Camisa blanca, pantalón negro de vestir, delantal negro liso, zapatos cerrados antiderrapantes, pelo recogido, sin accesorios llamativos, buena presencia y sonrisa. ".repeat(3).slice(0, 255);
+    expect(larga.length).toBe(255);
+    await inicio(page, [turno("a", 400, { dress_code: larga, pay_amount: "30000" }), turno("b", 500, { pay_amount: "30000" }), turno("c", 600), turno("d", 700)]);
+    const tarjetas = page.getByTestId("feed-grid-card");
+    await expect(tarjetas).toHaveCount(4);
+    const caja = (await tarjetas.nth(0).boundingBox())!;
+    const post = (await tarjetas.nth(0).getByRole("button", { name: "Postularme" }).boundingBox())!;
+    expect(post.y + post.height).toBeLessThanOrEqual(caja.y + caja.height);
+    // Las tarjetas de una misma fila igualan su alto (y nunca bajan de 560).
+    const b = (await tarjetas.nth(1).boundingBox())!;
+    expect(Math.abs(b.height - caja.height)).toBeLessThan(1);
+    expect(caja.height).toBeGreaterThanOrEqual(560);
+    // El hero no se estira de forma rara con una tarjeta más alta (mismo alto que en la tarjeta corta de otra fila).
+    const hero = async (i: number) => (await tarjetas.nth(i).locator("[data-hero]").boundingBox())!.height;
+    expect(Math.abs((await hero(0)) - (await hero(3)))).toBeLessThan(1);
+    expect(caja.height).toBeGreaterThan(560);
+  });
+}

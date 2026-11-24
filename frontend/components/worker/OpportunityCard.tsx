@@ -131,7 +131,7 @@ export default function OpportunityCard({
           la fila "1 persona") y a 31% quedaba un hueco blanco de ~300px entre
           el horario y "Cómo llegar". El `min-h` y el flex en flujo de abajo
           siguen evitando que los bloques del banner se pisen. */}
-      <div className="relative flex h-[42%] min-h-[148px] shrink-0 flex-col justify-between overflow-hidden">
+      <div data-hero className="relative flex h-[42%] min-h-[148px] shrink-0 flex-col justify-between overflow-hidden">
         {hasPhoto ? (
           <img
             src={cldThumb(heroPhoto, 800)}
@@ -294,7 +294,7 @@ export default function OpportunityCard({
             {shift.tips && <span className="rounded-full bg-surface px-2.5 py-1 text-xs font-semibold text-ink/70">Propinas</span>}
             {shift.meal && <span className="rounded-full bg-surface px-2.5 py-1 text-xs font-semibold text-ink/70">Comida del personal</span>}
             {shift.dress_code && (
-              <span className="rounded-full bg-surface px-2.5 py-1 text-xs font-semibold text-ink/70">
+              <span className="max-w-full break-words rounded-2xl bg-surface px-2.5 py-1 text-xs font-semibold text-ink/70">
                 Vestimenta: {shift.dress_code}
               </span>
             )}

@@ -740,7 +740,7 @@ function WorkerFeedPanel() {
                 </div>
                 <div className="grid grid-cols-2 gap-5 pb-6 lg:grid-cols-3">
                   {visibleShifts.map((shift, i) => (
-                    <div key={shift.id} data-testid="feed-grid-card" className="h-[560px]">
+                    <div key={shift.id} data-testid="feed-grid-card" className="grid min-h-[560px] [&_[data-hero]]:h-[264px]">
                       <OpportunityCard
                         shift={shift}
                         distanceKm={distanceOf(shift, origin)}
