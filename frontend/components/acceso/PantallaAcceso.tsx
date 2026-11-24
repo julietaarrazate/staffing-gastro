@@ -62,9 +62,11 @@ export default function PantallaAcceso({
         {pasos && (
           <PasosTachados active={pasos.active} labels={pasos.labels} tono="cielo" className="mt-3" />
         )}
-        <h1 className="titulo-pantalla mt-4 break-words lg:mt-8">{titulo}</h1>
+        <h1 className="titulo-pantalla mt-4 break-words lg:mt-14">{titulo}</h1>
         {bajada && <p className="mt-1.5 break-words text-sm font-medium lg:mt-3 lg:text-base">{bajada}</p>}
-        <QueEsOido />
+        {/* Qué es Oído: sólo a quien todavía no tiene sesión (no en la bienvenida ni al
+            confirmar el email estando adentro). */}
+        {!user && <QueEsOido />}
       </div>
       <div className="hoja acceso-hoja -mt-7 flex flex-1 flex-col px-4 pb-8 pt-6 md:px-6 lg:mt-0 lg:w-[440px] lg:flex-none lg:justify-center lg:rounded-l-none lg:rounded-r-[28px] lg:px-10 lg:py-10">
         {children}
@@ -73,7 +75,7 @@ export default function PantallaAcceso({
   );
 }
 
-/** Lo que es Oído, sólo en la compu (en el celular el formulario va primero). */
+/** Lo que es Oído, sólo en la compu y sin sesión (en el celular el formulario va primero). */
 const PUNTOS = [
   "El comercio publica el turno en un minuto y elige a quién va.",
   "Quien trabaja elige el turno y sabe cuánto cobra antes de ir.",
@@ -97,7 +99,7 @@ function QueEsOido() {
           <div
             key={f}
             className={cn(
-              "relative h-44 w-36 overflow-hidden rounded-2xl shadow-[0_14px_30px_rgba(15,58,91,0.22)] ring-4 ring-[color:var(--color-card)]",
+              "relative h-44 w-36 overflow-hidden rounded-2xl shadow-[var(--shadow-float)] ring-4 ring-[color:var(--color-card)]",
               i === 0 ? "-rotate-3" : "translate-y-3 rotate-2"
             )}
           >

@@ -21,6 +21,13 @@ verificación es opcional, por eso «se ve quién la tiene»).
 **Navegación (renglón 0):** ya existía la barra de arriba de la compu y el marco de 1024 px con su test;
 lo que falta en las demás pantallas es aprovechar el ancho adentro (una columna de celular estirada).
 
+**Revisión independiente** (otro agente, 126 capturas en 7 anchos y los dos temas): nada bloqueante.
+Se aplicó: el bloque «qué es Oído» sólo sin sesión (no en la bienvenida ni al confirmar el email
+estando adentro), el título más abajo para que no lo pise la nube, la sombra de las fotos con el token
+`--shadow-float` y una prueba nueva del diseño en compu (`e2e/acceso-en-compu.spec.ts`). Las tres
+frases se quedan: son las promesas aprobadas en el documento de crecimiento («publicás en un minuto»,
+confirmado por Julieta el 22/11).
+
 **Pruebas:** e2e del acceso, la bienvenida, el origen del alta y los anchos (52 de 52); Vitest
 completo (1236); typecheck y lint sin errores. Capturas a 1440, 1024 y 390 px, en claro y oscuro.
 
