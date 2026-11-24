@@ -35,10 +35,10 @@ cualquiera), después lo del comercio (es quien más usa la compu), quien trabaj
 | 11 | Mis turnos de quien trabaja | `my-shifts` | trabajador | 🔵 desde el 2026-11-24 la tarjeta de hoy y los demás turnos fluyen en dos columnas desde `md` (antes tres en `xl`, de ~300 px, con huecos y la tarjeta de hoy sola); Terminados, Postulaciones y Guardados también de a dos. Sin panel de detalle aparte: cada turno ya trae todo y sus acciones adentro (`app/my-shifts/page.tsx`) |
 | 12 | Detalle del turno | `turno/[id]` | trabajador | ⚪ |
 | 13 | Perfil de quien trabaja y ficha pública | `profile`, `workers/[id]` | trabajador | ⚪ |
-| 14 | Chats (ya en dos columnas: revisar) | `chats` | los dos | ⚪ revisar |
+| 14 | Chats (ya en dos columnas: revisar) | `chats` | los dos | 🔵 revisado el 2026-11-24 a 1440 px, de los dos lados: ya estaba bien (lista de 380 px y conversación al lado, burbujas de ~460 px, campo dentro del panel); sin cambios de código, sólo la prueba de disposición en `e2e/chats-suave.spec.ts` |
 | 15 | Editar perfil y Ajustes | `profile/edit`, `profile/settings` | los dos | ⚪ |
-| 16 | Asistente | `assistant` | los dos | ⚪ |
-| 17 | Soporte | `support` | los dos | ⚪ |
+| 16 | Asistente | `assistant` | los dos | 🔵 desde `md` la conversación mide el ancho de lectura (`--app-reading`, 640 px de contenido) en vez de los 448 del celular, con burbujas de hasta 560 px y el campo de escribir en esa columna (`app/assistant/page.tsx`); sigue en la piel vieja, sin la dirección suave |
+| 17 | Soporte | `support` | los dos | 🔵 revisado el 2026-11-24: la lista (544 px) y el ticket (ancho de lectura) ya estaban bien; sin cambios de código, sólo la prueba de disposición del ticket en `e2e/favoritos-soporte-suave.spec.ts` |
 | 18 | Ingresar, crear cuenta, recuperar, bienvenida, verificar email | `login`, `register`, `recuperar`, `restablecer`, `bienvenida`, `verificar-email` | los dos | 🔵 dos columnas desde `lg` en `components/acceso/PantallaAcceso.tsx`: el cielo grande con el título, qué es Oído y dos fotos; la hoja con el formulario |
 | 19 | Términos, privacidad, historia, encuesta | `terminos`, `privacidad`, `historia`, `encuesta` | público | ⚪ |
 | 20 | Administración (métricas, personas, leads, soporte, verificación, seguridad, en vivo, herramientas) | `admin/*` | admin | ⚪ |

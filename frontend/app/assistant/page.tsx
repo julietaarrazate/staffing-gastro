@@ -37,7 +37,7 @@ export default function AssistantPage() {
 
   if (authLoading || !user || user.role === "admin") {
     return (
-      <div className="mx-auto max-w-md px-4 py-4">
+      <div className="mx-auto max-w-md px-4 py-4 md:max-w-[var(--app-reading)]">
         <Skeleton className="h-9 w-9 rounded-full" />
         <Skeleton className="mt-6 h-24 w-full" />
       </div>
@@ -122,7 +122,7 @@ function AssistantChatShell({
   }, []);
 
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col px-4 pb-4 pt-4 md:min-h-[calc(100dvh-var(--chrome-top))]">
+    <div className="mx-auto flex min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] max-w-md flex-col px-4 pb-4 pt-4 md:min-h-[calc(100dvh-var(--chrome-top))] md:max-w-[var(--app-reading)]">
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -154,10 +154,10 @@ function AssistantChatShell({
         ) : (
           history.map((entry) => (
             <div key={entry.id} className="space-y-1.5">
-              <p className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-tr-md bg-primary px-3.5 py-2 text-sm text-night">
+              <p className="ml-auto w-fit max-w-[85%] md:max-w-[560px] rounded-2xl rounded-tr-md bg-primary px-3.5 py-2 text-sm text-night">
                 {entry.question}
               </p>
-              <div className="mr-auto w-fit max-w-[85%] rounded-2xl rounded-tl-md bg-surface px-3.5 py-2.5">
+              <div className="mr-auto w-fit max-w-[85%] md:max-w-[560px] rounded-2xl rounded-tl-md bg-surface px-3.5 py-2.5">
                 <p className="text-sm text-ink">{entry.result.message}</p>
                 {entry.result.actionLabel && entry.result.onAction && (
                   <Button

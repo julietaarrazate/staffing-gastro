@@ -180,3 +180,18 @@ test("Favoritos en la compu (1440 px): grilla de dos columnas con «Quitar» a l
   expect(c[1].x + c[1].width).toBeLessThanOrEqual(hoja.x + hoja.width);
   for (const q of await page.getByRole("button", { name: "Quitar" }).all()) await expect(q).toBeInViewport();
 });
+
+// Escritorio, renglón 17 (2026-11-24): el ticket ya mide el ancho de lectura;
+// se mide que las burbujas no pasen de ~560 px y que el campo no se estire.
+test("en la compu (1440) el ticket queda en ancho de lectura, con burbujas de hasta 560 px", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await abrir(page, "/support/t1");
+  await expect(page.getByText("Probá con una foto.")).toBeVisible();
+  const hoja = (await page.locator(".hoja").boundingBox())!;
+  expect(hoja.width).toBeLessThanOrEqual(672);
+  for (const burbuja of await page.locator(".burbuja").all()) {
+    expect((await burbuja.boundingBox())!.width).toBeLessThanOrEqual(560);
+  }
+  const campo = (await page.getByPlaceholder("Escribí tu respuesta...").boundingBox())!;
+  expect(campo.width).toBeLessThanOrEqual(640);
+});

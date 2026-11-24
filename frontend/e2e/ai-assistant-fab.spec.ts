@@ -528,3 +528,34 @@ test("buscar_turnos: el trabajador pide un turno por zona/radio/fecha y el asist
   await expect(page.getByText("Turnos que buscaste en")).toBeVisible();
   await expect(page.getByText("Palermo")).toBeVisible();
 });
+
+// Escritorio, renglón 16 (2026-11-24): en la compu el Asistente es una
+// conversación con ancho de lectura: burbujas de hasta 560 px y el campo de
+// escribir en esa misma columna, no estirado al marco de 1024 px.
+test("en la compu (1440) el Asistente lee en ancho de lectura, con burbujas de hasta 560 px", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockSession(page, WORKER_SESSION);
+  await page.route("**/api/v1/assistant/worker-query", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(
+        assistantResponse({ intent: "desconocido", message: "No entendí bien qué turno buscás. ".repeat(12) })
+      ),
+    })
+  );
+  await page.goto("/assistant");
+  const campo = page.getByPlaceholder(/Ej: buscame un turno/);
+  await campo.fill("algo para el sábado a la noche en una zona que no me acuerdo cómo se llama pero queda cerca del río");
+  await page.getByRole("button", { name: "Completar" }).click();
+  await expect(page.getByText("No entendí bien qué turno buscás.").first()).toBeVisible();
+  const burbuja = (await page.getByText("No entendí bien qué turno buscás.").first().boundingBox())!;
+  expect(burbuja.width).toBeLessThanOrEqual(560);
+  expect(burbuja.width).toBeGreaterThan(450);
+  const caja = (await campo.boundingBox())!;
+  expect(caja.width).toBeLessThanOrEqual(640);
+  expect(caja.width).toBeGreaterThan(560);
+});
