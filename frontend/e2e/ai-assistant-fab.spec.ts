@@ -530,7 +530,7 @@ test("buscar_turnos: el trabajador pide un turno por zona/radio/fecha y el asist
 });
 
 // Escritorio, renglón 16 (2026-11-24): en la compu el Asistente es una
-// conversación con ancho de lectura: burbujas de hasta 560 px y el campo de
+// conversación con ancho de lectura: burbujas de no más de 560 px y el campo de
 // escribir en esa misma columna, no estirado al marco de 1024 px.
 test("en la compu (1440) el Asistente lee en ancho de lectura, con burbujas de hasta 560 px", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -552,7 +552,9 @@ test("en la compu (1440) el Asistente lee en ancho de lectura, con burbujas de h
   await campo.fill("algo para el sábado a la noche en una zona que no me acuerdo cómo se llama pero queda cerca del río");
   await page.getByRole("button", { name: "Completar" }).click();
   await expect(page.getByText("No entendí bien qué turno buscás.").first()).toBeVisible();
-  const burbuja = (await page.getByText("No entendí bien qué turno buscás.").first().boundingBox())!;
+  // La burbuja entera (la caja con fondo), no el párrafo de adentro: 85 % de
+  // la columna de 640 px.
+  const burbuja = (await page.getByText("No entendí bien qué turno buscás.").first().locator("xpath=..").boundingBox())!;
   expect(burbuja.width).toBeLessThanOrEqual(560);
   expect(burbuja.width).toBeGreaterThan(450);
   const caja = (await campo.boundingBox())!;

@@ -154,10 +154,10 @@ function AssistantChatShell({
         ) : (
           history.map((entry) => (
             <div key={entry.id} className="space-y-1.5">
-              <p className="ml-auto w-fit max-w-[85%] md:max-w-[560px] rounded-2xl rounded-tr-md bg-primary px-3.5 py-2 text-sm text-night">
+              <p className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-tr-md bg-primary px-3.5 py-2 text-sm text-night">
                 {entry.question}
               </p>
-              <div className="mr-auto w-fit max-w-[85%] md:max-w-[560px] rounded-2xl rounded-tl-md bg-surface px-3.5 py-2.5">
+              <div className="mr-auto w-fit max-w-[85%] rounded-2xl rounded-tl-md bg-surface px-3.5 py-2.5">
                 <p className="text-sm text-ink">{entry.result.message}</p>
                 {entry.result.actionLabel && entry.result.onAction && (
                   <Button
