@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
@@ -13,8 +14,11 @@ import { NubesCielo, PasosTachados } from "@/components/ui";
  * `/restablecer`, `/verificar-email`) y de la bienvenida con la dirección suave
  * (ADR-0028, 2026-11-21): arriba el cielo con el «oído» plano (el mismo del
  * Inicio) y el título de la pantalla en letra normal; debajo, la hoja con el
- * formulario. En la compu, la hoja angosta y centrada sobre el cielo, como las
- * subpáginas del perfil.
+ * formulario. En la tablet, la hoja angosta y centrada sobre el cielo, como las
+ * subpáginas del perfil. En la compu (desde `lg`, 2026-11-24), la pantalla entera
+ * partida en dos: a la izquierda el cielo de borde a borde con el título, qué es
+ * Oído y dos fotos de la landing; a la derecha, la hoja con el formulario centrado.
+ * En el celular no cambia nada: lo de la compu va detrás de `lg:`.
  *
  * - `pasos`: la bienvenida pone sus pasos tachados entre el «oído» y el título.
  * - Sin sesión no hay barra de abajo ni encabezado (el «oído» del cielo lleva
@@ -41,12 +45,14 @@ export default function PantallaAcceso({
     <div
       className={cn(
         "estilo-suave acceso mx-auto flex max-w-md flex-col md:mb-0 md:min-h-0 md:max-w-[28rem] md:px-4 md:pb-10 md:pt-8",
+        "lg:w-full lg:max-w-none lg:flex-row lg:items-stretch lg:p-0",
         conBarra
-          ? "min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))]"
-          : "-mb-[var(--chrome-bottom)] min-h-[calc(100dvh-var(--chrome-top))]"
+          ? "min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] lg:min-h-[calc(100dvh-var(--chrome-top))]"
+          : // Sin sesión no hay encabezado: en la compu la pantalla ocupa todo el alto.
+            "-mb-[var(--chrome-bottom)] min-h-[calc(100dvh-var(--chrome-top))] lg:min-h-dvh"
       )}
     >
-      <div className="app-cielo cielo-limpio px-4 pb-12 pt-4 md:rounded-t-[28px] md:px-6 md:pt-6">
+      <div className="app-cielo cielo-limpio px-4 pb-12 pt-4 md:rounded-t-[28px] md:px-6 md:pt-6 lg:flex lg:min-w-0 lg:flex-1 lg:flex-col lg:rounded-none lg:px-[max(3rem,6vw)] lg:pb-12 lg:pt-10">
         {/* Una nube grande arriba a la derecha, detrás del «oído» y del título
             (en tinta se lee sobre el blanco de la nube); de noche no hay. Entera
             dentro del ancho: la auditoría de encuadre no deja nada fuera. */}
@@ -57,10 +63,51 @@ export default function PantallaAcceso({
         {pasos && (
           <PasosTachados active={pasos.active} labels={pasos.labels} tono="cielo" className="mt-3" />
         )}
-        <h1 className="titulo-pantalla mt-4 break-words">{titulo}</h1>
-        {bajada && <p className="mt-1.5 break-words text-sm font-medium">{bajada}</p>}
+        <h1 className="titulo-pantalla mt-4 break-words lg:mt-14">{titulo}</h1>
+        {bajada && <p className="mt-1.5 break-words text-sm font-medium lg:mt-3 lg:text-base">{bajada}</p>}
+        {/* Qué es Oído: sólo a quien todavía no tiene sesión (no en la bienvenida ni al
+            confirmar el email estando adentro). */}
+        {!user && <QueEsOido />}
       </div>
-      <div className="hoja acceso-hoja -mt-7 flex flex-1 flex-col px-4 pb-8 pt-6 md:px-6">{children}</div>
+      <div className="hoja acceso-hoja -mt-7 flex flex-1 flex-col px-4 pb-8 pt-6 md:px-6 lg:mt-0 lg:w-[min(36rem,46vw)] lg:flex-none lg:justify-center lg:rounded-none lg:px-12 lg:py-12">
+        <div className="flex flex-1 flex-col lg:mx-auto lg:w-full lg:max-w-[25rem] lg:flex-none">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+/** Lo que es Oído, sólo en la compu y sin sesión (en el celular el formulario va primero). */
+const PUNTOS = [
+  "El comercio publica el turno en un minuto y elige a quién va.",
+  "Quien trabaja elige el turno y sabe cuánto cobra antes de ir.",
+  "Se ve quién tiene la identidad verificada.",
+] as const;
+
+function QueEsOido() {
+  return (
+    <div className="mt-auto hidden pt-10 lg:block">
+      <p className="text-lg font-bold">Turnos de gastronomía en CABA, en el momento.</p>
+      <ul className="mt-3 space-y-2">
+        {PUNTOS.map((p) => (
+          <li key={p} className="flex gap-2.5 text-fila font-medium leading-snug">
+            <span aria-hidden className="mt-[7px] size-2 flex-none rounded-full bg-current opacity-70" />
+            {p}
+          </li>
+        ))}
+      </ul>
+      <div className="mt-8 flex gap-4" aria-hidden>
+        {(["mozo3", "cocina1"] as const).map((f, i) => (
+          <div
+            key={f}
+            className={cn(
+              "relative h-44 w-36 overflow-hidden rounded-2xl shadow-[var(--shadow-float)] ring-4 ring-[color:var(--color-card)]",
+              i === 0 ? "-rotate-3" : "translate-y-3 rotate-2"
+            )}
+          >
+            <Image src={`/landing/${f}.webp`} alt="" fill sizes="144px" className="object-cover" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
