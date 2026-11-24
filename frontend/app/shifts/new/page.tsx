@@ -975,7 +975,7 @@ function NewShiftWizard() {
                     cuándo es, también en el celular (donde la vista previa
                     lateral no se ve): G14, U060. */}
                 <PedidoTarjeta
-                  className="mt-6"
+                  className="mt-6 lg:hidden"
                   apunte="Así lo van a ver"
                   position={position}
                   startIso={horario.valido ? localInputToArgentinaISO(startAt) : null}
