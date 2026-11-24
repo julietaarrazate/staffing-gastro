@@ -731,9 +731,16 @@ function WorkerFeedPanel() {
               {visibleShifts.length === 0 ? (
                 emptyState
               ) : (
+                <>
+                <div className="mb-3 flex items-baseline justify-between gap-3">
+                  <h2 className="text-h3 font-bold text-ink">Para vos</h2>
+                  <p className="text-sm text-ink-soft" data-testid="feed-grid-cuenta">
+                    {visibleShifts.length === 1 ? "1 turno" : `${visibleShifts.length} turnos`}
+                  </p>
+                </div>
                 <div className="grid grid-cols-2 gap-5 pb-6 lg:grid-cols-3">
                   {visibleShifts.map((shift) => (
-                    <div key={shift.id} data-testid="feed-grid-card" className="h-[620px]">
+                    <div key={shift.id} data-testid="feed-grid-card" className="h-[560px]">
                       <OpportunityCard
                         shift={shift}
                         distanceKm={distanceOf(shift, origin)}
@@ -748,6 +755,7 @@ function WorkerFeedPanel() {
                     </div>
                   ))}
                 </div>
+                </>
               )}
             </div>
           )}

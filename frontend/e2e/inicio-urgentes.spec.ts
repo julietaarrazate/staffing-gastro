@@ -194,3 +194,26 @@ test("en la compu (1280) la fila va arriba de la grilla y no desborda", async ({
   expect(await alto(region(page))).toBeLessThan(await alto(page.getByTestId("feed-grid-card").first()));
   expect(await sinScrollDePagina(page)).toBe(true);
 });
+
+test("en la compu (1440) «Urgentes» es una grilla de 4 por fila que reparte el ancho y la grilla de turnos lleva su título", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await inicio(page, [
+    turno("a", 30, { pay_amount: "30000" }), turno("b", 60, { pay_amount: "30000" }), turno("c", 90, { pay_amount: "30000" }),
+    turno("d", 120, { pay_amount: "30000" }), turno("e", 150, { pay_amount: "30000" }),
+  ]);
+  const tarjetas = region(page).getByTestId("feed-urgente-card");
+  await expect(tarjetas).toHaveCount(5);
+  const lista = (await region(page).locator("ul").boundingBox())!;
+  const cajas = [];
+  for (let i = 0; i < 5; i++) cajas.push((await tarjetas.nth(i).boundingBox())!);
+  // Cuatro en la primera fila, la quinta abajo; todas del mismo ancho y sin scroll de costado.
+  expect(new Set(cajas.slice(0, 4).map((c) => Math.round(c.y))).size).toBe(1);
+  expect(cajas[4].y).toBeGreaterThan(cajas[0].y + cajas[0].height - 1);
+  expect(Math.abs(cajas[0].width - cajas[3].width)).toBeLessThan(1);
+  // Reparten el ancho de la lista (no quedan 232 px con media pantalla vacía).
+  expect(cajas[3].x + cajas[3].width).toBeGreaterThan(lista.x + lista.width - 4);
+  expect(await region(page).locator("ul").evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+  expect(await sinScrollDePagina(page)).toBe(true);
+  await expect(page.getByRole("heading", { name: "Para vos" })).toBeVisible();
+  await expect(page.getByTestId("feed-grid-cuenta")).toHaveText("5 turnos");
+});

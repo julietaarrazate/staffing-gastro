@@ -4984,11 +4984,25 @@ body:has([data-landing]) main {
   scroll-padding-inline: 16px;
   list-style: none;
 }
+/* En la compu (md+) la fila deja de ser un carril: una grilla que reparte el
+   ancho (2 por fila en tablet, 4 en el marco de 1024 px), sin scroll de costado
+   ni media pantalla vacía a la derecha. */
 @media (min-width: 768px) {
   :root .urgentes-carril {
-    margin-inline: -24px;
-    padding-inline: 24px;
-    scroll-padding-inline: 24px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-inline: 0;
+    padding-inline: 0;
+    overflow: visible;
+    scroll-snap-type: none;
+  }
+  :root .urgentes-carril .urgente-item {
+    width: auto;
+  }
+}
+@media (min-width: 1024px) {
+  :root .urgentes-carril {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 /* Ancho en rem para que crezca con la letra, y nunca más que el 80 % de la
