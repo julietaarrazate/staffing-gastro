@@ -50,13 +50,17 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
   pestañas Banco de ideas, Calendario y Guiones) y en
   [`planning/PROPUESTA_HORARIOS_EQUIPO.md`](./planning/PROPUESTA_HORARIOS_EQUIPO.md).
   Sigue, en este orden:
-  1. **Videos del 1 al 4/12: hechos (22/11), esperan la revisión de Julieta.**
-     Seis piezas en `marketing/remotion/src/piezas/` (ids y detalle en
-     [`historial/2026-11-22-videos-guiones-1-al-4-12.md`](./historial/2026-11-22-videos-guiones-1-al-4-12.md));
-     `npm run render -- <id>`.
-     **La apertura pasó al 12/12** (Julieta, 22/11): actualizados los videos,
-     el documento de crecimiento (mensajes, guiones, calendario, metas) y el
-     tablero de la beta.
+  1. **Videos del 1 al 4/12: quedan como base, no se publicaron tal cual**
+     (2026-11-24). Seis piezas en `marketing/remotion/src/piezas/diciembre*.ts(x)`
+     (`t6-05-sabado`, `que-es-oido-30s`, `t2-09-hielo`, `t3-05-cebolla`,
+     `t1-04-orden-de-servicio`, `c2-07-costo-encargado`) y el kit de láminas y
+     fotos (`src/kit/lamina.tsx`): un video nuevo se arma cambiando los datos.
+     **Video real (22/11):** Julieta prefirió tomas reales a las láminas; la
+     prueba es `t6-05-sabado-real` (stock gratis de Mixkit, sólo licencia
+     libre, y sonido nuevo con música y efectos de Mixkit; ver el README de
+     `marketing/remotion`). Siguiente: pasar las otras cinco con ese formato.
+     **La apertura pasó al 12/12** (Julieta, 22/11): videos, documento de
+     crecimiento y tablero de la beta actualizados.
   2. **Links etiquetados por cuenta y pieza: ya existe, sin código.** El alta
      guarda su origen (`users.signup_origin`, `identity/domain/origen_alta.py`;
      la serie M7 lo agrupa). Convención: `?utm_source=<cuenta>&utm_campaign=<pieza>`

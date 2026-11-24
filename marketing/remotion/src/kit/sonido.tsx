@@ -8,16 +8,16 @@
 import React from "react";
 import { Audio, getInputProps, interpolate, Sequence, staticFile, useVideoConfig } from "remotion";
 
-export type EfectoPropio = "toque" | "campanita" | "vibracion" | "tipeo" | "impresora" | "hielo" | "coctelera" | "tabla" | "copa";
+export type EfectoPropio = "toque" | "campanita" | "vibracion" | "tipeo" | "impresora" | "hielo" | "coctelera" | "cuchillo" | "copa";
 export type EfectoMixkit = "whoosh" | "pop" | "cubiertos" | "puerta-campanita" | "risas" | "campana-pase" | "plato" | "platos-cocina" | "copas" | "copa-clink" | "plato-suave" | "campanitas";
 export type Efecto = EfectoPropio | EfectoMixkit;
 export type Ambiente = "bar-lleno" | "restaurante";
-/** [efecto, cuadro, ganancia en dB, duración en s (opcional)] */
-export type Cue = [Efecto, number, number, number?];
 /** [ambiente, desde (cuadro), hasta (cuadro), ganancia en dB] */
 export type TramoAmbiente = [Ambiente, number, number, number];
+/** [efecto, cuadro, ganancia en dB, duración en s (opcional)] */
+export type Cue = [Efecto, number, number, number?];
 /**
- * `musicaDesde`: cuadro en que entra la música (los guiones la piden a los 2 s); `murmulloDb`: ajuste del murmullo.
+ * `musicaDesde`: cuadro en que arranca la música (por defecto, al principio); `murmulloDb`: ajuste del murmullo.
  * `musica`: "bossa" (la propia, por defecto) o "upbeat-jazz" (Mixkit); `musicaDb`: ajuste de la música.
  * `ambiente`: tramos de ambiente de Mixkit (bar lleno, restaurante), con fundidos.
  */
@@ -25,13 +25,12 @@ export type Sonido = { murmullo: boolean; cues: Cue[]; musicaDesde?: number; mur
 
 const ARCHIVO: Record<Efecto, string> = {
   toque: "toque.mp3", campanita: "campanita.mp3", vibracion: "vibracion.mp3", tipeo: "tipeo.mp3", impresora: "impresora-corta.mp3",
-  hielo: "hielo.mp3", coctelera: "coctelera.mp3", tabla: "tabla.mp3", copa: "copa.mp3",
+  hielo: "hielo.mp3", coctelera: "coctelera.mp3", cuchillo: "cuchillo.mp3", copa: "copa.mp3",
   whoosh: "mixkit/whoosh.mp3", pop: "mixkit/pop.mp3", cubiertos: "mixkit/cubiertos.mp3", "puerta-campanita": "mixkit/puerta-campanita.mp3",
   risas: "mixkit/risas.mp3", "campana-pase": "mixkit/campana-pase.mp3", plato: "mixkit/plato.mp3", "platos-cocina": "mixkit/platos-cocina.mp3",
   copas: "mixkit/copas.mp3", "copa-clink": "mixkit/copa-clink.mp3", "plato-suave": "mixkit/plato-suave.mp3", campanitas: "mixkit/campanitas.mp3",
 };
-const DUR: Record<Efecto, number> = {
-  toque: 0.45, campanita: 1.99, vibracion: 1.3, tipeo: 1.9, impresora: 0.55, hielo: 1.8, coctelera: 2, tabla: 2.1, copa: 0.6,
+const DUR: Record<Efecto, number> = { toque: 0.45, campanita: 1.99, vibracion: 1.3, tipeo: 1.9, impresora: 0.55, hielo: 2.1, coctelera: 3.8, cuchillo: 3.7, copa: 0.95,
   whoosh: 1.2, pop: 0.34, cubiertos: 1.2, "puerta-campanita": 2.5, risas: 3, "campana-pase": 1.2, plato: 1.2, "platos-cocina": 4,
   copas: 2.6, "copa-clink": 1.2, "plato-suave": 1.1, campanitas: 3,
 };
@@ -59,10 +58,8 @@ export const Mezcla: React.FC<{ s: Sonido }> = ({ s }) => {
   const conMusica = p.musica !== false;
   const va = (x: Pista) => pista === "todo" || pista === x;
   const fin = durationInFrames;
-  const fundido = (f: number, entra: number, sale: number, g: number) =>
-    lin(g) * interpolate(f, [0, entra, fin - sale, fin], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  const musica = s.musica ?? "bossa";
-  const md = s.musicaDesde ?? 0;
+  const fundido = (f: number, entra: number, sale: number, g: number, ini = 0) =>
+    lin(g) * interpolate(f, [ini, ini + entra, fin - sale, fin], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return (
     <>
       {s.murmullo && va("murmullo") && <Audio src={staticFile("sonidos/murmullo.mp3")} volume={(f) => fundido(f, 15, 36, GANANCIA.murmullo + (s.murmulloDb ?? 0))} />}
@@ -73,9 +70,9 @@ export const Mezcla: React.FC<{ s: Sonido }> = ({ s }) => {
         </Sequence>
       ))}
       {conMusica && va("musica") && (
-        <Sequence from={md} layout="none">
-          <Audio src={staticFile(musica === "bossa" ? "sonidos/bossa.mp3" : `sonidos/mixkit/${musica}.mp3`)}
-            volume={(f) => fundido(f + md, md + 20, 45, GANANCIA.musica + (musica === "bossa" ? 0 : MIXKIT[musica]) + (s.musicaDb ?? 0))} />
+        <Sequence from={s.musicaDesde ?? 0} layout="none">
+          <Audio src={staticFile(!s.musica || s.musica === "bossa" ? "sonidos/bossa.mp3" : `sonidos/mixkit/${s.musica}.mp3`)}
+            volume={(f) => fundido(f + (s.musicaDesde ?? 0), 30, 45, GANANCIA.musica + (s.musica && s.musica !== "bossa" ? MIXKIT[s.musica] : 0) + (s.musicaDb ?? 0), s.musicaDesde ?? 0)} />
         </Sequence>
       )}
       {va("efectos") && s.cues.map(([e, cuadro, db, d], i) => {

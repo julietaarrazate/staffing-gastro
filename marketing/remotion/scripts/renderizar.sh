@@ -5,7 +5,7 @@ set -e
 cd "$(dirname "$0")/.."
 SALIDA=${SALIDA:-out}
 mkdir -p "$SALIDA/tmp"
-TODAS="que-resuelve-oido para-comercios para-trabajadores como-funciona-comercios como-funciona-trabajadores instalar-android instalar-iphone match va-en-camino cierre-comercios historia-comercios historia-trabajadores historia-match historia-instalar-android historia-instalar-iphone t6-05-sabado que-es-oido-30s t2-09-hielo t3-05-cebolla t1-04-orden-servicio c2-07-costo-encargado"
+TODAS="que-resuelve-oido para-comercios para-trabajadores como-funciona-comercios como-funciona-trabajadores instalar-android instalar-iphone match va-en-camino cierre-comercios historia-comercios historia-trabajadores historia-match historia-instalar-android historia-instalar-iphone t6-05-sabado que-es-oido-30s t2-09-hielo t3-05-cebolla t1-04-orden-de-servicio c2-07-costo-encargado t6-05-sabado-real"
 for id in ${@:-$TODAS}; do
   npx remotion render src/index.ts "$id" "$SALIDA/tmp/$id-video.mp4" --muted --codec=h264 --crf=17 --x264-preset=slow --concurrency=4 --log=error
   for v in con sin; do

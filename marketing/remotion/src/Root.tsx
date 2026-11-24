@@ -17,19 +17,9 @@ import { datos as dCamino } from "./piezas/va-en-camino.datos";
 import { CierreComercios } from "./piezas/cierre-comercios";
 import { datos as dCierre } from "./piezas/cierre-comercios.datos";
 import { Historias } from "./piezas/historias";
-import { Sabado } from "./piezas/sabado";
-import { datos as dSabado } from "./piezas/sabado.datos";
-import { datos as dSabadoReal } from "./piezas/sabado-real.datos";
-import { Hielo } from "./piezas/hielo";
-import { datos as dHielo } from "./piezas/hielo.datos";
-import { Cebolla } from "./piezas/cebolla";
-import { datos as dCebolla } from "./piezas/cebolla.datos";
-import { OrdenServicio } from "./piezas/orden";
-import { datos as dOrden } from "./piezas/orden.datos";
-import { QueEsOido } from "./piezas/que-es-oido";
-import { datos as dQueEs } from "./piezas/que-es-oido.datos";
-import { CostoEncargado } from "./piezas/costo-encargado";
-import { datos as dCosto } from "./piezas/costo-encargado.datos";
+import { PIEZAS_DICIEMBRE } from "./piezas/diciembre";
+import { SabadoReal } from "./piezas/sabado-real";
+import { sabadoReal } from "./piezas/sabado-real.datos";
 
 const base = { fps: 30, width: 1080, height: 1920 };
 const seg = (s: number) => Math.round(s * 30);
@@ -46,14 +36,9 @@ export const Root: React.FC = () => (
     <Composition id={dMatch.id} component={Match} durationInFrames={dMatch.duracion} defaultProps={{ d: dMatch }} {...base} />
     <Composition id={dCamino.id} component={VaEnCamino} durationInFrames={dCamino.duracion} defaultProps={{ d: dCamino }} {...base} />
     <Composition id={dCierre.id} component={CierreComercios} durationInFrames={dCierre.duracion} defaultProps={{ d: dCierre }} {...base} />
-    {/* Guiones del 1 al 4/12 (pestaña Guiones del documento de crecimiento) */}
-    <Composition id={dSabado.id} component={Sabado} durationInFrames={seg(dSabado.duracion)} defaultProps={{ d: dSabado }} {...base} />
-    <Composition id={dSabadoReal.id} component={Sabado} durationInFrames={seg(dSabadoReal.duracion)} defaultProps={{ d: dSabadoReal }} {...base} />
-    <Composition id={dHielo.id} component={Hielo} durationInFrames={seg(dHielo.duracion)} defaultProps={{ d: dHielo }} {...base} />
-    <Composition id={dCebolla.id} component={Cebolla} durationInFrames={seg(dCebolla.duracion)} defaultProps={{ d: dCebolla }} {...base} />
-    <Composition id={dOrden.id} component={OrdenServicio} durationInFrames={seg(dOrden.duracion)} defaultProps={{ d: dOrden }} {...base} />
-    <Composition id={dQueEs.id} component={QueEsOido} durationInFrames={seg(dQueEs.duracion)} defaultProps={{ d: dQueEs }} {...base} />
-    <Composition id={dCosto.id} component={CostoEncargado} durationInFrames={seg(dCosto.duracion)} defaultProps={{ d: dCosto }} {...base} />
+    {PIEZAS_DICIEMBRE.map((p) => <Composition key={p.d.id} id={p.d.id} component={p.c as any} durationInFrames={p.d.duracion} defaultProps={{ d: p.d }} {...base} />)}
+    {/* T6-05 con tomas reales de stock y sonido de Mixkit (prueba del 22/11) */}
+    <Composition id={sabadoReal.id} component={SabadoReal} durationInFrames={sabadoReal.duracion} defaultProps={{ d: sabadoReal }} {...base} />
     {Historias.map((h) => <Composition key={h.id} id={h.id} component={h.c} durationInFrames={h.dur} defaultProps={{ d: h.d }} {...base} />)}
   </>
 );

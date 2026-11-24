@@ -11,7 +11,7 @@ bajar vibracion.mp3        https://cdn.freesound.org/previews/260/260955_257367-
 bajar toque.mp3            https://cdn.freesound.org/previews/469/469297_5875299-hq.mp3   # djf54, 469297
 bajar tipeo.mp3            https://cdn.freesound.org/previews/631/631822_6657854-hq.mp3   # ahriik, 631822
 bajar bossa-rozenbaum.mp3  https://cdn.freesound.org/previews/400/400698_6035865-hq.mp3   # FullMetalJedi, 400698
-bajar hielo.mp3            https://cdn.freesound.org/previews/784/784030_6974482-hq.mp3   # krakenkraft, 784030
+bajar hielo.mp3            https://cdn.freesound.org/previews/427/427090_5984825-hq.mp3   # dr19, 427090
 bajar coctelera.mp3        https://cdn.freesound.org/previews/319/319995_5440319-hq.mp3   # KenRT, 319995
-bajar tabla.mp3            https://cdn.freesound.org/previews/795/795433_16786392-hq.mp3  # Ultra-Edward, 795433
-bajar copa.mp3             https://cdn.freesound.org/previews/637/637584_612689-hq.mp3    # kyles, 637584
+bajar cuchillo.mp3         https://cdn.freesound.org/previews/795/795433_16786392-hq.mp3  # Ultra-Edward, 795433
+bajar copa.mp3             https://cdn.freesound.org/previews/489/489737_9306973-hq.mp3   # ShadowSilhouette, 489737

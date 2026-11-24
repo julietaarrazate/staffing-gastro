@@ -1,47 +1,33 @@
-# Videos del 1 al 4/12 desde los guiones aprobados
+# Videos: tomas reales de stock, sonido de Mixkit y apertura el 12/12 (#734)
 
-**Pedido:** Julieta, 2026-11-22: producir con `marketing/remotion` los 6 videos del 1 al 4/12
-según la pestaña Guiones del documento de crecimiento, respetando la sección Tono, y mandarle
-los mp4 para revisar.
+**Pedido:** Julieta, 2026-11-22: producir los videos del 1 al 4/12 desde los guiones. Con la primera
+versión en láminas dibujadas dijo que se veía «muy básico»; pidió probar gratis con video real y,
+después, mejorar música y efectos. También movió la apertura del 13/12 al 12/12.
 
-**Qué cambió:** seis piezas nuevas, cada una con sus datos aparte (`src/piezas/<pieza>.datos.ts`):
+**Qué cambió:**
 
-| Fecha | Cuenta | Código | id (`npm run render -- <id>`) |
-|---|---|---|---|
-| 1/12 | @turnosgastro | T6-05 Cosas que solo entiende quien laburó un sábado | `t6-05-sabado` |
-| 1/12 | @oidoapp | Qué es Oído, en 30 segundos | `que-es-oido-30s` |
-| 2/12 | @turnosgastro | T2-09 El hielo es la mitad del trago | `t2-09-hielo` |
-| 3/12 | @turnosgastro | T3-05 Una cebolla en 20 segundos | `t3-05-cebolla` |
-| 4/12 | @turnosgastro | T1-04 El orden de servicio que nadie te explicó | `t1-04-orden-servicio` |
-| 4/12 | @oidoapp | C2-07 El costo que no ves | `c2-07-costo-encargado` |
+- **T6-05 con tomas reales** (`t6-05-sabado-real`): mismos textos, tiempos y cierre que `t6-05-sabado`
+  (de #735), cada escena con video de stock a pantalla completa y el texto en una hoja blanca arriba
+  (`marketing/remotion/src/kit/toma.tsx`, `src/piezas/sabado-real*.ts(x)`).
+- **Tomas:** Mixkit, sólo clips con «Stock Video Free License»; los «Restricted» son de uso personal y
+  quedan afuera. Lista y verificación en `tomas/FUENTES.md`; `tomas/bajar-tomas.sh` las baja (1080p, no
+  van a git).
+- **Sonido:** música («Upbeat Jazz») y efectos de Mixkit (licencias libres para redes): ambientes por
+  tramo, golpe en cada corte, pop en cada texto, un efecto por escena y la música más presente (unos
+  6 dB debajo de los efectos). `src/kit/sonido.tsx` suma `musica`, `musicaDb` y `ambiente`;
+  `sonidos/bajar-mixkit.sh` baja los archivos (no van a git), lista en `sonidos/FUENTES.md`.
+- **Apertura el 12/12:** cierres de los videos de @oidoapp (`diciembre.datos.ts`),
+  `docs/planning/BETA_TABLERO.md`, `docs/planning/PROPUESTA_HORARIOS_EQUIPO.md` y el documento de
+  crecimiento (mensajes de TURNO y CUBRIR, textos de las publicaciones, metas; el calendario anuncia
+  «El 12/12 abre Oído» el viernes 11, suma la pieza de apertura el sábado 12 y sigue desde el 13).
 
-- `src/kit/guion.tsx`: escena = texto del guion arriba (zona segura) + lámina blanca con un dibujo
-  animado; cierre con el logo de la cuenta (el pinche en @turnosgastro, el «oído» fileteado en
-  @oidoapp). Las piezas de @oidoapp usan las pantallas reales de la app
-  (`src/piezas/tramo-publicar.tsx`: publicar, postulantes con «Identidad verificada» resaltada solo
-  donde está, «¡Oído!»).
-- Sonido: cuatro efectos CC0 nuevos de Freesound (hielo, coctelera, cuchillo sobre tabla, copa;
-  fuentes en `sonidos/FUENTES.md`), la música entra a los 2 s (o cuando el guion la pide:
-  `sonido.musicaDesde`) y el murmullo se puede subir o bajar por pieza (`murmulloDb`). La
-  impresora de comandas quedó solo en T6-05 y en «Qué es Oído», muy baja.
+**Por qué así:** otra sesión hizo en paralelo las seis piezas en láminas y entraron a `main` (#735) como
+base; este PR las tenía duplicadas con otros nombres y se rehízo sobre esa base, dejando sólo lo que
+`main` no tenía. Pexels y Pixabay piden clave o bloquean la descarga automática; Mixkit no. Se evaluó el
+formato de roomix.ai (mini historia con un personaje animado y cierre con gráfico): la historia necesita
+generación con IA paga (ADR-0030), así que quedó para más adelante; el cierre con gráfico se puede hacer
+gratis en Remotion.
 
-**Por qué así:** los guiones piden tomas (salón desde arriba, cebolla, vasos) que no tenemos
-filmadas y generar imágenes con IA usa créditos (ADR-0030): se resolvieron como dibujos animados
-en la paleta de la marca. Sin voces, sin manos (la nota de seguridad de T3-05 no aplica).
-
-**Fecha de apertura:** Julieta la pasó del 13/12 al 12/12 («más mística, número portal»). Los
-dos videos de @oidoapp dicen «Abre el 12/12»; en el documento de crecimiento se cambiaron los
-mensajes de TURNO y CUBRIR, los textos de las publicaciones, las metas y el calendario (el
-viernes 11 anuncia «El 12/12 abre Oído», el sábado 12 suma la pieza de apertura y el plan de
-contenido sigue desde el domingo 13 como estaba); en el repo, `docs/planning/BETA_TABLERO.md`.
-
-**Prueba con video real (22/11):** Julieta sintió las láminas «muy básicas». Sin gasto, se probó
-T6-05 con tomas de stock de Mixkit (`t6-05-sabado-real`): sólo clips con «Stock Video Free
-License»; los «Restricted» son de uso personal y quedan afuera. El kit suma `toma` por escena
-(video a pantalla completa, recortado a vertical, con el texto en una hoja blanca arriba);
-`tomas/FUENTES.md` lista las tomas y `tomas/bajar-tomas.sh` las baja (no van a git). Pexels y
-Pixabay piden clave o bloquean la descarga automática. En stock libre no hay toma de «la carta
-en la mesa» ni de un ticket imprimiéndose: se usaron una mesa vista desde el mozo y una mesa larga.
-
-**Queda abierto:** revisión de Julieta de los seis mp4; después, subirlos con los links
-etiquetados. Zernio sigue esperando `ZERNIO_API_KEY` en el entorno.
+**Queda abierto:** pasar las otras cinco piezas a tomas reales con este sonido. En stock libre no hay
+toma de «la carta en la mesa» ni de un ticket imprimiéndose (se usaron una mesa vista desde el mozo y
+una mesa larga). Zernio sigue esperando `ZERNIO_API_KEY` en el entorno.

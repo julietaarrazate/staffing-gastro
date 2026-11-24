@@ -50,12 +50,23 @@ y están a -14 LUFS.
 | Historia · No elijas a ciegas | 7 s | @oidoapp | `npm run render -- historia-match` |
 | Historia · Instalar en Android | 10 s | @oidoapp | `npm run render -- historia-instalar-android` |
 | Historia · Instalar en iPhone | 10 s | @oidoapp | `npm run render -- historia-instalar-iphone` |
-| T6-05 · Cosas que solo entiende quien laburó un sábado (1/12) | 25 s | @turnosgastro | `npm run render -- t6-05-sabado` |
-| Qué es Oído, en 30 segundos (1/12) | 30 s | @oidoapp | `npm run render -- que-es-oido-30s` |
-| T2-09 · El hielo es la mitad del trago (2/12) | 29 s | @turnosgastro | `npm run render -- t2-09-hielo` |
-| T3-05 · Una cebolla en 20 segundos (3/12) | 28 s | @turnosgastro | `npm run render -- t3-05-cebolla` |
-| T1-04 · El orden de servicio (4/12) | 28 s | @turnosgastro | `npm run render -- t1-04-orden-servicio` |
-| C2-07 · El costo que no ves (4/12) | 30 s | @oidoapp | `npm run render -- c2-07-costo-encargado` |
+| 1/12 · Cosas que solo entiende quien laburó un sábado | 25 s | @turnosgastro | `npm run render -- t6-05-sabado` |
+| 1/12 · Qué es Oído, en 30 segundos | 30 s | @oidoapp | `npm run render -- que-es-oido-30s` |
+| 2/12 · El hielo es la mitad del trago | 29 s | @turnosgastro | `npm run render -- t2-09-hielo` |
+| 3/12 · Una cebolla en 20 segundos | 28 s | @turnosgastro | `npm run render -- t3-05-cebolla` |
+| 4/12 · El orden de servicio que nadie te explicó | 28 s | @turnosgastro | `npm run render -- t1-04-orden-de-servicio` |
+| 4/12 · El costo que no ves: el encargado buscando gente | 30 s | @oidoapp | `npm run render -- c2-07-costo-encargado` |
+
+Las seis de diciembre salen de la pestaña Guiones del documento de crecimiento: textos y tiempos en
+`src/piezas/diciembre.datos.ts`, dibujos en `src/piezas/diciembre.tsx` (láminas de `src/kit/lamina.tsx`:
+una hoja blanca con un dibujo SVG por escena). Las de @oidoapp usan las capturas de la app; las de
+@turnosgastro cierran con la cuenta y el «oído» fileteado. Los seis cierres llevan dos fotos (un comercio y
+alguien trabajando) y algunas escenas usan una foto en vez de dibujo: son las fotos de la landing
+(`frontend/public/landing/`, CC0 o dominio público; fuentes en `docs/historial/2026-10-18-landing-cielo.md`),
+que `npm run preparar` copia a `public/fotos/`. Si se reemplazan por fotos de locales porteños con el mismo
+nombre (`docs/design-system/fotos-landing.md`), los videos las toman solos al volver a renderizar.
+
+En los datos, `sonido.musicaDesde` (cuadro en que arranca la música) y `sonido.murmulloDb` ajustan la mezcla por pieza.
 
 Sólo el video, sin la mezcla: `npx remotion render src/index.ts <id> out/<id>.mp4`.
 Balance de sonido por pista: `bash scripts/niveles.sh <id>`.
@@ -83,14 +94,6 @@ Deja los PNG en `capturas/` y los que usa el video en `public/cap/`, y reescribe
 
 ## Cómo está armado
 
-- **Piezas de guion** (las del 1/12 en adelante): `src/kit/guion.tsx`. Cada escena del guion es el
-  texto arriba y una lámina blanca con un dibujo animado (los dibujos, en el `.tsx` de la pieza;
-  textos, tiempos y sonido, en su `.datos.ts`). Las de @oidoapp suman las pantallas reales con
-  `src/piezas/tramo-publicar.tsx`. Una pieza nueva: copiar una `.datos.ts`, dibujar sus láminas y
-  sumar la `<Composition>` en `src/Root.tsx` (y el id en `scripts/renderizar.sh`).
-- **Tomas reales de stock** (opcional por escena: `toma` en vez de `dibujo`): video gratis de Mixkit,
-  sólo con licencia libre; lista y verificación en `tomas/FUENTES.md`, `bash tomas/bajar-tomas.sh` antes de
-  renderizar. Ejemplo: `t6-05-sabado-real`.
 - `src/kit/`: el cielo y las nubes (`base.tsx`), el teléfono con su cámara, toques, resaltados y
   lupas (`telefono.tsx`), Chrome y Safari dibujados sin logos (`navegador.tsx`), el cierre con el
   «oído» fileteado (`cierre.tsx`), la mezcla (`sonido.tsx`) y los tipos de los datos (`datos.tsx`).
@@ -100,3 +103,19 @@ Deja los PNG en `capturas/` y los que usa el video en `public/cap/`, y reescribe
 - **Marca**: dirección suave de la app (ADR-0028): cielo, hojas blancas, sombras difusas, azul
   hondo y un solo ámbar; el filete «oído» va en el cierre.
 - **Sonido**: ver `sonidos/FUENTES.md`.
+
+## Tomas reales y sonido de Mixkit (prueba con T6-05)
+
+`t6-05-sabado-real` es T6-05 con video real de stock en vez de láminas: mismos textos, tiempos y cierre
+que `t6-05-sabado`, cada escena con una toma a pantalla completa (`src/kit/toma.tsx`) y el texto en una
+hoja blanca arriba. Las tomas son de [Mixkit](https://mixkit.co), **sólo las de «Stock Video Free
+License»** (las «Restricted» son de uso personal); lista y cómo verificar una nueva en `tomas/FUENTES.md`.
+El sonido suma música y efectos de Mixkit (licencias libres para redes): `sonido.musica`,
+`sonido.musicaDb`, `sonido.ambiente` y efectos nuevos en `sonido.cues` (`src/kit/sonido.tsx`). Ni las
+tomas ni los archivos de Mixkit van a git:
+
+```bash
+bash tomas/bajar-tomas.sh       # → public/tomas/
+bash sonidos/bajar-mixkit.sh    # → public/sonidos/mixkit/
+npm run render -- t6-05-sabado-real
+```

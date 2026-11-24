@@ -2,10 +2,12 @@
 import React from "react";
 import { Img, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig, Easing } from "remotion";
 import { BancoNubes, BotonAmbar, C, Estrellas, F, Nube } from "./base";
+import { FotosCierre } from "./lamina";
 
 export type DatosCierre = { boton: string; bajada?: string; linea2?: string };
 
-export const Cierre: React.FC<{ desde: number; boton: string; bajada?: string; linea2?: string; noche?: boolean; cuenta?: string }> = ({ desde, boton, bajada, linea2, noche, cuenta }) => {
+/** Con `fotos` (un comercio y alguien trabajando) el «oído» sube y las fotos van entre el «oído» y el botón. */
+export const Cierre: React.FC<{ desde: number; boton: string; bajada?: string; linea2?: string; noche?: boolean; cuenta?: string; fotos?: [string, string] }> = ({ desde, boton, bajada, linea2, noche, cuenta, fotos }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   if (frame < desde) return null;
@@ -23,20 +25,21 @@ export const Cierre: React.FC<{ desde: number; boton: string; bajada?: string; l
           : `radial-gradient(120% 70% at 88% 0%, rgba(255,255,255,.24), transparent 60%), linear-gradient(180deg, ${C.cielo0}, ${C.cielo1} 52%, ${C.cielo2})` }}>
         {noche ? <Estrellas /> : <><Nube k="a" x={620} y={170} w={520} prof={0.3} op={0.8} /><Nube k="c" x={-380} y={330} w={720} prof={0.15} op={0.55} /></>}
       </div>
-      <div style={{ position: "absolute", left: 540, top: 690, width: 860, transform: `translate(-50%,-50%) scale(${(0.7 + 0.3 * s) * respira}) rotate(${(1 - s) * -6}deg)`, opacity: Math.min(1, s * 2) }}>
+      {fotos && <FotosCierre t={t} fotos={fotos} y={770} w={340} />}
+      <div style={{ position: "absolute", left: 540, top: fotos ? 330 : 690, width: fotos ? 620 : 860, zIndex: 4, transform: `translate(-50%,-50%) scale(${(0.7 + 0.3 * s) * respira}) rotate(${(1 - s) * -6}deg)`, opacity: Math.min(1, s * 2) }}>
         <Img src={staticFile("marca/oido-filete.svg")} style={{ width: "100%", filter: "drop-shadow(0 26px 40px rgba(15,58,91,.28))" }} />
       </div>
-      <div style={{ position: "absolute", left: 0, right: 0, top: 1035, display: "flex", justifyContent: "center", transform: `translateY(${(1 - b) * 60}px) scale(${0.85 + 0.15 * b})`, opacity: Math.min(1, b * 1.6) }}>
+      <div style={{ position: "absolute", left: 0, right: 0, top: fotos ? 1110 : 1035, zIndex: 5, display: "flex", justifyContent: "center", transform: `translateY(${(1 - b) * 60}px) scale(${0.85 + 0.15 * b})`, opacity: Math.min(1, b * 1.6) }}>
         <BotonAmbar>{boton}</BotonAmbar>
       </div>
       {bajada && (
-        <div style={{ position: "absolute", left: 60, right: 60, top: 1210, textAlign: "center", fontFamily: F.mono, fontWeight: 500, fontSize: 40, letterSpacing: "0.04em", color: noche ? C.claro : C.tintaCielo, opacity: Math.min(1, l * 1.5), transform: `translateY(${(1 - l) * 30}px)` }}>{bajada}</div>
+        <div style={{ position: "absolute", left: 60, right: 60, top: fotos ? 1265 : 1210, textAlign: "center", fontFamily: F.mono, fontWeight: 500, fontSize: 40, letterSpacing: "0.04em", color: noche ? C.claro : C.tintaCielo, opacity: Math.min(1, l * 1.5), transform: `translateY(${(1 - l) * 30}px)` }}>{bajada}</div>
       )}
       {cuenta && (
-        <div style={{ position: "absolute", left: 60, right: 60, top: 1272, textAlign: "center", fontFamily: F.texto, fontWeight: 700, fontSize: 40, color: noche ? C.celeste : C.hondo, opacity: Math.min(1, l * 1.3) }}>{cuenta}</div>
+        <div style={{ position: "absolute", left: 60, right: 60, top: fotos ? 1325 : 1272, textAlign: "center", fontFamily: F.texto, fontWeight: 700, fontSize: 40, color: noche ? C.celeste : C.hondo, opacity: Math.min(1, l * 1.3) }}>{cuenta}</div>
       )}
       {linea2 && (
-        <div style={{ position: "absolute", left: 60, right: 60, top: cuenta ? 1345 : 1290, textAlign: "center", fontFamily: F.texto, fontWeight: 600, fontSize: 34, color: noche ? C.celeste : C.hondo, opacity: Math.min(1, l * 1.2) }}>{linea2}</div>
+        <div style={{ position: "absolute", left: 60, right: 60, top: (cuenta ? 1345 : 1290) + (fotos ? 50 : 0), textAlign: "center", fontFamily: F.texto, fontWeight: 600, fontSize: 34, color: noche ? C.celeste : C.hondo, opacity: Math.min(1, l * 1.2) }}>{linea2}</div>
       )}
       {!noche && <BancoNubes y={1560} op={lim} />}
     </div>
