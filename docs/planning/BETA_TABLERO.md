@@ -769,7 +769,7 @@ prueba, y las invitadas quedan sin entrada al vaciar el PIN.
 ## Crecimiento y producto después de la beta (anotado el 2026-11-22)
 
 Nada de esto va antes del 12/12, salvo las cuentas.
-Detalle en [`PROPUESTA_HORARIOS_EQUIPO.md`](./PROPUESTA_HORARIOS_EQUIPO.md) y
+Detalle en el documento privado de crecimiento (pestaña Horarios del equipo) y
 en `../STATUS.md` («Crecimiento en redes y propuesta de horarios»).
 
 | Ítem | Cuándo | Estado |

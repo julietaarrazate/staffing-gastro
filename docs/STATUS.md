@@ -47,8 +47,8 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
 
 - 🟠 **Crecimiento en redes y propuesta de horarios (2026-11-22).** Estado en
   el documento de crecimiento (https://claude.ai/artifact/HPGMp7JFA9prJmBdEazLPP:
-  pestañas Banco de ideas, Calendario y Guiones) y en
-  [`planning/PROPUESTA_HORARIOS_EQUIPO.md`](./planning/PROPUESTA_HORARIOS_EQUIPO.md).
+  pestañas Banco de ideas, Calendario, Guiones y Horarios del equipo). La
+  estrategia vive ahí y no en el repositorio, que es público.
   Sigue, en este orden:
   1. **Videos del 1 al 4/12: quedan como base, no se publicaron tal cual**
      (2026-11-24). Seis piezas en `marketing/remotion/src/piezas/diciembre*.ts(x)`
