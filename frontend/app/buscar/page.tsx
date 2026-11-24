@@ -322,10 +322,12 @@ export default function BuscarPage() {
           hoja sube 28 px encima. */}
       <div className="app-cielo cielo-limpio px-4 pb-10 pt-5 md:rounded-t-[28px] md:px-6 md:pt-6">
         <NubesCielo nubes={[{ forma: "a", ancho: 250, pos: { right: -100, top: -66 } }]} />
-        {/* El título y, a su lado, el conmutador Lista / Mapa. */}
+        {/* El título y, a su lado, el conmutador Lista / Mapa. En la compu
+            (desde `lg`) no va: el mapa ya está al lado de la lista (Julieta,
+            2026-11-24). `!` porque `.conmutador` pone su propio `display`. */}
         <div className="flex items-start justify-between gap-3">
           <h1 className="titulo-pantalla min-w-0 break-words">Buscar turnos</h1>
-          <ListaMapa actual="lista" className="shrink-0" />
+          <ListaMapa actual="lista" className="shrink-0 lg:hidden!" />
         </div>
         <p className="mt-1 text-sm">Explorá oportunidades de cualquier rubro, no sólo el tuyo.</p>
       </div>

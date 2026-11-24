@@ -353,7 +353,7 @@ test("en la compu, con el teclado sobre una fila se resalta su fila y su pin, y 
   await expect.poll(() => pinMozo.evaluate((el) => el.outerHTML)).not.toBe(antes);
   // Con el foco fuera de la lista se suelta.
   await page.getByRole("heading", { level: 1, name: "Buscar turnos" }).evaluate((el) => (el as HTMLElement).focus());
-  await page.getByRole("link", { name: "Lista" }).focus();
+  await page.getByRole("switch", { name: /Urgentes/ }).focus();
   await expect(page.locator("[data-elegido]")).toHaveCount(0);
 });
 

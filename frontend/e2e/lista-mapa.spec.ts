@@ -46,7 +46,8 @@ const arriba = (page: Page) => page.getByRole("navigation", { name: "Principal" 
 
 const VIEWPORTS = [
   { nombre: "celular", ancho: 390, alto: 844 },
-  { nombre: "compu", ancho: 1280, alto: 800 },
+  // Con la barra de arriba pero sin el mapa al lado de la lista (debajo de `lg`).
+  { nombre: "tablet", ancho: 900, alto: 900 },
 ] as const;
 
 for (const vp of VIEWPORTS) {
@@ -167,3 +168,25 @@ for (const theme of ["light", "dark"] as const) {
     expect(actual).not.toBe(otro);
   });
 }
+
+// En la compu (desde `lg`) Buscar ya muestra el mapa al lado de la lista: no
+// lleva el conmutador (Julieta, 2026-11-24). El Mapa sigue existiendo y su
+// «Lista» vuelve a Buscar; la pestaña activa es «Buscar» en las dos.
+test.describe("compu (1280 px)", () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  test("Buscar no lleva el conmutador; el Mapa sí, y su «Lista» vuelve a Buscar", async ({ page }) => {
+    await preparar(page);
+    await page.goto("/buscar");
+    await expect(page.getByRole("heading", { level: 1, name: "Buscar turnos" })).toBeVisible({ timeout: 20_000 });
+    await expect(conmutador(page)).toBeHidden();
+    await expect(arriba(page).getByRole("link", { name: "Buscar", exact: true })).toHaveAttribute("aria-current", "page");
+
+    await page.goto("/map");
+    await expect(conmutador(page)).toBeVisible({ timeout: 20_000 });
+    await expect(arriba(page).getByRole("link", { name: "Buscar", exact: true })).toHaveAttribute("aria-current", "page");
+    await conmutador(page).getByRole("link", { name: "Lista" }).click();
+    await expect(page).toHaveURL(/\/buscar$/);
+    await expect(conmutador(page)).toBeHidden();
+  });
+});
