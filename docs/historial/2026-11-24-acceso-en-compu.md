@@ -1,0 +1,28 @@
+# El acceso en la compu: dos columnas
+
+**Pedido:** Julieta, 2026-11-24: en la compu la app se ve como en el celular; empezar la versión de
+escritorio (decisión B: todas las pantallas) por la navegación común y el login.
+
+**Qué cambió:** desde 1024 px de ancho, las pantallas de acceso (`/login`, `/register`, `/recuperar`,
+`/restablecer`, `/verificar-email`) y la bienvenida van en dos columnas dentro del marco de la app
+(`--app-frame`): a la izquierda, el cielo grande con el «oído», el título (44 px, `--text-display`),
+qué es Oído en tres frases y dos fotos de la landing (`mozo3`, `cocina1`); a la derecha, la hoja con el
+formulario (440 px). Antes era una tarjeta de celular chica en el medio de una pantalla vacía. En el
+celular y la tablet no cambia nada: todo va detrás de `lg:`.
+
+Técnico: `frontend/components/acceso/PantallaAcceso.tsx` (`QueEsOido`, oculto debajo de `lg`) y una
+regla en `app/globals.css` (`.acceso .titulo-pantalla` desde 1024 px).
+
+**Por qué así:** el acceso es lo primero que ve cualquiera, comercio o trabajador; en la compu sobraba
+pantalla y el lado izquierdo la usa para decir qué es Oído sin agregar texto en el celular, donde el
+formulario va primero. Las frases son las ya aprobadas («publicás en un minuto», confirmado el 22/11; la
+verificación es opcional, por eso «se ve quién la tiene»).
+
+**Navegación (renglón 0):** ya existía la barra de arriba de la compu y el marco de 1024 px con su test;
+lo que falta en las demás pantallas es aprovechar el ancho adentro (una columna de celular estirada).
+
+**Pruebas:** e2e del acceso, la bienvenida, el origen del alta y los anchos (52 de 52); Vitest
+completo (1236); typecheck y lint sin errores. Capturas a 1440, 1024 y 390 px, en claro y oscuro.
+
+**Queda abierto:** el resto de las pantallas, en el orden de
+[`planning/ESCRITORIO_PANTALLAS.md`](../planning/ESCRITORIO_PANTALLAS.md).
