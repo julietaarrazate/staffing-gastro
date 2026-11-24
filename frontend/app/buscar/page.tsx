@@ -300,6 +300,12 @@ export default function BuscarPage() {
     const sorted = sort === "pay" ? sortByBestPay(byDistance) : byDistance;
     return urgentOnly ? sorted.filter((s) => s.urgent) : sorted;
   }, [shifts, origin, sort, urgentOnly]);
+  // Si cambia la lista (filtro, orden, turnos nuevos) o se pasa a celular, se
+  // suelta el resaltado: su fila puede haber desaparecido y el pin quedaría
+  // activo sin fila marcada.
+  useEffect(() => {
+    resaltado.poner(null, false);
+  }, [resaltado, sortedShifts, esCompu]);
 
   // El mapa abre donde está la persona; sin ubicación, en el primer turno con
   // coordenadas (y sin el punto azul, que no sería ella).
