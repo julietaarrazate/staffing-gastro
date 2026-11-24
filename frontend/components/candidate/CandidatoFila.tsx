@@ -10,6 +10,10 @@ import { datosCandidato, type CandidateSignals } from "./CandidateSignals";
  * suave, ADR-0028): una fila que se toca. La foto, el nombre y sus datos en
  * un renglón llevan al perfil; a la derecha, «Elegir» (liso: el ámbar es de
  * la destacada). Sin poder elegir, la flecha del perfil.
+ *
+ * En la compu (`onSeleccionar`), tocar a la persona no se va al perfil: la
+ * elige para verla en la ficha de al lado (`FichaCandidato`), y la fila
+ * elegida se marca. El link sigue ahí (abrir en otra pestaña, teclado).
  */
 export default function CandidatoFila({
   perfilId,
@@ -19,6 +23,9 @@ export default function CandidatoFila({
   signals,
   disponible = false,
   marca,
+  rotulo,
+  seleccionada = false,
+  onSeleccionar,
   onElegir,
   eligiendo = false,
   bloqueado = false,
@@ -32,6 +39,12 @@ export default function CandidatoFila({
   disponible?: boolean;
   /** Tuvo este turno y lo dejó: «Rechazó este turno», «Canceló»… */
   marca?: string | null;
+  /** Por qué va primero («Mejor calificación»): sólo si la tarjeta destacada no está. */
+  rotulo?: string | null;
+  /** La persona que se ve en la ficha de al lado (compu). */
+  seleccionada?: boolean;
+  /** Compu: tocar a la persona la elige en vez de abrir su perfil. */
+  onSeleccionar?: () => void;
   onElegir?: () => void;
   eligiendo?: boolean;
   bloqueado?: boolean;
@@ -40,9 +53,23 @@ export default function CandidatoFila({
   return (
     // Si «Elegir» no entra al lado (letra muy grande en un celular chico),
     // baja a su renglón: el nombre nunca queda en una columna de una letra.
-    <div data-fila-candidato className="tecla no-select flex min-w-0 flex-wrap items-center justify-end gap-2 p-2.5 pr-3">
+    <div data-fila-candidato className={`tecla no-select flex min-w-0 flex-wrap items-center justify-end gap-2 p-2.5 pr-3 ${
+        seleccionada ? "outline outline-2 outline-primary-text" : ""
+      }`}
+    >
       <Link
         href={`/workers/${perfilId}`}
+        aria-current={seleccionada ? "true" : undefined}
+        onClick={
+          onSeleccionar
+            ? (e) => {
+                // Con la tecla modificadora («abrir en otra pestaña») va el link.
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+                e.preventDefault();
+                onSeleccionar();
+              }
+            : undefined
+        }
         className="flex min-w-[min(100%,11rem)] flex-1 items-center gap-3 rounded-[14px]"
       >
         <Avatar src={foto} name={nombre} id={perfilId} cielo />
@@ -57,6 +84,7 @@ export default function CandidatoFila({
               </span>
             )}
           </span>
+          {rotulo && !marca && <span className="chip-suave mt-1">{rotulo}</span>}
           {marca && (
             <span
               data-testid="postulante-desasignado"

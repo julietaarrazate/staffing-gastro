@@ -300,7 +300,9 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
 
   return (
     <div
-      className={`${LETRAS_APP} estilo-suave app-container-reading flex flex-col md:mb-0 md:min-h-0 md:px-4 md:pb-10 md:pt-6 ${
+      // En la compu (lg) el marco se ensancha y la portada pasa a una columna
+      // al lado de la hoja; en el celular y la tablet, igual que siempre.
+      className={`${LETRAS_APP} estilo-suave mx-auto w-full max-w-[var(--app-reading)] flex flex-col md:mb-0 md:min-h-0 md:px-4 md:pb-10 md:pt-6 lg:grid lg:max-w-[var(--app-frame)] lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-5 ${
         conBarra
           ? "min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))]"
           : "-mb-[var(--chrome-bottom)] min-h-[calc(100dvh-var(--chrome-top))]"
@@ -311,7 +313,7 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
           foto no cambia de noche). */}
       {/* El alto sigue a la pantalla: en un celular bajo la foto no se lleva
           el lugar del puesto y del pago. */}
-      <header className="relative h-[clamp(180px,34dvh,300px)] shrink-0 overflow-hidden bg-surface md:h-[clamp(180px,45dvh,340px)] md:rounded-t-[28px]">
+      <header className="relative h-[clamp(180px,34dvh,300px)] shrink-0 overflow-hidden bg-surface md:h-[clamp(180px,45dvh,340px)] md:rounded-t-[28px] lg:h-auto lg:min-h-[30rem] lg:rounded-[28px]">
         {photo ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element -- la optimización la hace Cloudinary (cldThumb) */}
@@ -359,7 +361,7 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
 
         {/* Lo que apura la decisión, sobre la foto y arriba del borde de la hoja. */}
         {shift.urgent && (
-          <div className="absolute bottom-11 left-5 right-5 flex flex-wrap gap-1.5">
+          <div className="absolute bottom-11 left-5 right-5 flex flex-wrap gap-1.5 lg:bottom-5">
             <span className="chip-foto chip-foto-urgente">Urgente</span>
           </div>
         )}
@@ -367,7 +369,7 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
 
       {/* La hoja. `flex-1` y la acción con `mt-auto`: con poco contenido la
           hoja llega igual hasta abajo y la acción queda en el borde. */}
-      <section aria-label="El turno" className="hoja -mt-7 flex flex-1 flex-col px-5 pt-6 md:px-8 md:pt-7">
+      <section aria-label="El turno" className="hoja -mt-7 flex flex-1 flex-col px-5 pt-6 md:px-8 md:pt-7 lg:mt-0">
         {/* Postulado: la cinta «¡Oído!» pegada sobre el borde de la hoja, como
             en la cocina cuando se canta el pedido. Se pega con un golpe sólo
             si la postulación pasó en esta pantalla (y sin movimiento si así

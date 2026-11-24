@@ -23,7 +23,7 @@ cualquiera), después lo del comercio (es quien más usa la compu), quien trabaj
 |---|---|---|---|---|
 | 0 | Navegación en compu (barra lateral o de arriba) y el marco común | `components/Navbar.tsx` (`BarraConSesion`, `.barra-compu`), `--app-frame` | los dos | ✅ ya existía (mirado a 1440 px el 2026-11-24): barra de arriba con las pestañas, la campanita y «Publicar turno», y el marco de 1024 px con su test (`e2e/anchos-de-contenedor.spec.ts`). Lo que falta es aprovechar el ancho adentro de cada pantalla |
 | 1 | Panel del comercio | `shifts` | comercio | 🔵 ya traía grilla en compu; desde el 2026-11-24 los turnos van de a dos por fila como mucho (con tres, en el marco de 1024 px, el horario se partía), «Evento» junto a «Marchando» y el Panel vacío con los tres pasos en fila (`app/shifts/page.tsx`, `employer/CieloPanel`) |
-| 2 | Candidatos, con la ficha al lado | `shifts` / `turno/[id]` | comercio | ⚪ |
+| 2 | Candidatos, con la ficha al lado | `shifts/[id]/candidates` | comercio | 🔵 desde `lg`: la lista (todos en filas) a la izquierda y la ficha de la persona elegida a la derecha, con «Elegir a <nombre>» como único ámbar (`app/shifts/[id]/candidates/page.tsx`, `candidate/FichaCandidato`, `profile/FichaTrabajadorContenido`, `lib/use-es-compu.ts`) |
 | 3 | Publicar turno y publicar evento | `shifts/new`, `shifts/new-event` | comercio | 🔵 «Publicar turno» ya tenía el formulario a la izquierda (ancho de lectura, ~575 px) y la vista previa a la derecha; se quitó la tarjeta repetida del último paso en compu. «Publicar evento» pasa a formulario + «Resumen» a la derecha (nombre, cuándo, zona, puestos, personas y total a pagar) y el botón de la confirmación deja de ocupar 480 px |
 | 4 | Buscar y Mapa del comercio | `buscar`, `map` | comercio | ⚪ |
 | 5 | Mis turnos del comercio | `my-shifts` | comercio | 🔵 `/my-shifts` es sólo de quien trabaja (`useRequireAuth({ roles: ["worker"] })`; al comercio lo manda a `/shifts`): lo suyo es el Panel (renglón 1), con su misma tira de días y «Más adelante». Nada propio que adaptar |
@@ -33,7 +33,7 @@ cualquiera), después lo del comercio (es quien más usa la compu), quien trabaj
 | 9 | Inicio de quien trabaja | `feed` (trabajador) | trabajador | ⚪ |
 | 10 | Buscar y Mapa de quien trabaja | `search`, `map` | trabajador | ⚪ |
 | 11 | Mis turnos de quien trabaja | `my-shifts` | trabajador | 🔵 desde el 2026-11-24 la tarjeta de hoy y los demás turnos fluyen en dos columnas desde `md` (antes tres en `xl`, de ~300 px, con huecos y la tarjeta de hoy sola); Terminados, Postulaciones y Guardados también de a dos. Sin panel de detalle aparte: cada turno ya trae todo y sus acciones adentro (`app/my-shifts/page.tsx`) |
-| 12 | Detalle del turno | `turno/[id]` | trabajador | ⚪ |
+| 12 | Detalle del turno | `turno/[id]` | trabajador | 🔵 desde `lg`: la portada (foto o cielo) a la izquierda y la hoja con el pago y «Postularme» a la derecha, en el marco de 1024 px (`components/ShiftDetail.tsx`; prueba opt-in `e2e/turno-en-compu.spec.ts`) |
 | 13 | Perfil de quien trabaja y ficha pública | `profile`, `workers/[id]` | trabajador | ⚪ |
 | 14 | Chats (ya en dos columnas: revisar) | `chats` | los dos | 🔵 revisado el 2026-11-24 a 1440 px, de los dos lados: ya estaba bien (lista de 380 px y conversación al lado, burbujas de ~460 px, campo dentro del panel); sin cambios de código, sólo la prueba de disposición en `e2e/chats-suave.spec.ts` |
 | 15 | Editar perfil y Ajustes | `profile/edit`, `profile/settings` | los dos | ⚪ |
