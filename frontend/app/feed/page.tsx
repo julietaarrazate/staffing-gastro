@@ -739,7 +739,7 @@ function WorkerFeedPanel() {
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-5 pb-6 lg:grid-cols-3">
-                  {visibleShifts.map((shift) => (
+                  {visibleShifts.map((shift, i) => (
                     <div key={shift.id} data-testid="feed-grid-card" className="h-[560px]">
                       <OpportunityCard
                         shift={shift}
@@ -751,6 +751,9 @@ function WorkerFeedPanel() {
                         onApply={() => handleGridDecide(shift, "like")}
                         onPass={() => handleGridDecide(shift, "pass")}
                         shareable
+                        // Un solo ámbar por pantalla: sólo la primera tarjeta, y ninguna
+                        // si el cielo ya trae el suyo («Ver mi turno», «Completar mi perfil»).
+                        acento={i === 0 && !hayCartel}
                       />
                     </div>
                   ))}

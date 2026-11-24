@@ -29,6 +29,7 @@ export default function OpportunityCard({
   locked = false,
   applied = false,
   shareable = false,
+  acento = true,
   preview = false,
   href,
 }: {
@@ -54,6 +55,10 @@ export default function OpportunityCard({
    *  fijo y sobra lugar; en el mazo mobile no, porque ahí cada píxel del
    *  cuerpo compite con "Cómo llegar" (ver más abajo). */
   shareable?: boolean;
+  /** «Postularme» en ámbar (por defecto). En la grilla de escritorio sólo la
+   *  primera tarjeta lo lleva (un solo ámbar por pantalla, como en `/buscar`):
+   *  las demás pasan `acento={false}` y van en azul hondo (`.boton-hondo`). */
+  acento?: boolean;
   /** Como imagen (la landing): el puesto va como texto y no como `h2`, y el
    *  comercio sin link, así los buscadores no leen títulos ni links de un
    *  turno de ejemplo. */
@@ -367,7 +372,15 @@ export default function OpportunityCard({
                     <CheckIcon size={16} /> Postulado
                   </p>
                 ) : (
-                  <Button fullWidth size="sm" loading={applying} disabled={applying || locked} onClick={onApply}>
+                  <Button
+                    fullWidth
+                    size="sm"
+                    variant={acento ? "primary" : "surface"}
+                    className={acento ? "" : "boton-hondo"}
+                    loading={applying}
+                    disabled={applying || locked}
+                    onClick={onApply}
+                  >
                     Postularme
                   </Button>
                 ))}

@@ -6,4 +6,6 @@
 
 **Por qué así:** se miraron los cuatro estados (turno de hoy, hay turnos, nada, sin zona) a 390/768/1024/1440 en claro y oscuro. El vacío y el cartel de perfil ya estaban bien. En compu el Inicio no usa «recomendado» ni «Cerca tuyo» (son del celular) sino la grilla con Postularme / No gracias directos, que varios tests protegen (`feed-grid-card`, segundo toque, detalle en compu); se la mantuvo y no se la reemplazó.
 
-**Queda abierto:** la grilla muestra un botón ámbar «Postularme» por tarjeta (más el de «Ver mi turno» con turno de hoy), contra la regla de un solo ámbar por pantalla; resolverlo toca `OpportunityCard` (también la usa el mazo) y conviene decidirlo con Julieta.
+**Un solo ámbar (segundo paso):** `OpportunityCard` tiene la prop `acento` (por defecto `true`, así el mazo «Descubrir rápido» y la landing no cambian). En la grilla de compu sólo la primera tarjeta lleva «Postularme» en ámbar; las demás van en azul hondo (`.boton-hondo`), como en `/buscar`. Con un cartel de ámbar arriba (turno de hoy con «Ver mi turno», o «Completar mi perfil») ninguna tarjeta lleva ámbar. Prueba: dos casos al final de `frontend/e2e/inicio-urgentes.spec.ts` que cuentan 1 ámbar visible a 1440 con y sin turno de hoy.
+
+**Queda abierto:** nada de este renglón.
