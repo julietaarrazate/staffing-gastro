@@ -16,8 +16,8 @@ export const metadata: Metadata = {
 /** Bloque de sección: título + párrafos cortos, sin juridiqués. */
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="mt-8 scroll-mt-20 first:mt-0">
-      <h2 className="text-lg font-bold text-ink">{title}</h2>
+    <section className="mt-8 first:mt-0">
+      <h2 className="scroll-mt-24 text-lg font-bold text-ink">{title}</h2>
       <div className="mt-2 space-y-3 text-body leading-relaxed text-ink/60">
         {children}
       </div>
@@ -42,7 +42,7 @@ export default function TerminosPage() {
 
         <div className="lg:grid lg:grid-cols-[13rem_minmax(0,46rem)] lg:gap-10">
         <IndiceLegal />
-        <div id="cuerpo-legal" className="mt-6 rounded-[var(--radius-card)] bg-card p-6 shadow-[var(--shadow-soft)] ring-1 ring-line sm:p-8">
+        <div id="cuerpo-legal" className="lg:col-start-2 mt-6 rounded-[var(--radius-card)] bg-card p-6 shadow-[var(--shadow-soft)] ring-1 ring-line sm:p-8">
           <h1 className="font-display text-h1 font-semibold tracking-tight text-ink sm:text-3xl">
             Términos y Condiciones
           </h1>

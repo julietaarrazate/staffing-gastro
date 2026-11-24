@@ -2520,7 +2520,7 @@ body:has([data-landing]) main {
    (544 px de contenido: max-w-xl menos su px-4) en vez de pegarse al borde. */
 @media (min-width: 768px) {
   .encuesta-cielo {
-    padding-inline: max(32px, calc((100% - 544px) / 2));
+    padding-inline: max(32px, calc((100% - 544px) / 2 - var(--l-margen)));
   }
 }
 /* «Para trabajar»: la noche azul de la app, en un panel. */

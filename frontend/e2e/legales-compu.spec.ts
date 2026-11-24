@@ -25,7 +25,12 @@ for (const ruta of ["/terminos", "/privacidad"]) {
     const link = indice.getByRole("link").nth(3);
     const titulo = (await link.textContent())!;
     await link.click();
-    await expect(page.getByRole("heading", { name: titulo, level: 2 })).toBeInViewport();
+    const h2 = page.getByRole("heading", { name: titulo, level: 2 });
+    await expect(h2).toBeInViewport();
+    await page.waitForTimeout(500);
+    // No queda tapado por el header sticky (61 px) y el link clickeado queda activo.
+    expect((await h2.boundingBox())!.y).toBeGreaterThanOrEqual(61);
+    await expect(link).toHaveAttribute("aria-current", "true");
   });
 
   test(`${ruta} a 390 px: sin índice ni scroll horizontal`, async ({ page }) => {
@@ -37,3 +42,14 @@ for (const ruta of ["/terminos", "/privacidad"]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   });
 }
+
+test.describe("sin JavaScript (antes de hidratar)", () => {
+  test.use({ javaScriptEnabled: false, viewport: { width: 1440, height: 900 } });
+  for (const ruta of ["/terminos", "/privacidad"]) {
+    test(`${ruta}: la tarjeta ya mide 736 px en el HTML del servidor`, async ({ page }) => {
+      await page.goto(ruta);
+      const w = (await page.locator("#cuerpo-legal").boundingBox())!.width;
+      expect(Math.round(w)).toBe(736);
+    });
+  }
+});

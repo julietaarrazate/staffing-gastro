@@ -45,6 +45,7 @@ export default function IndiceLegal() {
             <li key={e.id}>
               <a
                 href={`#${e.id}`}
+                onClick={() => setActiva(e.id)}
                 aria-current={activa === e.id ? "true" : undefined}
                 className={`-ml-px block border-l-2 py-1.5 pl-3 text-sm leading-snug transition-colors ${
                   activa === e.id

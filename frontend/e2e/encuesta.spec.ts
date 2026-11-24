@@ -210,7 +210,7 @@ test("en compu el título del cielo queda alineado con la columna de las pregunt
   await expect(titulo).toBeVisible();
   const t = (await titulo.boundingBox())!;
   const o = (await page.getByRole("radio", { name: "Dueño o dueña" }).boundingBox())!;
-  // Mismo borde izquierdo (±20 px: la opción tiene su propio borde) y no pegado al costado.
-  expect(Math.abs(t.x - o.x)).toBeLessThanOrEqual(20);
+  // Mismo borde izquierdo (±4 px: la opción tiene su propio borde) y no pegado al costado.
+  expect(Math.abs(t.x - o.x)).toBeLessThanOrEqual(4);
   expect(t.x).toBeGreaterThan(300);
 });
