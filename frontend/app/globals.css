@@ -4815,12 +4815,16 @@ body:has([data-landing]) main {
   font-family: inherit;
   font-weight: 700;
 }
-/* En la compu (desde `lg`, 2026-11-24) el acceso va en dos columnas y el título,
-   sobre el cielo grande de la izquierda, sube de tamaño. */
+/* En la compu (desde `lg`, 2026-11-24) el acceso ocupa la pantalla entera en dos
+   columnas y el título, sobre el cielo grande de la izquierda, sube de tamaño. */
 @media (min-width: 1024px) {
   .acceso .titulo-pantalla {
     font-size: var(--text-display);
     line-height: var(--text-display--line-height);
+  }
+  /* La pantalla entera partida en dos: la hoja va de borde a borde, sin esquinas. */
+  .acceso .acceso-hoja {
+    border-radius: 0;
   }
 }
 

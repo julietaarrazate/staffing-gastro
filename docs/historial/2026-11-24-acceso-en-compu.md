@@ -1,17 +1,18 @@
-# El acceso en la compu: dos columnas
+# El acceso en la compu: la pantalla entera en dos columnas
 
 **Pedido:** Julieta, 2026-11-24: en la compu la app se ve como en el celular; empezar la versión de
 escritorio (decisión B: todas las pantallas) por la navegación común y el login.
 
 **Qué cambió:** desde 1024 px de ancho, las pantallas de acceso (`/login`, `/register`, `/recuperar`,
-`/restablecer`, `/verificar-email`) y la bienvenida van en dos columnas dentro del marco de la app
-(`--app-frame`): a la izquierda, el cielo grande con el «oído», el título (44 px, `--text-display`),
+`/restablecer`, `/verificar-email`) y la bienvenida ocupan la pantalla entera partida en dos (primero se
+probó un recuadro del ancho del marco, `--app-frame`; Julieta prefirió la pantalla completa): a la izquierda, el cielo grande con el «oído», el título (44 px, `--text-display`),
 qué es Oído en tres frases y dos fotos de la landing (`mozo3`, `cocina1`); a la derecha, la hoja con el
-formulario (440 px). Antes era una tarjeta de celular chica en el medio de una pantalla vacía. En el
+formulario centrado (hasta 400 px), sobre la hoja de borde a borde. Antes era una tarjeta de celular chica en el medio de una pantalla vacía. En el
 celular y la tablet no cambia nada: todo va detrás de `lg:`.
 
-Técnico: `frontend/components/acceso/PantallaAcceso.tsx` (`QueEsOido`, oculto debajo de `lg`) y una
-regla en `app/globals.css` (`.acceso .titulo-pantalla` desde 1024 px).
+Técnico: `frontend/components/acceso/PantallaAcceso.tsx` (`QueEsOido`, oculto debajo de `lg`; sin sesión
+ocupa `100dvh`, con sesión descuenta el encabezado) y dos reglas en `app/globals.css` desde 1024 px
+(`.acceso .titulo-pantalla` y la hoja sin esquinas).
 
 **Por qué así:** el acceso es lo primero que ve cualquiera, comercio o trabajador; en la compu sobraba
 pantalla y el lado izquierdo la usa para decir qué es Oído sin agregar texto en el celular, donde el

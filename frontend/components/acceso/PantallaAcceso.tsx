@@ -15,9 +15,9 @@ import { NubesCielo, PasosTachados } from "@/components/ui";
  * (ADR-0028, 2026-11-21): arriba el cielo con el «oído» plano (el mismo del
  * Inicio) y el título de la pantalla en letra normal; debajo, la hoja con el
  * formulario. En la tablet, la hoja angosta y centrada sobre el cielo, como las
- * subpáginas del perfil. En la compu (desde `lg`, 2026-11-24), dos columnas en el
- * marco de la app (`--app-frame`): a la izquierda el cielo grande con el título,
- * qué es Oído y dos fotos de la landing; a la derecha, la hoja con el formulario.
+ * subpáginas del perfil. En la compu (desde `lg`, 2026-11-24), la pantalla entera
+ * partida en dos: a la izquierda el cielo de borde a borde con el título, qué es
+ * Oído y dos fotos de la landing; a la derecha, la hoja con el formulario centrado.
  * En el celular no cambia nada: lo de la compu va detrás de `lg:`.
  *
  * - `pasos`: la bienvenida pone sus pasos tachados entre el «oído» y el título.
@@ -45,13 +45,14 @@ export default function PantallaAcceso({
     <div
       className={cn(
         "estilo-suave acceso mx-auto flex max-w-md flex-col md:mb-0 md:min-h-0 md:max-w-[28rem] md:px-4 md:pb-10 md:pt-8",
-        "lg:max-w-[var(--app-frame)] lg:flex-row lg:items-stretch lg:px-6 lg:pb-12 lg:pt-[max(2.5rem,9vh)]",
+        "lg:w-full lg:max-w-none lg:flex-row lg:items-stretch lg:p-0",
         conBarra
-          ? "min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))]"
-          : "-mb-[var(--chrome-bottom)] min-h-[calc(100dvh-var(--chrome-top))]"
+          ? "min-h-[calc(100dvh-var(--chrome-top)-var(--chrome-bottom))] lg:min-h-[calc(100dvh-var(--chrome-top))]"
+          : // Sin sesión no hay encabezado: en la compu la pantalla ocupa todo el alto.
+            "-mb-[var(--chrome-bottom)] min-h-[calc(100dvh-var(--chrome-top))] lg:min-h-dvh"
       )}
     >
-      <div className="app-cielo cielo-limpio px-4 pb-12 pt-4 md:rounded-t-[28px] md:px-6 md:pt-6 lg:flex lg:min-w-0 lg:flex-1 lg:flex-col lg:rounded-l-[28px] lg:rounded-tr-none lg:px-10 lg:pb-10 lg:pt-9">
+      <div className="app-cielo cielo-limpio px-4 pb-12 pt-4 md:rounded-t-[28px] md:px-6 md:pt-6 lg:flex lg:min-w-0 lg:flex-1 lg:flex-col lg:rounded-none lg:px-[max(3rem,6vw)] lg:pb-12 lg:pt-10">
         {/* Una nube grande arriba a la derecha, detrás del «oído» y del título
             (en tinta se lee sobre el blanco de la nube); de noche no hay. Entera
             dentro del ancho: la auditoría de encuadre no deja nada fuera. */}
@@ -68,8 +69,8 @@ export default function PantallaAcceso({
             confirmar el email estando adentro). */}
         {!user && <QueEsOido />}
       </div>
-      <div className="hoja acceso-hoja -mt-7 flex flex-1 flex-col px-4 pb-8 pt-6 md:px-6 lg:mt-0 lg:w-[440px] lg:flex-none lg:justify-center lg:rounded-l-none lg:rounded-r-[28px] lg:px-10 lg:py-10">
-        {children}
+      <div className="hoja acceso-hoja -mt-7 flex flex-1 flex-col px-4 pb-8 pt-6 md:px-6 lg:mt-0 lg:w-[min(36rem,46vw)] lg:flex-none lg:justify-center lg:rounded-none lg:px-12 lg:py-12">
+        <div className="flex flex-1 flex-col lg:mx-auto lg:w-full lg:max-w-[25rem] lg:flex-none">{children}</div>
       </div>
     </div>
   );
