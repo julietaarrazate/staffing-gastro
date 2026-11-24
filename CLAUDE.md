@@ -56,6 +56,7 @@ Duplicar componentes o lógica · acoplar módulos por dentro · credenciales en
 | Qué está abierto / qué sigue | `docs/STATUS.md` |
 | Salida a beta: qué está hecho, en curso y pendiente | `docs/planning/BETA_TABLERO.md` |
 | Migración a la dirección suave: qué pantalla está hecha y cuál falta | `docs/planning/DIRECCION_SUAVE_PANTALLAS.md` |
+| Versión de escritorio: qué pantalla está hecha y cuál falta | `docs/planning/ESCRITORIO_PANTALLAS.md` |
 | La marca hoy (paleta, tipografía, filete, isotipo) | `docs/design-system/marca-hoy.md` |
 | Ubicar pantalla o pieza de código | `docs/reference/MAPA_DEL_CODIGO.md` |
 | Funcionalidades vigentes y contexto de producto | `docs/reference/QUE_EXISTE_HOY.md` |
