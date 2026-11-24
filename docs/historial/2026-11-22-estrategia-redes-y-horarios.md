@@ -16,16 +16,12 @@ que lo elija.
   **@turnosgastro** (turnos, nombre visible «Turnos Gastro CABA · Oído»;
   alternativa @turnosgastro.caba). Arrancan el **1/12**, antes de la beta,
   sólo con tips (sin turnos hasta que haya reales).
-- Propuesta de producto
-  [`planning/PROPUESTA_HORARIOS_EQUIPO.md`](../planning/PROPUESTA_HORARIOS_EQUIPO.md)
-  con su maqueta (https://claude.ai/artifact/Y6zUc1LHNg7XxBG8jaDS2E).
+- Propuesta de horarios del equipo con su maqueta. El 2026-11-24 pasó del
+  repositorio (público) al documento privado de crecimiento.
 
 **Por qué así:** ninguna cifra de paga o costo se inventa en las piezas (salen
-de turnos reales o se enseña la cuenta). La grilla va dentro del Panel (Turnos |
-Equipo) y no como botón nuevo: la barra ya tiene cuatro más el «+». El equipo
-fijo no es el primero en recibir el aviso de una falta (Julieta: está de franco)
-y Oído no le ofrece turnos al equipo de un comercio, para que el dueño no lo lea
-como que le sacan la gente. Stock y mermas se descartaron (otro producto).
+de turnos reales o se enseña la cuenta). El razonamiento de producto está en el
+documento privado.
 
 **Queda abierto:** ver `../STATUS.md` → «Crecimiento en redes y propuesta de
 horarios». El código de los videos (Remotion) quedó en
