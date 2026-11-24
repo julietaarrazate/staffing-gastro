@@ -66,14 +66,16 @@ export default function CieloPanel({
     </Link>
   ) : null;
   const filaDeEstado = (
-    <div className="flex min-h-[32px] items-center justify-between gap-2">
+    // En la compu el chip «Evento» va junto a «Marchando»: con el título en
+    // la columna de la izquierda, pegado al borde quedaba flotando en el medio.
+    <div className="flex min-h-[32px] items-center justify-between gap-2 md:justify-start">
       {resumen?.marchando ? (
         <span className="chip-vidrio gap-2">
           <span aria-hidden className="pulso-cielo" />
           Marchando
         </span>
       ) : (
-        <span />
+        <span className="md:hidden" />
       )}
       {chipEvento}
     </div>

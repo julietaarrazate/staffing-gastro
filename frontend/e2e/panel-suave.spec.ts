@@ -204,3 +204,32 @@ test("a 320 px nada corre la página y el foco sobre el cielo hondo es blanco", 
   const mas = page.locator('[data-shift-id="s1"]').getByRole("button", { name: "Más acciones" });
   expect(await mas.evaluate((el) => getComputedStyle(el).getPropertyValue("--focus-ring").trim())).not.toMatch(/^#fff(fff)?$/i);
 });
+
+// Escritorio, renglón 1 (2026-11-24): en la compu (1440) las tarjetas van de a
+// dos, como mucho. Con tres columnas, en el marco de 1024 px cada una quedaba
+// de ~300 px y el horario se partía en dos líneas.
+test("en la compu los turnos van de a dos por fila, con lugar para el horario en una línea", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const tres = ["a", "b", "c"].map((id) => shift(id, "publicado", "mozo", { pending_applicants_count: 1, ...HOY }));
+  await panel(page, [...tres, shift("d", "trabajando", "bartender", { worker_name: "Ana Soto", ...HOY })]);
+  await page.goto("/shifts");
+  const cajas = await Promise.all(["a", "b", "c"].map(async (id) => (await page.locator(`[data-shift-id="${id}"]`).boundingBox())!));
+  expect(Math.abs(cajas[0].y - cajas[1].y)).toBeLessThan(2);
+  expect(cajas[2].y).toBeGreaterThan(cajas[0].y + cajas[0].height - 1);
+  expect(cajas[0].width).toBeGreaterThan(420);
+  // «Evento» va junto a «Marchando», no flotando en el medio del cielo.
+  const cielo = page.getByTestId("panel-cielo");
+  const marchando = (await cielo.getByText("Marchando").boundingBox())!;
+  const evento = (await cielo.getByRole("link", { name: "Evento" }).boundingBox())!;
+  expect(evento.x - (marchando.x + marchando.width)).toBeLessThan(40);
+});
+
+test("en la compu, el Panel vacío cuenta los tres pasos en una fila", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await panel(page, []);
+  await page.goto("/shifts");
+  const pasos = page.getByTestId("panel-primer-dia").getByRole("listitem");
+  await expect(pasos).toHaveCount(3);
+  const ys = await Promise.all([0, 1, 2].map(async (i) => (await pasos.nth(i).boundingBox())!.y));
+  expect(Math.max(...ys) - Math.min(...ys)).toBeLessThan(2);
+});
