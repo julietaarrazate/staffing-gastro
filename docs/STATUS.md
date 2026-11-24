@@ -115,9 +115,9 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
    bienvenida (#721). **Hecho también el 2026-11-21/22:** la tanda vista en maqueta (Urgentes, Mis turnos con la tira
    tocable, la oreja del asistente, el Panel compacto, el mapa con chips y los rubros, #722; el turno que
    cruza la medianoche, #723), el mapa de noche en azul (#724) y las hojas compartidas, la
-   Administración y **el cierre de ADR-0028** (#725: lo suave es la base de toda la app). **Queda de la
-   dirección suave sólo la landing** (prueba hecha, sin decidir: botón principal ámbar o azul hondo, y si
-   los títulos de sección dejan la serif); es lo único que conserva el relieve (`.estilo-relieve`).
+   Administración y **el cierre de ADR-0028** (#725: lo suave es la base de toda la app). **La landing queda
+   como está** (decidido por Julieta el 2026-11-24): no pasa a la dirección suave y es lo único que
+   conserva el relieve (`.estilo-relieve`). La dirección suave queda cerrada.
    **Falta que Julieta mire en su celular:** el mapa de noche nuevo, activar las notificaciones
    después de #720 (la causa de su falla no quedó confirmada) y si al tocar un pin del mapa el título
    y los chips se van de la pantalla. Anotado: la búsqueda del comercio devuelve como máximo 20
