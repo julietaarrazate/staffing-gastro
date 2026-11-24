@@ -85,8 +85,9 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
   La pasada por clase de error (2026-11-19) quedó auditada y arreglada en
   once PRs (#661 a #675, más los tests de contrato en #666), salvo el cobro
   con Mercado Pago (CON-06, CON-07, CON-09: latente, va antes de prender el
-  cobro) y tres decisiones de Julieta (PRI-06, PRI-07 y PRI-09, más el
-  texto de `/privacidad` sobre el CV). Detalle en el tablero («Pasada por
+  cobro) y PRI-07 y PRI-09, ya decididas por Julieta el 2026-11-24 (PRI-06
+  queda así): corregir `/privacidad` (con el texto del CV, una sola subida de
+  la versión legal) y «Ver como» sólo para mirar, con registro de cada uso. Detalle en el tablero («Pasada por
   clase de error» y «Para la próxima sesión»). **Sigue, en una sesión
   nueva: P1 a P5** en el orden del tablero (antes de P3 y P4, la opinión de
   la asesoría). Falta de Julieta, después del deploy del #669: los dos

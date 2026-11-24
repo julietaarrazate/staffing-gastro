@@ -349,7 +349,7 @@ horaria.
 | Cobro con Mercado Pago (latente: está apagado) | CON-06, CON-07, CON-09 | menor | ⚪ próxima sesión, antes de prender el cobro |
 | Borradores y datos al cambiar de sesión | SES-02, SES-03, SES-04 | menor | ✅ #672 |
 | Hora sin zona leída en la zona del celular (borrador de la IA) | FEC-02 | menor | ✅ #673 |
-| Esperan una decisión de Julieta | PRI-06 (el registro dice qué emails tienen cuenta), PRI-07 (`/privacidad` dice «nunca la exacta» y «va en camino» manda la exacta), PRI-09 («Ver como» de la admin escribe en nombre de la persona) | menor | ⏸️ |
+| Decididas el 2026-11-24 (ver «Decisiones tomadas el 2026-11-24») | PRI-06 (queda así en la beta), PRI-07 (corregir `/privacidad`), PRI-09 («Ver como» sólo para mirar) | menor | ⚪ PRI-07 y PRI-09 sin empezar |
 | Configuración, sin código | PRI-08: la cuenta invitada es una sola para todos los que tienen el PIN; se cierra vaciando `GUEST_ACCESS_PIN` (decisión 5) | menor | ⏸️ |
 
 Refutados: VIE-06 (los diálogos «No se presentó» y «¿Ya le pagaste?» no
@@ -485,20 +485,26 @@ implemente.
   **recordatorio al comercio a las 24 horas y cierre automático a las 72**,
   con la puntualidad que ya quedó registrada. Cambia el ADR-0008.
 
-### Decisiones que esperan a Julieta
+### Decisiones tomadas el 2026-11-24 (las que esperaban a Julieta)
 
-Del 2026-11-19 (pasada por clase de error), con opciones y recomendación en
-la conversación de ese día:
+Criterio de Julieta: «siempre lo mejor para el negocio y la seguridad».
 
-- **PRI-06:** el registro dice qué emails ya tienen cuenta. Recomendado:
-  dejarlo así en la beta (Turnstile y el límite de intentos ya frenan la
-  consulta masiva) y revisarlo con las passkeys.
-- **PRI-07:** `/privacidad` dice que el comercio nunca ve la ubicación
-  exacta, y «va en camino» se la muestra en vivo (a propósito). Recomendado:
-  corregir el texto (sube la versión legal), junto con el texto del CV.
-- **PRI-09:** «Ver como» de la admin entrega una sesión común (marca chats
-  como vistos, puede escribir). Recomendado: que sea sólo para mirar, con
-  registro de cada uso.
+- **PRI-06 → se deja así en la beta.** El registro sigue diciendo qué emails
+  ya tienen cuenta: Turnstile y el límite de intentos ya frenan la consulta
+  masiva, y cambiar sólo el registro agrega fricción sin cerrar la consulta
+  (el ingreso y «olvidé mi contraseña» también la permiten). Se revisa todo
+  junto con las passkeys.
+- **PRI-07 → se corrige el texto (aprobado expresamente, toca lo legal).**
+  `/privacidad` dice que, mientras la persona va en camino y lo activa, el
+  comercio ve su ubicación en vivo hasta que llega. Va junto con el texto
+  del CV (ADR-0021), con una sola subida de `LEGAL_TERMS_VERSION` y
+  `frontend/lib/legal.ts`. La función no cambia.
+- **PRI-09 → «Ver como» pasa a ser sólo para mirar.** No escribe, no se
+  postula, no publica ni marca nada como visto; muestra una franja «Sólo
+  lectura» y cada uso queda registrado (quién miró a quién y cuándo).
+
+Sin hacer todavía: van en una sesión nueva, un PR para PRI-07 y otro para
+PRI-09.
 
 Las de antes (la segunda mirada a G6, U081, U080 y U072) se tomaron el
 2026-11-18: ver «Decisiones tomadas el 2026-11-18». El ingreso de invitado (decisión 5) se apaga al abrir
