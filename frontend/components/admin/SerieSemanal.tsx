@@ -50,9 +50,9 @@ function TablaSemanas({ semanas }: { semanas: WeekSummary[] }) {
         <thead>
           <tr className="text-left text-xs font-medium text-ink-soft">
             <th scope="col" className="px-4 pb-2 pt-4 align-bottom font-medium sm:px-5">Semana</th>
-            <th scope="col" className={TH}>Publicados</th>
-            <th scope="col" className={TH}>Cubiertos</th>
-            <th scope="col" className={TH}>Cumplidos</th>
+            <th scope="col" className={`${TH} md:whitespace-nowrap`}>Publicados</th>
+            <th scope="col" className={`${TH} md:whitespace-nowrap`}>Cubiertos</th>
+            <th scope="col" className={`${TH} md:whitespace-nowrap`}>Cumplidos</th>
             <th scope="col" className={TH}>Mediana hasta confirmar</th>
             <th scope="col" className={TH}>Locales activos</th>
             <th scope="col" className={TH}>Altas trabajadores</th>

@@ -335,7 +335,9 @@ function LeadCard({
             {lead.address ? ` · ${lead.address}` : ""}
           </p>
         </div>
-        <Badge tone={priority === "Alta" ? "secondary" : "neutral"}>Prioridad {priority.toLowerCase()}</Badge>
+        <Badge tone={priority === "Alta" ? "secondary" : "neutral"} className="md:shrink-0 md:whitespace-nowrap">
+          Prioridad {priority.toLowerCase()}
+        </Badge>
       </div>
 
       <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm">

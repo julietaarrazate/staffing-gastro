@@ -145,3 +145,37 @@ test("/admin/metricas a 360 px y letra al 200 %, en claro y de noche: sin scroll
     expect(fuera, `${theme}: elementos fuera de pantalla`).toEqual([]);
   }
 });
+
+test.describe("en la compu (1440 px)", () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test("la serie semanal no parte «Publicados» a la mitad", async ({ page }) => {
+    await mock(page);
+    await page.goto("/admin/metricas");
+    const th = page.getByRole("columnheader", { name: "Publicados" });
+    await expect(th).toBeVisible();
+    // el texto de la celda ocupa una sola línea (las otras columnas pueden partir entre palabras)
+    const lineas = await th.evaluate((el) => {
+      const r = document.createRange();
+      r.selectNodeContents(el);
+      return new Set(Array.from(r.getClientRects()).map((c) => Math.round(c.top))).size;
+    });
+    expect(lineas).toBe(1);
+  });
+
+  test("Crecimiento: «Prioridad baja» queda en una línea y las tarjetas van de a dos", async ({ page }) => {
+    await mock(page);
+    await page.goto("/admin/leads");
+    const badge = page.getByText("Prioridad baja").first();
+    await expect(badge).toBeVisible();
+    expect((await badge.boundingBox())!.height).toBeLessThan(32);
+    const lista = page.locator("li.tarjeta-suave");
+    const a = (await lista.nth(0).boundingBox())!;
+    const b = (await lista.nth(1).boundingBox())!;
+    expect(Math.abs(a.y - b.y)).toBeLessThan(2);
+    expect(b.x).toBeGreaterThan(a.x + a.width - 1);
+    // el menú queda a la izquierda y el contenido usa el resto del marco
+    const menu = (await page.getByRole("navigation", { name: "Secciones del panel" }).boundingBox())!;
+    expect(menu.x + menu.width).toBeLessThan(a.x);
+  });
+});
