@@ -21,7 +21,7 @@ descuidado.
 | 1 | Probar de punta a punta, sin arreglar | ✅ cerrada: 142 hallazgos (3 bloqueantes, 79 graves, 60 menores). Entorno de prueba (`tools/e2e-local/`) y estado escrito en #527 |
 | 2 | Arreglar: bloqueantes, después graves | en curso (ver abajo) |
 | 3 | Que nada se vea descuidado (los 60 menores y lo que salió de las revisiones) | ✅ cerrada el 2026-11-17: grupos A a N, las diez decisiones de Julieta, M6 y los pendientes de las tres tandas (ver abajo) |
-| 4 | Identidad, marca e isotipo | 🔵 Julieta eligió Shrikhand y ámbar (2026-11-17); letra, miniatura, vectores, manual en PDF y brand system en el PR de la marca; campanita en #622; ícono «el pinche con oído» (elegido el 2026-11-18, ya en el código); la landing híbrida (letra mixta, relieve, planes como carta, final nuevo) en el código el 2026-11-18. Sigue la dirección «con relieve» en la app, pantalla por pantalla; las cuatro pantallas ya están y siguen las piezas de toda la app (la barra de abajo, las pestañas, los botones secundarios, los pasos tachados, los colores de los sellos y el detalle del turno, hechos el 2026-11-19; siguen las demás pantallas: Buscar del trabajador y del comercio y la bienvenida, hechas el mismo día; ver STATUS, ítem 0). Desde el 2026-11-19 la app pasa a la dirección suave (ADR-0028), de a una pantalla: la primera, «Publicar turno» y «Publicar evento» |
+| 4 | Identidad, marca e isotipo | ✅ cerrada el 2026-11-24: la app entera en la dirección suave (ADR-0028, #725) y la landing queda como está, con el relieve (decisión de Julieta). Historia de la etapa: Shrikhand y ámbar (2026-11-17), el ícono «el pinche con oído» (2026-11-18) y la landing híbrida (2026-11-18) |
 | 5 | Lista de salida a beta | 🔵 escrita el 2026-11-19 (ver «Etapa 5: lista de salida a beta»): lo de código está (TypeScript 7 incluido); falta lo de Julieta para el día que abre. Detalle original: (incluye la medición de los KRs: ver «Antes de abrir: medir la beta»; y pasar a TypeScript 7, el compilador en Go: PR aparte que sube `typescript` de 6 a 7 y corre tsc, lint, build y e2e; si ESLint con tipos se traba hasta la 7.1, ESLint sigue con TypeScript 6 mientras tanto. Decidido por Julieta el 2026-11-17) |
 | 6 | SEO y GEO | ⚪ |
 
@@ -349,7 +349,7 @@ horaria.
 | Cobro con Mercado Pago (latente: está apagado) | CON-06, CON-07, CON-09 | menor | ⚪ próxima sesión, antes de prender el cobro |
 | Borradores y datos al cambiar de sesión | SES-02, SES-03, SES-04 | menor | ✅ #672 |
 | Hora sin zona leída en la zona del celular (borrador de la IA) | FEC-02 | menor | ✅ #673 |
-| Esperan una decisión de Julieta | PRI-06 (el registro dice qué emails tienen cuenta), PRI-07 (`/privacidad` dice «nunca la exacta» y «va en camino» manda la exacta), PRI-09 («Ver como» de la admin escribe en nombre de la persona) | menor | ⏸️ |
+| Decididas el 2026-11-24 (ver «Decisiones tomadas el 2026-11-24») | PRI-06 (queda así en la beta), PRI-07 (corregir `/privacidad`), PRI-09 («Ver como» sólo para mirar) | menor | ⚪ PRI-07 y PRI-09 sin empezar |
 | Configuración, sin código | PRI-08: la cuenta invitada es una sola para todos los que tienen el PIN; se cierra vaciando `GUEST_ACCESS_PIN` (decisión 5) | menor | ⏸️ |
 
 Refutados: VIE-06 (los diálogos «No se presentó» y «¿Ya le pagaste?» no
@@ -485,20 +485,26 @@ implemente.
   **recordatorio al comercio a las 24 horas y cierre automático a las 72**,
   con la puntualidad que ya quedó registrada. Cambia el ADR-0008.
 
-### Decisiones que esperan a Julieta
+### Decisiones tomadas el 2026-11-24 (las que esperaban a Julieta)
 
-Del 2026-11-19 (pasada por clase de error), con opciones y recomendación en
-la conversación de ese día:
+Criterio de Julieta: «siempre lo mejor para el negocio y la seguridad».
 
-- **PRI-06:** el registro dice qué emails ya tienen cuenta. Recomendado:
-  dejarlo así en la beta (Turnstile y el límite de intentos ya frenan la
-  consulta masiva) y revisarlo con las passkeys.
-- **PRI-07:** `/privacidad` dice que el comercio nunca ve la ubicación
-  exacta, y «va en camino» se la muestra en vivo (a propósito). Recomendado:
-  corregir el texto (sube la versión legal), junto con el texto del CV.
-- **PRI-09:** «Ver como» de la admin entrega una sesión común (marca chats
-  como vistos, puede escribir). Recomendado: que sea sólo para mirar, con
-  registro de cada uso.
+- **PRI-06 → se deja así en la beta.** El registro sigue diciendo qué emails
+  ya tienen cuenta: Turnstile y el límite de intentos ya frenan la consulta
+  masiva, y cambiar sólo el registro agrega fricción sin cerrar la consulta
+  (el ingreso y «olvidé mi contraseña» también la permiten). Se revisa todo
+  junto con las passkeys.
+- **PRI-07 → se corrige el texto (aprobado expresamente, toca lo legal).**
+  `/privacidad` dice que, mientras la persona va en camino y lo activa, el
+  comercio ve su ubicación en vivo hasta que llega. Va junto con el texto
+  del CV (ADR-0021), con una sola subida de `LEGAL_TERMS_VERSION` y
+  `frontend/lib/legal.ts`. La función no cambia.
+- **PRI-09 → «Ver como» pasa a ser sólo para mirar.** No escribe, no se
+  postula, no publica ni marca nada como visto; muestra una franja «Sólo
+  lectura» y cada uso queda registrado (quién miró a quién y cuándo).
+
+Sin hacer todavía: van en una sesión nueva, un PR para PRI-07 y otro para
+PRI-09.
 
 Las de antes (la segunda mirada a G6, U081, U080 y U072) se tomaron el
 2026-11-18: ver «Decisiones tomadas el 2026-11-18». El ingreso de invitado (decisión 5) se apaga al abrir
@@ -724,7 +730,7 @@ de quien trabaja).
 ## Etapa 5: lista de salida a beta (escrita el 2026-11-19)
 
 Lo que tiene que estar antes de abrir la beta a comercios y trabajadores
-reales (fecha de la fase 0 del plan de crecimiento: 13/12). Lo de código va
+reales (fecha de la fase 0 del plan de crecimiento: 12/12, movida del 13 por Julieta el 22/11). Lo de código va
 con su PR; lo operativo lo hace Julieta, o lo pide.
 
 **Código**
@@ -762,14 +768,14 @@ prueba, y las invitadas quedan sin entrada al vaciar el PIN.
 
 ## Crecimiento y producto después de la beta (anotado el 2026-11-22)
 
-Nada de esto va antes del 13/12, salvo las cuentas.
+Nada de esto va antes del 12/12, salvo las cuentas.
 Detalle en el documento privado de crecimiento (pestaña Horarios del equipo) y
 en `../STATUS.md` («Crecimiento en redes y propuesta de horarios»).
 
 | Ítem | Cuándo | Estado |
 |---|---|---|
 | Cuentas @oidoapp y @turnosgastro, prelanzamiento con tips desde el 1/12 | 1/12 | ⚪ Julieta crea las cuentas |
-| Links etiquetados por cuenta y pieza (origen de cada alta) | antes del 13/12 | ✅ ya existe (`origen_alta.py`); falta usar la convención `utm_source=<cuenta>&utm_campaign=<pieza>` en los links |
+| Links etiquetados por cuenta y pieza (origen de cada alta) | antes del 12/12 | ✅ ya existe (`origen_alta.py`); falta usar la convención `utm_source=<cuenta>&utm_campaign=<pieza>` en los links |
 | Entrevistas a 5 a 10 encargados con la maqueta de horarios | diciembre | ⚪ |
 | Calculadora de personal (pública, termina en publicar turnos) | enero | ⚪ |
 | Favoritos más visibles en el comercio | enero | ⚪ |
