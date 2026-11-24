@@ -207,24 +207,32 @@ test("«Enviar calificación» va en azul hondo: con las estrellas puestas no su
   await expect(page.locator("button.boton-relieve:not(:disabled)")).toHaveCount(1);
 });
 
-// Escritorio, renglones 5 y 11 (2026-11-24): en la compu la tarjeta de hoy y las
-// demás fluyen en dos columnas (nunca tres) y la tarjeta de hoy no queda sola
-// con un hueco al lado.
-test("en la compu los turnos van en dos columnas: hoy a la izquierda y los demás al lado", async ({ page }) => {
+// Escritorio, renglones 5 y 11 (2026-11-24): con tarjeta de hoy, dos columnas
+// explícitas (hoy a la izquierda, los demás en orden cronológico a la derecha);
+// ningún turno cambia de columna cuando una tarjeta crece.
+test("en la compu: hoy a la izquierda, los demás a la derecha en orden, y nadie salta de columna al crecer una tarjeta", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const mas = [
     turno({ id: "a", position: "mozo", status: "confirmado", start_at: isoEnDias(2, "21:00"), end_at: isoEnDias(3, "02:00") }),
     turno({ id: "b", position: "barista", status: "asignado", start_at: isoEnDias(2, "22:00"), end_at: isoEnDias(3, "02:00") }),
   ];
   await misTurnos(page, [...TURNOS(), ...mas]);
-  const caja = async (id: string) => (await page.locator(`[data-shift-id="${id}"]`).boundingBox())!;
-  const [hoy, s1, a] = [await caja("hoy"), await caja("s1"), await caja("a")];
-  const xs = [hoy.x, s1.x, a.x];
-  expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThan(300); // hay segunda columna
-  expect(new Set(xs.map((x) => Math.round(x / 10))).size).toBe(2); // y no una tercera
-  expect(hoy.x).toBeLessThan(s1.x + 1);
-  expect(hoy.width).toBeGreaterThan(380);
-  // Al lado de la tarjeta de hoy empieza otro turno (no queda un hueco bajo ella).
-  const otro = [s1, a, await caja("b")].find((c) => c.x > hoy.x + 100)!;
-  expect(otro.y).toBeLessThan(hoy.y + hoy.height);
+  const orden = ["s1", "a", "b"]; // cronológico: mañana 21:00, +2 d 21:00, +2 d 22:00
+  const cajas = async () => Object.fromEntries(await Promise.all(["hoy", ...orden].map(async (id) => [id, (await page.locator(`[data-shift-id="${id}"]`).boundingBox())!])));
+  const antes = await cajas();
+  expect(antes.hoy.width).toBeGreaterThan(380);
+  for (const id of orden) expect(antes[id].x).toBeGreaterThan(antes.hoy.x + antes.hoy.width - 1);
+  expect(new Set(orden.map((id) => Math.round(antes[id].x))).size).toBe(1);
+  for (let i = 1; i < orden.length; i++) expect(antes[orden[i]].y).toBeGreaterThan(antes[orden[i - 1]].y);
+  // Una tarjeta crece (+300 px, como un mapa o más acciones): nadie cambia de columna.
+  for (const id of ["hoy", "s1", "b"]) {
+    await page.locator(`[data-shift-id="${id}"]`).evaluate((el) => {
+      const d = document.createElement("div");
+      d.style.height = "300px";
+      el.appendChild(d);
+    });
+    const despues = await cajas();
+    for (const k of Object.keys(antes)) expect(Math.abs(despues[k].x - antes[k].x)).toBeLessThan(2);
+    for (let i = 1; i < orden.length; i++) expect(despues[orden[i]].y).toBeGreaterThan(despues[orden[i - 1]].y);
+  }
 });
