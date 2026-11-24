@@ -340,6 +340,26 @@ test.describe("en la compu, la lista con la ficha al lado", () => {
     await expect.poll(() => asignado).toEqual({ worker_profile_id: "wp-2" });
   });
 
+  test("si un refresco en vivo reordena la lista, la ficha sigue siendo la misma persona", async ({ page }) => {
+    await conFichas(page);
+    let reordenada = false;
+    // Se pisa la lista con una que cambia de orden en el siguiente pedido (el último `route` gana).
+    await page.route("**/api/v1/applications/shifts/shift-1", (r) =>
+      r.fulfill(json(reordenada ? [persona("2", "Lucas Medina", { rating: 5, events_completed: 90 }), persona("3", "Ana Paz"), SOFIA] : [SOFIA, persona("2", "Lucas Medina"), persona("3", "Ana Paz")]))
+    );
+    await page.goto("/shifts/shift-1/candidates");
+    const ficha = page.getByTestId("ficha-candidato");
+    await expect(ficha.getByRole("heading", { level: 2, name: "Sofía Ramírez, 27" })).toBeVisible();
+    reordenada = true;
+    await page.evaluate(() => window.dispatchEvent(new Event("online")));
+    // El orden cambió (la lista se ordena por turnos hechos y nota): la primera ya es otra persona...
+    await expect(page.locator("[data-fila-candidato]").first()).toContainText("Lucas Medina");
+    // ...y la ficha (y su «Elegir a») sigue siendo la de Sofía.
+    await expect(ficha.getByRole("heading", { level: 2, name: "Sofía Ramírez, 27" })).toBeVisible();
+    await expect(ficha.getByRole("button", { name: "Elegir a Sofía", exact: true })).toBeVisible();
+    await expect(page.locator('[data-fila-candidato] a[aria-current="true"]')).toContainText("Sofía Ramírez");
+  });
+
   test("en el celular no hay ficha al lado y la destacada sigue donde estaba", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await conFichas(page);

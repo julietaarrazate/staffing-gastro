@@ -136,6 +136,15 @@ function ShiftCandidatesContent() {
   const idsDeLaLista =
     tab === "postulantes" ? rankedApplicants.map((a) => a.worker_profile_id) : candidates.map((c) => c.profile_id);
   const fichaId = compu ? (verId !== null && idsDeLaLista.includes(verId) ? verId : (idsDeLaLista[0] ?? null)) : null;
+  // La persona que se ve queda FIJA: al cargar se elige la primera y sigue
+  // siendo esa aunque un aviso en vivo reordene la lista (si no, «Elegir a X»
+  // podría cambiar de persona bajo el cursor). Sólo cambia si deja de estar.
+  const idsClave = idsDeLaLista.join("|");
+  useEffect(() => {
+    if (!compu || idsDeLaLista.length === 0) return;
+    if (verId === null || !idsDeLaLista.includes(verId)) setVerId(idsDeLaLista[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `idsClave` resume la lista
+  }, [compu, idsClave, verId]);
   const fichaDe = (id: string) => {
     const a = tab === "postulantes" ? applicants.find((x) => x.worker_profile_id === id) : undefined;
     if (a) return { nombre: a.full_name, foto: a.photo_url };

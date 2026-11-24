@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { getErrorMessage } from "@/lib/errors";
 import type { WorkerProfile } from "@/lib/types";
@@ -41,7 +41,11 @@ export default function FichaCandidato({
   const [perfil, setPerfil] = useState<{ id: string; datos: WorkerProfile } | null>(null);
   const [error, setError] = useState<{ id: string; mensaje: string } | null>(null);
 
+  // El pedido en curso: al cambiar de persona (o reintentar) se descarta el
+  // anterior, también el de un «Reintentar».
+  const cancelarAnterior = useRef<() => void>(() => {});
   const cargar = useCallback(() => {
+    cancelarAnterior.current();
     if (!token) return () => {};
     let cancelado = false;
     setError(null);
@@ -53,12 +57,20 @@ export default function FichaCandidato({
       .catch((err) => {
         if (!cancelado) setError({ id: perfilId, mensaje: getErrorMessage(err, "No se pudo cargar la ficha") });
       });
-    return () => {
+    const cancelar = () => {
       cancelado = true;
     };
+    cancelarAnterior.current = cancelar;
+    return cancelar;
   }, [perfilId, token]);
 
-  useEffect(() => cargar(), [cargar]);
+  useEffect(() => {
+    const cancelar = cargar();
+    return () => {
+      cancelar();
+      cancelarAnterior.current();
+    };
+  }, [cargar]);
 
   // Mientras llega la ficha de otra persona no se muestra la anterior.
   const datos = perfil?.id === perfilId ? perfil.datos : null;

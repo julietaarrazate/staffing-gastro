@@ -118,100 +118,100 @@ export default function FichaTrabajadorContenido({
   const conHistoria = hasRate(profile.events_completed) || hasRating(profile.rating);
 
   return (
-      <div className={enColumnas ? "lg:grid lg:grid-cols-5 lg:items-start lg:gap-10" : undefined}>
-        <div className={`flex flex-col gap-5 ${enColumnas ? "lg:col-span-3" : ""}`}>
-          <ReputacionGrande
-            rating={profile.rating}
-            cantidad={profile.events_completed}
-            singular="turno hecho"
-            varios="turnos hechos"
-            detalle={hasRate(profile.events_completed) ? `puntualidad ${formatPunctuality(profile.punctuality_rate)}` : null}
-            conHistoria={conHistoria}
-            mostrarCantidad={profile.events_completed > 0}
-            vacio={<p className="text-fila font-semibold text-ink-soft">{NEW_LABEL}</p>}
-          />
+    <div className={enColumnas ? "lg:grid lg:grid-cols-5 lg:items-start lg:gap-10" : undefined}>
+      <div className={`flex flex-col gap-5 ${enColumnas ? "lg:col-span-3" : ""}`}>
+        <ReputacionGrande
+          rating={profile.rating}
+          cantidad={profile.events_completed}
+          singular="turno hecho"
+          varios="turnos hechos"
+          detalle={hasRate(profile.events_completed) ? `puntualidad ${formatPunctuality(profile.punctuality_rate)}` : null}
+          conHistoria={conHistoria}
+          mostrarCantidad={profile.events_completed > 0}
+          vacio={<p className="text-fila font-semibold text-ink-soft">{NEW_LABEL}</p>}
+        />
 
-          {/* Sólo el comercio (el propio trabajador no ve ni sabe quién lo
-              favoriteó: bookmark privado y unidireccional). */}
-          {esComercio && token && <FavoriteToggle workerProfileId={workerId} token={token} />}
+        {/* Sólo el comercio (el propio trabajador no ve ni sabe quién lo
+            favoriteó: bookmark privado y unidireccional). */}
+        {esComercio && token && <FavoriteToggle workerProfileId={workerId} token={token} />}
 
-          {profile.bio && <p className="break-words text-base text-ink">{profile.bio}</p>}
+        {profile.bio && <p className="break-words text-base text-ink">{profile.bio}</p>}
 
-          {puestos.length > 0 && (
-            <ul className="flex flex-wrap gap-1.5">
-              {puestos.map((skill) => (
-                <li key={skill} className="chip-suave">
-                  {SKILL_LABELS[skill]}
-                </li>
-              ))}
-            </ul>
+        {puestos.length > 0 && (
+          <ul className="flex flex-wrap gap-1.5">
+            {puestos.map((skill) => (
+              <li key={skill} className="chip-suave">
+                {SKILL_LABELS[skill]}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <FilasSuaves as="dl">
+          <DatoSuave nombre="Experiencia" valor={plural(profile.years_experience, "año", "años")} />
+          <DatoSuave nombre="Nivel" valor={levelLabel(profile.level)} />
+          <DatoSuave nombre="Disponibilidad" valor={profile.is_available ? "Disponible" : "No disponible"} />
+          {profile.languages.length > 0 && <DatoSuave largo nombre="Idiomas" valor={profile.languages.join(", ")} />}
+          {profile.certifications.length > 0 && (
+            <DatoSuave largo nombre="Certificaciones" valor={profile.certifications.join(", ")} />
           )}
+        </FilasSuaves>
 
-          <FilasSuaves as="dl">
-            <DatoSuave nombre="Experiencia" valor={plural(profile.years_experience, "año", "años")} />
-            <DatoSuave nombre="Nivel" valor={levelLabel(profile.level)} />
-            <DatoSuave nombre="Disponibilidad" valor={profile.is_available ? "Disponible" : "No disponible"} />
-            {profile.languages.length > 0 && <DatoSuave largo nombre="Idiomas" valor={profile.languages.join(", ")} />}
-            {profile.certifications.length > 0 && (
-              <DatoSuave largo nombre="Certificaciones" valor={profile.certifications.join(", ")} />
-            )}
-          </FilasSuaves>
-
-          {profile.cv_kind && (
-            <div>
-              <div className="flex flex-wrap gap-2">
+        {profile.cv_kind && (
+          <div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => void abrirCv(false)}
+                className="boton boton-quieto inline-flex min-h-[44px] items-center justify-center gap-2 px-4 py-2 text-sm font-semibold transition active:scale-95"
+              >
+                <ClipboardIcon size={16} /> Ver CV
+              </button>
+              {/* Un link pegado a mano (Drive, LinkedIn) no se descarga desde acá. */}
+              {profile.cv_kind === "file" && (
                 <button
                   type="button"
-                  onClick={() => void abrirCv(false)}
+                  onClick={() => void abrirCv(true)}
                   className="boton boton-quieto inline-flex min-h-[44px] items-center justify-center gap-2 px-4 py-2 text-sm font-semibold transition active:scale-95"
                 >
-                  <ClipboardIcon size={16} /> Ver CV
+                  <DownloadIcon size={16} /> Descargar
                 </button>
-                {/* Un link pegado a mano (Drive, LinkedIn) no se descarga desde acá. */}
-                {profile.cv_kind === "file" && (
-                  <button
-                    type="button"
-                    onClick={() => void abrirCv(true)}
-                    className="boton boton-quieto inline-flex min-h-[44px] items-center justify-center gap-2 px-4 py-2 text-sm font-semibold transition active:scale-95"
-                  >
-                    <DownloadIcon size={16} /> Descargar
-                  </button>
-                )}
-              </div>
-              {cvError && (
-                <p role="alert" className="mt-2 text-sm text-danger-text">
-                  {cvError}
-                </p>
               )}
             </div>
-          )}
-
-          {profile.badges.length > 0 && (
-            <div>
-              <h2 className="px-1 text-caption font-semibold text-ink-soft">Insignias</h2>
-              <ul className="mt-2 flex flex-wrap gap-1.5">
-                {profile.badges.map((badge) => {
-                  const Icon = BADGE_ICONS[badge] ?? AwardIcon;
-                  return (
-                    <li key={badge} className="chip-suave">
-                      <Icon size={14} className="text-primary-text" aria-hidden />
-                      {BADGE_LABELS[badge] ?? badge}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
-        </div>
-
-        <section aria-labelledby="resenas" className={`mt-7 ${enColumnas ? "lg:col-span-2 lg:mt-0" : ""}`}>
-          <h2 id="resenas" className="px-1 text-caption font-semibold text-ink-soft">
-            Reseñas
-          </h2>
-          <div className="mt-2">
-            <WorkerReviews workerProfileId={workerId} suave />
+            {cvError && (
+              <p role="alert" className="mt-2 text-sm text-danger-text">
+                {cvError}
+              </p>
+            )}
           </div>
-        </section>
+        )}
+
+        {profile.badges.length > 0 && (
+          <div>
+            <h2 className="px-1 text-caption font-semibold text-ink-soft">Insignias</h2>
+            <ul className="mt-2 flex flex-wrap gap-1.5">
+              {profile.badges.map((badge) => {
+                const Icon = BADGE_ICONS[badge] ?? AwardIcon;
+                return (
+                  <li key={badge} className="chip-suave">
+                    <Icon size={14} className="text-primary-text" aria-hidden />
+                    {BADGE_LABELS[badge] ?? badge}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
       </div>
+
+      <section aria-labelledby="resenas" className={`mt-7 ${enColumnas ? "lg:col-span-2 lg:mt-0" : ""}`}>
+        <h2 id="resenas" className="px-1 text-caption font-semibold text-ink-soft">
+          Reseñas
+        </h2>
+        <div className="mt-2">
+          <WorkerReviews workerProfileId={workerId} suave />
+        </div>
+      </section>
+    </div>
   );
 }
