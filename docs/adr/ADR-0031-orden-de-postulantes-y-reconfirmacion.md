@@ -1,6 +1,6 @@
 # ADR-0031 — El más adecuado que llega a tiempo: orden de los postulantes (P2) y reconfirmación (P3)
 
-**Estado:** propuesto, para aprobar por Julieta · **Fecha:** 2026-11-25 ·
+**Estado:** aceptado (Julieta, 2026-11-25) · **Fecha:** 2026-11-25 ·
 **Origen:** mejoras P2 y P3 del [tablero de la beta](../planning/BETA_TABLERO.md)
 (aprobadas el 2026-11-13), de
 [`PROPUESTA_URGENTE_Y_PROGRAMADO.md`](../planning/PROPUESTA_URGENTE_Y_PROGRAMADO.md) §3 y §5.
@@ -117,18 +117,19 @@ nuevos. Los horarios del scheduler se calculan con `now_art()`.
 - Quién ve qué: el orden usa datos que el comercio ya ve, o que son suyos (sus
   favoritos y sus turnos terminados).
 
-## Preguntas abiertas para Julieta
+## Decisiones de Julieta (2026-11-25)
 
-1. **«No puedo» en la reconfirmación de las 24 horas, ¿cuenta como cualquier
-   cancelación?** Propuesta: sí, pero **sin el peso de cancelación tardía**
-   cuando se avisa con 24 horas o más. Así se premia avisar temprano en vez de
-   faltar. Con la de 3 horas cuenta como hoy.
-2. **«No volver a mandarme a esta persona»** (preferencia del comercio, el
-   opuesto de favorito). No entra en este ADR: cambia quién recibe qué. Si lo
-   querés, va en uno aparte.
-3. **Asesoría:** la propuesta original pedía su opinión antes de P3, por el
-   tono del aviso y para que no se lea como control de asistencia. Propuesta:
-   seguir con el código y pasarle el texto de los avisos antes de prenderlo.
+1. **«No puedo» avisado con 24 horas o más antes del inicio** se registra
+   como cancelación del trabajador, pero **sin el peso de cancelación
+   tardía**. Así se premia avisar temprano en vez de faltar. Con menos de 24
+   horas, incluida la reconfirmación de las 3 horas, cuenta como hoy.
+2. **«No volver a mandarme a esta persona»:** después de la beta, en un ADR
+   propio (qué ve cada lado y cómo se evita que se use para discriminar). No
+   entra acá.
+3. **Asesoría:** el código se hace ahora y la reconfirmación queda **apagada**
+   (un ajuste de configuración, apagado por defecto) hasta que la asesoría
+   apruebe el texto de los avisos. El orden de los postulantes (P2) no espera:
+   se prende con el deploy.
 
 ## Consecuencias
 

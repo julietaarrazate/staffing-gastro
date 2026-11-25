@@ -519,8 +519,8 @@ Cada una lleva su ADR antes del código y es un PR aparte de los graves.
 | # | Qué | Cuándo | Estado |
 |---|---|---|---|
 | P1 | Puntualidad real (§4, sin marcar por ubicación). Cambia el ADR-0008 y `REPUTATION.md` | Antes de la beta | ⚪ sin empezar |
-| P2 | Orden de los postulantes en turnos programados: local y favoritos, experiencia comprobada, cumplimiento, calificación; la distancia sólo filtra (§3) | Antes de la beta | 🔵 ADR-0031 propuesto, espera el «sí» de Julieta |
-| P3 | Reconfirmación 24 y 3 horas antes (§3 y §5) | Antes de la beta si entra | 🔵 ADR-0031 propuesto, espera el «sí» de Julieta |
+| P2 | Orden de los postulantes en turnos programados: local y favoritos, experiencia comprobada, cumplimiento, calificación; la distancia sólo filtra (§3) | Antes de la beta | 🔵 ADR-0031 aceptado (2026-11-25); falta el código |
+| P3 | Reconfirmación 24 y 3 horas antes (§3 y §5) | Antes de la beta si entra | 🔵 ADR-0031 aceptado (2026-11-25); falta el código; se prende cuando la asesoría apruebe el texto de los avisos |
 | P4 | Tomar el turno urgente con un toque (§2) | Primer cambio después de los graves | ⚪ sin empezar |
 | P5 | Agenda del trabajador: días, franjas, barrios y rubros; el comercio filtra por fecha, horario, rubro y zona (§3.1). Pedido expreso de Julieta | Paso A apenas cierren los graves; B y C con la beta andando | ⚪ sin empezar |
 
