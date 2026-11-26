@@ -134,3 +134,24 @@ async def test_cancelar_sobre_la_hora_no_gasta_avisos(client, session_factory):
     perfil = await _perfil(session_factory, worker_id)
     assert perfil.cancellations == 1
     assert perfil.notice_cancellations_used == 0
+
+
+@pytest.mark.asyncio
+async def test_una_respuesta_que_no_consulto_el_tope_no_afirma_que_no_suma(
+    client, session_factory
+):
+    """`for_worker` sin `queda_aviso` (las respuestas de confirmar, salir,
+    etc.) no puede decir «no suma»: no miró el tope de la persona."""
+    from app.modules.shift.api.schemas import ShiftResponse, for_worker
+
+    shift_id, _employer, worker = await _confirmado(
+        client, session_factory, "tope_nosabe", falta=timedelta(days=3)
+    )
+    worker_id = (await _fila(session_factory, shift_id)).worker_profile_id
+    detalle = (await client.get(f"/api/v1/shifts/{shift_id}", headers=worker)).json()
+    assert detalle["cancel_with_notice"] is True
+    respuesta = ShiftResponse.model_validate(detalle)
+
+    assert for_worker(respuesta, worker_id).cancel_with_notice is None
+    assert for_worker(respuesta, worker_id, queda_aviso=True).cancel_with_notice is True
+    assert for_worker(respuesta, worker_id, queda_aviso=False).cancel_with_notice is False

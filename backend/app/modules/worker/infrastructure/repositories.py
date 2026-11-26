@@ -1,8 +1,7 @@
 """Adaptador SQLAlchemy del WorkerProfileRepository."""
 
-from uuid import UUID
-
 from datetime import datetime
+from uuid import UUID
 
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
