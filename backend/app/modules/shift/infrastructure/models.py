@@ -114,6 +114,14 @@ class ShiftModel(Base):
     checkin_reminder_sent_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # Puntualidad real (ADR-0008 act. 2026-11-26).
+    checkin_reminder_step: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    arrival_marked_by_company_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    arrival_on_time: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     departure_reminder_sent_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

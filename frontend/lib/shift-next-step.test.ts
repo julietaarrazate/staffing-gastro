@@ -109,6 +109,27 @@ describe("nextStepFor con nombre y cantidad", () => {
     ).toBe("Ana va en camino al local.");
   });
 
+  it("con la llegada marcada dice cómo llegó: a horario, cuántos minutos tarde, o lo que dijo el comercio", () => {
+    const base = { status: "check_in" as const, worker_name: "Ana Pérez", start_at: "2026-11-27T23:00:00Z" };
+    expect(nextStepFor(shift({ ...base, check_in_at: "2026-11-27T22:50:00Z" })).hint).toBe("Ana llegó a horario.");
+    expect(nextStepFor(shift({ ...base, check_in_at: "2026-11-27T23:05:00Z" })).hint).toBe("Ana llegó a horario.");
+    expect(nextStepFor(shift({ ...base, check_in_at: "2026-11-27T23:08:00Z" })).hint).toBe("Ana llegó 8 min tarde.");
+    expect(nextStepFor(shift({ ...base, check_in_at: "2026-11-28T00:20:00Z" })).hint).toBe("Ana llegó 1 h 20 min tarde.");
+    // La marcó el comercio: vale lo que dijo, no la hora en que lo tocó.
+    expect(
+      nextStepFor(shift({ ...base, check_in_at: "2026-11-27T23:40:00Z", arrival_on_time: true })).hint,
+    ).toBe("Ana llegó a horario.");
+    expect(
+      nextStepFor(shift({ ...base, check_in_at: "2026-11-27T23:01:00Z", arrival_on_time: false })).hint,
+    ).toBe("Ana llegó tarde.");
+    // El reemplazo de un turno ya empezado no tiene hora pactada.
+    expect(
+      nextStepFor(shift({ ...base, check_in_at: "2026-11-28T00:20:00Z", reoffered_at: "2026-11-27T23:30:00Z" })).hint,
+    ).toBe("Ana llegó al local.");
+    // Sin la hora de llegada, el texto de siempre.
+    expect(nextStepFor(shift({ ...base })).hint).toBe("Ana llegó al local.");
+  });
+
   it("dice con quién está el turno en cada paso", () => {
     const named = (status: ShiftStatus) =>
       nextStepFor(shift({ status, worker_name: "Ana Pérez" })).hint;

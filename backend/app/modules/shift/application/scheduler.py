@@ -104,7 +104,6 @@ from app.modules.notification.infrastructure.repositories import (
 )
 from app.modules.shift.application.services import (
     AUTO_FINISH_DELAY,
-    CHECKIN_REMINDER_DELAY,
     DEPARTURE_REMINDER_LEAD,
     FINISH_REMINDER_DELAY,
     ESCALATION_DELAY,
@@ -113,6 +112,7 @@ from app.modules.shift.application.services import (
     ShiftService,
 )
 from app.modules.shift.domain.entities import Shift
+from app.modules.shift.domain.punctuality import recordatorio_pendiente
 from app.modules.shift.domain.reconfirmacion import PasoReconfirmacion, paso_pendiente
 from app.modules.shift.domain.exceptions import (
     InvalidShiftTransitionError,
@@ -214,7 +214,7 @@ async def run_attendance_check() -> datetime | None:
     Devuelve la próxima deadline FUTURA que este chequeo conoce (la más
     temprana entre los recordatorios y no-shows todavía pendientes), o `None`
     si no queda nada por vigilar. El loop la usa para saber hasta cuándo
-    dormir. La lógica de acción (recordatorio a `CHECKIN_REMINDER_DELAY`,
+    dormir. La lógica de acción (recordatorios de llegada de `punctuality.py`,
     no-show a `NO_SHOW_GRACE_PERIOD`) es idéntica a la de antes — sólo se
     agrega el cálculo de la próxima deadline."""
     async with AsyncSessionLocal() as session:
@@ -229,43 +229,43 @@ async def run_attendance_check() -> datetime | None:
             # U080), el momento en que confirmó. A quien lo toma a las 21:10
             # no se le cuenta la ausencia desde las 20:00.
             expected = _naive(shift.expected_from)
-            reminder_at = expected + CHECKIN_REMINDER_DELAY
             no_show_at = expected + NO_SHOW_GRACE_PERIOD
             elapsed = now - expected
-            if elapsed < timedelta(0):
-                # Todavía no empezó: lo único que puede tocarle es el
-                # recordatorio de salida ("va en camino"), y sólo si no lo
-                # recibió y no salió ya (si ya comparte ubicación, recordarle
-                # que avise sería ruido).
-                # «Ya salió» es estar compartiendo ahora o haberle avisado ya
-                # al comercio (`en_route_announced_at`): quien salió y dejó de
-                # compartir (U072) borró su posición, pero no hay que
-                # recordarle que avise.
-                if (
-                    shift.departure_reminder_sent_at is None
-                    and shift.en_route_at is None
-                    and shift.en_route_announced_at is None
-                ):
-                    departure_at = start - DEPARTURE_REMINDER_LEAD
-                    if now >= departure_at:
-                        await _act(service.send_departure_reminder, shift.id)
-                    else:
-                        next_deadline = _earlier(next_deadline, departure_at)
-                        continue
-                next_deadline = _earlier(next_deadline, reminder_at)
-                continue
             if elapsed >= NO_SHOW_GRACE_PERIOD:
                 await _act(service.auto_mark_no_show, shift.id)
                 # Se resolvió (salió de CONFIRMADO/EN_CAMINO): no aporta deadline.
                 continue
-            if shift.checkin_reminder_sent_at is None and elapsed >= CHECKIN_REMINDER_DELAY:
-                await _act(service.send_checkin_reminder, shift.id)
-                # Ya recordado: su próxima (y última) deadline es el no-show.
-                next_deadline = _earlier(next_deadline, no_show_at)
-                continue
-            # Todavía no accionable: su próxima deadline es el umbral que falta.
-            pending = reminder_at if shift.checkin_reminder_sent_at is None else no_show_at
-            next_deadline = _earlier(next_deadline, pending)
+            # Recordatorio de salida («va en camino»), sólo antes del inicio y
+            # si no lo recibió ni salió ya. «Ya salió» es estar compartiendo
+            # ahora o haberle avisado ya al comercio (`en_route_announced_at`):
+            # quien salió y dejó de compartir (U072) borró su posición, pero
+            # no hay que recordarle que avise.
+            if (
+                now < start
+                and shift.departure_reminder_sent_at is None
+                and shift.en_route_at is None
+                and shift.en_route_announced_at is None
+            ):
+                departure_at = start - DEPARTURE_REMINDER_LEAD
+                if now >= departure_at:
+                    await _act(service.send_departure_reminder, shift.id)
+                else:
+                    next_deadline = _earlier(next_deadline, departure_at)
+            # Recordatorios de llegada (puntualidad real): 10 minutos antes, a
+            # la hora y 5 minutos después; con el segundo se entera el comercio.
+            paso, proxima = recordatorio_pendiente(
+                expected,
+                shift.checkin_reminder_step,
+                now,
+                taken_after_start=shift.taken_after_start,
+            )
+            if paso is not None:
+                await _act(
+                    lambda shift_id, paso=paso: service.send_checkin_reminder(shift_id, paso),
+                    shift.id,
+                )
+            # Lo próximo que le puede tocar: otro recordatorio o la ausencia.
+            next_deadline = _earlier(next_deadline, proxima or no_show_at)
         return next_deadline
 
 

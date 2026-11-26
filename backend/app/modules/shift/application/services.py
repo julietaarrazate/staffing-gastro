@@ -54,7 +54,7 @@ from app.modules.shift.domain.exceptions import (
 )
 from app.modules.shift.domain.nearby import FeedOrigin, closest_first, is_nearby, urgent_first
 from app.modules.shift.domain.mensajes import no_se_puede
-from app.modules.shift.domain.punctuality import punctuality_of
+from app.modules.shift.domain.punctuality import PASO_AVISO_AL_COMERCIO, punctuality_of
 from app.modules.shift.domain.reconfirmacion import (
     PasoReconfirmacion,
     cancelacion_sin_peso,
@@ -108,13 +108,10 @@ _STOP_EN_ROUTE_ATTEMPTS = 3
 # ajustable cuando haya datos reales. Ver docs/reference/REPUTATION.md.
 PAYMENT_TOLERANCE = timedelta(hours=48)
 
-# Scheduler de asistencia (ADR-0008): tiempo desde `start_at` sin check-in
-# antes de mandar el push "¿ya llegaste?" y antes de marcar no-show
-# automático. Valores semilla (mismo criterio que las tolerancias de arriba):
-# 20 minutos da margen a demoras normales de tráfico/transporte antes de
-# molestar con un push; 2 horas es tiempo de sobra para que, si llegó, el
-# recordatorio ya haya surtido efecto — pasado eso, asumir no-show.
-CHECKIN_REMINDER_DELAY = timedelta(minutes=20)
+# Cuánto después del horario de inicio se marca la ausencia sola. Los
+# recordatorios de llegada (10 minutos antes, a la hora y 5 después) viven en
+# `shift/domain/punctuality.py`; 2 horas es tiempo de sobra para que, si
+# llegó, alguno haya surtido efecto o el comercio haya dicho «Ya llegó».
 NO_SHOW_GRACE_PERIOD = timedelta(hours=2)
 
 # "Va en camino": cuánto antes del inicio se le recuerda al trabajador que
@@ -1269,24 +1266,80 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         proceso de sistema, no un request autenticado."""
         return await self._shifts.list_awaiting_checkin()
 
-    async def send_checkin_reminder(self, shift_id: UUID) -> Shift:
-        """Push al trabajador para que marque su llegada (ADR-0008): lo
-        dispara el scheduler cuando pasó `CHECKIN_REMINDER_DELAY` desde
-        `start_at` sin check-in. Marca `checkin_reminder_sent_at` para que el
-        scheduler no lo reenvíe en cada tick (idempotente)."""
+    async def send_checkin_reminder(self, shift_id: UUID, paso: int = 1) -> Shift:
+        """Recordatorio de llegada número `paso` (puntualidad real, ADR-0008
+        act. 2026-11-26): 10 minutos antes de la hora en que se espera a la
+        persona, a esa hora y 5 minutos después. Lo dispara el scheduler
+        (`punctuality.recordatorio_pendiente`). Guarda el paso para no
+        repetirlo. Desde el segundo también se le avisa al comercio, una
+        sola vez: si la persona no marcó, él dice si llegó."""
         shift = await self.get_shift(shift_id)
+        if shift.checkin_reminder_step >= paso:
+            return shift
+        avisar_al_comercio = (
+            paso >= PASO_AVISO_AL_COMERCIO
+            and shift.checkin_reminder_step < PASO_AVISO_AL_COMERCIO
+        )
+        shift.checkin_reminder_step = paso
         shift.checkin_reminder_sent_at = datetime.now(timezone.utc)
         updated = await self._shifts.update(shift)
-        if updated.worker_profile_id is not None:
-            await self._notify_worker(
-                updated.worker_profile_id,
-                NotificationType.CHECKIN_REMINDER,
-                "¿Ya llegaste a tu turno?",
+        if updated.worker_profile_id is None:
+            return updated
+        turno = f"\"{updated.title or updated.position.label}\""
+        if paso == 1:
+            titulo = "Tu turno está por empezar"
+            mensaje = f"Cuando entres al local, marcá tu llegada en {turno}."
+        elif paso == 2:
+            titulo = "Es la hora de tu turno"
+            mensaje = f"Si ya estás en el local, marcá tu llegada en {turno}."
+        else:
+            titulo = "¿Ya llegaste a tu turno?"
+            mensaje = (
+                f"Todavía no marcaste tu llegada en {turno}. Marcala para que "
+                "cuente que llegaste a horario."
+            )
+        await self._notify_worker(
+            updated.worker_profile_id,
+            NotificationType.CHECKIN_REMINDER,
+            titulo,
+            mensaje,
+            # «Llegué» vive en Matches > Asignados (U066).
+            link=f"/my-shifts?turno={updated.id}",
+        )
+        if avisar_al_comercio:
+            nombre = await self._worker_name(updated.worker_profile_id) or "La persona asignada"
+            await self._notify_company(
+                updated.company_id,
+                NotificationType.WORKER_NOT_CHECKED_IN,
+                f"{nombre} todavía no marcó la llegada",
                 (
-                    f"Marcá tu llegada en \"{updated.title or updated.position.label}\" "
-                    "para confirmar que estás en el lugar."
+                    f"Si ya está en el local, tocá «Ya llegó» en el turno {turno}. "
+                    "Si no llegó, vas a poder marcarlo en unos minutos."
                 ),
-                # «Llegué» vive en Matches > Asignados (U066).
+                link=f"/shifts?turno={updated.id}",
+            )
+        return updated
+
+    async def company_check_in(
+        self, company_id: UUID, shift_id: UUID, *, on_time: bool
+    ) -> Shift:
+        """«Ya llegó»: el comercio marca la llegada de quien no la marcó, y
+        dice si fue a horario o tarde (puntualidad real, ADR-0008 act.
+        2026-11-26). La persona se entera."""
+        shift = await self._get_owned(company_id, shift_id)
+        worker_profile_id = shift.worker_profile_id
+        shift.company_check_in(on_time)
+        updated = await self._shifts.update(shift)
+        if worker_profile_id is not None:
+            await self._notify_worker(
+                worker_profile_id,
+                NotificationType.ARRIVAL_MARKED_BY_COMPANY,
+                "El comercio marcó tu llegada",
+                (
+                    f"{await self._shift_name_with_company(updated)}: quedó registrado que "
+                    f"llegaste {'a horario' if on_time else 'tarde'}. La próxima, marcala "
+                    "vos cuando entres al local."
+                ),
                 link=f"/my-shifts?turno={updated.id}",
             )
         return updated
@@ -2515,13 +2568,17 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
 
     @staticmethod
     def _was_punctual(shift: Shift) -> bool | None:
-        """Puntual = llegó hasta 15 min después de `start_at` (antes, siempre).
+        """Puntual = marcó hasta 5 min después de `start_at` (antes, siempre), o
+        el comercio dijo que llegó a horario.
         `None` = este turno no mueve la puntualidad (lo tomó ya empezado, U080).
 
         La regla vive en `shift/domain/punctuality.py`.
         """
         return punctuality_of(
-            shift.check_in_at, shift.start_at, shift.taken_after_start
+            shift.check_in_at,
+            shift.start_at,
+            shift.taken_after_start,
+            shift.arrival_on_time,
         )
 
     @staticmethod

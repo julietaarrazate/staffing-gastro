@@ -31,8 +31,8 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
      crecimiento): P2 ✅ y P3 ✅ (la reconfirmación está construida y **apagada**: falta que la
      asesoría apruebe los textos del final del
      [ADR-0031](./adr/ADR-0031-orden-de-postulantes-y-reconfirmacion.md) y prender
-     `RECONFIRMACION_ENABLED` en Render). Editar un turno sin nadie asignado ✅. **Sigue, en este
-     orden:** P1 (puntualidad real) → el mapa a pantalla completa en la compu en las tres
+     `RECONFIRMACION_ENABLED` en Render). Editar un turno sin nadie asignado ✅. Puntualidad real (P1) ✅.
+     **Sigue, en este orden:** el mapa a pantalla completa en la compu en las tres
      pantallas con mapa (lista fija de unos 460 px y el mapa hasta el borde; decidido por Julieta
      el 2026-11-26) → proponer un cambio de horario a quien ya está asignado
      (la persona acepta o no con un toque; ADR propio) →
@@ -134,7 +134,7 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
   la asesoría). Falta de Julieta, después del deploy del #669: los dos
   scripts del CV y los documentos y la prueba de los 6 minutos
   (`reference/PENDIENTE_OPERATIVO.md`, 5c). La próxima migración libre es
-  la 0064. En paralelo, las
+  la 0065. En paralelo, las
   etapas 4 (marca) y 5 (lista de salida: escrita en el tablero, lo de
   código está hecho y falta lo de Julieta para el día que abre). Antes de encender el
   cobro: la regla de cambio de plan que decidió Julieta, con U140, U142 y

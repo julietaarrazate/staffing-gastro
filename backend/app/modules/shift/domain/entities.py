@@ -75,7 +75,7 @@ EN_ROUTE_WINDOW = timedelta(hours=2)
 # U079): desde `start_at` + esta tolerancia, la misma tolerancia que la
 # puntualidad. Antes se aplicaba sobre un turno confirmado que empezaba mañana y penalizaba sin vuelta atrás. La
 # ausencia automática del scheduler (a las 2 h) siempre cae después.
-NO_SHOW_EARLIEST_AFTER_START = timedelta(minutes=15)
+NO_SHOW_EARLIEST_AFTER_START = timedelta(minutes=10)
 
 # Turno reofrecido (U080, ADR-0015 actualizado el 2026-11-18): un turno que
 # se reabre cuando ya empezó se vuelve a ofrecer como urgente sólo si le queda
@@ -179,6 +179,14 @@ class Shift:
     # check-in (no hay forma de consultar el historial de `Notification`: esa
     # entidad no tiene shift_id, ver notification/domain/entities.py).
     checkin_reminder_sent_at: datetime | None = None
+    # Puntualidad real (ADR-0008 act. 2026-11-26): cuántos de los tres
+    # recordatorios de llegada ya salieron (`punctuality.recordatorio_pendiente`).
+    checkin_reminder_step: int = 0
+    # La llegada la marcó el comercio («Ya llegó») porque la persona no la
+    # marcó: cuándo lo hizo y qué dijo, a horario (`True`) o tarde (`False`).
+    # `None` si la marcó la persona, que es lo normal.
+    arrival_marked_by_company_at: datetime | None = None
+    arrival_on_time: bool | None = None
 
     # "Va en camino": cuándo se le recordó al trabajador que avise al salir
     # (`DEPARTURE_REMINDER_LEAD` antes del inicio). Mismo motivo que el campo
@@ -519,6 +527,7 @@ class Shift:
         self.status = ShiftStatus.BUSCANDO_PERSONAL
         self.confirmed_at = None
         self.checkin_reminder_sent_at = None
+        self.checkin_reminder_step = 0
         self.reconfirm_24h_sent_at = None
         self.reconfirm_3h_sent_at = None
         self.reconfirmed_at = None
@@ -794,6 +803,35 @@ class Shift:
         self.check_in_latitude = latitude
         self.check_in_longitude = longitude
         self.check_in_at = now
+        if self.is_reoffered:
+            self.prorated_pay_amount = self._prorated_from(now)
+        self._clear_en_route()
+
+    def company_check_in(self, on_time: bool, now: datetime | None = None) -> None:
+        """CONFIRMADO/EN_CAMINO → CHECK_IN: el comercio dice que la persona ya
+        llegó, a horario o tarde, porque ella no marcó la llegada (puntualidad
+        real, ADR-0008 act. 2026-11-26). Así un olvido no termina en una
+        ausencia, y una demora no se esconde.
+
+        Sólo desde la hora en que se la espera: antes, todavía la puede marcar
+        ella. Sin ubicación: el comercio da fe. `check_in_at` es cuándo lo
+        marcó el comercio, no cuándo llegó la persona; para la puntualidad
+        vale `arrival_on_time`."""
+        if self.status not in (ShiftStatus.CONFIRMADO, ShiftStatus.EN_CAMINO):
+            raise InvalidShiftTransitionError(no_se_puede("llegada", self.status))
+        now = now or datetime.now(timezone.utc)
+        if _naive(now) < _naive(self.expected_from):
+            raise InvalidShiftTransitionError(
+                "Todavía no empezó el turno: la llegada la puede marcar la persona."
+            )
+        if self.is_reoffered and _naive(now) >= _naive(self.end_at):
+            raise InvalidShiftTransitionError(
+                "Este turno ya terminó: no se puede marcar la llegada."
+            )
+        self.status = ShiftStatus.CHECK_IN
+        self.check_in_at = now
+        self.arrival_marked_by_company_at = now
+        self.arrival_on_time = on_time
         if self.is_reoffered:
             self.prorated_pay_amount = self._prorated_from(now)
         self._clear_en_route()

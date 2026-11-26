@@ -19,9 +19,10 @@ export const REOFFER_MIN_REMAINING_MS = 2 * 60 * 60_000;
  *  se reofrece. Espejo de `REOFFER_MIN_OFFER_WINDOW`. */
 export const REOFFER_MIN_OFFER_WINDOW_MS = 15 * 60_000;
 
-/** «No se presentó» se habilita 15 minutos después de la hora en que se
- *  esperaba a la persona (la tolerancia de la puntualidad). */
-export const NO_SHOW_AFTER_MS = 15 * 60_000;
+/** «No se presentó» se habilita 10 minutos después de la hora en que se
+ *  esperaba a la persona (puntualidad real, ADR-0008 act. 2026-11-26; antes
+ *  15). Espejo de `NO_SHOW_EARLIEST_AFTER_START`. */
+export const NO_SHOW_AFTER_MS = 10 * 60_000;
 
 type Reofrecible = Pick<Shift, "start_at" | "end_at">;
 
@@ -60,6 +61,13 @@ export function esperadoDesde(shift: Esperable): number {
 /** ¿Ya se puede marcar «No se presentó»? El servidor aplica la misma regla. */
 export function puedeMarcarAusencia(shift: Esperable, now: number = Date.now()): boolean {
   return now >= esperadoDesde(shift) + NO_SHOW_AFTER_MS;
+}
+
+/** ¿Ya es la hora en que se esperaba a la persona? Desde ahí el comercio
+ *  puede decir «Ya llegó» si ella no marcó la llegada (puntualidad real). El
+ *  servidor aplica la misma regla (`Shift.company_check_in`). */
+export function puedeMarcarLlegada(shift: Esperable, now: number = Date.now()): boolean {
+  return now >= esperadoDesde(shift);
 }
 
 /** Cerca del umbral de 2 horas, el reloj del dispositivo no alcanza para

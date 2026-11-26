@@ -81,6 +81,8 @@ _RULES: dict[NotificationType, PushPolicy] = {
     # Solo valen en el momento: pasada media hora el texto ya no es cierto.
     _N.WORKER_EN_ROUTE: _AVISO_DEL_MOMENTO,
     _N.CHECKIN_REMINDER: _AVISO_DEL_MOMENTO,
+    _N.WORKER_NOT_CHECKED_IN: _AVISO_DEL_MOMENTO,
+    _N.ARRIVAL_MARKED_BY_COMPANY: _ACCION_SOBRE_TURNO,
     _N.DEPARTURE_REMINDER: _AVISO_DEL_MOMENTO,
 }
 

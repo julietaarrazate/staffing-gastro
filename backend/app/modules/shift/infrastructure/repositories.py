@@ -108,6 +108,9 @@ def _to_entity(model: ShiftModel) -> Shift:
         closed_by_admin_at=model.closed_by_admin_at,
         closed_by_admin_user_id=model.closed_by_admin_user_id,
         checkin_reminder_sent_at=model.checkin_reminder_sent_at,
+        checkin_reminder_step=model.checkin_reminder_step or 0,
+        arrival_marked_by_company_at=model.arrival_marked_by_company_at,
+        arrival_on_time=model.arrival_on_time,
         departure_reminder_sent_at=model.departure_reminder_sent_at,
         finish_reminder_sent_at=model.finish_reminder_sent_at,
         reconfirm_24h_sent_at=model.reconfirm_24h_sent_at,
@@ -156,6 +159,9 @@ def _apply_fields(model: ShiftModel, shift: Shift) -> None:
     model.closed_by_admin_at = shift.closed_by_admin_at
     model.closed_by_admin_user_id = shift.closed_by_admin_user_id
     model.checkin_reminder_sent_at = shift.checkin_reminder_sent_at
+    model.checkin_reminder_step = shift.checkin_reminder_step
+    model.arrival_marked_by_company_at = shift.arrival_marked_by_company_at
+    model.arrival_on_time = shift.arrival_on_time
     # La marca del recordatorio de salida la escribe el scheduler sin subir la
     # versión (`mark_departure_reminder_sent`, U103), así que una entidad leída
     # antes llega con None: no la pisamos mientras siga asignada la misma

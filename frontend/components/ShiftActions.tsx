@@ -1,6 +1,6 @@
 "use client";
 
-import { puedeMarcarAusencia } from "@/lib/turno-reofrecido";
+import { puedeMarcarAusencia, puedeMarcarLlegada } from "@/lib/turno-reofrecido";
 import { useState } from "react";
 import { useNow } from "@/lib/use-now";
 import Link from "next/link";
@@ -8,7 +8,7 @@ import { Button, Sheet } from "@/components/ui";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import { AlertTriangleIcon, CheckCircleIcon, CopyIcon, MessageIcon, PencilIcon } from "@/components/icons";
 import { isCancellable } from "@/lib/cancelar-turno";
-import { autoFinishPhrase, nextStepFor, type PrimaryAction } from "@/lib/shift-next-step";
+import { autoFinishPhrase, firstNameOf, nextStepFor, type PrimaryAction } from "@/lib/shift-next-step";
 import type { Shift } from "@/lib/types";
 
 /**
@@ -36,8 +36,7 @@ const QUIETO =
 // Sólo tiene sentido marcar no-show mientras el trabajador confirmado
 // todavía no se presentó (antes del check-in) — ADR-0007.
 const NO_SHOW_ELIGIBLE = ["confirmado", "en_camino"];
-// ...y recién desde 15 minutos después del inicio (la tolerancia de la
-// puntualidad): antes, el trabajador todavía puede llegar. A quien tomó el
+// ...y recién desde 10 minutos después del inicio (puntualidad real): antes, el trabajador todavía puede llegar. A quien tomó el
 // turno ya empezado (U080) se le cuenta desde que confirmó. El servidor
 // aplica la misma regla (`Shift.no_show`); `puedeMarcarAusencia` sólo evita
 // ofrecer la opción antes.
@@ -50,6 +49,7 @@ export default function ShiftActions({
   onMarkPaid,
   onNoShow,
   onCancel,
+  onYaLlego,
 }: {
   shift: Shift;
   /** Qué botón muestra el indicador de carga (`<id>:<acción>`). */
@@ -63,19 +63,35 @@ export default function ShiftActions({
   onMarkPaid: () => void;
   onNoShow: () => void;
   onCancel: () => void;
+  /** «Ya llegó»: el comercio marca la llegada de quien no la marcó y dice si
+   *  fue a horario (puntualidad real). Sin esto, la opción no se ofrece. */
+  onYaLlego?: (aHorario: boolean) => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [llegadaOpen, setLlegadaOpen] = useState(false);
   const step = nextStepFor(shift);
 
   // La misma regla que el diálogo y el servidor (`isCancellable`): con la
   // salida marcada ya no se ofrece cancelar, se finaliza y se paga (U081).
   const canCancel = isCancellable(shift.status);
   // La hora corre mientras la tarjeta está abierta: se relee cada medio
-  // minuto para que la opción aparezca sola a los 15 minutos del inicio.
+  // minuto para que «Ya llegó» aparezca sola a la hora de inicio y «No se
+  // presentó», a los 10 minutos.
   // Sólo corre si la opción puede aparecer (turno confirmado o en camino) y con
   // la pestaña a la vista (`useNow`): en el resto de las tarjetas no dibuja nada.
   const now = useNow(30_000, NO_SHOW_ELIGIBLE.includes(shift.status));
   const canNoShow = NO_SHOW_ELIGIBLE.includes(shift.status) && puedeMarcarAusencia(shift, now);
+  // Desde la hora de inicio, si la persona no marcó la llegada, el comercio
+  // tiene la última palabra: «Ya llegó» (acá) o «No se presentó» (en «Más»).
+  const canYaLlego =
+    Boolean(onYaLlego) && NO_SHOW_ELIGIBLE.includes(shift.status) && puedeMarcarLlegada(shift, now);
+  // Pasada la hora y sin llegada marcada, «Confirmó. Te avisamos cuando salga
+  // para allá» ya no es lo que pasa: se dice lo que falta.
+  const nombre = firstNameOf(shift.worker_name);
+  const hint =
+    canYaLlego && !shift.en_route_at
+      ? `${nombre ?? "La persona"} todavía no marcó la llegada.`
+      : step.hint;
   const hasWorker = Boolean(shift.worker_profile_id) && shift.status !== "cancelado";
   // Decisión 24: con la salida marcada, cuándo lo cierra Oído si no lo cierra
   // el comercio. Va en la misma línea del estado, sin color propio.
@@ -84,12 +100,12 @@ export default function ShiftActions({
 
   return (
     <div className="flex flex-col gap-2.5">
-      {step.hint && (
+      {hint && (
         <p className="text-sm text-ink-soft">
           {shift.status === "pagado" && (
             <CheckCircleIcon size={15} className="mr-1 inline-block align-[-2px] text-success-text" />
           )}
-          {step.hint}
+          {hint}
           {autoFinish && ` Si no lo cerrás, se cierra solo ${autoFinish}.`}
         </p>
       )}
@@ -120,6 +136,17 @@ export default function ShiftActions({
             disabled={locked}
           >
             {step.actionLabel}
+          </Button>
+        ) : canYaLlego ? (
+          <Button
+            size="sm"
+            variant="surface"
+            className="boton-hondo flex-1 basis-44"
+            onClick={() => setLlegadaOpen(true)}
+            loading={busy === `${shift.id}:yaLlego`}
+            disabled={locked}
+          >
+            Ya llegó
           </Button>
         ) : null}
 
@@ -157,6 +184,32 @@ export default function ShiftActions({
           2026-07-31). `Sheet` es `position: fixed` a toda la pantalla — nunca
           se puede recortar ni desalinear, y es el mismo patrón que ya usan
           `/map` y `/shifts/new` para acciones desde una tarjeta. */}
+      <Sheet open={llegadaOpen} onClose={() => setLlegadaOpen(false)} title="¿Llegó a horario?">
+        <p className="px-3.5 pb-2 text-sm text-ink-soft">
+          Todavía no marcó la llegada en la app. Lo que digas queda en su puntualidad.
+        </p>
+        <div className="flex flex-col gap-1 pb-2">
+          <MenuButton
+            disabled={locked}
+            onClick={() => {
+              setLlegadaOpen(false);
+              onYaLlego?.(true);
+            }}
+          >
+            Sí, llegó a horario
+          </MenuButton>
+          <MenuButton
+            disabled={locked}
+            onClick={() => {
+              setLlegadaOpen(false);
+              onYaLlego?.(false);
+            }}
+          >
+            Llegó tarde
+          </MenuButton>
+        </div>
+      </Sheet>
+
       <Sheet open={menuOpen} onClose={() => setMenuOpen(false)} title="Más acciones">
         <div className="flex flex-col gap-1 pb-2">
           {hasWorker && (

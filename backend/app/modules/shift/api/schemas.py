@@ -129,6 +129,10 @@ class ShiftResponse(BaseModel):
     # usa para saber desde cuándo se puede marcar «No se presentó» a quien
     # tomó un turno ya empezado.
     confirmed_at: datetime | None = None
+    # Puntualidad real (ADR-0008 act. 2026-11-26). De las partes: si la
+    # llegada la marcó el comercio y qué dijo (a horario o tarde).
+    arrival_marked_by_company_at: datetime | None = None
+    arrival_on_time: bool | None = None
     # Reconfirmación antes del turno (ADR-0031, P3). De las partes: a la
     # persona, si tiene una pregunta sin contestar; al comercio, cuándo
     # reconfirmó o cuándo se le avisó que no contestó.
@@ -214,6 +218,8 @@ WORKER_DATA_FIELDS = (
     "last_no_show_worker_profile_id",
     "prorated_pay_amount",
     "confirmed_at",
+    "arrival_marked_by_company_at",
+    "arrival_on_time",
     "reconfirmation_pending",
     "reconfirmed_at",
     "no_reconfirm_alert_sent_at",
@@ -353,6 +359,12 @@ class ShiftPublicResponse(BaseModel):
     # persona, y ver dónde se trabaja es lo que convence a quien llega por un
     # link de registrarse. El logo sigue afuera, como se decidió el 2026-09-22.
     company_cover_url: str | None = None
+
+
+class CompanyCheckInRequest(BaseModel):
+    """«Ya llegó»: el comercio marca la llegada de quien no la marcó."""
+
+    on_time: bool
 
 
 class AssignWorkerRequest(BaseModel):

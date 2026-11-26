@@ -16,6 +16,8 @@ const BY_TYPE: Record<NotificationType, string> = {
   // «Asignados», marcado como cancelado.
   shift_cancelled: "/my-shifts",
   checkin_reminder: "/my-shifts",
+  arrival_marked_by_company: "/my-shifts",
+  worker_not_checked_in: "/shifts",
   departure_reminder: "/my-shifts",
   applied_shift_changed: "/my-shifts",
   reconfirm_request: "/my-shifts",
