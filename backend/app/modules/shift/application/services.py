@@ -1975,9 +1975,10 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         # Avisar con tiempo no pesa (ADR-0031, decisión 1): la cancelación
         # queda registrada en la postulación, pero no suma al contador de la
         # persona. Se decide antes de reabrir, que borra las marcas.
-        sin_peso = self._reconfirmacion_activa and cancelacion_sin_peso(
-            shift, datetime.now(timezone.utc)
-        )
+        # Vale siempre, con la reconfirmación prendida o apagada (2026-11-26):
+        # los Términos dicen que pesa cancelar «muy sobre la hora», no avisar
+        # con días.
+        sin_peso = cancelacion_sin_peso(shift, datetime.now(timezone.utc))
         outcome = shift.worker_cancel()
         updated = await self._shifts.update(shift)
         await self._record_reopen(

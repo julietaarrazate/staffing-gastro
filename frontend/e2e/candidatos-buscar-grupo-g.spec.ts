@@ -48,12 +48,12 @@ test("turno cancelado: Candidatos no ofrece «Elegir» y avisa el estado", async
   await expect(page.getByTestId("candidatos-turno-cerrado")).toContainText("cancelado");
   await expect(page.getByText("Lucía Postulada")).toBeVisible();
   await expect(page.getByRole("button", { name: /^Elegir/ })).toHaveCount(0);
-  // La «Garantía Oído» no aplica: ya no se busca a nadie (en las dos pestañas).
-  await expect(page.getByText("Garantía Oído")).toHaveCount(0);
+  // «Si algo falla» no aplica: ya no se busca a nadie (en las dos pestañas).
+  await expect(page.getByText("Si algo falla")).toHaveCount(0);
   await page.getByRole("button", { name: /Recomendados/ }).click();
   await expect(page.getByText("Mateo Sugerido")).toBeVisible();
   await expect(page.getByRole("button", { name: /^Elegir/ })).toHaveCount(0);
-  await expect(page.getByText("Garantía Oído")).toHaveCount(0);
+  await expect(page.getByText("Si algo falla")).toHaveCount(0);
 });
 
 test("turno publicado: «Elegir» sigue, sin aviso, y hay «Volver al panel»", async ({ page }) => {
@@ -61,7 +61,7 @@ test("turno publicado: «Elegir» sigue, sin aviso, y hay «Volver al panel»", 
   await page.goto("/shifts/shift-1/candidates");
   await expect(page.getByRole("button", { name: /^Elegir/ })).toBeVisible();
   await expect(page.getByTestId("candidatos-turno-cerrado")).toHaveCount(0);
-  await expect(page.getByText("Garantía Oído")).toBeVisible();
+  await expect(page.getByText("Si algo falla")).toBeVisible();
   await expect(page.getByRole("link", { name: /Volver al panel/ })).toHaveAttribute("href", "/shifts");
 });
 
@@ -149,7 +149,7 @@ test("turno asignado: el aviso dice que ya tiene a alguien", async ({ page }) =>
   await expect(page.getByRole("button", { name: /^Elegir/ })).toHaveCount(0);
   // Con alguien asignado el turno sigue vivo: la garantía («si no se presenta,
   // reabrís el turno») todavía aplica.
-  await expect(page.getByText("Garantía Oído")).toBeVisible();
+  await expect(page.getByText("Si algo falla")).toBeVisible();
 });
 
 test("falla el GET del turno: sin «Elegir» y con error y reintento", async ({ page }) => {

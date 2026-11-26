@@ -98,7 +98,7 @@ function ShiftCandidatesContent() {
   const [shiftError, setShiftError] = useState(false);
   // Sin el estado del turno no se ofrece «Asignar»: se carga o se reintenta.
   const canAssign = shift !== null && ASSIGNABLE_STATUSES.includes(shift.status);
-  // La «Garantía Oído» vale mientras el turno está vivo: buscando, o con
+  // «Si algo falla» (antes «Garantía Oído») vale mientras el turno está vivo: buscando, o con
   // alguien asignado o confirmado («si no se presenta, reabrís el turno»).
   // Con el turno cerrado (cancelado, terminado, pagado, sin cubrir) ya no
   // aplica. Mientras no se sabe el estado (cargando o con error) no se
@@ -346,7 +346,7 @@ function ShiftCandidatesContent() {
                     después sin faltas, experiencia en el puesto, cumplimiento
                     y calificación. El primero va en la tarjeta grande con el
                     único ámbar de la pantalla: UNA acción principal, no una
-                    por persona. La Garantía va DESPUÉS de la lista: antes
+                    por persona. «Si algo falla» va DESPUÉS de la lista: antes
                     ocupaba la mitad de la pantalla antes del primer
                     postulante. */}
                 {destacar && primero && (

@@ -173,8 +173,10 @@ Lo que el ADR dejaba sin número, como quedó en el código:
 ## Implementación de P3 (2026-11-26)
 
 Construida y **apagada** (`RECONFIRMACION_ENABLED`, por defecto `false`):
-apagada no sale ningún aviso, «Sí, voy» no existe y cancelar pesa como
-siempre. Lo que el ADR dejaba abierto, como quedó:
+apagada no sale ningún aviso y «Sí, voy» no existe. **Actualización
+2026-11-26:** que avisar con 24 horas o más no sume una cancelación vale
+siempre, también con la reconfirmación apagada: los Términos dicen que pesa
+cancelar «muy sobre la hora», y la app contaba cualquier cancelación. Lo que el ADR dejaba abierto, como quedó:
 
 - **Los dos botones** no van en el aviso (los avisos de Oído no tienen
   botones): el aviso lleva a «Mis turnos», donde la tarjeta del turno
