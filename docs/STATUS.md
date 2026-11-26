@@ -42,7 +42,12 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
      abono, precios nuevos, cobrar a 35 días en Mercado Pago). Julieta lo valida con fundadores y
      con su contador; hasta su «sí» no se toca el código de planes. Lo fiscal (inscribirse antes
      del 28/2) está en la misma pestaña.
-  5. **Horarios del equipo:** la evaluación y los criterios para seguir o cortar están en su
+  5. **Ícono nuevo, propuesta sin decidir:** «el pinche real» (varias comandas
+     clavadas como vienen, la de arriba con «oído»), en
+     [`design-system/propuestas/isotipo-pinche-real/`](./design-system/propuestas/isotipo-pinche-real/README.md).
+     Recomendada la variante 3 para el ícono grande; el chico de 48 px y menos
+     queda como hoy. Espera que Julieta elija; después se pasa a la marca (ver el README).
+  6. **Horarios del equipo:** la evaluación y los criterios para seguir o cortar están en su
      pestaña del documento privado (resumen: sí, chico, después del 12/12).
 
 - 🟠 **Tanda del 2026-11-22 (pedido de Julieta), lo que falta.** Hecho: la
@@ -77,7 +82,10 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
      **Video real (22/11):** Julieta prefirió tomas reales a las láminas; la
      prueba es `t6-05-sabado-real` (stock gratis de Mixkit, sólo licencia
      libre, y sonido nuevo con música y efectos de Mixkit; ver el README de
-     `marketing/remotion`). Siguiente: pasar las otras cinco con ese formato.
+     `marketing/remotion`). **En pausa** por pedido de Julieta (2026-11-24): cuando
+     se retome, pasar las otras cinco con ese formato. Idea evaluada: el formato
+     de roomix.ai (mini historia con personaje animado) necesita IA paga
+     (ADR-0030); su cierre con gráfico animado se puede hacer gratis en Remotion.
      **La apertura pasó al 12/12** (Julieta, 22/11): videos, documento de
      crecimiento y tablero de la beta actualizados.
   2. **Links etiquetados por cuenta y pieza: ya existe, sin código.** El alta
