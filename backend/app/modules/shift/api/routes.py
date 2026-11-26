@@ -754,7 +754,7 @@ async def company_check_in(
 @router.post(
     "/{shift_id}/reconfirm",
     response_model=ShiftResponse,
-    summary="«Sí, voy»: reconfirmar mi asistencia a un turno confirmado (trabajador)",
+    summary="«Sí, sigo disponible»: confirmar que sigo disponible para un turno confirmado (trabajador)",
 )
 async def reconfirm(
     shift_id: UUID,

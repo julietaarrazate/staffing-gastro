@@ -116,7 +116,7 @@ export function llegadaDe(
 }
 
 /** Con el turno confirmado, lo que se sabe de la reconfirmación (ADR-0031):
- *  contestó «Sí, voy», o se le preguntó y no contestó. */
+ *  contestó «Sí, sigo disponible», o se le preguntó y no contestó. */
 type Reconfirmacion = "reconfirmo" | "sin_respuesta" | null;
 
 function reconfirmacionDe(

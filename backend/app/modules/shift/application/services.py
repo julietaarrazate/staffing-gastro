@@ -220,7 +220,7 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         run_after_response: Callable[..., None] | None = None,
         # Reconfirmación antes del turno (ADR-0031, P3). Apagada por defecto
         # (`settings.reconfirmacion_enabled`): sin ella no se pregunta nada
-        # y «Sí, voy» no existe. Que avisar con 24 horas no sume una
+        # y «Sí, sigo disponible» no existe. Que avisar con 24 horas no sume una
         # cancelación no depende de esto: vale siempre.
         reconfirmacion_activa: bool = False,
     ) -> None:
@@ -1409,7 +1409,7 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
     async def send_reconfirmation_request(
         self, shift_id: UUID, paso: PasoReconfirmacion
     ) -> Shift:
-        """«¿Seguís yendo?» a quien confirmó el turno. Lo dispara el scheduler
+        """«¿Seguís disponible?» a quien confirmó el turno. Lo dispara el scheduler
         a las 24 y a las 3 horas del inicio (`reconfirmacion.paso_pendiente`).
         Idempotente: la marca del aviso se toma antes de mandarlo."""
         field = (
@@ -1471,12 +1471,12 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         return updated
 
     async def reconfirm(self, worker_profile_id: UUID, shift_id: UUID) -> Shift:
-        """«Sí, voy»: la persona asignada reconfirma que va. Queda la fecha y
+        """«Sí, sigo disponible»: la persona asignada reconfirma que va. Queda la fecha y
         el comercio lo ve en el turno; no avisa a nadie ni sube la versión."""
         shift = await self._get_assigned_to(worker_profile_id, shift_id)
         if not self._reconfirmacion_activa or shift.status != ShiftStatus.CONFIRMADO:
             raise InvalidShiftTransitionError(no_se_puede("reconfirmar", shift.status))
-        # Sólo contesta una pregunta hecha: un «Sí, voy» anticipado dejaría al
+        # Sólo contesta una pregunta hecha: un «Sí, sigo disponible» anticipado dejaría al
         # comercio sin el aviso de que la persona no contestó después. Sin
         # pregunta pendiente no hace nada (y un reintento no da error).
         if not shift.reconfirmation_pending:

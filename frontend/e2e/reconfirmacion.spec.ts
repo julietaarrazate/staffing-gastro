@@ -4,8 +4,8 @@ import { blockExternalHosts, injectSession, isoDesdeJueves as isoEnDias, mockEmp
 
 /**
  * Reconfirmación antes del turno (ADR-0031, P3): con una pregunta pendiente,
- * la tarjeta del turno confirmado pregunta «¿Seguís yendo?» con «Sí, voy» y
- * «No puedo». «No puedo» es la cancelación de siempre, y el cartel dice si
+ * la tarjeta del turno confirmado pregunta «¿Seguís disponible?» con «Sí, sigo disponible» y
+ * «Ya no estoy disponible». «Ya no estoy disponible» es la cancelación de siempre, y el cartel dice si
  * cuenta o no (lo decide el backend: `cancel_with_notice`).
  */
 const json = (body: unknown) => ({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
