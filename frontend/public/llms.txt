@@ -2,7 +2,7 @@
 
 > Oído es una plataforma argentina para cubrir turnos gastronómicos en el día: conecta comercios (bares, restaurantes, cafés) que necesitan personal con trabajadores que quieren tomar esos turnos. Funciona en la Ciudad de Buenos Aires.
 
-Oído es una plataforma de intermediación. No es empleador ni parte de la relación entre el comercio y el trabajador: cada turno lo acuerdan ellos. El comercio le paga directo a quien trabaja; Oído no cobra comisión ni maneja ese dinero. Para trabajar no se paga nada.
+Oído es una plataforma de intermediación. No es empleador ni parte de la relación entre el comercio y el trabajador: cada turno lo acuerdan ellos. El comercio le paga directo a quien trabaja; Oído no cobra comisión sobre los turnos ni maneja ese dinero. Para quien trabaja es gratis. Los comercios tienen planes, publicados en la página de precios.
 
 ## Cómo funciona
 
@@ -10,7 +10,7 @@ Oído es una plataforma de intermediación. No es empleador ni parte de la relac
 - Los trabajadores cercanos reciben el aviso y se postulan.
 - El comercio elige a quién quiere y esa persona confirma.
 - Si la persona no se presenta, el comercio lo marca y elige a otra de las postuladas, sin volver a publicar.
-- Oído verifica la identidad de cada trabajador y los datos fiscales de cada comercio.
+- Trabajadores y comercios pueden verificarse (identidad; datos fiscales del comercio), y la otra parte ve esa verificación.
 
 ## Para quién
 

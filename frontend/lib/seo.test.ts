@@ -52,6 +52,16 @@ describe("jobPostingDe", () => {
 
   it("sin pago válido no inventa un sueldo", () => {
     expect(jobPostingDe({ ...TURNO, pay_amount: "" }, URL)).not.toHaveProperty("baseSalary");
+    expect(jobPostingDe({ ...TURNO, pay_amount: "0" }, URL)).not.toHaveProperty("baseSalary");
+    // Un valor por hora inválido no sale como 0 ni como null.
+    for (const malo of ["0", "abc", "-5"]) {
+      const oferta = jobPostingDe({ ...TURNO, pay_amount: "", hourly_pay_amount: malo }, URL)!;
+      expect(oferta).not.toHaveProperty("baseSalary");
+    }
+  });
+
+  it("Oído no aparece en ninguna parte de la oferta: no es quien contrata ni quien la emite", () => {
+    expect(JSON.stringify(jobPostingDe(TURNO, URL))).not.toContain("Oído");
   });
 });
 

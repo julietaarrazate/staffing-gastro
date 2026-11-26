@@ -17,7 +17,8 @@ import { buildShiftSummary } from "@/lib/shift-share";
 export function jobPostingDe(shift: ShiftPublic, url: string): Record<string, unknown> | null {
   if (!shift.company_name || !shift.published_at) return null;
 
-  const porHora = shift.hourly_pay_amount != null ? Number(shift.hourly_pay_amount) : null;
+  const positivo = (n: number) => (Number.isFinite(n) && n > 0 ? n : null);
+  const porHora = shift.hourly_pay_amount != null ? positivo(Number(shift.hourly_pay_amount)) : null;
   const total = Number(shift.pay_amount);
   // El pago es por turno. Schema.org no tiene esa unidad: se informa por hora
   // (el reofrecido ya lo trae; si no, el total dividido por las horas).
@@ -39,8 +40,9 @@ export function jobPostingDe(shift: ShiftPublic, url: string): Record<string, un
       "@type": "Place",
       address: {
         "@type": "PostalAddress",
+        // La zona es texto que escribe el comercio: no se le agrega una región
+        // fija que podría no ser la suya.
         ...(shift.city ? { addressLocality: shift.city } : {}),
-        addressRegion: "Ciudad Autónoma de Buenos Aires",
         addressCountry: "AR",
       },
     },
@@ -55,7 +57,6 @@ export function jobPostingDe(shift: ShiftPublic, url: string): Record<string, un
       : {}),
     directApply: true,
     url,
-    identifier: { "@type": "PropertyValue", name: "Oído", value: shift.id },
   };
 }
 
