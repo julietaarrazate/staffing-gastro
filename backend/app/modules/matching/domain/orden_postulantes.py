@@ -10,10 +10,9 @@ En los dos, quien ya tuvo este turno y lo dejó va siempre al final (ADR-0026).
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+import math
+from datetime import datetime, timedelta, timezone
 from typing import TypeVar
-
-from app.core.dt import naive
 
 # Un turno que empieza en menos de esto se trata como urgente aunque el
 # comercio no lo haya marcado (ADR-0031, «Principio»).
@@ -23,8 +22,7 @@ VENTANA_URGENTE = timedelta(hours=6)
 # de a una décima, que es lo que se muestra): con el número entero, una
 # diferencia de milésimas decidiría el orden y los criterios de abajo
 # (identidad verificada, quién se postuló antes) no desempatarían nunca.
-_TRAMO_CUMPLIMIENTO = 1
-_TRAMO_CALIFICACION = 1
+_TRAMOS_POR_UNIDAD = 10
 
 # Sin compromisos todavía: ni cumplió ni falló. Queda en el medio, para no
 # esconder a quien recién llega ni ponerlo arriba de quien ya cumplió.
@@ -49,10 +47,28 @@ class SenalesPostulante:
     postulado_en: datetime | None
 
 
+def _instante(dt: datetime) -> datetime:
+    """El mismo instante, en UTC y sin zona, para comparar fechas que vienen
+    con zona (Postgres, el reloj) con las que vienen sin ella (SQLite, ya en
+    UTC). Una fecha con otra zona se convierte, no se le recorta el offset."""
+    if dt.tzinfo is None:
+        return dt
+    return dt.astimezone(timezone.utc).replace(tzinfo=None)
+
+
+def _acotar(valor: float, tope: float) -> float:
+    return min(max(valor, 0.0), tope)
+
+
+def _tramo(valor: float) -> int:
+    # Medio tramo hacia arriba, siempre (`round` redondea al par).
+    return math.floor(valor * _TRAMOS_POR_UNIDAD + 0.5)
+
+
 def es_carril_urgente(urgent: bool, start_at: datetime, ahora: datetime) -> bool:
     """¿El turno va por el carril urgente? Lo marcó el comercio (o la
     escalada), o empieza en menos de 6 horas."""
-    return urgent or naive(start_at) - naive(ahora) < VENTANA_URGENTE
+    return urgent or _instante(start_at) - _instante(ahora) < VENTANA_URGENTE
 
 
 def cumplimiento(senales: SenalesPostulante) -> float:
@@ -64,12 +80,12 @@ def cumplimiento(senales: SenalesPostulante) -> float:
     if senales.turnos_hechos == 0:
         return 0.0
     cumplidos = senales.turnos_hechos / compromisos
-    return cumplidos * min(max(senales.puntualidad, 0.0), 1.0)
+    return cumplidos * _acotar(senales.puntualidad, 1.0)
 
 
 def calificacion_respaldada(senales: SenalesPostulante) -> float:
     """La calificación sólo cuenta si hay turnos hechos que la respalden."""
-    return senales.calificacion if senales.turnos_hechos > 0 else 0.0
+    return _acotar(senales.calificacion, 5.0) if senales.turnos_hechos > 0 else 0.0
 
 
 def es_nuevo_verificado(senales: SenalesPostulante) -> bool:
@@ -86,7 +102,7 @@ def _antiguedad(senales: SenalesPostulante) -> tuple[bool, datetime]:
     # Quien se postuló antes va primero; sin fecha, al final.
     if senales.postulado_en is None:
         return (True, datetime.min)
-    return (False, naive(senales.postulado_en))
+    return (False, _instante(senales.postulado_en))
 
 
 def clave_programado(senales: SenalesPostulante) -> tuple:
@@ -96,8 +112,8 @@ def clave_programado(senales: SenalesPostulante) -> tuple:
         not (senales.es_favorito or senales.trabajo_aca),
         senales.ausencias > 0,
         -senales.turnos_en_el_puesto,
-        -round(cumplimiento(senales), _TRAMO_CUMPLIMIENTO),
-        -round(calificacion_respaldada(senales), _TRAMO_CALIFICACION),
+        -_tramo(cumplimiento(senales)),
+        -_tramo(calificacion_respaldada(senales)),
         not senales.identidad_verificada,
         _antiguedad(senales),
     )
@@ -109,8 +125,8 @@ def clave_urgente(senales: SenalesPostulante) -> tuple:
     return (
         senales.desasignada,
         senales.turnos_hechos == 0,
-        -senales.calificacion,
-        -senales.puntualidad,
+        -_acotar(senales.calificacion, 5.0),
+        -_acotar(senales.puntualidad, 1.0),
         -senales.turnos_hechos,
         _antiguedad(senales),
     )

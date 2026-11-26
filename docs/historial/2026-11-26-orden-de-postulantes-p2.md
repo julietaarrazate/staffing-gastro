@@ -1,4 +1,4 @@
-# El orden de los postulantes pasa al backend (P2, ADR-0031) (#PR)
+# El orden de los postulantes pasa al backend (P2, ADR-0031) (#745)
 
 **Pedido:** Julieta aprobó P2 el 2026-11-13 y aceptó el ADR-0031 el
 2026-11-25: en un turno programado el comercio tiene que ver primero a quien

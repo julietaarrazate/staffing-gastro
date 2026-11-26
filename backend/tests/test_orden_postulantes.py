@@ -194,6 +194,23 @@ def test_que_turno_va_por_el_carril_urgente():
     assert not es_carril_urgente(False, en_dos_dias.replace(tzinfo=None), AHORA)
 
 
+def test_el_carril_convierte_la_zona_en_vez_de_recortarla():
+    # 16:00 de Argentina son las 19:00 UTC: faltan 7 horas, no 4.
+    art = timezone(timedelta(hours=-3))
+    inicio = datetime(2026, 6, 20, 16, 0, tzinfo=art)
+    assert not es_carril_urgente(False, inicio, AHORA)
+
+
+def test_un_valor_fuera_de_rango_no_gana_el_orden():
+    base = dict(turnos_hechos=10, turnos_en_el_puesto=5, puntualidad=1.0)
+    personas = {
+        "nota_imposible": _senales(**base, calificacion=9.0, postulado_en=AHORA + timedelta(minutes=1)),
+        "cinco": _senales(**base, calificacion=5.0),
+    }
+    assert _orden(personas) == ["cinco", "nota_imposible"]
+    assert _orden(personas, urgente=True) == ["cinco", "nota_imposible"]
+
+
 def test_los_pesos_del_programado_no_premian_la_distancia():
     assert PROGRAMADO_WEIGHTS.distance == 0
     assert PROGRAMADO_WEIGHTS.proven_experience == pytest.approx(0.15)
