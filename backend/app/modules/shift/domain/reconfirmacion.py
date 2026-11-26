@@ -103,10 +103,15 @@ def avisa_con_tiempo(
         return True
     if primer_aviso_enviado is None or segundo_aviso_enviado is not None:
         return False
-    return (
-        ahora < inicio - SEGUNDO_AVISO
-        and ahora - naive(primer_aviso_enviado) <= MARGEN_PARA_CONTESTAR
+    # El margen corre desde que salió el aviso, pero nunca más allá de las 21
+    # horas antes del inicio: si el aviso salió tarde (el scheduler estuvo
+    # caído), contestarlo no convierte una cancelación sobre la hora en una
+    # avisada con tiempo.
+    limite = min(
+        naive(primer_aviso_enviado) + MARGEN_PARA_CONTESTAR,
+        inicio - PRIMER_AVISO + MARGEN_PARA_CONTESTAR,
     )
+    return ahora <= limite
 
 
 def cancelacion_sin_peso(shift: Shift, ahora: datetime) -> bool:

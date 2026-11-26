@@ -1359,6 +1359,11 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         shift = await self._get_assigned_to(worker_profile_id, shift_id)
         if not self._reconfirmacion_activa or shift.status != ShiftStatus.CONFIRMADO:
             raise InvalidShiftTransitionError(no_se_puede("reconfirmar", shift.status))
+        # Sólo contesta una pregunta hecha: un «Sí, voy» anticipado dejaría al
+        # comercio sin el aviso de que la persona no contestó después. Sin
+        # pregunta pendiente no hace nada (y un reintento no da error).
+        if not shift.reconfirmation_pending:
+            return shift
         await self._shifts.mark_reconfirmation(
             shift.id,
             worker_profile_id,

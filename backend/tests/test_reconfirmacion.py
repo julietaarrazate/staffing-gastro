@@ -162,6 +162,12 @@ def test_contestar_no_puedo_al_primer_aviso_tampoco_pesa_dentro_del_margen():
     assert not cancelacion_sin_peso(turno, _antes(hours=20, minutes=59))
 
 
+def test_un_primer_aviso_que_salio_tarde_no_regala_la_cancelacion():
+    # El scheduler estuvo caído: el aviso salió a 4 horas del inicio.
+    turno = _turno(reconfirm_24h_sent_at=_antes(hours=4))
+    assert not cancelacion_sin_peso(turno, _antes(hours=3, minutes=30))
+
+
 def test_despues_del_segundo_aviso_cancelar_pesa_como_siempre():
     turno = _turno(
         reconfirm_24h_sent_at=_antes(hours=4), reconfirm_3h_sent_at=_antes(hours=3)
@@ -313,6 +319,81 @@ async def test_reconfirmar_un_turno_ajeno_da_404_y_quien_no_es_parte_no_ve_nada(
     if publico.status_code == 200:
         assert not publico.json().get("reconfirmed_at")
         assert not publico.json().get("reconfirmation_pending")
+
+
+@pytest.mark.asyncio
+async def test_si_voy_sin_pregunta_pendiente_no_registra_nada(
+    client, session_factory, prendida
+):
+    """Un «Sí, voy» anticipado (por API, la pantalla no lo ofrece) no cuenta:
+    si después no contesta las preguntas, el comercio tiene que enterarse."""
+    shift_id, _employer, worker = await _confirmado(
+        client, session_factory, "rec_antes", falta=timedelta(days=3)
+    )
+
+    response = await client.post(f"/api/v1/shifts/{shift_id}/reconfirm", headers=worker)
+
+    assert response.status_code == 200
+    assert response.json()["reconfirmed_at"] is None
+    assert (await _fila(session_factory, shift_id)).reconfirmed_at is None
+
+
+@pytest.mark.asyncio
+async def test_quien_no_es_parte_no_recibe_si_cancelar_cuenta(
+    client, session_factory, prendida
+):
+    """`cancel_with_notice` es de las partes. FastAPI valida de nuevo la
+    respuesta y el validador lo recalculaba para un postulante que quedó
+    afuera (revisión independiente de P3)."""
+    from tests.conftest import auth_headers
+
+    otra = await auth_headers(client, "worker", "rec_fuera_otra@staffya.com")
+    await client.post("/api/v1/workers/me/profile", headers=otra, json={"skills": ["mozo"]})
+    employer = await auth_headers(client, "employer", "rec_fuera_emp@staffya.com")
+    await client.post(
+        "/api/v1/companies/me/profile", headers=employer, json={"name": "Bar", "city": "Palermo"}
+    )
+    elegida = await auth_headers(client, "worker", "rec_fuera_w@staffya.com")
+    perfil = await client.post(
+        "/api/v1/workers/me/profile", headers=elegida, json={"skills": ["mozo"]}
+    )
+    inicio = datetime.now(timezone.utc) + timedelta(days=3)
+    creado = await client.post(
+        "/api/v1/shifts",
+        headers=employer,
+        json={
+            "position": "mozo", "quantity": 1, "pay_amount": "70000.00", "city": "Palermo",
+            "start_at": inicio.isoformat(), "end_at": (inicio + timedelta(hours=5)).isoformat(),
+        },
+    )
+    shift_id = creado.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer)
+    await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=otra)
+    await client.post(f"/api/v1/saved-shifts/{shift_id}", headers=otra)
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/assign",
+        headers=employer,
+        json={"worker_profile_id": perfil.json()["id"]},
+    )
+    confirmado = await client.post(f"/api/v1/shifts/{shift_id}/confirm", headers=elegida)
+    assert confirmado.status_code == 200, confirmado.text
+    # La parte sí lo recibe.
+    assert confirmado.json()["cancel_with_notice"] is True
+
+    vistos = 0
+    for ruta in ("/api/v1/applications/mine", "/api/v1/saved-shifts", f"/api/v1/shifts/{shift_id}"):
+        respuesta = await client.get(ruta, headers=otra)
+        if respuesta.status_code != 200:
+            continue
+        cuerpo = respuesta.json()
+        turnos = cuerpo if isinstance(cuerpo, list) else [cuerpo]
+        for item in turnos:
+            turno = item.get("shift") or item
+            if turno.get("id") == shift_id:
+                vistos += 1
+                assert turno["cancel_with_notice"] is None, ruta
+                assert turno["reconfirmation_pending"] is None, ruta
+    assert vistos >= 1  # al menos por «Mis postulaciones»
 
 
 @pytest.mark.asyncio

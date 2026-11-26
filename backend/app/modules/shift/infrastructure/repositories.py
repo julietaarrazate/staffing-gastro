@@ -516,6 +516,10 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         ]
         if only_once:
             conditions.append(column.is_(None))
+        if field == "no_reconfirm_alert_sent_at":
+            # Si contestó «Sí, voy» entre que el scheduler listó el turno y
+            # este UPDATE, no se alarma al comercio.
+            conditions.append(ShiftModel.reconfirmed_at.is_(None))
         result = await self._session.execute(
             update(ShiftModel)
             .where(*conditions)

@@ -172,6 +172,10 @@ class ShiftResponse(BaseModel):
     def _cancelar_con_aviso(self) -> "ShiftResponse":
         if (
             settings.reconfirmacion_enabled
+            # Sólo para las partes: a quien no lo es, `without_worker_data`
+            # le borra la persona asignada. Sin esta condición FastAPI, al
+            # validar de nuevo la respuesta, lo volvía a calcular para ellos.
+            and self.worker_profile_id is not None
             and self.cancel_with_notice is None
             and self.status == ShiftStatus.CONFIRMADO
         ):
@@ -182,7 +186,6 @@ class ShiftResponse(BaseModel):
                 datetime.now(timezone.utc),
             )
         return self
-
 
 
 # Datos de una PERSONA (el trabajador del turno), no del turno: quién lo tomó,

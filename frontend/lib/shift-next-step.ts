@@ -89,8 +89,6 @@ export function firstNameOf(fullName: string | null | undefined): string | null 
   return chars.length > MAX_NAME_CHARS ? `${chars.slice(0, MAX_NAME_CHARS).join("")}…` : first;
 }
 
-/** Línea de "qué pasa" por estado, con el nombre de la persona cuando se
- *  sabe ("Ana va en camino al local.") y sin él cuando no ("Va en camino…"). */
 /** Con el turno confirmado, lo que se sabe de la reconfirmación (ADR-0031):
  *  contestó «Sí, voy», o se le preguntó y no contestó. */
 type Reconfirmacion = "reconfirmo" | "sin_respuesta" | null;
@@ -102,6 +100,8 @@ function reconfirmacionDe(
   return shift.no_reconfirm_alert_sent_at ? "sin_respuesta" : null;
 }
 
+/** Línea de "qué pasa" por estado, con el nombre de la persona cuando se
+ *  sabe ("Ana va en camino al local.") y sin él cuando no ("Va en camino…"). */
 function hintWithWorker(
   status: ShiftStatus,
   name: string | null,
