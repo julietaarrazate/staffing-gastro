@@ -3,6 +3,7 @@ import { Inter, Young_Serif, DM_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
+import TerminosNuevos from "@/components/TerminosNuevos";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "@/lib/theme";
 import { THEME_COLOR_LIGHT } from "@/lib/theme-color";
 import { PushPromptProvider } from "@/lib/push-prompt-context";
@@ -143,6 +144,7 @@ export default function RootLayout({
                 <CapturaOrigen />
                 <ActualizadorVersion />
                 <ImpersonationBanner />
+                <TerminosNuevos />
                 <Navbar />
                 {/* Sin botones flotantes globales (Julieta, 2026-08-16: "no
                     quiero botones flotantes") — el asistente vive en

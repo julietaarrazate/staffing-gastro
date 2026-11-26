@@ -300,7 +300,7 @@ export default function AdminMetricsPage() {
                 )}
               />
               <RateCard
-                label="No-shows"
+                label="Ausencias"
                 pct={stats.no_show_rate_pct}
                 caption={sampleCaption(stats.no_show_sample_size, "asignación", "asignaciones")}
               />

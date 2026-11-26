@@ -8,7 +8,6 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic_core import PydanticCustomError
 
-from app.core.config import settings
 from app.modules.shift.domain.pay_benchmark import PayBand
 from app.modules.shift.domain.reconfirmacion import avisa_con_tiempo
 from app.modules.shift.domain.value_objects import ShiftStatus
@@ -144,8 +143,7 @@ class ShiftResponse(BaseModel):
     no_reconfirm_alert_sent_at: datetime | None = None
     # ¿Cancelar ahora es avisar con tiempo, y entonces no le suma una
     # cancelación a la persona? Para que el cartel de «Cancelar mi
-    # asignación» diga la verdad. `None` con la reconfirmación apagada o si
-    # el turno no está confirmado. Las dos marcas de abajo sólo sirven para
+    # asignación» diga la verdad. `None` si el turno no está confirmado. Las dos marcas de abajo sólo sirven para
     # calcularlo: no salen en la respuesta.
     cancel_with_notice: bool | None = None
     reconfirm_24h_sent_at: datetime | None = Field(default=None, exclude=True)
@@ -178,11 +176,10 @@ class ShiftResponse(BaseModel):
     @model_validator(mode="after")
     def _cancelar_con_aviso(self) -> "ShiftResponse":
         if (
-            settings.reconfirmacion_enabled
             # Sólo para las partes: a quien no lo es, `without_worker_data`
             # le borra la persona asignada. Sin esta condición FastAPI, al
             # validar de nuevo la respuesta, lo volvía a calcular para ellos.
-            and self.worker_profile_id is not None
+            self.worker_profile_id is not None
             and self.cancel_with_notice is None
             and self.status == ShiftStatus.CONFIRMADO
         ):

@@ -461,16 +461,36 @@ async def test_no_puedo_despues_del_segundo_aviso_suma_cancelacion(
 
 
 @pytest.mark.asyncio
-async def test_apagada_cancelar_con_dias_de_anticipacion_pesa_como_siempre(
-    client, session_factory, monkeypatch
+async def test_avisar_con_dias_no_pesa_aunque_la_reconfirmacion_este_apagada(
+    client, session_factory
 ):
+    """Los Términos dicen que pesa cancelar «muy sobre la hora». Avisar con 24
+    horas o más no suma una cancelación, con la reconfirmación prendida o
+    apagada (decisión de Julieta, 2026-11-26)."""
     shift_id, _employer, worker = await _confirmado(
         client, session_factory, "rec_off_cancel", falta=timedelta(days=3)
     )
     worker_id = (await _fila(session_factory, shift_id)).worker_profile_id
-    # Apagada, la respuesta no promete nada.
     mio = (await client.get(f"/api/v1/shifts/{shift_id}", headers=worker)).json()
-    assert mio["cancel_with_notice"] is None
+    assert mio["cancel_with_notice"] is True
+
+    await client.post(f"/api/v1/shifts/{shift_id}/worker-cancel", headers=worker)
+
+    fila = await _fila(session_factory, shift_id)
+    assert fila.status == ShiftStatus.BUSCANDO_PERSONAL.value
+    assert await _cancelaciones(session_factory, fila, worker_id) == 0
+
+
+@pytest.mark.asyncio
+async def test_cancelar_sobre_la_hora_pesa_aunque_la_reconfirmacion_este_apagada(
+    client, session_factory
+):
+    shift_id, _employer, worker = await _confirmado(
+        client, session_factory, "rec_off_tarde", falta=timedelta(hours=5)
+    )
+    worker_id = (await _fila(session_factory, shift_id)).worker_profile_id
+    mio = (await client.get(f"/api/v1/shifts/{shift_id}", headers=worker)).json()
+    assert mio["cancel_with_notice"] is False
 
     await client.post(f"/api/v1/shifts/{shift_id}/worker-cancel", headers=worker)
 

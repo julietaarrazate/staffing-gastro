@@ -149,6 +149,37 @@ test("el tour del feed recorre mazo, Buscar y nav, y no vuelve a aparecer", asyn
   await expect(page.getByText("Así se ven los turnos")).not.toBeVisible();
 });
 
+test("si hay que aceptar los Términos, el recorrido espera a que la persona decida", async ({ page }) => {
+  await skipSplash(page);
+  await page.clock.setFixedTime(new Date("2026-08-12T12:00:00-03:00"));
+  await injectSession(page);
+  await resetTourOnce(page, "staffya_tour_worker_feed");
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockFeed(page);
+  // Después de `mockFeed`: la última ruta registrada es la que responde.
+  await page.route("**/api/v1/auth/me", (r) =>
+    r.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ...WORKER, terms_acceptance_required: true }),
+    })
+  );
+  await page.route("**/api/v1/auth/terms/accept", (r) => r.fulfill({ status: 204 }));
+
+  await page.goto("/feed");
+
+  // Dos diálogos a la vez se tapaban: el recorrido quedaba encima de «Acepto».
+  const cartel = page.getByRole("dialog", { name: "Actualizamos los Términos" });
+  await expect(cartel).toBeVisible();
+  await expect(page.getByText("Así se ven los turnos")).toHaveCount(0);
+
+  await cartel.getByRole("button", { name: "Acepto" }).click();
+
+  await expect(cartel).toHaveCount(0);
+  await expect(page.getByText("Así se ven los turnos")).toBeVisible();
+});
+
 test("saltar el tour lo marca como visto sin terminar los pasos", async ({ page }) => {
   await skipSplash(page);
   await page.clock.setFixedTime(new Date("2026-08-12T12:00:00-03:00")); // el Panel filtra por semana (la tira de días)

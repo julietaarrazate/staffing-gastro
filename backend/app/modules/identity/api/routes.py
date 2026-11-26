@@ -461,6 +461,7 @@ async def logout(service: ServiceDep, request: Request, response: Response) -> N
 )
 async def me(
     session: Annotated[AuthenticatedSession, Depends(get_current_session)],
+    service: ServiceDep,
 ) -> MeResponse:
     # También para un admin sin la verificación en dos pasos: el frontend
     # necesita saber quién es para llevarlo a activarla (ADR-0023), y si le
@@ -469,8 +470,23 @@ async def me(
         {
             **UserResponse.model_validate(session.user).model_dump(),
             "two_factor_setup_required": session.gate is AdminGate.SETUP_REQUIRED,
+            "terms_acceptance_required": await service.terms_acceptance_required(
+                session.user
+            ),
         }
     )
+
+
+@router.post(
+    "/terms/accept",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Aceptar la versión vigente de los términos y la política de privacidad",
+)
+async def accept_terms(
+    current_user: Annotated[User, Depends(get_current_user)],
+    service: ServiceDep,
+) -> None:
+    await service.accept_current_terms(current_user)
 
 
 @router.patch(

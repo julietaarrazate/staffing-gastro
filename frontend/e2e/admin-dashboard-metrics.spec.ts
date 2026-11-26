@@ -94,7 +94,7 @@ test("el panel de admin muestra admins/verificados y las 6 métricas de producto
   await expect(page.getByText("Turnos asignados")).toBeVisible();
   await expect(page.getByText("Turnos completados")).toBeVisible();
   await expect(page.getByText("Postulaciones aceptadas")).toBeVisible();
-  await expect(page.getByText("No-shows")).toBeVisible();
+  await expect(page.getByText("Ausencias", { exact: true })).toBeVisible();
   await expect(page.getByText("Trabajadores que repiten")).toBeVisible();
   await expect(page.getByText("Comercios que vuelven a publicar (30 días)")).toBeVisible();
 
@@ -151,6 +151,6 @@ test("sin muestra todavía, una métrica de producto muestra un guion en vez de 
 
   await page.goto("/admin/metricas");
 
-  await expect(page.getByText("No-shows")).toBeVisible();
+  await expect(page.getByText("Ausencias", { exact: true })).toBeVisible();
   await expect(page.getByText("Sobre 0 asignaciones")).toBeVisible();
 });

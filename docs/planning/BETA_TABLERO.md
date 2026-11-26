@@ -382,13 +382,11 @@ que el backend no manda (un 409 que es 400, `status: "activo"` que es
     comercio;
   - el texto de «Arrepentirme» cuando quedó a medias (caso latente y raro);
   - el PUT del comercio en `/bienvenida` no se revisó contra la copia vieja.
-- El e2e `admin-grupo-m.spec.ts:121` («Ver como») falló bajo carga en
-  corridas locales de cuatro ramas distintas (timeout de 5 s buscando
-  «Hoy»); pasa solo y en CI. Mirarlo si aparece en CI. **Apareció en CI el
-  2026-11-26** (PR #747, commit `cf07ece`; pasó en el commit siguiente, que sólo
-  cambiaba un doc). En el log, justo antes, el servidor de Next imprime
-  `Error: Forbidden` (403) desde el render del servidor: falta averiguar si es
-  la causa. Es lo próximo a mirar de las pruebas.
+- ✅ El e2e `admin-grupo-m.spec.ts` («Ver como») que fallaba a veces (PR #747 y
+  PR #750): la prueba respondía `[]` a `/admin/stats`, «Hoy» hacía
+  `undefined.toFixed` y la pantalla caía en el error genérico; pasaba o no según
+  qué llegara primero. Ahora responde cifras vacías con su forma real (96
+  repeticiones en verde). El `Error: Forbidden` del log no era la causa.
 - `/privacidad`: el texto sobre el CV (quién lo ve, cuánto se guarda) está
   propuesto en el ADR-0021; va junto con PRI-07, con una sola subida de la
   versión legal.
@@ -522,7 +520,7 @@ Cada una lleva su ADR antes del código y es un PR aparte de los graves.
 
 | # | Qué | Cuándo | Estado |
 |---|---|---|---|
-| P1 | Puntualidad real (§4, sin marcar por ubicación). Cambia el ADR-0008 y `REPUTATION.md` | Antes de la beta | 🔵 #749 (2026-11-26): 5 minutos de margen, tres recordatorios, «Ya llegó» del comercio y «No se presentó» desde los 10 minutos ([historial](../historial/2026-11-26-puntualidad-real.md)) |
+| P1 | Puntualidad real (§4, sin marcar por ubicación). Cambia el ADR-0008 y `REPUTATION.md` | Antes de la beta | ✅ #749 (2026-11-26): 5 minutos de margen, tres recordatorios, «Ya llegó» del comercio y «No se presentó» desde los 10 minutos ([historial](../historial/2026-11-26-puntualidad-real.md)) |
 | P2 | Orden de los postulantes en turnos programados: local y favoritos, experiencia comprobada, cumplimiento, calificación; la distancia sólo filtra (§3) | Antes de la beta | ✅ #745 (2026-11-26): el orden en el backend, el sello «Nuevo en Oído · identidad verificada» y los recomendados de programados sin premio a la cercanía ([historial](../historial/2026-11-26-orden-de-postulantes-p2.md)) |
 | P3 | Reconfirmación 24 y 3 horas antes (§3 y §5) | Antes de la beta si entra | ✅ #746 (2026-11-26): construida y apagada (`RECONFIRMACION_ENABLED`); se prende cuando la asesoría apruebe los textos del final del ADR-0031 ([historial](../historial/2026-11-26-reconfirmacion-p3.md)) |
 | P4 | Tomar el turno urgente con un toque (§2) | Primer cambio después de los graves | ⚪ sin empezar |

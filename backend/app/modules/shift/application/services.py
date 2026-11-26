@@ -219,8 +219,9 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         # corre en el momento, como antes.
         run_after_response: Callable[..., None] | None = None,
         # Reconfirmación antes del turno (ADR-0031, P3). Apagada por defecto
-        # (`settings.reconfirmacion_enabled`): sin ella no se pregunta nada,
-        # «Sí, voy» no existe y cancelar pesa como siempre.
+        # (`settings.reconfirmacion_enabled`): sin ella no se pregunta nada
+        # y «Sí, voy» no existe. Que avisar con 24 horas no sume una
+        # cancelación no depende de esto: vale siempre.
         reconfirmacion_activa: bool = False,
     ) -> None:
         self._shifts = shifts
@@ -1975,9 +1976,10 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         # Avisar con tiempo no pesa (ADR-0031, decisión 1): la cancelación
         # queda registrada en la postulación, pero no suma al contador de la
         # persona. Se decide antes de reabrir, que borra las marcas.
-        sin_peso = self._reconfirmacion_activa and cancelacion_sin_peso(
-            shift, datetime.now(timezone.utc)
-        )
+        # Vale siempre, con la reconfirmación prendida o apagada (2026-11-26):
+        # los Términos dicen que pesa cancelar «muy sobre la hora», no avisar
+        # con días.
+        sin_peso = cancelacion_sin_peso(shift, datetime.now(timezone.utc))
         outcome = shift.worker_cancel()
         updated = await self._shifts.update(shift)
         await self._record_reopen(

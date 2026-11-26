@@ -82,6 +82,13 @@ export default function TerminosPage() {
               tomado se concrete tal cual se pactó: eso depende de las dos
               partes.
             </p>
+            <p>
+              Para ayudar a que las dos partes se encuentren, Oído ordena y
+              sugiere: muestra primero a quien el comercio ya conoce o tiene
+              mejor historial, y avisa de los turnos a quienes están cerca.
+              Son sugerencias. Quién trabaja en cada turno lo decide el
+              comercio, y si lo toma o no, el trabajador.
+            </p>
           </Section>
 
           <Section title="Tu cuenta">
@@ -137,12 +144,16 @@ export default function TerminosPage() {
             </p>
           </Section>
 
-          <Section title="Cancelaciones y no-show">
+          <Section title="Cancelaciones y ausencias">
             <p>
-              Si aceptaste un turno y no te presentás sin avisar (no-show), o
+              Si aceptaste un turno y no te presentás sin avisar, o
               cancelás muy sobre la hora, eso queda reflejado en tu
               reputación dentro de la app. Lo mismo si un comercio cancela un
               turno ya confirmado sin previo aviso razonable.
+            </p>
+            <p>
+              Si no marcás tu llegada, el comercio puede indicar si llegaste y
+              si fue a horario. Te avisamos lo que quede registrado.
             </p>
           </Section>
 
@@ -211,6 +222,13 @@ export default function TerminosPage() {
               turno en sí: cumplimiento de horarios, condiciones de trabajo,
               pagos acordados o conflictos entre las partes. Esas
               obligaciones son entre comercio y trabajador.
+            </p>
+            <p>
+              Usar Oído no reemplaza las obligaciones que la ley le pone a
+              cada parte (laborales, impositivas, previsionales o las que
+              correspondan): cada una responde por las suyas. Oído sí responde
+              por lo propio: el funcionamiento de la plataforma, la seguridad
+              y el cuidado de tus datos.
             </p>
           </Section>
 

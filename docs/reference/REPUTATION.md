@@ -54,7 +54,8 @@ bidireccional: comercio y trabajador se califican mutuamente.
   (comercio, terminal) y de `reject_assignment()` (trabajador rechaza antes
   de confirmar, no se cuenta como cancelación).
   **Avisar con tiempo no pesa** ([ADR-0031](../adr/ADR-0031-orden-de-postulantes-y-reconfirmacion.md),
-  decisión 1; sólo con la reconfirmación prendida, `RECONFIRMACION_ENABLED`):
+  decisión 1; desde el 2026-11-26 vale siempre, con la reconfirmación
+  prendida o apagada):
   si cancela con 24 horas o más antes del inicio, o contestando «No puedo»
   al primer aviso de reconfirmación dentro de las 3 horas, la cancelación
   queda en la postulación («Canceló») pero no suma a este contador
