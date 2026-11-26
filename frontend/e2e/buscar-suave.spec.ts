@@ -300,7 +300,9 @@ test("en la compu todos los rubros quedan a la vista (bajan de renglón)", async
   await conTurnos(page, [turno("c1", "bartender", "Bar Lavalle")]);
   const carril = page.getByTestId("buscar-rubros");
   const cajas = await carril.getByRole("button").evaluateAll((bs) => bs.map((b) => b.getBoundingClientRect().right));
-  const borde = await carril.evaluate((el) => el.getBoundingClientRect().right);
+  // Desde `lg` el grupo de rubros no tiene caja propia (fluye en la franja de
+  // filtros junto con «Urgentes» y «Mejores pagos»): se mide contra la franja.
+  const borde = await page.locator(".buscar-filtros").evaluate((el) => el.getBoundingClientRect().right);
   for (const r of cajas) expect(r).toBeLessThanOrEqual(borde + 1);
 });
 

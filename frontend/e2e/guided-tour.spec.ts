@@ -259,3 +259,38 @@ test("el tour del panel del comercio recorre publicar, la semana y buscar", asyn
   await page.reload();
   await expect(page.getByText("Publicá tu primer turno", { exact: true })).not.toBeVisible();
 });
+
+test("en la compu cada globo señala algo que se ve: nunca queda en la esquina apuntando a nada", async ({ page }) => {
+  // Lo vio Julieta el 2026-11-26: «Buscar» y «Turnos» sólo tenían ancla en la
+  // barra de abajo, que en la compu no se muestra; el globo caía arriba a la
+  // izquierda con el hueco en (0, 0).
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await injectSession(page);
+  await skipSplash(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await mockFeed(page);
+  await resetTourOnce(page, "staffya_tour_worker_feed");
+  await page.goto("/feed");
+
+  const globo = page.getByRole("dialog");
+  const hueco = page.locator(".recorrido-hueco");
+  let pasos = 0;
+  for (;;) {
+    await expect(globo).toBeVisible();
+    await page.waitForTimeout(400); // el hueco se desliza 300 ms hasta su lugar
+    const caja = await hueco.boundingBox();
+    // El hueco rodea un elemento real: tiene tamaño (más que su margen) y no
+    // está pegado al origen de la pantalla.
+    expect(caja!.width).toBeGreaterThan(30);
+    expect(caja!.height).toBeGreaterThan(30);
+    expect(caja!.x + caja!.y).toBeGreaterThan(20);
+    pasos += 1;
+    const boton = globo.getByRole("button", { name: /Siguiente|Entendido/ });
+    const ultimo = (await boton.innerText()) === "Entendido";
+    await boton.click();
+    if (ultimo) break;
+  }
+  expect(pasos).toBeGreaterThanOrEqual(2);
+  await expect(globo).toHaveCount(0);
+});

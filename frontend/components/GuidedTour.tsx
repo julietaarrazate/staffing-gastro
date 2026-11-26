@@ -49,7 +49,12 @@ function anclaVisible(selector: string): Element | null {
     const caja = el.getBoundingClientRect();
     if (caja.width > 0 && caja.height > 0) return el;
   }
-  // Ninguna tiene tamaño (o el entorno no mide): la primera, como antes.
+  // Ninguna se ve. Si la pantalla sí mide, ese paso no tiene a qué apuntar
+  // (su destino está oculto en este ancho) y se saltea: antes se usaba la
+  // primera igual, y el globo quedaba en la esquina señalando nada (lo vio
+  // Julieta en la compu, 2026-11-26). Sólo si el entorno no mide nada (los
+  // tests sin navegador) vale la primera.
+  if (document.documentElement.clientWidth > 0) return null;
   return anclas[0] ?? null;
 }
 
@@ -161,14 +166,6 @@ export default function GuidedTour({ steps, storageKey }: GuidedTourProps) {
             width: TOOLTIP_WIDTH,
           }}
         >
-          <button
-            type="button"
-            onClick={finish}
-            aria-label="Saltar recorrido"
-            className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center text-ink-soft"
-          >
-            <CloseIcon size={16} />
-          </button>
           <p className="pr-5 text-base font-extrabold leading-tight text-ink">{step.title}</p>
           <p className="mt-1 text-sm text-ink-soft">{step.body}</p>
           <div className="mt-3 flex items-center justify-between">
@@ -184,6 +181,16 @@ export default function GuidedTour({ steps, storageKey }: GuidedTourProps) {
               {index + 1 === activeSteps.length ? "Entendido" : "Siguiente"}
             </Button>
           </div>
+          {/* Después del contenido: el foco inicial cae en «Siguiente» y no en
+              la cruz, que al abrir quedaba con su marco de foco a la vista. */}
+          <button
+            type="button"
+            onClick={finish}
+            aria-label="Saltar recorrido"
+            className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center text-ink-soft"
+          >
+            <CloseIcon size={16} />
+          </button>
         </motion.div>
       </AnimatePresence>
     </div>
