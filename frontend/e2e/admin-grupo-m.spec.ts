@@ -55,6 +55,15 @@ async function base(page: Page) {
   await page.route("**/api/v1/applications/mine", (route) => route.fulfill(json([])));
 }
 
+// «Hoy» dibuja estas tres cifras: con `[]` en su lugar la pantalla se rompía
+// (`undefined.toFixed`) y la prueba fallaba según cuál llegara primero, la
+// respuesta o la aserción (intermitente en CI desde el PR #747).
+const STATS_VACIAS = {
+  coverage_sample_size: 0,
+  avg_time_to_fill_minutes: null,
+  pct_filled_under_10_min: null,
+};
+
 function markImpersonation(page: Page, adminId: string, userId: string) {
   return page.addInitScript(
     ({ adminId, userId }) => {
@@ -128,6 +137,7 @@ test("«Ver como»: una marca de otra admin, o con ids que no son UUID, se desca
     return route.fulfill(json({ access_token: "x", user: WORKER_VIEW }));
   });
   await page.route("**/api/v1/admin/**", (route) => route.fulfill(json([])));
+  await page.route("**/api/v1/admin/stats", (route) => route.fulfill(json(STATS_VACIAS)));
   await markImpersonation(page, crypto.randomUUID(), WORKER_ID);
   await page.goto("/admin");
   await expect(page.getByText("Viendo como")).toHaveCount(0);
@@ -164,6 +174,7 @@ test("«Ver como»: si la persona ya no se puede ver, vuelve limpio al panel de 
   );
   await page.route("**/api/v1/admin/**", (route) => {
     if (route.request().url().includes("impersonate")) return route.fallback();
+    if (route.request().url().includes("/admin/stats")) return route.fulfill(json(STATS_VACIAS));
     return route.fulfill(json([]));
   });
   await markImpersonation(page, ADMIN_ID, WORKER_ID);
