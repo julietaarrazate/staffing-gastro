@@ -150,3 +150,23 @@ nuevos. Los horarios del scheduler se calculan con `now_art()`.
   Fechas con `hoy_art()` y `now_art()`.
 - e2e: la lista de Candidatos en ese orden, con el sello «Nuevo en Oído», y
   la fila del Panel con «Reconfirmó» o «No reconfirmó».
+
+## Implementación de P2 (2026-11-26)
+
+Lo que el ADR dejaba sin número, como quedó en el código:
+
+- **Los postulantes de un turno urgente** conservan el orden de antes de P2
+  (primero quien tiene turnos hechos; después calificación, puntualidad y
+  cantidad), ahora también desde el backend. El carril se decide al pedir la
+  lista: un programado pasa a urgente cuando le faltan menos de 6 horas.
+- **Cumplimiento** = turnos hechos sobre hechos más cancelaciones, por la
+  puntualidad. Se compara en tramos de 10 puntos, y la calificación en
+  décimas: con el número entero, una diferencia mínima decidiría siempre y
+  los criterios de abajo no desempatarían nunca. Sin compromisos vale 0,5.
+- **Experiencia comprobada en los recomendados:** un factor nuevo (0,15),
+  turnos terminados en ese puesto con tope de 10. Los años declarados
+  conservan su 0,15.
+- **Sello:** el backend manda `nuevo_verificado`; la pantalla no lo calcula.
+- **No se tocó** a quién le llega el aviso «Turno cerca tuyo» al publicar un
+  turno programado: sigue con el puntaje de siempre (con distancia).
+

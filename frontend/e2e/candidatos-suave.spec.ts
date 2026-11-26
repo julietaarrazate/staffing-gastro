@@ -14,7 +14,8 @@ const EMPLOYER = { id: "user-1", email: "c@oido.test", full_name: "Julieta Demo"
 const persona = (id: string, nombre: string, extra: Record<string, unknown> = {}) => ({
   application_id: `app-${id}`, worker_profile_id: `wp-${id}`, full_name: nombre, photo_url: null, rating: 4.6, is_available: true,
   status: "pendiente", created_at: "2026-11-10T12:00:00-03:00", events_completed: 8, punctuality_rate: 0.92, years_experience: 2,
-  badges: [], level: "bronce", identidad_verificada: false, ...extra,
+  badges: [], level: "bronce", identidad_verificada: false,
+  es_favorito: false, trabajo_aca: false, turnos_en_el_puesto: 0, nuevo_verificado: false, ...extra,
 });
 const SHIFT = {
   id: "shift-1", company_id: "c1", position: "mozo", quantity: 1, start_at: isoEnDias(0, "21:00"), end_at: isoEnDias(1, "02:00"),
@@ -92,6 +93,41 @@ test("con foto, la tarjeta es la foto con el nombre encima y el botón debajo", 
   expect(boton!.y).toBeGreaterThanOrEqual(foto!.y + foto!.height);
   // Sin nadie más, no hay título de «los demás».
   await expect(page.getByRole("heading", { level: 2 })).toHaveCount(0);
+});
+
+// ADR-0031 (P2): el orden llega del backend; la pantalla dice por qué va
+// primero y muestra el sello de quien es nuevo y está verificado.
+const NUEVO = { rating: 0, events_completed: 0, punctuality_rate: 0, years_experience: 0 };
+const ORDEN_P2 = [
+  persona("1", "Flor Favorita", { ...NUEVO, es_favorito: true, identidad_verificada: true, nuevo_verificado: true }),
+  persona("2", "Tomás Conocido", { trabajo_aca: true, turnos_en_el_puesto: 3 }),
+  persona("3", "Vera Verificada", { ...NUEVO, identidad_verificada: true, nuevo_verificado: true }),
+  persona("4", "Nico Nuevo", NUEVO),
+];
+
+test("la lista se muestra como llega: favorita primero con su motivo y el sello de nuevo verificado", async ({ page }) => {
+  await candidatos(page, ORDEN_P2);
+  await page.goto("/shifts/shift-1/candidates");
+  const destacada = page.locator("[data-destacado]");
+  await expect(destacada).toContainText("Flor Favorita");
+  await expect(destacada).toContainText("Entre tus favoritos");
+  // El sello ya dice que está verificada: no se repite.
+  await expect(destacada.getByText("Nuevo en Oído · identidad verificada")).toHaveCount(1);
+  await expect(destacada.getByText("Identidad verificada", { exact: true })).toHaveCount(0);
+
+  // Los demás, en el orden en que llegaron (no se reordena por calificación).
+  const filas = page.locator("ul > li [data-nombre-candidato]");
+  await expect(filas).toHaveText(["Tomás Conocido", "Vera Verificada", "Nico Nuevo"]);
+  const vera = page.locator("li", { hasText: "Vera Verificada" });
+  await expect(vera).toContainText("Nuevo en Oído · identidad verificada");
+  // El sello entero queda a la izquierda de «Elegir» (a 390 px bajaba sin
+  // cortar y quedaba tapado por el botón).
+  const sello = await vera.getByText("identidad verificada").boundingBox();
+  const elegir = await vera.getByRole("button", { name: "Elegir" }).boundingBox();
+  expect(sello!.x + sello!.width).toBeLessThanOrEqual(elegir!.x);
+  const nico = page.locator("li", { hasText: "Nico Nuevo" });
+  await expect(nico).toContainText("Nuevo en Oído");
+  await expect(nico).not.toContainText("identidad verificada");
 });
 
 test("sin turnos hechos va primero igual, sin rótulo: no se inventa un motivo", async ({ page }) => {

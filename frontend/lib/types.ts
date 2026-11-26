@@ -458,6 +458,15 @@ export interface Applicant {
   level: string;
   /** Documento aprobado por un admin (mismo sello que en los recomendados). */
   identidad_verificada: boolean;
+  /** Por qué está donde está en la lista (ADR-0031): la ordena el backend. */
+  es_favorito: boolean;
+  /** Ya terminó al menos un turno en este comercio. */
+  trabajo_aca: boolean;
+  /** Turnos terminados en Oído en el puesto de este turno. */
+  turnos_en_el_puesto: number;
+  /** Sello «Nuevo en Oído · identidad verificada»: sin turnos hechos, con la
+   *  identidad verificada y sin ausencias. */
+  nuevo_verificado: boolean;
 }
 
 export interface Review {

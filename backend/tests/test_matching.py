@@ -1,5 +1,7 @@
 """Tests de integración del módulo matching (top de candidatos)."""
 
+from datetime import datetime, timezone
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -303,6 +305,9 @@ async def test_top_candidates_score_does_not_leak_the_real_distance():
             latitude=near[0],
             longitude=near[1],
             city=None,
+            # Carril urgente: es donde la distancia entra al puntaje.
+            urgent=True,
+            start_at=datetime.now(timezone.utc),
         ),
         "far": SimpleNamespace(
             company_id=company_id,
@@ -310,6 +315,9 @@ async def test_top_candidates_score_does_not_leak_the_real_distance():
             latitude=far[0],
             longitude=far[1],
             city=None,
+            # Carril urgente: es donde la distancia entra al puntaje.
+            urgent=True,
+            start_at=datetime.now(timezone.utc),
         ),
     }
 

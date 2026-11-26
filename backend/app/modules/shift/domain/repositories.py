@@ -97,6 +97,16 @@ class WorkerEarningsTotals:
     in_window: Decimal
 
 
+@dataclass(frozen=True)
+class TurnosTerminados:
+    """Turnos terminados (finalizados o pagados) de una persona: cuántos en un
+    puesto y cuántos en un comercio. Lo usa el orden de los postulantes
+    (ADR-0031)."""
+
+    en_el_puesto: int = 0
+    en_el_comercio: int = 0
+
+
 @dataclass
 class ShiftLiveCounts:
     """Totales de "Turnos en vivo" sobre TODOS los turnos sin cubrir (no sobre
@@ -428,3 +438,15 @@ class ShiftRepository(ABC):
     ) -> ShiftReturnStats:
         """Comercios que vuelven a publicar: ver `ShiftReturnStats`. Sin los
         comercios de `exclude_company_emails`."""
+
+    @abstractmethod
+    async def count_finished_by_workers(
+        self,
+        worker_profile_ids: Sequence[UUID],
+        *,
+        position: WorkerSkill,
+        company_id: UUID,
+    ) -> dict[UUID, TurnosTerminados]:
+        """Por persona, sus turnos terminados (finalizados o pagados) en ese
+        puesto y en ese comercio, en UNA consulta. Quien no terminó ninguno
+        no aparece en el resultado."""

@@ -17,6 +17,10 @@ ESCALATION_RADIUS_KM = 40.0
 # Años de experiencia que ya representan el máximo puntaje en ese factor.
 EXPERIENCE_CAP_YEARS = 10
 
+# Turnos terminados en Oído en el puesto pedido que ya dan el máximo en
+# «experiencia comprobada» (ADR-0031). Valor semilla, ajustable.
+PROVEN_EXPERIENCE_CAP_SHIFTS = 10
+
 
 @dataclass(frozen=True)
 class MatchWeights:
@@ -27,10 +31,14 @@ class MatchWeights:
     reputation: float = 0.25
     punctuality: float = 0.15
     performance: float = 0.15
+    # Experiencia comprobada: turnos terminados en Oído en ese puesto. Sólo
+    # pesa en el carril programado (`PROGRAMADO_WEIGHTS`).
+    proven_experience: float = 0.0
 
     def __post_init__(self) -> None:
         total = (
             self.distance
+            + self.proven_experience
             + self.experience
             + self.reputation
             + self.punctuality
@@ -41,6 +49,17 @@ class MatchWeights:
 
 
 DEFAULT_WEIGHTS = MatchWeights()
+
+# Carril programado (ADR-0031): la distancia sólo filtra (dentro del radio) y
+# su 30 % se reparte entre experiencia comprobada (+15) y cumplimiento (+15).
+PROGRAMADO_WEIGHTS = MatchWeights(
+    distance=0.0,
+    experience=0.15,
+    reputation=0.25,
+    punctuality=0.15,
+    performance=0.30,
+    proven_experience=0.15,
+)
 
 
 @dataclass(frozen=True)
@@ -53,6 +72,7 @@ class ScoreBreakdown:
     punctuality_score: float
     performance_score: float
     distance_km: float | None
+    proven_experience_score: float = 0.0
 
     def total(self, weights: MatchWeights = DEFAULT_WEIGHTS) -> float:
         return (
@@ -61,4 +81,5 @@ class ScoreBreakdown:
             + weights.reputation * self.reputation_score
             + weights.punctuality * self.punctuality_score
             + weights.performance * self.performance_score
+            + weights.proven_experience * self.proven_experience_score
         )

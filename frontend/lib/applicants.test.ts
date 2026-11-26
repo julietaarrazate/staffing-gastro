@@ -2,8 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Applicant } from "@/lib/types";
 import {
   activeApplicantCount,
-  rankApplicants,
-  standoutApplicant,
+  rotuloDelPrimero,
   unassignedLabel,
 } from "./applicants";
 
@@ -23,50 +22,40 @@ function applicant(overrides: Partial<Applicant>): Applicant {
     badges: [],
     level: "bronce",
     identidad_verificada: false,
+    es_favorito: false,
+    trabajo_aca: false,
+    turnos_en_el_puesto: 0,
+    nuevo_verificado: false,
     ...overrides,
   };
 }
 
-describe("rankApplicants", () => {
-  it("pone primero a quien tiene turnos hechos, aunque se haya postulado último", () => {
-    const nuevo = applicant({ full_name: "Nuevo", created_at: "2026-09-22T09:00:00Z" });
-    const conHistorial = applicant({
-      full_name: "Con historial",
-      rating: 4.2,
-      events_completed: 8,
-      created_at: "2026-09-22T12:00:00Z",
-    });
-    expect(rankApplicants([nuevo, conHistorial]).map((a) => a.full_name)).toEqual(["Con historial", "Nuevo"]);
+// El orden lo decide el backend (ADR-0031): acá sólo se nombra por qué va
+// primero quien encabeza la lista que llega.
+describe("rotuloDelPrimero", () => {
+  it("sin nadie, o sin un motivo con respaldo, no dice nada", () => {
+    expect(rotuloDelPrimero([])).toBeNull();
+    expect(rotuloDelPrimero([applicant({}), applicant({})])).toBeNull();
   });
 
-  it("entre los que tienen historial, ordena por calificación y después puntualidad", () => {
-    const a = applicant({ full_name: "A", rating: 4.6, punctuality_rate: 0.99, events_completed: 10 });
-    const b = applicant({ full_name: "B", rating: 4.9, punctuality_rate: 0.9, events_completed: 3 });
-    const c = applicant({ full_name: "C", rating: 4.6, punctuality_rate: 0.8, events_completed: 30 });
-    expect(rankApplicants([a, b, c]).map((x) => x.full_name)).toEqual(["B", "A", "C"]);
+  it("la confianza del local va antes que cualquier otro motivo", () => {
+    const favorita = applicant({ es_favorito: true, trabajo_aca: true, events_completed: 9, rating: 5 });
+    expect(rotuloDelPrimero([favorita])).toBe("Entre tus favoritos");
+    expect(rotuloDelPrimero([applicant({ trabajo_aca: true })])).toBe("Ya trabajó en tu local");
   });
 
-  it("a igualdad, respeta el orden de llegada", () => {
-    const primero = applicant({ full_name: "Primero", created_at: "2026-09-22T09:00:00Z" });
-    const segundo = applicant({ full_name: "Segundo", created_at: "2026-09-22T11:00:00Z" });
-    expect(rankApplicants([segundo, primero]).map((x) => x.full_name)).toEqual(["Primero", "Segundo"]);
+  it("dice «Mejor calificación» sólo si nadie en carrera la supera", () => {
+    const primero = applicant({ events_completed: 5, rating: 4.6, turnos_en_el_puesto: 5 });
+    const mejorValorada = applicant({ events_completed: 9, rating: 4.9 });
+    const sinTurnos = applicant({ rating: 5 });
+    expect(rotuloDelPrimero([primero, sinTurnos])).toBe("Mejor calificación");
+    expect(rotuloDelPrimero([primero, mejorValorada])).toBe("Con experiencia en el puesto");
   });
 
-  it("no modifica la lista original", () => {
-    const list = [applicant({ full_name: "Z" }), applicant({ full_name: "Y", events_completed: 2 })];
-    rankApplicants(list);
-    expect(list.map((x) => x.full_name)).toEqual(["Z", "Y"]);
-  });
-});
-
-describe("standoutApplicant", () => {
-  it("no destaca a nadie si nadie tiene turnos hechos", () => {
-    expect(standoutApplicant(rankApplicants([applicant({}), applicant({})]))).toBeNull();
-  });
-
-  it("destaca al primero cuando tiene historial", () => {
-    const top = applicant({ full_name: "Top", events_completed: 5, rating: 4.8 });
-    expect(standoutApplicant(rankApplicants([applicant({}), top]))?.full_name).toBe("Top");
+  it("no cuenta la calificación de quien ya tuvo el turno y lo dejó", () => {
+    const primero = applicant({ events_completed: 5, rating: 4.6 });
+    const loDejo = applicant({ status: "desasignada", motivo: "rechazo", events_completed: 40, rating: 5 });
+    expect(rotuloDelPrimero([primero, loDejo])).toBe("Mejor calificación");
   });
 });
 
@@ -79,19 +68,12 @@ describe("quien tuvo el turno y lo dejó (G4)", () => {
     rating: 5,
     events_completed: 40,
     punctuality_rate: 1,
+    es_favorito: true,
   });
   const nuevo = applicant({ application_id: "nuevo", full_name: "Nuevo" });
 
-  it("va al final aunque tenga la mejor reputación", () => {
-    expect(rankApplicants([crack, nuevo]).map((a) => a.full_name)).toEqual([
-      "Nuevo",
-      "Crack que rechazó",
-    ]);
-  });
-
-  it("nunca es el destacado, ni siquiera si es el único", () => {
-    expect(standoutApplicant(rankApplicants([crack, nuevo]))).toBeNull();
-    expect(standoutApplicant(rankApplicants([crack]))).toBeNull();
+  it("nunca lleva el rótulo del primero, ni siquiera si es el único", () => {
+    expect(rotuloDelPrimero([crack])).toBeNull();
   });
 
   it("no suma en la cuenta de postulantes", () => {

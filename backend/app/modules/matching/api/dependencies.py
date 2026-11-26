@@ -12,6 +12,9 @@ from app.modules.application.infrastructure.repositories import (
 from app.modules.company.infrastructure.repositories import (
     SqlAlchemyCompanyProfileRepository,
 )
+from app.modules.favorite.infrastructure.repositories import (
+    SqlAlchemyFavoriteRepository,
+)
 from app.modules.matching.application.services import MatchingService
 from app.modules.matching.infrastructure.repositories import (
     SqlAlchemyCandidateRepository,
@@ -26,4 +29,5 @@ def get_matching_service(
     candidates = SqlAlchemyCandidateRepository(session)
     companies = SqlAlchemyCompanyProfileRepository(session)
     applications = SqlAlchemyShiftApplicationRepository(session)
-    return MatchingService(shifts, candidates, companies, applications)
+    favorites = SqlAlchemyFavoriteRepository(session)
+    return MatchingService(shifts, candidates, companies, applications, favorites)

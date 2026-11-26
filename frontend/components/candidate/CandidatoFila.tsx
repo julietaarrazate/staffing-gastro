@@ -106,8 +106,10 @@ export default function CandidatoFila({
             {datos.map((d, i) => (
               <span key={d.clave}>
                 {i > 0 && " "}
-                {/* El « ·» viaja pegado al dato anterior: no queda huérfano en un renglón. */}
-                <span className="whitespace-nowrap">
+                {/* El « ·» viaja pegado al dato anterior: no queda huérfano en un renglón.
+                    El sello «Nuevo en Oído · identidad verificada» es largo: ese sí
+                    baja de renglón, si no queda debajo de «Elegir» en el celular. */}
+                <span className={d.clave === "nuevo" ? undefined : "whitespace-nowrap"}>
                   {d.clave === "nota" && (
                     <>
                       <StarIcon size={12} filled className="mr-0.5 inline-block -translate-y-px text-primary-text" />

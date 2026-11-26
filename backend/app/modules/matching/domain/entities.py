@@ -52,6 +52,9 @@ class CandidateProfile:
     # hay distancia que medir (él o el turno sin coordenadas, ver
     # `scoring.is_within_radius`); no entra al puntaje.
     city: str | None = None
+    # Turnos terminados en Oído en el puesto del turno que se está cubriendo
+    # (ADR-0031). Lo completa el servicio; el repositorio no lo sabe.
+    turnos_en_el_puesto: int = 0
 
 
 @dataclass(frozen=True)

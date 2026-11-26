@@ -8,7 +8,7 @@ import {
   StarIcon,
   type IconProps,
 } from "@/components/icons";
-import { BADGE_ICONS, badgeLabel, formatPunctuality, formatRating, hasRate, hasRating, levelLabel, NEW_LABEL } from "@/lib/reputation";
+import { BADGE_ICONS, badgeLabel, formatPunctuality, formatRating, hasRate, hasRating, levelLabel, NEW_LABEL, NEW_VERIFIED_LABEL } from "@/lib/reputation";
 import { formatDistance, plural } from "@/lib/format";
 
 /**
@@ -26,6 +26,8 @@ export interface CandidateSignals {
   // calculados, ahora visibles donde el comercio decide a quién elegir.
   badges?: string[];
   level?: string;
+  /** Sello «Nuevo en Oído · identidad verificada» (ADR-0031, sólo postulantes). */
+  nuevo_verificado?: boolean;
 }
 
 interface Reason {
@@ -83,7 +85,8 @@ export function datosCandidato(s: CandidateSignals): DatoCandidato[] {
     const nota = formatRating(s.rating);
     datos.push({ clave: "nota", texto: nota, numero: nota, rotulo: "de calificación" });
   } else if (!conHistorial) {
-    datos.push({ clave: "nuevo", texto: NEW_LABEL, numero: "", rotulo: NEW_LABEL });
+    const nuevo = s.nuevo_verificado ? NEW_VERIFIED_LABEL : NEW_LABEL;
+    datos.push({ clave: "nuevo", texto: nuevo, numero: "", rotulo: nuevo });
   }
   if (conHistorial) {
     datos.push({

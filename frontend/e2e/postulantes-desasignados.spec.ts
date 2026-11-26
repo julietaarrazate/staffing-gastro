@@ -26,8 +26,16 @@ function applicant(overrides: Record<string, unknown>) {
   return real;
 }
 
-// La que rechazó tiene la mejor reputación: sin la regla sería la destacada.
+// La lista llega ordenada del backend (ADR-0031; el orden se prueba en
+// `backend/tests/test_orden_postulantes.py`): quien sigue en carrera primero
+// y quienes dejaron el turno al final. La que rechazó tiene la mejor
+// reputación: no por eso es la destacada ni lleva el rótulo.
 const APPLICANTS = [
+  applicant({
+    application_id: "app-sigue",
+    worker_profile_id: "wp-sigue",
+    full_name: "Sofía Sigue",
+  }),
   applicant({
     application_id: "app-rechazo",
     worker_profile_id: "wp-rechazo",
@@ -51,11 +59,6 @@ const APPLICANTS = [
     full_name: "Fabián Faltó",
     status: "desasignada",
     motivo: "ausencia",
-  }),
-  applicant({
-    application_id: "app-sigue",
-    worker_profile_id: "wp-sigue",
-    full_name: "Sofía Sigue",
   }),
 ];
 

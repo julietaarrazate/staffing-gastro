@@ -345,7 +345,7 @@ horaria.
 | Socket y lista de avisos | PRI-04, VIE-04, CON-10, ESC-04 | menor | ✅ #670 |
 | Pantallas sin reloj ni relectura | VIE-02, VIE-03, VIE-05 | menor | ✅ #673 |
 | Escrituras enteras sin versión (backend) | ESC-01, CON-13, CON-08 | menor | ✅ #674 |
-| Formularios que mandan la copia de cuando se abrieron | ESC-02, ESC-03 | menor | 🔵 este PR |
+| Formularios que mandan la copia de cuando se abrieron | ESC-02, ESC-03 | menor | ✅ #675 |
 | Cobro con Mercado Pago (latente: está apagado) | CON-06, CON-07, CON-09 | menor | ⚪ próxima sesión, antes de prender el cobro |
 | Borradores y datos al cambiar de sesión | SES-02, SES-03, SES-04 | menor | ✅ #672 |
 | Hora sin zona leída en la zona del celular (borrador de la IA) | FEC-02 | menor | ✅ #673 |
@@ -519,7 +519,7 @@ Cada una lleva su ADR antes del código y es un PR aparte de los graves.
 | # | Qué | Cuándo | Estado |
 |---|---|---|---|
 | P1 | Puntualidad real (§4, sin marcar por ubicación). Cambia el ADR-0008 y `REPUTATION.md` | Antes de la beta | ⚪ sin empezar |
-| P2 | Orden de los postulantes en turnos programados: local y favoritos, experiencia comprobada, cumplimiento, calificación; la distancia sólo filtra (§3) | Antes de la beta | 🔵 ADR-0031 aceptado (2026-11-25); falta el código |
+| P2 | Orden de los postulantes en turnos programados: local y favoritos, experiencia comprobada, cumplimiento, calificación; la distancia sólo filtra (§3) | Antes de la beta | 🔵 PR abierto (2026-11-26): el orden en el backend, el sello «Nuevo en Oído · identidad verificada» y los recomendados de programados sin premio a la cercanía ([historial](../historial/2026-11-26-orden-de-postulantes-p2.md)) |
 | P3 | Reconfirmación 24 y 3 horas antes (§3 y §5) | Antes de la beta si entra | 🔵 ADR-0031 aceptado (2026-11-25); falta el código; se prende cuando la asesoría apruebe el texto de los avisos |
 | P4 | Tomar el turno urgente con un toque (§2) | Primer cambio después de los graves | ⚪ sin empezar |
 | P5 | Agenda del trabajador: días, franjas, barrios y rubros; el comercio filtra por fecha, horario, rubro y zona (§3.1). Pedido expreso de Julieta | Paso A apenas cierren los graves; B y C con la beta andando | ⚪ sin empezar |
