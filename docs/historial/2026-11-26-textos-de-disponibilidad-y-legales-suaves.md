@@ -1,4 +1,4 @@
-# Textos de disponibilidad y las páginas legales con el diseño de la app (#PR)
+# Textos de disponibilidad y las páginas legales con el diseño de la app (#751)
 
 **Pedido:** Julieta (2026-11-26), con la respuesta de su consulta legal: la
 reconfirmación no se plantea como control del trabajador sino como una
