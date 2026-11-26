@@ -384,7 +384,11 @@ que el backend no manda (un 409 que es 400, `status: "activo"` que es
   - el PUT del comercio en `/bienvenida` no se revisó contra la copia vieja.
 - El e2e `admin-grupo-m.spec.ts:121` («Ver como») falló bajo carga en
   corridas locales de cuatro ramas distintas (timeout de 5 s buscando
-  «Hoy»); pasa solo y en CI. Mirarlo si aparece en CI.
+  «Hoy»); pasa solo y en CI. Mirarlo si aparece en CI. **Apareció en CI el
+  2026-11-26** (PR #747, commit `cf07ece`; pasó en el commit siguiente, que sólo
+  cambiaba un doc). En el log, justo antes, el servidor de Next imprime
+  `Error: Forbidden` (403) desde el render del servidor: falta averiguar si es
+  la causa. Es lo próximo a mirar de las pruebas.
 - `/privacidad`: el texto sobre el CV (quién lo ve, cuánto se guarda) está
   propuesto en el ADR-0021; va junto con PRI-07, con una sola subida de la
   versión legal.
