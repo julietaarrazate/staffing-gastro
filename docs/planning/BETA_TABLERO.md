@@ -522,7 +522,7 @@ Cada una lleva su ADR antes del código y es un PR aparte de los graves.
 
 | # | Qué | Cuándo | Estado |
 |---|---|---|---|
-| P1 | Puntualidad real (§4, sin marcar por ubicación). Cambia el ADR-0008 y `REPUTATION.md` | Antes de la beta | 🔵 PR abierto (2026-11-26): 5 minutos de margen, tres recordatorios, «Ya llegó» del comercio y «No se presentó» desde los 10 minutos ([historial](../historial/2026-11-26-puntualidad-real.md)) |
+| P1 | Puntualidad real (§4, sin marcar por ubicación). Cambia el ADR-0008 y `REPUTATION.md` | Antes de la beta | 🔵 #749 (2026-11-26): 5 minutos de margen, tres recordatorios, «Ya llegó» del comercio y «No se presentó» desde los 10 minutos ([historial](../historial/2026-11-26-puntualidad-real.md)) |
 | P2 | Orden de los postulantes en turnos programados: local y favoritos, experiencia comprobada, cumplimiento, calificación; la distancia sólo filtra (§3) | Antes de la beta | ✅ #745 (2026-11-26): el orden en el backend, el sello «Nuevo en Oído · identidad verificada» y los recomendados de programados sin premio a la cercanía ([historial](../historial/2026-11-26-orden-de-postulantes-p2.md)) |
 | P3 | Reconfirmación 24 y 3 horas antes (§3 y §5) | Antes de la beta si entra | ✅ #746 (2026-11-26): construida y apagada (`RECONFIRMACION_ENABLED`); se prende cuando la asesoría apruebe los textos del final del ADR-0031 ([historial](../historial/2026-11-26-reconfirmacion-p3.md)) |
 | P4 | Tomar el turno urgente con un toque (§2) | Primer cambio después de los graves | ⚪ sin empezar |

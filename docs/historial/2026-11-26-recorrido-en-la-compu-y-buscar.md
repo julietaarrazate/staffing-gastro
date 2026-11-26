@@ -1,4 +1,4 @@
-# El recorrido guiado en la compu y los filtros de Buscar (#PR)
+# El recorrido guiado en la compu y los filtros de Buscar (#748)
 
 **Pedido:** Julieta mandó capturas de producción (2026-11-26): al entrar por
 primera vez en la compu, un globo del recorrido quedaba en la esquina de
