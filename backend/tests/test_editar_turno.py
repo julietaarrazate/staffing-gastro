@@ -103,6 +103,38 @@ async def test_bajar_el_pago_avisa_y_subirlo_o_tocar_la_vestimenta_no(client: As
     assert len(await _notices(client, persona, "applied_shift_changed")) == 1
 
 
+async def test_el_mismo_horario_con_la_zona_argentina_no_es_un_cambio(client: AsyncClient):
+    """La pantalla manda la hora con `-03:00` y la base guarda en UTC: se
+    comparan instantes (revisión independiente)."""
+    art = timezone(timedelta(hours=-3))
+    comercio = await _comercio(client, "edit_emp8@staffya.com")
+    persona, _ = await _persona(client, "edit_w8@staffya.com")
+    shift_id = await _publicado(client, comercio)
+    await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=persona)
+    fin = INICIO + timedelta(hours=5)
+
+    igual = await client.put(
+        f"/api/v1/shifts/{shift_id}", headers=comercio,
+        json=_payload(
+            start_at=INICIO.astimezone(art).isoformat(), end_at=fin.astimezone(art).isoformat(),
+            dress_code="Camisa negra",
+        ),
+    )
+    assert igual.status_code == 200, igual.text
+    assert await _notices(client, persona, "applied_shift_changed") == []
+
+    # Tres horas más tarde: en hora argentina el reloj coincide con el UTC de
+    # antes, pero el horario cambió de verdad.
+    corrido = await client.put(
+        f"/api/v1/shifts/{shift_id}", headers=comercio,
+        json=_payload(
+            start_at=INICIO.replace(tzinfo=art).isoformat(), end_at=fin.replace(tzinfo=art).isoformat()
+        ),
+    )
+    assert corrido.status_code == 200, corrido.text
+    assert len(await _notices(client, persona, "applied_shift_changed")) == 1
+
+
 async def test_sin_postulantes_no_se_avisa_a_nadie(client: AsyncClient):
     comercio = await _comercio(client, "edit_emp3@staffya.com")
     persona, _ = await _persona(client, "edit_w3@staffya.com")

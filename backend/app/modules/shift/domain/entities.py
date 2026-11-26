@@ -30,6 +30,7 @@ from app.modules.shift.domain.mensajes import (
     cierre_admin_por_estado,
     no_se_puede,
 )
+from app.modules.shift.domain.schedule import mismo_instante
 from app.modules.shift.domain.value_objects import (
     ADMIN_CHECK_OUT_STATUSES,
     EDITABLE_STATUSES,
@@ -296,9 +297,12 @@ class Shift:
         """¿Cambiar a estos datos le cambia el trato a quien ya se postuló?
         El horario, o el pago hacia abajo. Subir el pago o tocar la
         descripción no: nadie se retiraría por eso."""
+        # Se comparan instantes, no relojes: la base guarda en UTC y la app
+        # manda la hora argentina con su offset. Recortar la zona daba por
+        # cambiado un horario igual, y por igual uno corrido justo 3 horas.
         return (
-            _naive(self.start_at) != _naive(start_at)
-            or _naive(self.end_at) != _naive(end_at)
+            not mismo_instante(self.start_at, start_at)
+            or not mismo_instante(self.end_at, end_at)
             or Decimal(pay_amount) < Decimal(self.pay_amount)
         )
 
