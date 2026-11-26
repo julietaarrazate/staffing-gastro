@@ -56,6 +56,11 @@ class NotificationType(str, Enum):
     # cuando sale; y al comercio, una sola vez, cuando el trabajador salió.
     DEPARTURE_REMINDER = "departure_reminder"
     WORKER_EN_ROUTE = "worker_en_route"
+    # Reconfirmación antes del turno (ADR-0031, P3): al trabajador, «¿Seguís
+    # yendo?» a las 24 y a las 3 horas; al comercio, si a las 2 horas la
+    # persona no contestó nunca.
+    RECONFIRM_REQUEST = "reconfirm_request"
+    WORKER_NOT_RECONFIRMED = "worker_not_reconfirmed"
     # Escalada automática de urgencia: el turno no se cubrió rápido, se
     # amplía el círculo de candidatos avisados (ver
     # `ShiftService.escalate_urgency`).
@@ -93,6 +98,7 @@ _DEEP_LINKS: dict[NotificationType, str] = {
     NotificationType.SHIFT_CANCELLED: "/my-shifts",
     NotificationType.CHECKIN_REMINDER: "/my-shifts",
     NotificationType.DEPARTURE_REMINDER: "/my-shifts",
+    NotificationType.RECONFIRM_REQUEST: "/my-shifts",
     # Turno todavía no suyo. Los avisos nuevos traen su `link` a /turno/<id>;
     # este destino es el de respaldo (avisos viejos sin link): el Inicio.
     NotificationType.NEW_SHIFT_NEARBY: "/feed",
@@ -112,6 +118,7 @@ _DEEP_LINKS: dict[NotificationType, str] = {
     NotificationType.SHIFT_FINISH_REMINDER: "/shifts",
     NotificationType.SHIFT_REOPENED: "/shifts",
     NotificationType.WORKER_EN_ROUTE: "/shifts",
+    NotificationType.WORKER_NOT_RECONFIRMED: "/shifts",
     # Sólo al comercio (ADR-0015): si había un trabajador asignado sin
     # confirmar, no se lo penaliza ni se le avisa nada — no es una noticia
     # accionable para él, el momento ya pasó.

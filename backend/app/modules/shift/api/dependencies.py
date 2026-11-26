@@ -6,6 +6,7 @@ from uuid import UUID
 from fastapi import BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_session
 from app.modules.application.infrastructure.repositories import (
     SqlAlchemyShiftApplicationRepository,
@@ -65,6 +66,7 @@ def get_shift_service(
         favorites=SqlAlchemyFavoriteRepository(session),
         # El email de aceptación sale después de la respuesta.
         run_after_response=background_tasks.add_task,
+        reconfirmacion_activa=settings.reconfirmacion_enabled,
     )
 
 

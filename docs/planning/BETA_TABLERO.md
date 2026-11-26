@@ -289,7 +289,7 @@ el modelo del dominio, un ADR vigente o un texto legal:
     ausencia y puntualidad se miden desde que confirmó, no desde el inicio;
     el pago se prorratea desde la llegada (valor por hora en el aviso, monto
     fijo al llegar, y las ganancias del trabajador usan ese monto). Cambia
-    el ADR-0008 y el ADR-0015. La próxima migración libre es la 0061.
+    el ADR-0008 y el ADR-0015. La próxima migración libre es la 0064.
 - **Decisiones 21, 22 y 24** (2026-11-18): tres reglas nuevas, un PR cada
   una, con su ADR.
   - ✅ **21** (cerrar turno desde el admin): hecho el 2026-11-18 (ADR-0024
@@ -520,7 +520,7 @@ Cada una lleva su ADR antes del código y es un PR aparte de los graves.
 |---|---|---|---|
 | P1 | Puntualidad real (§4, sin marcar por ubicación). Cambia el ADR-0008 y `REPUTATION.md` | Antes de la beta | ⚪ sin empezar |
 | P2 | Orden de los postulantes en turnos programados: local y favoritos, experiencia comprobada, cumplimiento, calificación; la distancia sólo filtra (§3) | Antes de la beta | 🔵 #745 (2026-11-26): el orden en el backend, el sello «Nuevo en Oído · identidad verificada» y los recomendados de programados sin premio a la cercanía ([historial](../historial/2026-11-26-orden-de-postulantes-p2.md)) |
-| P3 | Reconfirmación 24 y 3 horas antes (§3 y §5) | Antes de la beta si entra | 🔵 ADR-0031 aceptado (2026-11-25); falta el código; se prende cuando la asesoría apruebe el texto de los avisos |
+| P3 | Reconfirmación 24 y 3 horas antes (§3 y §5) | Antes de la beta si entra | 🔵 PR abierto (2026-11-26): construida y apagada (`RECONFIRMACION_ENABLED`); se prende cuando la asesoría apruebe los textos del final del ADR-0031 ([historial](../historial/2026-11-26-reconfirmacion-p3.md)) |
 | P4 | Tomar el turno urgente con un toque (§2) | Primer cambio después de los graves | ⚪ sin empezar |
 | P5 | Agenda del trabajador: días, franjas, barrios y rubros; el comercio filtra por fecha, horario, rubro y zona (§3.1). Pedido expreso de Julieta | Paso A apenas cierren los graves; B y C con la beta andando | ⚪ sin empezar |
 
@@ -763,6 +763,8 @@ prueba, y las invitadas quedan sin entrada al vaciar el PIN.
   consulta legal hecha (pestaña «Lanzamiento de beta» del plan).
 - [ ] Las pruebas de persona de arriba («Pruebas que tiene que hacer una
   persona»).
+- [ ] Reconfirmación antes del turno: con los textos aprobados por la
+  asesoría, poner `RECONFIRMACION_ENABLED=true` en Render (ADR-0031).
 - [ ] El cobro sigue apagado: los comercios fundadores no pagan hasta el 28/2
   (STATUS, ítem 6).
 

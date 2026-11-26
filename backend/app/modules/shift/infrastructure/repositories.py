@@ -110,6 +110,10 @@ def _to_entity(model: ShiftModel) -> Shift:
         checkin_reminder_sent_at=model.checkin_reminder_sent_at,
         departure_reminder_sent_at=model.departure_reminder_sent_at,
         finish_reminder_sent_at=model.finish_reminder_sent_at,
+        reconfirm_24h_sent_at=model.reconfirm_24h_sent_at,
+        reconfirm_3h_sent_at=model.reconfirm_3h_sent_at,
+        reconfirmed_at=model.reconfirmed_at,
+        no_reconfirm_alert_sent_at=model.no_reconfirm_alert_sent_at,
         auto_finished_at=model.auto_finished_at,
         event_id=model.event_id,
         event_name=model.event_name,
@@ -169,6 +173,12 @@ def _apply_fields(model: ShiftModel, shift: Shift) -> None:
     # leída antes de marcarla llega con None y no la pisa.
     if shift.finish_reminder_sent_at is not None:
         model.finish_reminder_sent_at = shift.finish_reminder_sent_at
+    # La reconfirmación (ADR-0031) son marcas de sistema de quien tiene el
+    # turno: la entidad nunca las escribe. Mientras siga la misma persona se
+    # conserva lo que hay en la base; si cambió o se desasignó, se borran.
+    if not same_worker:
+        for campo in RECONFIRMATION_FIELDS:
+            setattr(model, campo, None)
     model.auto_finished_at = shift.auto_finished_at
     model.published_at = shift.published_at
     model.first_assigned_at = shift.first_assigned_at
@@ -249,6 +259,16 @@ def _utc_naive(value: datetime) -> datetime:
 
 # Aviso corto: el turno empieza dentro de las 24 h de haberse publicado.
 SHORT_NOTICE_MINUTES = 24 * 60
+
+
+# Marcas de la reconfirmación (ADR-0031, P3): las únicas columnas que
+# `mark_reconfirmation` acepta escribir.
+RECONFIRMATION_FIELDS = (
+    "reconfirm_24h_sent_at",
+    "reconfirm_3h_sent_at",
+    "reconfirmed_at",
+    "no_reconfirm_alert_sent_at",
+)
 
 
 class SqlAlchemyShiftRepository(ShiftRepository):
@@ -473,6 +493,37 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         )
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
+
+    async def mark_reconfirmation(
+        self,
+        shift_id: UUID,
+        worker_profile_id: UUID,
+        field: str,
+        at: datetime,
+        *,
+        only_once: bool = True,
+    ) -> bool:
+        if field not in RECONFIRMATION_FIELDS:
+            raise ValueError(f"Marca de reconfirmación desconocida: {field}")
+        column = getattr(ShiftModel, field)
+        # UPDATE masivo (Core), como `mark_departure_reminder_sent`: no sube
+        # la versión y el WHERE corta la carrera. Sólo se marca si el turno
+        # sigue CONFIRMADO con la misma persona.
+        conditions = [
+            ShiftModel.id == shift_id,
+            ShiftModel.worker_profile_id == worker_profile_id,
+            ShiftModel.status == ShiftStatus.CONFIRMADO.value,
+        ]
+        if only_once:
+            conditions.append(column.is_(None))
+        result = await self._session.execute(
+            update(ShiftModel)
+            .where(*conditions)
+            .values({field: at})
+            .execution_options(synchronize_session=False)
+        )
+        await self._session.commit()
+        return result.rowcount == 1
 
     async def list_awaiting_checkin(self) -> list[Shift]:
         stmt = select(ShiftModel).where(

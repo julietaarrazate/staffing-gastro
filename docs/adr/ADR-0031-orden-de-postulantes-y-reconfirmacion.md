@@ -170,3 +170,42 @@ Lo que el ADR dejaba sin número, como quedó en el código:
 - **No se tocó** a quién le llega el aviso «Turno cerca tuyo» al publicar un
   turno programado: sigue con el puntaje de siempre (con distancia).
 
+## Implementación de P3 (2026-11-26)
+
+Construida y **apagada** (`RECONFIRMACION_ENABLED`, por defecto `false`):
+apagada no sale ningún aviso, «Sí, voy» no existe y cancelar pesa como
+siempre. Lo que el ADR dejaba abierto, como quedó:
+
+- **Los dos botones** no van en el aviso (los avisos de Oído no tienen
+  botones): el aviso lleva a «Mis turnos», donde la tarjeta del turno
+  pregunta «¿Seguís yendo a este turno?» con «Sí, voy» y «No puedo».
+- **El margen de «No puedo».** El primer aviso sale justo a las 24 horas,
+  así que nadie podría contestarlo «con 24 horas o más». Contestar «No puedo»
+  dentro de las 3 horas de ese aviso cuenta como avisado con tiempo. El
+  cartel de cancelar le dice a la persona si le cuenta o no.
+- **El segundo aviso** no sale si confirmó o reconfirmó en las 3 horas
+  anteriores a la hora del aviso (no a «ahora»: si no, el aviso salteado
+  saldría un rato después).
+- **El aviso al comercio** sale sólo si la persona no contestó **nunca**: si
+  dijo «Sí, voy» al primer aviso y no contestó el segundo, no se alarma al
+  comercio.
+- **«Buscar reemplazo» no está.** Dejar a la persona asignada mientras el
+  comercio elige a otra pide reasignar un turno confirmado, que hoy no
+  existe. Va con la oferta directa a suplentes (ADR propio, junto con P4).
+  El aviso al comercio lleva al turno, desde donde puede escribirle.
+
+**Textos de los avisos** (los que tiene que aprobar la asesoría):
+
+- A la persona, a las 24 y a las 3 horas: «¿Seguís yendo mañana a las 21:00
+  a Bar Lavalle?» / «Contestá «Sí, voy» o «No puedo» para que el comercio lo
+  sepa a tiempo.»
+- En la tarjeta del turno: «¿Seguís yendo a este turno?» / «Contestá para
+  que el comercio lo sepa a tiempo.» / «Sí, voy» / «No puedo».
+- Al cancelar con tiempo: «El comercio va a buscar a otra persona. Como
+  avisás con tiempo, no cuenta como una cancelación en tu reputación.»
+- Al comercio, a las 2 horas sin respuesta: «Camila no reconfirmó el turno
+  de hoy a las 21:00» / «Todavía no contestó si sigue yendo. Escribile para
+  confirmarlo.»
+- En el Panel: «Camila reconfirmó que va.» / «Camila no reconfirmó.
+  Escribile para confirmarlo.»
+

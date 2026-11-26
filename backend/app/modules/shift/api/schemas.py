@@ -1,6 +1,6 @@
 """Esquemas HTTP (Pydantic) del módulo shift."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from enum import Enum
 from uuid import UUID
@@ -8,7 +8,9 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic_core import PydanticCustomError
 
+from app.core.config import settings
 from app.modules.shift.domain.pay_benchmark import PayBand
+from app.modules.shift.domain.reconfirmacion import avisa_con_tiempo
 from app.modules.shift.domain.value_objects import ShiftStatus
 from app.modules.worker.domain.value_objects import WorkerSkill
 
@@ -127,6 +129,20 @@ class ShiftResponse(BaseModel):
     # usa para saber desde cuándo se puede marcar «No se presentó» a quien
     # tomó un turno ya empezado.
     confirmed_at: datetime | None = None
+    # Reconfirmación antes del turno (ADR-0031, P3). De las partes: a la
+    # persona, si tiene una pregunta sin contestar; al comercio, cuándo
+    # reconfirmó o cuándo se le avisó que no contestó.
+    reconfirmation_pending: bool | None = None
+    reconfirmed_at: datetime | None = None
+    no_reconfirm_alert_sent_at: datetime | None = None
+    # ¿Cancelar ahora es avisar con tiempo, y entonces no le suma una
+    # cancelación a la persona? Para que el cartel de «Cancelar mi
+    # asignación» diga la verdad. `None` con la reconfirmación apagada o si
+    # el turno no está confirmado. Las dos marcas de abajo sólo sirven para
+    # calcularlo: no salen en la respuesta.
+    cancel_with_notice: bool | None = None
+    reconfirm_24h_sent_at: datetime | None = Field(default=None, exclude=True)
+    reconfirm_3h_sent_at: datetime | None = Field(default=None, exclude=True)
     company_name: str | None = None
     company_logo_url: str | None = None
     company_cover_url: str | None = None
@@ -152,6 +168,22 @@ class ShiftResponse(BaseModel):
     # campo queda listo para cuando exista (sin datos simulados).
     company_verified: bool = False
 
+    @model_validator(mode="after")
+    def _cancelar_con_aviso(self) -> "ShiftResponse":
+        if (
+            settings.reconfirmacion_enabled
+            and self.cancel_with_notice is None
+            and self.status == ShiftStatus.CONFIRMADO
+        ):
+            self.cancel_with_notice = avisa_con_tiempo(
+                self.start_at,
+                self.reconfirm_24h_sent_at,
+                self.reconfirm_3h_sent_at,
+                datetime.now(timezone.utc),
+            )
+        return self
+
+
 
 # Datos de una PERSONA (el trabajador del turno), no del turno: quién lo tomó,
 # dónde está viajando, dónde marcó llegada y salida, quién faltó.
@@ -176,6 +208,10 @@ WORKER_DATA_FIELDS = (
     "last_no_show_worker_profile_id",
     "prorated_pay_amount",
     "confirmed_at",
+    "reconfirmation_pending",
+    "reconfirmed_at",
+    "no_reconfirm_alert_sent_at",
+    "cancel_with_notice",
 )
 
 

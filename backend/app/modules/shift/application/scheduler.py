@@ -113,6 +113,7 @@ from app.modules.shift.application.services import (
     ShiftService,
 )
 from app.modules.shift.domain.entities import Shift
+from app.modules.shift.domain.reconfirmacion import PasoReconfirmacion, paso_pendiente
 from app.modules.shift.domain.exceptions import (
     InvalidShiftTransitionError,
     ShiftConcurrentModificationError,
@@ -202,6 +203,7 @@ def _build_service(session) -> ShiftService:
         # que habilita el aviso al publicar, ver `get_shift_service`).
         candidates=SqlAlchemyCandidateRepository(session),
         favorites=SqlAlchemyFavoriteRepository(session),
+        reconfirmacion_activa=settings.reconfirmacion_enabled,
     )
 
 
@@ -264,6 +266,34 @@ async def run_attendance_check() -> datetime | None:
             # Todavía no accionable: su próxima deadline es el umbral que falta.
             pending = reminder_at if shift.checkin_reminder_sent_at is None else no_show_at
             next_deadline = _earlier(next_deadline, pending)
+        return next_deadline
+
+
+async def run_reconfirmation_check() -> datetime | None:
+    """Una pasada de la reconfirmación antes del turno (ADR-0031, P3): a las
+    24 y a las 3 horas le pregunta a quien confirmó si sigue yendo, y a las 2
+    horas le avisa al comercio si no contestó nunca. Apagada
+    (`settings.reconfirmacion_enabled`) no hace nada.
+
+    Devuelve la próxima deadline futura que conoce, como los demás chequeos."""
+    if not settings.reconfirmacion_enabled:
+        return None
+    async with AsyncSessionLocal() as session:
+        service = _build_service(session)
+        now = _naive(datetime.now(timezone.utc))
+        next_deadline: datetime | None = None
+        for shift in await service.list_shifts_awaiting_checkin():
+            paso, proxima = paso_pendiente(shift, now)
+            if paso is PasoReconfirmacion.ALERTA_AL_COMERCIO:
+                await _act(service.alert_not_reconfirmed, shift.id)
+            elif paso is not None:
+                await _act(
+                    lambda shift_id, paso=paso: service.send_reconfirmation_request(
+                        shift_id, paso
+                    ),
+                    shift.id,
+                )
+            next_deadline = _earlier(next_deadline, proxima)
         return next_deadline
 
 
@@ -488,6 +518,11 @@ async def scheduler_loop(
         except Exception:
             had_error = True
             logger.exception("Error en el chequeo de asistencia")
+        try:
+            next_deadline = _earlier(next_deadline, await run_reconfirmation_check())
+        except Exception:
+            had_error = True
+            logger.exception("Error en el chequeo de reconfirmación")
         try:
             next_deadline = _earlier(next_deadline, await run_escalation_check())
         except Exception:

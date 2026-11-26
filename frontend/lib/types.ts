@@ -140,6 +140,16 @@ export interface Shift {
   prorated_pay_amount?: string | null;
   /** Cuándo confirmó quien tiene el turno ahora (sólo para las partes). */
   confirmed_at?: string | null;
+  /** Reconfirmación antes del turno (ADR-0031, P3; sólo para las partes).
+   *  A la persona: tiene una pregunta «¿Seguís yendo?» sin contestar. */
+  reconfirmation_pending?: boolean | null;
+  /** Cuándo contestó «Sí, voy». */
+  reconfirmed_at?: string | null;
+  /** Cuándo se le avisó al comercio que la persona no contestó. */
+  no_reconfirm_alert_sent_at?: string | null;
+  /** Cancelar ahora es avisar con tiempo: no suma una cancelación. `null` si
+   *  la reconfirmación está apagada o el turno no está confirmado. */
+  cancel_with_notice?: boolean | null;
   company_name: string | null;
   company_logo_url: string | null;
   /** Foto del local (fachada/salón). Opcional: mocks y respuestas viejas no la traen. */
@@ -406,6 +416,8 @@ export type NotificationType =
   | "shift_not_covered"
   | "checkin_reminder"
   | "departure_reminder"
+  | "reconfirm_request"
+  | "worker_not_reconfirmed"
   | "worker_en_route"
   | "new_shift_nearby"
   | "urgent_shift_nearby"

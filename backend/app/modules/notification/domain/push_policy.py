@@ -74,6 +74,9 @@ _RULES: dict[NotificationType, PushPolicy] = {
     _N.SHIFT_REOPENED: _ACCION_SOBRE_TURNO,
     _N.SHIFT_NOT_COVERED: _ACCION_SOBRE_TURNO,
     _N.CHAT_MESSAGE: _ACCION_SOBRE_TURNO,
+    # Reconfirmación (ADR-0031): piden contestar o actuar sobre un turno propio.
+    _N.RECONFIRM_REQUEST: _ACCION_SOBRE_TURNO,
+    _N.WORKER_NOT_RECONFIRMED: _ACCION_SOBRE_TURNO,
     # Solo valen en el momento: pasada media hora el texto ya no es cierto.
     _N.WORKER_EN_ROUTE: _AVISO_DEL_MOMENTO,
     _N.CHECKIN_REMINDER: _AVISO_DEL_MOMENTO,

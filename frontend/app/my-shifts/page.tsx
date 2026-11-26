@@ -98,9 +98,13 @@ const CONFIRM_COPY = {
 // La consecuencia en una línea (docs/reference/REPUTATION.md: sólo cancelar
 // una asignación ya confirmada suma una cancelación; rechazar antes de
 // confirmar no).
-function confirmCopy(path: "reject" | "worker-cancel" | "check-out"): string {
+function confirmCopy(path: "reject" | "worker-cancel" | "check-out", conAviso = false): string {
   if (path === "reject") return "El comercio va a buscar a otra persona para este turno.";
   if (path === "check-out") return "Das el turno por terminado. No se puede deshacer.";
+  // Avisar con tiempo no pesa (ADR-0031): lo decide el backend (`cancel_with_notice`).
+  if (conAviso) {
+    return "El comercio va a buscar a otra persona. Como avisás con tiempo, no cuenta como una cancelación en tu reputación.";
+  }
   return "El comercio va a buscar a otra persona y esto cuenta como una cancelación en tu reputación.";
 }
 
@@ -185,9 +189,16 @@ function MatchesContent() {
   // "Llegué" la lista se redibuja y "Me fui" queda justo bajo el dedo.
   const tapGuard = useTapGuard();
 
+  // Si cancelar ahora cuenta o no lo dice el backend; se fija al abrir el
+  // cartel para que el texto no cambie mientras se cierra.
+  const [lastConAviso, setLastConAviso] = useState(false);
+
   function pedirConfirmacion(id: string, path: "reject" | "worker-cancel" | "check-out") {
     void tapGuard.run(() => {
       setLastConfirmPath(path);
+      setLastConAviso(
+        path === "worker-cancel" && shifts.find((s) => s.id === id)?.cancel_with_notice === true,
+      );
       setConfirmAction({ id, path });
     });
   }
@@ -526,6 +537,39 @@ function MatchesContent() {
                   Rechazar
                 </Button>
               </>
+            )}
+            {shift.status === "confirmado" && shift.reconfirmation_pending && (
+              // Reconfirmación antes del turno (ADR-0031, P3): la pregunta
+              // ocupa el renglón entero, arriba de las acciones de siempre.
+              <div data-reconfirmar className="w-full rounded-[14px] bg-surface p-3">
+                <p className="text-sm font-bold text-ink">¿Seguís yendo a este turno?</p>
+                <p className="mt-0.5 text-caption text-ink-soft">
+                  Contestá para que el comercio lo sepa a tiempo.
+                </p>
+                <div className="mt-2.5 flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="surface"
+                    className={QUIETO}
+                    onClick={() => void tapGuard.run(() => act(shift.id, "reconfirm"))}
+                    leftIcon={<CheckIcon size={16} />}
+                    loading={busy === `${shift.id}:reconfirm`}
+                    disabled={busy !== null || tapGuard.locked}
+                  >
+                    Sí, voy
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="surface"
+                    className={QUIETO}
+                    onClick={() => pedirConfirmacion(shift.id, "worker-cancel")}
+                    loading={busy === `${shift.id}:worker-cancel`}
+                    disabled={busy !== null || tapGuard.locked}
+                  >
+                    No puedo
+                  </Button>
+                </div>
+              </div>
             )}
             {shift.status === "confirmado" && (
               <>
@@ -1064,7 +1108,7 @@ function MatchesContent() {
         title={CONFIRM_COPY[lastConfirmPath].title}
       >
         <p className="text-sm text-ink/60">
-          {confirmCopy(lastConfirmPath)}
+          {confirmCopy(lastConfirmPath, lastConAviso)}
         </p>
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="surface" size="sm" onClick={() => setConfirmAction(null)}>

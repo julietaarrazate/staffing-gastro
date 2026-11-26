@@ -193,6 +193,16 @@ class Shift:
     finish_reminder_sent_at: datetime | None = None
     auto_finished_at: datetime | None = None
 
+    # Reconfirmación antes del turno (ADR-0031, P3), de quien lo tiene ahora:
+    # cuándo se le preguntó (a las 24 y a las 3 horas), cuándo contestó «Sí,
+    # voy» y cuándo se le avisó al comercio que no contestó. Marcas de
+    # sistema: las escribe el repositorio sin subir la versión, y se borran
+    # cuando el turno cambia de persona. Las reglas, en `reconfirmacion.py`.
+    reconfirm_24h_sent_at: datetime | None = None
+    reconfirm_3h_sent_at: datetime | None = None
+    reconfirmed_at: datetime | None = None
+    no_reconfirm_alert_sent_at: datetime | None = None
+
     # Publicación masiva para un evento (ej. una boda que necesita 3 mozos +
     # 2 bartenders): cada rol sigue siendo un turno propio con quantity=1
     # (ADR-0003 no se toca), pero comparten `event_id` para poder agruparlos
@@ -404,6 +414,21 @@ class Shift:
         casos de uso la consulten sin duplicarla)."""
         return self.status in (ShiftStatus.PUBLICADO, ShiftStatus.BUSCANDO_PERSONAL)
 
+    @property
+    def reconfirmation_pending(self) -> bool:
+        """¿Se le preguntó si sigue yendo y todavía no contestó? Sólo con el
+        turno confirmado: una vez en camino, la pregunta ya no corre."""
+        if self.status != ShiftStatus.CONFIRMADO:
+            return False
+        avisos = [
+            _naive(f)
+            for f in (self.reconfirm_24h_sent_at, self.reconfirm_3h_sent_at)
+            if f is not None
+        ]
+        if not avisos:
+            return False
+        return self.reconfirmed_at is None or _naive(self.reconfirmed_at) < max(avisos)
+
     def assign(self, worker_profile_id: UUID) -> None:
         """PUBLICADO/BUSCANDO_PERSONAL → ASIGNADO: el comercio elige un candidato.
 
@@ -468,6 +493,10 @@ class Shift:
         self.status = ShiftStatus.BUSCANDO_PERSONAL
         self.confirmed_at = None
         self.checkin_reminder_sent_at = None
+        self.reconfirm_24h_sent_at = None
+        self.reconfirm_3h_sent_at = None
+        self.reconfirmed_at = None
+        self.no_reconfirm_alert_sent_at = None
         self._clear_en_route()
         if _naive(now) < _naive(self.start_at):
             return Reapertura.ABIERTO
