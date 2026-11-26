@@ -4,8 +4,8 @@ import { blockExternalHosts, injectSession, isoDesdeJueves as isoEnDias, mockEmp
 
 /**
  * Reconfirmación antes del turno (ADR-0031, P3): con una pregunta pendiente,
- * la tarjeta del turno confirmado pregunta «¿Seguís yendo?» con «Sí, voy» y
- * «No puedo». «No puedo» es la cancelación de siempre, y el cartel dice si
+ * la tarjeta del turno confirmado pregunta «¿Seguís disponible?» con «Sí, sigo disponible» y
+ * «Ya no estoy disponible». «Ya no estoy disponible» es la cancelación de siempre, y el cartel dice si
  * cuenta o no (lo decide el backend: `cancel_with_notice`).
  */
 const json = (body: unknown) => ({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
@@ -39,18 +39,18 @@ async function misTurnos(page: Page, extra: Record<string, unknown>) {
 }
 
 for (const theme of ["light", "dark"] as const) {
-  test(`${theme}: con una pregunta pendiente, «Sí, voy» la contesta y la pregunta se va`, async ({ page }) => {
+  test(`${theme}: con una pregunta pendiente, «Sí, sigo disponible» la contesta y la pregunta se va`, async ({ page }) => {
     await setTheme(page, theme);
     const pedidos = await misTurnos(page, { reconfirmation_pending: true, cancel_with_notice: true });
     const pregunta = page.locator("[data-reconfirmar]");
-    await expect(pregunta).toContainText("¿Seguís yendo a este turno?");
-    await expect(pregunta.getByRole("button", { name: "No puedo" })).toBeVisible();
+    await expect(pregunta).toContainText("¿Seguís disponible para este turno?");
+    await expect(pregunta.getByRole("button", { name: "Ya no estoy disponible" })).toBeVisible();
     // La pregunta entra en la pantalla: no ensancha la página.
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       await page.evaluate(() => window.innerWidth),
     );
 
-    await pregunta.getByRole("button", { name: "Sí, voy" }).click();
+    await pregunta.getByRole("button", { name: "Sí, sigo disponible" }).click();
 
     await expect(pregunta).toHaveCount(0);
     expect(pedidos).toEqual(["reconfirm"]);
@@ -63,18 +63,18 @@ test("sin pregunta pendiente no aparece nada nuevo", async ({ page }) => {
   await expect(page.locator("[data-reconfirmar]")).toHaveCount(0);
 });
 
-test("«No puedo» avisando con tiempo: el cartel dice que no cuenta como cancelación", async ({ page }) => {
+test("«Ya no estoy disponible» avisando con tiempo: el cartel dice que no cuenta como cancelación", async ({ page }) => {
   const pedidos = await misTurnos(page, { reconfirmation_pending: true, cancel_with_notice: true });
-  await page.locator("[data-reconfirmar]").getByRole("button", { name: "No puedo" }).click();
+  await page.locator("[data-reconfirmar]").getByRole("button", { name: "Ya no estoy disponible" }).click();
   const cartel = page.getByRole("dialog");
-  await expect(cartel).toContainText("Como avisás con tiempo, no cuenta como una cancelación");
+  await expect(cartel).toContainText("Como avisás con tiempo, no suma a tus cancelaciones");
   expect(pedidos).toEqual([]); // nada sale hasta confirmar
   await cartel.getByRole("button", { name: "Sí, cancelar" }).click();
   await expect.poll(() => pedidos).toEqual(["worker-cancel"]);
 });
 
-test("«No puedo» sobre la hora: el cartel avisa que cuenta como cancelación", async ({ page }) => {
+test("«Ya no estoy disponible» sobre la hora: el cartel avisa que cuenta como cancelación", async ({ page }) => {
   await misTurnos(page, { reconfirmation_pending: true, cancel_with_notice: false });
-  await page.locator("[data-reconfirmar]").getByRole("button", { name: "No puedo" }).click();
-  await expect(page.getByRole("dialog")).toContainText("esto cuenta como una cancelación en tu reputación");
+  await page.locator("[data-reconfirmar]").getByRole("button", { name: "Ya no estoy disponible" }).click();
+  await expect(page.getByRole("dialog")).toContainText("suma a las cancelaciones que los comercios ven en tu perfil");
 });

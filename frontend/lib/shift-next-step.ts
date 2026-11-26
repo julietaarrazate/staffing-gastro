@@ -116,7 +116,7 @@ export function llegadaDe(
 }
 
 /** Con el turno confirmado, lo que se sabe de la reconfirmación (ADR-0031):
- *  contestó «Sí, voy», o se le preguntó y no contestó. */
+ *  contestó «Sí, sigo disponible», o se le preguntó y no contestó. */
 type Reconfirmacion = "reconfirmo" | "sin_respuesta" | null;
 
 function reconfirmacionDe(
@@ -135,12 +135,12 @@ function hintWithWorker(
   llegada: string | null = null,
 ): string | null {
   if (status === "confirmado" && reconfirmacion === "reconfirmo") {
-    return name ? `${name} reconfirmó que va.` : "Reconfirmó que va.";
+    return name ? `${name} confirmó que sigue disponible.` : "Confirmó que sigue disponible.";
   }
   if (status === "confirmado" && reconfirmacion === "sin_respuesta") {
     return name
-      ? `${name} no reconfirmó. Escribile para confirmarlo.`
-      : "No reconfirmó. Escribile para confirmarlo.";
+      ? `${name} todavía no respondió si sigue disponible.`
+      : "Todavía no respondió si sigue disponible.";
   }
   if (status === "check_in" && llegada) {
     return name ? `${name} ${llegada}.` : `${llegada.charAt(0).toUpperCase()}${llegada.slice(1)}.`;

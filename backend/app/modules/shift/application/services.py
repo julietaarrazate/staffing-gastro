@@ -220,7 +220,7 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         run_after_response: Callable[..., None] | None = None,
         # Reconfirmación antes del turno (ADR-0031, P3). Apagada por defecto
         # (`settings.reconfirmacion_enabled`): sin ella no se pregunta nada
-        # y «Sí, voy» no existe. Que avisar con 24 horas no sume una
+        # y «Sí, sigo disponible» no existe. Que avisar con 24 horas no sume una
         # cancelación no depende de esto: vale siempre.
         reconfirmacion_activa: bool = False,
     ) -> None:
@@ -1345,9 +1345,9 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
                 NotificationType.ARRIVAL_MARKED_BY_COMPANY,
                 "El comercio marcó tu llegada",
                 (
-                    f"{await self._shift_name_with_company(updated)}: quedó registrado que "
-                    f"llegaste {'a horario' if on_time else 'tarde'}. La próxima, marcala "
-                    "vos cuando entres al local."
+                    f"{await self._shift_name_with_company(updated)}: el comercio indicó que "
+                    f"llegaste {'a horario' if on_time else 'tarde'}. Si marcás tu llegada "
+                    "vos al entrar, queda registrada tu hora."
                 ),
                 link=f"/my-shifts?turno={updated.id}",
             )
@@ -1409,7 +1409,7 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
     async def send_reconfirmation_request(
         self, shift_id: UUID, paso: PasoReconfirmacion
     ) -> Shift:
-        """«¿Seguís yendo?» a quien confirmó el turno. Lo dispara el scheduler
+        """«¿Seguís disponible?» a quien confirmó el turno. Lo dispara el scheduler
         a las 24 y a las 3 horas del inicio (`reconfirmacion.paso_pendiente`).
         Idempotente: la marca del aviso se toma antes de mandarlo."""
         field = (
@@ -1427,12 +1427,18 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         updated = await self.get_shift(shift_id)
         if claimed and updated.worker_profile_id is not None:
             company = await self._companies.get_by_id(updated.company_id)
-            donde = f" a {company.name}" if company is not None and company.name else ""
+            donde = f" en {company.name}" if company is not None and company.name else ""
+            cuando = self._cuando(updated, ahora)
+            # Se pregunta por la disponibilidad, no se controla si va a
+            # cumplir (consulta legal, 2026-11-26).
             await self._notify_worker(
                 updated.worker_profile_id,
                 NotificationType.RECONFIRM_REQUEST,
-                f"¿Seguís yendo {self._cuando(updated, ahora)}{donde}?",
-                "Contestá «Sí, voy» o «No puedo» para que el comercio lo sepa a tiempo.",
+                "¿Seguís disponible para este turno?",
+                (
+                    f"{cuando[0].upper()}{cuando[1:]}{donde}. Indicá si mantenés tu "
+                    "disponibilidad para que el comercio pueda organizarse."
+                ),
                 link=f"/my-shifts?turno={updated.id}",
             )
         return updated
@@ -1455,19 +1461,22 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
             await self._notify_company(
                 updated.company_id,
                 NotificationType.WORKER_NOT_RECONFIRMED,
-                f"{name} no reconfirmó el turno de {self._cuando(updated, ahora)}",
-                "Todavía no contestó si sigue yendo. Escribile para confirmarlo.",
+                f"Todavía no hay respuesta de {name}",
+                (
+                    f"Aún no indicó si mantiene su disponibilidad para el turno de "
+                    f"{self._cuando(updated, ahora)}. Podés escribirle o decidir cómo seguir."
+                ),
                 link=f"/shifts?turno={updated.id}",
             )
         return updated
 
     async def reconfirm(self, worker_profile_id: UUID, shift_id: UUID) -> Shift:
-        """«Sí, voy»: la persona asignada reconfirma que va. Queda la fecha y
+        """«Sí, sigo disponible»: la persona asignada reconfirma que va. Queda la fecha y
         el comercio lo ve en el turno; no avisa a nadie ni sube la versión."""
         shift = await self._get_assigned_to(worker_profile_id, shift_id)
         if not self._reconfirmacion_activa or shift.status != ShiftStatus.CONFIRMADO:
             raise InvalidShiftTransitionError(no_se_puede("reconfirmar", shift.status))
-        # Sólo contesta una pregunta hecha: un «Sí, voy» anticipado dejaría al
+        # Sólo contesta una pregunta hecha: un «Sí, sigo disponible» anticipado dejaría al
         # comercio sin el aviso de que la persona no contestó después. Sin
         # pregunta pendiente no hace nada (y un reintento no da error).
         if not shift.reconfirmation_pending:

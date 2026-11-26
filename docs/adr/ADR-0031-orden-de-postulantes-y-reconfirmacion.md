@@ -196,18 +196,22 @@ cancelar «muy sobre la hora», y la app contaba cualquier cancelación. Lo que 
   existe. Va con la oferta directa a suplentes (ADR propio, junto con P4).
   El aviso al comercio lleva al turno, desde donde puede escribirle.
 
-**Textos de los avisos** (los que tiene que aprobar la asesoría):
+**Textos de los avisos** (actualizados el 2026-11-26 después de la consulta
+legal: se pregunta por la disponibilidad, no se controla si la persona va a
+cumplir; «reconfirmar» queda como nombre interno):
 
-- A la persona, a las 24 y a las 3 horas: «¿Seguís yendo mañana a las 21:00
-  a Bar Lavalle?» / «Contestá «Sí, voy» o «No puedo» para que el comercio lo
-  sepa a tiempo.»
-- En la tarjeta del turno: «¿Seguís yendo a este turno?» / «Contestá para
-  que el comercio lo sepa a tiempo.» / «Sí, voy» / «No puedo».
+- A la persona, a las 24 y a las 3 horas: «¿Seguís disponible para este
+  turno?» / «Mañana a las 21:00 en Bar Lavalle. Indicá si mantenés tu
+  disponibilidad para que el comercio pueda organizarse.»
+- En la tarjeta del turno: la misma pregunta, con «Sí, sigo disponible» y «Ya
+  no estoy disponible». Al contestar que sí: «Tu disponibilidad quedó
+  actualizada. El comercio ya puede ver tu respuesta.»
 - Al cancelar con tiempo: «El comercio va a buscar a otra persona. Como
-  avisás con tiempo, no cuenta como una cancelación en tu reputación.»
-- Al comercio, a las 2 horas sin respuesta: «Camila no reconfirmó el turno
-  de hoy a las 21:00» / «Todavía no contestó si sigue yendo. Escribile para
-  confirmarlo.»
-- En el Panel: «Camila reconfirmó que va.» / «Camila no reconfirmó.
-  Escribile para confirmarlo.»
-
+  avisás con tiempo, no suma a tus cancelaciones.»
+- Al cancelar sobre la hora: «El comercio va a buscar a otra persona. Esta
+  cancelación suma a las cancelaciones que los comercios ven en tu perfil.»
+- Al comercio, a las 2 horas sin respuesta: «Todavía no hay respuesta de
+  Camila» / «Aún no indicó si mantiene su disponibilidad para el turno de hoy
+  a las 21:00. Podés escribirle o decidir cómo seguir.»
+- En el Panel: «Camila confirmó que sigue disponible.» / «Camila todavía no
+  respondió si sigue disponible.»

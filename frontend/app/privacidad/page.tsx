@@ -1,9 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { ChevronLeftIcon } from "@/components/icons";
-import IndiceLegal from "@/components/legal/IndiceLegal";
-import { LEGAL_LAST_UPDATED, LEGAL_OWNER } from "@/lib/legal";
+import PaginaLegal from "@/components/legal/PaginaLegal";
+import { LEGAL_OWNER } from "@/lib/legal";
 
 const LINK = "font-semibold text-primary-text underline underline-offset-2";
 
@@ -18,7 +17,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="mt-8 first:mt-0">
       <h2 className="scroll-mt-24 text-lg font-bold text-ink">{title}</h2>
-      <div className="mt-2 space-y-3 text-body leading-relaxed text-ink/60">
+      <div className="mt-2 space-y-3 text-body leading-relaxed text-ink-soft">
         {children}
       </div>
     </section>
@@ -27,26 +26,10 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 export default function PrivacidadPage() {
   return (
-    <div className="min-h-[calc(100vh-57px)] bg-paper px-4 py-10">
-      <div className="app-container-reading lg:max-w-[61.5rem]!">
-        {/* Nav mínima: volver (la marca ya está en el Navbar) */}
-        <div className="flex items-center justify-between">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1 text-sm font-semibold text-ink/60 transition hover:text-ink lg:ml-[15.5rem]"
-          >
-            <ChevronLeftIcon size={18} />
-            Volver al inicio
-          </Link>
-        </div>
-
-        <div className="lg:grid lg:grid-cols-[13rem_minmax(0,46rem)] lg:gap-10">
-        <IndiceLegal />
-        <div id="cuerpo-legal" className="lg:col-start-2 mt-6 rounded-[var(--radius-card)] bg-card p-6 shadow-[var(--shadow-soft)] ring-1 ring-line sm:p-8">
-          <h1 className="font-display text-h1 font-semibold tracking-tight text-ink sm:text-3xl">
-            Política de Privacidad
-          </h1>
-          <p className="mt-1 text-sm text-ink/40">{LEGAL_LAST_UPDATED}</p>
+    <PaginaLegal
+      titulo="Política de Privacidad"
+      otra={{ href: "/terminos", pregunta: "¿Buscabas los", nombre: "Términos y Condiciones" }}
+    >
 
           {/* Destacado: principio no-negociable, un solo acento naranja */}
           <div className="mt-5 flex items-center gap-3 rounded-2xl bg-primary/10 px-4 py-3.5 ring-1 ring-primary/20">
@@ -479,17 +462,6 @@ export default function PrivacidadPage() {
               indica la versión vigente.
             </p>
           </Section>
-        </div>
-        </div>
-
-        <p className="mt-6 text-center text-sm text-ink/50 lg:ml-[15.5rem]">
-          ¿Buscabas los{" "}
-          <Link href="/terminos" className="font-semibold text-primary-text hover:underline">
-            Términos y Condiciones
-          </Link>
-          ?
-        </p>
-      </div>
-    </div>
+    </PaginaLegal>
   );
 }

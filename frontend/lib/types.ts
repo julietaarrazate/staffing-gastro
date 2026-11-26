@@ -150,9 +150,9 @@ export interface Shift {
   /** El comercio lo puede corregir: mientras nadie esté asignado. */
   is_editable?: boolean;
   /** Reconfirmación antes del turno (ADR-0031, P3; sólo para las partes).
-   *  A la persona: tiene una pregunta «¿Seguís yendo?» sin contestar. */
+   *  A la persona: tiene una pregunta «¿Seguís disponible?» sin contestar. */
   reconfirmation_pending?: boolean | null;
-  /** Cuándo contestó «Sí, voy». */
+  /** Cuándo contestó «Sí, sigo disponible». */
   reconfirmed_at?: string | null;
   /** Cuándo se le avisó al comercio que la persona no contestó. */
   no_reconfirm_alert_sent_at?: string | null;

@@ -186,7 +186,7 @@ export default function ShiftActions({
           `/map` y `/shifts/new` para acciones desde una tarjeta. */}
       <Sheet open={llegadaOpen} onClose={() => setLlegadaOpen(false)} title="¿Llegó a horario?">
         <p className="px-3.5 pb-2 text-sm text-ink-soft">
-          Todavía no marcó la llegada en la app. Lo que digas queda en su puntualidad.
+          Todavía no marcó la llegada en la app. Lo que indiques queda registrado en su puntualidad, y le avisamos.
         </p>
         <div className="flex flex-col gap-1 pb-2">
           <MenuButton

@@ -20,7 +20,7 @@ PRIMER_AVISO = timedelta(hours=24)
 SEGUNDO_AVISO = timedelta(hours=3)
 ALERTA_AL_COMERCIO = timedelta(hours=2)
 
-# «No puedo» contestado al primer aviso dentro de este rato cuenta como
+# «Ya no estoy disponible» contestado al primer aviso dentro de este rato cuenta como
 # avisado con 24 horas: el aviso sale justo a las 24, así que sin este margen
 # nadie llegaría a contestarlo a tiempo y avisar temprano no tendría premio.
 MARGEN_PARA_CONTESTAR = timedelta(hours=3)
@@ -115,7 +115,7 @@ def avisa_con_tiempo(
 
 
 def cancelacion_sin_peso(shift: Shift, ahora: datetime) -> bool:
-    """¿Este «No puedo» se avisó con tiempo? Entonces la cancelación queda
+    """¿Este «Ya no estoy disponible» se avisó con tiempo? Entonces la cancelación queda
     registrada pero no le suma al contador de cancelaciones de la persona."""
     return avisa_con_tiempo(
         shift.start_at, shift.reconfirm_24h_sent_at, shift.reconfirm_3h_sent_at, ahora

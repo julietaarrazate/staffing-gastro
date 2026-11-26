@@ -103,9 +103,9 @@ function confirmCopy(path: "reject" | "worker-cancel" | "check-out", conAviso = 
   if (path === "check-out") return "Das el turno por terminado. No se puede deshacer.";
   // Avisar con tiempo no pesa (ADR-0031): lo decide el backend (`cancel_with_notice`).
   if (conAviso) {
-    return "El comercio va a buscar a otra persona. Como avisás con tiempo, no cuenta como una cancelación en tu reputación.";
+    return "El comercio va a buscar a otra persona. Como avisás con tiempo, no suma a tus cancelaciones.";
   }
-  return "El comercio va a buscar a otra persona y esto cuenta como una cancelación en tu reputación.";
+  return "El comercio va a buscar a otra persona. Esta cancelación suma a las cancelaciones que los comercios ven en tu perfil.";
 }
 
 export default function MatchesPage() {
@@ -341,6 +341,9 @@ function MatchesContent() {
       await api.post(`/shifts/${id}/${path}`, body, token, undefined, idemKey);
       clearIdempotencyKey(key);
       if (path === "confirm") setJustConfirmedId(id);
+      if (path === "reconfirm") {
+        toast("Tu disponibilidad quedó actualizada. El comercio ya puede ver tu respuesta.", "success");
+      }
       await load();
     } catch (err) {
       // Un error definitivo cierra el intento; uno de red lo deja abierto
@@ -542,9 +545,9 @@ function MatchesContent() {
               // Reconfirmación antes del turno (ADR-0031, P3): la pregunta
               // ocupa el renglón entero, arriba de las acciones de siempre.
               <div data-reconfirmar className="w-full rounded-[14px] bg-surface p-3">
-                <p className="text-sm font-bold text-ink">¿Seguís yendo a este turno?</p>
+                <p className="text-sm font-bold text-ink">¿Seguís disponible para este turno?</p>
                 <p className="mt-0.5 text-caption text-ink-soft">
-                  Contestá para que el comercio lo sepa a tiempo.
+                  Indicá si mantenés tu disponibilidad para que el comercio pueda organizarse.
                 </p>
                 <div className="mt-2.5 flex flex-wrap gap-2">
                   <Button
@@ -556,7 +559,7 @@ function MatchesContent() {
                     loading={busy === `${shift.id}:reconfirm`}
                     disabled={busy !== null || tapGuard.locked}
                   >
-                    Sí, voy
+                    Sí, sigo disponible
                   </Button>
                   <Button
                     size="sm"
@@ -566,7 +569,7 @@ function MatchesContent() {
                     loading={busy === `${shift.id}:worker-cancel`}
                     disabled={busy !== null || tapGuard.locked}
                   >
-                    No puedo
+                    Ya no estoy disponible
                   </Button>
                 </div>
               </div>
