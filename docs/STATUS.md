@@ -26,6 +26,25 @@ esa entrada está en ese archivo: buscala por la fecha o el número de PR.
 
 Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
 
+- 🟢 **Lo próximo (dejado por la sesión del 2026-11-24/25, en este orden).**
+  1. **Código de P2 y P3 según el [ADR-0031](./adr/ADR-0031-orden-de-postulantes-y-reconfirmacion.md)**
+     (aceptado). P2, el orden de los postulantes (backend, sello «Nuevo en Oído · identidad
+     verificada», en los recomendados de programados la distancia sólo filtra), se prende con el
+     deploy. P3, la reconfirmación a 24 y 3 horas, va **apagada** por configuración hasta que la
+     asesoría de Julieta apruebe el texto de los avisos: al terminar, pasarle esos textos.
+     «No puedo» con 24 h o más no pesa como cancelación tardía.
+  2. P1 (puntualidad real) y PRI-09 / PRI-07 (ver el tablero de la beta).
+  3. **Panel del comercio vacío, en la compu:** cuando no hay turnos esa semana, la hoja dice
+     cuándo es el próximo (o «Todavía no publicaste turnos») y la mitad derecha del cielo no queda
+     vacía (un «Publicar turno» o el resumen del mes). Cambio chico de diseño, sin decidir el detalle.
+  4. **Precios y planes:** análisis en la pestaña «Precios y planes» del documento privado de
+     crecimiento (propuesta, sin decidir: contar turnos cubiertos y no publicados, una opción sin
+     abono, precios nuevos, cobrar a 35 días en Mercado Pago). Julieta lo valida con fundadores y
+     con su contador; hasta su «sí» no se toca el código de planes. Lo fiscal (inscribirse antes
+     del 28/2) está en la misma pestaña.
+  5. **Horarios del equipo:** la evaluación y los criterios para seguir o cortar están en su
+     pestaña del documento privado (resumen: sí, chico, después del 12/12).
+
 - 🟠 **Tanda del 2026-11-22 (pedido de Julieta), lo que falta.** Hecho: la
   app se recarga sola con una versión nueva (#727; confirmar en el primer
   deploy que `/version.json` coincide con el bundle). Falta, en este orden:
@@ -78,11 +97,11 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
   5. Después de la beta: calculadora de personal, Favoritos más visibles y,
      si las entrevistas validan, el ADR de horarios del equipo.
 
-- 🟠 **Versión de escritorio de toda la app (decisión de Julieta, 2026-11-24, opción B).** Hoy casi
-  todas las pantallas son una columna de celular centrada y en la compu se ven como un celular. Se
-  adaptan todas, de los dos lados, sin cambiar el celular: primero la navegación común, después el
-  comercio, quien trabaja, lo público y la admin. Un renglón por pantalla en
-  [`planning/ESCRITORIO_PANTALLAS.md`](./planning/ESCRITORIO_PANTALLAS.md) (cada PR edita sólo el suyo).
+- ✅ **Versión de escritorio de toda la app** (decisión de Julieta, 2026-11-24): hecha, renglones 0 a
+  20 de [`planning/ESCRITORIO_PANTALLAS.md`](./planning/ESCRITORIO_PANTALLAS.md) (#738 a #741). Quedó
+  decidido: Mis turnos sin panel aparte del turno elegido; la prueba `e2e/turno-en-compu.spec.ts`
+  sigue salteándose en CI (la cubre un Vitest); el Asistente queda para la dirección suave (sigue
+  en la piel vieja). Lo que falta del Panel vacío está arriba, en «Lo próximo».
 - 🔴 **Salida a beta (etapa 3 cerrada el 2026-11-17).** De lo que quedó
   «para revisar con Fable», el 2026-11-18 entraron G4, U081, U072, la
   segunda mirada a G6, los dos arreglos chicos de la baja del dispositivo y
