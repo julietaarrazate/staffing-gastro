@@ -1,4 +1,4 @@
-# Términos: qué hace Oído, y avisar con tiempo no cuenta (#PR)
+# Términos: qué hace Oído, y avisar con tiempo no cuenta (#750)
 
 **Pedido:** Julieta consultó a su abogado, que aprobó el encuadre «Oído es
 sólo intermediario» con un texto largo de referencia. Pidió que los Términos
