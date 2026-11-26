@@ -13,6 +13,7 @@ import { formatShiftStartPhrase, formatShiftWhen } from "@/lib/datetime";
 import {
   activeApplicantCount,
   isUnassigned,
+  motivosDe,
   rotuloDelPrimero,
   unassignedLabel,
 } from "@/lib/applicants";
@@ -377,6 +378,7 @@ function ShiftCandidatesContent() {
                             // Tuvo este turno y lo dejó: va al final, con su
                             // marca, y se le puede volver a asignar (G4).
                             marca={unassignedLabel(a)}
+                            motivos={motivosDe(a)}
                             rotulo={compu && primero?.application_id === a.application_id ? rotuloPrimero : null}
                             seleccionada={compu && fichaId === a.worker_profile_id}
                             onSeleccionar={compu ? () => setVerId(a.worker_profile_id) : undefined}

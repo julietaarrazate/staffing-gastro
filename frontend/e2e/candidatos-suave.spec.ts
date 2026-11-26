@@ -118,7 +118,12 @@ test("la lista se muestra como llega: favorita primero con su motivo y el sello 
   // Los demás, en el orden en que llegaron (no se reordena por calificación).
   const filas = page.locator("ul > li [data-nombre-candidato]");
   await expect(filas).toHaveText(["Tomás Conocido", "Vera Verificada", "Nico Nuevo"]);
+  // Cada fila dice lo que explica su lugar, no sólo la primera.
+  const tomas = page.locator("li", { hasText: "Tomás Conocido" });
+  await expect(tomas.locator("[data-motivos]")).toContainText("Ya trabajó en tu local");
+  await expect(tomas.locator("[data-motivos]")).toContainText("3 turnos en este puesto");
   const vera = page.locator("li", { hasText: "Vera Verificada" });
+  await expect(vera.locator("[data-motivos]")).toHaveCount(0);
   await expect(vera).toContainText("Nuevo en Oído · identidad verificada");
   // El sello entero queda a la izquierda de «Elegir» (a 390 px bajaba sin
   // cortar y quedaba tapado por el botón).

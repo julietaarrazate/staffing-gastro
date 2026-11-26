@@ -46,3 +46,23 @@ export function rotuloDelPrimero(applicants: Applicant[]): string | null {
   if (first.turnos_en_el_puesto > 0) return "Con experiencia en el puesto";
   return null;
 }
+
+/**
+ * Lo que explica el lugar de una persona en la lista, para decirlo en su
+ * fila (ADR-0031): la confianza del local y su experiencia en este puesto.
+ * Son datos del comercio o que ya ve en la ficha. Quien tuvo el turno y lo
+ * dejó no lleva motivos: lleva su marca.
+ */
+export function motivosDe(
+  applicant: Pick<Applicant, "status" | "es_favorito" | "trabajo_aca" | "turnos_en_el_puesto">,
+): string[] {
+  if (isUnassigned(applicant)) return [];
+  const motivos: string[] = [];
+  if (applicant.es_favorito) motivos.push("Entre tus favoritos");
+  if (applicant.trabajo_aca) motivos.push("Ya trabajó en tu local");
+  if (applicant.turnos_en_el_puesto > 0) {
+    const n = applicant.turnos_en_el_puesto;
+    motivos.push(`${n} ${n === 1 ? "turno" : "turnos"} en este puesto`);
+  }
+  return motivos;
+}

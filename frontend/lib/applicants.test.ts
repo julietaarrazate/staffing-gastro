@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Applicant } from "@/lib/types";
 import {
   activeApplicantCount,
+  motivosDe,
   rotuloDelPrimero,
   unassignedLabel,
 } from "./applicants";
@@ -56,6 +57,25 @@ describe("rotuloDelPrimero", () => {
     const primero = applicant({ events_completed: 5, rating: 4.6 });
     const loDejo = applicant({ status: "desasignada", motivo: "rechazo", events_completed: 40, rating: 5 });
     expect(rotuloDelPrimero([primero, loDejo])).toBe("Mejor calificación");
+  });
+});
+
+describe("motivosDe", () => {
+  it("sin vínculo ni experiencia en el puesto, no dice nada", () => {
+    expect(motivosDe(applicant({ events_completed: 9, rating: 5 }))).toEqual([]);
+  });
+
+  it("nombra la confianza del local y los turnos en el puesto, en ese orden", () => {
+    expect(motivosDe(applicant({ es_favorito: true, trabajo_aca: true, turnos_en_el_puesto: 3 }))).toEqual([
+      "Entre tus favoritos",
+      "Ya trabajó en tu local",
+      "3 turnos en este puesto",
+    ]);
+    expect(motivosDe(applicant({ turnos_en_el_puesto: 1 }))).toEqual(["1 turno en este puesto"]);
+  });
+
+  it("quien tuvo el turno y lo dejó no lleva motivos", () => {
+    expect(motivosDe(applicant({ status: "desasignada", es_favorito: true, turnos_en_el_puesto: 5 }))).toEqual([]);
   });
 });
 

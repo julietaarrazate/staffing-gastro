@@ -11,7 +11,9 @@ identidad verificada y quién se postuló antes. Quien no tiene turnos pero sí
 la identidad verificada y ninguna ausencia lleva el sello «Nuevo en Oído ·
 identidad verificada». La tarjeta del primero dice por qué va primero
 («Entre tus favoritos», «Ya trabajó en tu local», «Mejor calificación» o
-«Con experiencia en el puesto»). En los recomendados de un turno programado
+«Con experiencia en el puesto»), y cada fila dice lo que explica su lugar
+(«Entre tus favoritos», «Ya trabajó en tu local», «3 turnos en este puesto»;
+`motivosDe` en `frontend/lib/applicants.ts`). En los recomendados de un turno programado
 la distancia sólo filtra.
 
 Técnico: el orden es una función pura
