@@ -1,4 +1,4 @@
-# Tope a las cancelaciones con aviso que no pesan (#PR)
+# Tope a las cancelaciones con aviso que no pesan (#752)
 
 **Antes:** avisar con 24 horas o más que no se va a un turno confirmado no
 sumaba una cancelación, sin límite. Alguien podía confirmar y soltar turnos
