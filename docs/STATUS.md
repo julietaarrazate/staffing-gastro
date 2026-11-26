@@ -31,7 +31,9 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
      crecimiento): P2 ✅ y P3 ✅ (la reconfirmación está construida y **apagada**: falta que la
      asesoría apruebe los textos del final del
      [ADR-0031](./adr/ADR-0031-orden-de-postulantes-y-reconfirmacion.md) y prender
-     `RECONFIRMACION_ENABLED` en Render). **Sigue, en este orden:** P1 (puntualidad real) →
+     `RECONFIRMACION_ENABLED` en Render). Editar un turno sin nadie asignado ✅. **Sigue, en este
+     orden:** P1 (puntualidad real) → proponer un cambio de horario a quien ya está asignado
+     (la persona acepta o no con un toque; ADR propio) →
      «Mi equipo» (sumar a favoritos al calificar, y que se vea al publicar) → oferta directa
      (el urgente de un toque, P4, y los suplentes; un solo ADR, apagada hasta la opinión de la
      asesoría; incluye «Buscar reemplazo» de P3) → PRI-07 y PRI-09. **Decidido el 2026-11-26:**

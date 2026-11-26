@@ -456,6 +456,11 @@ async def get_shift(
         if current_user.role == UserRole.WORKER:
             # Parte, pero no de la ausencia de quien lo tuvo antes (PRI-01).
             return for_worker(response, shift.worker_profile_id)
+        # Al comercio dueño (y a la admin), cuántas personas se postularon:
+        # «Editar turno» lo usa para anticipar que se les avisa del cambio.
+        # El panel ya lo traía en la lista; el detalle, no.
+        pending = await service.pending_applicant_counts([shift])
+        response.pending_applicants_count = pending.get(shift.id, 0)
         return response
     if shift.status not in OPEN_STATUSES:
         # No-disclosure: un turno ajeno que ya no está abierto no existe
@@ -540,7 +545,7 @@ async def get_shift_public(
 @router.put(
     "/{shift_id}",
     response_model=ShiftResponse,
-    summary="Editar un turno (sólo en BORRADOR o PUBLICADO)",
+    summary="Editar un turno propio mientras nadie esté asignado",
 )
 async def update_shift(
     shift_id: UUID,
@@ -553,7 +558,7 @@ async def update_shift(
     except ShiftNotFoundError as exc:
         raise _not_found() from exc
     except ShiftNotEditableError as exc:
-        raise _bad_request("El turno no puede editarse en su estado actual") from exc
+        raise _bad_request(str(exc)) from exc
     except InvalidShiftScheduleError as exc:
         raise _bad_request(str(exc)) from exc
 

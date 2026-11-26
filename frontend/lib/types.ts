@@ -140,6 +140,8 @@ export interface Shift {
   prorated_pay_amount?: string | null;
   /** Cuándo confirmó quien tiene el turno ahora (sólo para las partes). */
   confirmed_at?: string | null;
+  /** El comercio lo puede corregir: mientras nadie esté asignado. */
+  is_editable?: boolean;
   /** Reconfirmación antes del turno (ADR-0031, P3; sólo para las partes).
    *  A la persona: tiene una pregunta «¿Seguís yendo?» sin contestar. */
   reconfirmation_pending?: boolean | null;
@@ -413,6 +415,7 @@ export type NotificationType =
   | "shift_cancelled"
   | "applied_shift_cancelled"
   | "applications_withdrawn"
+  | "applied_shift_changed"
   | "shift_not_covered"
   | "checkin_reminder"
   | "departure_reminder"
