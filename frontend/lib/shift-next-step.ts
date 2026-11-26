@@ -89,9 +89,32 @@ export function firstNameOf(fullName: string | null | undefined): string | null 
   return chars.length > MAX_NAME_CHARS ? `${chars.slice(0, MAX_NAME_CHARS).join("")}…` : first;
 }
 
+/** Con el turno confirmado, lo que se sabe de la reconfirmación (ADR-0031):
+ *  contestó «Sí, voy», o se le preguntó y no contestó. */
+type Reconfirmacion = "reconfirmo" | "sin_respuesta" | null;
+
+function reconfirmacionDe(
+  shift: Pick<Shift, "reconfirmed_at" | "no_reconfirm_alert_sent_at">,
+): Reconfirmacion {
+  if (shift.reconfirmed_at) return "reconfirmo";
+  return shift.no_reconfirm_alert_sent_at ? "sin_respuesta" : null;
+}
+
 /** Línea de "qué pasa" por estado, con el nombre de la persona cuando se
  *  sabe ("Ana va en camino al local.") y sin él cuando no ("Va en camino…"). */
-function hintWithWorker(status: ShiftStatus, name: string | null): string | null {
+function hintWithWorker(
+  status: ShiftStatus,
+  name: string | null,
+  reconfirmacion: Reconfirmacion = null,
+): string | null {
+  if (status === "confirmado" && reconfirmacion === "reconfirmo") {
+    return name ? `${name} reconfirmó que va.` : "Reconfirmó que va.";
+  }
+  if (status === "confirmado" && reconfirmacion === "sin_respuesta") {
+    return name
+      ? `${name} no reconfirmó. Escribile para confirmarlo.`
+      : "No reconfirmó. Escribile para confirmarlo.";
+  }
   switch (status) {
     case "asignado":
       return name
@@ -134,7 +157,7 @@ export function effectiveStatus(shift: Pick<Shift, "status" | "en_route_at">): S
 export function nextStepFor(shift: Shift): NextStep {
   const status = effectiveStatus(shift);
   const base = NEXT_STEP[status] ?? { hint: "", action: null };
-  const hint = hintWithWorker(status, firstNameOf(shift.worker_name));
+  const hint = hintWithWorker(status, firstNameOf(shift.worker_name), reconfirmacionDe(shift));
   if (base.action === "candidates") {
     return {
       ...base,

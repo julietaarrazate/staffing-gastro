@@ -126,6 +126,12 @@ class Settings(BaseSettings):
     # cuenta igual estando apagado.
     subscriptions_enforced: bool = False
 
+    # Reconfirmación antes del turno (ADR-0031, P3): preguntarle a quien
+    # confirmó, a las 24 y a las 3 horas, si sigue yendo. Default OFF: se
+    # prende cuando la asesoría apruebe el texto de los avisos. Apagada no
+    # sale ningún aviso y cancelar pesa como siempre.
+    reconfirmacion_enabled: bool = False
+
     # --- Email transaccional (Resend) ---
     # Sin `resend_api_key` configurada se inyecta un `NullEmailSender` que sólo
     # loguea y nunca falla (mismo patrón "flag por ausencia" que

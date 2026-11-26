@@ -152,6 +152,22 @@ class ShiftRepository(ABC):
         camino»; devuelve si marcó (si no, no hay que avisar)."""
 
     @abstractmethod
+    async def mark_reconfirmation(
+        self,
+        shift_id: UUID,
+        worker_profile_id: UUID,
+        field: str,
+        at: datetime,
+        *,
+        only_once: bool = True,
+    ) -> bool:
+        """Escribe una marca de la reconfirmación (ADR-0031, P3) sin subir la
+        versión del turno, sólo si sigue CONFIRMADO con esa persona. Con
+        `only_once`, sólo si la marca estaba vacía: de dos pasadas a la vez
+        gana una. Devuelve si la escribió. `field` es uno de los cuatro
+        campos de reconfirmación del turno."""
+
+    @abstractmethod
     async def mark_finish_reminder_sent(self, shift_id: UUID, sent_at: datetime) -> bool:
         """Registra que se le recordó al comercio cerrar el turno (decisión
         24), sin subir la `version` (ADR-0016), igual que

@@ -89,6 +89,26 @@ describe("firstNameOf", () => {
 describe("nextStepFor con nombre y cantidad", () => {
   const shift = (extra: Partial<Shift>): Shift => ({ ...extra }) as Shift;
 
+  it("con el turno confirmado dice si reconfirmó o si no contestó (ADR-0031)", () => {
+    const base = { status: "confirmado" as const, worker_name: "Ana Pérez" };
+    expect(nextStepFor(shift({ ...base, reconfirmed_at: "2026-11-27T12:00:00Z" })).hint).toBe(
+      "Ana reconfirmó que va.",
+    );
+    expect(nextStepFor(shift({ ...base, no_reconfirm_alert_sent_at: "2026-11-27T19:00:00Z" })).hint).toBe(
+      "Ana no reconfirmó. Escribile para confirmarlo.",
+    );
+    // Si contestó alguna vez, no se la marca como sin respuesta.
+    expect(
+      nextStepFor(
+        shift({ ...base, reconfirmed_at: "2026-11-27T12:00:00Z", no_reconfirm_alert_sent_at: "2026-11-27T19:00:00Z" }),
+      ).hint,
+    ).toBe("Ana reconfirmó que va.");
+    // Una vez en camino manda el viaje, no la reconfirmación.
+    expect(
+      nextStepFor(shift({ ...base, reconfirmed_at: "2026-11-27T12:00:00Z", en_route_at: "2026-11-27T20:00:00Z" })).hint,
+    ).toBe("Ana va en camino al local.");
+  });
+
   it("dice con quién está el turno en cada paso", () => {
     const named = (status: ShiftStatus) =>
       nextStepFor(shift({ status, worker_name: "Ana Pérez" })).hint;

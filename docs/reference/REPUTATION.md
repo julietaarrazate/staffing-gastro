@@ -49,6 +49,12 @@ bidireccional: comercio y trabajador se califican mutuamente.
   `WorkerProfileRepository.record_cancellation`). Distinto de `Shift.cancel()`
   (comercio, terminal) y de `reject_assignment()` (trabajador rechaza antes
   de confirmar, no se cuenta como cancelación).
+  **Avisar con tiempo no pesa** ([ADR-0031](../adr/ADR-0031-orden-de-postulantes-y-reconfirmacion.md),
+  decisión 1; sólo con la reconfirmación prendida, `RECONFIRMACION_ENABLED`):
+  si cancela con 24 horas o más antes del inicio, o contestando «No puedo»
+  al primer aviso de reconfirmación dentro de las 3 horas, la cancelación
+  queda en la postulación («Canceló») pero no suma a este contador
+  (`shift/domain/reconfirmacion.py::cancelacion_sin_peso`).
 - `no_shows` — no presentado. **([ADR-0007](../adr/ADR-0007-no-show-y-cancelacion-tardia.md))**
   se incrementa cuando el **comercio** marca manualmente que el trabajador
   asignado no se presentó a un turno ya confirmado

@@ -52,7 +52,12 @@ from app.modules.shift.domain.exceptions import (
     ShiftNotFoundError,
 )
 from app.modules.shift.domain.nearby import FeedOrigin, closest_first, is_nearby, urgent_first
+from app.modules.shift.domain.mensajes import no_se_puede
 from app.modules.shift.domain.punctuality import punctuality_of
+from app.modules.shift.domain.reconfirmacion import (
+    PasoReconfirmacion,
+    cancelacion_sin_peso,
+)
 from app.modules.shift.domain.schedule import (
     mismo_instante,
     validar_horario_nuevo,
@@ -215,6 +220,10 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         # (hasta 10 s de timeout). Sin él (scheduler, tests de servicio) se
         # corre en el momento, como antes.
         run_after_response: Callable[..., None] | None = None,
+        # Reconfirmación antes del turno (ADR-0031, P3). Apagada por defecto
+        # (`settings.reconfirmacion_enabled`): sin ella no se pregunta nada,
+        # «Sí, voy» no existe y cancelar pesa como siempre.
+        reconfirmacion_activa: bool = False,
     ) -> None:
         self._shifts = shifts
         self._workers = workers
@@ -227,6 +236,7 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         self._candidates = candidates
         self._favorites = favorites
         self._run_after_response = run_after_response
+        self._reconfirmacion_activa = reconfirmacion_activa
 
     async def create_shift(self, company_id: UUID, data: ShiftData) -> Shift:
         """Crea un turno en estado BORRADOR para el comercio dado."""
@@ -1269,6 +1279,100 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
             )
         return updated
 
+    # --- Reconfirmación antes del turno (ADR-0031, P3) ----------------------
+
+    def _cuando(self, shift: Shift, ahora: datetime) -> str:
+        """`hoy a las 21:00` o `mañana a las 21:00`, en hora argentina."""
+        start = shift.start_at
+        if start.tzinfo is None:  # SQLite (tests) devuelve naive, en UTC
+            start = start.replace(tzinfo=timezone.utc)
+        start = start.astimezone(ARG_TZ)
+        if ahora.tzinfo is None:
+            ahora = ahora.replace(tzinfo=timezone.utc)
+        hoy = ahora.astimezone(ARG_TZ).date()
+        if start.date() == hoy:
+            dia = "hoy"
+        elif start.date() == hoy + timedelta(days=1):
+            dia = "mañana"
+        else:
+            dia = f"el {start:%d/%m}"
+        return f"{dia} a las {start:%H:%M}"
+
+    async def send_reconfirmation_request(
+        self, shift_id: UUID, paso: PasoReconfirmacion
+    ) -> Shift:
+        """«¿Seguís yendo?» a quien confirmó el turno. Lo dispara el scheduler
+        a las 24 y a las 3 horas del inicio (`reconfirmacion.paso_pendiente`).
+        Idempotente: la marca del aviso se toma antes de mandarlo."""
+        field = (
+            "reconfirm_24h_sent_at"
+            if paso is PasoReconfirmacion.PRIMER_AVISO
+            else "reconfirm_3h_sent_at"
+        )
+        shift = await self.get_shift(shift_id)
+        ahora = datetime.now(timezone.utc)
+        claimed = shift.worker_profile_id is not None and (
+            await self._shifts.mark_reconfirmation(
+                shift.id, shift.worker_profile_id, field, ahora
+            )
+        )
+        updated = await self.get_shift(shift_id)
+        if claimed and updated.worker_profile_id is not None:
+            company = await self._companies.get_by_id(updated.company_id)
+            donde = f" a {company.name}" if company is not None and company.name else ""
+            await self._notify_worker(
+                updated.worker_profile_id,
+                NotificationType.RECONFIRM_REQUEST,
+                f"¿Seguís yendo {self._cuando(updated, ahora)}{donde}?",
+                "Contestá «Sí, voy» o «No puedo» para que el comercio lo sepa a tiempo.",
+                link=f"/my-shifts?turno={updated.id}",
+            )
+        return updated
+
+    async def alert_not_reconfirmed(self, shift_id: UUID) -> Shift:
+        """Le avisa al comercio que la persona no contestó si sigue yendo. No
+        le saca el turno a nadie: decide el comercio. Lo dispara el scheduler
+        2 horas antes del inicio."""
+        shift = await self.get_shift(shift_id)
+        ahora = datetime.now(timezone.utc)
+        worker_profile_id = shift.worker_profile_id
+        claimed = worker_profile_id is not None and (
+            await self._shifts.mark_reconfirmation(
+                shift.id, worker_profile_id, "no_reconfirm_alert_sent_at", ahora
+            )
+        )
+        updated = await self.get_shift(shift_id)
+        if claimed and worker_profile_id is not None:
+            name = await self._worker_name(worker_profile_id) or "La persona asignada"
+            await self._notify_company(
+                updated.company_id,
+                NotificationType.WORKER_NOT_RECONFIRMED,
+                f"{name} no reconfirmó el turno de {self._cuando(updated, ahora)}",
+                "Todavía no contestó si sigue yendo. Escribile para confirmarlo.",
+                link=f"/shifts?turno={updated.id}",
+            )
+        return updated
+
+    async def reconfirm(self, worker_profile_id: UUID, shift_id: UUID) -> Shift:
+        """«Sí, voy»: la persona asignada reconfirma que va. Queda la fecha y
+        el comercio lo ve en el turno; no avisa a nadie ni sube la versión."""
+        shift = await self._get_assigned_to(worker_profile_id, shift_id)
+        if not self._reconfirmacion_activa or shift.status != ShiftStatus.CONFIRMADO:
+            raise InvalidShiftTransitionError(no_se_puede("reconfirmar", shift.status))
+        # Sólo contesta una pregunta hecha: un «Sí, voy» anticipado dejaría al
+        # comercio sin el aviso de que la persona no contestó después. Sin
+        # pregunta pendiente no hace nada (y un reintento no da error).
+        if not shift.reconfirmation_pending:
+            return shift
+        await self._shifts.mark_reconfirmation(
+            shift.id,
+            worker_profile_id,
+            "reconfirmed_at",
+            datetime.now(timezone.utc),
+            only_once=False,
+        )
+        return await self.get_shift(shift_id)
+
     async def auto_mark_no_show(self, shift_id: UUID) -> Shift:
         """Marca no-show automático (ADR-0008): lo dispara el scheduler
         cuando pasó `NO_SHOW_GRACE_PERIOD` desde `start_at` sin check-in.
@@ -1761,6 +1865,12 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         comercio.
         """
         shift = await self._get_assigned_to(worker_profile_id, shift_id)
+        # Avisar con tiempo no pesa (ADR-0031, decisión 1): la cancelación
+        # queda registrada en la postulación, pero no suma al contador de la
+        # persona. Se decide antes de reabrir, que borra las marcas.
+        sin_peso = self._reconfirmacion_activa and cancelacion_sin_peso(
+            shift, datetime.now(timezone.utc)
+        )
         outcome = shift.worker_cancel()
         updated = await self._shifts.update(shift)
         await self._record_reopen(
@@ -1769,7 +1879,13 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
             left_worker_profile_id=worker_profile_id,
             motivo=MotivoDesasignacion.CANCELACION,
         )
-        await self._workers.record_cancellation(worker_profile_id)
+        if sin_peso:
+            logger.info(
+                "shift.worker_cancelled_with_notice",
+                extra={"shift_id": str(updated.id), "company_id": str(updated.company_id)},
+            )
+        else:
+            await self._workers.record_cancellation(worker_profile_id)
         await self._announce_reopen(
             updated,
             outcome,

@@ -727,6 +727,25 @@ async def worker_cancel(
 
 
 @router.post(
+    "/{shift_id}/reconfirm",
+    response_model=ShiftResponse,
+    summary="«Sí, voy»: reconfirmar mi asistencia a un turno confirmado (trabajador)",
+)
+async def reconfirm(
+    shift_id: UUID,
+    worker_profile_id: WorkerProfileIdDep,
+    service: ServiceDep,
+):
+    try:
+        shift = await service.reconfirm(worker_profile_id, shift_id)
+    except (ShiftNotFoundError, ShiftNotAssignedToWorkerError) as exc:
+        raise _not_found() from exc
+    except InvalidShiftTransitionError as exc:
+        raise _bad_request(str(exc)) from exc
+    return for_worker(ShiftResponse.model_validate(shift), worker_profile_id)
+
+
+@router.post(
     "/{shift_id}/depart",
     response_model=ShiftResponse,
     summary="Marcar que salí hacia el turno (trabajador)",
