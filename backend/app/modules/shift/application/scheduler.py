@@ -264,6 +264,10 @@ async def run_attendance_check() -> datetime | None:
                     lambda shift_id, paso=paso: service.send_checkin_reminder(shift_id, paso),
                     shift.id,
                 )
+                # Si la acción perdió contra un usuario (`_act` la saltea), no
+                # hay que esperar hasta el próximo recordatorio para reintentar:
+                # se vuelve a mirar enseguida (el piso `MIN_SLEEP` evita girar).
+                next_deadline = _earlier(next_deadline, now)
             # Lo próximo que le puede tocar: otro recordatorio o la ausencia.
             next_deadline = _earlier(next_deadline, proxima or no_show_at)
         return next_deadline

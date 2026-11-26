@@ -1274,6 +1274,14 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         repetirlo. Desde el segundo también se le avisa al comercio, una
         sola vez: si la persona no marcó, él dice si llegó."""
         shift = await self.get_shift(shift_id)
+        # Entre que el scheduler listó el turno y esta lectura la persona pudo
+        # marcar la llegada o dejar el turno: ya no hay a quién recordarle, y
+        # escribir el paso le sacaría los recordatorios a quien lo tome después.
+        if shift.worker_profile_id is None or shift.status not in (
+            ShiftStatus.CONFIRMADO,
+            ShiftStatus.EN_CAMINO,
+        ):
+            return shift
         if shift.checkin_reminder_step >= paso:
             return shift
         avisar_al_comercio = (
@@ -1296,7 +1304,7 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
             titulo = "¿Ya llegaste a tu turno?"
             mensaje = (
                 f"Todavía no marcaste tu llegada en {turno}. Marcala para que "
-                "cuente que llegaste a horario."
+                "el comercio sepa que ya estás."
             )
         await self._notify_worker(
             updated.worker_profile_id,
@@ -1314,7 +1322,7 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
                 f"{nombre} todavía no marcó la llegada",
                 (
                     f"Si ya está en el local, tocá «Ya llegó» en el turno {turno}. "
-                    "Si no llegó, vas a poder marcarlo en unos minutos."
+                    "Si no llega, podés marcar «No se presentó» desde «Más»."
                 ),
                 link=f"/shifts?turno={updated.id}",
             )
@@ -2529,7 +2537,7 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         caminos a la vez.
 
         R2.4: `events_completed` (+1) y `punctuality_rate` (promedio móvil
-        simple sobre si el check-in fue hasta 15 min después del horario
+        simple sobre si el check-in fue hasta 5 min después del horario
         pactado). Mismo patrón que las notificaciones: el efecto vive dentro
         del caso de uso que cierra el ciclo, no en un job aparte.
 

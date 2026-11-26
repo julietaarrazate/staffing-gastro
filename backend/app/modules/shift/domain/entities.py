@@ -528,6 +528,8 @@ class Shift:
         self.confirmed_at = None
         self.checkin_reminder_sent_at = None
         self.checkin_reminder_step = 0
+        self.arrival_marked_by_company_at = None
+        self.arrival_on_time = None
         self.reconfirm_24h_sent_at = None
         self.reconfirm_3h_sent_at = None
         self.reconfirmed_at = None

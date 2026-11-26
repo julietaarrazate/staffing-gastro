@@ -133,6 +133,40 @@ async def test_a_la_hora_de_inicio_sin_llegada_se_entera_el_comercio_una_sola_ve
 
 
 @pytest.mark.asyncio
+async def test_un_recordatorio_que_llega_tarde_no_toca_un_turno_que_ya_cambio(
+    client: AsyncClient, session_factory
+):
+    """Entre que el scheduler lista el turno y manda el recordatorio, la
+    persona pudo marcar la llegada o dejar el turno (revisión independiente)."""
+    from app.modules.shift.api.dependencies import get_shift_service  # noqa: F401
+    from app.modules.shift.application.scheduler import _build_service
+
+    # Ya marcó la llegada (acá, por el comercio): no se le recuerda ni se alarma a nadie.
+    llego_id, employer, worker = await _confirmed_shift_starting_ago(
+        client, "punt_emp7@staffya.com", "punt_w7@staffya.com", ago=timedelta(minutes=2)
+    )
+    await client.post(
+        f"/api/v1/shifts/{llego_id}/company-check-in", headers=employer, json={"on_time": True}
+    )
+    # Dejó el turno: el paso no se escribe, así al reemplazo le llegan los suyos.
+    dejo_id, employer2, worker2 = await _confirmed_shift_starting_ago(
+        client, "punt_emp8@staffya.com", "punt_w8@staffya.com", ago=-timedelta(days=2)
+    )
+    cancelo = await client.post(f"/api/v1/shifts/{dejo_id}/worker-cancel", headers=worker2)
+    assert cancelo.status_code == 200, cancelo.text
+
+    async with session_factory() as session:
+        service = _build_service(session)
+        await service.send_checkin_reminder(UUID(llego_id), 2)
+        await service.send_checkin_reminder(UUID(dejo_id), 3)
+
+    assert await _notices(client, worker, "checkin_reminder") == []
+    assert await _notices(client, employer, "worker_not_checked_in") == []
+    assert await _notices(client, worker2, "checkin_reminder") == []
+    assert (await _fila(session_factory, dejo_id)).checkin_reminder_step == 0
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("a_horario", [True, False])
 async def test_ya_llego_marca_la_llegada_y_la_puntualidad_es_la_que_dijo_el_comercio(
     client: AsyncClient, session_factory, a_horario: bool

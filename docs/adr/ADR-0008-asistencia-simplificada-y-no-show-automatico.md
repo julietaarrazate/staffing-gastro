@@ -267,7 +267,8 @@ minutos después, y el único recordatorio salía a los 20.
    (`punctuality.recordatorio_pendiente`, `Shift.checkin_reminder_step`). Si
    varios quedaron atrás (el scheduler estuvo caído) sale sólo el último. A
    quien toma un turno reofrecido ya empezado le toca uno solo, a los 20
-   minutos de confirmar: acaba de aceptar y está yendo.
+   minutos de confirmar (acaba de aceptar y está yendo); con ese sí se entera
+   el comercio.
 3. **El comercio tiene la última palabra.** A la hora de inicio, si la
    persona no marcó, recibe «Ana todavía no marcó la llegada». En el Panel
    puede tocar «Ya llegó» y decir si fue **a horario o tarde**

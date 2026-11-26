@@ -23,7 +23,8 @@ PASO_AVISO_AL_COMERCIO = 2
 # Quien toma un turno reofrecido ya empezado (el reemplazo, U080) acaba de
 # confirmar y está yendo: no tiene sentido avisarle «es la hora» en ese mismo
 # momento ni alarmar al comercio. Le toca un solo recordatorio, a los 20
-# minutos de confirmar (el de antes de la puntualidad real).
+# minutos de confirmar (el de antes de la puntualidad real); con él sí se le
+# avisa al comercio, que puede decir «Ya llegó» o «No se presentó».
 RECORDATORIO_AL_REEMPLAZO = timedelta(minutes=20)
 
 
