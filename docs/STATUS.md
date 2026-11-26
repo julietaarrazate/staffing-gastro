@@ -32,13 +32,17 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
      asesoría apruebe los textos del final del
      [ADR-0031](./adr/ADR-0031-orden-de-postulantes-y-reconfirmacion.md) y prender
      `RECONFIRMACION_ENABLED` en Render). Editar un turno sin nadie asignado ✅. **Sigue, en este
-     orden:** P1 (puntualidad real) → proponer un cambio de horario a quien ya está asignado
+     orden:** P1 (puntualidad real) → el mapa a pantalla completa en la compu en las tres
+     pantallas con mapa (lista fija de unos 460 px y el mapa hasta el borde; decidido por Julieta
+     el 2026-11-26) → proponer un cambio de horario a quien ya está asignado
      (la persona acepta o no con un toque; ADR propio) →
      «Mi equipo» (sumar a favoritos al calificar, y que se vea al publicar) → oferta directa
      (el urgente de un toque, P4, y los suplentes; un solo ADR, apagada hasta la opinión de la
      asesoría; incluye «Buscar reemplazo» de P3) → PRI-07 y PRI-09. **Decidido el 2026-11-26:**
      el aviso «Turno cerca tuyo» de un turno programado deja de premiar la cercanía, pero se
-     cambia junto con la oferta directa, no antes.
+     cambia junto con la oferta directa, no antes. **Después de abrir la beta:** subir el ancho de la
+     app en la compu a unos 1200 px en las pantallas de varias columnas (Panel, Candidatos, Mis
+     turnos); formularios y lectura quedan como están.
   3. **Panel del comercio vacío, en la compu:** cuando no hay turnos esa semana, la hoja dice
      cuándo es el próximo (o «Todavía no publicaste turnos») y la mitad derecha del cielo no queda
      vacía (un «Publicar turno» o el resumen del mes). Cambio chico de diseño, sin decidir el detalle.

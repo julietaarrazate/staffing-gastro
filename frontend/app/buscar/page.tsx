@@ -332,8 +332,12 @@ export default function BuscarPage() {
         <p className="mt-1 text-sm">Explorá oportunidades de cualquier rubro, no sólo el tuyo.</p>
       </div>
 
-      <div className="hoja -mt-7 flex-1 px-4 pb-8 pt-5 md:px-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
-        <div className="min-w-0">
+      <div className="hoja -mt-7 flex-1 px-4 pb-8 pt-5 md:px-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-6 lg:gap-y-4">
+        {/* Los filtros. En la compu (desde `lg`) van en una franja a todo el
+            ancho, arriba de la lista y del mapa, con los rubros como chips en
+            un renglón: en dos filas de teclas grandes, apretadas en media
+            pantalla, se veía como un celular agrandado (Julieta, 2026-11-26). */}
+        <div className="buscar-filtros min-w-0 lg:col-span-2">
         {/* Accesos por rubro: una tecla suave con el ícono y el nombre corto de
             cada rubro. Tocar una filtra; tocarla de nuevo la suelta (no hay
             «Todos»). Un carril que se desliza en el celular; en la compu, donde
@@ -367,7 +371,7 @@ export default function BuscarPage() {
           })}
         </div>
 
-        <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 py-1 md:-mx-6 md:px-6">
+        <div className="buscar-chips no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 py-1 md:-mx-6 md:px-6">
           <button
             type="button"
             role="switch"
@@ -387,13 +391,16 @@ export default function BuscarPage() {
           </button>
         </div>
 
+        </div>
+
+        <div className="min-w-0">
         {error && (
-          <div className="mt-4">
+          <div className="mb-4">
             <ErrorBanner message={error} onRetry={() => load()} />
           </div>
         )}
 
-        <div className="mt-4">
+        <div className="mt-4 lg:mt-0">
           {loading ? (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               {Array.from({ length: 6 }, (_, i) => (

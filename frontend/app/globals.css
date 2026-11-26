@@ -5099,6 +5099,44 @@ body:has([data-landing]) main {
   }
 }
 
+/* Buscar en la compu (desde `lg`): los filtros en una franja a todo el ancho.
+   Los rubros pasan de teclas altas (ícono arriba) a chips en un renglón
+   (ícono al lado), y «Urgentes» y «Mejores pagos» quedan debajo, alineados. */
+@media (min-width: 1024px) {
+  :root .buscar-filtros .tecla-rubro {
+    flex-direction: row;
+    gap: 8px;
+    width: auto;
+    padding: 5px 14px 5px 5px;
+    border-radius: 999px;
+  }
+  :root .buscar-filtros .tecla-rubro-icono {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+  }
+  :root .buscar-filtros .tecla-rubro-nombre {
+    font-size: 13.5px;
+    white-space: nowrap;
+  }
+  /* Un solo renglón que baja junto: los rubros y, a continuación, «Urgentes»
+     y «Mejores pagos» (si no, dos rubros quedaban solos en su renglón y los
+     dos chips en otro). Los dos grupos siguen en el árbol de accesibilidad. */
+  :root .buscar-filtros {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
+  :root .buscar-filtros > [data-testid="buscar-rubros"],
+  :root .buscar-filtros > .buscar-chips {
+    display: contents;
+  }
+  :root .buscar-filtros .buscar-chips > :first-child {
+    margin-left: 10px;
+  }
+}
+
 /* ===== `/map`: pines con ícono, nombre del local y chips (2026-11-21) ===== */
 /* El ícono del rubro en el pin, antes del pago: azul hondo sobre la tecla
    blanca; en el pin elegido (azul hondo), blanco. */

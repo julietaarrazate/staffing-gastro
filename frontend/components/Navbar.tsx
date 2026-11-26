@@ -43,6 +43,9 @@ function NavLink({
       href={href}
       replace={replace}
       aria-current={active ? "page" : undefined}
+      // La misma ancla que la barra de abajo (`BottomNav`): el recorrido
+      // guiado señala el destino que se ve en cada ancho.
+      data-tour={`nav-${href.slice(1)}`}
       className={`hidden h-9 items-center whitespace-nowrap rounded-full px-2.5 md:inline-flex lg:px-3 ${
         active ? "bg-primary-tint text-primary-text" : "text-ink-soft hover:text-primary-text"
       }`}
