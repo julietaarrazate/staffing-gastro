@@ -254,8 +254,9 @@ async def test_a_las_24_horas_pregunta_una_sola_vez_y_solo_a_la_persona(
     await scheduler.run_reconfirmation_check()
 
     [aviso] = await _notices(client, worker, "reconfirm_request")
-    assert aviso["title"].startswith("¿Seguís yendo ")
-    assert " a las " in aviso["title"]
+    assert aviso["title"] == "¿Seguís disponible para este turno?"
+    assert " a las " in aviso["message"]
+    assert "mantenés tu disponibilidad" in aviso["message"]
     assert aviso["link"] == f"/my-shifts?turno={shift_id}"
     assert await _notices(client, employer, "reconfirm_request") == []
     fila = await _fila(session_factory, shift_id)
@@ -411,7 +412,8 @@ async def test_sin_respuesta_a_las_2_horas_se_avisa_al_comercio_y_la_persona_sig
     await scheduler.run_reconfirmation_check()
 
     [aviso] = await _notices(client, employer, "worker_not_reconfirmed")
-    assert "no reconfirmó el turno de" in aviso["title"]
+    assert aviso["title"].startswith("Todavía no hay respuesta de ")
+    assert "mantiene su disponibilidad para el turno de" in aviso["message"]
     assert aviso["link"] == f"/shifts?turno={shift_id}"
     fila = await _fila(session_factory, shift_id)
     assert fila.status == ShiftStatus.CONFIRMADO.value

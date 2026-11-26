@@ -135,12 +135,12 @@ function hintWithWorker(
   llegada: string | null = null,
 ): string | null {
   if (status === "confirmado" && reconfirmacion === "reconfirmo") {
-    return name ? `${name} reconfirmó que va.` : "Reconfirmó que va.";
+    return name ? `${name} confirmó que sigue disponible.` : "Confirmó que sigue disponible.";
   }
   if (status === "confirmado" && reconfirmacion === "sin_respuesta") {
     return name
-      ? `${name} no reconfirmó. Escribile para confirmarlo.`
-      : "No reconfirmó. Escribile para confirmarlo.";
+      ? `${name} todavía no respondió si sigue disponible.`
+      : "Todavía no respondió si sigue disponible.";
   }
   if (status === "check_in" && llegada) {
     return name ? `${name} ${llegada}.` : `${llegada.charAt(0).toUpperCase()}${llegada.slice(1)}.`;

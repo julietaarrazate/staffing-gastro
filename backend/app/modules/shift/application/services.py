@@ -1345,9 +1345,9 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
                 NotificationType.ARRIVAL_MARKED_BY_COMPANY,
                 "El comercio marcó tu llegada",
                 (
-                    f"{await self._shift_name_with_company(updated)}: quedó registrado que "
-                    f"llegaste {'a horario' if on_time else 'tarde'}. La próxima, marcala "
-                    "vos cuando entres al local."
+                    f"{await self._shift_name_with_company(updated)}: el comercio indicó que "
+                    f"llegaste {'a horario' if on_time else 'tarde'}. Si marcás tu llegada "
+                    "vos al entrar, queda registrada tu hora."
                 ),
                 link=f"/my-shifts?turno={updated.id}",
             )
@@ -1427,12 +1427,18 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         updated = await self.get_shift(shift_id)
         if claimed and updated.worker_profile_id is not None:
             company = await self._companies.get_by_id(updated.company_id)
-            donde = f" a {company.name}" if company is not None and company.name else ""
+            donde = f" en {company.name}" if company is not None and company.name else ""
+            cuando = self._cuando(updated, ahora)
+            # Se pregunta por la disponibilidad, no se controla si va a
+            # cumplir (consulta legal, 2026-11-26).
             await self._notify_worker(
                 updated.worker_profile_id,
                 NotificationType.RECONFIRM_REQUEST,
-                f"¿Seguís yendo {self._cuando(updated, ahora)}{donde}?",
-                "Contestá «Sí, voy» o «No puedo» para que el comercio lo sepa a tiempo.",
+                "¿Seguís disponible para este turno?",
+                (
+                    f"{cuando[0].upper()}{cuando[1:]}{donde}. Indicá si mantenés tu "
+                    "disponibilidad para que el comercio pueda organizarse."
+                ),
                 link=f"/my-shifts?turno={updated.id}",
             )
         return updated
@@ -1455,8 +1461,11 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
             await self._notify_company(
                 updated.company_id,
                 NotificationType.WORKER_NOT_RECONFIRMED,
-                f"{name} no reconfirmó el turno de {self._cuando(updated, ahora)}",
-                "Todavía no contestó si sigue yendo. Escribile para confirmarlo.",
+                f"Todavía no hay respuesta de {name}",
+                (
+                    f"Aún no indicó si mantiene su disponibilidad para el turno de "
+                    f"{self._cuando(updated, ahora)}. Podés escribirle o decidir cómo seguir."
+                ),
                 link=f"/shifts?turno={updated.id}",
             )
         return updated

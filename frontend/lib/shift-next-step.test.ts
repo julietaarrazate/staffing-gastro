@@ -92,17 +92,17 @@ describe("nextStepFor con nombre y cantidad", () => {
   it("con el turno confirmado dice si reconfirmó o si no contestó (ADR-0031)", () => {
     const base = { status: "confirmado" as const, worker_name: "Ana Pérez" };
     expect(nextStepFor(shift({ ...base, reconfirmed_at: "2026-11-27T12:00:00Z" })).hint).toBe(
-      "Ana reconfirmó que va.",
+      "Ana confirmó que sigue disponible.",
     );
     expect(nextStepFor(shift({ ...base, no_reconfirm_alert_sent_at: "2026-11-27T19:00:00Z" })).hint).toBe(
-      "Ana no reconfirmó. Escribile para confirmarlo.",
+      "Ana todavía no respondió si sigue disponible.",
     );
     // Si contestó alguna vez, no se la marca como sin respuesta.
     expect(
       nextStepFor(
         shift({ ...base, reconfirmed_at: "2026-11-27T12:00:00Z", no_reconfirm_alert_sent_at: "2026-11-27T19:00:00Z" }),
       ).hint,
-    ).toBe("Ana reconfirmó que va.");
+    ).toBe("Ana confirmó que sigue disponible.");
     // Una vez en camino manda el viaje, no la reconfirmación.
     expect(
       nextStepFor(shift({ ...base, reconfirmed_at: "2026-11-27T12:00:00Z", en_route_at: "2026-11-27T20:00:00Z" })).hint,
