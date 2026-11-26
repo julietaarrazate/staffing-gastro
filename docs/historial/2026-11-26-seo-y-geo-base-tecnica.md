@@ -1,4 +1,4 @@
-# SEO y GEO: la base técnica (#PR)
+# SEO y GEO: la base técnica (#753)
 
 **Antes:** la página pública de un turno no le decía a Google que era una
 oferta de trabajo ni tenía dirección canónica. Términos, Privacidad, ingreso y
