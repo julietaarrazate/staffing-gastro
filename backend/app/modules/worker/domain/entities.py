@@ -70,6 +70,10 @@ class WorkerProfile:
     events_completed: int = 0
     punctuality_rate: float = 0.0
     cancellations: int = 0
+    # Avisos con tiempo que no pesaron en el período en curso, y cuándo
+    # empezó ese período (`worker/domain/avisos.py`).
+    notice_window_started_at: datetime | None = None
+    notice_cancellations_used: int = 0
     # No-show (Parte C, PRIMER_TURNO_REAL_SPEC / ADR-0007): distinto de
     # `cancellations` (el trabajador avisa antes de que el comercio lo
     # necesite) — acá el trabajador quedó CONFIRMADO/EN_CAMINO y el comercio

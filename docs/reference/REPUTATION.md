@@ -60,6 +60,12 @@ bidireccional: comercio y trabajador se califican mutuamente.
   al primer aviso de reconfirmación dentro de las 3 horas, la cancelación
   queda en la postulación («Canceló») pero no suma a este contador
   (`shift/domain/reconfirmacion.py::cancelacion_sin_peso`).
+  **Con tope** (2026-11-26): dos avisos sin peso por período de 30 días; desde
+  el tercero dentro del período, suma como cualquier cancelación. El período
+  arranca con el primer aviso y se renueva solo
+  (`worker/domain/avisos.py`, columnas `notice_window_started_at` y
+  `notice_cancellations_used` del perfil; no se muestran a nadie). El cartel
+  de cancelar ya lo sabe antes de confirmar (`cancel_with_notice`).
 - `no_shows` — no presentado. **([ADR-0007](../adr/ADR-0007-no-show-y-cancelacion-tardia.md))**
   se incrementa cuando el **comercio** marca manualmente que el trabajador
   asignado no se presentó a un turno ya confirmado

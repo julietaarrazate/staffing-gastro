@@ -103,6 +103,13 @@ class WorkerProfileRepository(ABC):
         """
 
     @abstractmethod
+    async def use_notice_allowance(self, profile_id: UUID, ahora: datetime) -> bool:
+        """Gasta uno de los avisos sin peso del período (`domain/avisos.py`).
+        `True` si quedaba uno (la cancelación no suma); `False` si ya gastó
+        los del período: ahí el caso de uso la registra como cualquier otra.
+        """
+
+    @abstractmethod
     async def record_cancellation(self, profile_id: UUID) -> None:
         """Registra que el trabajador canceló una asignación ya confirmada
         (ADR-0004). Incrementa `cancellations` en 1 y recalcula `badges`/

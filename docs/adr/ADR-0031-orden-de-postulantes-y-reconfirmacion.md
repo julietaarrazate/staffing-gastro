@@ -215,3 +215,22 @@ cumplir; «reconfirmar» queda como nombre interno):
   a las 21:00. Podés escribirle o decidir cómo seguir.»
 - En el Panel: «Camila confirmó que sigue disponible.» / «Camila todavía no
   respondió si sigue disponible.»
+
+## Tope a los avisos que no pesan (2026-11-26)
+
+Con la decisión 1 valiendo siempre, confirmar y cancelar con más de 24 horas
+no tenía costo ni freno: alguien podía tomar turnos y soltarlos todo el
+tiempo. Decisión de Julieta: tiene que haber un tope.
+
+- **Dos avisos sin peso por período de 30 días.** Desde el tercero dentro del
+  período, la cancelación suma como cualquier otra.
+- El período arranca con el primer aviso y se renueva solo a los 30 días.
+- Cancelar sobre la hora no gasta avisos: ya sumaba.
+- El cartel de cancelar dice antes de confirmar si esa cancelación suma
+  (`cancel_with_notice` ya descuenta el tope) y aclara «Vale dos veces cada 30
+  días».
+
+Se descartó un porcentaje sobre los turnos tomados: es más justo en teoría,
+pero nadie lo entiende y perjudica a quien recién empieza. Dos por mes cubre
+los imprevistos reales y deja a la vista el patrón que le hace daño al
+comercio. Regla en `worker/domain/avisos.py`; migración 0065.

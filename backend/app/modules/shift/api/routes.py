@@ -367,7 +367,8 @@ async def my_assigned_shifts(
 ):
     shifts = await service.list_worker_shifts(worker_profile_id, limit=limit, offset=offset)
     responses = await _with_company_info(shifts, companies, verification)
-    return [for_worker(r, worker_profile_id) for r in responses]
+    queda_aviso = await service.notice_allowance_left(worker_profile_id)
+    return [for_worker(r, worker_profile_id, queda_aviso=queda_aviso) for r in responses]
 
 
 @router.post(
@@ -456,7 +457,11 @@ async def get_shift(
     if await _is_party_to(shift, current_user, companies, workers):
         if current_user.role == UserRole.WORKER:
             # Parte, pero no de la ausencia de quien lo tuvo antes (PRI-01).
-            return for_worker(response, shift.worker_profile_id)
+            return for_worker(
+                response,
+                shift.worker_profile_id,
+                queda_aviso=await service.notice_allowance_left(shift.worker_profile_id),
+            )
         # Al comercio dueño (y a la admin), cuántas personas se postularon:
         # «Editar turno» lo usa para anticipar que se les avisa del cambio.
         # El panel ya lo traía en la lista; el detalle, no.

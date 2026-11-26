@@ -89,6 +89,7 @@ from app.modules.subscription.domain.exceptions import (
 from app.modules.subscription.domain.plans import get_plan
 from app.modules.subscription.domain.repositories import SubscriptionRepository
 from app.modules.subscription.domain.value_objects import SubscriptionStatus
+from app.modules.worker.domain.avisos import queda_aviso_sin_peso
 from app.modules.worker.domain.repositories import WorkerProfileRepository
 from app.modules.worker.domain.value_objects import WorkerSkill
 
@@ -1997,6 +1998,12 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
             left_worker_profile_id=worker_profile_id,
             motivo=MotivoDesasignacion.CANCELACION,
         )
+        # Tope (2026-11-26): dos avisos sin peso por período de 30 días; desde
+        # el tercero cuentan como cualquier cancelación (`worker/domain/avisos.py`).
+        if sin_peso:
+            sin_peso = await self._workers.use_notice_allowance(
+                worker_profile_id, datetime.now(timezone.utc)
+            )
         if sin_peso:
             logger.info(
                 "shift.worker_cancelled_with_notice",
@@ -2011,6 +2018,18 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
             motivo=MotivoDesasignacion.CANCELACION,
         )
         return updated
+
+    async def notice_allowance_left(self, worker_profile_id: UUID) -> bool:
+        """¿A esta persona le queda algún aviso sin peso en el período? Lo usa
+        la API para decirle, antes de cancelar, si esa cancelación va a sumar."""
+        profile = await self._workers.get_by_id(worker_profile_id)
+        if profile is None:
+            return True
+        return queda_aviso_sin_peso(
+            profile.notice_window_started_at,
+            profile.notice_cancellations_used,
+            datetime.now(timezone.utc),
+        )
 
     # --- Suspensión de una cuenta (ADR-0024) ---------------------------------
 

@@ -243,7 +243,9 @@ def without_worker_data(response: ShiftResponse) -> ShiftResponse:
 NO_SHOW_FIELDS = ("no_show_at", "last_no_show_worker_profile_id")
 
 
-def for_worker(response: ShiftResponse, worker_profile_id: UUID) -> ShiftResponse:
+def for_worker(
+    response: ShiftResponse, worker_profile_id: UUID, *, queda_aviso: bool | None = None
+) -> ShiftResponse:
     """La vista de un turno para un TRABAJADOR: si no lo tiene asignado, la
     de quien no es parte (`without_worker_data`); si lo tiene, el turno
     entero salvo la ausencia de otra persona.
@@ -253,6 +255,14 @@ def for_worker(response: ShiftResponse, worker_profile_id: UUID) -> ShiftRespons
     respuestas de sus propias acciones (confirmar, llegar, salir…)."""
     if response.worker_profile_id != worker_profile_id:
         return without_worker_data(response)
+    # `cancel_with_notice` depende también del tope de la persona (dos avisos
+    # sin peso cada 30 días). Las rutas que lo consultaron lo pasan
+    # (`/shifts/mine` y el detalle, de donde lee el cartel de cancelar); las
+    # demás no afirman nada: `None`, no un «no suma» que podría ser falso.
+    if response.cancel_with_notice is True and queda_aviso is not True:
+        response = response.model_copy(
+            update={"cancel_with_notice": False if queda_aviso is False else None}
+        )
     if response.last_no_show_worker_profile_id == worker_profile_id:
         return response
     return response.model_copy(update={field: None for field in NO_SHOW_FIELDS})
