@@ -1,4 +1,4 @@
-# Reconfirmación antes del turno, construida y apagada (P3, ADR-0031) (#PR)
+# Reconfirmación antes del turno, construida y apagada (P3, ADR-0031) (#746)
 
 **Pedido:** Julieta aceptó el ADR-0031 el 2026-11-25: entre que alguien
 confirma y el día del turno nadie le pregunta si sigue yendo, y la ausencia
