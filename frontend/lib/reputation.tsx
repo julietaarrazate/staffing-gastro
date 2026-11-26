@@ -111,6 +111,9 @@ export function levelMeta(level: string) {
 
 /** Rótulo de quien todavía no tiene historial (el mismo que usa la landing). */
 export const NEW_LABEL = "Nuevo en Oído";
+/** Sello de quien todavía no hizo turnos pero tiene la identidad verificada y
+ *  ninguna ausencia (ADR-0031): lo decide el backend (`nuevo_verificado`). */
+export const NEW_VERIFIED_LABEL = "Nuevo en Oído · identidad verificada";
 
 /**
  * Las notas van de 1 a 5, así que cualquier valor menor a 1 (el `0` por

@@ -113,7 +113,7 @@ test("candidatos: la persona nueva dice «Nuevo en Oído» y la veterana muestra
   await page.route("**/api/v1/applications/shifts/shift-1", (r) =>
     r.fulfill(
       json([
-        POSTULANTE({ application_id: "a1", worker_profile_id: "wp-nueva", full_name: "Nueva Sinhistoria" }),
+        // En el orden en que los manda el backend (ADR-0031): la veterana primero.
         POSTULANTE({
           application_id: "a2",
           worker_profile_id: "wp-vet",
@@ -123,6 +123,7 @@ test("candidatos: la persona nueva dice «Nuevo en Oído» y la veterana muestra
           punctuality_rate: 0.95,
           years_experience: 3,
         }),
+        POSTULANTE({ application_id: "a1", worker_profile_id: "wp-nueva", full_name: "Nueva Sinhistoria" }),
       ])
     )
   );

@@ -27,12 +27,12 @@ esa entrada está en ese archivo: buscala por la fecha o el número de PR.
 Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
 
 - 🟢 **Lo próximo (dejado por la sesión del 2026-11-24/25, en este orden).**
-  1. **Código de P2 y P3 según el [ADR-0031](./adr/ADR-0031-orden-de-postulantes-y-reconfirmacion.md)**
-     (aceptado). P2, el orden de los postulantes (backend, sello «Nuevo en Oído · identidad
-     verificada», en los recomendados de programados la distancia sólo filtra), se prende con el
-     deploy. P3, la reconfirmación a 24 y 3 horas, va **apagada** por configuración hasta que la
-     asesoría de Julieta apruebe el texto de los avisos: al terminar, pasarle esos textos.
-     «No puedo» con 24 h o más no pesa como cancelación tardía.
+  1. **Código de P3 según el [ADR-0031](./adr/ADR-0031-orden-de-postulantes-y-reconfirmacion.md)**
+     (aceptado; P2, el orden de los postulantes, ya está). P3, la reconfirmación a 24 y 3 horas,
+     va **apagada** por configuración hasta que la asesoría de Julieta apruebe el texto de los
+     avisos: al terminar, pasarle esos textos. «No puedo» con 24 h o más no pesa como cancelación
+     tardía. **A decidir por Julieta (salió de P2):** si el aviso «Turno cerca tuyo» de un turno
+     programado también deja de premiar la cercanía; hoy sigue con el puntaje de siempre.
   2. P1 (puntualidad real) y PRI-09 / PRI-07 (ver el tablero de la beta).
   3. **Panel del comercio vacío, en la compu:** cuando no hay turnos esa semana, la hoja dice
      cuándo es el próximo (o «Todavía no publicaste turnos») y la mitad derecha del cielo no queda

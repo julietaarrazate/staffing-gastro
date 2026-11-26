@@ -1,8 +1,10 @@
 """Cálculo puro del score de matching.
 
 Combina distancia, experiencia, reputación, puntualidad e historial de
-desempeño, según el spec del motor de matching de Oído. La afinidad con
-el local queda fuera hasta que exista historial de asignaciones (Fase 3+).
+desempeño, según el spec del motor de matching de Oído. Con qué peso entra
+cada uno depende del carril (ADR-0031): en el urgente pesa la distancia
+(`DEFAULT_WEIGHTS`); en el programado la distancia sólo filtra y pesa la
+experiencia comprobada en el puesto (`PROGRAMADO_WEIGHTS`).
 """
 
 from collections.abc import Callable
@@ -17,6 +19,7 @@ from app.modules.matching.domain.value_objects import (
     DEFAULT_MAX_RADIUS_KM,
     DEFAULT_WEIGHTS,
     EXPERIENCE_CAP_YEARS,
+    PROVEN_EXPERIENCE_CAP_SHIFTS,
     MatchWeights,
     ScoreBreakdown,
 )
@@ -32,6 +35,10 @@ def _distance_score(distance_km: float | None, max_radius_km: float) -> float:
 
 def _experience_score(years_experience: int) -> float:
     return min(years_experience / EXPERIENCE_CAP_YEARS, 1.0)
+
+
+def _proven_experience_score(turnos_en_el_puesto: int) -> float:
+    return min(max(turnos_en_el_puesto, 0) / PROVEN_EXPERIENCE_CAP_SHIFTS, 1.0)
 
 
 def _reputation_score(rating: float) -> float:
@@ -102,6 +109,9 @@ def score_candidate(
             candidate.events_completed, candidate.cancellations, candidate.no_shows
         ),
         distance_km=distance_km,
+        proven_experience_score=_proven_experience_score(
+            candidate.turnos_en_el_puesto
+        ),
     )
 
 

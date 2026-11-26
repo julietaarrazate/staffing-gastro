@@ -25,33 +25,44 @@ export function activeApplicantCount(applicants: Applicant[]): number {
 }
 
 /**
- * Orden de los postulantes de un turno: primero quien ya tiene turnos hechos
- * en Oído (la reputación es real, no autodeclarada), después por calificación,
- * puntualidad y cantidad de turnos; a igualdad, quien se postuló antes. Quien
- * tuvo el turno y lo dejó va siempre al final, tenga la reputación que tenga
- * (G4): se le puede volver a asignar, pero después de mirar a los demás.
- *
- * Existe para que el comercio decida en segundos (la promesa es cubrir en
- * menos de 10 minutos): antes la lista venía en orden de llegada y el mejor
- * postulante podía quedar tercero, abajo del pliegue.
+ * Por qué va primero quien encabeza la lista, o `null` si no hay un motivo
+ * con respaldo. El orden lo decide el backend (ADR-0031: confianza del local,
+ * sin faltas, experiencia en el puesto, cumplimiento, calificación); acá sólo
+ * se nombra el motivo, con datos que llegan en la respuesta. Nunca para quien
+ * ya tuvo este turno y lo dejó (va al final, con su marca).
  */
-export function rankApplicants(applicants: Applicant[]): Applicant[] {
-  return [...applicants].sort((a, b) => {
-    const unassigned = Number(isUnassigned(a)) - Number(isUnassigned(b));
-    if (unassigned !== 0) return unassigned;
-    const history = Number(b.events_completed > 0) - Number(a.events_completed > 0);
-    if (history !== 0) return history;
-    if (b.rating !== a.rating) return b.rating - a.rating;
-    if (b.punctuality_rate !== a.punctuality_rate) return b.punctuality_rate - a.punctuality_rate;
-    if (b.events_completed !== a.events_completed) return b.events_completed - a.events_completed;
-    return (a.created_at ?? "").localeCompare(b.created_at ?? "");
-  });
+export function rotuloDelPrimero(applicants: Applicant[]): string | null {
+  const first = applicants[0];
+  if (!first || isUnassigned(first)) return null;
+  if (first.es_favorito) return "Entre tus favoritos";
+  if (first.trabajo_aca) return "Ya trabajó en tu local";
+  if (first.events_completed > 0) {
+    // «Mejor calificación» sólo si de verdad nadie en carrera la supera.
+    const mejor = applicants.every(
+      (a) => isUnassigned(a) || a.events_completed === 0 || a.rating <= first.rating,
+    );
+    if (mejor) return "Mejor calificación";
+  }
+  if (first.turnos_en_el_puesto > 0) return "Con experiencia en el puesto";
+  return null;
 }
 
-/** ¿Hay un postulante que se pueda destacar con fundamento? Sólo si tiene
- *  turnos hechos: destacar a alguien sin historial sería inventar una razón.
- *  Nunca a quien ya tuvo este turno y lo dejó. */
-export function standoutApplicant(ranked: Applicant[]): Applicant | null {
-  const first = ranked[0];
-  return first && !isUnassigned(first) && first.events_completed > 0 ? first : null;
+/**
+ * Lo que explica el lugar de una persona en la lista, para decirlo en su
+ * fila (ADR-0031): la confianza del local y su experiencia en este puesto.
+ * Son datos del comercio o que ya ve en la ficha. Quien tuvo el turno y lo
+ * dejó no lleva motivos: lleva su marca.
+ */
+export function motivosDe(
+  applicant: Pick<Applicant, "status" | "es_favorito" | "trabajo_aca" | "turnos_en_el_puesto">,
+): string[] {
+  if (isUnassigned(applicant)) return [];
+  const motivos: string[] = [];
+  if (applicant.es_favorito) motivos.push("Entre tus favoritos");
+  if (applicant.trabajo_aca) motivos.push("Ya trabajó en tu local");
+  if (applicant.turnos_en_el_puesto > 0) {
+    const n = applicant.turnos_en_el_puesto;
+    motivos.push(`${n} ${n === 1 ? "turno" : "turnos"} en este puesto`);
+  }
+  return motivos;
 }

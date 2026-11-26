@@ -213,6 +213,8 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
                 events_completed=worker.events_completed,
                 punctuality_rate=worker.punctuality_rate,
                 years_experience=worker.years_experience,
+                cancellations=worker.cancellations,
+                no_shows=worker.no_shows,
                 badges=tuple(WorkerBadge(b) for b in (worker.badges or [])),
                 level=GamificationLevel(worker.level),
                 user_id=worker.user_id,

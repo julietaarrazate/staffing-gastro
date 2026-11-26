@@ -24,6 +24,7 @@ export default function CandidatoFila({
   disponible = false,
   marca,
   rotulo,
+  motivos = [],
   seleccionada = false,
   onSeleccionar,
   onElegir,
@@ -41,6 +42,8 @@ export default function CandidatoFila({
   marca?: string | null;
   /** Por qué va primero («Mejor calificación»): sólo si la tarjeta destacada no está. */
   rotulo?: string | null;
+  /** Lo que explica su lugar en la lista («Entre tus favoritos», «3 turnos en este puesto»). */
+  motivos?: string[];
   /** La persona que se ve en la ficha de al lado (compu). */
   seleccionada?: boolean;
   /** Compu: tocar a la persona la elige en vez de abrir su perfil. */
@@ -84,7 +87,16 @@ export default function CandidatoFila({
               </span>
             )}
           </span>
-          {rotulo && !marca && <span className="chip-suave mt-1">{rotulo}</span>}
+          {!marca && (rotulo || motivos.length > 0) && (
+            <span data-motivos className="mt-1 flex flex-wrap gap-1">
+              {rotulo && !motivos.includes(rotulo) && <span className="chip-suave">{rotulo}</span>}
+              {motivos.map((m) => (
+                <span key={m} className="chip-suave">
+                  {m}
+                </span>
+              ))}
+            </span>
+          )}
           {marca && (
             <span
               data-testid="postulante-desasignado"
@@ -106,8 +118,10 @@ export default function CandidatoFila({
             {datos.map((d, i) => (
               <span key={d.clave}>
                 {i > 0 && " "}
-                {/* El « ·» viaja pegado al dato anterior: no queda huérfano en un renglón. */}
-                <span className="whitespace-nowrap">
+                {/* El « ·» viaja pegado al dato anterior: no queda huérfano en un renglón.
+                    El sello «Nuevo en Oído · identidad verificada» es largo: ese sí
+                    baja de renglón, si no queda debajo de «Elegir» en el celular. */}
+                <span className={d.clave === "nuevo" ? undefined : "whitespace-nowrap"}>
                   {d.clave === "nota" && (
                     <>
                       <StarIcon size={12} filled className="mr-0.5 inline-block -translate-y-px text-primary-text" />

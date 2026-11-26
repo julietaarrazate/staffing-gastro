@@ -6,7 +6,7 @@ import { Button, NubesCielo } from "@/components/ui";
 import SinFoto from "@/components/ui/SinFoto";
 import { ShieldIcon, StarIcon } from "@/components/icons";
 import { cldThumb } from "@/lib/cloudinary";
-import { NEW_LABEL } from "@/lib/reputation";
+import { NEW_LABEL, NEW_VERIFIED_LABEL } from "@/lib/reputation";
 import { firstNameOf } from "@/lib/shift-next-step";
 import { datosCandidato, type CandidateSignals, type DatoCandidato } from "./CandidateSignals";
 
@@ -27,7 +27,7 @@ export function iniciales(nombre: string): string {
  * «Elegir a <nombre>», el único ámbar de la pantalla.
  *
  * No decide a quién se destaca ni qué pasa al elegir: eso es de la pantalla
- * (`rankApplicants`, el primero de los recomendados, `assign`).
+ * (el orden que manda el backend, el primero de los recomendados, `assign`).
  */
 export default function CandidatoDestacado({
   perfilId,
@@ -54,6 +54,9 @@ export default function CandidatoDestacado({
 }) {
   const [fotoRota, setFotoRota] = useState(false);
   const datos = datosCandidato(signals);
+  // El sello «Nuevo en Oído · identidad verificada» ya dice que está
+  // verificada: no se repite al lado.
+  const conSello = Boolean(signals.nuevo_verificado) && datos.some((d) => d.clave === "nuevo");
   const perfil = `/workers/${perfilId}`;
   const conFoto = Boolean(foto) && !fotoRota;
   const boton = onElegir && (
@@ -105,7 +108,7 @@ export default function CandidatoDestacado({
               {datos.slice(0, 4).map((d) => (
                 <ChipDato key={d.clave} dato={d} />
               ))}
-              {verificada && (
+              {verificada && !conSello && (
                 <span className="chip-foto">
                   <ShieldIcon size={13} /> Identidad verificada
                 </span>
@@ -140,8 +143,13 @@ export default function CandidatoDestacado({
             >
               {nombre}
             </Link>
-            {esNuevo && <p className="mt-1 text-sm font-semibold">{NEW_LABEL}</p>}
-            {verificada && (
+            {esNuevo && !conSello && <p className="mt-1 text-sm font-semibold">{NEW_LABEL}</p>}
+            {conSello && (
+              <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold">
+                <ShieldIcon size={14} className="shrink-0" /> {NEW_VERIFIED_LABEL}
+              </p>
+            )}
+            {verificada && !conSello && (
               <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold">
                 <ShieldIcon size={14} className="shrink-0" /> Identidad verificada
               </p>

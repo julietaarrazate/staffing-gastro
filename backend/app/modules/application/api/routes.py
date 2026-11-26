@@ -21,9 +21,12 @@ from app.modules.application.domain.exceptions import (
 )
 from app.modules.identity.api.dependencies import get_current_user, per_account_quota_key
 from app.modules.identity.domain.entities import User
+from app.modules.matching.api.dependencies import get_matching_service
+from app.modules.matching.application.services import MatchingService
 from app.modules.shift.api.dependencies import get_my_company_id, get_my_worker_profile_id
 from app.modules.shift.api.schemas import ShiftResponse, for_worker
 from app.modules.shift.domain.entities import Shift
+from app.modules.shift.domain.exceptions import ShiftNotFoundError
 from app.modules.verification.api.dependencies import get_verification_service
 from app.modules.verification.application.services import VerificationService
 
@@ -33,6 +36,7 @@ ServiceDep = Annotated[ApplicationService, Depends(get_application_service)]
 WorkerProfileIdDep = Annotated[UUID, Depends(get_my_worker_profile_id)]
 CompanyIdDep = Annotated[UUID, Depends(get_my_company_id)]
 VerificationDep = Annotated[VerificationService, Depends(get_verification_service)]
+MatchingDep = Annotated[MatchingService, Depends(get_matching_service)]
 CompaniesDep = Annotated[CompanyProfileRepository, Depends(get_company_repository)]
 LimitDep = Annotated[int, Query(ge=1, le=100)]
 OffsetDep = Annotated[int, Query(ge=0)]
@@ -191,18 +195,26 @@ async def shift_applicants(
     company_id: CompanyIdDep,
     service: ServiceDep,
     verification: VerificationDep,
+    matching: MatchingDep,
 ):
     try:
         applicants = await service.list_applicants(company_id, shift_id)
     except ShiftNotApplicableError as exc:
         raise _SHIFT_NOT_FOUND from exc
 
-    # Enriquecido ya viene resuelto del repo (JOIN, sin N+1): sólo se mapea
-    # al esquema de respuesta. «Identidad verificada» (dominio Identity, por
-    # puerto, igual que en matching) se pide en UNA consulta para todos.
+    # Enriquecido ya viene resuelto del repo (JOIN, sin N+1). «Identidad
+    # verificada» (dominio Identity, por puerto, igual que en matching) se
+    # pide en UNA consulta para todos. El orden lo decide matching (ADR-0031):
+    # la pantalla muestra la lista como llega.
     verified = await verification.verified_user_ids(
         [a.user_id for a in applicants if a.user_id is not None]
     )
+    try:
+        ordenados = await matching.ordenar_postulantes(
+            shift_id, company_id, applicants, verified
+        )
+    except ShiftNotFoundError as exc:
+        raise _SHIFT_NOT_FOUND from exc
     return [
         ApplicantResponse(
             application_id=applicant.application_id,
@@ -219,7 +231,12 @@ async def shift_applicants(
             years_experience=applicant.years_experience,
             badges=list(applicant.badges),
             level=applicant.level,
-            identidad_verificada=applicant.user_id in verified,
+            identidad_verificada=fila.identidad_verificada,
+            es_favorito=fila.es_favorito,
+            trabajo_aca=fila.trabajo_aca,
+            turnos_en_el_puesto=fila.turnos_en_el_puesto,
+            nuevo_verificado=fila.nuevo_verificado,
         )
-        for applicant in applicants
+        for fila in ordenados
+        for applicant in (fila.postulante,)
     ]

@@ -13,8 +13,8 @@ import { formatShiftStartPhrase, formatShiftWhen } from "@/lib/datetime";
 import {
   activeApplicantCount,
   isUnassigned,
-  rankApplicants,
-  standoutApplicant,
+  motivosDe,
+  rotuloDelPrimero,
   unassignedLabel,
 } from "@/lib/applicants";
 import CandidatoDestacado from "@/components/candidate/CandidatoDestacado";
@@ -120,13 +120,12 @@ function ShiftCandidatesContent() {
     loading: loadingCands,
     reload: reloadCands,
   } = useLoadedList<CandidateMatch>(`/shifts/${shiftId}/candidates`, token);
-  const rankedApplicants = useMemo(() => rankApplicants(applicants), [applicants]);
-  const standout = standoutApplicant(rankedApplicants);
-  // Quien va en la tarjeta grande: el primero del orden de siempre
-  // (`rankApplicants`), salvo que ya haya tenido este turno y lo haya dejado
-  // (esos van al final, en fila y con su marca). «Mejor calificación» sólo si
-  // tiene turnos hechos que lo respalden (`standoutApplicant`).
-  const primero = rankedApplicants[0] && !isUnassigned(rankedApplicants[0]) ? rankedApplicants[0] : null;
+  // La lista llega ordenada del backend (ADR-0031): acá no se reordena.
+  // Quien va en la tarjeta grande: el primero, salvo que ya haya tenido este
+  // turno y lo haya dejado (esos van al final, en fila y con su marca). El
+  // rótulo dice por qué va primero, sólo si hay un motivo con respaldo.
+  const primero = applicants[0] && !isUnassigned(applicants[0]) ? applicants[0] : null;
+  const rotuloPrimero = useMemo(() => rotuloDelPrimero(applicants), [applicants]);
   // En la compu (desde `lg`) la lista y la ficha de la persona elegida van lado
   // a lado, y «Elegir a <nombre>» vive en la ficha (el único ámbar): no hay
   // tarjeta destacada, todos van en filas y se elige a quién mirar. En el
@@ -134,7 +133,7 @@ function ShiftCandidatesContent() {
   const compu = useEsCompu();
   const [verId, setVerId] = useState<string | null>(null);
   const idsDeLaLista =
-    tab === "postulantes" ? rankedApplicants.map((a) => a.worker_profile_id) : candidates.map((c) => c.profile_id);
+    tab === "postulantes" ? applicants.map((a) => a.worker_profile_id) : candidates.map((c) => c.profile_id);
   const fichaId = compu ? (verId !== null && idsDeLaLista.includes(verId) ? verId : (idsDeLaLista[0] ?? null)) : null;
   // La persona que se ve queda FIJA: al cargar se elige la primera y sigue
   // siendo esa aunque un aviso en vivo reordene la lista (si no, «Elegir a X»
@@ -152,7 +151,7 @@ function ShiftCandidatesContent() {
     return c ? { nombre: c.full_name, foto: c.photo_url } : null;
   };
   const destacar = !compu && primero;
-  const restoPostulantes = destacar ? rankedApplicants.slice(1) : rankedApplicants;
+  const restoPostulantes = destacar ? applicants.slice(1) : applicants;
   // La pestaña cuenta a quienes están en carrera, como el panel: quien tuvo
   // el turno y lo dejó se lista al final pero no suma (G4).
   const activeApplicants = useMemo(() => activeApplicantCount(applicants), [applicants]);
@@ -342,9 +341,10 @@ function ShiftCandidatesContent() {
               />
             ) : (
               <>
-                {/* Ordenados para decidir rápido (`rankApplicants`): primero
-                    quien ya tiene turnos hechos, después por calificación y
-                    puntualidad. El primero va en la tarjeta grande con el
+                {/* Ordenados para decidir rápido (lo hace el backend,
+                    ADR-0031): primero quien tiene la confianza del local,
+                    después sin faltas, experiencia en el puesto, cumplimiento
+                    y calificación. El primero va en la tarjeta grande con el
                     único ámbar de la pantalla: UNA acción principal, no una
                     por persona. La Garantía va DESPUÉS de la lista: antes
                     ocupaba la mitad de la pantalla antes del primer
@@ -356,7 +356,7 @@ function ShiftCandidatesContent() {
                     foto={primero.photo_url}
                     verificada={primero.identidad_verificada}
                     signals={primero}
-                    rotulo={standout?.application_id === primero.application_id ? "Mejor calificación" : null}
+                    rotulo={rotuloPrimero}
                     onElegir={elegir(primero.worker_profile_id, primero.full_name, primero.photo_url)}
                     eligiendo={assigning === primero.worker_profile_id}
                     bloqueado={assigning !== null}
@@ -375,11 +375,11 @@ function ShiftCandidatesContent() {
                             verificada={a.identidad_verificada}
                             signals={a}
                             disponible={a.is_available}
-                            // Tuvo este turno y lo dejó: va al final
-                            // (`rankApplicants`), con su marca, y se le puede
-                            // volver a asignar (G4).
+                            // Tuvo este turno y lo dejó: va al final, con su
+                            // marca, y se le puede volver a asignar (G4).
                             marca={unassignedLabel(a)}
-                            rotulo={compu && primero && standout?.application_id === a.application_id ? "Mejor calificación" : null}
+                            motivos={motivosDe(a)}
+                            rotulo={compu && primero?.application_id === a.application_id ? rotuloPrimero : null}
                             seleccionada={compu && fichaId === a.worker_profile_id}
                             onSeleccionar={compu ? () => setVerId(a.worker_profile_id) : undefined}
                             onElegir={elegir(a.worker_profile_id, a.full_name, a.photo_url)}

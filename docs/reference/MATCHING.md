@@ -34,7 +34,33 @@ Comercio:   ve postulantes + recomendados ─▶ Asigna ─▶ Trabajador confir
 - Al postularse, se **notifica al comercio** (`new_applicant`), también cuando
   es una vuelta.
 - Estados: `pendiente`, `aceptada`, `rechazada`, `retirada`.
-- El comercio ve la lista de postulantes enriquecida (nombre, foto, rating).
+- El comercio ve la lista de postulantes enriquecida (nombre, foto, rating),
+  **ya ordenada por el backend** ([ADR-0031](../adr/ADR-0031-orden-de-postulantes-y-reconfirmacion.md)).
+
+### Orden de los postulantes (ADR-0031, P2)
+
+Lo decide `matching/domain/orden_postulantes.py` (puro) y lo arma
+`MatchingService.ordenar_postulantes`; la pantalla muestra la lista como
+llega. Hay dos carriles (`es_carril_urgente`): **urgente** si el comercio lo
+marcó (o la escalada) o si empieza en menos de 6 horas; si no, **programado**.
+
+- **Programado.** Cada criterio sólo desempata al anterior:
+  1. confianza del local (favorita del comercio, o ya terminó un turno ahí);
+  2. sin ausencias;
+  3. turnos terminados en Oído **en ese puesto** (los años declarados no cuentan);
+  4. cumplimiento: turnos hechos sobre hechos más cancelaciones, por la
+     puntualidad, en tramos de 10 puntos (sin compromisos, neutro: 0,5);
+  5. calificación, en décimas y sólo con turnos hechos que la respalden;
+  6. identidad verificada;
+  7. quién se postuló antes.
+- **Urgente.** El orden de antes de P2, hasta que P4 defina el suyo: primero
+  quien tiene turnos hechos; después calificación, puntualidad y cantidad.
+- En los dos, quien tuvo el turno y lo dejó va al final (ADR-0026).
+
+La respuesta suma `es_favorito`, `trabajo_aca`, `turnos_en_el_puesto` y
+`nuevo_verificado` (el sello «Nuevo en Oído · identidad verificada»: sin
+turnos hechos, verificada y sin ausencias). Las ausencias y las cancelaciones
+se usan para ordenar y no salen en esa respuesta.
 
 ## Motor de recomendación (scoring)
 
@@ -45,7 +71,8 @@ No persiste entidades; calcula un score puro y ordenable.
   que pide el turno, y su cuenta tiene que ser de **trabajador** y estar
   **activa** (un admin con un perfil viejo de pruebas o un suspendido no
   salen como candidatos, ni en el mapa, ni reciben el aviso de turno cerca).
-- **Factores y pesos (por defecto):**
+- **Factores y pesos del carril urgente** (`DEFAULT_WEIGHTS`; es también el
+  puntaje del aviso «Turno cerca tuyo» al publicar):
 
   | Factor | Peso | Idea |
   |--------|------|------|
@@ -56,6 +83,11 @@ No persiste entidades; calcula un score puro y ordenable.
   | Desempeño | 0.15 | trabajos completados vs. cancelaciones + no-shows |
 
   Sin geolocalización en alguna punta, la distancia puntúa **neutral (0.5)**.
+- **Recomendados de un turno programado** (`PROGRAMADO_WEIGHTS`, ADR-0031): la
+  distancia **sólo filtra** (peso 0, el radio sigue cortando) y su 30 % se
+  reparte en experiencia comprobada (0.15: turnos terminados en Oído en ese
+  puesto, con tope de 10) y desempeño (pasa a 0.30). Reputación, experiencia
+  declarada y puntualidad quedan igual.
 - **El radio es un límite duro** (`is_within_radius`, 2026-11-13): fuera del
   radio el candidato no entra al ranking, por bien que puntúe en lo demás.
   Antes el radio sólo puntuaba, y con pocos candidatos quien estaba a más de

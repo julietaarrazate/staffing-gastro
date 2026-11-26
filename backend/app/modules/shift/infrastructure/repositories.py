@@ -24,6 +24,7 @@ from app.modules.shift.domain.repositories import (
     ShiftLiveCounts,
     ShiftReturnStats,
     ShiftTodayCounts,
+    TurnosTerminados,
     WorkerEarningsTotals,
 )
 from app.modules.shift.domain.value_objects import (
@@ -944,3 +945,38 @@ class SqlAlchemyShiftRepository(ShiftRepository):
             if any(t0 < p <= t0 + horizon for p in publications[company_id])
         )
         return ShiftReturnStats(sample_size=len(mature), returned=returned)
+
+    async def count_finished_by_workers(
+        self,
+        worker_profile_ids: Sequence[UUID],
+        *,
+        position: WorkerSkill,
+        company_id: UUID,
+    ) -> dict[UUID, TurnosTerminados]:
+        if not worker_profile_ids:
+            return {}
+        stmt = (
+            select(
+                ShiftModel.worker_profile_id,
+                func.sum(case((ShiftModel.position == position.value, 1), else_=0)),
+                func.sum(case((ShiftModel.company_id == company_id, 1), else_=0)),
+            )
+            .where(
+                ShiftModel.worker_profile_id.in_(worker_profile_ids),
+                ShiftModel.status.in_(
+                    [ShiftStatus.FINALIZADO.value, ShiftStatus.PAGADO.value]
+                ),
+                or_(
+                    ShiftModel.position == position.value,
+                    ShiftModel.company_id == company_id,
+                ),
+            )
+            .group_by(ShiftModel.worker_profile_id)
+        )
+        result = await self._session.execute(stmt)
+        return {
+            worker_id: TurnosTerminados(
+                en_el_puesto=en_el_puesto or 0, en_el_comercio=en_el_comercio or 0
+            )
+            for worker_id, en_el_puesto, en_el_comercio in result.all()
+        }
