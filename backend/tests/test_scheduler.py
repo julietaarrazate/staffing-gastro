@@ -14,8 +14,8 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.modules.shift.application import scheduler
+from app.modules.shift.domain.punctuality import RECORDATORIOS_DE_LLEGADA
 from app.modules.shift.application.services import (
-    CHECKIN_REMINDER_DELAY,
     DEPARTURE_REMINDER_LEAD,
     ESCALATION_DELAY,
     NO_SHOW_GRACE_PERIOD,
@@ -25,6 +25,10 @@ from tests.conftest import auth_headers
 from tests.test_attendance import _shift_payload
 
 pytestmark = pytest.mark.asyncio
+
+# El último recordatorio de llegada: 5 minutos después de la hora esperada
+# (puntualidad real, ADR-0008 act. 2026-11-26; antes era uno solo, a los 20).
+CHECKIN_REMINDER_DELAY = RECORDATORIOS_DE_LLEGADA[-1]
 
 
 async def _confirmed_shift_starting_ago(
@@ -169,12 +173,14 @@ async def test_does_not_touch_shift_that_already_checked_in(client, session_fact
 
 
 async def test_does_not_touch_shift_within_reminder_delay(client, session_factory, monkeypatch):
+    # Media hora antes del inicio todavía no toca ningún recordatorio de
+    # llegada (el primero sale 10 minutos antes; puntualidad real).
     monkeypatch.setattr(scheduler, "AsyncSessionLocal", session_factory)
     shift_id, _employer_headers, worker_headers = await _confirmed_shift_starting_ago(
         client,
         "sched_emp5@staffya.com",
         "sched_w5@staffya.com",
-        ago=timedelta(minutes=1),
+        ago=-timedelta(minutes=30),
     )
 
     await scheduler.run_attendance_check()

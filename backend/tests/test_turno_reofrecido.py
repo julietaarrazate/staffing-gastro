@@ -14,7 +14,6 @@ from httpx import AsyncClient
 
 from app.modules.shift.application import scheduler
 from app.modules.shift.application.services import (
-    CHECKIN_REMINDER_DELAY,
     NO_SHOW_GRACE_PERIOD,
     coverage_deadline,
 )
@@ -26,7 +25,7 @@ from app.modules.shift.domain.entities import (
     Shift,
 )
 from app.modules.shift.domain.exceptions import InvalidShiftTransitionError
-from app.modules.shift.domain.punctuality import punctuality_of
+from app.modules.shift.domain.punctuality import RECORDATORIO_AL_REEMPLAZO, punctuality_of
 from app.modules.shift.domain.value_objects import ShiftStatus
 from app.modules.shift.infrastructure.models import ShiftModel
 from app.modules.worker.domain.value_objects import WorkerSkill
@@ -372,7 +371,9 @@ def test_la_puntualidad_no_se_mueve_para_quien_lo_tomo_ya_empezado():
     # El reemplazo de un turno reofrecido: ni a favor ni en contra.
     assert punctuality_of(llego, start, taken_after_start=True) is None
     # Cualquier otro: la regla de siempre, contra el inicio.
-    assert punctuality_of(start + timedelta(minutes=10), start, taken_after_start=False) is True
+    # Puntualidad real: 5 minutos de margen para marcar, no 15.
+    assert punctuality_of(start + timedelta(minutes=4), start, taken_after_start=False) is True
+    assert punctuality_of(start + timedelta(minutes=10), start, taken_after_start=False) is False
     assert punctuality_of(llego, start, taken_after_start=False) is False
 
 
@@ -816,11 +817,11 @@ async def test_el_recordatorio_y_la_ausencia_del_reemplazo_se_cuentan_desde_que_
     assert await _avisos(client, b, "checkin_reminder") == []
     assert proxima is not None
     en = proxima - datetime.now(timezone.utc).replace(tzinfo=None)
-    assert timedelta(minutes=18) < en <= CHECKIN_REMINDER_DELAY
+    assert timedelta(minutes=18) < en <= RECORDATORIO_AL_REEMPLAZO
 
     # A los 20 minutos de confirmar: su recordatorio (aunque A ya había
     # recibido el suyo en este mismo turno, la marca se fue con A).
-    await confirmo_hace(CHECKIN_REMINDER_DELAY + timedelta(minutes=1))
+    await confirmo_hace(RECORDATORIO_AL_REEMPLAZO + timedelta(minutes=1))
     await scheduler.run_attendance_check()
     assert await estado() == "confirmado"
     assert len(await _avisos(client, b, "checkin_reminder")) == 1

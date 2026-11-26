@@ -250,3 +250,44 @@ y el del cierre automático dice que cuenta como pago tardío.
 24 h (lo que puede hacer es escribirle al comercio por el chat). Al desplegar,
 un turno que ya llevaba más de 72 h con la salida marcada se cierra en la
 primera pasada sin recordatorio previo.
+
+## Actualización 2026-11-26 — Puntualidad real (mejora P1)
+
+Aprobada por Julieta el 2026-11-13
+([`PROPUESTA_URGENTE_Y_PROGRAMADO.md`](../planning/PROPUESTA_URGENTE_Y_PROGRAMADO.md) §4).
+Llegar a horario es lo que le importa al local; marcar la llegada es cómo se
+entera la app. Estaban mezcladas: contaba como puntual quien marcaba hasta 15
+minutos después, y el único recordatorio salía a los 20.
+
+1. **Puntual es estar a la hora de inicio.** El margen baja de 15 a **5
+   minutos** y es sólo para el trámite de marcar; la llegada se puede marcar
+   desde 30 minutos antes (`PUNCTUALITY_TOLERANCE`).
+2. **Tres recordatorios** a la persona: 10 minutos antes («Cuando entres al
+   local, marcá tu llegada»), a la hora y 5 minutos después
+   (`punctuality.recordatorio_pendiente`, `Shift.checkin_reminder_step`). Si
+   varios quedaron atrás (el scheduler estuvo caído) sale sólo el último. A
+   quien toma un turno reofrecido ya empezado le toca uno solo, a los 20
+   minutos de confirmar (acaba de aceptar y está yendo); con ese sí se entera
+   el comercio.
+3. **El comercio tiene la última palabra.** A la hora de inicio, si la
+   persona no marcó, recibe «Ana todavía no marcó la llegada». En el Panel
+   puede tocar «Ya llegó» y decir si fue **a horario o tarde**
+   (`POST /shifts/{id}/company-check-in`, `Shift.company_check_in`): el turno
+   pasa a `CHECK_IN` sin ubicación (el comercio da fe) y la puntualidad es la
+   que dijo, no la hora en que lo tocó. La persona se entera. Así un olvido
+   no termina en una ausencia y una demora no se esconde.
+4. **«No se presentó»** se puede marcar desde los **10 minutos** (antes 15,
+   `NO_SHOW_EARLIEST_AFTER_START`). La ausencia automática a las 2 horas no
+   cambia.
+5. **El comercio ve la demora en minutos** («Ana llegó 8 min tarde»), no sólo
+   un porcentaje (`frontend/lib/shift-next-step.ts`, `llegadaDe`).
+
+**Qué no entra:** ofrecer marcar la llegada cuando el celular llega al local
+con «Va en camino» prendido. Toca el modelo de privacidad de la ubicación
+(ADR-0014) y quedó afuera a propósito («sin marcar por ubicación» en el
+tablero).
+
+**Datos de producción:** la puntualidad ya guardada no se recalcula. Los
+turnos a los que ya se les había mandado el recordatorio viejo quedan con los
+tres dados por enviados (migración 0064).
+

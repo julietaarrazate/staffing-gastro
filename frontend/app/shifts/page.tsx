@@ -318,6 +318,25 @@ function MyShiftsPanel() {
     });
   }
 
+  /** «Ya llegó»: el comercio marca la llegada de quien no la marcó
+   *  (puntualidad real, ADR-0008 act. 2026-11-26). */
+  async function yaLlego(id: string, aHorario: boolean) {
+    if (!token) return;
+    const key = `${id}:yaLlego`;
+    await tapGuard.run(async () => {
+      setBusy(key);
+      try {
+        await api.post(`/shifts/${id}/company-check-in`, { on_time: aHorario }, token);
+        await load();
+      } catch (err) {
+        toast(getErrorMessage(err, "No se pudo marcar la llegada"), "error");
+        await load({ silent: true });
+      } finally {
+        setBusy(null);
+      }
+    });
+  }
+
   async function confirmNoShow(id: string) {
     setConfirmNoShowId(null);
     await run(id, "noShow");
@@ -685,6 +704,7 @@ function MyShiftsPanel() {
                           onRun={run}
                           onMarkPaid={() => askMarkPaid(shift.id)}
                           onNoShow={() => setConfirmNoShowId(shift.id)}
+                          onYaLlego={(aHorario) => void yaLlego(shift.id, aHorario)}
                           onCancel={() => void askCancel(shift.id)}
                         />
                         {(shift.status === "finalizado" || shift.status === "pagado") && (

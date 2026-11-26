@@ -1,4 +1,5 @@
-"""«No se presentó» sólo desde 15 minutos después del inicio (hallazgo U079).
+"""«No se presentó» sólo desde 10 minutos después del inicio (hallazgo U079;
+eran 15 hasta la puntualidad real, ADR-0008 act. 2026-11-26).
 
 Antes se ofrecía y se aplicaba sobre un turno confirmado que empezaba
 mañana, y penalizaba al trabajador sin vuelta atrás.
@@ -41,10 +42,10 @@ def _turno_confirmado() -> Shift:
         INICIO - timedelta(days=1),
         INICIO - timedelta(minutes=1),
         INICIO,
-        INICIO + timedelta(minutes=14),
+        INICIO + timedelta(minutes=9),
     ],
 )
-def test_dominio_rechaza_la_ausencia_antes_de_los_15_minutos(now):
+def test_dominio_rechaza_la_ausencia_antes_de_los_10_minutos(now):
     turno = _turno_confirmado()
     ausente = turno.worker_profile_id
 
@@ -52,8 +53,8 @@ def test_dominio_rechaza_la_ausencia_antes_de_los_15_minutos(now):
         turno.no_show(now)
 
     # Hora de Argentina, formato de persona (no ISO, no UTC).
-    assert "desde las 20:15 de " in str(exc.value)
-    assert "23:15" not in str(exc.value)
+    assert "desde las 20:10 de " in str(exc.value)
+    assert "23:10" not in str(exc.value)
     assert "T" not in str(exc.value).replace("Todavía", "")
     # Sin efectos: sigue confirmado y sin penalidad registrada.
     assert turno.status == ShiftStatus.CONFIRMADO
@@ -61,8 +62,8 @@ def test_dominio_rechaza_la_ausencia_antes_de_los_15_minutos(now):
     assert turno.no_show_at is None
 
 
-def test_dominio_acepta_la_ausencia_a_los_15_minutos_y_despues():
-    for minutos in (15, 16, 120):
+def test_dominio_acepta_la_ausencia_a_los_10_minutos_y_despues():
+    for minutos in (10, 11, 120):
         turno = _turno_confirmado()
         ausente = turno.worker_profile_id
         turno.no_show(INICIO + timedelta(minutes=minutos))
@@ -73,7 +74,7 @@ def test_dominio_acepta_la_ausencia_a_los_15_minutos_y_despues():
 
 def test_dominio_acepta_now_sin_zona_como_utc():
     turno = _turno_confirmado()
-    turno.no_show((INICIO + timedelta(minutes=15)).replace(tzinfo=None))
+    turno.no_show((INICIO + timedelta(minutes=10)).replace(tzinfo=None))
     assert turno.status == ShiftStatus.BUSCANDO_PERSONAL
 
 
@@ -91,7 +92,7 @@ async def test_api_rechaza_con_la_hora_y_no_penaliza_antes_de_empezar(
     detalle = marked.json()["detail"]
     assert detalle.startswith("Todavía no podés marcar que no se presentó")
     assert "se habilita desde las " in detalle
-    assert detalle.endswith("15 minutos después de que empieza el turno.")
+    assert detalle.endswith("10 minutos después de que empieza el turno.")
     assert "T" not in detalle.replace("Todavía", "")  # sin fecha ISO
 
     perfil = await client.get("/api/v1/workers/me/profile", headers=worker)

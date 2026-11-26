@@ -313,6 +313,8 @@
     "body": [
       {
         "address": "Thames 1234",
+        "arrival_marked_by_company_at": null,
+        "arrival_on_time": null,
         "cancel_with_notice": null,
         "check_in_at": null,
         "check_in_latitude": null,
@@ -563,6 +565,8 @@
         "motivo": null,
         "shift": {
           "address": "Thames 1234",
+          "arrival_marked_by_company_at": null,
+          "arrival_on_time": null,
           "cancel_with_notice": null,
           "check_in_at": null,
           "check_in_latitude": null,
@@ -784,6 +788,8 @@
   "turno_asignado_comercio": {
     "body": {
       "address": "Thames 1234",
+      "arrival_marked_by_company_at": null,
+      "arrival_on_time": null,
       "cancel_with_notice": null,
       "check_in_at": null,
       "check_in_latitude": null,
@@ -842,6 +848,8 @@
   "turno_asignar": {
     "body": {
       "address": "Thames 1234",
+      "arrival_marked_by_company_at": null,
+      "arrival_on_time": null,
       "cancel_with_notice": null,
       "check_in_at": null,
       "check_in_latitude": null,
@@ -918,6 +926,8 @@
   "turno_borrador_comercio": {
     "body": {
       "address": "Thames 1234",
+      "arrival_marked_by_company_at": null,
+      "arrival_on_time": null,
       "cancel_with_notice": null,
       "check_in_at": null,
       "check_in_latitude": null,
@@ -1006,6 +1016,8 @@
   "turno_cancelar": {
     "body": {
       "address": "Thames 1234",
+      "arrival_marked_by_company_at": null,
+      "arrival_on_time": null,
       "cancel_with_notice": null,
       "check_in_at": null,
       "check_in_latitude": null,
@@ -1070,6 +1082,8 @@
   "turno_confirmado_trabajador": {
     "body": {
       "address": "Thames 1234",
+      "arrival_marked_by_company_at": null,
+      "arrival_on_time": null,
       "cancel_with_notice": null,
       "check_in_at": null,
       "check_in_latitude": null,
@@ -1128,6 +1142,8 @@
   "turno_confirmar": {
     "body": {
       "address": "Thames 1234",
+      "arrival_marked_by_company_at": null,
+      "arrival_on_time": null,
       "cancel_with_notice": null,
       "check_in_at": null,
       "check_in_latitude": null,
@@ -1192,6 +1208,8 @@
   "turno_crear": {
     "body": {
       "address": "Thames 1234",
+      "arrival_marked_by_company_at": null,
+      "arrival_on_time": null,
       "cancel_with_notice": null,
       "check_in_at": null,
       "check_in_latitude": null,
@@ -1250,6 +1268,8 @@
   "turno_en_camino": {
     "body": {
       "address": "Thames 1234",
+      "arrival_marked_by_company_at": null,
+      "arrival_on_time": null,
       "cancel_with_notice": null,
       "check_in_at": null,
       "check_in_latitude": null,
@@ -1314,6 +1334,8 @@
   "turno_en_camino_comercio": {
     "body": {
       "address": "Thames 1234",
+      "arrival_marked_by_company_at": null,
+      "arrival_on_time": null,
       "cancel_with_notice": null,
       "check_in_at": null,
       "check_in_latitude": null,
@@ -1378,6 +1400,8 @@
   "turno_publicado_comercio": {
     "body": {
       "address": "Thames 1234",
+      "arrival_marked_by_company_at": null,
+      "arrival_on_time": null,
       "cancel_with_notice": null,
       "check_in_at": null,
       "check_in_latitude": null,
@@ -1436,6 +1460,8 @@
   "turno_publicado_trabajador": {
     "body": {
       "address": "Thames 1234",
+      "arrival_marked_by_company_at": null,
+      "arrival_on_time": null,
       "cancel_with_notice": null,
       "check_in_at": null,
       "check_in_latitude": null,
@@ -1494,6 +1520,8 @@
   "turno_publicar": {
     "body": {
       "address": "Thames 1234",
+      "arrival_marked_by_company_at": null,
+      "arrival_on_time": null,
       "cancel_with_notice": null,
       "check_in_at": null,
       "check_in_latitude": null,
@@ -1573,6 +1601,8 @@
     "body": [
       {
         "address": "Thames 1234",
+        "arrival_marked_by_company_at": null,
+        "arrival_on_time": null,
         "cancel_with_notice": null,
         "check_in_at": null,
         "check_in_latitude": null,
@@ -1633,6 +1663,8 @@
     "body": [
       {
         "address": "Thames 1234",
+        "arrival_marked_by_company_at": null,
+        "arrival_on_time": null,
         "cancel_with_notice": null,
         "check_in_at": null,
         "check_in_latitude": null,
@@ -1693,6 +1725,8 @@
     "body": [
       {
         "address": "Thames 1234",
+        "arrival_marked_by_company_at": null,
+        "arrival_on_time": null,
         "cancel_with_notice": null,
         "check_in_at": null,
         "check_in_latitude": null,

@@ -155,7 +155,7 @@ def test_no_show_antes_de_hora_no_tiene_iso_ni_horas_utc():
     _assert_castellano_de_persona(mensaje)
     assert mensaje == (
         "Todavía no podés marcar que no se presentó: se habilita desde las "
-        "20:15 de hoy, 15 minutos después de que empieza el turno."
+        "20:10 de hoy, 10 minutos después de que empieza el turno."
     )
 
 
@@ -166,7 +166,7 @@ def test_no_show_de_un_turno_de_madrugada_dice_el_dia_argentino():
     turno = _turno(ShiftStatus.CONFIRMADO, inicio)
     with pytest.raises(InvalidShiftTransitionError) as e:
         turno.no_show(datetime(2026, 11, 14, 1, 0, tzinfo=timezone.utc))
-    assert "desde las 00:45 de mañana" in str(e.value)
+    assert "desde las 00:40 de mañana" in str(e.value)
 
 
 def test_demasiado_lejos_dice_metros_en_palabras():

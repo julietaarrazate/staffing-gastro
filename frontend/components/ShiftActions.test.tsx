@@ -83,8 +83,8 @@ describe("ShiftActions", () => {
     expect(onCancel).not.toHaveBeenCalled();
   });
 
-  it("«No se presentó» no se ofrece en un turno que todavía no empezó ni antes de los 15 minutos", () => {
-    for (const startedMinutesAgo of [-24 * 60, -5, 0, 14]) {
+  it("«No se presentó» no se ofrece en un turno que todavía no empezó ni antes de los 10 minutos", () => {
+    for (const startedMinutesAgo of [-24 * 60, -5, 0, 9]) {
       const { unmount } = setup("confirmado", { startedMinutesAgo });
       fireEvent.click(screen.getByRole("button", { name: "Más acciones" }));
       expect(screen.queryByRole("button", { name: /No se presentó/ })).toBeNull();
@@ -93,13 +93,45 @@ describe("ShiftActions", () => {
     }
   });
 
-  it("«No se presentó» aparece a los 15 minutos del inicio, también con el trabajador en camino", () => {
+  it("«No se presentó» aparece a los 10 minutos del inicio, también con el trabajador en camino", () => {
     for (const status of ["confirmado", "en_camino"] as const) {
-      const { unmount } = setup(status, { startedMinutesAgo: 15 });
+      const { unmount } = setup(status, { startedMinutesAgo: 10 });
       fireEvent.click(screen.getByRole("button", { name: "Más acciones" }));
       expect(screen.getByRole("button", { name: /No se presentó/ })).toBeInTheDocument();
       unmount();
     }
+  });
+
+  it("«Ya llegó» aparece a la hora de inicio y pregunta si fue a horario (puntualidad real)", () => {
+    const onYaLlego = vi.fn();
+    const dibujar = (startedMinutesAgo: number) =>
+      render(
+        <ShiftActions
+          shift={shift("confirmado", startedMinutesAgo)}
+          busy={null}
+          locked={false}
+          onRun={vi.fn()}
+          onMarkPaid={vi.fn()}
+          onNoShow={vi.fn()}
+          onCancel={vi.fn()}
+          onYaLlego={onYaLlego}
+        />,
+      );
+    // Antes de la hora todavía la puede marcar la persona.
+    const antes = dibujar(-5);
+    expect(screen.queryByRole("button", { name: "Ya llegó" })).toBeNull();
+    antes.unmount();
+
+    dibujar(1);
+    fireEvent.click(screen.getByRole("button", { name: "Ya llegó" }));
+    expect(onYaLlego).not.toHaveBeenCalled(); // primero pregunta
+    fireEvent.click(screen.getByRole("button", { name: "Llegó tarde" }));
+    expect(onYaLlego).toHaveBeenCalledExactlyOnceWith(false);
+  });
+
+  it("sin `onYaLlego` (otras pantallas) la opción no se ofrece", () => {
+    setup("confirmado", { startedMinutesAgo: 30 });
+    expect(screen.queryByRole("button", { name: "Ya llegó" })).toBeNull();
   });
 
   it("con la salida marcada dice cuándo se cierra solo (decisión 24)", () => {

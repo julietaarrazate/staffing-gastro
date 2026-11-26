@@ -33,6 +33,7 @@ from app.modules.shift.api.dependencies import (
 )
 from app.modules.shift.api.schemas import (
     AssignWorkerRequest,
+    CompanyCheckInRequest,
     EventInput,
     EventCancelResponse,
     EventResponse,
@@ -729,6 +730,25 @@ async def worker_cancel(
     response = for_worker(ShiftResponse.model_validate(shift), worker_profile_id)
     await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
     return response
+
+
+@router.post(
+    "/{shift_id}/company-check-in",
+    response_model=ShiftResponse,
+    summary="«Ya llegó»: el comercio marca la llegada de quien no la marcó",
+)
+async def company_check_in(
+    shift_id: UUID,
+    payload: CompanyCheckInRequest,
+    company_id: CompanyIdDep,
+    service: ServiceDep,
+):
+    try:
+        return await service.company_check_in(company_id, shift_id, on_time=payload.on_time)
+    except ShiftNotFoundError as exc:
+        raise _not_found() from exc
+    except InvalidShiftTransitionError as exc:
+        raise _bad_request(str(exc)) from exc
 
 
 @router.post(

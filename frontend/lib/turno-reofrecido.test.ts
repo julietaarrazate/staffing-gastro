@@ -136,30 +136,30 @@ describe("el panel del comercio", () => {
 });
 
 describe("desde cuándo se puede marcar la ausencia", () => {
-  it("a quien confirmó antes de empezar, 15 minutos después del inicio", () => {
+  it("a quien confirmó antes de empezar, 10 minutos después del inicio", () => {
     const shift = { ...turno, confirmed_at: "2026-11-17T12:00:00-03:00" };
     expect(esperadoDesde(shift)).toBe(at("20:00"));
-    expect(puedeMarcarAusencia(shift, at("20:14"))).toBe(false);
-    expect(puedeMarcarAusencia(shift, at("20:15"))).toBe(true);
+    expect(puedeMarcarAusencia(shift, at("20:09"))).toBe(false);
+    expect(puedeMarcarAusencia(shift, at("20:10"))).toBe(true);
   });
 
-  it("al reemplazo que confirmó con el turno empezado, 15 minutos después de confirmar", () => {
+  it("al reemplazo que confirmó con el turno empezado, 10 minutos después de confirmar", () => {
     const shift = { ...reofrecido, confirmed_at: "2026-11-18T21:10:00-03:00" };
     expect(esperadoDesde(shift)).toBe(at("21:10"));
-    expect(puedeMarcarAusencia(shift, at("21:20"))).toBe(false);
-    expect(puedeMarcarAusencia(shift, at("21:25"))).toBe(true);
+    expect(puedeMarcarAusencia(shift, at("21:19"))).toBe(false);
+    expect(puedeMarcarAusencia(shift, at("21:20"))).toBe(true);
   });
 
   it("en un turno común que se confirmó tarde, igual desde el inicio", () => {
     const shift = { ...turno, reoffered_at: null, confirmed_at: "2026-11-18T20:30:00-03:00" };
     expect(esperadoDesde(shift)).toBe(at("20:00"));
-    expect(puedeMarcarAusencia(shift, at("20:14"))).toBe(false);
-    expect(puedeMarcarAusencia(shift, at("20:15"))).toBe(true);
+    expect(puedeMarcarAusencia(shift, at("20:09"))).toBe(false);
+    expect(puedeMarcarAusencia(shift, at("20:10"))).toBe(true);
   });
 
   it("sin la marca de confirmación (turnos viejos, respuestas sin el campo) cuenta el inicio", () => {
-    expect(puedeMarcarAusencia(turno, at("20:15"))).toBe(true);
-    expect(puedeMarcarAusencia({ ...turno, confirmed_at: null }, at("20:14"))).toBe(false);
+    expect(puedeMarcarAusencia(turno, at("20:10"))).toBe(true);
+    expect(puedeMarcarAusencia({ ...turno, confirmed_at: null }, at("20:09"))).toBe(false);
     expect(puedeMarcarAusencia({ ...turno, confirmed_at: "no es una fecha" }, at("20:15"))).toBe(true);
   });
 });

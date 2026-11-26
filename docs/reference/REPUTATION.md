@@ -25,9 +25,13 @@ bidireccional: comercio y trabajador se califican mutuamente.
 - `punctuality_rate` — tasa de puntualidad. **(R2.4)** se recalcula al
   finalizar cada turno (`ShiftService.finish`,
   `backend/app/modules/shift/application/services.py`) como promedio móvil
-  simple sobre los turnos completados: puntual = check-in **hasta 15
-  minutos después** del horario pactado (`start_at`); llegar antes (la app deja
-  marcar hasta 30 min antes) siempre cuenta como puntual. La regla es la
+  simple sobre los turnos completados: puntual = check-in **hasta 5
+  minutos después** del horario pactado (`start_at`; puntualidad real, ADR-0008
+  act. 2026-11-26: antes eran 15). El margen es para el trámite de marcar, no
+  para llegar tarde: llegar antes (la app deja marcar hasta 30 min antes)
+  siempre cuenta como puntual. Si la llegada la marcó el comercio («Ya
+  llegó», `POST /shifts/{id}/company-check-in`), vale lo que dijo: a horario o
+  tarde (`Shift.arrival_on_time`). La regla es la
   función pura `arrived_on_time` en
   `backend/app/modules/shift/domain/punctuality.py`. **Quien tomó un turno ya
   empezado** (el reemplazo de un turno reofrecido, U080: `Shift.taken_after_start`)
@@ -59,7 +63,7 @@ bidireccional: comercio y trabajador se califican mutuamente.
   se incrementa cuando el **comercio** marca manualmente que el trabajador
   asignado no se presentó a un turno ya confirmado
   (`POST /shifts/{id}/no-show`, sólo alcanzable desde `CONFIRMADO`/
-  `EN_CAMINO`, antes del check-in y **recién desde 15 minutos después del
+  `EN_CAMINO`, antes del check-in y **recién desde 10 minutos después del
   inicio del turno**, `NO_SHOW_EARLIEST_AFTER_START`;
   `WorkerProfileRepository.record_no_show`).
   **Separado de `cancellations`** a propósito: no aparecer sin aviso es una

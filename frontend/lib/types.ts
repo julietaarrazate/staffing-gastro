@@ -140,6 +140,10 @@ export interface Shift {
   prorated_pay_amount?: string | null;
   /** Cuándo confirmó quien tiene el turno ahora (sólo para las partes). */
   confirmed_at?: string | null;
+  /** Puntualidad real (sólo para las partes): la llegada la marcó el comercio
+   *  («Ya llegó») y qué dijo, a horario (`true`) o tarde (`false`). */
+  arrival_marked_by_company_at?: string | null;
+  arrival_on_time?: boolean | null;
   /** El comercio lo puede corregir: mientras nadie esté asignado. */
   is_editable?: boolean;
   /** Reconfirmación antes del turno (ADR-0031, P3; sólo para las partes).
@@ -418,6 +422,8 @@ export type NotificationType =
   | "applied_shift_changed"
   | "shift_not_covered"
   | "checkin_reminder"
+  | "worker_not_checked_in"
+  | "arrival_marked_by_company"
   | "departure_reminder"
   | "reconfirm_request"
   | "worker_not_reconfirmed"

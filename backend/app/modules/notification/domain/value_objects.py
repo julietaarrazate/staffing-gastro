@@ -55,6 +55,12 @@ class NotificationType(str, Enum):
     # ADR-0008: recordatorio push para que el trabajador marque su llegada
     # cuando ya arrancó el turno y todavía no hizo check-in.
     CHECKIN_REMINDER = "checkin_reminder"
+    # Puntualidad real (ADR-0008 act. 2026-11-26): al comercio, a la hora de
+    # inicio, si la persona todavía no marcó la llegada. Él tiene la última
+    # palabra: «Ya llegó» o «No llegó».
+    WORKER_NOT_CHECKED_IN = "worker_not_checked_in"
+    # A la persona, cuando el comercio marcó su llegada por ella.
+    ARRIVAL_MARKED_BY_COMPANY = "arrival_marked_by_company"
     # "Va en camino": al trabajador, un rato antes del turno, para que avise
     # cuando sale; y al comercio, una sola vez, cuando el trabajador salió.
     DEPARTURE_REMINDER = "departure_reminder"
@@ -100,6 +106,7 @@ _DEEP_LINKS: dict[NotificationType, str] = {
     # El turno cancelado sigue en «Asignados», con su sello de cancelado.
     NotificationType.SHIFT_CANCELLED: "/my-shifts",
     NotificationType.CHECKIN_REMINDER: "/my-shifts",
+    NotificationType.ARRIVAL_MARKED_BY_COMPANY: "/my-shifts",
     NotificationType.DEPARTURE_REMINDER: "/my-shifts",
     NotificationType.RECONFIRM_REQUEST: "/my-shifts",
     # Turno todavía no suyo. Los avisos nuevos traen su `link` a /turno/<id>;
@@ -122,6 +129,7 @@ _DEEP_LINKS: dict[NotificationType, str] = {
     NotificationType.SHIFT_FINISH_REMINDER: "/shifts",
     NotificationType.SHIFT_REOPENED: "/shifts",
     NotificationType.WORKER_EN_ROUTE: "/shifts",
+    NotificationType.WORKER_NOT_CHECKED_IN: "/shifts",
     NotificationType.WORKER_NOT_RECONFIRMED: "/shifts",
     # Sólo al comercio (ADR-0015): si había un trabajador asignado sin
     # confirmar, no se lo penaliza ni se le avisa nada — no es una noticia

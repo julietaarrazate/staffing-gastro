@@ -11,7 +11,8 @@ START = datetime(2026, 11, 13, 20, 0, tzinfo=timezone.utc)
 
 @pytest.mark.parametrize(
     ("minutes_after_start", "expected"),
-    [(-24, True), (-14, True), (-30, True), (0, True), (15, True), (16, False)],
+    # Puntualidad real (ADR-0008 act. 2026-11-26): 5 minutos de margen, no 15.
+    [(-24, True), (-14, True), (-30, True), (0, True), (5, True), (6, False), (15, False)],
 )
 def test_arrived_on_time(minutes_after_start: int, expected: bool):
     assert arrived_on_time(START + timedelta(minutes=minutes_after_start), START) is expected

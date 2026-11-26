@@ -89,6 +89,32 @@ export function firstNameOf(fullName: string | null | undefined): string | null 
   return chars.length > MAX_NAME_CHARS ? `${chars.slice(0, MAX_NAME_CHARS).join("")}…` : first;
 }
 
+/** Margen para marcar la llegada sin que cuente como tarde (espejo de
+ *  `PUNCTUALITY_TOLERANCE` del backend: 5 minutos). */
+const MARGEN_PARA_MARCAR_MS = 5 * 60_000;
+
+/**
+ * Cómo llegó la persona, para decírselo al comercio (puntualidad real,
+ * ADR-0008 act. 2026-11-26): «llegó a horario», «llegó 8 min tarde», o lo que
+ * dijo el propio comercio si la llegada la marcó él. `null` si no hay dato o
+ * si es el reemplazo de un turno ya empezado (no tiene hora pactada).
+ */
+export function llegadaDe(
+  shift: Pick<Shift, "start_at" | "check_in_at" | "arrival_on_time" | "reoffered_at">,
+): string | null {
+  if (shift.arrival_on_time === true) return "llegó a horario";
+  if (shift.arrival_on_time === false) return "llegó tarde";
+  if (!shift.check_in_at || shift.reoffered_at) return null;
+  const demora = new Date(shift.check_in_at).getTime() - new Date(shift.start_at).getTime();
+  if (!Number.isFinite(demora)) return null;
+  if (demora <= MARGEN_PARA_MARCAR_MS) return "llegó a horario";
+  const minutos = Math.round(demora / 60_000);
+  if (minutos < 60) return `llegó ${minutos} min tarde`;
+  const horas = Math.floor(minutos / 60);
+  const resto = minutos % 60;
+  return `llegó ${horas} h${resto ? ` ${resto} min` : ""} tarde`;
+}
+
 /** Con el turno confirmado, lo que se sabe de la reconfirmación (ADR-0031):
  *  contestó «Sí, voy», o se le preguntó y no contestó. */
 type Reconfirmacion = "reconfirmo" | "sin_respuesta" | null;
@@ -106,6 +132,7 @@ function hintWithWorker(
   status: ShiftStatus,
   name: string | null,
   reconfirmacion: Reconfirmacion = null,
+  llegada: string | null = null,
 ): string | null {
   if (status === "confirmado" && reconfirmacion === "reconfirmo") {
     return name ? `${name} reconfirmó que va.` : "Reconfirmó que va.";
@@ -114,6 +141,9 @@ function hintWithWorker(
     return name
       ? `${name} no reconfirmó. Escribile para confirmarlo.`
       : "No reconfirmó. Escribile para confirmarlo.";
+  }
+  if (status === "check_in" && llegada) {
+    return name ? `${name} ${llegada}.` : `${llegada.charAt(0).toUpperCase()}${llegada.slice(1)}.`;
   }
   switch (status) {
     case "asignado":
@@ -157,7 +187,12 @@ export function effectiveStatus(shift: Pick<Shift, "status" | "en_route_at">): S
 export function nextStepFor(shift: Shift): NextStep {
   const status = effectiveStatus(shift);
   const base = NEXT_STEP[status] ?? { hint: "", action: null };
-  const hint = hintWithWorker(status, firstNameOf(shift.worker_name), reconfirmacionDe(shift));
+  const hint = hintWithWorker(
+    status,
+    firstNameOf(shift.worker_name),
+    reconfirmacionDe(shift),
+    llegadaDe(shift),
+  );
   if (base.action === "candidates") {
     return {
       ...base,
