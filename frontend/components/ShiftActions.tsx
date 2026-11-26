@@ -6,7 +6,7 @@ import { useNow } from "@/lib/use-now";
 import Link from "next/link";
 import { Button, Sheet } from "@/components/ui";
 import ShareShiftButton from "@/components/ShareShiftButton";
-import { AlertTriangleIcon, CheckCircleIcon, CopyIcon, MessageIcon } from "@/components/icons";
+import { AlertTriangleIcon, CheckCircleIcon, CopyIcon, MessageIcon, PencilIcon } from "@/components/icons";
 import { isCancellable } from "@/lib/cancelar-turno";
 import { autoFinishPhrase, nextStepFor, type PrimaryAction } from "@/lib/shift-next-step";
 import type { Shift } from "@/lib/types";
@@ -168,6 +168,11 @@ export default function ShiftActions({
             <div className="px-3.5 py-1.5">
               <ShareShiftButton shift={shift} shiftId={shift.id} />
             </div>
+          )}
+          {shift.is_editable && (
+            <MenuLink href={`/shifts/${shift.id}/edit`}>
+              <PencilIcon size={15} /> Editar turno
+            </MenuLink>
           )}
           <MenuLink href={`/shifts/new?duplicate=${shift.id}`}>
             <CopyIcon size={15} /> Duplicar turno

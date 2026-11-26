@@ -132,6 +132,9 @@ class ShiftResponse(BaseModel):
     # Reconfirmación antes del turno (ADR-0031, P3). De las partes: a la
     # persona, si tiene una pregunta sin contestar; al comercio, cuándo
     # reconfirmó o cuándo se le avisó que no contestó.
+    # ¿El comercio lo puede corregir? Mientras nadie esté asignado
+    # (`Shift.is_editable`). La pantalla lo usa para ofrecer «Editar».
+    is_editable: bool = False
     reconfirmation_pending: bool | None = None
     reconfirmed_at: datetime | None = None
     no_reconfirm_alert_sent_at: datetime | None = None

@@ -39,6 +39,9 @@ class NotificationType(str, Enum):
     # U123: al confirmar un turno, la app retira las postulaciones pendientes
     # del trabajador a turnos del mismo horario. Un solo aviso, con cuáles.
     APPLICATIONS_WITHDRAWN = "applications_withdrawn"
+    # El comercio corrigió el horario o bajó el pago de un turno al que la
+    # persona se había postulado: que mire si le sigue sirviendo.
+    APPLIED_SHIFT_CHANGED = "applied_shift_changed"
     # ADR-0015: el sistema resolvió solo un turno cuyo período de gracia se
     # agotó sin llegar a CONFIRMADO. Distinto de SHIFT_NO_SHOW/CANCELLED_LATE
     # a propósito: ninguno de esos dos es la causa, no hay culpa que avisar.
@@ -109,6 +112,7 @@ _DEEP_LINKS: dict[NotificationType, str] = {
     # Se retiraron postulaciones por confirmar otro turno: «Mis turnos», donde
     # está el turno confirmado y lo que sigue postulado.
     NotificationType.APPLICATIONS_WITHDRAWN: "/my-shifts",
+    NotificationType.APPLIED_SHIFT_CHANGED: "/my-shifts",
     # Comercio
     NotificationType.NEW_APPLICANT: "/shifts",
     NotificationType.SHIFT_CONFIRMED: "/shifts",

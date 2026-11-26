@@ -50,6 +50,7 @@ from app.modules.shift.domain.exceptions import (
     ShiftConcurrentModificationError,
     ShiftNotAssignedToWorkerError,
     ShiftNotFoundError,
+    ShiftNotEditableError,
 )
 from app.modules.shift.domain.nearby import FeedOrigin, closest_first, is_nearby, urgent_first
 from app.modules.shift.domain.mensajes import no_se_puede
@@ -328,6 +329,18 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         """Actualiza un turno editable propiedad del comercio."""
         shift = await self._get_owned(company_id, shift_id)
         shift.ensure_editable()
+        # Con gente postulada, el turno sigue siendo el mismo turno: se puede
+        # corregir el horario o el pago (se les avisa), no el puesto, que es
+        # otro trabajo.
+        postulados = await self._active_applicants(shift)
+        if postulados and data.position != shift.position:
+            raise ShiftNotEditableError(
+                "Ya hay personas postuladas: no se puede cambiar el puesto. "
+                "Cancelá este turno y publicá uno nuevo."
+            )
+        avisar = bool(postulados) and shift.cambio_importante(
+            start_at=data.start_at, end_at=data.end_at, pay_amount=data.pay_amount
+        )
 
         # La regla de horario de un turno nuevo (inicio no pasado, 1 a 16 h)
         # sólo corre si se cambia el horario: reenviar el mismo de un borrador
@@ -353,7 +366,40 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         shift.title = data.title
         shift.description = data.description
 
-        return await self._shifts.update(shift)
+        updated = await self._shifts.update(shift)
+        if avisar:
+            await self._notify_applicants_of_change(updated, postulados)
+        return updated
+
+    async def _active_applicants(self, shift: Shift) -> list[UUID]:
+        """Perfiles con una postulación en carrera a un turno ya publicado."""
+        if shift.status == ShiftStatus.BORRADOR:
+            return []
+        return [
+            a.worker_profile_id
+            for a in await self._applications.list_by_shift(shift.id)
+            if a.status == ApplicationStatus.PENDIENTE
+        ]
+
+    async def _notify_applicants_of_change(
+        self, shift: Shift, worker_profile_ids: list[UUID]
+    ) -> None:
+        """El comercio corrigió el horario o bajó el pago: quien se había
+        postulado se entera y decide si sigue (retirarse no cuesta nada)."""
+        nombre = await self._shift_name_with_company(shift)
+        cuando = format_turno_art(shift.start_at, shift.end_at)
+        pago = f"{shift.pay_amount:,.0f}".replace(",", ".")
+        for worker_profile_id in worker_profile_ids:
+            await self._notify_worker(
+                worker_profile_id,
+                NotificationType.APPLIED_SHIFT_CHANGED,
+                "Cambió un turno al que te postulaste",
+                (
+                    f"{nombre} ahora es el {cuando} y paga ${pago}. "
+                    "Mirá si te sigue sirviendo; si no, podés retirar tu postulación."
+                ),
+                link="/my-shifts",
+            )
 
     async def publish_shift(
         self, company_id: UUID, shift_id: UUID, *, notify_nearby: bool = True

@@ -540,7 +540,7 @@ async def get_shift_public(
 @router.put(
     "/{shift_id}",
     response_model=ShiftResponse,
-    summary="Editar un turno (sólo en BORRADOR o PUBLICADO)",
+    summary="Editar un turno propio mientras nadie esté asignado",
 )
 async def update_shift(
     shift_id: UUID,
@@ -553,7 +553,7 @@ async def update_shift(
     except ShiftNotFoundError as exc:
         raise _not_found() from exc
     except ShiftNotEditableError as exc:
-        raise _bad_request("El turno no puede editarse en su estado actual") from exc
+        raise _bad_request(str(exc)) from exc
     except InvalidShiftScheduleError as exc:
         raise _bad_request(str(exc)) from exc
 

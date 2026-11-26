@@ -278,7 +278,29 @@ class Shift:
 
     @property
     def is_editable(self) -> bool:
-        return self.status in EDITABLE_STATUSES
+        """¿El comercio puede corregirlo? Mientras nadie esté comprometido:
+        en borrador, publicado, o reabierto sin persona asignada. Con alguien
+        asignado o confirmado no se edita (esa persona organizó su día con
+        estos datos). Tampoco un turno reofrecido ya empezado."""
+        if self.status in EDITABLE_STATUSES:
+            return True
+        return (
+            self.status == ShiftStatus.BUSCANDO_PERSONAL
+            and self.worker_profile_id is None
+            and self.reoffered_at is None
+        )
+
+    def cambio_importante(
+        self, *, start_at: datetime, end_at: datetime, pay_amount: Decimal
+    ) -> bool:
+        """¿Cambiar a estos datos le cambia el trato a quien ya se postuló?
+        El horario, o el pago hacia abajo. Subir el pago o tocar la
+        descripción no: nadie se retiraría por eso."""
+        return (
+            _naive(self.start_at) != _naive(start_at)
+            or _naive(self.end_at) != _naive(end_at)
+            or Decimal(pay_amount) < Decimal(self.pay_amount)
+        )
 
     @property
     def is_terminal(self) -> bool:

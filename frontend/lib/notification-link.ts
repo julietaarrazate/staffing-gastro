@@ -17,6 +17,7 @@ const BY_TYPE: Record<NotificationType, string> = {
   shift_cancelled: "/my-shifts",
   checkin_reminder: "/my-shifts",
   departure_reminder: "/my-shifts",
+  applied_shift_changed: "/my-shifts",
   reconfirm_request: "/my-shifts",
   worker_not_reconfirmed: "/shifts",
   new_applicant: "/shifts",
