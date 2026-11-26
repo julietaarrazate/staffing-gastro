@@ -95,9 +95,9 @@ const CONFIRM_COPY = {
   "check-out": { title: "¿Marcar tu salida?", yes: "Sí, me fui" },
 } as const;
 
-// La consecuencia en una línea (docs/reference/REPUTATION.md: sólo cancelar
-// una asignación ya confirmada suma una cancelación; rechazar antes de
-// confirmar no).
+// La consecuencia en una línea (docs/reference/REPUTATION.md: cancelar una
+// asignación ya confirmada suma una cancelación, salvo que se avise con 24
+// horas o más; rechazar antes de confirmar no suma).
 function confirmCopy(path: "reject" | "worker-cancel" | "check-out", conAviso = false): string {
   if (path === "reject") return "El comercio va a buscar a otra persona para este turno.";
   if (path === "check-out") return "Das el turno por terminado. No se puede deshacer.";

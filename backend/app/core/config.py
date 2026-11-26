@@ -129,7 +129,8 @@ class Settings(BaseSettings):
     # Reconfirmación antes del turno (ADR-0031, P3): preguntarle a quien
     # confirmó, a las 24 y a las 3 horas, si sigue yendo. Default OFF: se
     # prende cuando la asesoría apruebe el texto de los avisos. Apagada no
-    # sale ningún aviso y cancelar pesa como siempre.
+    # sale ningún aviso. (Que avisar con 24 horas no sume una cancelación ya
+    # no depende de esto: vale siempre desde el 2026-11-26.)
     reconfirmacion_enabled: bool = False
 
     # --- Email transaccional (Resend) ---

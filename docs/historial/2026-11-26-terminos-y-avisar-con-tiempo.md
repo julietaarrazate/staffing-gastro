@@ -46,3 +46,9 @@ llamara a la API a mano (la pantalla no lo ofrece); se cierra con «Ver como»
 sólo para mirar (PRI-09). Cuando se prenda la reconfirmación o exista la
 oferta directa, una frase para cada una (borradores en el documento privado
 de la consulta legal).
+
+## Lo que salió de la revisión independiente
+
+- El cartel no aparecía recién iniciada la sesión: al entrar, la persona llega dentro de la respuesta de los tokens, sin el dato. Ahora, si falta, `TerminosNuevos` se lo pregunta a `/auth/me`.
+- El recorrido guiado quedaba encima del cartel y tapaba «Acepto». Ahora espera a que la persona decida (`data-terminos-pendientes` en el `body`).
+- Comentarios que todavía decían que avisar con 24 horas dependía de la reconfirmación.

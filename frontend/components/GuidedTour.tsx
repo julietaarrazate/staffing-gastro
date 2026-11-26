@@ -64,14 +64,24 @@ export default function GuidedTour({ steps, storageKey }: GuidedTourProps) {
   const [index, setIndex] = useState(0);
   const [rect, setRect] = useState<DOMRect | null>(null);
   const capaRef = useRef<HTMLDivElement>(null);
+  // Si la app está pidiendo aceptar los Términos (`TerminosNuevos`), el
+  // recorrido espera a que la persona decida: dos diálogos a la vez se tapan.
+  const [enEspera, setEnEspera] = useState(false);
+  useEffect(() => {
+    const leer = () => setEnEspera(document.body.hasAttribute("data-terminos-pendientes"));
+    leer();
+    const observador = new MutationObserver(leer);
+    observador.observe(document.body, { attributes: true, attributeFilter: ["data-terminos-pendientes"] });
+    return () => observador.disconnect();
+  }, []);
   // Sólo cuando la capa ya está dibujada (`rect`): antes `capaRef` es null y la
   // trampa no tomaba el foco, que quedaba en la capa de abajo (p. ej. un pedido tapado).
   // Se ata a la capa exterior, que dura todo el recorrido, y no a la tarjeta: ésta se
   // recrea en cada paso (`key={index}`) y la trampa quedaba atada a la del paso anterior.
-  useFocusTrap(capaRef, activeSteps !== null && rect !== null);
+  useFocusTrap(capaRef, activeSteps !== null && rect !== null && !enEspera);
   // Capa por encima de todas (z-[70]): Escape = «Saltar recorrido». Sin esto, el
   // Escape pasaba de largo y cerraba el pedido de notificaciones tapado debajo.
-  useEscapeLayer(activeSteps !== null, finish, 70);
+  useEscapeLayer(activeSteps !== null && !enEspera, finish, 70);
 
   // Se decide una sola vez, al montar, qué pasos tienen un target real en
   // el DOM (algunos, como el filtro de urgentes, sólo existen si hay
@@ -126,7 +136,7 @@ export default function GuidedTour({ steps, storageKey }: GuidedTourProps) {
     }
   }
 
-  if (typeof document === "undefined" || !activeSteps || !rect) return null;
+  if (typeof document === "undefined" || !activeSteps || !rect || enEspera) return null;
 
   const step = activeSteps[index];
   const spaceBelow = window.innerHeight - rect.bottom;

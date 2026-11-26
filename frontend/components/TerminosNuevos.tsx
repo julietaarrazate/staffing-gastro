@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -27,13 +27,43 @@ export default function TerminosNuevos() {
   const toast = useToast();
   const [aceptadoPor, setAceptadoPor] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+  // El dato viene en `/auth/me`. Al iniciar sesión (login, Google, alta) el
+  // usuario llega embebido en la respuesta de los tokens, sin ese campo: sin
+  // esta consulta el cartel recién aparecía al recargar la app.
+  const [consultado, setConsultado] = useState<{ id: string; requerido: boolean } | null>(null);
+  const userId = user?.id ?? null;
+  const sinDato = user !== null && user.terms_acceptance_required === undefined;
+  useEffect(() => {
+    if (!token || !userId || !sinDato || impersonating !== null) return;
+    let vigente = true;
+    api
+      .get<{ terms_acceptance_required?: boolean }>("/auth/me", token)
+      .then((me) => {
+        if (vigente) setConsultado({ id: userId, requerido: Boolean(me.terms_acceptance_required) });
+      })
+      // Si falla, no se pide nada ahora: se vuelve a mirar al abrir la app.
+      .catch(() => {});
+    return () => {
+      vigente = false;
+    };
+  }, [token, userId, sinDato, impersonating]);
+  const requerido =
+    user?.terms_acceptance_required ?? (consultado?.id === userId ? consultado.requerido : false);
 
   const pendiente =
-    Boolean(user?.terms_acceptance_required) &&
+    requerido &&
     !user?.two_factor_setup_required &&
     aceptadoPor !== user?.id &&
     impersonating === null &&
     !LEGALES.includes(pathname);
+
+  // Mientras el cartel está, el recorrido guiado espera (`GuidedTour`): si no,
+  // quedaba encima y tapaba «Acepto».
+  useEffect(() => {
+    if (!pendiente) return;
+    document.body.setAttribute("data-terminos-pendientes", "");
+    return () => document.body.removeAttribute("data-terminos-pendientes");
+  }, [pendiente]);
 
   async function aceptar() {
     if (!token || !user) return;

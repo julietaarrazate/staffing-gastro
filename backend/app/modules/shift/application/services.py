@@ -219,8 +219,9 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         # corre en el momento, como antes.
         run_after_response: Callable[..., None] | None = None,
         # Reconfirmación antes del turno (ADR-0031, P3). Apagada por defecto
-        # (`settings.reconfirmacion_enabled`): sin ella no se pregunta nada,
-        # «Sí, voy» no existe y cancelar pesa como siempre.
+        # (`settings.reconfirmacion_enabled`): sin ella no se pregunta nada
+        # y «Sí, voy» no existe. Que avisar con 24 horas no sume una
+        # cancelación no depende de esto: vale siempre.
         reconfirmacion_activa: bool = False,
     ) -> None:
         self._shifts = shifts

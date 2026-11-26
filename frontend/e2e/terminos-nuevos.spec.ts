@@ -45,6 +45,21 @@ for (const theme of ["light", "dark"] as const) {
   });
 }
 
+test("recién iniciada la sesión, el dato se le pregunta al servidor", async ({ page }) => {
+  // Al entrar (login, Google, alta) la persona llega dentro de la respuesta de
+  // los tokens, sin `terms_acceptance_required`: el cartel no puede esperar a
+  // que se recargue la app.
+  await abrir(page, true, "/terminos");
+  let consultas = 0;
+  await page.route("**/api/v1/auth/me", (r) => {
+    consultas += 1;
+    return r.fulfill(json(consultas === 1 ? PERSONA : { ...PERSONA, terms_acceptance_required: true }));
+  });
+  await page.goto("/my-shifts");
+  await expect(page.getByRole("dialog", { name: "Actualizamos los Términos" })).toBeVisible();
+  expect(consultas).toBe(2);
+});
+
 test("quien ya aceptó la versión vigente no ve nada", async ({ page }) => {
   await abrir(page, false);
   await expect(page.getByRole("dialog", { name: "Actualizamos los Términos" })).toHaveCount(0);
