@@ -7,6 +7,7 @@ import { SITE_URL } from "@/lib/site";
 import { cldOgImage } from "@/lib/cloudinary";
 import { OG_IMAGE_URL } from "@/lib/og";
 import { getTurnoPublico } from "@/lib/turno-publico";
+import { jobPostingDe, jsonLd } from "@/lib/seo";
 
 /**
  * Página pública de un turno (sin autenticación) — pensada para compartirse
@@ -72,6 +73,7 @@ export async function generateMetadata({
     // con la plantilla del layout salía "— Oído — Oído".
     title: { absolute: title },
     description,
+    alternates: { canonical: url },
     openGraph: {
       title,
       description,
@@ -104,5 +106,15 @@ export default async function PublicShiftPage({
     notFound();
   }
 
-  return <ShiftDetail publicShift={turno.shift} />;
+  // Oferta de trabajo para buscadores (Google for Jobs). Sólo con el nombre
+  // del comercio: quien contrata es el comercio, nunca Oído.
+  const oferta = jobPostingDe(turno.shift, getPublicUrl(id));
+  return (
+    <>
+      {oferta && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(oferta) }} />
+      )}
+      <ShiftDetail publicShift={turno.shift} />
+    </>
+  );
 }

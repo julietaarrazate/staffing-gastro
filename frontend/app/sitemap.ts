@@ -9,15 +9,15 @@ const BASE_URL = SITE_URL;
  * existen mientras el turno está abierto a postulaciones) y no hay un
  * endpoint público que las liste, así que se descubren por los links
  * compartidos y su propio Open Graph, no por acá. `changeFrequency`/`priority`
- * son orientativos.
+ * son orientativos. Sin `lastModified`: poner la hora del pedido le decía
+ * a Google que todo cambiaba todo el tiempo.
  */
 export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date();
   return [
-    { url: `${BASE_URL}/`, lastModified: now, changeFrequency: "weekly", priority: 1 },
-    { url: `${BASE_URL}/register`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
-    { url: `${BASE_URL}/login`, lastModified: now, changeFrequency: "yearly", priority: 0.5 },
-    { url: `${BASE_URL}/terminos`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
-    { url: `${BASE_URL}/privacidad`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${BASE_URL}/`, changeFrequency: "weekly", priority: 1 },
+    { url: `${BASE_URL}/register`, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${BASE_URL}/login`, changeFrequency: "yearly", priority: 0.5 },
+    { url: `${BASE_URL}/terminos`, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${BASE_URL}/privacidad`, changeFrequency: "yearly", priority: 0.3 },
   ];
 }

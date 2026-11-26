@@ -10,6 +10,7 @@ export const metadata: Metadata = {
   title: "Términos y Condiciones",
   description:
     "Términos y Condiciones de uso de Oído: qué es la plataforma, cuentas, publicación y postulación a turnos, reputación, suscripciones y más.",
+  alternates: { canonical: "/terminos" },
 };
 
 /** Bloque de sección: título + párrafos cortos, sin juridiqués. */

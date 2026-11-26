@@ -12,7 +12,8 @@ const BASE_URL = SITE_URL;
  * WhatsApp— las páginas públicas de turno `/turno/[id]`) y bloqueamos todo lo
  * que vive detrás de sesión (feed, matches, chats, perfil, admin, suscripción,
  * mapa/búsqueda, fichas de comercio/trabajador) más el reseteo de contraseña,
- * que no aporta SEO y no debería aparecer en resultados.
+ * que no aporta SEO y no debería aparecer en resultados. `/turno/` (público)
+ * no choca con `/shifts` (la app).
  */
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -33,6 +34,15 @@ export default function robots(): MetadataRoute.Robots {
         "/encuesta",
         "/recuperar",
         "/restablecer",
+        // Pantallas de la app que no estaban en la lista (auditoría de SEO,
+        // 2026-11-26): sin sesión son una cáscara vacía con el título genérico.
+        "/shifts",
+        "/support",
+        "/assistant",
+        "/favorites",
+        "/bienvenida",
+        "/verificar-email",
+        "/buscar",
       ],
     },
     sitemap: `${BASE_URL}/sitemap.xml`,

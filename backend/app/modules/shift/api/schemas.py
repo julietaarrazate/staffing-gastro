@@ -362,6 +362,9 @@ class ShiftPublicResponse(BaseModel):
     meal: bool = False
     dress_code: str | None = None
     urgent: bool = False
+    # Cuándo se publicó: lo pide el marcado de oferta de trabajo que lee
+    # Google (`JobPosting.datePosted`, `frontend/lib/seo.ts`). Es del turno.
+    published_at: datetime | None = None
     # La foto del local SÍ va (Julieta, 2026-09-23): es del lugar, no de una
     # persona, y ver dónde se trabaja es lo que convence a quien llega por un
     # link de registrarse. El logo sigue afuera, como se decidió el 2026-09-22.

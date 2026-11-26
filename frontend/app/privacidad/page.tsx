@@ -10,6 +10,7 @@ export const metadata: Metadata = {
   title: "Política de Privacidad",
   description:
     "Política de Privacidad de Oído: qué datos recopilamos, para qué los usamos y con quién los compartimos. No vendemos tus datos, nunca.",
+  alternates: { canonical: "/privacidad" },
 };
 
 /** Bloque de sección: título + párrafos cortos, sin juridiqués. */
