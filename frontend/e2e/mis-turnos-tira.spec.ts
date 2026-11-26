@@ -34,6 +34,9 @@ const TURNOS = () => [
   asig("f6", "2026-12-18"),
 ];
 const visibles = (page: Page) => page.locator("[data-shift-id]");
+// Se lee con `expect.poll`: el encabezado de la semana se dibuja antes de que
+// llegue la lista, y una lectura única justo después podía encontrarla vacía
+// (falló así en CI el 2026-11-26, PR #748).
 const ids = async (page: Page) => (await visibles(page).evaluateAll((els) => els.map((e) => e.getAttribute("data-shift-id")))).sort();
 const dia = (page: Page, nombre: RegExp | string) => page.getByRole("button", { name: nombre });
 
@@ -55,7 +58,7 @@ async function abrir(page: Page, turnos: unknown[] = TURNOS(), extra?: (page: Pa
 test("la semana entera: lo de lunes a domingo, hoy con su aro y sin nada elegido", async ({ page }) => {
   await abrir(page);
   await expect(page.getByText("Esta semana · 16 – 22 nov")).toBeVisible();
-  expect(await ids(page)).toEqual(["hoy", "mie1", "mie2", "sab"]);
+  await expect.poll(() => ids(page)).toEqual(["hoy", "mie1", "mie2", "sab"]);
   await expect(page.locator('[data-shift-id="hoy"]')).toHaveAttribute("data-turno", "destacado");
   // Nada elegido: ningún día apretado y hoy con el aro, sin la tecla blanca.
   await expect(page.locator('[data-dia] button[aria-pressed="true"]')).toHaveCount(0);
@@ -82,19 +85,19 @@ test("tocar un día muestra sólo sus turnos; tocarlo de nuevo vuelve a la seman
   await expect(page.locator('[data-dia="2026-11-18"] .dia-cielo-hoy')).toHaveCount(1);
   // Hoy sin elegir lleva el aro; elegido otro día, sigue con el aro.
   await expect(page.locator('[data-dia="2026-11-19"] .dia-cielo-aro')).toHaveCount(1);
-  expect(await ids(page)).toEqual(["mie1", "mie2"]);
+  await expect.poll(() => ids(page)).toEqual(["mie1", "mie2"]);
   // La tarjeta destacada es de hoy: con otro día elegido no está.
   await expect(page.locator('[data-turno="destacado"]')).toHaveCount(0);
   await expect(page.locator("button.boton-relieve:not(:disabled)")).toHaveCount(0);
   // Elegir otro cambia el elegido (uno solo a la vez).
   await dia(page, "jueves 19, hoy, 1 turno").click();
   await expect(page.locator('[data-dia] button[aria-pressed="true"]')).toHaveCount(1);
-  expect(await ids(page)).toEqual(["hoy"]);
+  await expect.poll(() => ids(page)).toEqual(["hoy"]);
   await expect(page.locator('[data-shift-id="hoy"]')).toHaveAttribute("data-turno", "destacado");
   // Tocar el elegido lo suelta.
   await dia(page, "jueves 19, hoy, 1 turno").click();
   await expect(page.locator('[data-dia] button[aria-pressed="true"]')).toHaveCount(0);
-  expect(await ids(page)).toEqual(["hoy", "mie1", "mie2", "sab"]);
+  await expect.poll(() => ids(page)).toEqual(["hoy", "mie1", "mie2", "sab"]);
 });
 
 test("un día sin turnos es una línea tranquila, no un estado vacío grande", async ({ page }) => {
@@ -107,7 +110,7 @@ test("un día sin turnos es una línea tranquila, no un estado vacío grande", a
   await expect(page.getByTestId("mas-adelante")).toBeVisible();
   await dia(page, "martes 17").click();
   await expect(page.getByTestId("dia-vacio")).toHaveCount(0);
-  expect(await ids(page)).toEqual(["hoy", "mie1", "mie2", "sab"]);
+  await expect.poll(() => ids(page)).toEqual(["hoy", "mie1", "mie2", "sab"]);
 });
 
 test("las flechas cambian de semana, suelta el día elegido y «Volver a esta semana» regresa", async ({ page }) => {
@@ -121,7 +124,7 @@ test("las flechas cambian de semana, suelta el día elegido y «Volver a esta se
   await page.getByRole("button", { name: /^Semana siguiente/ }).click();
   await expect(page.getByText("Semana · 23 – 29 nov")).toBeVisible();
   await expect(page.locator('[data-dia] button[aria-pressed="true"]')).toHaveCount(0);
-  expect(await ids(page)).toEqual(["f1", "f2", "f3", "f4"]);
+  await expect.poll(() => ids(page)).toEqual(["f1", "f2", "f3", "f4"]);
   // Sin hoy en pantalla: ni aro, ni tarjeta destacada.
   await expect(page.locator(".dia-cielo-aro")).toHaveCount(0);
   await expect(page.locator('[data-turno="destacado"]')).toHaveCount(0);
@@ -131,14 +134,14 @@ test("las flechas cambian de semana, suelta el día elegido y «Volver a esta se
 
   await page.getByRole("button", { name: "Volver a esta semana" }).click();
   await expect(page.getByText("Esta semana · 16 – 22 nov")).toBeVisible();
-  expect(await ids(page)).toEqual(["hoy", "mie1", "mie2", "sab"]);
+  await expect.poll(() => ids(page)).toEqual(["hoy", "mie1", "mie2", "sab"]);
   await expect(page.locator('[data-shift-id="hoy"]')).toHaveAttribute("data-turno", "destacado");
 
   // Hacia atrás: la semana pasada se llega con «‹» y no se lista en ningún otro lado.
   await expect(page.getByTestId("mas-adelante")).not.toContainText("13 nov");
   await page.getByRole("button", { name: /^Semana anterior/ }).click();
   await expect(page.getByText("Semana · 9 – 15 nov")).toBeVisible();
-  expect(await ids(page)).toEqual(["ant"]);
+  await expect.poll(() => ids(page)).toEqual(["ant"]);
   await expect(page.getByRole("button", { name: "Semana anterior" })).toBeVisible(); // ya no hay más: sin puntito
   await expect(page.getByRole("button", { name: "Semana siguiente, con turnos" })).toBeVisible();
 });
@@ -158,12 +161,12 @@ test("«Más adelante»: tres filas, «Ver los N que siguen», y tocar una salta
   await mas.getByRole("button", { name: /vie 27 nov/ }).click();
   await expect(page.getByText("Semana · 23 – 29 nov")).toBeVisible();
   await expect(dia(page, /^viernes 27, 1 turno/)).toHaveAttribute("aria-pressed", "true");
-  expect(await ids(page)).toEqual(["f4"]);
+  await expect.poll(() => ids(page)).toEqual(["f4"]);
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
   // Y de otra semana lejana: 18/12 es tres semanas después de la del 23.
   await page.getByTestId("mas-adelante").getByRole("button", { name: /vie 18 dic/ }).click();
   await expect(page.getByText("Semana · 14 – 20 dic")).toBeVisible();
-  expect(await ids(page)).toEqual(["f6"]);
+  await expect.poll(() => ids(page)).toEqual(["f6"]);
   await expect(page.getByTestId("mas-adelante")).toHaveCount(0);
 });
 
@@ -173,7 +176,7 @@ test("teclado: Tab llega a las flechas y a cada día, Enter y Espacio los accion
   await miercoles.focus();
   await page.keyboard.press("Enter");
   await expect(miercoles).toHaveAttribute("aria-pressed", "true");
-  expect(await ids(page)).toEqual(["mie1", "mie2"]);
+  await expect.poll(() => ids(page)).toEqual(["mie1", "mie2"]);
   await page.keyboard.press("Space");
   await expect(miercoles).toHaveAttribute("aria-pressed", "false");
   // Tab pasa al día que sigue (los botones son parte del orden normal).
@@ -210,7 +213,7 @@ test("el filtro vale para las tres pestañas y los contadores siguen contando to
   const pestanas = page.locator("[data-pestanas]");
   await pestanas.getByRole("button", { name: /^Postulaciones/ }).click();
   // Postulaciones: p1 (vie 20) está en la semana; p2 (mar 24) va a «Más adelante».
-  expect(await ids(page)).toEqual(["p1"]);
+  await expect.poll(() => ids(page)).toEqual(["p1"]);
   await expect(page.getByTestId("mas-adelante")).toContainText("mar 24 nov");
   await expect(page.getByTestId("mas-adelante").getByRole("listitem")).toHaveCount(1);
   await expect(dia(page, "viernes 20, 1 turno")).toBeVisible();
@@ -224,12 +227,12 @@ test("el filtro vale para las tres pestañas y los contadores siguen contando to
   await expect(dia(page, "sábado 21")).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId("dia-vacio")).toHaveText("Nada el sábado 21");
   await dia(page, "sábado 21").click();
-  expect(await ids(page)).toEqual(["g1", "g2"]);
+  await expect.poll(() => ids(page)).toEqual(["g1", "g2"]);
   await expect(page.getByTestId("mas-adelante")).toContainText("mar 1 dic");
   await expect(pestanas.getByRole("button", { name: /^Guardados/ })).toContainText("3");
   // Asignados: la semana de los 11 turnos sigue igual.
   await pestanas.getByRole("button", { name: /^Asignados/ }).click();
-  expect(await ids(page)).toEqual(["hoy", "mie1", "mie2", "sab"]);
+  await expect.poll(() => ids(page)).toEqual(["hoy", "mie1", "mie2", "sab"]);
 });
 
 test("un aviso a un turno de otra semana abre esa semana, no una lista sin la tarjeta", async ({ page }) => {
@@ -346,11 +349,11 @@ test("un turno en curso que empezó el domingo a la noche se ve el lunes de madr
   await abrir(page, [enCurso], undefined, "/my-shifts", new Date("2026-11-23T01:00:00-03:00"));
   await expect(page.getByText("Esta semana · 23 – 29 nov")).toBeVisible();
   await expect(page.getByTestId("dia-vacio")).toHaveCount(0);
-  expect(await ids(page)).toEqual(["noche"]);
+  await expect.poll(() => ids(page)).toEqual(["noche"]);
   // Su puntito va en hoy (lunes 23), no en el domingo de la semana anterior.
   const conPunto = await page.locator("[data-dia]").evaluateAll((els) => els.filter((e) => e.querySelector("[data-con-turno]")).map((e) => e.getAttribute("data-dia")));
   expect(conPunto).toEqual(["2026-11-23"]);
   // Y al tocar hoy sigue ahí.
   await page.locator('[data-dia="2026-11-23"] button').click();
-  expect(await ids(page)).toEqual(["noche"]);
+  await expect.poll(() => ids(page)).toEqual(["noche"]);
 });
