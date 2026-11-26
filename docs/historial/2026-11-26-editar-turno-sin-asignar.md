@@ -1,4 +1,4 @@
-# Editar un turno mientras nadie esté asignado (#PR)
+# Editar un turno mientras nadie esté asignado (#747)
 
 **Pedido:** Julieta preguntó (2026-11-26) qué pasa si el comercio se
 equivoca al publicar: si tiene que eliminar el turno y armar otro, o si
