@@ -243,7 +243,9 @@ def without_worker_data(response: ShiftResponse) -> ShiftResponse:
 NO_SHOW_FIELDS = ("no_show_at", "last_no_show_worker_profile_id")
 
 
-def for_worker(response: ShiftResponse, worker_profile_id: UUID) -> ShiftResponse:
+def for_worker(
+    response: ShiftResponse, worker_profile_id: UUID, *, queda_aviso: bool = True
+) -> ShiftResponse:
     """La vista de un turno para un TRABAJADOR: si no lo tiene asignado, la
     de quien no es parte (`without_worker_data`); si lo tiene, el turno
     entero salvo la ausencia de otra persona.
@@ -253,6 +255,9 @@ def for_worker(response: ShiftResponse, worker_profile_id: UUID) -> ShiftRespons
     respuestas de sus propias acciones (confirmar, llegar, salir…)."""
     if response.worker_profile_id != worker_profile_id:
         return without_worker_data(response)
+    # Sin avisos sin peso en el período, cancelar suma aunque avise con tiempo.
+    if not queda_aviso and response.cancel_with_notice:
+        response = response.model_copy(update={"cancel_with_notice": False})
     if response.last_no_show_worker_profile_id == worker_profile_id:
         return response
     return response.model_copy(update={field: None for field in NO_SHOW_FIELDS})

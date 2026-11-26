@@ -101,9 +101,10 @@ const CONFIRM_COPY = {
 function confirmCopy(path: "reject" | "worker-cancel" | "check-out", conAviso = false): string {
   if (path === "reject") return "El comercio va a buscar a otra persona para este turno.";
   if (path === "check-out") return "Das el turno por terminado. No se puede deshacer.";
-  // Avisar con tiempo no pesa (ADR-0031): lo decide el backend (`cancel_with_notice`).
+  // Avisar con tiempo no pesa (ADR-0031), hasta dos veces cada 30 días: lo
+  // decide el backend (`cancel_with_notice`), que ya descuenta el tope.
   if (conAviso) {
-    return "El comercio va a buscar a otra persona. Como avisás con tiempo, no suma a tus cancelaciones.";
+    return "El comercio va a buscar a otra persona. Como avisás con tiempo, no suma a tus cancelaciones. Vale dos veces cada 30 días.";
   }
   return "El comercio va a buscar a otra persona. Esta cancelación suma a las cancelaciones que los comercios ven en tu perfil.";
 }

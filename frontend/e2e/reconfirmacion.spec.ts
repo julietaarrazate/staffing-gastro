@@ -67,7 +67,7 @@ test("«Ya no estoy disponible» avisando con tiempo: el cartel dice que no cuen
   const pedidos = await misTurnos(page, { reconfirmation_pending: true, cancel_with_notice: true });
   await page.locator("[data-reconfirmar]").getByRole("button", { name: "Ya no estoy disponible" }).click();
   const cartel = page.getByRole("dialog");
-  await expect(cartel).toContainText("Como avisás con tiempo, no suma a tus cancelaciones");
+  await expect(cartel).toContainText("Como avisás con tiempo, no suma a tus cancelaciones. Vale dos veces cada 30 días.");
   expect(pedidos).toEqual([]); // nada sale hasta confirmar
   await cartel.getByRole("button", { name: "Sí, cancelar" }).click();
   await expect.poll(() => pedidos).toEqual(["worker-cancel"]);

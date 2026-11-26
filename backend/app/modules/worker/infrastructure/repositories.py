@@ -2,10 +2,13 @@
 
 from uuid import UUID
 
+from datetime import datetime
+
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.identity.infrastructure.models import UserModel
+from app.modules.worker.domain.avisos import usar_aviso
 from app.modules.worker.domain.entities import WorkerProfile
 from app.modules.worker.domain.repositories import WorkerEngagementStats, WorkerProfileRepository
 from app.modules.worker.domain.rules import compute_badges, compute_level
@@ -55,6 +58,8 @@ def _to_entity(model: WorkerProfileModel) -> WorkerProfile:
         events_completed=model.events_completed,
         punctuality_rate=model.punctuality_rate,
         cancellations=model.cancellations,
+        notice_window_started_at=model.notice_window_started_at,
+        notice_cancellations_used=model.notice_cancellations_used,
         no_shows=model.no_shows,
         badges=[WorkerBadge(b) for b in (model.badges or [])],
         level=GamificationLevel(model.level),
@@ -185,6 +190,19 @@ class SqlAlchemyWorkerProfileRepository(WorkerProfileRepository):
         model.cancellations += 1
         self._recompute_badges_and_level(model)
         await self._session.commit()
+
+    async def use_notice_allowance(self, profile_id: UUID, ahora: datetime) -> bool:
+        model = await self._session.get(WorkerProfileModel, profile_id, with_for_update=True)
+        if model is None:
+            return True
+        sin_peso, desde, usados = usar_aviso(
+            model.notice_window_started_at, model.notice_cancellations_used, ahora
+        )
+        if sin_peso:
+            model.notice_window_started_at = desde
+            model.notice_cancellations_used = usados
+            await self._session.commit()
+        return sin_peso
 
     async def lock_agenda(self, profile_id: UUID) -> None:
         # `FOR NO KEY UPDATE` choca con sí mismo pero no con el KEY SHARE que
