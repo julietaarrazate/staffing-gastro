@@ -380,6 +380,25 @@ class IdentityService:
             TermsAcceptance(user_id=user.id, version=LEGAL_TERMS_VERSION, channel=channel)
         )
 
+    async def terms_acceptance_required(self, user: User) -> bool:
+        """¿Esta persona tiene que aceptar los términos vigentes? Sí, si lo
+        último que aceptó es otra versión (o no hay constancia de que haya
+        aceptado alguna: cuentas anteriores al registro de aceptaciones).
+
+        Las cuentas invitadas compartidas no: no son de nadie."""
+        if self._terms_acceptances is None or user.email in GUEST_ACCOUNT_EMAILS:
+            return False
+        aceptadas = await self._terms_acceptances.list_for_user(user.id)
+        return not any(a.version == LEGAL_TERMS_VERSION for a in aceptadas)
+
+    async def accept_current_terms(self, user: User) -> None:
+        """Deja constancia de que `user` aceptó la versión vigente desde la
+        app. La versión la pone el servidor. Si ya la había aceptado, no
+        escribe otra fila."""
+        if not await self.terms_acceptance_required(user):
+            return
+        await self._record_terms_acceptance(user, TermsAcceptanceChannel.APP)
+
     async def refresh(self, refresh_token: str) -> TokenPair:
         """Emite un nuevo par de tokens a partir de un refresh token válido.
 

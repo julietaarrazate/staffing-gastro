@@ -217,6 +217,9 @@ class MeResponse(UserResponse):
     el backend rechaza con 403."""
 
     two_factor_setup_required: bool = False
+    # Los términos cambiaron desde lo último que aceptó esta persona: la app
+    # le pide aceptar la versión vigente antes de seguir.
+    terms_acceptance_required: bool = False
 
 
 # Resuelve el forward-ref `user: "UserResponse"` de TokenResponse ahora que

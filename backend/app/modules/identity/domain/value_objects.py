@@ -34,7 +34,10 @@ LEGAL_TERMS_VERSION = "2026-11-26-1"
 
 
 class TermsAcceptanceChannel(str, Enum):
-    """Desde dónde se aceptaron los términos al crear la cuenta."""
+    """Desde dónde se aceptaron los términos: al crear la cuenta (con email o
+    con Google) o, con la cuenta ya creada, al aceptar una versión nueva desde
+    la app."""
 
     EMAIL = "email"
     GOOGLE = "google"
+    APP = "app"

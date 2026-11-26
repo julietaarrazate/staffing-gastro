@@ -83,6 +83,9 @@ export interface User {
   /** Sólo en `/auth/me`: admin sin la verificación en dos pasos activada
    * (ADR-0023). Con eso la sesión sólo puede ir al alta. */
   two_factor_setup_required?: boolean;
+  /** Sólo en `/auth/me`: los términos cambiaron desde lo último que aceptó;
+   * la app le pide aceptar la versión vigente (`components/TerminosNuevos`). */
+  terms_acceptance_required?: boolean;
 }
 
 export interface Shift {

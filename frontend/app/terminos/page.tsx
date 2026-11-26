@@ -144,9 +144,9 @@ export default function TerminosPage() {
             </p>
           </Section>
 
-          <Section title="Cancelaciones y no-show">
+          <Section title="Cancelaciones y ausencias">
             <p>
-              Si aceptaste un turno y no te presentás sin avisar (no-show), o
+              Si aceptaste un turno y no te presentás sin avisar, o
               cancelás muy sobre la hora, eso queda reflejado en tu
               reputación dentro de la app. Lo mismo si un comercio cancela un
               turno ya confirmado sin previo aviso razonable.

@@ -18,6 +18,7 @@
       "is_verified": false,
       "role": "admin",
       "status": "active",
+      "terms_acceptance_required": false,
       "two_factor_setup_required": false
     },
     "status": 200
@@ -31,6 +32,7 @@
       "is_verified": false,
       "role": "admin",
       "status": "active",
+      "terms_acceptance_required": false,
       "two_factor_setup_required": true
     },
     "status": 200
@@ -44,6 +46,7 @@
       "is_verified": false,
       "role": "employer",
       "status": "active",
+      "terms_acceptance_required": false,
       "two_factor_setup_required": false
     },
     "status": 200
@@ -57,6 +60,7 @@
       "is_verified": false,
       "role": "worker",
       "status": "active",
+      "terms_acceptance_required": false,
       "two_factor_setup_required": false
     },
     "status": 200
