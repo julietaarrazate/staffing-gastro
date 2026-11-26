@@ -62,6 +62,13 @@ async def test_con_postulantes_se_corrige_el_horario_y_se_les_avisa(client: Asyn
     shift_id = await _publicado(client, comercio)
     await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=persona)
 
+    # El detalle le dice al comercio cuántas personas se postularon (la
+    # pantalla lo usa para anticipar el aviso); a la postulante, no.
+    detalle = await client.get(f"/api/v1/shifts/{shift_id}", headers=comercio)
+    assert detalle.json()["pending_applicants_count"] == 1
+    de_ella = await client.get(f"/api/v1/shifts/{shift_id}", headers=persona)
+    assert de_ella.json()["pending_applicants_count"] is None
+
     nuevo_inicio = INICIO + timedelta(hours=1)
     response = await client.put(
         f"/api/v1/shifts/{shift_id}",

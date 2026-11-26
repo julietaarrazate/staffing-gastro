@@ -456,6 +456,11 @@ async def get_shift(
         if current_user.role == UserRole.WORKER:
             # Parte, pero no de la ausencia de quien lo tuvo antes (PRI-01).
             return for_worker(response, shift.worker_profile_id)
+        # Al comercio dueño (y a la admin), cuántas personas se postularon:
+        # «Editar turno» lo usa para anticipar que se les avisa del cambio.
+        # El panel ya lo traía en la lista; el detalle, no.
+        pending = await service.pending_applicant_counts([shift])
+        response.pending_applicants_count = pending.get(shift.id, 0)
         return response
     if shift.status not in OPEN_STATUSES:
         # No-disclosure: un turno ajeno que ya no está abierto no existe

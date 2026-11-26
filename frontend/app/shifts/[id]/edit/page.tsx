@@ -193,8 +193,9 @@ export default function EditarTurnoPage() {
 
           {postulados > 0 && cambioImportante && (
             <p data-aviso-postulantes className="rounded-[14px] bg-surface p-3 text-sm text-ink">
-              Ya {postulados === 1 ? "se postuló" : "se postularon"} {plural(postulados, "persona", "personas")}. Les
-              vamos a avisar del cambio para que vean si les sigue sirviendo.
+              {postulados === 1
+                ? "Ya se postuló 1 persona. Le vamos a avisar del cambio para que vea si le sigue sirviendo."
+                : `Ya se postularon ${plural(postulados, "persona", "personas")}. Les vamos a avisar del cambio para que vean si les sigue sirviendo.`}
             </p>
           )}
           <p className="text-caption text-ink-soft">
