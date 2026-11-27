@@ -5,7 +5,7 @@ entradas privadas. Qué es todo esto, dónde están los videos y cómo retomarlo
 [`docs/reference/TEASER_FUTURO_GASTRONOMIA.md`](../../docs/reference/TEASER_FUTURO_GASTRONOMIA.md).
 
 ```bash
-npm ci
+npm ci                 # solo acorn; Playwright y ffmpeg los trae el entorno
 ./receta.sh            # lista los pasos
 ```
 
@@ -22,4 +22,4 @@ en `trabajo/`, que git ignora.
 | `sonido.js`, `recortar-sonido.js` | Graba la banda de sonido y la alinea con los cuadros |
 | `cuadros.js`, `corte-h.json`, `corte-v.json` | Dibuja los tramos de cada corte |
 | `armar.js` | Une cuadros, sonido y placa en los MP4 |
-| `placa.js`, `placa-h.png`, `placa-v.png`, `fuentes/` | La placa final con la marca |
+| `placa.js`, `placa-h.png`, `placa-v.png`, `fuentes/` | La placa final con la marca (Young Serif, licencia SIL Open Font 1.1) |

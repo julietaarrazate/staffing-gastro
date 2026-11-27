@@ -3,8 +3,13 @@ const { chromium } = require('playwright'); const fs = require('fs'); const path
 const [,, file, outDir, vw, vh, segFile, fpsArg = '30', everyArg = '1', onlyArg = ''] = process.argv;
 const fps = +fpsArg, every = +everyArg, all = JSON.parse(fs.readFileSync(segFile, 'utf8')), only = onlyArg ? onlyArg.split(',').map(Number) : null;
 const segs = all.map((s, i) => ({ i, f0: Math.round(s[0] * fps), f1: Math.round(s[1] * fps), name: s[2] })).filter(s => !only || only.includes(s.i));
+if (!segs.length) { console.error('ningún tramo para dibujar' + (onlyArg ? ' con «' + onlyArg + '»' : '') + ': el corte tiene ' + all.length + ', numerados del 0 al ' + (all.length - 1)); process.exit(1); }
 (async () => {
   fs.mkdirSync(outDir, { recursive: true });
+  // cada tramo se dibuja de cero: se borran sus cuadros viejos y se anota con qué corte se hizo, para que armar.js no mezcle cortes
+  const manFile = path.join(outDir, 'tramos.json'), man = fs.existsSync(manFile) ? JSON.parse(fs.readFileSync(manFile, 'utf8')) : {};
+  for (const s of segs) { const pre = 's' + String(s.i).padStart(2, '0') + '_'; for (const f of fs.readdirSync(outDir)) if (f.startsWith(pre)) fs.rmSync(path.join(outDir, f)); delete man[s.i]; }
+  fs.writeFileSync(manFile, JSON.stringify(man));
   const b = await chromium.launch({ args: ['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist'] });
   const p = await b.newPage({ viewport: { width: +vw, height: +vh }, deviceScaleFactor: 1 }); p.setDefaultTimeout(0);
   p.on('pageerror', e => console.log('PAGEERROR', String(e).slice(0, 300)));
@@ -24,7 +29,9 @@ const segs = all.map((s, i) => ({ i, f0: Math.round(s[0] * fps), f1: Math.round(
     }
     return log;
   }, { segs, fps, every });
-  fs.writeFileSync(path.join(outDir, 'eventos.json'), JSON.stringify(log));
+  for (const s of segs) man[s.i] = all[s.i];
+  fs.writeFileSync(manFile, JSON.stringify(man));
+  if (!only) fs.writeFileSync(path.join(outDir, 'eventos.json'), JSON.stringify(log)); // el registro completo, solo cuando se dibujó todo el corte
   console.log('listo', n, 'cuadros en', ((Date.now() - t0) / 60000).toFixed(1), 'min');
   await b.close();
 })();

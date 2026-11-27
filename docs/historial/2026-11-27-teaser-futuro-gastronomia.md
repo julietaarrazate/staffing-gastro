@@ -31,8 +31,14 @@ presentación, el guion y el archivo de referencia.
   lectura de `marketing/` y una sesión nueva no podría leer la receta.
 - **Verificado:** con las entradas del archivo privado, la receta reproduce
   byte a byte la presentación publicada, las dos versiones para grabar, las
-  placas y el video vertical entregado. El recorte del sonido difiere en menos
-  de un milisegundo del que se usó.
+  placas, los cuadros de un tramo redibujado y el video vertical de máxima
+  calidad (con ffmpeg 6.1.1). El liviano sale equivalente pero no idéntico, y
+  el recorte del sonido difiere en menos de un milisegundo del que se usó.
+- **Revisión independiente:** otro agente encontró que al redibujar un tramo
+  podían quedar cuadros viejos y desfasar el sonido sin avisar, y que la nota
+  mandaba a usar una opción que `receta.sh` no pasaba. Ahora `cuadros` limpia
+  y registra cada tramo, `armar` se niega si los cuadros no corresponden al
+  corte, y `./receta.sh cuadros h 3,4` dibuja solo esos tramos.
 
 **Queda abierto:** el visto bueno de Julieta antes de publicar (ítem en
 `../STATUS.md` → «Pendiente de Julieta»). No se hizo el video completo de 8
