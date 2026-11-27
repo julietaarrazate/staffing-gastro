@@ -868,10 +868,19 @@ servidor con un solo `h1`).
 - [x] Los turnos abiertos van al mapa del sitio: **sí** (Julieta,
   2026-11-27). Por hacer; prever que un comercio pueda excluir un turno.
 
-**Pendiente de decidir (2026-11-27):** un ensayo general automático antes de
-abrir, sobre `tools/e2e-local`: usuarios simulados que recorren el camino
-completo y los casos de falla, con informe y capturas. Va en una sesión
-propia.
+**Ensayo general (✅ #761, 2026-11-27):** `node
+tools/e2e-local/ensayo/ensayo.mjs` recorre la app real en local con usuarios
+simulados, en diez escenarios (camino feliz, verificación, cancelaciones,
+ausencia, urgente, permisos, admin y soporte, Términos, fallas de terceros y
+recorrido visual), con informe y capturas fuera del repo. Primera corrida:
+235 pasos bien, 4 fallas (ninguna grave) y 2 sin cubrir; las reglas de fondo
+cumplen. Las cuatro fallas se arreglan aparte: el turno publicado por la
+pantalla no guardaba la dirección del local, el aviso de mail al registrarse
+afirmaba un envío que pudo fallar, Candidatos de un turno ajeno parecía un
+turno vacío, y «Volver a admin» desde un chat dejaba errores. Para mirar
+después: con Términos viejos sin aceptar el bloqueo es sólo de pantalla (el
+servidor informa pero deja operar). Conviene correrlo antes de cada tanda
+grande y el día anterior a abrir.
 
 ## Asistente y soporte con IA (decidido el 2026-11-27)
 
