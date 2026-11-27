@@ -85,13 +85,18 @@ Qué rehacer según el cambio:
   → `armar`. Si solo cambió el largo de un tramo, alcanza con redibujar ese. Si
   se agregó, se sacó o se movió un tramo, cambia la numeración de los que
   siguen y hay que redibujarlos también.
-
-`cuadros` borra los cuadros viejos de cada tramo antes de dibujarlo y anota en
-`tramos.json` con qué corte lo hizo. `armar` se niega a seguir, y dice qué
-tramo redibujar, si los cuadros no corresponden al corte.
 - **La placa final:** editar `placa.js` → `placas` → `armar`.
 - **Otro formato** (cuadrado, 4:5): un `corte` nuevo y `cuadros.js` con ese
   tamaño; la presentación se acomoda sola a pantallas verticales.
+
+`cuadros` borra los cuadros viejos de cada tramo antes de dibujarlo y anota en
+`tramos.json` con qué corte lo hizo. `armar` se niega a seguir, y dice qué
+tramo redibujar, si los cuadros no corresponden al corte. Ese registro compara
+el corte, no la presentación: después de cambiar una frase, `armar` no sabe si
+se redibujó el tramo correcto. Hay que buscar en qué tramos aparece la frase
+(puede estar en más de uno) y redibujarlos todos. `cuadros.js` acepta dibujar
+uno de cada N cuadros para una prueba rápida; `armar` solo arma tramos
+dibujados completos.
 
 Si un cambio de texto mueve los tiempos (`linea` avisa), hay que revisar los
 cortes y volver a grabar el sonido.
@@ -106,7 +111,7 @@ cortes y volver a grabar el sonido.
   algunas transiciones entre escenas. Los cortes vigentes no usan esos
   momentos; un corte nuevo que incluya una transición hay que escucharlo.
 - El video de máxima calidad sale idéntico byte a byte cada vez (con ffmpeg
-  6.1.1). El liviano no: el tope de peso hace que el codificador no sea
+  6.1.1 y los mismos cuadros). El liviano no: el tope de peso hace que el codificador no sea
   determinista, y sale equivalente pero no igual.
 - Claude no escucha audio: el sonido se controló midiendo el volumen y en qué
   segundo empieza cada golpe, no de oído.
