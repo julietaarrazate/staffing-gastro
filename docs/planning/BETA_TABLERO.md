@@ -845,11 +845,11 @@ servidor con un solo `h1`).
 | Dirección canónica y título propios en Términos, Privacidad, ingreso y registro; el `og:url` fijo a la portada ya no se hereda | ✅ |
 | `llms.txt` (qué es Oído, para quién, dónde, páginas) | ✅ |
 | Mapa del sitio sin fecha inventada; `lang="es-AR"` | ✅ |
-| Turnos abiertos en el mapa del sitio (`GET /shifts/public-index`: sólo `id` y `published_at`; `app/sitemap.ts`) | ✅ en la rama `local/sitemap`, PR #PENDIENTE |
+| Turnos abiertos en el mapa del sitio (`GET /shifts/public-index`: sólo `id` y `published_at`; `app/sitemap.ts`) | ✅ en la rama `local/sitemap`, PR #760 |
 | Páginas de contenido: para comercios, para trabajar, por puesto | ⚪ es lo que más falta; lleva redacción |
-| `WebSite` y `Organization` en la portada, con descripción propia («nexo tecnológico», no agencia ni empleador; `organizacionOido` y `sitioWebOido` en `lib/seo.ts`) | ✅ en la rama `local/sitemap`, PR #PENDIENTE; `Service` queda sin hacer |
+| `WebSite` y `Organization` en la portada, con descripción propia («nexo tecnológico», no agencia ni empleador; `organizacionOido` y `sitioWebOido` en `lib/seo.ts`) | ✅ en la rama `local/sitemap`, PR #760; `Service` queda sin hacer |
 | Textos alternativos en las fotos de la landing | ⚪ |
-| `*.workers.dev` con `X-Robots-Tag: noindex` (`frontend/cloudflare/noindex-workers-dev.mjs`, en la entrada del Worker) | ✅ en la rama `local/sitemap`, PR #PENDIENTE; falta mirarlo en la dirección real tras el deploy |
+| `*.workers.dev` con `X-Robots-Tag: noindex` (`frontend/cloudflare/noindex-workers-dev.mjs`, en la entrada del Worker) | ✅ en la rama `local/sitemap`, PR #760; falta mirarlo en la dirección real tras el deploy |
 
 **De Julieta:**
 - [x] `oido.com.ar` dado de alta en Google Search Console como propiedad de

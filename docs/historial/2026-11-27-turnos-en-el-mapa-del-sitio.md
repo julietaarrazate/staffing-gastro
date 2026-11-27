@@ -1,4 +1,4 @@
-# Turnos abiertos en el mapa del sitio, datos de la portada y `noindex` en workers.dev (#PENDIENTE)
+# Turnos abiertos en el mapa del sitio, datos de la portada y `noindex` en workers.dev (#760)
 
 **Pedido:** que los buscadores descubran las páginas públicas de turno (`/turno/<id>`), que la portada diga bien qué es Oído y que la dirección técnica `*.workers.dev` no se indexe.
 
