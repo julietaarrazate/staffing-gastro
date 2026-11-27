@@ -163,3 +163,42 @@ test("falla el GET del turno: sin «Elegir» y con error y reintento", async ({ 
   await page.getByRole("button", { name: "Reintentar" }).first().click();
   await expect(page.getByRole("button", { name: /^Elegir/ }).first()).toBeVisible();
 });
+
+const SIN_VERIFICAR = { ...APPLICANT, application_id: "application-9", worker_profile_id: "wp-9", full_name: "Nico Nuevo", falta_verificar: true };
+const VERIFICADA = { ...APPLICANT, full_name: "Vera Verificada", identidad_verificada: true, falta_verificar: false };
+
+test("quien no verificó su identidad se ve de entrada y no ofrece «Elegir»", async ({ page }) => {
+  await setupCandidatos(page, "publicado");
+  // Como llega del servidor: primero quien se puede elegir.
+  await page.route("**/api/v1/applications/shifts/shift-1", (r) => r.fulfill(json([VERIFICADA, SIN_VERIFICAR])));
+  await page.goto("/shifts/shift-1/candidates");
+  // Vera va en la tarjeta grande, con el botón.
+  await expect(page.getByRole("button", { name: "Elegir a Vera" })).toBeVisible();
+  // Nico, en su fila: lo dice ahí mismo y no tiene botón.
+  const fila = page.locator("[data-fila-candidato]").filter({ hasText: "Nico Nuevo" });
+  await expect(fila.getByTestId("falta-verificar-candidato")).toHaveText("Todavía no verificó su identidad");
+  await expect(fila.getByRole("button")).toHaveCount(0);
+  await expect(page.getByTestId("nadie-verificado")).toHaveCount(0);
+});
+
+test("si nadie de la lista verificó, la pantalla lo dice arriba y no queda ningún «Elegir»", async ({ page }) => {
+  await setupCandidatos(page, "publicado");
+  await page.route("**/api/v1/applications/shifts/shift-1", (r) => r.fulfill(json([SIN_VERIFICAR])));
+  await page.route("**/api/v1/shifts/shift-1/candidates", (r) => r.fulfill(json([{ ...CANDIDATE, falta_verificar: true }])));
+  await page.goto("/shifts/shift-1/candidates");
+  await expect(page.getByTestId("nadie-verificado")).toContainText("Nadie de esta lista verificó");
+  await expect(page.getByRole("button", { name: /^Elegir/ })).toHaveCount(0);
+  await page.getByRole("button", { name: /Recomendados/ }).click();
+  await expect(page.getByText("Mateo Sugerido")).toBeVisible();
+  await expect(page.getByTestId("nadie-verificado")).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Elegir/ })).toHaveCount(0);
+});
+
+test("turno ya asignado: no se promete «vas a poder elegir» a quien falta verificar", async ({ page }) => {
+  await setupCandidatos(page, "asignado");
+  await page.route("**/api/v1/applications/shifts/shift-1", (r) => r.fulfill(json([SIN_VERIFICAR])));
+  await page.goto("/shifts/shift-1/candidates");
+  await expect(page.getByText("Nico Nuevo").first()).toBeVisible();
+  await expect(page.getByTestId("falta-verificar-candidato")).toHaveCount(0);
+  await expect(page.getByTestId("nadie-verificado")).toHaveCount(0);
+});

@@ -37,6 +37,7 @@ export default function CandidatoDestacado({
   signals,
   rotulo,
   onElegir,
+  faltaVerificar = false,
   eligiendo = false,
   bloqueado = false,
 }: {
@@ -49,6 +50,8 @@ export default function CandidatoDestacado({
   rotulo?: string | null;
   /** Sin esto no hay botón: el turno ya no admite elegir. */
   onElegir?: () => void;
+  /** No verificó su identidad y hace falta para elegirla. */
+  faltaVerificar?: boolean;
   eligiendo?: boolean;
   bloqueado?: boolean;
 }) {
@@ -59,7 +62,11 @@ export default function CandidatoDestacado({
   const conSello = Boolean(signals.nuevo_verificado) && datos.some((d) => d.clave === "nuevo");
   const perfil = `/workers/${perfilId}`;
   const conFoto = Boolean(foto) && !fotoRota;
-  const boton = onElegir && (
+  const boton = faltaVerificar ? (
+    <p data-testid="falta-verificar-candidato" className="rounded-2xl bg-surface-2 px-4 py-3 text-center text-small text-ink-soft">
+      Todavía no verificó su identidad. Cuando lo haga vas a poder elegir a esta persona.
+    </p>
+  ) : onElegir && (
     <Button
       fullWidth
       size="lg"

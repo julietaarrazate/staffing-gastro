@@ -5,6 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
+from app.core.config import settings
 from app.core.idempotency import IdempotencyRecorder, idempotent
 from app.core.rate_limit import RateLimiter
 from app.modules.company.api.dependencies import get_company_repository
@@ -215,7 +216,7 @@ async def shift_applicants(
         )
     except ShiftNotFoundError as exc:
         raise _SHIFT_NOT_FOUND from exc
-    return [
+    respuestas = [
         ApplicantResponse(
             application_id=applicant.application_id,
             worker_profile_id=applicant.worker_profile_id,
@@ -232,6 +233,9 @@ async def shift_applicants(
             badges=list(applicant.badges),
             level=applicant.level,
             identidad_verificada=fila.identidad_verificada,
+            falta_verificar=(
+                settings.verificacion_obligatoria and not fila.identidad_verificada
+            ),
             es_favorito=fila.es_favorito,
             trabajo_aca=fila.trabajo_aca,
             turnos_en_el_puesto=fila.turnos_en_el_puesto,
@@ -240,3 +244,9 @@ async def shift_applicants(
         for fila in ordenados
         for applicant in (fila.postulante,)
     ]
+    # A quien todavía no se puede elegir va después de quienes sí (y antes de
+    # quienes ya tuvieron el turno y lo dejaron, que siguen al final): la
+    # primera persona de la lista tiene que ser una que el comercio pueda
+    # elegir. El orden entre pares no cambia (`sort` es estable).
+    respuestas.sort(key=lambda r: 2 if r.motivo is not None else int(r.falta_verificar))
+    return respuestas

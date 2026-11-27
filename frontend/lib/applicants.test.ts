@@ -23,6 +23,7 @@ function applicant(overrides: Partial<Applicant>): Applicant {
     badges: [],
     level: "bronce",
     identidad_verificada: false,
+    falta_verificar: false,
     es_favorito: false,
     trabajo_aca: false,
     turnos_en_el_puesto: 0,
