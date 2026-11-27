@@ -792,6 +792,15 @@ prueba, y las invitadas quedan sin entrada al vaciar el PIN.
   Términos `2026-11-27-1` publicados (#755). Hay que revisar la cola de
   verificaciones al menos una vez por día: quien no está verificado no puede
   tomar un turno.
+- **El repositorio sigue público durante la beta** (decisión del 2026-11-27):
+  las pruebas automáticas gastan unos 23.000 minutos por mes, gratis por ser
+  público; privado alcanzan 2.000. Se revisa cuando Oído facture. Lo que lo
+  hace sostenible: ninguna clave en el código, los tres controles de
+  seguridad de cada PR y la estrategia fuera del repositorio.
+- **GitHub sin gasto posible:** la cuenta no tiene medio de pago y todos los
+  límites de gasto están en $0; al agotarse el cupo privado las tareas se
+  frenan, no se cobran. El único repositorio privado con tareas es
+  `oido-respaldos`.
 - [ ] En Render, `api.oido.com.ar` figura «Waiting for DNS» y su certificado
   «Waiting for Verification» (visto el 2026-11-27). La API responde bien por
   Cloudflare; falta confirmar que el certificado de origen no dependa de esa
