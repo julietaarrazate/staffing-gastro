@@ -1,23 +1,31 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/site";
+import { turnosParaElMapa } from "@/lib/sitemap-turnos";
 
 const BASE_URL = SITE_URL;
 
+// Se arma en cada pedido (no en el build): los turnos abiertos cambian todo el
+// día. Oído no usa ISR en Cloudflare (`open-next.config.ts`), así que una
+// página prerenderizada quedaría congelada con los turnos del día del deploy.
+export const dynamic = "force-dynamic";
+
 /**
- * Sitemap de las páginas públicas indexables. Sólo las estáticas de entrada y
- * legales: las páginas públicas de turno (`/turno/[id]`) son efímeras (sólo
- * existen mientras el turno está abierto a postulaciones) y no hay un
- * endpoint público que las liste, así que se descubren por los links
- * compartidos y su propio Open Graph, no por acá. `changeFrequency`/`priority`
- * son orientativos. Sin `lastModified`: poner la hora del pedido le decía
- * a Google que todo cambiaba todo el tiempo.
+ * Sitemap de las páginas públicas indexables: las fijas (entrada y legales) más
+ * las de los turnos abiertos hoy (`/turno/[id]`, con `lastModified` = cuándo se
+ * publicó), que pide `GET /shifts/public-index` (`lib/sitemap-turnos.ts`). Si el
+ * backend no responde, sale igual sólo con las fijas: nunca un error.
+ * `changeFrequency`/`priority` son orientativos. Las fijas van sin
+ * `lastModified`: poner la hora del pedido le decía a Google que todo cambiaba
+ * todo el tiempo.
  */
-export default function sitemap(): MetadataRoute.Sitemap {
-  return [
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const fijas: MetadataRoute.Sitemap = [
     { url: `${BASE_URL}/`, changeFrequency: "weekly", priority: 1 },
     { url: `${BASE_URL}/register`, changeFrequency: "monthly", priority: 0.8 },
     { url: `${BASE_URL}/login`, changeFrequency: "yearly", priority: 0.5 },
     { url: `${BASE_URL}/terminos`, changeFrequency: "yearly", priority: 0.3 },
     { url: `${BASE_URL}/privacidad`, changeFrequency: "yearly", priority: 0.3 },
   ];
+  const turnos = await turnosParaElMapa();
+  return [...fijas, ...turnos.map((t) => ({ ...t, priority: 0.6 }))];
 }

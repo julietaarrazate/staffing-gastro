@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import LandingGate from "@/components/landing/LandingGate";
 import { PREGUNTAS } from "@/components/landing/preguntas";
-import { SITE_URL } from "@/lib/site";
+import { jsonLd, organizacionOido, sitioWebOido } from "@/lib/seo";
 import { INSTALAR_SCRIPT } from "@/lib/instalar-script";
 
 // La home declara su URL canónica (sin parámetros como `?rol=` o los de las
@@ -22,18 +22,8 @@ export const viewport: Viewport = {
 };
 
 const DATOS = [
-  {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    name: "Oído",
-    url: SITE_URL,
-    logo: `${SITE_URL}/icon-512.png`,
-    areaServed: { "@type": "City", name: "Ciudad Autónoma de Buenos Aires" },
-    // Las cuentas oficiales de la marca: con esto un buscador sabe que esa
-    // cuenta y este sitio son lo mismo (Julieta, 2026-11-18). Si se suma otra
-    // red, va acá.
-    sameAs: ["https://www.instagram.com/oidoapp/"],
-  },
+  sitioWebOido(),
+  organizacionOido(),
   {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -50,8 +40,8 @@ export default function Home() {
     <>
       <script
         type="application/ld+json"
-        // Escapado de `<` para que un texto nunca pueda cerrar el <script>.
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(DATOS).replace(/</g, "\\u003c") }}
+        // `jsonLd` escapa `<` para que un texto nunca pueda cerrar el <script>.
+        dangerouslySetInnerHTML={{ __html: jsonLd(DATOS) }}
       />
       {/* Atrapa el aviso de "se puede instalar" de Android aunque llegue
           antes de que la página termine de cargar (lib/instalar.ts). */}

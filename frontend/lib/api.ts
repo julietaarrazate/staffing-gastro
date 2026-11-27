@@ -5,7 +5,7 @@ import { plural } from "@/lib/format";
 // El backend siempre es el servicio remoto en Render. NEXT_PUBLIC_API_URL
 // (inyectado en next.config.ts) permite sobrescribirlo si algún día hiciera
 // falta apuntar a otro entorno, pero por defecto no hay localhost.
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://staffya-backend.onrender.com/api/v1";
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://staffya-backend.onrender.com/api/v1";
 
 export class ApiError extends Error {
   status: number;
