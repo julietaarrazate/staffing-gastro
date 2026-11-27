@@ -331,7 +331,7 @@ test("si el guardado falla sin conexión, el Inicio conserva los turnos y sólo 
   await expect(page.getByText("No se pudo actualizar tu disponibilidad")).toBeVisible();
   await page.waitForTimeout(500);
   await expect(page.getByText("Bar Demo Palermo").first()).toBeVisible();
-  await expect(page.getByText("No se pudo cargar")).toHaveCount(0);
+  await expect(page.getByText("No pudimos cargar")).toHaveCount(0);
   expect(pedidosFeed).toBe(feedAntes);
   await expect(page.getByText("Disponible", { exact: true })).toBeVisible();
 });

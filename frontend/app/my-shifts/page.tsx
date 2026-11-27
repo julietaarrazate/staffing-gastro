@@ -33,7 +33,7 @@ import {
   Button,
   CardSkeletons,
   EmptyState,
-  ErrorBanner,
+  ErrorState,
   Modal,
   NubesCielo,
   SegmentedControl,
@@ -218,8 +218,8 @@ function MatchesContent() {
     try {
       const [assigned, apps, saved, prof] = await Promise.all([
         api.get<Shift[]>("/shifts/mine", token),
-        api.get<ShiftApplication[]>("/applications/mine", token).catch(() => []),
-        api.get<Shift[]>("/saved-shifts", token).catch(() => []),
+        api.get<ShiftApplication[]>("/applications/mine", token),
+        api.get<Shift[]>("/saved-shifts", token),
         api.get<WorkerProfile>("/workers/me/profile", token).catch(() => null),
       ]);
       if (mine !== latestLoad.current) return;
@@ -831,7 +831,7 @@ function MatchesContent() {
         />
 
       {loading && <CardSkeletons />}
-      {error && <ErrorBanner message={error} onRetry={() => load()} />}
+      {error && <ErrorState onRetry={() => load()} />}
 
       {!loading && !error && tab === "asignados" && (
         <div className="mt-5">

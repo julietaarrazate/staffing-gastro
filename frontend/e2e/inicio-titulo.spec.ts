@@ -252,7 +252,7 @@ test("si el feed falla, el título no queda en el esqueleto: dice «Inicio» y a
   await inicio(page, { feed: [] });
   await page.route("**/api/v1/shifts/feed**", (r) => r.fulfill({ status: 500, contentType: "application/json", body: '{"detail":"x"}' }));
   await page.goto("/feed");
-  await expect(page.getByRole("heading", { level: 2, name: "No se pudo cargar" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "No pudimos cargar" })).toBeVisible();
   await expect(titulo(page)).toHaveAccessibleName("Inicio");
   await expect(page.getByTestId("inicio-cielo")).toHaveAttribute("data-estado", "con-error");
 });

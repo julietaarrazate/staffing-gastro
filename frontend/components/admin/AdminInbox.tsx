@@ -32,10 +32,21 @@ const EMPTY: AdminInbox = {
   noShowsToday: null,
 };
 
-const AdminInboxContext = createContext<{ inbox: AdminInbox; loaded: boolean }>({
+const AdminInboxContext = createContext<{
+  inbox: AdminInbox;
+  loaded: boolean;
+  /** Vuelve a pedir los pendientes (el «Reintentar» de «Hoy»). */
+  reload: () => void;
+}>({
   inbox: EMPTY,
   loaded: false,
+  reload: () => {},
 });
+
+/** Algún número no se pudo saber: «Hoy» no puede decir «Al día» por eso. */
+export function inboxIncompleto(inbox: AdminInbox): boolean {
+  return Object.values(inbox).some((n) => n === null);
+}
 
 async function count(promise: Promise<unknown[]>): Promise<number | null> {
   try {
@@ -85,7 +96,7 @@ export function AdminInboxProvider({
   }, [load, refreshKey]);
 
   return (
-    <AdminInboxContext.Provider value={{ inbox, loaded }}>{children}</AdminInboxContext.Provider>
+    <AdminInboxContext.Provider value={{ inbox, loaded, reload: () => void load() }}>{children}</AdminInboxContext.Provider>
   );
 }
 
