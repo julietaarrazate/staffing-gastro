@@ -36,6 +36,8 @@ from app.modules.shift.infrastructure.repositories import SqlAlchemyShiftReposit
 from app.modules.subscription.infrastructure.repositories import (
     SqlAlchemySubscriptionRepository,
 )
+from app.modules.verification.domain.value_objects import ClaimType
+from app.modules.verification.infrastructure.repositories import SqlAlchemyClaimRepository
 from app.modules.worker.api.dependencies import get_worker_service
 from app.modules.worker.application.services import WorkerProfileService
 from app.modules.worker.domain.entities import WorkerProfile
@@ -67,6 +69,10 @@ def get_shift_service(
         # El email de aceptación sale después de la respuesta.
         run_after_response=background_tasks.add_task,
         reconfirmacion_activa=settings.reconfirmacion_enabled,
+        verificacion_obligatoria=settings.verificacion_obligatoria,
+        identity_verified=lambda user_ids: SqlAlchemyClaimRepository(session).verified_user_ids(
+            user_ids, ClaimType.DOCUMENTO_VERIFICADO
+        ),
     )
 
 

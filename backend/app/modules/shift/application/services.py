@@ -1,7 +1,7 @@
 """Casos de uso del módulo shift (publicación y ciclo de vida del turno)."""
 
 import logging
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
 
@@ -45,6 +45,7 @@ from app.modules.shift.domain.pay_benchmark import (
 from app.modules.shift.domain.exceptions import (
     AdminCloseNotAllowedError,
     AssigneeNotFoundError,
+    AssigneeNotVerifiedError,
     AssigneeUnavailableError,
     InvalidShiftTransitionError,
     ShiftConcurrentModificationError,
@@ -224,6 +225,12 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         # y «Sí, sigo disponible» no existe. Que avisar con 24 horas no sume una
         # cancelación no depende de esto: vale siempre.
         reconfirmacion_activa: bool = False,
+        # Verificación de identidad obligatoria para ser asignado
+        # (`settings.verificacion_obligatoria`). `identity_verified` es el
+        # puerto de lectura del dominio Identity: de estos usuarios, cuáles
+        # tienen el documento verificado. Sin el puerto, la regla no aplica.
+        verificacion_obligatoria: bool = False,
+        identity_verified: Callable[[list[UUID]], Awaitable[set[UUID]]] | None = None,
     ) -> None:
         self._shifts = shifts
         self._workers = workers
@@ -237,6 +244,8 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         self._favorites = favorites
         self._run_after_response = run_after_response
         self._reconfirmacion_activa = reconfirmacion_activa
+        self._verificacion_obligatoria = verificacion_obligatoria
+        self._identity_verified = identity_verified
 
     async def create_shift(self, company_id: UUID, data: ShiftData) -> Shift:
         """Crea un turno en estado BORRADOR para el comercio dado."""
@@ -1617,6 +1626,11 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         user = await self._users.get_by_id(profile.user_id)
         if user is None or not user.is_active:
             raise AssigneeUnavailableError()
+        # Identidad sin verificar (2026-11-26): postularse es libre, pero
+        # para que le asignen un turno la persona tiene que estar verificada.
+        if self._verificacion_obligatoria and self._identity_verified is not None:
+            if user.id not in await self._identity_verified([user.id]):
+                raise AssigneeNotVerifiedError()
         shift.assign(worker_profile_id)
         updated = await self._shifts.update(shift)
         logger.info(

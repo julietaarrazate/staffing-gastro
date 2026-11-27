@@ -117,6 +117,10 @@ class WorkerProfileResponse(BaseModel):
     # Identidad (EPIC-001, ADR-0010): atributo del dominio Identity, NO una
     # insignia de reputación. Lo ve el comercio; nunca se exponen evidencias.
     identidad_verificada: bool = False
+    # ¿Hace falta estar verificado para que te asignen un turno?
+    # (`settings.verificacion_obligatoria`). La app lo usa para avisarle a
+    # quien se postuló sin verificarse.
+    verificacion_requerida: bool = False
     created_at: datetime | None = None
 
 

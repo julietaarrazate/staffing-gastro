@@ -77,7 +77,9 @@ export default function PrivacidadPage() {
                 <strong>Perfil:</strong> foto, ciudad, domicilio
                 aproximado, presentación, posiciones en las que trabajás, años
                 de experiencia, idiomas, certificaciones y, si lo subís, tu
-                CV.
+                CV. El CV lo ve el comercio con el que tenés un turno o una
+                postulación, con un link que vence a los minutos; si lo
+                cambiás o lo sacás, lo borramos.
               </li>
               <li>
                 <strong>Verificación de identidad (opcional):</strong> foto de
@@ -151,9 +153,9 @@ export default function PrivacidadPage() {
               <li>
                 <strong>Ubicación:</strong> durante el check-in y check-out de
                 un turno ya confirmado, para verificar que estuviste ahí; y
-                mientras vos elijas avisar que vas en camino, para que el
-                comercio vea que estás llegando. Esto último lo prendés y lo
-                apagás vos: cuando lo apagás, borramos esa posición y el
+                mientras vos elijas avisar que vas en camino: en ese rato el
+                comercio ve tu ubicación en vivo en un mapa, hasta que marcás
+                tu llegada. Esto último lo prendés y lo apagás vos: cuando lo apagás, borramos esa posición y el
                 comercio deja de ver dónde estás. Sólo funciona desde dos
                 horas antes del turno, se corta solo cuando marcás tu
                 llegada, y guardamos únicamente tu última posición, nunca el

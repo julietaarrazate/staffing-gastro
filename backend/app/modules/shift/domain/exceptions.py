@@ -18,6 +18,12 @@ class AssigneeUnavailableError(ShiftError):
     entrar a confirmar, y el turno quedaría esperando para siempre."""
 
 
+class AssigneeNotVerifiedError(ShiftError):
+    """La persona a asignar todavía no verificó su identidad, y la
+    verificación es obligatoria para tomar un turno
+    (`settings.verificacion_obligatoria`)."""
+
+
 class InvalidShiftTransitionError(ShiftError):
     """La transición de estado solicitada no es válida desde el estado actual."""
 

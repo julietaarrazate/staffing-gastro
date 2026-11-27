@@ -6,6 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.cloudinary import CloudinaryNotConfiguredError
+from app.core.config import settings
 from app.modules.identity.api.dependencies import get_current_user, require_roles
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.repositories import UserRepository
@@ -77,6 +78,7 @@ async def _to_response(
     response.full_name = user.full_name if user else None
     verified = await verification.verified_user_ids([profile.user_id])
     response.identidad_verificada = profile.user_id in verified
+    response.verificacion_requerida = settings.verificacion_obligatoria
     response.cv_kind = "file" if profile.cv_file else "link" if profile.cv_url else None
     return response
 
