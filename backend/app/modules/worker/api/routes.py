@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.cloudinary import CloudinaryNotConfiguredError
 from app.core.config import settings
+from app.modules.verification.domain.value_objects import ClaimStatus, ClaimType
 from app.modules.identity.api.dependencies import get_current_user, require_roles
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.repositories import UserRepository
@@ -79,6 +80,13 @@ async def _to_response(
     verified = await verification.verified_user_ids([profile.user_id])
     response.identidad_verificada = profile.user_id in verified
     response.verificacion_requerida = settings.verificacion_obligatoria
+    if response.verificacion_requerida and not response.identidad_verificada:
+        # Una consulta más, sólo para quien todavía no está verificado.
+        resumen = await verification.get_identity_summary(profile.user_id)
+        response.verificacion_en_revision = any(
+            c.claim_type == ClaimType.DOCUMENTO_VERIFICADO and c.status == ClaimStatus.PENDIENTE
+            for c in resumen.claims
+        )
     response.cv_kind = "file" if profile.cv_file else "link" if profile.cv_url else None
     return response
 

@@ -47,14 +47,16 @@ async def _turno_y_persona(client: AsyncClient, prefix: str) -> tuple[str, dict,
     return shift_id, employer, worker, profile.json()["id"]
 
 
-async def _verificar(session_factory, worker_profile_id: str) -> None:
+async def _verificar(
+    session_factory, worker_profile_id: str, estado: ClaimStatus = ClaimStatus.VERIFICADA
+) -> None:
     async with session_factory() as session:
         perfil = await session.get(WorkerProfileModel, UUID(worker_profile_id))
         session.add(
             IdentityClaimModel(
                 user_id=perfil.user_id,
                 claim_type=ClaimType.DOCUMENTO_VERIFICADO.value,
-                status=ClaimStatus.VERIFICADA.value,
+                status=estado.value,
             )
         )
         await session.commit()
@@ -127,3 +129,19 @@ async def test_el_perfil_propio_dice_si_hace_falta_verificarse(
     await _verificar(session_factory, perfil)
     mio = (await client.get("/api/v1/workers/me/profile", headers=worker)).json()
     assert mio["identidad_verificada"] is True
+
+
+@pytest.mark.asyncio
+async def test_quien_ya_mando_sus_documentos_figura_en_revision_y_todavia_no_se_le_asigna(
+    client, session_factory, obligatoria
+):
+    shift_id, employer, worker, perfil = await _turno_y_persona(client, "vo_pend")
+    mio = (await client.get("/api/v1/workers/me/profile", headers=worker)).json()
+    assert mio["verificacion_en_revision"] is False
+
+    await _verificar(session_factory, perfil, ClaimStatus.PENDIENTE)
+
+    mio = (await client.get("/api/v1/workers/me/profile", headers=worker)).json()
+    assert mio["verificacion_en_revision"] is True
+    assert mio["identidad_verificada"] is False
+    assert (await _asignar(client, shift_id, employer, perfil)).status_code == 409

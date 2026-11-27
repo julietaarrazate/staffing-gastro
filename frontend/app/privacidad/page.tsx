@@ -77,8 +77,9 @@ export default function PrivacidadPage() {
                 <strong>Perfil:</strong> foto, ciudad, domicilio
                 aproximado, presentación, posiciones en las que trabajás, años
                 de experiencia, idiomas, certificaciones y, si lo subís, tu
-                CV. El CV lo ve el comercio con el que tenés un turno o una
-                postulación, con un link que vence a los minutos; si lo
+                CV. El CV lo ve el comercio con el que tenés o tuviste un
+                turno o una postulación. Si lo subiste como archivo, se lo
+                mostramos con un link que vence a los minutos, y si lo
                 cambiás o lo sacás, lo borramos.
               </li>
               <li>

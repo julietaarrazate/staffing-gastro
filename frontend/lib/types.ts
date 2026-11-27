@@ -361,6 +361,8 @@ export interface CvFileRef {
 export interface WorkerProfile {
   /** ¿Hace falta la identidad verificada para que te asignen un turno? */
   verificacion_requerida?: boolean;
+  /** Ya mandó los documentos y falta que los revisen. */
+  verificacion_en_revision?: boolean;
   id: string;
   user_id: string;
   full_name?: string | null;

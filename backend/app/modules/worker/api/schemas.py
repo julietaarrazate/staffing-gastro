@@ -121,6 +121,9 @@ class WorkerProfileResponse(BaseModel):
     # (`settings.verificacion_obligatoria`). La app lo usa para avisarle a
     # quien se postuló sin verificarse.
     verificacion_requerida: bool = False
+    # Ya mandó los documentos y falta que una persona del equipo los revise:
+    # el aviso no le pide que los cargue de nuevo.
+    verificacion_en_revision: bool = False
     created_at: datetime | None = None
 
 

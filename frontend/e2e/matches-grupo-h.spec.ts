@@ -278,3 +278,16 @@ test("con la identidad verificada, o si no es obligatoria, el aviso no aparece",
   await expect(page.getByRole("heading", { name: "Postulaciones" })).toBeAttached();
   await expect(page.getByTestId("falta-verificar")).toHaveCount(0);
 });
+
+test("quien ya mandó sus documentos ve que están en revisión, no que le faltan", async ({ page }) => {
+  await abrir(page, saved, assigned, apps, "/my-shifts", {
+    verificacion_requerida: true,
+    identidad_verificada: false,
+    verificacion_en_revision: true,
+  });
+  await page.getByRole("button", { name: /^Postulaciones/ }).click();
+  const aviso = page.getByTestId("falta-verificar");
+  await expect(aviso).toContainText("Estamos revisando tu identidad");
+  await expect(aviso).not.toContainText("Te falta verificar");
+  await expect(aviso.getByRole("link")).toHaveCount(0);
+});

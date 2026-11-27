@@ -903,20 +903,30 @@ function MatchesContent() {
                 data-testid="falta-verificar"
                 className="mb-3 rounded-[14px] bg-surface p-4"
               >
-                <p className="text-sm font-bold text-ink">
-                  Te falta verificar tu identidad
-                </p>
-                <p className="mt-1 text-caption text-ink-soft">
-                  Ya te postulaste, pero el comercio sólo puede elegirte cuando
-                  tu identidad esté verificada. Cargás tu DNI y una selfie en
-                  unos minutos, y la revisa una persona del equipo.
-                </p>
-                <Link
-                  href="/profile"
-                  className="mt-2 inline-block text-sm font-bold text-ink underline underline-offset-2"
-                >
-                  Verificar mi identidad
-                </Link>
+                {profile.verificacion_en_revision ? (
+                  <>
+                    <p className="text-sm font-bold text-ink">Estamos revisando tu identidad</p>
+                    <p className="mt-1 text-caption text-ink-soft">
+                      Ya recibimos tu DNI y tu selfie. Cuando una persona del equipo
+                      los apruebe, el comercio va a poder elegirte.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-bold text-ink">Te falta verificar tu identidad</p>
+                    <p className="mt-1 text-caption text-ink-soft">
+                      Ya te postulaste, pero el comercio sólo puede elegirte cuando
+                      tu identidad esté verificada. Cargás tu DNI y una selfie en
+                      unos minutos, y la revisa una persona del equipo.
+                    </p>
+                    <Link
+                      href="/profile"
+                      className="mt-2 inline-block text-sm font-bold text-ink underline underline-offset-2"
+                    >
+                      Verificar mi identidad
+                    </Link>
+                  </>
+                )}
               </div>
             )}
             <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2">
