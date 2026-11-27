@@ -76,6 +76,15 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
      desbordaba (quedó con test). `ShiftCard` no se tocó: solo la usa la landing.
   3. Etapa 6 (SEO y GEO): base técnica hecha el 2026-11-26; falta el
      contenido y lo de Julieta (tablero, «Etapa 6: SEO y GEO»).
+- 🟢 **Tanda del 2026-11-26 y 27, en producción:** orden de postulantes (#745),
+  reconfirmación (#746, prendida el 27), editar turno (#747), puntualidad real
+  (#749), Términos con re-aceptación (#750), textos de disponibilidad y
+  legales con el diseño vigente (#751), tope de avisos sin peso (#752), base
+  de SEO (#753), verificación obligatoria y textos (#755, prendida el 27).
+  En curso: «Ver como» sólo lectura (#756). **Lo que sigue:** Render a
+  Starter (urgente, lo hace Julieta), el resto de su lista del día que abre,
+  el ensayo general automático y las páginas de contenido de SEO (ver el
+  tablero).
   4. Mails (plantillas del backend) y piezas de redes/campañas/videos con la
      marca vigente (`design-system/marca-hoy.md`); la landing queda como está.
 
