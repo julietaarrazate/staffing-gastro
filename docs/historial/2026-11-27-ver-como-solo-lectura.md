@@ -1,4 +1,4 @@
-# «Ver como» es sólo para mirar (#PR)
+# «Ver como» es sólo para mirar (#756)
 
 **Antes:** con «Ver como», la admin recibía un token igual al de la persona:
 podía postularse, cancelar, publicar, escribir en un chat o marcar avisos como
