@@ -1,5 +1,6 @@
 import { SKILL_LABELS, type ShiftPublic } from "@/lib/types";
 import { buildShiftSummary } from "@/lib/shift-share";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * Datos estructurados para buscadores y asistentes (etapa 6, SEO y GEO).
@@ -66,3 +67,42 @@ export function jsonLd(datos: unknown): string {
   return JSON.stringify(datos).replace(/</g, "\\u003c");
 }
 
+
+/** Cómo se presenta Oído a buscadores y asistentes. Oído es un nexo
+ *  tecnológico entre comercios y trabajadores: ni agencia de empleo ni
+ *  empleador (mismo texto que `public/llms.txt`). */
+const DESCRIPCION_OIDO =
+  "Oído es una plataforma que conecta comercios gastronómicos con trabajadores para cubrir turnos en el día. " +
+  "Es un nexo tecnológico: no es una agencia de empleo ni el empleador, cada turno lo acuerdan el comercio y la persona.";
+
+/** `Organization` de la portada: quién es Oído. Sólo datos ya públicos del
+ *  sitio (logo, la cuenta oficial de Instagram); sin teléfono ni dirección. */
+export function organizacionOido(): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "Oído",
+    url: SITE_URL,
+    logo: `${SITE_URL}/icon-512.png`,
+    description: DESCRIPCION_OIDO,
+    areaServed: { "@type": "City", name: "Ciudad Autónoma de Buenos Aires" },
+    // Las cuentas oficiales de la marca: con esto un buscador sabe que esa
+    // cuenta y este sitio son lo mismo (Julieta, 2026-11-18). Si se suma otra
+    // red, va acá.
+    sameAs: ["https://www.instagram.com/oidoapp/"],
+  };
+}
+
+/** `WebSite` de la portada: el nombre del sitio y su idioma. Sin
+ *  `SearchAction`: la búsqueda de turnos es de la app, detrás de sesión. */
+export function sitioWebOido(): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Oído",
+    url: SITE_URL,
+    inLanguage: "es-AR",
+    description: DESCRIPCION_OIDO,
+    publisher: { "@type": "Organization", name: "Oído", url: SITE_URL },
+  };
+}

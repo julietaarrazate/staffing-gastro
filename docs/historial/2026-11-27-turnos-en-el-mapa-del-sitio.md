@@ -1,0 +1,16 @@
+# Turnos abiertos en el mapa del sitio, datos de la portada y `noindex` en workers.dev (#760)
+
+**Pedido:** que los buscadores descubran las páginas públicas de turno (`/turno/<id>`), que la portada diga bien qué es Oído y que la dirección técnica `*.workers.dev` no se indexe.
+
+**Qué cambió:**
+- Backend: `GET /api/v1/shifts/public-index`, sin sesión. Devuelve hasta 1000 turnos, más nuevos primero (`published_at` desc), con **sólo `id` y `published_at`**. `Cache-Control: public, max-age=300` y tope de 30 pedidos por minuto por IP (`RateLimiter`, 429 al pasarse). Capas: `ShiftRepository.list_public_index` (puerto en `shift/domain/repositories.py`, SQL en `shift/infrastructure/repositories.py`), `ShiftService.list_public_index`, ruta y `ShiftPublicIndexItem` en `shift/api/`. Tests en `backend/tests/test_shift_public_index.py`.
+- Frontend: `app/sitemap.ts` (ahora asíncrono y `force-dynamic`) suma `/turno/<id>` con `lastModified` = `published_at`; lo pide `lib/sitemap-turnos.ts` a `NEXT_PUBLIC_API_URL` (`API_URL` de `lib/api.ts`, ahora exportada) con `next.revalidate = 3600` y 5 s de espera. Si el backend falla, contesta mal o no responde, el mapa sale igual con las páginas fijas.
+- Portada: `WebSite` y `Organization` (JSON-LD, con `jsonLd`) armados en `lib/seo.ts` (`sitioWebOido`, `organizacionOido`); la descripción dice «nexo tecnológico» y «no es una agencia de empleo ni el empleador». Sin teléfono, dirección ni redes nuevas (sólo el Instagram que ya estaba).
+- `*.workers.dev`: `frontend/cloudflare/noindex-workers-dev.mjs` pone `X-Robots-Tag: noindex` si el host termina en `workers.dev`; envuelve el handler en `cloudflare/worker.mjs`, por fuera de la caché de turnos. No hay `middleware` en el proyecto y `next.config` no puede condicionar por host, así que el Worker es el lugar más simple.
+
+**Por qué así:**
+- **Qué turnos se listan:** estado abierto (`OPEN_STATUSES`), con `published_at`, con la hora de inicio todavía por delante y de un comercio con la cuenta activa (ADR-0024). Es un **subconjunto** de lo que `GET /shifts/{id}/public` contesta con 200: lo que allá da 404 o 410 acá no entra (un test lo comprueba). Quedan afuera a propósito el borrador, el cancelado, el tomado, el empezado, el comercio suspendido y el **reofrecido que ya empezó** (el público lo sirve, pero dura horas y no vale la pena anunciarlo). Los turnos viejos sin `published_at` tampoco (no hay fecha que informar).
+- `force-dynamic` porque Oído no usa ISR en Cloudflare (`open-next.config.ts`): un mapa prerenderizado quedaría congelado con los turnos del día del deploy. Pero `force-dynamic` anula el `revalidate` y OpenNext no escribe caché, así que cada pedido llamaría al backend: la revisión independiente lo marcó y se agregó `frontend/cloudflare/sitemap-cache.mjs` (Cache API del Worker, 10 minutos, sólo GET y 200, por dentro del `noindex` para que la copia no lleve esa cabecera; mismo patrón que `turno-cache.mjs`). El `revalidate` de una hora queda para donde el caché de datos de Next escribe.
+- No es un dato nuevo de nadie: la lista no trae comercio ni personas, y cada página ya era pública con su link.
+
+**Queda abierto:** mirar `sitemap.xml` y la cabecera en producción tras el deploy y reenviar el mapa en Search Console; `Service` en la portada; páginas de contenido (ver `docs/planning/BETA_TABLERO.md`, etapa 6).

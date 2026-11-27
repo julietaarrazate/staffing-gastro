@@ -371,6 +371,16 @@ class ShiftPublicResponse(BaseModel):
     company_cover_url: str | None = None
 
 
+class ShiftPublicIndexItem(BaseModel):
+    """Una entrada del mapa del sitio: sólo el id del turno y cuándo se
+    publicó. Nada del comercio ni de ninguna persona."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    published_at: datetime
+
+
 class CompanyCheckInRequest(BaseModel):
     """«Ya llegó»: el comercio marca la llegada de quien no la marcó."""
 

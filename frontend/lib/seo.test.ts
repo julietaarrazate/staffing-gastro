@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { jobPostingDe, jsonLd } from "./seo";
+import { jobPostingDe, jsonLd, organizacionOido, sitioWebOido } from "./seo";
 import type { ShiftPublic } from "./types";
 
 const TURNO: ShiftPublic = {
@@ -70,5 +70,25 @@ describe("jsonLd", () => {
     const texto = jsonLd({ name: "Bar </script><script>alert(1)</script>" });
     expect(texto).not.toContain("</script>");
     expect(JSON.parse(texto).name).toBe("Bar </script><script>alert(1)</script>");
+  });
+});
+
+describe("datos estructurados de la portada", () => {
+  it("WebSite y Organization dicen que Oído es un nexo, no agencia ni empleador", () => {
+    for (const datos of [sitioWebOido(), organizacionOido()]) {
+      const texto = String(datos.description);
+      expect(texto).toContain("nexo tecnológico");
+      expect(texto).toContain("no es una agencia de empleo ni el empleador");
+    }
+    expect(sitioWebOido()).toMatchObject({ "@type": "WebSite", url: "https://www.oido.com.ar", inLanguage: "es-AR" });
+    expect(organizacionOido()).toMatchObject({ "@type": "Organization", name: "Oído" });
+  });
+
+  it("no inventa teléfono, dirección ni redes", () => {
+    const org = organizacionOido();
+    for (const clave of ["telephone", "address", "email", "contactPoint"]) expect(org).not.toHaveProperty(clave);
+    expect(org.sameAs).toEqual(["https://www.instagram.com/oidoapp/"]);
+    expect(JSON.stringify(sitioWebOido())).not.toMatch(/employmentAgency|EmploymentAgency/);
+    expect(JSON.stringify(org)).not.toMatch(/employmentAgency|EmploymentAgency/);
   });
 });
