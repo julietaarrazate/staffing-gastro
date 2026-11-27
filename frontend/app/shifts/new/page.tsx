@@ -145,10 +145,21 @@ function NewShiftWizard() {
   const [missingFields, setMissingFields] = useState<string[]>([]);
   // Dictado por voz (pedido de Julieta: "es donde más se aprovecha" un
   // asistente de IA — más rápido hablar el turno que tipearlo).
-  const { listening, supported: speechSupported, toggle: toggleDictation } = useVoiceDictation(
-    (transcript) =>
-      setDescribeText((prev) => (prev ? `${prev} ${transcript}` : transcript).slice(0, 500))
-  );
+  // Lo dictado cae en el mismo renglón que lo escrito: la persona lo ve, lo
+  // corrige y recién después toca «Completar». `revisarDictado` se lo recuerda
+  // hasta que edita o completa (el dictado del navegador se equivoca con
+  // números y horarios, y un pedido mal oído arma mal el turno).
+  const [revisarDictado, setRevisarDictado] = useState(false);
+  const {
+    listening,
+    supported: speechSupported,
+    toggle: toggleDictation,
+    interim: dictadoEnVivo,
+    error: errorDeDictado,
+  } = useVoiceDictation((transcript) => {
+    setDescribeText((prev) => (prev ? `${prev} ${transcript}` : transcript).slice(0, 500));
+    setRevisarDictado(true);
+  });
   // Pantalla "esto es lo que sigue" (Fix 2, docs/planning/PULIDO_ROADMAP.md): se
   // guarda el id recién publicado y se navega recién cuando el comercio
   // interactúa con la pantalla (no de inmediato), a diferencia del
@@ -335,6 +346,7 @@ function NewShiftWizard() {
 
   async function parseWithAI() {
     if (!token || !describeText.trim()) return;
+    setRevisarDictado(false);
     setParseError(null);
     setMissingFields([]);
     setParsingText(true);
@@ -739,7 +751,10 @@ function NewShiftWizard() {
                   <div className="relative mt-2">
                     <textarea
                       value={describeText}
-                      onChange={(e) => setDescribeText(e.target.value)}
+                      onChange={(e) => {
+                        setDescribeText(e.target.value);
+                        setRevisarDictado(false);
+                      }}
                       rows={3}
                       maxLength={LIMITES.pedidoAsistente}
                       placeholder="Ej: necesito un mozo el sábado a la noche, se paga 45000"
@@ -765,7 +780,27 @@ function NewShiftWizard() {
                   </div>
                   <div className="mt-2 flex items-center justify-between gap-2">
                     {listening ? (
-                      <p className="text-xs font-semibold text-primary-text">Escuchando…</p>
+                      <p role="status" className="min-w-0 text-xs font-semibold text-primary-text">
+                        Escuchando…
+                        {dictadoEnVivo && (
+                          <span data-testid="dictado-en-vivo" className="font-normal text-ink-soft">
+                            {" "}
+                            «{dictadoEnVivo}»
+                          </span>
+                        )}
+                      </p>
+                    ) : errorDeDictado ? (
+                      <p role="status" data-testid="dictado-error" className="text-xs text-danger-text">
+                        {errorDeDictado === "permiso"
+                          ? "No tenemos permiso para usar el micrófono. Activalo en el navegador o escribí el pedido."
+                          : errorDeDictado === "sin_voz"
+                            ? "No te escuchamos. Probá de nuevo más cerca del micrófono, o escribilo."
+                            : "No pudimos tomar el dictado. Probá de nuevo o escribilo."}
+                      </p>
+                    ) : revisarDictado && describeText.trim() && !parsingText && !parseError ? (
+                      <p role="status" data-testid="dictado-revisar" className="text-xs font-medium text-warning-text">
+                        Revisá lo que escuchamos y corregilo si hace falta.
+                      </p>
                     ) : parsingText ? (
                       <OidoLoader size="sm" label="Leyendo tu pedido…" />
                     ) : parseError ? (

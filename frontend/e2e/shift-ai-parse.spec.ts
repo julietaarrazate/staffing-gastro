@@ -193,6 +193,107 @@ test("el botón de dictado por voz aparece junto al textarea de descripción", a
     .fill("mozo el sábado");
 });
 
+/**
+ * El dictado se ve mientras se habla y queda en el renglón para corregirlo
+ * antes de «Completar» (Julieta, 2026-11-27: «por voz no lo toma bien»). Se
+ * reemplaza el reconocimiento del navegador por uno de mentira que la prueba
+ * maneja: así se prueban los tres momentos sin micrófono.
+ */
+async function conDictadoDeMentira(page: import("@playwright/test").Page) {
+  await page.addInitScript(() => {
+    class Falso {
+      lang = "";
+      interimResults = false;
+      maxAlternatives = 1;
+      onresult: ((e: unknown) => void) | null = null;
+      onerror: ((e?: unknown) => void) | null = null;
+      onend: (() => void) | null = null;
+      start() {
+        (window as unknown as { __dictado: Falso }).__dictado = this;
+      }
+      stop() {
+        this.onend?.();
+      }
+    }
+    (window as unknown as { webkitSpeechRecognition: unknown }).webkitSpeechRecognition = Falso;
+    (window as unknown as { SpeechRecognition: unknown }).SpeechRecognition = Falso;
+  });
+}
+const COMERCIO = {
+  id: "user-2",
+  email: "demo.palermo@staffya.com",
+  full_name: "Comercio Demo",
+  role: "employer",
+  status: "activo",
+  is_active: true,
+  is_verified: true,
+};
+async function abrirNuevoTurno(page: import("@playwright/test").Page) {
+  await injectSession(page);
+  await blockExternalHosts(page);
+  await mockEmptyNotifications(page);
+  await page.route("**/api/v1/auth/me", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(COMERCIO) })
+  );
+  await page.goto("/shifts/new");
+}
+const decir = (page: import("@playwright/test").Page, tramos: { t: string; final: boolean }[]) =>
+  page.evaluate((tramos) => {
+    const r = (window as unknown as { __dictado: { onresult: (e: unknown) => void } }).__dictado;
+    r.onresult({ results: tramos.map((x) => ({ 0: { transcript: x.t }, isFinal: x.final })) });
+  }, tramos);
+
+test("lo dictado se ve mientras se habla, queda en el renglón y pide revisarlo", async ({ page }) => {
+  await conDictadoDeMentira(page);
+  await abrirNuevoTurno(page);
+  const renglon = page.getByPlaceholder("Ej: necesito un mozo el sábado a la noche, se paga 45000");
+
+  await page.getByRole("button", { name: "Dictar por voz" }).click();
+  await decir(page, [{ t: "necesito un mozo", final: false }]);
+  // Todavía no está confirmado: se muestra aparte, no en el renglón.
+  await expect(page.getByTestId("dictado-en-vivo")).toContainText("necesito un mozo");
+  await expect(renglon).toHaveValue("");
+
+  await decir(page, [{ t: "necesito un mozo el sábado", final: true }]);
+  await expect(renglon).toHaveValue("necesito un mozo el sábado");
+  // Un segundo aviso con el mismo tramo no lo escribe dos veces.
+  await decir(page, [
+    { t: "necesito un mozo el sábado", final: true },
+    { t: "se paga setenta", final: false },
+  ]);
+  await expect(renglon).toHaveValue("necesito un mozo el sábado");
+
+  await page.getByRole("button", { name: "Detener dictado" }).click();
+  await expect(page.getByTestId("dictado-revisar")).toHaveText(
+    "Revisá lo que escuchamos y corregilo si hace falta."
+  );
+  // Al corregirlo a mano, el recordatorio se va.
+  await renglon.fill("necesito un mozo el sábado, se paga 70000");
+  await expect(page.getByTestId("dictado-revisar")).toHaveCount(0);
+});
+
+test("si el micrófono no tiene permiso o no se oye nada, la pantalla lo dice", async ({ page }) => {
+  await conDictadoDeMentira(page);
+  await abrirNuevoTurno(page);
+  const fallar = (motivo: string) =>
+    page.evaluate((motivo) => {
+      (window as unknown as { __dictado: { onerror: (e: unknown) => void } }).__dictado.onerror({
+        error: motivo,
+      });
+    }, motivo);
+
+  await page.getByRole("button", { name: "Dictar por voz" }).click();
+  await fallar("not-allowed");
+  await expect(page.getByTestId("dictado-error")).toContainText("No tenemos permiso para usar el micrófono");
+  await expect(page.getByRole("button", { name: "Dictar por voz" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Dictar por voz" }).click();
+  // Al volver a intentar, el error anterior se limpia.
+  await expect(page.getByTestId("dictado-error")).toHaveCount(0);
+  await fallar("no-speech");
+  await expect(page.getByTestId("dictado-error")).toContainText("No te escuchamos");
+});
+
 // U061: el wizard salta de paso al completar con IA, y «Me falta saber…» se
 // quedaba en el paso 0, fuera de vista. Ahora se muestra en el paso donde cae.
 test("«Me falta saber…» se ve en el paso al que salta el asistente", async ({ page }) => {
