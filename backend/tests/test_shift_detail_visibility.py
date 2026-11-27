@@ -129,3 +129,49 @@ async def test_reopened_shift_hides_who_did_not_show_up(client: AsyncClient):
     # El comercio, en cambio, sí sabe quién le faltó.
     own = (await client.get(f"/api/v1/shifts/{shift_id}", headers=employer)).json()
     assert own["last_no_show_worker_profile_id"] is not None
+
+
+async def test_worker_with_session_sees_the_exact_address_but_the_public_page_does_not(
+    client: AsyncClient,
+):
+    """Decisión de Julieta (2026-11-27): quien tiene sesión de trabajador ve la
+    dirección exacta del local en el detalle (antes y después de postularse) y en
+    «Mis turnos». La página pública (sin sesión) sigue sin ella."""
+    employer = await _employer_with_company(client, "dir_emp@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts",
+        headers=employer,
+        json=_shift_payload(
+            address="Gorriti 5000",
+            city="Palermo",
+            latitude=-34.58,
+            longitude=-58.43,
+            start_at=(datetime.now(timezone.utc) + timedelta(days=3)).replace(tzinfo=None).isoformat(),
+            end_at=(datetime.now(timezone.utc) + timedelta(days=3, hours=6)).replace(tzinfo=None).isoformat(),
+        ),
+    )
+    assert created.status_code == 201
+    shift_id = created.json()["id"]
+    assert created.json()["address"] == "Gorriti 5000"
+    published = await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer)
+    assert published.status_code == 200
+    worker, _ = await _worker_with_profile(client, "dir_w@staffya.com")
+
+    detail = await client.get(f"/api/v1/shifts/{shift_id}", headers=worker)
+    assert detail.status_code == 200
+    assert detail.json()["address"] == "Gorriti 5000"
+
+    public = await client.get(f"/api/v1/shifts/{shift_id}/public")
+    assert public.status_code == 200
+    assert "Gorriti" not in public.text
+    assert "address" not in public.json()
+    assert "latitude" not in public.json()
+
+
+async def test_assigned_worker_sees_the_address_in_my_shifts(client: AsyncClient):
+    shift_id, employer_headers, worker_headers = await _confirmed_shift(
+        client, "dir2_emp@staffya.com", "dir2_w@staffya.com", address="Gorriti 5000"
+    )
+    mine = await client.get("/api/v1/shifts/mine", headers=worker_headers)
+    assert mine.status_code == 200
+    assert {s["address"] for s in mine.json() if s["id"] == shift_id} == {"Gorriti 5000"}

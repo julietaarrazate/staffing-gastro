@@ -10,6 +10,7 @@ import { diaCortoArgentina } from "@/lib/semana";
 import { payView } from "@/lib/pay";
 import { downloadShiftIcs } from "@/lib/calendar";
 import { reportShiftHref } from "@/lib/support-reference";
+import { comoLlegarHref, lugarDelTurno } from "@/lib/como-llegar";
 import ShiftLifecycleStepper from "@/components/ShiftLifecycleStepper";
 
 const MiniMap = dynamic(() => import("@/components/MiniMap"), {
@@ -80,7 +81,9 @@ export default function TurnoSuave({
   const diaEsFecha = /\d/.test(dia);
   const tono = TONO_ESTADO[shift.status] ?? "azul";
   const conMapa = shift.latitude != null && shift.longitude != null;
-  const lugar = shift.city ?? "Ubicación a confirmar";
+  // Con la dirección exacta (sólo llega con sesión) se lee entera; sin ella, la zona.
+  const lugar = lugarDelTurno(shift) ?? "Ubicación a confirmar";
+  const comoLlegar = comoLlegarHref(shift);
 
   const estado = (
     <>
@@ -120,7 +123,7 @@ export default function TurnoSuave({
             </div>
           )}
           <div className="flex gap-2">
-            {conMapa && (
+            {comoLlegar && (
               <Button
                 variant="surface"
                 size="sm"
@@ -129,7 +132,7 @@ export default function TurnoSuave({
                 leftIcon={<RouteIcon size={15} />}
                 onClick={() =>
                   window.open(
-                    `https://www.google.com/maps/dir/?api=1&destination=${shift.latitude},${shift.longitude}`,
+                    comoLlegar,
                     "_blank",
                     "noopener,noreferrer"
                   )
