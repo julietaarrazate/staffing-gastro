@@ -868,7 +868,7 @@ servidor con un solo `h1`).
 - [x] Los turnos abiertos van al mapa del sitio: **sí** (Julieta,
   2026-11-27). Por hacer; prever que un comercio pueda excluir un turno.
 
-**Ensayo general (✅ #PENDIENTE, 2026-11-27):** `node
+**Ensayo general (✅ #761, 2026-11-27):** `node
 tools/e2e-local/ensayo/ensayo.mjs` recorre la app real en local con usuarios
 simulados, en diez escenarios (camino feliz, verificación, cancelaciones,
 ausencia, urgente, permisos, admin y soporte, Términos, fallas de terceros y

@@ -1,4 +1,4 @@
-# Ensayo general automático de la app (#PENDIENTE)
+# Ensayo general automático de la app (#761)
 
 **Antes:** las reglas del producto se probaban por partes (tests del backend,
 pantallas con la API simulada). No había un recorrido de punta a punta, con
