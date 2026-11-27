@@ -103,7 +103,7 @@ export default function FichaCandidato({
 
       {faltaVerificar && (
         <p data-testid="falta-verificar-candidato" className="mt-5 rounded-2xl bg-surface-2 px-4 py-3 text-center text-small text-ink-soft">
-          Todavía no verificó su identidad. Cuando lo haga vas a poder elegirla.
+          Todavía no verificó su identidad. Cuando lo haga vas a poder elegir a esta persona.
         </p>
       )}
       {onElegir && !faltaVerificar && (

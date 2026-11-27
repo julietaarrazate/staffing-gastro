@@ -12,6 +12,13 @@ lado de la compu. Con la regla apagada el campo es siempre `false` y la
 pantalla queda como estaba. El rechazo del servidor (409) sigue igual: es la
 regla; esto es sólo el aviso.
 
+Además (pedido de la revisión independiente): quien todavía no se puede
+elegir va después de quienes sí, en postulantes y en recomendados (el orden
+entre pares no cambia; quienes ya tuvieron el turno y lo dejaron siguen al
+final), así la tarjeta grande es siempre alguien elegible. Si nadie de la
+pestaña verificó, la pantalla lo dice arriba (`nadie-verificado`). Con el
+turno ya asignado o cerrado el aviso no aparece: ahí no se promete nada.
+
 **No se hizo:** avisarle a la persona «un comercio quiso elegirte, verificá
 tu identidad». Necesita su propia acción y un tope para no repetir el aviso;
 queda anotado en el tablero.

@@ -98,6 +98,7 @@ function candidate(input: Partial<CandidateMatch> & Pick<CandidateMatch, "profil
     badges: [],
     level: "bronce",
     identidad_verificada: false,
+    falta_verificar: false,
     ...input,
   };
 }
@@ -116,6 +117,7 @@ export const CANDIDATES: CandidateMatch[] = [
     punctuality_rate: 0.96,
     years_experience: 4,
     identidad_verificada: true,
+    falta_verificar: false,
   }),
   candidate({
     profile_id: "diego",
@@ -127,6 +129,7 @@ export const CANDIDATES: CandidateMatch[] = [
     punctuality_rate: 0.92,
     years_experience: 6,
     identidad_verificada: true,
+    falta_verificar: false,
   }),
   candidate({
     profile_id: "camila",
@@ -135,6 +138,7 @@ export const CANDIDATES: CandidateMatch[] = [
     distance_km: 1.1,
     years_experience: 2,
     identidad_verificada: true,
+    falta_verificar: false,
   }),
 ];
 

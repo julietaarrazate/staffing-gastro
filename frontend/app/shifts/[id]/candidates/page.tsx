@@ -146,9 +146,9 @@ function ShiftCandidatesContent() {
   }, [compu, idsClave, verId]);
   const fichaDe = (id: string) => {
     const a = tab === "postulantes" ? applicants.find((x) => x.worker_profile_id === id) : undefined;
-    if (a) return { nombre: a.full_name, foto: a.photo_url, faltaVerificar: Boolean(a.falta_verificar) };
+    if (a) return { nombre: a.full_name, foto: a.photo_url, faltaVerificar: canAssign && a.falta_verificar };
     const c = candidates.find((x) => x.profile_id === id);
-    return c ? { nombre: c.full_name, foto: c.photo_url, faltaVerificar: Boolean(c.falta_verificar) } : null;
+    return c ? { nombre: c.full_name, foto: c.photo_url, faltaVerificar: canAssign && c.falta_verificar } : null;
   };
   const destacar = !compu && primero;
   const restoPostulantes = destacar ? applicants.slice(1) : applicants;
@@ -225,6 +225,11 @@ function ShiftCandidatesContent() {
       : activeApplicants === 1
         ? "Se postuló 1"
         : `Se postularon ${activeApplicants}`;
+  // Con la verificación obligatoria, puede pasar que nadie de la pestaña se
+  // pueda elegir todavía: se dice arriba en vez de dejar la lista sin botones.
+  const enPantalla: { falta_verificar: boolean }[] =
+    tab === "postulantes" ? applicants.filter((a) => !isUnassigned(a)) : candidates;
+  const nadieElegible = canAssign && enPantalla.length > 0 && enPantalla.every((x) => x.falta_verificar);
   const elegir = (id: string, nombre: string, foto: string | null) =>
     canAssign ? () => assign(id, { nombre, foto }) : undefined;
   const ficha = fichaId ? fichaDe(fichaId) : null;
@@ -271,6 +276,16 @@ function ShiftCandidatesContent() {
         <div className="min-w-0">
         {!shift && shiftError && (
           <ErrorBanner message="No pudimos cargar el estado del turno, así que por ahora no se puede asignar." onRetry={() => load()} />
+        )}
+        {nadieElegible && (
+          <p
+            role="status"
+            data-testid="nadie-verificado"
+            className="mb-2 mt-2 rounded-[18px] bg-[var(--suave-campo)] p-3.5 text-sm text-ink-soft"
+          >
+            Nadie de esta lista verificó su identidad todavía, así que por ahora no podés elegir. En la app ya
+            les avisamos que les falta: cuando alguien la verifique, vas a poder elegirlo acá.
+          </p>
         )}
         {!canAssign && shift && (
           <p
@@ -355,7 +370,7 @@ function ShiftCandidatesContent() {
                     nombre={primero.full_name}
                     foto={primero.photo_url}
                     verificada={primero.identidad_verificada}
-                    faltaVerificar={Boolean(primero.falta_verificar)}
+                    faltaVerificar={canAssign && primero.falta_verificar}
                     signals={primero}
                     rotulo={rotuloPrimero}
                     onElegir={elegir(primero.worker_profile_id, primero.full_name, primero.photo_url)}
@@ -374,7 +389,7 @@ function ShiftCandidatesContent() {
                             nombre={a.full_name}
                             foto={a.photo_url}
                             verificada={a.identidad_verificada}
-                            faltaVerificar={Boolean(a.falta_verificar)}
+                            faltaVerificar={canAssign && a.falta_verificar}
                             signals={a}
                             disponible={a.is_available}
                             // Tuvo este turno y lo dejó: va al final, con su
@@ -421,7 +436,7 @@ function ShiftCandidatesContent() {
                   nombre={candidates[0].full_name}
                   foto={candidates[0].photo_url}
                   verificada={candidates[0].identidad_verificada}
-                  faltaVerificar={Boolean(candidates[0].falta_verificar)}
+                  faltaVerificar={canAssign && candidates[0].falta_verificar}
                   signals={candidates[0]}
                   rotulo="Recomendación de Oído"
                   onElegir={elegir(candidates[0].profile_id, candidates[0].full_name, candidates[0].photo_url)}
@@ -440,7 +455,7 @@ function ShiftCandidatesContent() {
                             nombre={c.full_name}
                             foto={c.photo_url}
                             verificada={c.identidad_verificada}
-                            faltaVerificar={Boolean(c.falta_verificar)}
+                            faltaVerificar={canAssign && c.falta_verificar}
                             signals={c}
                             rotulo={compu && i === 0 ? "Recomendación de Oído" : null}
                             seleccionada={compu && fichaId === c.profile_id}

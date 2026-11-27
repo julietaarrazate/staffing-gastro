@@ -65,6 +65,8 @@ async def get_top_candidates(
             settings.verificacion_obligatoria and not response.identidad_verificada
         )
         responses.append(response)
+    # Primero quienes se pueden elegir; el orden entre pares no cambia.
+    responses.sort(key=lambda r: r.falta_verificar)
     return responses
 
 

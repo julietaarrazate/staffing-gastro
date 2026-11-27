@@ -216,7 +216,7 @@ async def shift_applicants(
         )
     except ShiftNotFoundError as exc:
         raise _SHIFT_NOT_FOUND from exc
-    return [
+    respuestas = [
         ApplicantResponse(
             application_id=applicant.application_id,
             worker_profile_id=applicant.worker_profile_id,
@@ -244,3 +244,9 @@ async def shift_applicants(
         for fila in ordenados
         for applicant in (fila.postulante,)
     ]
+    # A quien todavía no se puede elegir va después de quienes sí (y antes de
+    # quienes ya tuvieron el turno y lo dejaron, que siguen al final): la
+    # primera persona de la lista tiene que ser una que el comercio pueda
+    # elegir. El orden entre pares no cambia (`sort` es estable).
+    respuestas.sort(key=lambda r: 2 if r.motivo is not None else int(r.falta_verificar))
+    return respuestas

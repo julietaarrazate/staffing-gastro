@@ -174,3 +174,23 @@ async def test_con_la_regla_apagada_nadie_figura_como_falta_verificar(client, se
     assert [p["falta_verificar"] for p in lista.json()] == [False]
     recomendados = await client.get(f"/api/v1/shifts/{shift_id}/candidates", headers=employer)
     assert all(c["falta_verificar"] is False for c in recomendados.json())
+
+
+async def test_quien_se_puede_elegir_va_primero_en_la_lista(client, session_factory, obligatoria):
+    """El primero de la lista tiene que ser alguien que el comercio pueda
+    elegir: quien falta verificar va después, aunque se haya postulado antes."""
+    shift_id, employer, sin_verificar, _ = await _turno_y_persona(client, "vo_orden")
+    await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=sin_verificar)
+    verificada = await auth_headers(client, "worker", "vo_orden_w2@staffya.com")
+    perfil = await client.post(
+        "/api/v1/workers/me/profile", headers=verificada, json={"skills": ["mozo"]}
+    )
+    await _verificar(session_factory, perfil.json()["id"])
+    await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=verificada)
+
+    lista = await client.get(f"/api/v1/applications/shifts/{shift_id}", headers=employer)
+    assert [p["falta_verificar"] for p in lista.json()] == [False, True]
+
+    recomendados = await client.get(f"/api/v1/shifts/{shift_id}/candidates", headers=employer)
+    faltan = [c["falta_verificar"] for c in recomendados.json()]
+    assert faltan == sorted(faltan)
