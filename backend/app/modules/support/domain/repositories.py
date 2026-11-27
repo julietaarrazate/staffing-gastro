@@ -6,11 +6,11 @@ from uuid import UUID
 from app.modules.support.domain.entities import (
     CompanyFacts,
     EnrichedTicket,
+    ResolvedCase,
     ShiftFacts,
     SupportMessage,
     SupportTicket,
     TicketOpener,
-    ResolvedCase,
 )
 from app.modules.support.domain.value_objects import TicketCategory, TicketStatus
 

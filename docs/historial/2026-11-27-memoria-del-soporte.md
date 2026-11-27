@@ -25,3 +25,20 @@ Pedido de Julieta del 2026-11-27.
 
 **Pruebas:** `backend/tests/test_support.py` (2 casos nuevos),
 `frontend/e2e/support.spec.ts`.
+
+## Después de la revisión independiente
+
+- **La memoria se podía envenenar.** Quien abre un ticket controla el asunto y
+  la consulta, y eso quedaba como precedente de sugerencias futuras: podía
+  escribir algo que imitara una respuesta del equipo o una instrucción. Ahora
+  cada texto ajeno va entre etiquetas propias, sin poder cerrarlas, y el
+  pedido dice que es dato y no instrucciones.
+- **Se quitan mails y tiras largas de dígitos** (teléfonos, CUIT, CBU) de los
+  casos ajenos antes de enviarlos.
+- **«El equipo» es quien tiene rol admin**, dicho explícito; un ticket abierto
+  por alguien del equipo no es precedente.
+- **Se filtra en la consulta** que el ticket tenga respuesta del equipo: antes
+  una tanda de tickets cerrados sin contestar podía dejar la categoría sin
+  memoria.
+- Sigue valiendo lo principal: la sugerencia es un borrador que revisa una
+  persona.
