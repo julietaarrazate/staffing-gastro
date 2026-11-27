@@ -70,7 +70,7 @@ await browser.close();
 const { texto, ok, falla, nc } = ctxGlobal.informe({
   pie: `Capturas: \`${path.join(kit.EVIDENCE, "ens")}\` · registro de la base: \`${path.join(kit.LOGS, "db.jsonl")}\``,
 });
-const archivo = guardarInforme(dirResultados, texto);
+const archivo = guardarInforme(dirResultados, texto, solo ? `-solo-${letras.join("")}` : "");
 console.log(`\n══ Resultado: ${ok} ✓ · ${falla} ✗ · ${nc} no cubiertos`);
 console.log(`Informe: ${archivo}`);
 process.exit(falla ? 1 : 0);

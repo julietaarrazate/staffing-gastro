@@ -158,3 +158,56 @@ kit.db(`update shifts set start_at = now() - interval '2 hours 5 minutes', end_a
 - Usar `localhost`, no `127.0.0.1`, en el navegador.
 - Los mails con `…e1bounce…`, archivos `…e1fail…` y textos `E1_IA_*` son disparadores deliberados de errores simulados.
 - Si el frontend se reconstruye con otra `NEXT_PUBLIC_API_URL`, el arnés deja de apuntar al backend local: usar `setup.sh --build`, que fija los valores correctos.
+
+## Ensayo general
+
+Un programa que recorre la app real de punta a punta con usuarios simulados y **verifica las reglas del producto**, con informe. Sirve como último control antes de abrir la beta (y para repetirlo después de cambios grandes). Vive en `tools/e2e-local/ensayo/`: un archivo por escenario y `ensayo.mjs`, que los corre.
+
+**No arregla nada**: si una regla no se cumple, el paso queda ✗ y es un hallazgo. Antes de anotarlo hay que reproducirlo a mano por API (puede ser un error del guion).
+
+### Cómo correrlo
+
+La pila tiene que estar levantada **con la configuración de producción**: verificación obligatoria y la pregunta de las 24 h prendidas.
+
+```bash
+tools/e2e-local/setup.sh --build
+VERIFICACION_OBLIGATORIA=true RECONFIRMACION_ENABLED=true tools/e2e-local/start_all.sh
+VERIFICACION_OBLIGATORIA=true RECONFIRMACION_ENABLED=true tools/e2e-local/restart_backend.sh   # si el backend ya estaba arriba sin ellas
+
+node tools/e2e-local/ensayo/ensayo.mjs                 # todos los escenarios (~25 min)
+node tools/e2e-local/ensayo/ensayo.mjs --solo B        # uno
+node tools/e2e-local/ensayo/ensayo.mjs --solo A,C,D    # varios
+```
+
+Cada paso sale con ✓ / ✗ (o «–» si no está cubierto) y un nombre que dice qué regla verifica; los que dicen `UI ·` se hacen por la pantalla (Playwright) y el resto por API. Al final: informe en Markdown en `$E1_DIR/results/ensayo-<fecha>.md` (con `--solo`, el nombre lleva la letra), capturas en `$E1_DIR/evidence/ens/` (las de los pasos que fallan, como `falla-<escenario>-…`) y **código de salida 1 si algún paso falla**. Usa los puertos 3100/8000/8901: no correrlo a la vez que otra pila ni con `npx playwright test` del repo.
+
+Las cuentas llevan prefijo `ens-`. Las admin son las del arnés (`admin1..8`: cada escenario usa la suya). Al entrar, esas cuentas tienen que aceptar los Términos (el arnés las crea sin constancia): el kit del ensayo lo hace solo.
+
+### Qué cubre
+
+| | Escenario | Qué afirma |
+|---|---|---|
+| A | Camino feliz | Alta del comercio, perfil y publicación por pantalla; postulación, elección y confirmación por pantalla; chat; pregunta de las 24 h; «voy en camino», llegada, cierre, pago, calificaciones y reputación; avisos y mails de cada paso. |
+| B | Verificación obligatoria | Sin verificar se postula pero no se la elige (409 con mensaje claro); carteles en Mis turnos; DNI y selfie por pantalla; la admin aprueba con dos pasos; documentos sólo con link firmado que vence y borrados al decidir. |
+| C | Cancelaciones | Las dos primeras de 30 días con más de 24 h no pesan y la tercera sí (el cartel lo dice antes); la tardía pesa; el comercio se entera, el turno se reabre y los demás postulantes vuelven a estar en carrera; cancelación del comercio con persona confirmada. |
+| D | Ausencia | «No se presentó» recién desde los 10 min (pantalla y servidor); no-show automático a las 2 h; ausencias en la reputación; reemplazo sin republicar; «Ya llegó». |
+| E | Urgente | Marca urgente al publicar, escalada a los 8 min (y no a los 7), avisos a cercanos con sus topes, «no cubierto» a los 30 min / 2 h sin castigo. |
+| F | No-disclosure y permisos | Lo ajeno da 404 (turnos, postulantes, chats, reseñas, CV); admin cerrada (403/401); la página pública sin datos personales. |
+| G | Admin y soporte | «Ver como» de sólo lectura (403 en toda escritura, el cartel lo dice, no marca como leído); ticket de soporte de punta a punta con sugerencia de respuesta; cuenta suspendida. |
+| H | Términos | Cartel de Términos nuevos, no se puede seguir sin aceptar, constancia de la versión vigente. |
+| I | Fallas de terceros | IA caída / inválida / lenta, subida que falla o pesada, mail que rebota, dirección sin resultados o servicio caído. |
+| J | Recorrido visual | Capturas en claro y oscuro (390) de las pantallas de cada rol y en 1280 de panel, Candidatos y admin; cero errores de consola y cero `external-unrouted`; sin desborde horizontal ni textos rotos. |
+
+### Qué NO cubre
+
+- Lo que el arnés no puede probar (ver «Qué NO se puede probar así»): push real en el dispositivo, mails reales (entrega, spam, rebote asincrónico de Resend), Mercado Pago, GPS real, Turnstile, rendimiento de red.
+- **La calidad de las capturas**: el ensayo las saca y verifica lo mecánico (tema, desborde, errores), pero contraste y composición los mira una persona.
+- La confirmación del pago «por las dos partes»: el producto sólo tiene «marcar pagado» del comercio.
+- Pantallas con otro dato que el del ensayo (eventos de varios puestos, favoritos, «Disponible ahora», encuesta, captación de comercios, planes), recomendaciones de la IA del trabajador y el flujo de Google.
+- Concurrencia (dos personas tocando a la vez) y carga.
+
+### Reglas del ensayo
+
+- `db()` sólo sobre filas propias del escenario (adelantar el reloj de un turno propio, la versión de Términos de una cuenta propia, desmarcar un mensaje propio). Cada paso que lo usa lo dice en su nombre, y queda en `logs/db.jsonl`.
+- Cada escenario crea sus cuentas y sus turnos: no depende del orden ni de los datos demo, y se puede correr solo. Los datos de la base compartida (otros turnos y personas cerca) pueden alterar lo que se mide: por eso los avisos a cercanos se cuentan (tope de 10 por tanda), no se esperan para una persona en particular.
+- Los escenarios que adelantan el reloj esperan al scheduler real (hasta ~100 s por paso).

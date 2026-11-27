@@ -181,9 +181,9 @@ export function crearContexto({ browser, dirResultados }) {
 
 export class Abortar extends Error {}
 
-export function guardarInforme(dir, texto) {
+export function guardarInforme(dir, texto, sufijo = "") {
   fs.mkdirSync(dir, { recursive: true });
-  const archivo = path.join(dir, `ensayo-${fechaCorta()}.md`);
+  const archivo = path.join(dir, `ensayo-${fechaCorta()}${sufijo}.md`);
   fs.writeFileSync(archivo, texto);
   return archivo;
 }
