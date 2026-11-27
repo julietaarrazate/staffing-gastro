@@ -1,4 +1,4 @@
-# Teaser «El futuro de la gastronomía»: la receta y dónde quedó guardado
+# Teaser «El futuro de la gastronomía»: la receta y dónde quedó guardado (#754)
 
 **Pedido:** Julieta pidió una presentación 3D de Oído parecida a una referencia
 que trajo, después videos de esa presentación para redes y WhatsApp, y al final
