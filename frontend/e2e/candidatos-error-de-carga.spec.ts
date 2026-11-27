@@ -100,10 +100,11 @@ test("el error de postulados no culpa a la conexión (403 u otra falla que no es
   await expect(page.getByText(VACIO)).toHaveCount(0);
 });
 
-test("turno ajeno o inexistente (404 en las dos listas): se comporta como antes, vacío y sin aviso", async ({ page }) => {
+test("turno ajeno o inexistente (404 en las dos listas): «No encontramos este turno», sin aviso de error", async ({ page }) => {
   await setup(page, { apps: () => json({ detail: "no" }, 404), cands: () => json({ detail: "no" }, 404) });
   await page.goto("/shifts/shift-1/candidates");
-  await expect(page.getByText(VACIO)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "No encontramos este turno" })).toBeVisible();
+  await expect(page.getByText(VACIO)).toHaveCount(0);
   await expect(aviso(page)).toHaveCount(0);
   await expect(avisoRecs(page)).toHaveCount(0);
 });
@@ -133,4 +134,20 @@ test("turno vacío de verdad (200 con lista vacía) sigue mostrando el vacío", 
   await setup(page, { apps: () => json([]), cands: () => json([]) });
   await page.goto("/shifts/shift-1/candidates");
   await expect(page.getByText(VACIO)).toBeVisible();
+});
+
+test("turno ajeno o inexistente (404): «No encontramos este turno» con vuelta al panel, nunca «Todavía nadie se postuló»", async ({ page }) => {
+  await setup(page, {
+    apps: () => json({ detail: "Turno no encontrado" }, 404),
+    cands: () => json({ detail: "Turno no encontrado" }, 404),
+  });
+  await page.route("**/api/v1/shifts/shift-1", (r) => r.fulfill(json({ detail: "Turno no encontrado" }, 404)));
+  await page.goto("/shifts/shift-1/candidates");
+  await expect(page.getByRole("heading", { name: "No encontramos este turno" })).toBeVisible();
+  await expect(page.getByText(VACIO)).toHaveCount(0);
+  await expect(page.getByRole("tab", { name: /Postulantes/ })).toHaveCount(0);
+  await expect(aviso(page)).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Volver al panel" }).click();
+  await expect(page).toHaveURL(/\/shifts$/);
 });

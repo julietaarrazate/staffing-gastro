@@ -41,13 +41,14 @@ type Tab = "postulantes" | "recomendados";
 const ASSIGNABLE_STATUSES = ["publicado", "buscando_personal"];
 
 /**
- * Carga una lista. 404 (turno ajeno o inexistente) = lista vacía, como
- * siempre; cualquier otra falla deja `error` y conserva lo ya cargado. Una
+ * Carga una lista. 404 (turno ajeno o inexistente) = lista vacía y
+ * `notFound` (la pantalla dice «No encontramos este turno», sin distinguir); cualquier otra falla deja `error` y conserva lo ya cargado. Una
  * respuesta vieja que llega tarde no pisa a la más nueva.
  */
 function useLoadedList<T>(path: string, token: string | null | undefined) {
   const [items, setItems] = useState<T[]>([]);
   const [error, setError] = useState(false);
+  const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(true);
   const latest = useRef(0);
   // `silent` (recarga por un aviso, ver `lib/live-refresh.ts`): sin esqueleto
@@ -61,11 +62,13 @@ function useLoadedList<T>(path: string, token: string | null | undefined) {
       if (mine !== latest.current) return;
       setItems(data);
       setError(false);
+      setNotFound(false);
     } catch (err) {
       if (mine !== latest.current) return;
       if (isNotFound(err)) {
         setItems([]);
         setError(false);
+        setNotFound(true);
       } else if (!silent) {
         setError(true);
       }
@@ -73,7 +76,7 @@ function useLoadedList<T>(path: string, token: string | null | undefined) {
       if (mine === latest.current) setLoading(false);
     }
   }, [path, token]);
-  return { items, error, loading, reload };
+  return { items, error, notFound, loading, reload };
 }
 
 function ShiftCandidatesContent() {
@@ -111,6 +114,7 @@ function ShiftCandidatesContent() {
   const {
     items: applicants,
     error: appsError,
+    notFound: turnoNoEncontrado,
     loading: loadingApps,
     reload: reloadApps,
   } = useLoadedList<Applicant>(`/applications/shifts/${shiftId}`, token);
@@ -274,7 +278,7 @@ function ShiftCandidatesContent() {
       <div className="hoja -mt-7 flex-1 px-5 pb-8 pt-3 md:px-6 lg:px-8">
         <div className={ficha ? "lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start lg:gap-8" : undefined}>
         <div className="min-w-0">
-        {!shift && shiftError && (
+        {!shift && shiftError && !turnoNoEncontrado && (
           <ErrorBanner message="No pudimos cargar el estado del turno, así que por ahora no se puede asignar." onRetry={() => load()} />
         )}
         {nadieElegible && (
@@ -299,6 +303,15 @@ function ShiftCandidatesContent() {
           </p>
         )}
 
+        {turnoNoEncontrado && !loadingApps ? (
+          <EmptyState
+            icon={<UsersIcon size={28} />}
+            title="No encontramos este turno"
+            subtitle="Puede que el enlace esté mal o que el turno ya no esté disponible."
+            primaryAction={{ label: "Volver al panel", onClick: () => router.push("/shifts") }}
+          />
+        ) : (
+        <>
         <SegmentedControl
           value={tab}
           onChange={setTab}
@@ -477,6 +490,8 @@ function ShiftCandidatesContent() {
               </>
             )}
           </div>
+        )}
+        </>
         )}
         </div>
         {ficha && fichaId && (
