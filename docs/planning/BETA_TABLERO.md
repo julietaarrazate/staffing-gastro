@@ -770,8 +770,11 @@ prueba, y las invitadas quedan sin entrada al vaciar el PIN.
   organización «Vercel: …» está vacía, la creó la integración). El plan es
   el gratuito y **el historial para restaurar es de 6 horas**: el ensayo va
   sobre una rama nueva a un punto de hace 3 horas, nunca sobre la principal.
-- [ ] Decidir cómo cubrir más de 6 horas antes de abrir: una copia diaria
-  automática de la base (gratis, por hacer) o el plan pago de Neon.
+- [ ] Copia diaria automática de la base, gratis (decidido por Julieta el
+  2026-11-27, en vez del plan pago de Neon por ahora): receta en
+  [`reference/RESPALDO_DIARIO.md`](../reference/RESPALDO_DIARIO.md). Falta
+  crear el repositorio privado `oido-respaldos`, cargar los dos secretos y
+  ver la primera corrida en verde.
 - [ ] Base inscripta en el Registro Nacional de Bases de Datos (AAIP) y la
   consulta legal hecha (pestaña «Lanzamiento de beta» del plan).
 - [ ] Las pruebas de persona de arriba («Pruebas que tiene que hacer una
