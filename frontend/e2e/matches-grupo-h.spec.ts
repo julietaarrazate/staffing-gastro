@@ -5,7 +5,7 @@
  * cerrado no dice «esperando respuesta» (U088).
  */
 import { test, expect } from "@playwright/test";
-import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash, isoDesdeJueves as isoEnDias, AHORA_JUEVES } from "./mocks";
+import { blockExternalHosts, injectSession, mockEmptyNotifications, setTheme, skipSplash, isoDesdeJueves as isoEnDias, AHORA_JUEVES } from "./mocks";
 
 const json = (body: unknown) => ({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
 
@@ -45,6 +45,7 @@ async function abrir(
   asignados: unknown[] = assigned,
   postulaciones: unknown[] = apps,
   url = "/my-shifts",
+  perfil: Record<string, unknown> = {},
 ) {
   // Mis turnos filtra por semana: reloj fijo en la semana de las fechas de abajo.
   await page.clock.setFixedTime(AHORA_JUEVES);
@@ -56,7 +57,7 @@ async function abrir(
   await page.route("**/api/v1/shifts/mine", (r) => r.fulfill(json(asignados)));
   await page.route("**/api/v1/applications/mine", (r) => r.fulfill(json(postulaciones)));
   await page.route("**/api/v1/saved-shifts", (r) => r.request().method() === "GET" ? r.fulfill(json(guardados)) : r.continue());
-  await page.route("**/api/v1/workers/me/profile", (r) => r.fulfill(json({ id: "p", user_id: "u", full_name: "Mozo", skills: ["mozo"], latitude: -34.58, longitude: -58.42, city: "Palermo", badges: [], level: "plata", rating: 4.5 })));
+  await page.route("**/api/v1/workers/me/profile", (r) => r.fulfill(json({ id: "p", user_id: "u", full_name: "Mozo", skills: ["mozo"], latitude: -34.58, longitude: -58.42, city: "Palermo", badges: [], level: "plata", rating: 4.5, ...perfil })));
   await page.goto(url);
   await page.getByRole("heading", { name: "Mis turnos" }).waitFor();
 }
@@ -251,4 +252,42 @@ test("?turno= con un turno que no está en la lista no pasa nada", async ({ page
     .locator("[id^='turno-']")
     .evaluateAll((els) => els.filter((el) => el.classList.contains("ring-primary-text")).length);
   expect(resaltadas).toBe(0);
+});
+
+for (const theme of ["light", "dark"] as const) {
+  test(`${theme}: quien se postuló sin verificar su identidad ve que le falta, con el link para hacerlo`, async ({ page }) => {
+    await setTheme(page, theme);
+    await abrir(page, saved, assigned, apps, "/my-shifts", {
+      verificacion_requerida: true,
+      identidad_verificada: false,
+    });
+    await page.getByRole("button", { name: /^Postulaciones/ }).click();
+    const aviso = page.getByTestId("falta-verificar");
+    await expect(aviso).toContainText("Te falta verificar tu identidad");
+    await expect(aviso.getByRole("link", { name: "Verificar mi identidad" })).toHaveAttribute("href", "/profile");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  });
+}
+
+test("con la identidad verificada, o si no es obligatoria, el aviso no aparece", async ({ page }) => {
+  await abrir(page, saved, assigned, apps, "/my-shifts", {
+    verificacion_requerida: true,
+    identidad_verificada: true,
+  });
+  await page.getByRole("button", { name: /^Postulaciones/ }).click();
+  await expect(page.getByRole("heading", { name: "Postulaciones" })).toBeAttached();
+  await expect(page.getByTestId("falta-verificar")).toHaveCount(0);
+});
+
+test("quien ya mandó sus documentos ve que están en revisión, no que le faltan", async ({ page }) => {
+  await abrir(page, saved, assigned, apps, "/my-shifts", {
+    verificacion_requerida: true,
+    identidad_verificada: false,
+    verificacion_en_revision: true,
+  });
+  await page.getByRole("button", { name: /^Postulaciones/ }).click();
+  const aviso = page.getByTestId("falta-verificar");
+  await expect(aviso).toContainText("Estamos revisando tu identidad");
+  await expect(aviso).not.toContainText("Te falta verificar");
+  await expect(aviso.getByRole("link")).toHaveCount(0);
 });

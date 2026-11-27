@@ -133,6 +133,12 @@ class Settings(BaseSettings):
     # no depende de esto: vale siempre desde el 2026-11-26.)
     reconfirmacion_enabled: bool = False
 
+    # Verificación de identidad obligatoria para que a un trabajador le
+    # asignen un turno (decisión de Julieta, 2026-11-26). Registrarse, mirar
+    # y postularse sigue libre. Default OFF: se prende en producción cuando
+    # los Términos que lo dicen están publicados.
+    verificacion_obligatoria: bool = False
+
     # --- Email transaccional (Resend) ---
     # Sin `resend_api_key` configurada se inyecta un `NullEmailSender` que sólo
     # loguea y nunca falla (mismo patrón "flag por ausencia" que

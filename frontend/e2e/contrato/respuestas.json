@@ -495,6 +495,8 @@
         "mozo"
       ],
       "user_id": "user-worker-1",
+      "verificacion_en_revision": false,
+      "verificacion_requerida": false,
       "years_experience": 2
     },
     "status": 200

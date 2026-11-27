@@ -91,11 +91,15 @@ export default function TerminosPage() {
 
           <Section title="Verificación">
             <p>
-              Podés verificar tu identidad (con tu DNI y una selfie) o tu
-              comercio (con tu constancia de AFIP). Una persona del equipo la
-              revisa y, si se aprueba, la otra parte ve un sello de
-              &quot;verificado&quot;. Los documentos se borran apenas se
-              decide.
+              Para que un comercio pueda asignarte un turno tenés que
+              verificar tu identidad, con tu DNI y una selfie. Registrarte,
+              ver turnos y postularte no lo requiere. Los comercios pueden
+              verificarse con su constancia de AFIP.
+            </p>
+            <p>
+              Una persona del equipo revisa cada verificación y, si se
+              aprueba, la otra parte ve un sello de &quot;verificado&quot;.
+              Los documentos se borran apenas se decide.
             </p>
             <p>
               La verificación es una obligación de medios, no de resultado: el
@@ -131,9 +135,16 @@ export default function TerminosPage() {
           <Section title="Cancelaciones y ausencias">
             <p>
               Si aceptaste un turno y no te presentás sin avisar, o
-              cancelás muy sobre la hora, eso queda reflejado en tu
-              reputación dentro de la app. Lo mismo si un comercio cancela un
-              turno ya confirmado sin previo aviso razonable.
+              cancelás con menos de 24 horas de anticipación, eso queda
+              reflejado en tu reputación dentro de la app.
+            </p>
+            <p>
+              Si avisás con 24 horas o más, no cuenta. Podés hacerlo hasta dos
+              veces cada 30 días; desde la tercera, también queda reflejado.
+            </p>
+            <p>
+              Lo mismo si un comercio cancela un turno ya confirmado sin
+              previo aviso razonable.
             </p>
             <p>
               Si no marcás tu llegada, el comercio puede indicar si llegaste y

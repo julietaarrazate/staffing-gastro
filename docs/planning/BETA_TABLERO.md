@@ -765,8 +765,13 @@ prueba, y las invitadas quedan sin entrada al vaciar el PIN.
   consulta legal hecha (pestaña «Lanzamiento de beta» del plan).
 - [ ] Las pruebas de persona de arriba («Pruebas que tiene que hacer una
   persona»).
-- [ ] Reconfirmación antes del turno: con los textos aprobados por la
-  asesoría, poner `RECONFIRMACION_ENABLED=true` en Render (ADR-0031).
+- [ ] Reconfirmación antes del turno: poner `RECONFIRMACION_ENABLED=true` en
+  Render (ADR-0031). Julieta dio el sí el 2026-11-26, con los textos de
+  disponibilidad ya publicados.
+- [ ] Verificación de identidad obligatoria para ser asignado: poner
+  `VERIFICACION_OBLIGATORIA=true` en Render, con los Términos que lo dicen ya
+  publicados. Desde ese momento hay que revisar la cola de verificaciones al
+  menos una vez por día: quien no está verificado no puede tomar un turno.
 - [ ] El cobro sigue apagado: los comercios fundadores no pagan hasta el 28/2
   (STATUS, ítem 6).
 
