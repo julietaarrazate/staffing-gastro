@@ -45,6 +45,7 @@ from app.modules.shift.domain.pay_benchmark import (
 from app.modules.shift.domain.exceptions import (
     AdminCloseNotAllowedError,
     AssigneeNotFoundError,
+    AssigneeBusyError,
     AssigneeNotVerifiedError,
     AssigneeUnavailableError,
     InvalidShiftTransitionError,
@@ -57,6 +58,7 @@ from app.modules.shift.domain.cupo_de_avisos import PARTE_PARA_NUEVOS, repartir_
 from app.modules.shift.domain.nearby import FeedOrigin, closest_first, is_nearby, urgent_first
 from app.modules.shift.domain.mensajes import no_se_puede
 from app.modules.shift.domain.punctuality import PASO_AVISO_AL_COMERCIO, punctuality_of
+from app.modules.shift.domain.urgente import postularse_compromete
 from app.modules.shift.domain.reconfirmacion import (
     PasoReconfirmacion,
     cancelacion_sin_peso,
@@ -231,6 +233,7 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         # puerto de lectura del dominio Identity: de estos usuarios, cuáles
         # tienen el documento verificado. Sin el puerto, la regla no aplica.
         verificacion_obligatoria: bool = False,
+        urgente_directo: bool = False,
         identity_verified: Callable[[list[UUID]], Awaitable[set[UUID]]] | None = None,
         # «No cobré» abre un ticket de pagos en nombre de la persona (puerto
         # hacia `support`). Sin él (scheduler, tests de servicio) el aviso al
@@ -251,6 +254,7 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         self._run_after_response = run_after_response
         self._reconfirmacion_activa = reconfirmacion_activa
         self._verificacion_obligatoria = verificacion_obligatoria
+        self._urgente_directo = urgente_directo
         self._identity_verified = identity_verified
 
     async def create_shift(self, company_id: UUID, data: ShiftData) -> Shift:
@@ -1663,6 +1667,8 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         if self._verificacion_obligatoria and self._identity_verified is not None:
             if user.id not in await self._identity_verified([user.id]):
                 raise AssigneeNotVerifiedError()
+        if await self._se_ofrecio_para_ya(shift, worker_profile_id):
+            return await self._aceptar_y_confirmar(shift, worker_profile_id, company_id)
         shift.assign(worker_profile_id)
         updated = await self._shifts.update(shift)
         logger.info(
@@ -1682,6 +1688,66 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
             f"Te asignaron el turno \"{updated.title or updated.position.label}\". Confirmá tu asistencia.",
         )
         await self._send_acceptance_email(worker_profile_id, updated)
+        return updated
+
+    async def _se_ofrecio_para_ya(self, shift: Shift, worker_profile_id: UUID) -> bool:
+        """Carril urgente (`shift/domain/urgente.py`): la persona se postuló
+        con el turno a menos de 6 horas, viendo «Puedo ir ya». Sólo cuenta
+        una postulación vigente (PENDIENTE): a quien el comercio elige desde
+        «Recomendados», o vuelve a elegir después de que dejó el turno, se le
+        sigue pidiendo que confirme."""
+        if not self._urgente_directo:
+            return False
+        application = await self._applications.get_by_shift_and_worker(
+            shift.id, worker_profile_id
+        )
+        return (
+            application is not None
+            and application.status == ApplicationStatus.PENDIENTE
+            and application.created_at is not None
+            and postularse_compromete(shift.start_at, application.created_at)
+        )
+
+    async def _aceptar_y_confirmar(
+        self, shift: Shift, worker_profile_id: UUID, company_id: UUID
+    ) -> Shift:
+        """El comercio acepta a quien se ofreció para ya: el turno pasa a
+        CONFIRMADO en el mismo paso. Mismas guardas que `confirm_assignment`
+        (agenda serializada y regla de doble turno): si mientras tanto la
+        persona quedó comprometida en otro lado, el turno no se toca."""
+        await self._workers.lock_agenda(worker_profile_id)
+        others = await self._shifts.list_by_worker_and_statuses(
+            worker_profile_id, COMMITTED_STATUSES
+        )
+        others = [s for s in others if s.id != shift.id]
+        if any(shift.overlaps(other) for other in others):
+            raise AssigneeBusyError()
+        shift.assign(worker_profile_id)
+        shift.confirm(others)
+        updated = await self._shifts.update(shift)
+        logger.info(
+            "shift.assigned_and_confirmed",
+            extra={
+                "shift_id": str(updated.id),
+                "worker_profile_id": str(worker_profile_id),
+                "company_id": str(company_id),
+            },
+        )
+        await self._accept_application(updated.id, worker_profile_id)
+        await self._reject_pending_applicants(updated.id)
+        nombre = await self._shift_name_with_company(updated)
+        await self._notify_worker(
+            worker_profile_id,
+            NotificationType.SHIFT_ASSIGNED,
+            "¡Te aceptaron! El turno es tuyo",
+            (
+                f"{nombre}, {format_turno_art(updated.start_at, updated.end_at)}. "
+                "Ya quedó confirmado: no hace falta que hagas nada más. Avisá cuando salgas."
+            ),
+            link="/my-shifts",
+        )
+        await self._withdraw_overlapping_applications(worker_profile_id, updated)
+        notify_scheduler()
         return updated
 
     async def _accept_application(self, shift_id: UUID, worker_profile_id: UUID) -> None:

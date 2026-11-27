@@ -9,7 +9,9 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from pydantic_core import PydanticCustomError
 
 from app.modules.shift.domain.pay_benchmark import PayBand
+from app.core.config import settings
 from app.modules.shift.domain.reconfirmacion import avisa_con_tiempo
+from app.modules.shift.domain.urgente import postularse_compromete
 from app.modules.shift.domain.value_objects import ShiftStatus
 from app.modules.worker.domain.value_objects import WorkerSkill
 
@@ -151,6 +153,10 @@ class ShiftResponse(BaseModel):
     # asignación» diga la verdad. `None` si el turno no está confirmado. Las dos marcas de abajo sólo sirven para
     # calcularlo: no salen en la respuesta.
     cancel_with_notice: bool | None = None
+    # Carril urgente: postularse ahora es «Puedo ir ya» (si el comercio
+    # acepta, queda confirmado sin otro paso). La pantalla lo dice antes de
+    # que la persona toque. Sólo en turnos abiertos y con la regla prendida.
+    apply_commits: bool = False
     reconfirm_24h_sent_at: datetime | None = Field(default=None, exclude=True)
     reconfirm_3h_sent_at: datetime | None = Field(default=None, exclude=True)
     company_name: str | None = None
@@ -194,6 +200,11 @@ class ShiftResponse(BaseModel):
                 self.reconfirm_3h_sent_at,
                 datetime.now(timezone.utc),
             )
+        self.apply_commits = (
+            settings.urgente_directo
+            and self.status in (ShiftStatus.PUBLICADO, ShiftStatus.BUSCANDO_PERSONAL)
+            and postularse_compromete(self.start_at, datetime.now(timezone.utc))
+        )
         return self
 
 

@@ -139,6 +139,13 @@ class Settings(BaseSettings):
     # los Términos que lo dicen están publicados.
     verificacion_obligatoria: bool = False
 
+    # Carril urgente (decisión de Julieta, 2026-11-27): en un turno que
+    # empieza en menos de 6 horas, postularse es «Puedo ir ya» y, si el
+    # comercio acepta a la persona, queda confirmado sin otro paso
+    # (`shift/domain/urgente.py`). Default OFF: se prende en producción
+    # cuando los Términos lo digan.
+    urgente_directo: bool = False
+
     # --- Email transaccional (Resend) ---
     # Sin `resend_api_key` configurada se inyecta un `NullEmailSender` que sólo
     # loguea y nunca falla (mismo patrón "flag por ausencia" que
