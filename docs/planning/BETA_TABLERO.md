@@ -832,7 +832,13 @@ servidor con un solo `h1`).
   dominio, con la cuenta de Oído; mapa del sitio enviado y leído (5 páginas) e
   indexación de la portada pedida (2026-11-27).
 - [ ] Sumar la cuenta personal como segunda propietaria en Search Console.
-- [ ] Crear el perfil de empresa en Google.
+- [x] Perfil de empresa en Google creado con la cuenta de Oído (2026-11-27):
+  categorías «Compañía de software» y «Reclutador» (ninguna con «agencia» ni
+  «temporal»: Oído no es empleador), sin dirección ni teléfono públicos, zona
+  CABA, logo y portada subidos.
+- [ ] Verificar ese perfil: Google pide un video o una videollamada desde el
+  celular. Hasta entonces no es visible. No bloquea la beta.
+- [ ] Cargar el horario «Abierto las 24 horas» en el perfil.
 - [ ] Probar una página de turno abierto en la prueba de resultados
   enriquecidos de Google (pide un turno publicado en ese momento).
 - [ ] Decidir si los turnos abiertos van al mapa del sitio (probable sí).
