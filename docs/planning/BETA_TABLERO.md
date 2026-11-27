@@ -772,9 +772,15 @@ prueba, y las invitadas quedan sin entrada al vaciar el PIN.
   sobre una rama nueva a un punto de hace 3 horas, nunca sobre la principal.
 - [ ] Copia diaria automática de la base, gratis (decidido por Julieta el
   2026-11-27, en vez del plan pago de Neon por ahora): receta en
-  [`reference/RESPALDO_DIARIO.md`](../reference/RESPALDO_DIARIO.md). Falta
-  crear el repositorio privado `oido-respaldos`, cargar los dos secretos y
-  ver la primera corrida en verde.
+  [`reference/RESPALDO_DIARIO.md`](../reference/RESPALDO_DIARIO.md).
+  **Instalada el 2026-11-27** en el repositorio privado `oido-respaldos`: la
+  primera copia salió bien (32 tablas, cifrada). **No corre sola hasta el
+  1/12:** el cupo de minutos de GitHub para repositorios privados de noviembre
+  se agotó (lo gastó otro repositorio que fue privado parte del mes) y el
+  límite de gasto está en $0. Desde diciembre gasta unos 30 minutos de 2.000.
+  Falta: ver la corrida del 1/12 en verde y ensayar una restauración con esa
+  copia. Ojo: `staffing-gastro` usa unos 23.000 minutos por mes, gratis por
+  ser público; si alguna vez se hace privado, eso pasa a cobrarse.
 - [ ] Base inscripta en el Registro Nacional de Bases de Datos (AAIP) y la
   consulta legal hecha (pestaña «Lanzamiento de beta» del plan).
 - [ ] Las pruebas de persona de arriba («Pruebas que tiene que hacer una
