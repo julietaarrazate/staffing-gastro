@@ -69,8 +69,25 @@ describe("/turno/[id]", () => {
     turno.value = { estado: "abierto", shift: SHIFT };
     expect(await TurnoLayout({ children: "hijos", params })).toBe("hijos");
     const page = await PublicShiftPage({ params });
-    expect(page.props.publicShift).toEqual(SHIFT);
+    // La página devuelve la oferta para buscadores (si hay) y el detalle.
+    const [oferta, detalle] = page.props.children;
+    expect(detalle.props.publicShift).toEqual(SHIFT);
+    // Sin fecha de publicación no se marca como oferta de trabajo.
+    expect(oferta).toBeFalsy();
     const meta = await generateMetadata({ params });
     expect(meta.title).toEqual({ absolute: "Buscamos Mozo/a en Tinto — Oído" });
+  });
+
+  it("un turno abierto con fecha de publicación sale como oferta de trabajo para buscadores", async () => {
+    const publicado = { ...SHIFT, published_at: "2026-11-10T12:00:00Z" };
+    turno.value = { estado: "abierto", shift: publicado };
+    const page = await PublicShiftPage({ params });
+    const [oferta] = page.props.children;
+    expect(oferta.props.type).toBe("application/ld+json");
+    const datos = JSON.parse(oferta.props.dangerouslySetInnerHTML.__html);
+    expect(datos["@type"]).toBe("JobPosting");
+    expect(datos.hiringOrganization.name).toBe("Tinto");
+    const meta = await generateMetadata({ params });
+    expect(meta.alternates?.canonical).toBe(datos.url);
   });
 });

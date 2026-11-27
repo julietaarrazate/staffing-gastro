@@ -83,7 +83,9 @@ export const metadata: Metadata = {
   openGraph: {
     title: `oído — ${TAGLINE}`,
     description: DESCRIPTION,
-    url: "/",
+    // Sin `url`: este bloque lo heredan todas las páginas, y con "/" fijo
+    // Términos, Privacidad, ingreso y registro se declaraban como la portada.
+    // La dirección de cada página la da su `alternates.canonical`.
     siteName: "Oído",
     locale: "es_AR",
     type: "website",
@@ -127,7 +129,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="es"
+      lang="es-AR"
       className={`${inter.variable} ${youngSerif.variable} ${dmMono.variable} ${shrikhand.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-ink">

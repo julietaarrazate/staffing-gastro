@@ -37,6 +37,9 @@ async def test_turno_publico_no_se_cachea(client: AsyncClient):
     response = await client.get(f"/api/v1/shifts/{shift_id}/public")
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-cache"
+    # La fecha de publicación va en la vista pública: sin ella la página no
+    # puede marcar el turno como oferta de trabajo (`frontend/lib/seo.ts`).
+    assert response.json()["published_at"] is not None
 
     # Cubierto/cancelado: «ya no disponible» (410), también sin caché. Un 410
     # se puede guardar por defecto en cachés intermedias, y un turno asignado

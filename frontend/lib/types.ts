@@ -292,6 +292,8 @@ export interface ShiftPublic {
   meal: boolean;
   dress_code: string | null;
   urgent: boolean;
+  /** Cuándo se publicó (para `JobPosting.datePosted`, `lib/seo.ts`). */
+  published_at?: string | null;
   /** Foto del local (sí va sin sesión, 2026-09-23; el logo no). */
   company_cover_url?: string | null;
 }

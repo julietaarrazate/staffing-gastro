@@ -23,7 +23,7 @@ descuidado.
 | 3 | Que nada se vea descuidado (los 60 menores y lo que salió de las revisiones) | ✅ cerrada el 2026-11-17: grupos A a N, las diez decisiones de Julieta, M6 y los pendientes de las tres tandas (ver abajo) |
 | 4 | Identidad, marca e isotipo | ✅ cerrada el 2026-11-24: la app entera en la dirección suave (ADR-0028, #725) y la landing queda como está, con el relieve (decisión de Julieta). Historia de la etapa: Shrikhand y ámbar (2026-11-17), el ícono «el pinche con oído» (2026-11-18) y la landing híbrida (2026-11-18) |
 | 5 | Lista de salida a beta | 🔵 escrita el 2026-11-19 (ver «Etapa 5: lista de salida a beta»): lo de código está (TypeScript 7 incluido); falta lo de Julieta para el día que abre. Detalle original: (incluye la medición de los KRs: ver «Antes de abrir: medir la beta»; y pasar a TypeScript 7, el compilador en Go: PR aparte que sube `typescript` de 6 a 7 y corre tsc, lint, build y e2e; si ESLint con tipos se traba hasta la 7.1, ESLint sigue con TypeScript 6 mientras tanto. Decidido por Julieta el 2026-11-17) |
-| 6 | SEO y GEO | ⚪ |
+| 6 | SEO y GEO | 🔵 base técnica hecha el 2026-11-26 (ver «Etapa 6: SEO y GEO»); falta el contenido y lo de Julieta |
 
 ## Etapa 2
 
@@ -792,3 +792,27 @@ cierre de PR»: una conversación por etapa o por tanda, quien coordina diseña
 y decide, los arreglos y las revisiones de pantalla van en un modelo más
 barato, y un arreglo con CI y Security en verde, revisión independiente
 aprobada y prueba en la app se mergea y se avisa después.
+
+## Etapa 6: SEO y GEO (arrancada el 2026-11-26)
+
+Que buscadores y asistentes de IA encuentren a Oído y lo describan bien.
+Auditoría del 2026-11-26: la base ya estaba (robots, mapa del sitio, metadatos
+generales, `Organization` y `FAQPage` en la portada, landing renderizada en el
+servidor con un solo `h1`).
+
+| Ítem | Estado |
+|---|---|
+| Cada turno público como oferta de trabajo (`JobPosting`, `frontend/lib/seo.ts`) y con dirección canónica | ✅ |
+| Pantallas de la app fuera de buscadores (`app/robots.ts`) | ✅ |
+| Dirección canónica y título propios en Términos, Privacidad, ingreso y registro; el `og:url` fijo a la portada ya no se hereda | ✅ |
+| `llms.txt` (qué es Oído, para quién, dónde, páginas) | ✅ |
+| Mapa del sitio sin fecha inventada; `lang="es-AR"` | ✅ |
+| Turnos abiertos en el mapa del sitio | ⚪ pide un listado público de turnos abiertos en el backend: decidir antes si conviene exponerlo (hoy un turno sólo se conoce por su link) |
+| Páginas de contenido: para comercios, para trabajar, por puesto | ⚪ es lo que más falta; lleva redacción |
+| `WebSite` y `Service` en la portada, con descripción propia | ⚪ |
+| Textos alternativos en las fotos de la landing | ⚪ |
+| Confirmar que las vistas previas en `workers.dev` llevan `noindex` (o apagar `workers_dev`) | ⚪ |
+
+**De Julieta:** dar de alta `www.oido.com.ar` en Google Search Console y
+enviar el mapa del sitio; crear el perfil de empresa en Google; probar una
+página de turno en la prueba de resultados enriquecidos de Google.

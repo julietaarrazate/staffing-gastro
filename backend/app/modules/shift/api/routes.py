@@ -544,6 +544,7 @@ async def get_shift_public(
         meal=shift.meal,
         dress_code=shift.dress_code,
         urgent=shift.urgent,
+        published_at=shift.published_at,
         company_cover_url=company.cover_photo_url if company else None,
     )
 

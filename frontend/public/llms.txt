@@ -1,0 +1,37 @@
+# Oído
+
+> Oído es una plataforma argentina para cubrir turnos gastronómicos en el día: conecta comercios (bares, restaurantes, cafés) que necesitan personal con trabajadores que quieren tomar esos turnos. Funciona en la Ciudad de Buenos Aires.
+
+Oído es una plataforma de intermediación. No es empleador ni parte de la relación entre el comercio y el trabajador: cada turno lo acuerdan ellos. El comercio le paga directo a quien trabaja; Oído no cobra comisión sobre los turnos ni maneja ese dinero. Para quien trabaja es gratis. Los comercios tienen planes, publicados en la página de precios.
+
+## Cómo funciona
+
+- Un comercio publica un turno: puesto (mozo/a, bartender, barista, runner, cocinero/a, ayudante de cocina, cajero/a y otros), día, horario y pago.
+- Los trabajadores cercanos reciben el aviso y se postulan.
+- El comercio elige a quién quiere y esa persona confirma.
+- Si la persona no se presenta, el comercio lo marca y elige a otra de las postuladas, sin volver a publicar.
+- Trabajadores y comercios pueden verificarse (identidad; datos fiscales del comercio), y la otra parte ve esa verificación.
+
+## Para quién
+
+- Comercios gastronómicos de la Ciudad de Buenos Aires que necesitan cubrir un turno, hoy o programado.
+- Personas que trabajan en gastronomía y buscan turnos cerca.
+
+## Dónde y cómo se usa
+
+- Zona: Ciudad Autónoma de Buenos Aires, Argentina.
+- Es una aplicación web que se instala desde el navegador, sin tienda de aplicaciones: https://www.oido.com.ar/
+- Idioma: español (Argentina).
+
+## Páginas
+
+- [Inicio, cómo funciona y preguntas frecuentes](https://www.oido.com.ar/)
+- [Planes y precios para comercios](https://www.oido.com.ar/#precios)
+- [Crear cuenta](https://www.oido.com.ar/register)
+- [Términos y Condiciones](https://www.oido.com.ar/terminos)
+- [Política de Privacidad](https://www.oido.com.ar/privacidad)
+
+## Contacto
+
+- hola@oido.com.ar
+- Instagram: https://www.instagram.com/oidoapp/
