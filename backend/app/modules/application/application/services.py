@@ -191,17 +191,18 @@ class ApplicationService:
 
     async def list_applicants(
         self, company_id: UUID, shift_id: UUID
-    ) -> list[EnrichedApplicant]:
+    ) -> tuple[Shift, list[EnrichedApplicant]]:
         """Lista los postulantes a un turno propio del comercio, ya enriquecidos
         con los datos del trabajador (sin N+1, ver P2 en PERFORMANCE_REPORT.md).
 
         Sin las cuentas suspendidas (ADR-0024): no se las puede asignar, el
-        mismo criterio que «Recomendados» (lo filtra la consulta)."""
+        mismo criterio que «Recomendados» (lo filtra la consulta). Devuelve
+        también el turno: la ruta lo usa para el carril urgente."""
         shift = await self._shifts.get_by_id(shift_id)
         # No-disclosure: turno ajeno o inexistente se trata igual (404).
         if shift is None or shift.company_id != company_id:
             raise ShiftNotApplicableError(str(shift_id))
-        return await self._applications.list_by_shift_enriched(shift_id)
+        return shift, await self._applications.list_by_shift_enriched(shift_id)
 
     async def list_my_applications(
         self, worker_profile_id: UUID, *, limit: int = 50, offset: int = 0

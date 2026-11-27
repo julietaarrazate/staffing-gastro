@@ -13,6 +13,7 @@ from app.modules.company.domain.repositories import CompanyProfileRepository
 from app.modules.application.api.dependencies import get_application_service
 from app.modules.application.api.schemas import ApplicantResponse, ApplicationResponse
 from app.modules.application.application.services import ApplicationService
+from app.modules.application.domain.value_objects import ApplicationStatus
 from app.modules.application.domain.exceptions import (
     AlreadyAppliedError,
     AlreadyUnassignedError,
@@ -27,6 +28,7 @@ from app.modules.matching.application.services import MatchingService
 from app.modules.shift.api.dependencies import get_my_company_id, get_my_worker_profile_id
 from app.modules.shift.api.schemas import ShiftResponse, for_worker
 from app.modules.shift.domain.entities import Shift
+from app.modules.shift.domain.urgente import postularse_compromete
 from app.modules.shift.domain.exceptions import ShiftNotFoundError
 from app.modules.verification.api.dependencies import get_verification_service
 from app.modules.verification.application.services import VerificationService
@@ -199,7 +201,7 @@ async def shift_applicants(
     matching: MatchingDep,
 ):
     try:
-        applicants = await service.list_applicants(company_id, shift_id)
+        turno, applicants = await service.list_applicants(company_id, shift_id)
     except ShiftNotApplicableError as exc:
         raise _SHIFT_NOT_FOUND from exc
 
@@ -240,6 +242,14 @@ async def shift_applicants(
             trabajo_aca=fila.trabajo_aca,
             turnos_en_el_puesto=fila.turnos_en_el_puesto,
             nuevo_verificado=fila.nuevo_verificado,
+            # Carril urgente: se ofreció para ya (se mide contra cuándo se
+            # postuló). El comercio ve «Puede ir ya» y «Aceptar».
+            se_ofrecio_para_ya=(
+                settings.urgente_directo
+                and applicant.status == ApplicationStatus.PENDIENTE
+                and applicant.created_at is not None
+                and postularse_compromete(turno.start_at, applicant.created_at)
+            ),
         )
         for fila in ordenados
         for applicant in (fila.postulante,)

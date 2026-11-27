@@ -62,3 +62,7 @@ class ApplicantResponse(BaseModel):
     # Sello «Nuevo en Oído · identidad verificada»: sin turnos hechos, con la
     # identidad verificada y sin ausencias.
     nuevo_verificado: bool = False
+    # Carril urgente: se postuló con el turno a menos de 6 horas («Puedo ir
+    # ya») y la postulación sigue vigente. Si el comercio la acepta, el turno
+    # queda confirmado en el momento.
+    se_ofrecio_para_ya: bool = False

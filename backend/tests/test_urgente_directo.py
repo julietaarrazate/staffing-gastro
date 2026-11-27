@@ -157,3 +157,50 @@ async def test_si_ya_tomo_otro_turno_en_ese_horario_no_se_la_puede_aceptar(clien
     else:
         assert segundo.status_code == 409
         assert "otro turno" in segundo.json()["detail"]
+
+
+async def _postulantes(client: AsyncClient, shift_id: str, employer: dict) -> list[dict]:
+    r = await client.get(f"/api/v1/applications/shifts/{shift_id}", headers=employer)
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+async def test_el_comercio_ve_quien_se_ofrecio_para_ya(client, directo):
+    employer = await _comercio(client, "ud_lista")
+    shift_id = await _turno(client, employer, empieza_en=3)
+    worker, _ = await _persona(client, "ud_lista_w@staffya.com")
+    await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
+
+    lista = await _postulantes(client, shift_id, employer)
+    assert [p["se_ofrecio_para_ya"] for p in lista] == [True]
+
+
+async def test_quien_se_postulo_con_tiempo_no_lleva_la_marca(client, directo, session_factory):
+    """Se postuló con días de anticipación (aunque ahora falten 3 horas): no
+    vio «Puedo ir ya». Se simula con la postulación hecha antes de la ventana."""
+    from sqlalchemy import update
+
+    from app.modules.application.infrastructure.models import ShiftApplicationModel
+
+    employer = await _comercio(client, "ud_vieja")
+    shift_id = await _turno(client, employer, empieza_en=3)
+    worker, _ = await _persona(client, "ud_vieja_w@staffya.com")
+    await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
+    async with session_factory() as session:
+        await session.execute(
+            update(ShiftApplicationModel).values(created_at=_en(-48))
+        )
+        await session.commit()
+
+    lista = await _postulantes(client, shift_id, employer)
+    assert [p["se_ofrecio_para_ya"] for p in lista] == [False]
+
+
+async def test_con_la_regla_apagada_nadie_lleva_la_marca(client):
+    employer = await _comercio(client, "ud_lista_off")
+    shift_id = await _turno(client, employer, empieza_en=3)
+    worker, _ = await _persona(client, "ud_lista_off_w@staffya.com")
+    await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
+
+    lista = await _postulantes(client, shift_id, employer)
+    assert [p["se_ofrecio_para_ya"] for p in lista] == [False]
