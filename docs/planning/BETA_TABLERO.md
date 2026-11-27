@@ -149,10 +149,10 @@ mismo número de grupo (G1 a G27) que la columna «Dónde / nota».
   el evento dos veces (G25, #577).
 - En el contador del evento, «no cubierto» sigue sumando al total (G25, #577).
 - ✅ El mismo patrón «un error de carga se muestra como lista vacía» en Inicio,
-  Buscar, Matches, Mapa y la bandeja del admin (`ErrorState`, PR #PENDIENTE).
+  Buscar, Matches, Mapa y la bandeja del admin (`ErrorState`, PR #758).
 - El alta del comercio: reentrar y «Omitir por ahora» pisa el perfil.
 - El asistente cuenta turnos sobre los 200 más nuevos.
-- ✅ Falta una pantalla de error general de la app (`app/error.tsx`, PR #PENDIENTE).
+- ✅ Falta una pantalla de error general de la app (`app/error.tsx`, PR #758).
 - «Compartir» no aparece en un turno reabierto.
 - «Ver mis turnos» lleva a «Matches»: nombres distintos en celular y escritorio.
 - A 390 px el cartel «Viendo como…» del admin no muestra el nombre.

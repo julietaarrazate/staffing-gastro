@@ -1,4 +1,4 @@
-# Los errores de carga se ven como error, no como «no hay nada» (#PENDIENTE)
+# Los errores de carga se ven como error, no como «no hay nada» (#758)
 
 **Pedido:** que una carga fallida nunca se vea como lista vacía ni como pantalla
 en blanco (ítems del tablero de la beta).
