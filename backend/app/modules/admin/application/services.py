@@ -905,12 +905,18 @@ class AdminService:
         if user.role == UserRole.ADMIN:
             raise CannotImpersonateAdminError()
         # La marca hace que la sesión sea de sólo lectura (PRI-09) y deja en
-        # cada pedido rechazado quién era la admin.
-        token = create_access_token(
-            str(user.id),
-            extra_claims={"role": user.role.value, IMPERSONATED_BY_CLAIM: str(admin_id)},
-        )
-        return user, token
+        # cada pedido rechazado quién era la admin. Las cuentas de prueba del
+        # panel van sin la marca: existen para probar los flujos completos
+        # (publicar, postularse, cancelar) y no son de ninguna persona
+        # (decisión de Julieta, 2026-11-27).
+        claims = {"role": user.role.value}
+        if not self.is_test_account(user):
+            claims[IMPERSONATED_BY_CLAIM] = str(admin_id)
+        return user, create_access_token(str(user.id), extra_claims=claims)
+
+    @staticmethod
+    def is_test_account(user: User) -> bool:
+        return user.email in TEST_ACCOUNT_EMAILS
 
     async def _get(self, user_id: UUID) -> User:
         user = await self._users.get_by_id(user_id)

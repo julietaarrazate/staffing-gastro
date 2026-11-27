@@ -37,7 +37,14 @@ export default function ImpersonationBanner() {
         {impersonating.adminUser.full_name}
         {/* El servidor rechaza toda escritura de una sesión de «Ver como»
             (PRI-09): se dice acá para que no sorprenda. */}
-        {" "}· <strong>Sólo lectura</strong>
+        {impersonating.readOnly ? (
+          <>
+            {" "}· <strong>Sólo lectura</strong>
+          </>
+        ) : (
+          // Cuenta de prueba del panel: se puede operar para probar los flujos.
+          <> · Cuenta de prueba</>
+        )}
       </span>
       <button
         type="button"

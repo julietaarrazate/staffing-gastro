@@ -822,3 +822,28 @@ async def test_un_token_con_la_marca_de_ver_como_mal_formada_no_vale(client, ses
             "/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"}
         )
         assert respuesta.status_code == 401, (marca, respuesta.text)
+
+
+@pytest.mark.asyncio
+async def test_ver_como_una_cuenta_de_prueba_si_puede_operar(client, session_factory):
+    """Las cuentas de prueba del panel existen para probar los flujos
+    completos: con ellas «Ver como» no es de sólo lectura."""
+    admin = await _make_admin(client, session_factory, "admin_prueba@test.com")
+    cuentas = (await client.get("/api/v1/admin/test-accounts", headers=admin)).json()
+    trabajadora = next(c for c in cuentas if c["role"] == "worker")
+
+    resp = await client.post(
+        f"/api/v1/admin/users/{trabajadora['id']}/impersonate", headers=admin
+    )
+    assert resp.json()["read_only"] is False
+    viendo = {"Authorization": f"Bearer {resp.json()['access_token']}"}
+
+    escrito = await client.post("/api/v1/notifications/read-all", headers=viendo)
+    assert escrito.status_code != 403, escrito.text
+
+    # Una cuenta real sigue en sólo lectura.
+    await auth_headers(client, "worker", "real_solo_lectura@test.com")
+    users = await client.get("/api/v1/admin/users", headers=admin)
+    real = next(u["id"] for u in users.json() if u["email"] == "real_solo_lectura@test.com")
+    resp = await client.post(f"/api/v1/admin/users/{real}/impersonate", headers=admin)
+    assert resp.json()["read_only"] is True

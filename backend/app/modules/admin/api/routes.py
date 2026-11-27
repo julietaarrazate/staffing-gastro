@@ -350,5 +350,7 @@ async def impersonate_user(user_id: UUID, current: AdminDep, service: ServiceDep
         user.role.value,
     )
     return ImpersonateResponse(
-        access_token=access_token, user=AdminUserResponse.model_validate(user)
+        access_token=access_token,
+        user=AdminUserResponse.model_validate(user),
+        read_only=not service.is_test_account(user),
     )

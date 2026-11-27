@@ -26,3 +26,16 @@ pide sumarle infraestructura al módulo de admin.
 **Pruebas:** `backend/tests/test_admin.py` (2 casos nuevos). En la app real:
 recorrer cinco pantallas de una trabajadora no dispara ninguna escritura, y
 cancelar un turno confirmado responde 403 sin cambiar nada.
+
+## Después de la revisión independiente (2026-11-27)
+
+- Abrir un chat marcaba los mensajes como leídos y le avisaba el «visto» al
+  otro lado (`GET /chats/{id}/messages` escribe): con «Ver como» sólo lista.
+- Una marca `imp` mal formada invalida el token en vez de tratarlo como una
+  sesión común; la marca también viaja en la rama de admin.
+- **Las cuentas de prueba del panel sí pueden operar** (decisión de Julieta):
+  existen para probar los flujos completos y no son de ninguna persona. Su
+  token va sin la marca, la respuesta trae `read_only: false` y la franja dice
+  «Cuenta de prueba».
+- Queda sin tocar: `GET /subscription` puede crear la fila de suscripción del
+  comercio la primera vez (idempotente, se habría creado igual al publicar).

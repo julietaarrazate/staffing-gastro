@@ -120,6 +120,8 @@ test("\"Ver como trabajador\" (cuenta de prueba) impersona y saca del panel de a
       body: JSON.stringify({
         access_token: "e2e-impersonated-token",
         token_type: "bearer",
+        // Las cuentas de prueba sí pueden operar (las reales, sólo lectura).
+        read_only: false,
         user: {
           id: "test-worker-1",
           email: "prueba.trabajador@oido.beta",
@@ -148,4 +150,8 @@ test("\"Ver como trabajador\" (cuenta de prueba) impersona y saca del panel de a
 
   await expect(page).toHaveURL(/\/feed$/);
   await expect.poll(() => impersonatedId).toBe("test-worker-1");
+  // La franja dice que es una cuenta de prueba, no «Sólo lectura».
+  const franja = page.getByRole("status").filter({ hasText: "Viendo como" });
+  await expect(franja).toContainText("Cuenta de prueba");
+  await expect(franja).not.toContainText("Sólo lectura");
 });

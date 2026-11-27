@@ -172,6 +172,9 @@ class ImpersonateResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: AdminUserResponse
+    # La sesión no puede cambiar nada (PRI-09). Falso sólo para las cuentas
+    # de prueba del panel, que existen para probar los flujos.
+    read_only: bool = True
 
 
 class TestAccountResponse(BaseModel):
