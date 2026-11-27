@@ -28,7 +28,11 @@ from app.modules.chat.domain.exceptions import (
     ConversationNotFoundError,
     EmptyMessageError,
 )
-from app.modules.identity.api.dependencies import get_current_user, get_current_ws_session
+from app.modules.identity.api.dependencies import (
+    get_current_session,
+    get_current_user,
+    get_current_ws_session,
+)
 from app.modules.identity.application.dtos import AuthenticatedSession
 from app.modules.identity.domain.entities import User
 
@@ -70,10 +74,17 @@ async def my_conversations(current_user: CurrentUserDep, service: ServiceDep):
     summary="Mensajes de la conversación de un turno",
 )
 async def conversation_messages(
-    shift_id: UUID, current_user: CurrentUserDep, service: ServiceDep
+    shift_id: UUID,
+    current_user: CurrentUserDep,
+    service: ServiceDep,
+    session: Annotated[AuthenticatedSession, Depends(get_current_session)],
 ):
     try:
-        return await service.list_messages(current_user.id, shift_id)
+        # Es un GET que escribe (marca leídos y avisa el «visto»): la puerta
+        # de sólo lectura de «Ver como» no lo ve por el método, se corta acá.
+        return await service.list_messages(
+            current_user.id, shift_id, marcar_leidos=session.impersonated_by is None
+        )
     except ConversationNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

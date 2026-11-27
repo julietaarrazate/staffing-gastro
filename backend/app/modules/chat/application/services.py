@@ -65,10 +65,18 @@ class ChatService:
         self._users = users
         self._notifications = notifications
 
-    async def list_messages(self, user_id: UUID, shift_id: UUID) -> list[ChatMessage]:
+    async def list_messages(
+        self, user_id: UUID, shift_id: UUID, *, marcar_leidos: bool = True
+    ) -> list[ChatMessage]:
         """Lista los mensajes del hilo vigente del turno y marca como leídos
-        los que el usuario recibió en ese hilo."""
+        los que el usuario recibió en ese hilo.
+
+        `marcar_leidos=False`: sólo lista. Es lo que usa «Ver como», que no
+        marca nada como visto (PRI-09): si no, el otro lado recibía el
+        «visto» porque la admin abrió el chat."""
         thread, _company_user_id = await self._authorize(user_id, shift_id)
+        if not marcar_leidos:
+            return await self._messages.list_by_thread(thread)
         marked_something = await self._messages.mark_read(thread, user_id)
         if marked_something:
             # Avisa en vivo, por el mismo socket del chat, a quien tiene la

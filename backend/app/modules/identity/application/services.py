@@ -144,11 +144,16 @@ EMAIL_VERIFICATION_RESEND_WINDOW = timedelta(minutes=5)
 # dos pasos (o por su alta). Va en el access y en el refresh, así sobrevive a
 # la rotación: una sesión verificada sigue verificada al renovarse, y una de
 # antes de activar la verificación no se vuelve verificada sola (ADR-0023).
-def _uuid_o_nada(valor: object) -> UUID | None:
-    try:
-        return UUID(str(valor)) if valor else None
-    except ValueError:
+def _admin_que_mira(payload: dict) -> UUID | None:
+    """Id de la admin de un token de «Ver como», o `None` si no lo es. Si la
+    marca está pero no es un id, el token no vale: nunca se trata como una
+    sesión común (falla cerrado)."""
+    if IMPERSONATED_BY_CLAIM not in payload:
         return None
+    try:
+        return UUID(str(payload[IMPERSONATED_BY_CLAIM]))
+    except ValueError as exc:
+        raise InvalidTokenError() from exc
 
 
 TWO_FACTOR_CLAIM = "mfa"
@@ -518,11 +523,12 @@ class IdentityService:
         if not user.is_active:
             raise InactiveUserError()
         expires_at = payload.get("exp")
+        impersonated_by = _admin_que_mira(payload)
         if not TwoFactorService.applies_to(user) or self._two_factor is None:
             return AuthenticatedSession(
                 user=user,
                 token_expires_at=expires_at,
-                impersonated_by=_uuid_o_nada(payload.get(IMPERSONATED_BY_CLAIM)),
+                impersonated_by=impersonated_by,
             )
         # Se mira en cada pedido de un admin (una consulta por clave
         # primaria; hay un admin): si soporte desactiva la verificación, sus
@@ -532,6 +538,9 @@ class IdentityService:
             two_factor_enabled=await self._two_factor.is_enabled(user.id),
             two_factor_verified=payload.get(TWO_FACTOR_CLAIM) is True,
             token_expires_at=expires_at,
+            # No se puede mirar a un admin, pero si la cuenta mirada pasara a
+            # serlo con el token vigente, la marca tiene que seguir.
+            impersonated_by=impersonated_by,
         )
 
     async def complete_two_factor_login(
