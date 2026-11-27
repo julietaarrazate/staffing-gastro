@@ -20,8 +20,10 @@ export async function turnosParaElMapa(
 ): Promise<EntradaTurno[]> {
   try {
     const respuesta = await pedir(`${API_URL}/shifts/public-index`, {
-      // Una hora (donde el caché de datos de Next anda; el backend además
-      // cachea 5 minutos).
+      // Una hora, donde el caché de datos de Next escribe (`next start`,
+      // Vercel). En Cloudflare no hay caché incremental de escritura: ahí lo
+      // que evita llamar al backend en cada pedido es la copia de 10 minutos
+      // del Worker (`cloudflare/sitemap-cache.mjs`).
       next: { revalidate: 3600 },
       signal: AbortSignal.timeout(ESPERA_MS),
     });

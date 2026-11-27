@@ -14,6 +14,9 @@ from sqlalchemy import update
 
 from app.modules.shift.infrastructure.models import ShiftModel
 from app.modules.shift.infrastructure.repositories import SqlAlchemyShiftRepository
+from app.core.config import settings
+from app.core.rate_limit import reset_all_rate_limiters
+from app.modules.shift.application.services import ShiftService
 from tests.conftest import make_admin
 from tests.test_shift import (
     _employer_with_company,
@@ -134,3 +137,27 @@ async def test_todo_lo_listado_da_200_en_la_pagina_publica(client: AsyncClient):
 async def _con_tope(session_factory, limite: int):
     async with session_factory() as session:
         return await SqlAlchemyShiftRepository(session).list_public_index(limit=limite)
+
+
+async def test_la_ruta_pasa_el_tope_de_1000_al_servicio(client: AsyncClient, monkeypatch):
+    recibido = {}
+
+    async def falso(self, limit: int = 0):
+        recibido["limit"] = limit
+        return []
+
+    monkeypatch.setattr(ShiftService, "list_public_index", falso)
+
+    assert await _ids(client) == []
+    assert recibido["limit"] == 1000
+
+
+async def test_limite_por_ip_30_por_minuto(client: AsyncClient):
+    settings.rate_limit_enabled = True
+    reset_all_rate_limiters()
+    try:
+        codes = [(await client.get(URL)).status_code for _ in range(31)]
+    finally:
+        settings.rate_limit_enabled = False
+        reset_all_rate_limiters()
+    assert codes[:30] == [200] * 30 and codes[30] == 429

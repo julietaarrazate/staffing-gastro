@@ -4,9 +4,10 @@ import { turnosParaElMapa } from "@/lib/sitemap-turnos";
 
 const BASE_URL = SITE_URL;
 
-// Se arma en cada pedido (no en el build): los turnos abiertos cambian todo el
-// día. Oído no usa ISR en Cloudflare (`open-next.config.ts`), así que una
-// página prerenderizada quedaría congelada con los turnos del día del deploy.
+// Se arma en cada pedido y no en el build: los turnos abiertos cambian todo el
+// día, y una página prerenderizada quedaría congelada con los del deploy. Esto
+// anula el `revalidate` de la página, así que en Cloudflare la respuesta se
+// guarda 10 minutos en la Cache API del Worker (`cloudflare/sitemap-cache.mjs`).
 export const dynamic = "force-dynamic";
 
 /**

@@ -19,6 +19,9 @@ export function conNoindexEnWorkersDev(handler) {
   return {
     async fetch(request, env, ctx) {
       const respuesta = await handler.fetch(request, env, ctx);
+      // Un upgrade a WebSocket (101) lleva `webSocket`: rearmar la respuesta lo
+      // perdería. Se devuelve tal cual.
+      if (respuesta.status === 101 || /** @type {any} */ (respuesta).webSocket) return respuesta;
       if (!esWorkersDev(new URL(request.url).hostname)) return respuesta;
       // Copia con cabeceras propias: la original puede ser inmutable.
       const r = new Response(respuesta.body, respuesta);

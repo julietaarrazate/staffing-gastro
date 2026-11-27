@@ -45,4 +45,15 @@ describe("conNoindexEnWorkersDev", () => {
     expect(r.status).toBe(308);
     expect(r.headers.get("X-Robots-Tag")).toBe("noindex");
   });
+
+  it("no toca un upgrade a WebSocket (status 101 o webSocket)", async () => {
+    const ws = { status: 101, headers: new Headers(), webSocket: {} };
+    const r = await conNoindexEnWorkersDev({ fetch: async () => ws as unknown as Response }).fetch(
+      new Request("https://x.cuenta.workers.dev/ws"),
+      {},
+      {}
+    );
+    expect(r).toBe(ws);
+    expect(ws.headers.get("X-Robots-Tag")).toBeNull();
+  });
 });

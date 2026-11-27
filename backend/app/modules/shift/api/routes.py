@@ -105,6 +105,13 @@ _parse_shift_text_rate_limit = RateLimiter(
 _parse_shift_text_daily_limit = RateLimiter(
     max_attempts=60, window_seconds=86_400, name="parse-shift-text-daily"
 )
+# El listado público para el mapa del sitio no pide sesión: tope por IP para
+# que nadie lo use de martillo contra la base. Quien lo lee de verdad es el
+# Worker del frontend, que guarda la respuesta 10 minutos.
+PUBLIC_INDEX_LIMIT = 1000
+_public_index_rate_limit = RateLimiter(
+    max_attempts=30, window_seconds=60, name="shift-public-index"
+)
 
 
 def _to_data(payload: ShiftInput) -> ShiftData:
@@ -428,12 +435,13 @@ async def create_event(
     "/public-index",
     response_model=list[ShiftPublicIndexItem],
     summary="Turnos con página pública indexable (para el mapa del sitio)",
+    dependencies=[Depends(_public_index_rate_limit)],
 )
 async def public_index(service: ServiceDep, response: Response):
     """Sin auth. Los turnos que hoy dan 200 en `/{id}/public` y todavía no
     empezaron: sólo `id` y `published_at`, más nuevos primero, hasta 1000.
     Lo lee `frontend/app/sitemap.ts`. Ningún dato del comercio ni de personas."""
-    shifts = await service.list_public_index(limit=1000)
+    shifts = await service.list_public_index(limit=PUBLIC_INDEX_LIMIT)
     # Lo pide el mapa del sitio, que ya revalida cada hora: unos minutos de
     # caché alcanzan y no dejan que cada pedido llegue a la base.
     response.headers["Cache-Control"] = "public, max-age=300"
