@@ -5,7 +5,7 @@
 // (urgentes sin cubrir y ausencias) y la promesa de los 10 minutos.
 // Las métricas completas están en `/admin/metricas`.
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
@@ -24,7 +24,8 @@ import {
   StatCard,
   StatCardSkeleton,
 } from "@/components/admin/AdminStats";
-import { formatCount, useAdminInbox } from "@/components/admin/AdminInbox";
+import { formatCount, inboxIncompleto, useAdminInbox } from "@/components/admin/AdminInbox";
+import { CARGA_FALLIDA_TEXTO, ErrorBanner } from "@/components/ui";
 
 function PendingCard({
   href,
@@ -42,6 +43,8 @@ function PendingCard({
   action: string;
 }) {
   const pending = count !== null && count !== "0";
+  // Sin número no se sabe: nunca «Al día» ni «Ninguno» (eso afirma que no hay nada).
+  const noCargo = count === null;
   return (
     <Link
       href={href}
@@ -55,7 +58,7 @@ function PendingCard({
         {count ?? "—"}
       </p>
       <p className="mt-1 text-sm font-semibold text-ink-soft">
-        {pending ? `${action} →` : doneLabel}
+        {noCargo ? "No pudimos cargar" : pending ? `${action} →` : doneLabel}
       </p>
     </Link>
   );
@@ -63,17 +66,22 @@ function PendingCard({
 
 export default function AdminTodayPage() {
   const { token, user } = useAuth();
-  const { inbox, loaded } = useAdminInbox();
+  const { inbox, loaded, reload } = useAdminInbox();
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [statsFailed, setStatsFailed] = useState(false);
 
-  useEffect(() => {
+  const loadStats = useCallback(() => {
     if (!token) return;
+    setStatsFailed(false);
     api
       .get<PlatformStats>("/admin/stats", token)
       .then(setStats)
       .catch(() => setStatsFailed(true));
   }, [token]);
+
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
 
   const firstName = user?.full_name?.split(" ")[0];
 
@@ -83,6 +91,10 @@ export default function AdminTodayPage() {
         title={firstName ? `Hola, ${firstName}` : "Hoy"}
         subtitle="Lo que espera una acción tuya, y cómo viene la promesa de los 10 minutos."
       />
+
+      {loaded && inboxIncompleto(inbox) && (
+        <ErrorBanner message={`No pudimos cargar algunos números. ${CARGA_FALLIDA_TEXTO}`} onRetry={reload} />
+      )}
 
       <div className="mt-6">
         <SectionLabel>Turnos de hoy</SectionLabel>
@@ -187,9 +199,7 @@ export default function AdminTodayPage() {
             </p>
           </>
         ) : statsFailed ? (
-          <div className="tarjeta-suave mt-2 p-5">
-            <p className="text-sm text-ink-soft">No se pudieron cargar los números.</p>
-          </div>
+          <ErrorBanner message={`No pudimos cargar los números. ${CARGA_FALLIDA_TEXTO}`} onRetry={loadStats} />
         ) : (
           <div className="mt-2 grid grid-cols-2 gap-3" aria-hidden>
             <StatCardSkeleton />

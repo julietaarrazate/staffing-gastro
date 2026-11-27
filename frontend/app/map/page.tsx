@@ -16,7 +16,7 @@ import { getStoredLocation, nearbyOnly, originFor, sortByDistance } from "@/lib/
 import { haversineKm } from "@/lib/map/geo";
 import { estimateTravelTimes } from "@/lib/map/travel-time";
 import { SKILL_LABELS, Shift, ShiftApplication, WorkerProfile } from "@/lib/types";
-import { Button, EmptyState, Sheet, Skeleton, useToast } from "@/components/ui";
+import { Button, CARGA_FALLIDA_TEXTO, CARGA_FALLIDA_TITULO, EmptyState, ErrorBanner, ErrorState, Sheet, Skeleton, useToast } from "@/components/ui";
 import { BikeIcon, CalendarIcon, CarIcon, FootprintsIcon, MapPinIcon, UsersIcon } from "@/components/icons";
 import { formatShiftRange, formatShiftTime } from "@/lib/datetime";
 import ListaMapa from "@/components/worker/ListaMapa";
@@ -299,7 +299,11 @@ export default function MapPage() {
       if (!token) return;
       const silent = options?.silent === true;
       const mine = ++latestLoad.current;
-      if (!silent) setLoading(true);
+      if (!silent) {
+        // Al reintentar se limpia el error: no se ve junto al esqueleto.
+        setError(null);
+        setLoading(true);
+      }
       try {
         const [feed, applied] = await Promise.all([
           api.get<Shift[]>("/shifts/feed", token),
@@ -433,10 +437,13 @@ export default function MapPage() {
   // los de otras zonas se ven en Buscar.
   const goToSearch = { label: "Ver todos en Buscar", onClick: () => router.push("/buscar") };
   const allFarFromHere = !error && farFromHere;
-  const emptyTitle =
-    error ?? (allFarFromHere ? "No hay turnos cerca de donde estás ahora" : "No hay turnos cerca");
+  const emptyTitle = error
+    ? CARGA_FALLIDA_TITULO
+    : allFarFromHere
+      ? "No hay turnos cerca de donde estás ahora"
+      : "No hay turnos cerca";
   const emptySubtitle = error
-    ? "No pudimos cargar los turnos. Revisá tu conexión e intentá de nuevo."
+    ? CARGA_FALLIDA_TEXTO
     : allFarFromHere
       ? "El mapa trae los turnos de la zona de tu perfil. Los de otras zonas están en Buscar."
       : "Aparecen en tiempo real. Volvé en un rato o mirá otras zonas en Buscar.";
@@ -479,6 +486,9 @@ export default function MapPage() {
             </p>
           )}
           {hayChips && <FiltrosMapaChips variante="panel" filtros={filtros} onChange={cambiarFiltros} />}
+          {!loading && error && shifts.length > 0 && (
+            <ErrorBanner message={`${CARGA_FALLIDA_TITULO}. ${CARGA_FALLIDA_TEXTO}`} onRetry={() => load()} />
+          )}
         </div>
         <div className="flex-1 px-4 pb-5 pt-1">
           {loading ? (
@@ -491,13 +501,17 @@ export default function MapPage() {
             <SinResultadosPorFiltro onQuitar={quitarFiltros} />
           ) : shifts.length === 0 ? (
             <div className="px-2 py-6">
-              <EmptyState
-                icon={<CalendarIcon size={28} />}
-                title={emptyTitle}
-                subtitle={emptySubtitle}
-                primaryAction={emptyPrimary}
-                secondaryAction={emptySecondary}
-              />
+              {error ? (
+                <ErrorState onRetry={() => load()} />
+              ) : (
+                <EmptyState
+                  icon={<CalendarIcon size={28} />}
+                  title={emptyTitle}
+                  subtitle={emptySubtitle}
+                  primaryAction={emptyPrimary}
+                  secondaryAction={emptySecondary}
+                />
+              )}
             </div>
           ) : (
             <div className="space-y-3">
@@ -552,6 +566,11 @@ export default function MapPage() {
         </h1>
         {/* Los chips sí reciben toques (el resto del cielo no), igual que los de /buscar. */}
         {hayChips && <FiltrosMapaChips filtros={filtros} onChange={cambiarFiltros} />}
+        {!loading && error && shifts.length > 0 && (
+          <div className="pointer-events-auto -mt-3">
+            <ErrorBanner message={`${CARGA_FALLIDA_TITULO}. ${CARGA_FALLIDA_TEXTO}`} onRetry={() => load()} />
+          </div>
+        )}
         {!loading && locationUnavailable && (
           <p className="mapa-aviso mt-2.5">
             No pudimos ubicarte — activá la ubicación para ver lo que está

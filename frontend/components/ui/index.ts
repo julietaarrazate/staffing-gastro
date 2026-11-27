@@ -8,6 +8,7 @@ export { default as Skeleton, CardSkeleton, CardSkeletons } from "./Skeleton";
 export { default as TextField } from "./TextField";
 export { default as EmptyState } from "./EmptyState";
 export { default as ErrorBanner } from "./ErrorBanner";
+export { default as ErrorState, CARGA_FALLIDA_TITULO, CARGA_FALLIDA_TEXTO } from "./ErrorState";
 export { default as Sheet } from "./Sheet";
 export { default as Modal } from "./Modal";
 export { default as SegmentedControl } from "./SegmentedControl";

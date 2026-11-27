@@ -29,7 +29,7 @@ import {
   type CurrentLocation,
 } from "@/lib/current-location";
 import LocationBar from "@/components/worker/LocationBar";
-import { CardSkeletons, EmptyState, Skeleton, useToast } from "@/components/ui";
+import { CardSkeletons, EmptyState, ErrorState, Skeleton, useToast } from "@/components/ui";
 import CieloInicio from "@/components/worker/CieloInicio";
 import OpportunityCard from "@/components/worker/OpportunityCard";
 import FeedHero from "@/components/worker/FeedHero";
@@ -40,7 +40,7 @@ import dynamic from "next/dynamic";
 import type { TourStep } from "@/components/GuidedTour";
 import { useTourPendiente } from "@/lib/use-tour-pendiente";
 import { ChevronRightIcon, CloseIcon, SparklesIcon } from "@/components/icons";
-import { EmptyFeedIllustration, ErrorIllustration } from "@/components/illustrations";
+import { EmptyFeedIllustration } from "@/components/illustrations";
 
 // Recorrido de una sola vez: se baja sólo si hay algo que mostrar.
 const GuidedTour = dynamic(() => import("@/components/GuidedTour"), { ssr: false });
@@ -676,12 +676,7 @@ function WorkerFeedPanel() {
           </div>
         </>
       ) : error ? (
-        <EmptyState
-          icon={<ErrorIllustration color="var(--color-primary)" />}
-          title="No se pudo cargar"
-          subtitle={error}
-          primaryAction={{ label: "Reintentar", onClick: () => load() }}
-        />
+        <ErrorState onRetry={() => load()} />
       ) : (
         <>
           {/* «Urgentes»: lo que empieza en las próximas 6 h, arriba de todo

@@ -28,7 +28,7 @@ import { sortByBestPay } from "@/lib/pay";
 import { FlameIcon, StarIcon } from "@/components/icons";
 import OportunidadFila from "@/components/worker/OportunidadFila";
 import { SKILL_ACCENT } from "@/lib/skill-style";
-import { EmptyState, ErrorBanner, NubesCielo, Skeleton, useToast } from "@/components/ui";
+import { EmptyState, ErrorState, NubesCielo, Skeleton, useToast } from "@/components/ui";
 import { EmptyFeedIllustration } from "@/components/illustrations";
 
 /**
@@ -394,12 +394,6 @@ export default function BuscarPage() {
         </div>
 
         <div className="min-w-0">
-        {error && (
-          <div className="mb-4">
-            <ErrorBanner message={error} onRetry={() => load()} />
-          </div>
-        )}
-
         <div className="mt-4 lg:mt-0">
           {loading ? (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -407,6 +401,8 @@ export default function BuscarPage() {
                 <Skeleton key={i} className="h-[156px] w-full rounded-[18px]" />
               ))}
             </div>
+          ) : error ? (
+            <ErrorState onRetry={() => load()} />
           ) : sortedShifts.length === 0 ? (
             <EmptyState
               icon={<EmptyFeedIllustration color="var(--color-primary)" />}
