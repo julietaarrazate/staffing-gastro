@@ -865,9 +865,27 @@ servidor con un solo `h1`).
 - [ ] Cargar el horario «Abierto las 24 horas» en el perfil.
 - [ ] Probar una página de turno abierto en la prueba de resultados
   enriquecidos de Google (pide un turno publicado en ese momento).
-- [ ] Decidir si los turnos abiertos van al mapa del sitio (probable sí).
+- [x] Los turnos abiertos van al mapa del sitio: **sí** (Julieta,
+  2026-11-27). Por hacer; prever que un comercio pueda excluir un turno.
 
 **Pendiente de decidir (2026-11-27):** un ensayo general automático antes de
 abrir, sobre `tools/e2e-local`: usuarios simulados que recorren el camino
 completo y los casos de falla, con informe y capturas. Va en una sesión
 propia.
+
+## Asistente y soporte con IA (decidido el 2026-11-27)
+
+- **«Pedilo como lo dirías» se queda** (es la marca de la portada): el pedido
+  en una línea sólo precarga el turno, lo publica la persona. Sigue con
+  Gemini mientras sea gratis.
+- **El soporte recuerda** (✅ #757): las sugerencias de respuesta se apoyan en
+  los casos ya resueltos de la misma categoría.
+- **Lo que sigue, después de abrir:** el parte del día para la admin
+  (verificaciones, tickets, turnos sin postulantes, ausencias); que la
+  sugerencia mire el caso (el turno y lo que quedó registrado); el asistente
+  conversacional pasa de cargar turnos a responder dudas.
+- **Claude para lo que pide criterio** (soporte y dudas), en el modelo
+  económico y con tope mensual. Pide tres cosas antes: la clave en Render, el
+  tope de gasto (ADR-0030) y sumar al proveedor en `/privacidad` (texto legal,
+  con el sí de Julieta y subida de versión).
+- **Nunca ejecuta sobre una persona:** propone, y decide la admin.

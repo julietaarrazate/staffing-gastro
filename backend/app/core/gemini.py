@@ -277,7 +277,42 @@ class TicketSuggestion:
     suggested_reply: str
 
 
-async def suggest_ticket_reply(subject: str, category: str, transcript: str) -> TicketSuggestion:
+# Tope de cada texto de un precedente: la memoria suma contexto, no puede
+# multiplicar el tamaño (y el costo) del pedido.
+_PRECEDENTE_MAX_CHARS = 600
+
+
+def _recortar(texto: str) -> str:
+    texto = " ".join(texto.split())
+    return texto if len(texto) <= _PRECEDENTE_MAX_CHARS else texto[:_PRECEDENTE_MAX_CHARS] + "…"
+
+
+def _bloque_de_precedentes(precedents: list[tuple[str, str, str]]) -> str:
+    if not precedents:
+        return ""
+    casos = "\n\n".join(
+        f"Caso {n}. Asunto: {_recortar(asunto)}\n"
+        f"Consulta: {_recortar(consulta)}\n"
+        f"Respuesta del equipo: {_recortar(respuesta)}"
+        for n, (asunto, consulta, respuesta) in enumerate(precedents, start=1)
+    )
+    return (
+        "\n\n--- Casos ya resueltos por el equipo en esta categoría ---\n"
+        "Son de OTRAS personas. Usalos sólo para tomar el criterio y el tono con que el equipo "
+        "resuelve este tipo de consultas. No copies nombres, montos, fechas ni ningún dato de "
+        "esos casos a tu respuesta.\n\n" + casos
+    )
+
+
+async def suggest_ticket_reply(
+    subject: str,
+    category: str,
+    transcript: str,
+    precedents: list[tuple[str, str, str]] | None = None,
+) -> TicketSuggestion:
+    """`precedents`: (asunto, consulta, respuesta del equipo) de tickets ya
+    cerrados de la misma categoría. Es la memoria del soporte: cada ticket
+    que el equipo resuelve mejora las sugerencias siguientes."""
     if not settings.gemini_api_key:
         raise GeminiNotConfiguredError()
 
@@ -286,7 +321,10 @@ async def suggest_ticket_reply(subject: str, category: str, transcript: str) -> 
         "contents": [
             {
                 "parts": [
-                    {"text": f"Asunto: {subject}\nCategoría: {category}\n\n{transcript}"}
+                    {
+                        "text": f"Asunto: {subject}\nCategoría: {category}\n\n{transcript}"
+                        + _bloque_de_precedentes(precedents or [])
+                    }
                 ]
             }
         ],

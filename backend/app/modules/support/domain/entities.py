@@ -139,3 +139,15 @@ class CompanyRef:
 class TicketReferences:
     shift: ShiftRef | None = None
     company: CompanyRef | None = None
+
+
+@dataclass(frozen=True)
+class ResolvedCase:
+    """Un ticket ya cerrado, reducido a lo que sirve como precedente: qué
+    preguntó la persona y qué le contestó el equipo. Es la «memoria» de la
+    sugerencia de respuesta: el criterio y el tono salen de casos reales.
+    Sin nombres ni ids: sólo el asunto y los dos textos."""
+
+    subject: str
+    question: str
+    reply: str

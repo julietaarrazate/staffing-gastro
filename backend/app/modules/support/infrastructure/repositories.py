@@ -26,6 +26,7 @@ from app.modules.support.domain.entities import (
     SupportMessage,
     SupportTicket,
     TicketOpener,
+    ResolvedCase,
 )
 from app.modules.support.domain.repositories import (
     ReferenceLookup,
@@ -227,6 +228,50 @@ class SqlAlchemySupportMessageRepository(SupportMessageRepository):
         )
         result = await self._session.execute(stmt)
         return [_to_message(m) for m in result.scalars().all()]
+
+
+    async def list_resolved_cases(
+        self, category: TicketCategory, *, exclude_ticket_id: UUID, limit: int
+    ) -> list[ResolvedCase]:
+        tickets = (
+            await self._session.execute(
+                select(SupportTicketModel)
+                .where(
+                    SupportTicketModel.category == category.value,
+                    SupportTicketModel.status == TicketStatus.CERRADO.value,
+                    SupportTicketModel.id != exclude_ticket_id,
+                )
+                .order_by(SupportTicketModel.updated_at.desc())
+                # Margen: no todo ticket cerrado tiene respuesta del equipo.
+                .limit(limit * 3)
+            )
+        ).scalars().all()
+        if not tickets:
+            return []
+        mensajes = (
+            await self._session.execute(
+                select(SupportMessageModel)
+                .where(SupportMessageModel.ticket_id.in_([t.id for t in tickets]))
+                .order_by(SupportMessageModel.created_at.asc())
+            )
+        ).scalars().all()
+        casos: list[ResolvedCase] = []
+        for ticket in tickets:
+            del_ticket = [m for m in mensajes if m.ticket_id == ticket.id]
+            de_la_persona = [m for m in del_ticket if m.sender_user_id == ticket.user_id]
+            del_equipo = [m for m in del_ticket if m.sender_user_id != ticket.user_id]
+            if not de_la_persona or not del_equipo:
+                continue
+            casos.append(
+                ResolvedCase(
+                    subject=ticket.subject,
+                    question=de_la_persona[0].body,
+                    reply=del_equipo[-1].body,
+                )
+            )
+            if len(casos) == limit:
+                break
+        return casos
 
 
 class SqlAlchemyReferenceLookup(ReferenceLookup):

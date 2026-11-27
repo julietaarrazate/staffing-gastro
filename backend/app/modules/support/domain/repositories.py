@@ -10,8 +10,9 @@ from app.modules.support.domain.entities import (
     SupportMessage,
     SupportTicket,
     TicketOpener,
+    ResolvedCase,
 )
-from app.modules.support.domain.value_objects import TicketStatus
+from app.modules.support.domain.value_objects import TicketCategory, TicketStatus
 
 
 class SupportTicketRepository(ABC):
@@ -57,6 +58,14 @@ class SupportMessageRepository(ABC):
     @abstractmethod
     async def list_by_ticket(self, ticket_id: UUID) -> list[SupportMessage]:
         """Lista los mensajes de un ticket (más antiguos primero)."""
+
+    @abstractmethod
+    async def list_resolved_cases(
+        self, category: TicketCategory, *, exclude_ticket_id: UUID, limit: int
+    ) -> list[ResolvedCase]:
+        """Los últimos tickets CERRADOS de esa categoría que el equipo
+        contestó, como precedentes: la primera consulta de la persona y la
+        última respuesta de soporte. Más recientes primero."""
 
 
 class ReferenceLookup(ABC):

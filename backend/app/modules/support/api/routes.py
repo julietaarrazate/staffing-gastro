@@ -238,8 +238,15 @@ async def get_ticket_ai_suggestion(ticket_id: UUID, admin: AdminDep, service: Se
         f"{'Usuario' if m.sender_user_id == ticket.user_id else 'Soporte'}: {m.body}"
         for m in messages
     )
+    # La memoria: cómo resolvió el equipo los últimos casos de esta categoría.
+    precedentes = await service.precedents_for(ticket)
     try:
-        suggestion = await suggest_ticket_reply(ticket.subject, ticket.category.value, transcript)
+        suggestion = await suggest_ticket_reply(
+            ticket.subject,
+            ticket.category.value,
+            transcript,
+            [(c.subject, c.question, c.reply) for c in precedentes],
+        )
     except GeminiNotConfiguredError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -251,7 +258,9 @@ async def get_ticket_ai_suggestion(ticket_id: UUID, admin: AdminDep, service: Se
             detail="No pudimos generar una sugerencia. Respondé a mano.",
         ) from exc
     return TicketSuggestionResponse(
-        summary=suggestion.summary, suggested_reply=suggestion.suggested_reply
+        summary=suggestion.summary,
+        suggested_reply=suggestion.suggested_reply,
+        precedents_used=len(precedentes),
     )
 
 
