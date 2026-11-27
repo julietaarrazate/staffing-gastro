@@ -765,7 +765,13 @@ prueba, y las invitadas quedan sin entrada al vaciar el PIN.
   2026-11-26). Confirmar que los códigos de recuperación están guardados
   fuera del celular.
 - [ ] Clave de Gemini rotada y el error viejo borrado de Sentry.
-- [ ] Un restore de Neon ensayado.
+- [ ] Un restore de Neon ensayado. Mirado el 2026-11-27: la base de
+  producción es el proyecto `staffya-us-east` (organización personal; la
+  organización «Vercel: …» está vacía, la creó la integración). El plan es
+  el gratuito y **el historial para restaurar es de 6 horas**: el ensayo va
+  sobre una rama nueva a un punto de hace 3 horas, nunca sobre la principal.
+- [ ] Decidir cómo cubrir más de 6 horas antes de abrir: una copia diaria
+  automática de la base (gratis, por hacer) o el plan pago de Neon.
 - [ ] Base inscripta en el Registro Nacional de Bases de Datos (AAIP) y la
   consulta legal hecha (pestaña «Lanzamiento de beta» del plan).
 - [ ] Las pruebas de persona de arriba («Pruebas que tiene que hacer una
