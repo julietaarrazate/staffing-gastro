@@ -1,4 +1,4 @@
-# Verificación obligatoria para ser asignado, y los textos que lo dicen (#PR)
+# Verificación obligatoria para ser asignado, y los textos que lo dicen (#755)
 
 **Antes:** verificar la identidad era voluntario: quien no lo hacía igual
 podía quedar asignado a un turno, y la portada decía «Verificamos la identidad
