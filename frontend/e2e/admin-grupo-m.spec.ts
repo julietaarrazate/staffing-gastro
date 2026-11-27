@@ -119,8 +119,10 @@ test("«Ver como»: el cartel muestra el nombre en un celular y al recargar en u
 
   const banner = page.getByRole("status").filter({ hasText: "Viendo como" });
   await expect(banner).toContainText("Prueba · Trabajador con nombre largo");
-  const name = banner.locator("strong");
+  // El nombre es el primer destacado; el segundo dice «Sólo lectura».
+  const name = banner.locator("strong").first();
   await expect(name).toBeVisible();
+  await expect(banner).toContainText("Sólo lectura");
   expect((await name.boundingBox())!.width).toBeGreaterThan(60);
   expect(impersonations).toBe(1);
   await expect(page.getByText("Permisos insuficientes")).toHaveCount(0);
