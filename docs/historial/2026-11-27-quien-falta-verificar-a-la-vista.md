@@ -1,4 +1,4 @@
-# El comercio ve de entrada a quién todavía no puede elegir (#PENDIENTE)
+# El comercio ve de entrada a quién todavía no puede elegir (#759)
 
 **Antes:** con la verificación de identidad obligatoria prendida (#755), el
 comercio tocaba «Elegir» sobre alguien sin verificar y recién ahí el servidor

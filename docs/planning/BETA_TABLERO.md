@@ -893,7 +893,7 @@ propia.
 ## Tanda del 2026-11-27 (tarde)
 
 - ✅ El comercio ve de entrada a quién todavía no puede elegir por no haber
-  verificado su identidad (#PENDIENTE,
+  verificado su identidad (#759,
   [historial](../historial/2026-11-27-quien-falta-verificar-a-la-vista.md)).
 - ⚪ Avisarle a la persona cuando un comercio quiso elegirla y no pudo por
   falta de verificación (acción propia y tope para no repetir el aviso).
