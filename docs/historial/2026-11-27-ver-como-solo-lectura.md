@@ -39,3 +39,8 @@ cancelar un turno confirmado responde 403 sin cambiar nada.
   «Cuenta de prueba».
 - Queda sin tocar: `GET /subscription` puede crear la fila de suscripción del
   comercio la primera vez (idempotente, se habría creado igual al publicar).
+- De paso, un arreglo que destapó el CI de este PR: al postularse desde
+  Guardados, el borrado del guardado salía sin esperar y la relectura de la
+  lista podía ganarle, con lo que el turno recién postulado volvía a aparecer
+  en Guardados. Ahora se espera el borrado antes de releer
+  (`frontend/app/my-shifts/page.tsx`).
