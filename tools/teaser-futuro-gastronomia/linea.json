@@ -1,0 +1,392 @@
+[
+ {
+  "f": 0,
+  "t": 0,
+  "scene": "office",
+  "beat": 0,
+  "tr": ""
+ },
+ {
+  "f": 135,
+  "t": 4.5,
+  "scene": "office",
+  "beat": 1,
+  "tr": ""
+ },
+ {
+  "f": 367,
+  "t": 12.23,
+  "scene": "office",
+  "beat": 2,
+  "tr": ""
+ },
+ {
+  "f": 1186,
+  "t": 39.53,
+  "scene": "office",
+  "beat": 2,
+  "tr": "portal-in→tower"
+ },
+ {
+  "f": 1283,
+  "t": 42.77,
+  "scene": "tower",
+  "beat": 0,
+  "tr": ""
+ },
+ {
+  "f": 1481,
+  "t": 49.37,
+  "scene": "tower",
+  "beat": 1,
+  "tr": ""
+ },
+ {
+  "f": 1752,
+  "t": 58.4,
+  "scene": "tower",
+  "beat": 2,
+  "tr": ""
+ },
+ {
+  "f": 2083,
+  "t": 69.43,
+  "scene": "tower",
+  "beat": 3,
+  "tr": ""
+ },
+ {
+  "f": 2534,
+  "t": 84.47,
+  "scene": "tower",
+  "beat": 3,
+  "tr": "fold→boat"
+ },
+ {
+  "f": 2637,
+  "t": 87.9,
+  "scene": "boat",
+  "beat": 0,
+  "tr": ""
+ },
+ {
+  "f": 2796,
+  "t": 93.2,
+  "scene": "boat",
+  "beat": 1,
+  "tr": ""
+ },
+ {
+  "f": 3082,
+  "t": 102.73,
+  "scene": "boat",
+  "beat": 2,
+  "tr": ""
+ },
+ {
+  "f": 3413,
+  "t": 113.77,
+  "scene": "boat",
+  "beat": 2,
+  "tr": "wash→loop"
+ },
+ {
+  "f": 3491,
+  "t": 116.37,
+  "scene": "loop",
+  "beat": 0,
+  "tr": ""
+ },
+ {
+  "f": 3708,
+  "t": 123.6,
+  "scene": "loop",
+  "beat": 1,
+  "tr": ""
+ },
+ {
+  "f": 3979,
+  "t": 132.63,
+  "scene": "loop",
+  "beat": 2,
+  "tr": ""
+ },
+ {
+  "f": 4250,
+  "t": 141.67,
+  "scene": "loop",
+  "beat": 3,
+  "tr": ""
+ },
+ {
+  "f": 4760,
+  "t": 158.67,
+  "scene": "loop",
+  "beat": 3,
+  "tr": "portal-in→swarm"
+ },
+ {
+  "f": 4857,
+  "t": 161.9,
+  "scene": "swarm",
+  "beat": 0,
+  "tr": ""
+ },
+ {
+  "f": 5019,
+  "t": 167.3,
+  "scene": "swarm",
+  "beat": 1,
+  "tr": ""
+ },
+ {
+  "f": 5320,
+  "t": 177.33,
+  "scene": "swarm",
+  "beat": 2,
+  "tr": ""
+ },
+ {
+  "f": 5651,
+  "t": 188.37,
+  "scene": "swarm",
+  "beat": 3,
+  "tr": ""
+ },
+ {
+  "f": 6132,
+  "t": 204.4,
+  "scene": "swarm",
+  "beat": 3,
+  "tr": "flaps→dominoes"
+ },
+ {
+  "f": 6210,
+  "t": 207,
+  "scene": "dominoes",
+  "beat": 0,
+  "tr": ""
+ },
+ {
+  "f": 6385,
+  "t": 212.83,
+  "scene": "dominoes",
+  "beat": 1,
+  "tr": ""
+ },
+ {
+  "f": 6925,
+  "t": 230.83,
+  "scene": "dominoes",
+  "beat": 2,
+  "tr": ""
+ },
+ {
+  "f": 7112,
+  "t": 237.07,
+  "scene": "dominoes",
+  "beat": 2,
+  "tr": "slam→calendar"
+ },
+ {
+  "f": 7169,
+  "t": 238.97,
+  "scene": "calendar",
+  "beat": 0,
+  "tr": ""
+ },
+ {
+  "f": 7320,
+  "t": 244,
+  "scene": "calendar",
+  "beat": 1,
+  "tr": ""
+ },
+ {
+  "f": 7591,
+  "t": 253.03,
+  "scene": "calendar",
+  "beat": 2,
+  "tr": ""
+ },
+ {
+  "f": 7892,
+  "t": 263.07,
+  "scene": "calendar",
+  "beat": 3,
+  "tr": ""
+ },
+ {
+  "f": 8193,
+  "t": 273.1,
+  "scene": "calendar",
+  "beat": 3,
+  "tr": "portal-out→lamp"
+ },
+ {
+  "f": 8277,
+  "t": 275.9,
+  "scene": "lamp",
+  "beat": 0,
+  "tr": ""
+ },
+ {
+  "f": 8467,
+  "t": 282.23,
+  "scene": "lamp",
+  "beat": 1,
+  "tr": ""
+ },
+ {
+  "f": 8798,
+  "t": 293.27,
+  "scene": "lamp",
+  "beat": 2,
+  "tr": ""
+ },
+ {
+  "f": 9368,
+  "t": 312.27,
+  "scene": "lamp",
+  "beat": 2,
+  "tr": "daybreak→selectall"
+ },
+ {
+  "f": 9471,
+  "t": 315.7,
+  "scene": "selectall",
+  "beat": 0,
+  "tr": ""
+ },
+ {
+  "f": 9732,
+  "t": 324.4,
+  "scene": "selectall",
+  "beat": 1,
+  "tr": ""
+ },
+ {
+  "f": 10018,
+  "t": 333.93,
+  "scene": "selectall",
+  "beat": 2,
+  "tr": ""
+ },
+ {
+  "f": 10558,
+  "t": 351.93,
+  "scene": "selectall",
+  "beat": 2,
+  "tr": "line→aim"
+ },
+ {
+  "f": 10630,
+  "t": 354.33,
+  "scene": "aim",
+  "beat": 0,
+  "tr": ""
+ },
+ {
+  "f": 10835,
+  "t": 361.17,
+  "scene": "aim",
+  "beat": 1,
+  "tr": ""
+ },
+ {
+  "f": 11091,
+  "t": 369.7,
+  "scene": "aim",
+  "beat": 2,
+  "tr": ""
+ },
+ {
+  "f": 11616,
+  "t": 387.2,
+  "scene": "aim",
+  "beat": 3,
+  "tr": ""
+ },
+ {
+  "f": 11917,
+  "t": 397.23,
+  "scene": "aim",
+  "beat": 3,
+  "tr": "tear→futures"
+ },
+ {
+  "f": 12001,
+  "t": 400.03,
+  "scene": "futures",
+  "beat": 0,
+  "tr": ""
+ },
+ {
+  "f": 12284,
+  "t": 409.47,
+  "scene": "futures",
+  "beat": 1,
+  "tr": ""
+ },
+ {
+  "f": 12555,
+  "t": 418.5,
+  "scene": "futures",
+  "beat": 2,
+  "tr": ""
+ },
+ {
+  "f": 12946,
+  "t": 431.53,
+  "scene": "futures",
+  "beat": 2,
+  "tr": "portal-in→pile"
+ },
+ {
+  "f": 13043,
+  "t": 434.77,
+  "scene": "pile",
+  "beat": 0,
+  "tr": ""
+ },
+ {
+  "f": 13397,
+  "t": 446.57,
+  "scene": "pile",
+  "beat": 1,
+  "tr": ""
+ },
+ {
+  "f": 13758,
+  "t": 458.6,
+  "scene": "pile",
+  "beat": 1,
+  "tr": "portal-out→questions"
+ },
+ {
+  "f": 13842,
+  "t": 461.4,
+  "scene": "questions",
+  "beat": 0,
+  "tr": ""
+ },
+ {
+  "f": 13897,
+  "t": 463.23,
+  "scene": "questions",
+  "beat": 1,
+  "tr": ""
+ },
+ {
+  "f": 14093,
+  "t": 469.77,
+  "scene": "questions",
+  "beat": 2,
+  "tr": ""
+ },
+ {
+  "f": 14693,
+  "t": 489.77,
+  "fin": true
+ }
+]

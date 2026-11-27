@@ -63,6 +63,7 @@ Duplicar componentes o lógica · acoplar módulos por dentro · credenciales en
 | Env vars, dominio, deploy, trámites de Julieta | `docs/reference/PENDIENTE_OPERATIVO.md`, `docs/reference/DEPLOY.md` |
 | Índice completo de `docs/` y ADRs | `docs/reference/MAPA_DE_DOCS.md` |
 | Correr tests/Playwright/capturas en la nube | `docs/reference/SESION_CLOUD.md` |
+| La presentación 3D «El futuro de la gastronomía» y sus videos: qué es, dónde está guardada cada pieza, cómo se rehace | `docs/reference/TEASER_FUTURO_GASTRONOMIA.md` |
 | Bugs ya resueltos / deuda vigente | `docs/BUGS.md` · `docs/TECH_DEBT.md` |
 | Bitácora de cambios (solo escribir) | `docs/historial/` |
 
