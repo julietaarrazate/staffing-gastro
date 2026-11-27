@@ -156,6 +156,9 @@ function MatchesContent() {
   const [compareMounted, setCompareMounted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // Falla de una parte que no es «Asignados»: sólo degrada su propia pestaña.
+  const [appsError, setAppsError] = useState(false);
+  const [savedError, setSavedError] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [withdrawing, setWithdrawing] = useState<string | null>(null);
   const [unsaving, setUnsaving] = useState<string | null>(null);
@@ -214,27 +217,42 @@ function MatchesContent() {
     // Último pedido gana: una respuesta vieja (una carga normal, o la de
     // `act()`, cruzada con una silenciosa) no pisa a la más nueva.
     const mine = ++latestLoad.current;
-    if (!silent) setLoading(true);
+    if (!silent) {
+      // Al reintentar se limpia el error: no se ven esqueletos y error juntos.
+      setError(null);
+      setAppsError(false);
+      setSavedError(false);
+      setLoading(true);
+    }
     try {
-      const [assigned, apps, saved, prof] = await Promise.all([
+      // Sólo `/shifts/mine` es imprescindible: quien tiene un turno asignado lo
+      // sigue viendo aunque fallen las postulaciones o los guardados, que
+      // degradan su propia pestaña (y nunca se toman por vacías).
+      const [assigned, appsR, savedR, prof] = await Promise.all([
         api.get<Shift[]>("/shifts/mine", token),
-        api.get<ShiftApplication[]>("/applications/mine", token),
-        api.get<Shift[]>("/saved-shifts", token),
+        api.get<ShiftApplication[]>("/applications/mine", token).then((v) => ({ ok: true as const, v }), () => ({ ok: false as const })),
+        api.get<Shift[]>("/saved-shifts", token).then((v) => ({ ok: true as const, v }), () => ({ ok: false as const })),
         api.get<WorkerProfile>("/workers/me/profile", token).catch(() => null),
       ]);
       if (mine !== latestLoad.current) return;
+      // Si falló, se conserva lo que ya había (una recarga silenciosa no lo borra
+      // ni levanta el aviso: el pedido de arriba ya lo dijo, si hacía falta).
       setShifts(assigned);
-      setApplications(apps);
-      setSavedShifts(saved);
       setProfile(prof);
-      // El turno ya viene embebido en cada postulación (campo `shift`): un solo
-      // GET /applications/mine, sin el N+1 de un GET /shifts/{id} por
-      // postulación (cada uno pagando el round-trip a la base remota).
-      const resolved: Record<string, Shift> = {};
-      for (const a of apps) {
-        if (a.shift) resolved[a.shift_id] = a.shift;
+      setAppsError((prev) => (appsR.ok ? false : silent ? prev : true));
+      setSavedError((prev) => (savedR.ok ? false : silent ? prev : true));
+      if (savedR.ok) setSavedShifts(savedR.v);
+      if (appsR.ok) {
+        setApplications(appsR.v);
+        // El turno ya viene embebido en cada postulación (campo `shift`): un solo
+        // GET /applications/mine, sin el N+1 de un GET /shifts/{id} por
+        // postulación (cada uno pagando el round-trip a la base remota).
+        const resolved: Record<string, Shift> = {};
+        for (const a of appsR.v) {
+          if (a.shift) resolved[a.shift_id] = a.shift;
+        }
+        setAppShifts(resolved);
       }
-      setAppShifts(resolved);
       setError(null);
     } catch (err) {
       if (mine === latestLoad.current && !silent) {
@@ -888,7 +906,9 @@ function MatchesContent() {
 
       {!loading && !error && tab === "postulaciones" && (
         <div className="mt-5">
-          {pending.length === 0 ? (
+          {appsError ? (
+            <ErrorState onRetry={() => load()} />
+          ) : pending.length === 0 ? (
             <EmptyState
               icon={<ClockIcon size={28} />}
               title="No tenés postulaciones activas"
@@ -992,7 +1012,9 @@ function MatchesContent() {
 
       {!loading && !error && tab === "guardados" && (
         <div className="mt-5 pb-16">
-          {savedShifts.length === 0 ? (
+          {savedError ? (
+            <ErrorState onRetry={() => load()} />
+          ) : savedShifts.length === 0 ? (
             <EmptyState
               icon={<BookmarkIcon size={28} />}
               title="No tenés turnos guardados"

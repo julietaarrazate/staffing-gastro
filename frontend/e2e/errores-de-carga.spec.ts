@@ -69,18 +69,49 @@ for (const theme of ["light", "dark"] as const) {
   });
 }
 
-test("Mis turnos: si falla /applications/mine no muestra «sin postulaciones» sino el error, y Reintentar recarga", async ({ page }) => {
+const asignado = () => ({ ...turno("asig-1", "Bar Asignado"), status: "confirmado", start_at: isoEnDias(0, "21:00"), end_at: isoEnDias(1, "02:00") });
+const postulacion = () => ({ id: "ap1", status: "pendiente", shift_id: "s1", shift: { ...turno("s1", "Bar Postulado"), start_at: isoEnDias(0, "22:00"), status: "publicado" } });
+const pestana = (page: Page, nombre: RegExp) => page.getByRole("button", { name: nombre });
+
+test("Mis turnos: si falla /applications/mine, «Asignados» sigue a la vista, Postulaciones dice el error y Reintentar trae la postulación", async ({ page }) => {
   await base(page, WORKER);
-  const apps = await fallaUnaVez(page, "**/api/v1/applications/mine**", [
-    { id: "ap1", status: "pendiente", shift_id: "s1", shift: { ...turno("s1", "Bar Postulado"), status: "publicado" } },
-  ]);
+  await page.route("**/api/v1/shifts/mine**", (r) => r.fulfill(json([asignado()])));
+  const apps = await fallaUnaVez(page, "**/api/v1/applications/mine**", [postulacion()]);
   await page.goto("/my-shifts");
+  // Quien tiene un turno asignado hoy lo sigue viendo.
+  await expect(page.getByText("Bar Asignado").first()).toBeVisible();
+  await expect(aviso(page)).toHaveCount(0);
+
+  await pestana(page, /Postulaciones/).click();
   await expect(aviso(page)).toBeVisible();
-  await expect(page.getByText(/Todavía no|No tenés|Sin postulaciones/)).toHaveCount(0);
+  await expect(page.getByText(/No tenés postulaciones/)).toHaveCount(0);
 
   apps.arreglar();
   await page.getByRole("button", { name: "Reintentar" }).click();
   await expect(aviso(page)).toHaveCount(0);
+  await expect(page.getByText("Bar Postulado").first()).toBeVisible();
+});
+
+test("Mis turnos: si falla /saved-shifts, «Asignados» sigue visible y sólo Guardados dice el error; Reintentar lo trae", async ({ page }) => {
+  await base(page, WORKER);
+  await page.route("**/api/v1/shifts/mine**", (r) => r.fulfill(json([asignado()])));
+  const guardados = await fallaUnaVez(page, "**/api/v1/saved-shifts**", [{ ...turno("g1", "Bar Guardado"), start_at: isoEnDias(0, "23:00") }]);
+  await page.goto("/my-shifts");
+  await expect(page.getByText("Bar Asignado").first()).toBeVisible();
+  await expect(aviso(page)).toHaveCount(0);
+
+  await pestana(page, /Guardados/).click();
+  await expect(aviso(page)).toBeVisible();
+  await expect(page.getByText(/No tenés turnos guardados/)).toHaveCount(0);
+  // Las otras pestañas siguen intactas.
+  await pestana(page, /Asignados/).click();
+  await expect(page.getByText("Bar Asignado").first()).toBeVisible();
+
+  guardados.arreglar();
+  await pestana(page, /Guardados/).click();
+  await page.getByRole("button", { name: "Reintentar" }).click();
+  await expect(aviso(page)).toHaveCount(0);
+  await expect(page.getByText("Bar Guardado").first()).toBeVisible();
 });
 
 test("Inicio: con el feed caído se ve el error con Reintentar, nunca el vacío", async ({ page }) => {
@@ -94,20 +125,16 @@ test("Inicio: con el feed caído se ve el error con Reintentar, nunca el vacío"
   await expect(aviso(page)).toHaveCount(0);
 });
 
-test("Mapa: con el feed caído la tarjeta dice «No pudimos cargar» y Reintentar vuelve a pedir", async ({ page }) => {
+test("Mapa: con el feed caído la tarjeta dice «No pudimos cargar»; al reintentar con respuesta buena el error desaparece", async ({ page }) => {
   await base(page, WORKER);
-  let pedidos = 0;
-  await page.route("**/api/v1/shifts/feed**", (r) => {
-    pedidos += 1;
-    return r.fulfill(falla());
-  });
+  const feed = await fallaUnaVez(page, "**/api/v1/shifts/feed**", [turno("m1", "Bar Mapa")]);
   await page.goto("/map");
   const tarjeta = page.getByTestId("mapa-vacio");
   await expect(tarjeta).toContainText("No pudimos cargar", { timeout: 20_000 });
   await expect(tarjeta).not.toContainText("No hay turnos cerca");
-  const antes = pedidos;
+  feed.arreglar();
   await tarjeta.getByRole("button", { name: "Reintentar" }).click();
-  await expect.poll(() => pedidos).toBeGreaterThan(antes);
+  await expect(page.getByText("No pudimos cargar")).toHaveCount(0);
 });
 
 test("Hoy del admin: un contador que no cargó no dice «Al día»; Reintentar lo vuelve a pedir", async ({ page }) => {
@@ -123,6 +150,9 @@ test("Hoy del admin: un contador que no cargó no dice «Al día»; Reintentar l
   await expect(tarjeta).toContainText("No pudimos cargar");
   await expect(tarjeta).not.toContainText("Al día");
   await expect(aviso(page)).toBeVisible();
+  // La que cargó en 0 sigue diciendo «Al día»: sólo la que falló admite que no sabe.
+  await expect(page.getByRole("link", { name: /Identidades por verificar/ })).toContainText("Al día");
+  await expect(page.getByRole("link", { name: /Identidades por verificar/ })).not.toContainText("No pudimos cargar");
 
   tickets.arreglar();
   await page.getByRole("button", { name: "Reintentar" }).click();
