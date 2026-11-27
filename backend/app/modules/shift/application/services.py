@@ -2047,6 +2047,11 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
 
     # --- Suspensión de una cuenta (ADR-0024) ---------------------------------
 
+    async def list_public_index(self, limit: int = 1000) -> list[Shift]:
+        """Los turnos con página pública indexable, para el mapa del sitio
+        (ver `ShiftRepository.list_public_index`)."""
+        return await self._shifts.list_public_index(limit=limit)
+
     async def company_account_active(self, company_id: UUID) -> bool:
         """¿La cuenta dueña de este comercio está activa? Con la cuenta
         suspendida, sus turnos no se muestran a quien no es parte (ADR-0024)."""

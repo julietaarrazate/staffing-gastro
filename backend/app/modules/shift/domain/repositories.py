@@ -256,6 +256,16 @@ class ShiftRepository(ABC):
         """
 
     @abstractmethod
+    async def list_public_index(self, *, limit: int) -> list[Shift]:
+        """Los turnos que hoy tienen página pública indexable (`/turno/{id}`),
+        para el mapa del sitio: publicados alguna vez (`published_at`), en un
+        estado abierto, con la hora de inicio todavía por delante y de un
+        comercio con la cuenta activa. Más nuevos primero (por `published_at`),
+        con tope `limit`. Es un subconjunto de lo que `GET /shifts/{id}/public`
+        contesta con 200: el reofrecido (que ya empezó) no entra.
+        """
+
+    @abstractmethod
     async def list_by_worker(
         self, worker_profile_id: UUID, *, limit: int = 50, offset: int = 0
     ) -> list[Shift]:

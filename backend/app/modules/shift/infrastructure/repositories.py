@@ -795,6 +795,22 @@ class SqlAlchemyShiftRepository(ShiftRepository):
         result = await self._session.execute(stmt)
         return [_to_entity(m) for m in result.scalars().all()]
 
+    async def list_public_index(self, *, limit: int) -> list[Shift]:
+        stmt = (
+            select(ShiftModel)
+            .where(
+                ShiftModel.status.in_([s.value for s in OPEN_STATUSES]),
+                ShiftModel.published_at.is_not(None),
+                # `func.now()` por el mismo motivo que en `_open_stmt`.
+                ShiftModel.start_at > func.now(),
+                _from_active_company(),
+            )
+            .order_by(ShiftModel.published_at.desc(), ShiftModel.id)
+            .limit(limit)
+        )
+        result = await self._session.execute(stmt)
+        return [_to_entity(m) for m in result.scalars().all()]
+
     async def list_live(self, *, limit: int = 200) -> list[Shift]:
         stmt = (
             select(ShiftModel)

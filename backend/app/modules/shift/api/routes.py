@@ -42,6 +42,7 @@ from app.modules.shift.api.schemas import (
     ParsedShiftDraftResponse,
     ParseShiftTextRequest,
     ShiftInput,
+    ShiftPublicIndexItem,
     ShiftPublicResponse,
     ShiftResponse,
     for_worker,
@@ -421,6 +422,24 @@ async def create_event(
     # duplica el set entero, no sólo un turno.
     await recorder.save(status.HTTP_201_CREATED, response.model_dump(mode="json"))
     return response
+
+
+@router.get(
+    "/public-index",
+    response_model=list[ShiftPublicIndexItem],
+    summary="Turnos con página pública indexable (para el mapa del sitio)",
+)
+async def public_index(service: ServiceDep, response: Response):
+    """Sin auth. Los turnos que hoy dan 200 en `/{id}/public` y todavía no
+    empezaron: sólo `id` y `published_at`, más nuevos primero, hasta 1000.
+    Lo lee `frontend/app/sitemap.ts`. Ningún dato del comercio ni de personas."""
+    shifts = await service.list_public_index(limit=1000)
+    # Lo pide el mapa del sitio, que ya revalida cada hora: unos minutos de
+    # caché alcanzan y no dejan que cada pedido llegue a la base.
+    response.headers["Cache-Control"] = "public, max-age=300"
+    return [
+        ShiftPublicIndexItem(id=s.id, published_at=s.published_at) for s in shifts
+    ]
 
 
 @router.get(
