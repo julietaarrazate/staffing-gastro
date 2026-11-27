@@ -9,6 +9,7 @@ from app.modules.support.domain.entities import (
     CompanyFacts,
     CompanyRef,
     EnrichedTicket,
+    ResolvedCase,
     ShiftFacts,
     ShiftRef,
     SupportMessage,
@@ -118,6 +119,16 @@ class SupportService:
     ) -> tuple[SupportTicket, list[SupportMessage]]:
         ticket = await self._authorized_ticket(requester_id, ticket_id, is_admin=is_admin)
         return ticket, await self._messages.list_by_ticket(ticket.id)
+
+    # Cuántos casos ya resueltos acompañan a una sugerencia de respuesta.
+    PRECEDENTES = 4
+
+    async def precedents_for(self, ticket: SupportTicket) -> list[ResolvedCase]:
+        """La memoria del soporte: cómo contestó el equipo los últimos casos
+        cerrados de la misma categoría. Sólo admin (lo exige la capa API)."""
+        return await self._messages.list_resolved_cases(
+            ticket.category, exclude_ticket_id=ticket.id, limit=self.PRECEDENTES
+        )
 
     async def list_my_tickets(
         self, user_id: UUID, *, limit: int = 50, offset: int = 0

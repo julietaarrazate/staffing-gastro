@@ -765,7 +765,22 @@ prueba, y las invitadas quedan sin entrada al vaciar el PIN.
   2026-11-26). Confirmar que los códigos de recuperación están guardados
   fuera del celular.
 - [ ] Clave de Gemini rotada y el error viejo borrado de Sentry.
-- [ ] Un restore de Neon ensayado.
+- [ ] Un restore de Neon ensayado. Mirado el 2026-11-27: la base de
+  producción es el proyecto `staffya-us-east` (organización personal; la
+  organización «Vercel: …» está vacía, la creó la integración). El plan es
+  el gratuito y **el historial para restaurar es de 6 horas**: el ensayo va
+  sobre una rama nueva a un punto de hace 3 horas, nunca sobre la principal.
+- [ ] Copia diaria automática de la base, gratis (decidido por Julieta el
+  2026-11-27, en vez del plan pago de Neon por ahora): receta en
+  [`reference/RESPALDO_DIARIO.md`](../reference/RESPALDO_DIARIO.md).
+  **Instalada el 2026-11-27** en el repositorio privado `oido-respaldos`: la
+  primera copia salió bien (32 tablas, cifrada). **No corre sola hasta el
+  1/12:** el cupo de minutos de GitHub para repositorios privados de noviembre
+  se agotó (lo gastó otro repositorio que fue privado parte del mes) y el
+  límite de gasto está en $0. Desde diciembre gasta unos 30 minutos de 2.000.
+  Falta: ver la corrida del 1/12 en verde y ensayar una restauración con esa
+  copia. Ojo: `staffing-gastro` usa unos 23.000 minutos por mes, gratis por
+  ser público; si alguna vez se hace privado, eso pasa a cobrarse.
 - [ ] Base inscripta en el Registro Nacional de Bases de Datos (AAIP) y la
   consulta legal hecha (pestaña «Lanzamiento de beta» del plan).
 - [ ] Las pruebas de persona de arriba («Pruebas que tiene que hacer una
@@ -777,6 +792,15 @@ prueba, y las invitadas quedan sin entrada al vaciar el PIN.
   Términos `2026-11-27-1` publicados (#755). Hay que revisar la cola de
   verificaciones al menos una vez por día: quien no está verificado no puede
   tomar un turno.
+- **El repositorio sigue público durante la beta** (decisión del 2026-11-27):
+  las pruebas automáticas gastan unos 23.000 minutos por mes, gratis por ser
+  público; privado alcanzan 2.000. Se revisa cuando Oído facture. Lo que lo
+  hace sostenible: ninguna clave en el código, los tres controles de
+  seguridad de cada PR y la estrategia fuera del repositorio.
+- **GitHub sin gasto posible:** la cuenta no tiene medio de pago y todos los
+  límites de gasto están en $0; al agotarse el cupo privado las tareas se
+  frenan, no se cobran. El único repositorio privado con tareas es
+  `oido-respaldos`.
 - [ ] En Render, `api.oido.com.ar` figura «Waiting for DNS» y su certificado
   «Waiting for Verification» (visto el 2026-11-27). La API responde bien por
   Cloudflare; falta confirmar que el certificado de origen no dependa de esa
@@ -832,12 +856,36 @@ servidor con un solo `h1`).
   dominio, con la cuenta de Oído; mapa del sitio enviado y leído (5 páginas) e
   indexación de la portada pedida (2026-11-27).
 - [ ] Sumar la cuenta personal como segunda propietaria en Search Console.
-- [ ] Crear el perfil de empresa en Google.
+- [x] Perfil de empresa en Google creado con la cuenta de Oído (2026-11-27):
+  categorías «Compañía de software» y «Reclutador» (ninguna con «agencia» ni
+  «temporal»: Oído no es empleador), sin dirección ni teléfono públicos, zona
+  CABA, logo y portada subidos.
+- [ ] Verificar ese perfil: Google pide un video o una videollamada desde el
+  celular. Hasta entonces no es visible. No bloquea la beta.
+- [ ] Cargar el horario «Abierto las 24 horas» en el perfil.
 - [ ] Probar una página de turno abierto en la prueba de resultados
   enriquecidos de Google (pide un turno publicado en ese momento).
-- [ ] Decidir si los turnos abiertos van al mapa del sitio (probable sí).
+- [x] Los turnos abiertos van al mapa del sitio: **sí** (Julieta,
+  2026-11-27). Por hacer; prever que un comercio pueda excluir un turno.
 
 **Pendiente de decidir (2026-11-27):** un ensayo general automático antes de
 abrir, sobre `tools/e2e-local`: usuarios simulados que recorren el camino
 completo y los casos de falla, con informe y capturas. Va en una sesión
 propia.
+
+## Asistente y soporte con IA (decidido el 2026-11-27)
+
+- **«Pedilo como lo dirías» se queda** (es la marca de la portada): el pedido
+  en una línea sólo precarga el turno, lo publica la persona. Sigue con
+  Gemini mientras sea gratis.
+- **El soporte recuerda** (✅ #757): las sugerencias de respuesta se apoyan en
+  los casos ya resueltos de la misma categoría.
+- **Lo que sigue, después de abrir:** el parte del día para la admin
+  (verificaciones, tickets, turnos sin postulantes, ausencias); que la
+  sugerencia mire el caso (el turno y lo que quedó registrado); el asistente
+  conversacional pasa de cargar turnos a responder dudas.
+- **Claude para lo que pide criterio** (soporte y dudas), en el modelo
+  económico y con tope mensual. Pide tres cosas antes: la clave en Render, el
+  tope de gasto (ADR-0030) y sumar al proveedor en `/privacidad` (texto legal,
+  con el sí de Julieta y subida de versión).
+- **Nunca ejecuta sobre una persona:** propone, y decide la admin.

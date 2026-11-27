@@ -11,10 +11,11 @@ from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from app.modules.application.infrastructure.models import ShiftApplicationModel
 from app.modules.company.infrastructure.models import CompanyProfileModel
-from app.modules.identity.domain.value_objects import UserStatus
+from app.modules.identity.domain.value_objects import UserRole, UserStatus
 from app.modules.identity.infrastructure.models import UserModel
 from app.modules.shift.domain.entities import REOFFER_MIN_REMAINING
 from app.modules.shift.domain.value_objects import OPEN_STATUSES
@@ -22,6 +23,7 @@ from app.modules.shift.infrastructure.models import ShiftModel
 from app.modules.support.domain.entities import (
     CompanyFacts,
     EnrichedTicket,
+    ResolvedCase,
     ShiftFacts,
     SupportMessage,
     SupportTicket,
@@ -228,6 +230,66 @@ class SqlAlchemySupportMessageRepository(SupportMessageRepository):
         result = await self._session.execute(stmt)
         return [_to_message(m) for m in result.scalars().all()]
 
+
+    async def list_resolved_cases(
+        self, category: TicketCategory, *, exclude_ticket_id: UUID, limit: int
+    ) -> list[ResolvedCase]:
+        # «El equipo» es quien tiene rol admin, dicho explícito (no «cualquiera
+        # que no sea el dueño»), y el dueño no puede ser del equipo: un ticket
+        # interno no es un precedente.
+        dueno = aliased(UserModel)
+        es_del_equipo = (
+            select(SupportMessageModel.id)
+            .join(UserModel, UserModel.id == SupportMessageModel.sender_user_id)
+            .where(
+                SupportMessageModel.ticket_id == SupportTicketModel.id,
+                UserModel.role == UserRole.ADMIN.value,
+            )
+            .exists()
+        )
+        # Se filtra en la consulta que tenga respuesta del equipo: si no, una
+        # tanda de tickets cerrados sin contestar ocupaba los lugares y dejaba
+        # la categoría sin memoria.
+        tickets = (
+            await self._session.execute(
+                select(SupportTicketModel)
+                .join(dueno, dueno.id == SupportTicketModel.user_id)
+                .where(
+                    SupportTicketModel.category == category.value,
+                    SupportTicketModel.status == TicketStatus.CERRADO.value,
+                    SupportTicketModel.id != exclude_ticket_id,
+                    dueno.role != UserRole.ADMIN.value,
+                    es_del_equipo,
+                )
+                .order_by(SupportTicketModel.updated_at.desc())
+                .limit(limit)
+            )
+        ).scalars().all()
+        if not tickets:
+            return []
+        filas = (
+            await self._session.execute(
+                select(SupportMessageModel, UserModel.role)
+                .join(UserModel, UserModel.id == SupportMessageModel.sender_user_id)
+                .where(SupportMessageModel.ticket_id.in_([t.id for t in tickets]))
+                .order_by(SupportMessageModel.created_at.asc())
+            )
+        ).all()
+        casos: list[ResolvedCase] = []
+        for ticket in tickets:
+            del_ticket = [(m, rol) for m, rol in filas if m.ticket_id == ticket.id]
+            de_la_persona = [m for m, _ in del_ticket if m.sender_user_id == ticket.user_id]
+            del_equipo = [m for m, rol in del_ticket if rol == UserRole.ADMIN.value]
+            if not de_la_persona or not del_equipo:
+                continue
+            casos.append(
+                ResolvedCase(
+                    subject=ticket.subject,
+                    question=de_la_persona[0].body,
+                    reply=del_equipo[-1].body,
+                )
+            )
+        return casos
 
 class SqlAlchemyReferenceLookup(ReferenceLookup):
     """Hechos de shift, application, company y worker para atar un ticket.

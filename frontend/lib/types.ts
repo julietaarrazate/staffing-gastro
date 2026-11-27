@@ -947,6 +947,8 @@ export interface SupportTicketDetail extends SupportTicket {
 export interface TicketSuggestion {
   summary: string;
   suggested_reply: string;
+  /** En cuántos casos ya resueltos se apoyó (la memoria del soporte). */
+  precedents_used?: number;
 }
 
 export interface AdminSupportTicket {

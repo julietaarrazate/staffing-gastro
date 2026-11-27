@@ -8,7 +8,7 @@ Movido desde `CLAUDE.md` (2026-10-09). Índice largo: consultarlo solo para ubic
 (qué pantalla hace qué y dónde vive cada pieza). Para correr tests,
 Playwright y capturas en una sesión cloud:
 [docs/reference/SESION_CLOUD.md](./SESION_CLOUD.md). Para medir rendimiento antes y después de un cambio:
-[docs/reference/RENDIMIENTO.md](./RENDIMIENTO.md). También conviene mirar [docs/BUGS.md](../BUGS.md) (bugs
+[docs/reference/RENDIMIENTO.md](./RENDIMIENTO.md). La copia diaria de la base de producción: [docs/reference/RESPALDO_DIARIO.md](./RESPALDO_DIARIO.md). También conviene mirar [docs/BUGS.md](../BUGS.md) (bugs
 recurrentes ya resueltos, para no reintroducirlos) y
 [docs/TECH_DEBT.md](../TECH_DEBT.md) (deuda vigente por prioridad).
 

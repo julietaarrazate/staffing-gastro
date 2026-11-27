@@ -222,6 +222,7 @@ test("el admin puede pedir una sugerencia de IA y queda precargada para revisar"
       body: JSON.stringify({
         summary: "No puede subir el CV, le da error al elegir el archivo.",
         suggested_reply: "Hola, gracias por avisarnos. ¿Qué formato tiene el archivo?",
+        precedents_used: 3,
       }),
     })
   );
@@ -234,6 +235,10 @@ test("el admin puede pedir una sugerencia de IA y queda precargada para revisar"
   ).toBeVisible();
   await expect(page.getByPlaceholder("Escribí tu respuesta...")).toHaveValue(
     "Hola, gracias por avisarnos. ¿Qué formato tiene el archivo?"
+  );
+  // La memoria del soporte: dice en cuántos casos ya resueltos se apoyó.
+  await expect(page.getByTestId("memoria-soporte")).toHaveText(
+    "Se apoya en 3 casos que ya resolviste en esta categoría."
   );
 });
 

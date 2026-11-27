@@ -259,6 +259,17 @@ export default function SupportTicketPage() {
               {suggestion && (
                 <p className="mt-2 text-sm text-ink/60">{suggestion.summary}</p>
               )}
+              {suggestion && (
+                // De dónde sale el criterio: cada ticket que se cierra con una
+                // respuesta mejora las sugerencias siguientes.
+                <p data-testid="memoria-soporte" className="mt-1 text-caption text-ink-soft">
+                  {suggestion.precedents_used
+                    ? `Se apoya en ${suggestion.precedents_used} ${
+                        suggestion.precedents_used === 1 ? "caso que ya resolviste" : "casos que ya resolviste"
+                      } en esta categoría.`
+                    : "Todavía no hay casos resueltos en esta categoría: la sugerencia sale sólo de esta conversación."}
+                </p>
+              )}
               <p className="mt-1.5 text-xs text-ink-soft">
                 Sólo precarga la respuesta de abajo — revisala antes de mandar, nunca le contesta
                 directo al usuario.

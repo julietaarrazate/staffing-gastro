@@ -84,6 +84,9 @@ class TicketSuggestionResponse(BaseModel):
 
     summary: str
     suggested_reply: str
+    # En cuántos casos ya resueltos se apoyó (la memoria del soporte): se le
+    # muestra a quien responde, para que sepa de dónde sale el criterio.
+    precedents_used: int = 0
 
 
 class AdminTicketResponse(BaseModel):

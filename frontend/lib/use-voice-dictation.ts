@@ -7,16 +7,24 @@ import { useEffect, useRef, useState } from "react";
 // por un par de pantallas.
 interface SpeechRecognitionResultLike {
   0: { transcript: string };
+  isFinal?: boolean;
 }
 interface SpeechRecognitionEventLike {
   results: ArrayLike<SpeechRecognitionResultLike>;
 }
+interface SpeechRecognitionErrorLike {
+  error?: string;
+}
+
+/** Por qué no se pudo dictar, para decírselo a la persona en vez de que el
+ *  micrófono se apague sin explicación. */
+export type VoiceError = "permiso" | "sin_voz" | "otro";
 interface SpeechRecognitionLike {
   lang: string;
   interimResults: boolean;
   maxAlternatives: number;
   onresult: ((event: SpeechRecognitionEventLike) => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((event?: SpeechRecognitionErrorLike) => void) | null;
   onend: (() => void) | null;
   start: () => void;
   stop: () => void;
@@ -36,6 +44,12 @@ interface SpeechRecognitionWindow {
 export function useVoiceDictation(onTranscript: (transcript: string) => void) {
   const [listening, setListening] = useState(false);
   const [supported, setSupported] = useState(false);
+  // Lo que se va entendiendo mientras la persona habla, todavía sin
+  // confirmar: se muestra en vivo para que un error del dictado se note en el
+  // momento y no recién en el turno armado (Julieta, 2026-11-27: «por voz no
+  // lo toma bien»).
+  const [interim, setInterim] = useState("");
+  const [error, setError] = useState<VoiceError | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   // Evita re-crear `toggle` (y por lo tanto el efecto que la usa en algún
   // consumidor) cada vez que cambia la referencia de `onTranscript`.
@@ -64,20 +78,53 @@ export function useVoiceDictation(onTranscript: (transcript: string) => void) {
     if (!Ctor) return;
     const recognition = new Ctor();
     recognition.lang = "es-AR";
-    recognition.interimResults = false;
+    recognition.interimResults = true;
     recognition.maxAlternatives = 1;
+    // Cada aviso trae TODOS los tramos de esta escucha: los ya confirmados y
+    // el que se está diciendo. Se entrega cada tramo confirmado una sola vez.
+    let entregados = 0;
     recognition.onresult = (event) => {
-      const transcript = Array.from(event.results)
-        .map((result) => result[0].transcript)
-        .join(" ");
-      onTranscriptRef.current(transcript);
+      const tramos = Array.from(event.results);
+      // Un navegador que no marca `isFinal` (los primeros Web Speech) manda
+      // sólo resultados cerrados: se toman como confirmados.
+      const confirmados = tramos.filter((t) => t.isFinal !== false);
+      const nuevos = confirmados.slice(entregados).map((t) => t[0].transcript.trim());
+      entregados = confirmados.length;
+      const texto = nuevos.filter(Boolean).join(" ");
+      if (texto) onTranscriptRef.current(texto);
+      setInterim(
+        tramos
+          .filter((t) => t.isFinal === false)
+          .map((t) => t[0].transcript)
+          .join(" ")
+          .trim()
+      );
     };
-    recognition.onerror = () => setListening(false);
-    recognition.onend = () => setListening(false);
+    recognition.onerror = (event) => {
+      const motivo = event?.error;
+      // `aborted` es la propia persona tocando el micrófono para cortar.
+      if (motivo !== "aborted") {
+        setError(
+          motivo === "not-allowed" || motivo === "service-not-allowed"
+            ? "permiso"
+            : motivo === "no-speech"
+              ? "sin_voz"
+              : "otro"
+        );
+      }
+      setInterim("");
+      setListening(false);
+    };
+    recognition.onend = () => {
+      setInterim("");
+      setListening(false);
+    };
     recognitionRef.current = recognition;
+    setError(null);
+    setInterim("");
     recognition.start();
     setListening(true);
   }
 
-  return { listening, supported, toggle };
+  return { listening, supported, toggle, interim, error };
 }
