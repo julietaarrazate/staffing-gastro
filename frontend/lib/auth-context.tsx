@@ -104,7 +104,7 @@ interface AuthState {
   reconnecting: boolean;
   /** No-null mientras una admin está "viendo como" otro usuario (ver
    * `impersonate`). Sólo expone los datos de la admin real, para el banner. */
-  impersonating: { adminUser: User } | null;
+  impersonating: { adminUser: User; readOnly: boolean } | null;
   /** "Ver como": una admin entra a la cuenta de `userId` sin conocer su
    * contraseña (`POST /admin/users/{id}/impersonate`). La sesión de admin
    * queda en memoria (no en localStorage) para volver con `stopImpersonating`;
@@ -317,7 +317,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Snapshot de la sesión admin real mientras se está impersonando otro
   // usuario. Vive sólo en memoria (nunca en localStorage) a propósito.
   const [impersonating, setImpersonating] = useState<
-    { adminToken: string; adminUser: User } | null
+    { adminToken: string; adminUser: User; readOnly: boolean } | null
   >(null);
   // Lo lee el manejador de 401 (registrado una sola vez), que no ve el estado.
   const impersonatingRef = useRef(false);
@@ -646,7 +646,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /** Entra a la cuenta de `userId` con la sesión de la admin dada (`adminToken`
    * y `adminUser`). Lo usan `impersonate` y la recuperación al recargar. */
   async function enterImpersonation(adminToken: string, adminUser: User, userId: string) {
-    const data = await api.post<{ access_token: string; user: User }>(
+    const data = await api.post<{ access_token: string; user: User; read_only?: boolean }>(
       `/admin/users/${userId}/impersonate`,
       undefined,
       adminToken
@@ -654,7 +654,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Una renovación de la admin que quedó en vuelo no se aplica sobre la
     // sesión de la persona que pasa a ver (saldría con el token de la admin).
     sessionEpoch.current += 1;
-    setImpersonating({ adminToken, adminUser });
+    // Sólo las cuentas de prueba del panel pueden escribir (PRI-09).
+    setImpersonating({ adminToken, adminUser, readOnly: data.read_only !== false });
     impersonatingRef.current = true;
     rememberImpersonation(adminUser.id, userId);
     // Las pantallas pintan primero lo cacheado: sin esto, se veía un instante
@@ -1159,7 +1160,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         sessionEnded,
         reconnecting,
         updateFullName,
-        impersonating: impersonating ? { adminUser: impersonating.adminUser } : null,
+        impersonating: impersonating
+          ? { adminUser: impersonating.adminUser, readOnly: impersonating.readOnly }
+          : null,
         impersonate,
         stopImpersonating,
         pendingTwoFactor,

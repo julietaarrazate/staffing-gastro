@@ -144,7 +144,22 @@ EMAIL_VERIFICATION_RESEND_WINDOW = timedelta(minutes=5)
 # dos pasos (o por su alta). Va en el access y en el refresh, así sobrevive a
 # la rotación: una sesión verificada sigue verificada al renovarse, y una de
 # antes de activar la verificación no se vuelve verificada sola (ADR-0023).
+def _admin_que_mira(payload: dict) -> UUID | None:
+    """Id de la admin de un token de «Ver como», o `None` si no lo es. Si la
+    marca está pero no es un id, el token no vale: nunca se trata como una
+    sesión común (falla cerrado)."""
+    if IMPERSONATED_BY_CLAIM not in payload:
+        return None
+    try:
+        return UUID(str(payload[IMPERSONATED_BY_CLAIM]))
+    except ValueError as exc:
+        raise InvalidTokenError() from exc
+
+
 TWO_FACTOR_CLAIM = "mfa"
+# Marca de un access token de «Ver como»: lleva el id de la admin que lo
+# pidió. Una sesión así es de sólo lectura (PRI-09, `get_current_session`).
+IMPERSONATED_BY_CLAIM = "imp"
 
 
 class IdentityService:
@@ -508,8 +523,13 @@ class IdentityService:
         if not user.is_active:
             raise InactiveUserError()
         expires_at = payload.get("exp")
+        impersonated_by = _admin_que_mira(payload)
         if not TwoFactorService.applies_to(user) or self._two_factor is None:
-            return AuthenticatedSession(user=user, token_expires_at=expires_at)
+            return AuthenticatedSession(
+                user=user,
+                token_expires_at=expires_at,
+                impersonated_by=impersonated_by,
+            )
         # Se mira en cada pedido de un admin (una consulta por clave
         # primaria; hay un admin): si soporte desactiva la verificación, sus
         # tokens verificados dejan de servir para lo de admin en el acto.
@@ -518,6 +538,9 @@ class IdentityService:
             two_factor_enabled=await self._two_factor.is_enabled(user.id),
             two_factor_verified=payload.get(TWO_FACTOR_CLAIM) is True,
             token_expires_at=expires_at,
+            # No se puede mirar a un admin, pero si la cuenta mirada pasara a
+            # serlo con el token vigente, la marca tiene que seguir.
+            impersonated_by=impersonated_by,
         )
 
     async def complete_two_factor_login(

@@ -349,7 +349,7 @@ horaria.
 | Cobro con Mercado Pago (latente: está apagado) | CON-06, CON-07, CON-09 | menor | ⚪ próxima sesión, antes de prender el cobro |
 | Borradores y datos al cambiar de sesión | SES-02, SES-03, SES-04 | menor | ✅ #672 |
 | Hora sin zona leída en la zona del celular (borrador de la IA) | FEC-02 | menor | ✅ #673 |
-| Decididas el 2026-11-24 (ver «Decisiones tomadas el 2026-11-24») | PRI-06 (queda así en la beta), PRI-07 (corregir `/privacidad`), PRI-09 («Ver como» sólo para mirar) | menor | ⚪ PRI-07 y PRI-09 sin empezar |
+| Decididas el 2026-11-24 (ver «Decisiones tomadas el 2026-11-24») | PRI-06 (queda así en la beta), PRI-07 (corregir `/privacidad`), PRI-09 («Ver como» sólo para mirar) | menor | 🔵 PRI-07 en el PR de textos del 2026-11-27; PRI-09 hecha el 2026-11-27 (sólo lectura en el servidor; falta guardar el registro de usos en una tabla) |
 | Configuración, sin código | PRI-08: la cuenta invitada es una sola para todos los que tienen el PIN; se cierra vaciando `GUEST_ACCESS_PIN` (decisión 5) | menor | ⏸️ |
 
 Refutados: VIE-06 (los diálogos «No se presentó» y «¿Ya le pagaste?» no
@@ -754,24 +754,33 @@ prueba, y las invitadas quedan sin entrada al vaciar el PIN.
 
 - [ ] Vaciar `GUEST_ACCESS_PIN` en Render (decisión 5): el recuadro «Explorar
   sin cuenta» desaparece solo y `POST /auth/guest` responde 404.
-- [ ] Confirmar en Render `ENVIRONMENT=production` y `SEED_DEMO_DATA=false`.
+- [x] Confirmar en Render `ENVIRONMENT=production` y `SEED_DEMO_DATA=false`
+  (mirado el 2026-11-27).
 - [ ] Backend en Render Starter (decidido el 2026-11-18), para que el
-  scheduler no se duerma.
-- [ ] Verificación en dos pasos de la cuenta admin activada, con los códigos
-  de recuperación guardados fuera del celular.
+  scheduler no se duerma. **Urgente desde el 2026-11-27:** el servicio sigue
+  en Free, y dormido no salen los recordatorios de llegada (#749) ni la
+  pregunta de disponibilidad, que ya están prendidos. Lo hace Julieta (es un
+  gasto).
+- [x] Verificación en dos pasos de la cuenta admin activada (Julieta,
+  2026-11-26). Confirmar que los códigos de recuperación están guardados
+  fuera del celular.
 - [ ] Clave de Gemini rotada y el error viejo borrado de Sentry.
 - [ ] Un restore de Neon ensayado.
 - [ ] Base inscripta en el Registro Nacional de Bases de Datos (AAIP) y la
   consulta legal hecha (pestaña «Lanzamiento de beta» del plan).
 - [ ] Las pruebas de persona de arriba («Pruebas que tiene que hacer una
   persona»).
-- [ ] Reconfirmación antes del turno: poner `RECONFIRMACION_ENABLED=true` en
-  Render (ADR-0031). Julieta dio el sí el 2026-11-26, con los textos de
-  disponibilidad ya publicados.
-- [ ] Verificación de identidad obligatoria para ser asignado: poner
-  `VERIFICACION_OBLIGATORIA=true` en Render, con los Términos que lo dicen ya
-  publicados. Desde ese momento hay que revisar la cola de verificaciones al
-  menos una vez por día: quien no está verificado no puede tomar un turno.
+- [x] Reconfirmación antes del turno: `RECONFIRMACION_ENABLED=true` en Render
+  desde el 2026-11-27 (ADR-0031).
+- [x] Verificación de identidad obligatoria para ser asignado:
+  `VERIFICACION_OBLIGATORIA=true` en Render desde el 2026-11-27, con los
+  Términos `2026-11-27-1` publicados (#755). Hay que revisar la cola de
+  verificaciones al menos una vez por día: quien no está verificado no puede
+  tomar un turno.
+- [ ] En Render, `api.oido.com.ar` figura «Waiting for DNS» y su certificado
+  «Waiting for Verification» (visto el 2026-11-27). La API responde bien por
+  Cloudflare; falta confirmar que el certificado de origen no dependa de esa
+  verificación.
 - [ ] El cobro sigue apagado: los comercios fundadores no pagan hasta el 28/2
   (STATUS, ítem 6).
 
@@ -818,6 +827,17 @@ servidor con un solo `h1`).
 | Textos alternativos en las fotos de la landing | ⚪ |
 | Confirmar que las vistas previas en `workers.dev` llevan `noindex` (o apagar `workers_dev`) | ⚪ |
 
-**De Julieta:** dar de alta `www.oido.com.ar` en Google Search Console y
-enviar el mapa del sitio; crear el perfil de empresa en Google; probar una
-página de turno en la prueba de resultados enriquecidos de Google.
+**De Julieta:**
+- [x] `oido.com.ar` dado de alta en Google Search Console como propiedad de
+  dominio, con la cuenta de Oído; mapa del sitio enviado y leído (5 páginas) e
+  indexación de la portada pedida (2026-11-27).
+- [ ] Sumar la cuenta personal como segunda propietaria en Search Console.
+- [ ] Crear el perfil de empresa en Google.
+- [ ] Probar una página de turno abierto en la prueba de resultados
+  enriquecidos de Google (pide un turno publicado en ese momento).
+- [ ] Decidir si los turnos abiertos van al mapa del sitio (probable sí).
+
+**Pendiente de decidir (2026-11-27):** un ensayo general automático antes de
+abrir, sobre `tools/e2e-local`: usuarios simulados que recorren el camino
+completo y los casos de falla, con informe y capturas. Va en una sesión
+propia.

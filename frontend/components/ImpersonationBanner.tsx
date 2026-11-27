@@ -14,6 +14,9 @@ const ROLE_LABELS: Record<string, string> = {
  * usuario para testing/soporte (`useAuth().impersonate`). No es sticky a
  * propósito: alcanza con que sea lo primero que se ve al entrar a cada
  * pantalla; scrollea con el contenido, el Navbar (sticky) queda debajo.
+ *
+ * «Ver como» es sólo para mirar (PRI-09): el backend responde 403
+ * (`impersonation_read_only`) a cualquier pedido que no sea de lectura.
  */
 export default function ImpersonationBanner() {
   const { user, impersonating, stopImpersonating } = useAuth();
@@ -32,6 +35,16 @@ export default function ImpersonationBanner() {
         Viendo como <strong className="break-words">{user.full_name}</strong>
         {" "}({ROLE_LABELS[user.role] ?? user.role}) — sesión de{" "}
         {impersonating.adminUser.full_name}
+        {/* El servidor rechaza toda escritura de una sesión de «Ver como»
+            (PRI-09): se dice acá para que no sorprenda. */}
+        {impersonating.readOnly ? (
+          <>
+            {" "}· <strong>Sólo lectura</strong>
+          </>
+        ) : (
+          // Cuenta de prueba del panel: se puede operar para probar los flujos.
+          <> · Cuenta de prueba</>
+        )}
       </span>
       <button
         type="button"

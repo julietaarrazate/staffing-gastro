@@ -715,3 +715,135 @@ async def test_non_admin_cannot_impersonate(client: AsyncClient):
         headers=worker,
     )
     assert resp.status_code == 403
+
+
+# --- «Ver como» es sólo para mirar (PRI-09) --------------------------------
+
+
+async def _viendo_como(client, session_factory, rol: str, email: str) -> tuple[dict, dict]:
+    admin = await _make_admin(client, session_factory, f"admin_{rol}@test.com")
+    propia = await auth_headers(client, rol, email)
+    users = await client.get("/api/v1/admin/users", headers=admin)
+    target_id = next(u["id"] for u in users.json() if u["email"] == email)
+    resp = await client.post(f"/api/v1/admin/users/{target_id}/impersonate", headers=admin)
+    return {"Authorization": f"Bearer {resp.json()['access_token']}"}, propia
+
+
+@pytest.mark.asyncio
+async def test_ver_como_puede_leer_pero_no_cambiar_nada(client, session_factory):
+    viendo, propia = await _viendo_como(client, session_factory, "worker", "vista_w@test.com")
+
+    # Leer, sí.
+    assert (await client.get("/api/v1/auth/me", headers=viendo)).status_code == 200
+    assert (await client.get("/api/v1/notifications", headers=viendo)).status_code == 200
+
+    # Escribir, no: ni crear, ni editar, ni borrar, ni marcar como visto.
+    intentos = [
+        ("post", "/api/v1/workers/me/profile", {"skills": ["mozo"]}),
+        ("put", "/api/v1/workers/me/profile", {"skills": ["mozo"]}),
+        ("post", "/api/v1/notifications/read-all", None),
+        ("post", "/api/v1/auth/terms/accept", None),
+    ]
+    for metodo, ruta, cuerpo in intentos:
+        kwargs = {"json": cuerpo} if cuerpo is not None else {}
+        respuesta = await getattr(client, metodo)(ruta, headers=viendo, **kwargs)
+        assert respuesta.status_code == 403, (metodo, ruta, respuesta.text)
+        assert respuesta.json()["detail"]["code"] == "impersonation_read_only", (metodo, ruta)
+
+    # No se creó nada a nombre de la persona.
+    assert (await client.get("/api/v1/workers/me/profile", headers=propia)).status_code == 404
+    # Y la persona, con su propia sesión, sigue pudiendo todo.
+    creado = await client.post(
+        "/api/v1/workers/me/profile", headers=propia, json={"skills": ["mozo"]}
+    )
+    assert creado.status_code == 201, creado.text
+
+
+@pytest.mark.asyncio
+async def test_ver_como_un_comercio_no_publica(client, session_factory):
+    viendo, propia = await _viendo_como(client, session_factory, "employer", "vista_e@test.com")
+    await client.post(
+        "/api/v1/companies/me/profile", headers=propia, json={"name": "Bar", "city": "Palermo"}
+    )
+
+    assert (await client.get("/api/v1/shifts/me", headers=viendo)).status_code == 200
+    publicado = await client.post("/api/v1/shifts", headers=viendo, json={})
+    assert publicado.status_code == 403
+    assert publicado.json()["detail"]["code"] == "impersonation_read_only"
+
+
+@pytest.mark.asyncio
+async def test_ver_como_abre_un_chat_sin_marcarlo_como_leido(client, session_factory):
+    """Listar los mensajes es un GET que marca leídos y le avisa el «visto» al
+    otro lado. Con «Ver como» sólo lista: la admin no lee por la persona."""
+    from tests.test_chat import _assigned_shift
+
+    shift_id, employer, worker = await _assigned_shift(
+        client, "vc_chat_emp@staffya.com", "vc_chat_w@staffya.com"
+    )
+    await client.post(
+        f"/api/v1/chats/{shift_id}/messages", headers=employer, json={"body": "¿Llegás?"}
+    )
+    admin = await _make_admin(client, session_factory, "admin_chat@test.com")
+    users = await client.get("/api/v1/admin/users", headers=admin)
+    target_id = next(u["id"] for u in users.json() if u["email"] == "vc_chat_w@staffya.com")
+    resp = await client.post(f"/api/v1/admin/users/{target_id}/impersonate", headers=admin)
+    viendo = {"Authorization": f"Bearer {resp.json()['access_token']}"}
+
+    mensajes = await client.get(f"/api/v1/chats/{shift_id}/messages", headers=viendo)
+    assert mensajes.status_code == 200
+    assert [m["body"] for m in mensajes.json()] == ["¿Llegás?"]
+
+    # Para la persona, el mensaje sigue sin leer.
+    [conversacion] = (await client.get("/api/v1/chats", headers=worker)).json()
+    assert conversacion["unread_count"] == 1
+    # Cuando lo abre ella, sí queda leído.
+    await client.get(f"/api/v1/chats/{shift_id}/messages", headers=worker)
+    [conversacion] = (await client.get("/api/v1/chats", headers=worker)).json()
+    assert conversacion["unread_count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_un_token_con_la_marca_de_ver_como_mal_formada_no_vale(client, session_factory):
+    """Si la marca está pero no es un id, el token se rechaza: nunca se trata
+    como una sesión común, que podría escribir."""
+    from app.core.security import create_access_token
+    from app.modules.identity.application.services import IMPERSONATED_BY_CLAIM
+
+    await auth_headers(client, "worker", "marca_rota@test.com")
+    admin = await _make_admin(client, session_factory, "admin_marca@test.com")
+    users = await client.get("/api/v1/admin/users", headers=admin)
+    target_id = next(u["id"] for u in users.json() if u["email"] == "marca_rota@test.com")
+    for marca in ("no-uuid", "", 123):
+        token = create_access_token(
+            target_id, extra_claims={"role": "worker", IMPERSONATED_BY_CLAIM: marca}
+        )
+        respuesta = await client.get(
+            "/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert respuesta.status_code == 401, (marca, respuesta.text)
+
+
+@pytest.mark.asyncio
+async def test_ver_como_una_cuenta_de_prueba_si_puede_operar(client, session_factory):
+    """Las cuentas de prueba del panel existen para probar los flujos
+    completos: con ellas «Ver como» no es de sólo lectura."""
+    admin = await _make_admin(client, session_factory, "admin_prueba@test.com")
+    cuentas = (await client.get("/api/v1/admin/test-accounts", headers=admin)).json()
+    trabajadora = next(c for c in cuentas if c["role"] == "worker")
+
+    resp = await client.post(
+        f"/api/v1/admin/users/{trabajadora['id']}/impersonate", headers=admin
+    )
+    assert resp.json()["read_only"] is False
+    viendo = {"Authorization": f"Bearer {resp.json()['access_token']}"}
+
+    escrito = await client.post("/api/v1/notifications/read-all", headers=viendo)
+    assert escrito.status_code != 403, escrito.text
+
+    # Una cuenta real sigue en sólo lectura.
+    await auth_headers(client, "worker", "real_solo_lectura@test.com")
+    users = await client.get("/api/v1/admin/users", headers=admin)
+    real = next(u["id"] for u in users.json() if u["email"] == "real_solo_lectura@test.com")
+    resp = await client.post(f"/api/v1/admin/users/{real}/impersonate", headers=admin)
+    assert resp.json()["read_only"] is True

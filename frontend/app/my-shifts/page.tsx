@@ -445,11 +445,13 @@ function MatchesContent() {
       );
       clearIdempotencyKey(shift.id);
       toast("¡Te postulaste! El comercio ya te puede ver");
-      // Ya avanzó de "para evaluar" a "postulado" — sale de guardados solo
-      // (fire-and-forget: si falla, el trabajador lo puede sacar a mano
-      // igual, no vale la pena bloquear ni avisar por esto).
-      api.del(`/saved-shifts/${shift.id}`, undefined, token).catch(() => {});
+      // Ya avanzó de "para evaluar" a "postulado" — sale de guardados solo.
+      // Si falla, el trabajador lo puede sacar a mano: no se avisa. Pero se
+      // espera a que termine antes de releer: si no, la relectura le ganaba
+      // al borrado y el turno recién postulado volvía a aparecer en
+      // Guardados (visto como prueba intermitente en CI, 2026-11-27).
       setSavedShifts((prev) => prev.filter((s) => s.id !== shift.id));
+      await api.del(`/saved-shifts/${shift.id}`, undefined, token).catch(() => {});
       await load();
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {

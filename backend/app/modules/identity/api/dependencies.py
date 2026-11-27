@@ -94,18 +94,43 @@ def get_identity_service(
     )
 
 
+# «Ver como» es sólo para mirar (PRI-09, decisión de Julieta del 2026-11-24):
+# con el token de una cuenta ajena la admin no escribe, no se postula, no
+# publica ni marca nada como visto. Se corta acá, en la única puerta por la
+# que pasa todo pedido autenticado, así un endpoint nuevo queda cubierto solo.
+METODOS_DE_LECTURA = frozenset({"GET", "HEAD", "OPTIONS"})
+IMPERSONATION_READ_ONLY_CODE = "impersonation_read_only"
+
+
 async def get_current_session(
+    request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(_bearer_scheme)],
     service: Annotated[IdentityService, Depends(get_identity_service)],
 ) -> AuthenticatedSession:
     try:
-        return await service.resolve_session(credentials.credentials)
+        session = await service.resolve_session(credentials.credentials)
     except (InvalidTokenError, UserNotFoundError, InactiveUserError) as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="No autorizado",
             headers={"WWW-Authenticate": "Bearer"},
         ) from exc
+    if session.impersonated_by is not None and request.method not in METODOS_DE_LECTURA:
+        logger.warning(
+            "403 ver como, sólo lectura: admin=%s target=%s %s %s",
+            session.impersonated_by,
+            session.user.id,
+            request.method,
+            request.url.path,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": IMPERSONATION_READ_ONLY_CODE,
+                "message": "Estás viendo esta cuenta en sólo lectura: no se puede cambiar nada.",
+            },
+        )
+    return session
 
 
 # Mensajes del 403 de una sesión admin sin la verificación en dos pasos. El
