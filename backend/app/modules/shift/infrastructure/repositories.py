@@ -103,6 +103,8 @@ def _to_entity(model: ShiftModel) -> Shift:
         check_out_longitude=model.check_out_longitude,
         check_out_at=model.check_out_at,
         paid_at=model.paid_at,
+        worker_confirmed_paid_at=model.worker_confirmed_paid_at,
+        worker_reported_unpaid_at=model.worker_reported_unpaid_at,
         no_show_at=model.no_show_at,
         last_no_show_worker_profile_id=model.last_no_show_worker_profile_id,
         closed_by_admin_at=model.closed_by_admin_at,
@@ -154,6 +156,8 @@ def _apply_fields(model: ShiftModel, shift: Shift) -> None:
     model.check_out_longitude = shift.check_out_longitude
     model.check_out_at = shift.check_out_at
     model.paid_at = shift.paid_at
+    model.worker_confirmed_paid_at = shift.worker_confirmed_paid_at
+    model.worker_reported_unpaid_at = shift.worker_reported_unpaid_at
     model.no_show_at = shift.no_show_at
     model.last_no_show_worker_profile_id = shift.last_no_show_worker_profile_id
     model.closed_by_admin_at = shift.closed_by_admin_at

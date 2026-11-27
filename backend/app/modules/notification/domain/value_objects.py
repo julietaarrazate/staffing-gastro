@@ -12,6 +12,10 @@ class NotificationType(str, Enum):
     SHIFT_REJECTED = "shift_rejected"
     SHIFT_CHECKED_OUT = "shift_checked_out"
     SHIFT_PAID = "shift_paid"
+    # «¿Ya cobraste?» (2026-11-27): al comercio, cuando la persona confirma que
+    # cobró (suave) o avisa que todavía no cobró.
+    WORKER_CONFIRMED_PAID = "worker_confirmed_paid"
+    WORKER_REPORTED_UNPAID = "worker_reported_unpaid"
     # U018: el comercio cerró el turno; al trabajador se le avisa que ya puede
     # calificar al comercio.
     SHIFT_FINISHED = "shift_finished"
@@ -131,6 +135,8 @@ _DEEP_LINKS: dict[NotificationType, str] = {
     NotificationType.WORKER_EN_ROUTE: "/shifts",
     NotificationType.WORKER_NOT_CHECKED_IN: "/shifts",
     NotificationType.WORKER_NOT_RECONFIRMED: "/shifts",
+    NotificationType.WORKER_CONFIRMED_PAID: "/shifts",
+    NotificationType.WORKER_REPORTED_UNPAID: "/shifts",
     # Sólo al comercio (ADR-0015): si había un trabajador asignado sin
     # confirmar, no se lo penaliza ni se le avisa nada — no es una noticia
     # accionable para él, el momento ya pasó.

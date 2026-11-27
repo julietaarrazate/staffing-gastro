@@ -71,6 +71,8 @@ _RULES: dict[NotificationType, PushPolicy] = {
     _N.APPLIED_SHIFT_CANCELLED: _ACCION_SOBRE_TURNO,
     _N.APPLIED_SHIFT_CHANGED: _ACCION_SOBRE_TURNO,
     _N.SHIFT_NO_SHOW: _ACCION_SOBRE_TURNO,
+    # «No cobré»: pide mirar el turno y hablar con la persona.
+    _N.WORKER_REPORTED_UNPAID: _ACCION_SOBRE_TURNO,
     _N.SHIFT_CHECKED_OUT: _ACCION_SOBRE_TURNO,
     _N.SHIFT_REOPENED: _ACCION_SOBRE_TURNO,
     _N.SHIFT_NOT_COVERED: _ACCION_SOBRE_TURNO,
@@ -91,6 +93,8 @@ _RULES: dict[NotificationType, PushPolicy] = {
 DEFAULT_POLICY_TYPES: frozenset[NotificationType] = frozenset(
     {
         _N.SHIFT_PAID,
+        # «Sí, cobré»: informativo, no pide hacer nada.
+        _N.WORKER_CONFIRMED_PAID,
         _N.SHIFT_FINISHED,
         # Oído cerró el turno solo: queda marcarlo pagado, sin apuro de hora.
         _N.SHIFT_AUTO_FINISHED,

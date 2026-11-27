@@ -370,9 +370,12 @@
         "status": "publicado",
         "tips": true,
         "title": null,
+        "unpaid_report_opens_at": null,
         "urgent": false,
+        "worker_confirmed_paid_at": null,
         "worker_name": null,
-        "worker_profile_id": null
+        "worker_profile_id": null,
+        "worker_reported_unpaid_at": null
       }
     ],
     "status": 200
@@ -624,9 +627,12 @@
           "status": "publicado",
           "tips": true,
           "title": null,
+          "unpaid_report_opens_at": null,
           "urgent": false,
+          "worker_confirmed_paid_at": null,
           "worker_name": null,
-          "worker_profile_id": null
+          "worker_profile_id": null,
+          "worker_reported_unpaid_at": null
         },
         "shift_id": "shift-1",
         "status": "pendiente",
@@ -849,9 +855,12 @@
       "status": "asignado",
       "tips": true,
       "title": null,
+      "unpaid_report_opens_at": null,
       "urgent": false,
+      "worker_confirmed_paid_at": null,
       "worker_name": null,
-      "worker_profile_id": "worker-profile-1"
+      "worker_profile_id": "worker-profile-1",
+      "worker_reported_unpaid_at": null
     },
     "status": 200
   },
@@ -909,9 +918,12 @@
       "status": "asignado",
       "tips": true,
       "title": null,
+      "unpaid_report_opens_at": null,
       "urgent": false,
+      "worker_confirmed_paid_at": null,
       "worker_name": null,
-      "worker_profile_id": "worker-profile-1"
+      "worker_profile_id": "worker-profile-1",
+      "worker_reported_unpaid_at": null
     },
     "status": 200
   },
@@ -987,9 +999,12 @@
       "status": "borrador",
       "tips": true,
       "title": null,
+      "unpaid_report_opens_at": null,
       "urgent": false,
+      "worker_confirmed_paid_at": null,
       "worker_name": null,
-      "worker_profile_id": null
+      "worker_profile_id": null,
+      "worker_reported_unpaid_at": null
     },
     "status": 200
   },
@@ -1077,9 +1092,12 @@
       "status": "cancelado",
       "tips": true,
       "title": null,
+      "unpaid_report_opens_at": null,
       "urgent": false,
+      "worker_confirmed_paid_at": null,
       "worker_name": null,
-      "worker_profile_id": "worker-profile-2"
+      "worker_profile_id": "worker-profile-2",
+      "worker_reported_unpaid_at": null
     },
     "status": 200
   },
@@ -1143,9 +1161,12 @@
       "status": "confirmado",
       "tips": true,
       "title": null,
+      "unpaid_report_opens_at": null,
       "urgent": false,
+      "worker_confirmed_paid_at": null,
       "worker_name": null,
-      "worker_profile_id": "worker-profile-1"
+      "worker_profile_id": "worker-profile-1",
+      "worker_reported_unpaid_at": null
     },
     "status": 200
   },
@@ -1203,9 +1224,12 @@
       "status": "confirmado",
       "tips": true,
       "title": null,
+      "unpaid_report_opens_at": null,
       "urgent": false,
+      "worker_confirmed_paid_at": null,
       "worker_name": null,
-      "worker_profile_id": "worker-profile-1"
+      "worker_profile_id": "worker-profile-1",
+      "worker_reported_unpaid_at": null
     },
     "status": 200
   },
@@ -1269,9 +1293,12 @@
       "status": "borrador",
       "tips": true,
       "title": null,
+      "unpaid_report_opens_at": null,
       "urgent": false,
+      "worker_confirmed_paid_at": null,
       "worker_name": null,
-      "worker_profile_id": null
+      "worker_profile_id": null,
+      "worker_reported_unpaid_at": null
     },
     "status": 201
   },
@@ -1329,9 +1356,12 @@
       "status": "confirmado",
       "tips": true,
       "title": null,
+      "unpaid_report_opens_at": null,
       "urgent": false,
+      "worker_confirmed_paid_at": null,
       "worker_name": null,
-      "worker_profile_id": "worker-profile-1"
+      "worker_profile_id": "worker-profile-1",
+      "worker_reported_unpaid_at": null
     },
     "status": 200
   },
@@ -1395,9 +1425,12 @@
       "status": "confirmado",
       "tips": true,
       "title": null,
+      "unpaid_report_opens_at": null,
       "urgent": false,
+      "worker_confirmed_paid_at": null,
       "worker_name": null,
-      "worker_profile_id": "worker-profile-1"
+      "worker_profile_id": "worker-profile-1",
+      "worker_reported_unpaid_at": null
     },
     "status": 200
   },
@@ -1461,9 +1494,12 @@
       "status": "publicado",
       "tips": true,
       "title": null,
+      "unpaid_report_opens_at": null,
       "urgent": false,
+      "worker_confirmed_paid_at": null,
       "worker_name": null,
-      "worker_profile_id": null
+      "worker_profile_id": null,
+      "worker_reported_unpaid_at": null
     },
     "status": 200
   },
@@ -1521,9 +1557,12 @@
       "status": "publicado",
       "tips": true,
       "title": null,
+      "unpaid_report_opens_at": null,
       "urgent": false,
+      "worker_confirmed_paid_at": null,
       "worker_name": null,
-      "worker_profile_id": null
+      "worker_profile_id": null,
+      "worker_reported_unpaid_at": null
     },
     "status": 200
   },
@@ -1581,9 +1620,12 @@
       "status": "publicado",
       "tips": true,
       "title": null,
+      "unpaid_report_opens_at": null,
       "urgent": false,
+      "worker_confirmed_paid_at": null,
       "worker_name": null,
-      "worker_profile_id": null
+      "worker_profile_id": null,
+      "worker_reported_unpaid_at": null
     },
     "status": 200
   },
@@ -1664,9 +1706,12 @@
         "status": "asignado",
         "tips": true,
         "title": null,
+        "unpaid_report_opens_at": null,
         "urgent": false,
+        "worker_confirmed_paid_at": null,
         "worker_name": null,
-        "worker_profile_id": "worker-profile-1"
+        "worker_profile_id": "worker-profile-1",
+        "worker_reported_unpaid_at": null
       }
     ],
     "status": 200
@@ -1726,9 +1771,12 @@
         "status": "publicado",
         "tips": true,
         "title": null,
+        "unpaid_report_opens_at": null,
         "urgent": false,
+        "worker_confirmed_paid_at": null,
         "worker_name": null,
-        "worker_profile_id": null
+        "worker_profile_id": null,
+        "worker_reported_unpaid_at": null
       }
     ],
     "status": 200
@@ -1788,9 +1836,12 @@
         "status": "confirmado",
         "tips": true,
         "title": null,
+        "unpaid_report_opens_at": null,
         "urgent": false,
+        "worker_confirmed_paid_at": null,
         "worker_name": "Trabajador Uno",
-        "worker_profile_id": "worker-profile-1"
+        "worker_profile_id": "worker-profile-1",
+        "worker_reported_unpaid_at": null
       }
     ],
     "status": 200

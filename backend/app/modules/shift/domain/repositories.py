@@ -476,3 +476,15 @@ class ShiftRepository(ABC):
         """Por persona, sus turnos terminados (finalizados o pagados) en ese
         puesto y en ese comercio, en UNA consulta. Quien no terminó ninguno
         no aparece en el resultado."""
+
+
+class PaymentReportOpener(ABC):
+    """Puerto hacia soporte: abre un ticket en nombre de la persona cuando avisa
+    que todavía no cobró un turno, para que la admin lo vea. El cruce con el
+    módulo `support` queda del otro lado del puerto."""
+
+    @abstractmethod
+    async def open_unpaid_ticket(
+        self, *, worker_user_id: UUID, shift_id: UUID, subject: str, body: str
+    ) -> None:
+        """Crea el ticket de pagos atado al turno."""

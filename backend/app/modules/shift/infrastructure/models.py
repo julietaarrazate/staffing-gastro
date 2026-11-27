@@ -95,6 +95,13 @@ class ShiftModel(Base):
     check_out_longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     check_out_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # «¿Ya cobraste?» (2026-11-27): lo que dijo la persona asignada.
+    worker_confirmed_paid_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    worker_reported_unpaid_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     no_show_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_no_show_worker_profile_id: Mapped[uuid.UUID | None] = mapped_column(

@@ -60,3 +60,9 @@ class AdminCloseNotAllowedError(ShiftError):
     ADR-0024): ninguna parte suspendida, el turno no empezó o ya terminó, o
     el paso que falta le toca a la parte con la cuenta activa. El mensaje es
     para la admin."""
+
+
+class PaymentReportNotAllowedError(ShiftError):
+    """La persona no puede decir ahora si cobró (el turno no terminó, ya
+    confirmó el cobro, o todavía es pronto para avisar que no cobró). El
+    mensaje es para ella."""
