@@ -146,9 +146,9 @@ function ShiftCandidatesContent() {
   }, [compu, idsClave, verId]);
   const fichaDe = (id: string) => {
     const a = tab === "postulantes" ? applicants.find((x) => x.worker_profile_id === id) : undefined;
-    if (a) return { nombre: a.full_name, foto: a.photo_url };
+    if (a) return { nombre: a.full_name, foto: a.photo_url, faltaVerificar: Boolean(a.falta_verificar) };
     const c = candidates.find((x) => x.profile_id === id);
-    return c ? { nombre: c.full_name, foto: c.photo_url } : null;
+    return c ? { nombre: c.full_name, foto: c.photo_url, faltaVerificar: Boolean(c.falta_verificar) } : null;
   };
   const destacar = !compu && primero;
   const restoPostulantes = destacar ? applicants.slice(1) : applicants;
@@ -355,6 +355,7 @@ function ShiftCandidatesContent() {
                     nombre={primero.full_name}
                     foto={primero.photo_url}
                     verificada={primero.identidad_verificada}
+                    faltaVerificar={Boolean(primero.falta_verificar)}
                     signals={primero}
                     rotulo={rotuloPrimero}
                     onElegir={elegir(primero.worker_profile_id, primero.full_name, primero.photo_url)}
@@ -373,6 +374,7 @@ function ShiftCandidatesContent() {
                             nombre={a.full_name}
                             foto={a.photo_url}
                             verificada={a.identidad_verificada}
+                            faltaVerificar={Boolean(a.falta_verificar)}
                             signals={a}
                             disponible={a.is_available}
                             // Tuvo este turno y lo dejó: va al final, con su
@@ -419,6 +421,7 @@ function ShiftCandidatesContent() {
                   nombre={candidates[0].full_name}
                   foto={candidates[0].photo_url}
                   verificada={candidates[0].identidad_verificada}
+                  faltaVerificar={Boolean(candidates[0].falta_verificar)}
                   signals={candidates[0]}
                   rotulo="Recomendación de Oído"
                   onElegir={elegir(candidates[0].profile_id, candidates[0].full_name, candidates[0].photo_url)}
@@ -437,6 +440,7 @@ function ShiftCandidatesContent() {
                             nombre={c.full_name}
                             foto={c.photo_url}
                             verificada={c.identidad_verificada}
+                            faltaVerificar={Boolean(c.falta_verificar)}
                             signals={c}
                             rotulo={compu && i === 0 ? "Recomendación de Oído" : null}
                             seleccionada={compu && fichaId === c.profile_id}
@@ -468,6 +472,7 @@ function ShiftCandidatesContent() {
               foto={ficha.foto}
               token={token}
               onElegir={elegir(fichaId, ficha.nombre, ficha.foto)}
+              faltaVerificar={ficha.faltaVerificar}
               eligiendo={assigning === fichaId}
               bloqueado={assigning !== null}
             />

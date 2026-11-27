@@ -163,3 +163,24 @@ test("falla el GET del turno: sin «Elegir» y con error y reintento", async ({ 
   await page.getByRole("button", { name: "Reintentar" }).first().click();
   await expect(page.getByRole("button", { name: /^Elegir/ }).first()).toBeVisible();
 });
+
+test("quien no verificó su identidad se ve de entrada y no ofrece «Elegir»", async ({ page }) => {
+  await setupCandidatos(page, "publicado");
+  await page.route("**/api/v1/applications/shifts/shift-1", (r) =>
+    r.fulfill(
+      json([
+        { ...APPLICANT, falta_verificar: true },
+        { ...APPLICANT, application_id: "application-2", worker_profile_id: "wp-2", full_name: "Vera Verificada", identidad_verificada: true, falta_verificar: false },
+      ]),
+    ),
+  );
+  await page.goto("/shifts/shift-1/candidates");
+  await expect(page.getByText("Lucía Postulada").first()).toBeVisible();
+  // Lucía no verificó: lo dice, y no hay botón para elegirla.
+  await expect(page.getByTestId("falta-verificar-candidato").first()).toContainText(
+    "Todavía no verificó su identidad",
+  );
+  await expect(page.getByRole("button", { name: /Elegir a Lucía/ })).toHaveCount(0);
+  // Vera sí: se la puede elegir.
+  await expect(page.getByRole("button", { name: /Elegir a Vera/ })).toBeVisible();
+});

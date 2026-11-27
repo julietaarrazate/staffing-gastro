@@ -5,6 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from app.core.config import settings
 from app.modules.identity.api.dependencies import require_roles
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.value_objects import UserRole
@@ -60,6 +61,9 @@ async def get_top_candidates(
     for r in results:
         response = CandidateMatchResponse.model_validate(r)
         response.identidad_verificada = r.user_id in verified
+        response.falta_verificar = (
+            settings.verificacion_obligatoria and not response.identidad_verificada
+        )
         responses.append(response)
     return responses
 

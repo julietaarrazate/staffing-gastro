@@ -145,3 +145,32 @@ async def test_quien_ya_mando_sus_documentos_figura_en_revision_y_todavia_no_se_
     assert mio["verificacion_en_revision"] is True
     assert mio["identidad_verificada"] is False
     assert (await _asignar(client, shift_id, employer, perfil)).status_code == 409
+
+
+async def test_el_comercio_ve_de_entrada_a_quien_todavia_no_puede_elegir(
+    client, session_factory, obligatoria
+):
+    """La lista de postulantes dice quién no verificó su identidad, así el
+    comercio no se entera recién al tocar «Elegir»."""
+    shift_id, employer, worker, profile_id = await _turno_y_persona(client, "vo_lista")
+    await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
+
+    lista = await client.get(f"/api/v1/applications/shifts/{shift_id}", headers=employer)
+    assert [(p["identidad_verificada"], p["falta_verificar"]) for p in lista.json()] == [
+        (False, True)
+    ]
+
+    await _verificar(session_factory, profile_id)
+    lista = await client.get(f"/api/v1/applications/shifts/{shift_id}", headers=employer)
+    assert [(p["identidad_verificada"], p["falta_verificar"]) for p in lista.json()] == [
+        (True, False)
+    ]
+
+
+async def test_con_la_regla_apagada_nadie_figura_como_falta_verificar(client, session_factory):
+    shift_id, employer, worker, _ = await _turno_y_persona(client, "vo_lista_off")
+    await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
+    lista = await client.get(f"/api/v1/applications/shifts/{shift_id}", headers=employer)
+    assert [p["falta_verificar"] for p in lista.json()] == [False]
+    recomendados = await client.get(f"/api/v1/shifts/{shift_id}/candidates", headers=employer)
+    assert all(c["falta_verificar"] is False for c in recomendados.json())

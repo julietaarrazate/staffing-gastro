@@ -30,6 +30,7 @@ export default function CandidatoFila({
   onElegir,
   eligiendo = false,
   bloqueado = false,
+  faltaVerificar = false,
 }: {
   perfilId: string;
   nombre: string;
@@ -51,6 +52,8 @@ export default function CandidatoFila({
   onElegir?: () => void;
   eligiendo?: boolean;
   bloqueado?: boolean;
+  /** No verificó su identidad y hace falta para elegirla: se dice, y no hay «Elegir». */
+  faltaVerificar?: boolean;
 }) {
   const datos = datosCandidato(signals);
   return (
@@ -97,6 +100,15 @@ export default function CandidatoFila({
               ))}
             </span>
           )}
+          {faltaVerificar && (
+            <span
+              data-testid="falta-verificar-candidato"
+              className="mt-0.5 flex items-center gap-1.5 text-caption font-semibold text-ink-soft"
+            >
+              <ShieldIcon size={13} className="shrink-0" />
+              Todavía no verificó su identidad
+            </span>
+          )}
           {marca && (
             <span
               data-testid="postulante-desasignado"
@@ -136,7 +148,7 @@ export default function CandidatoFila({
           </span>
         </span>
       </Link>
-      {onElegir ? (
+      {onElegir && !faltaVerificar ? (
         <Button
           size="sm"
           variant="surface"

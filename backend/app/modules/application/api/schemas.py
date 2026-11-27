@@ -48,6 +48,10 @@ class ApplicantResponse(BaseModel):
     # Sello «Identidad verificada» (documento aprobado por un admin), el mismo
     # que en los recomendados. Se completa en la ruta, por puerto.
     identidad_verificada: bool = False
+    # Con la verificación obligatoria prendida, a quien no verificó su
+    # identidad no se le puede asignar el turno: la pantalla lo dice de
+    # entrada en vez de dejar que el comercio choque con el rechazo.
+    falta_verificar: bool = False
     # Por qué está donde está en la lista (ADR-0031). Son datos del comercio
     # (sus favoritos, sus turnos) o que ya ve en la ficha de la persona.
     es_favorito: bool = False

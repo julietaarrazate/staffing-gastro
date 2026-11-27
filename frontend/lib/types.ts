@@ -312,6 +312,8 @@ export interface CandidateMatch {
   badges: string[];
   level: string;
   identidad_verificada: boolean;
+  /** Verificación obligatoria prendida y sin verificar: todavía no se la puede elegir. */
+  falta_verificar?: boolean;
 }
 
 export interface WorkerMapResult {
@@ -488,6 +490,8 @@ export interface Applicant {
   level: string;
   /** Documento aprobado por un admin (mismo sello que en los recomendados). */
   identidad_verificada: boolean;
+  /** Verificación obligatoria prendida y sin verificar: todavía no se la puede elegir. */
+  falta_verificar?: boolean;
   /** Por qué está donde está en la lista (ADR-0031): la ordena el backend. */
   es_favorito: boolean;
   /** Ya terminó al menos un turno en este comercio. */

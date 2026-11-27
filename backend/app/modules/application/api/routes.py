@@ -5,6 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
+from app.core.config import settings
 from app.core.idempotency import IdempotencyRecorder, idempotent
 from app.core.rate_limit import RateLimiter
 from app.modules.company.api.dependencies import get_company_repository
@@ -232,6 +233,9 @@ async def shift_applicants(
             badges=list(applicant.badges),
             level=applicant.level,
             identidad_verificada=fila.identidad_verificada,
+            falta_verificar=(
+                settings.verificacion_obligatoria and not fila.identidad_verificada
+            ),
             es_favorito=fila.es_favorito,
             trabajo_aca=fila.trabajo_aca,
             turnos_en_el_puesto=fila.turnos_en_el_puesto,

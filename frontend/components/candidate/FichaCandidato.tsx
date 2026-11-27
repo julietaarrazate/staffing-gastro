@@ -26,6 +26,7 @@ export default function FichaCandidato({
   foto,
   token,
   onElegir,
+  faltaVerificar = false,
   eligiendo = false,
   bloqueado = false,
 }: {
@@ -35,6 +36,8 @@ export default function FichaCandidato({
   token: string | null | undefined;
   /** Sin esto no hay botón: el turno ya no admite elegir. */
   onElegir?: () => void;
+  /** No verificó su identidad y hace falta para elegirla. */
+  faltaVerificar?: boolean;
   eligiendo?: boolean;
   bloqueado?: boolean;
 }) {
@@ -98,7 +101,12 @@ export default function FichaCandidato({
         </div>
       </div>
 
-      {onElegir && (
+      {faltaVerificar && (
+        <p data-testid="falta-verificar-candidato" className="mt-5 rounded-2xl bg-surface-2 px-4 py-3 text-center text-small text-ink-soft">
+          Todavía no verificó su identidad. Cuando lo haga vas a poder elegirla.
+        </p>
+      )}
+      {onElegir && !faltaVerificar && (
         <Button
           fullWidth
           size="lg"

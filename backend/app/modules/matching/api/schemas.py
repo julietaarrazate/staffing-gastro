@@ -26,6 +26,8 @@ class CandidateMatchResponse(BaseModel):
     # Identidad (EPIC-001, ADR-0010): lo que el comercio ve del candidato. Se
     # enriquece en el route vía el servicio de verificación; nunca son evidencias.
     identidad_verificada: bool = False
+    # Con la verificación obligatoria prendida no se la puede elegir todavía.
+    falta_verificar: bool = False
 
 
 class WorkerMapResponse(BaseModel):
