@@ -145,6 +145,14 @@ listados más abajo.
   los guards viven en el DOMINIO (`Shift.report_en_route_location`), no en la
   UI. Está reflejado en `/privacidad` — si tocás esto, esa página se actualiza
   en el mismo PR.
+- **Dirección exacta del local** (Julieta, 2026-11-27): quien tiene sesión de
+  trabajador la ve en el detalle del turno (antes y después de postularse) y en
+  «Mis turnos», con «Cómo llegar» (enlace universal de Google Maps,
+  `frontend/lib/como-llegar.ts`: coordenadas o, sin ellas, la dirección).
+  `/shifts/new` la manda (`address`) cuando el turno es en el local. **Sin
+  sesión no**: `ShiftPublicResponse` (`/turno/[id]`) no trae `address`,
+  `latitude` ni `longitude`, y eso no cambia. Ningún schema para trabajadores
+  la oculta (`for_worker` sólo saca datos de la persona del turno).
 - **"Disponible ahora"** (ADR-0014): el trabajador prende su posición real
   —una sola captura, no un seguimiento— para que el comercio (mapa y
   matching de un turno) mida la distancia desde ahí y no desde su domicilio.
