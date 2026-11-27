@@ -4,6 +4,7 @@ Separan los comandos/resultados de los casos de uso de los esquemas HTTP (API).
 """
 
 from dataclasses import dataclass
+from uuid import UUID
 from datetime import date
 
 from app.modules.identity.domain.entities import User
@@ -92,6 +93,9 @@ class AuthenticatedSession:
     # Cuándo vence el access token con el que se autenticó (segundos UNIX).
     # Los sockets lo usan para cortarse solos al vencer (PRI-04).
     token_expires_at: float | None = None
+    # «Ver como»: id de la admin que está mirando esta cuenta. Con esto
+    # puesto, la sesión es de sólo lectura (PRI-09).
+    impersonated_by: UUID | None = None
 
     @property
     def gate(self) -> AdminGate:

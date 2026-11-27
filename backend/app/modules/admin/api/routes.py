@@ -328,7 +328,7 @@ async def promote_user(user_id: UUID, current: AdminDep, service: ServiceDep):
 )
 async def impersonate_user(user_id: UUID, current: AdminDep, service: ServiceDep):
     try:
-        user, access_token = await service.impersonate(user_id)
+        user, access_token = await service.impersonate(user_id, current.id)
     except TargetUserNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado"

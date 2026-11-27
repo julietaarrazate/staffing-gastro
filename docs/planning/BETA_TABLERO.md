@@ -349,7 +349,7 @@ horaria.
 | Cobro con Mercado Pago (latente: está apagado) | CON-06, CON-07, CON-09 | menor | ⚪ próxima sesión, antes de prender el cobro |
 | Borradores y datos al cambiar de sesión | SES-02, SES-03, SES-04 | menor | ✅ #672 |
 | Hora sin zona leída en la zona del celular (borrador de la IA) | FEC-02 | menor | ✅ #673 |
-| Decididas el 2026-11-24 (ver «Decisiones tomadas el 2026-11-24») | PRI-06 (queda así en la beta), PRI-07 (corregir `/privacidad`), PRI-09 («Ver como» sólo para mirar) | menor | ⚪ PRI-07 y PRI-09 sin empezar |
+| Decididas el 2026-11-24 (ver «Decisiones tomadas el 2026-11-24») | PRI-06 (queda así en la beta), PRI-07 (corregir `/privacidad`), PRI-09 («Ver como» sólo para mirar) | menor | 🔵 PRI-07 en el PR de textos del 2026-11-27; PRI-09 hecha el 2026-11-27 (sólo lectura en el servidor; falta guardar el registro de usos en una tabla) |
 | Configuración, sin código | PRI-08: la cuenta invitada es una sola para todos los que tienen el PIN; se cierra vaciando `GUEST_ACCESS_PIN` (decisión 5) | menor | ⏸️ |
 
 Refutados: VIE-06 (los diálogos «No se presentó» y «¿Ya le pagaste?» no

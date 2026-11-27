@@ -715,3 +715,58 @@ async def test_non_admin_cannot_impersonate(client: AsyncClient):
         headers=worker,
     )
     assert resp.status_code == 403
+
+
+# --- «Ver como» es sólo para mirar (PRI-09) --------------------------------
+
+
+async def _viendo_como(client, session_factory, rol: str, email: str) -> tuple[dict, dict]:
+    admin = await _make_admin(client, session_factory, f"admin_{rol}@test.com")
+    propia = await auth_headers(client, rol, email)
+    users = await client.get("/api/v1/admin/users", headers=admin)
+    target_id = next(u["id"] for u in users.json() if u["email"] == email)
+    resp = await client.post(f"/api/v1/admin/users/{target_id}/impersonate", headers=admin)
+    return {"Authorization": f"Bearer {resp.json()['access_token']}"}, propia
+
+
+@pytest.mark.asyncio
+async def test_ver_como_puede_leer_pero_no_cambiar_nada(client, session_factory):
+    viendo, propia = await _viendo_como(client, session_factory, "worker", "vista_w@test.com")
+
+    # Leer, sí.
+    assert (await client.get("/api/v1/auth/me", headers=viendo)).status_code == 200
+    assert (await client.get("/api/v1/notifications", headers=viendo)).status_code == 200
+
+    # Escribir, no: ni crear, ni editar, ni borrar, ni marcar como visto.
+    intentos = [
+        ("post", "/api/v1/workers/me/profile", {"skills": ["mozo"]}),
+        ("put", "/api/v1/workers/me/profile", {"skills": ["mozo"]}),
+        ("post", "/api/v1/notifications/read-all", None),
+        ("post", "/api/v1/auth/terms/accept", None),
+    ]
+    for metodo, ruta, cuerpo in intentos:
+        kwargs = {"json": cuerpo} if cuerpo is not None else {}
+        respuesta = await getattr(client, metodo)(ruta, headers=viendo, **kwargs)
+        assert respuesta.status_code == 403, (metodo, ruta, respuesta.text)
+        assert respuesta.json()["detail"]["code"] == "impersonation_read_only", (metodo, ruta)
+
+    # No se creó nada a nombre de la persona.
+    assert (await client.get("/api/v1/workers/me/profile", headers=propia)).status_code == 404
+    # Y la persona, con su propia sesión, sigue pudiendo todo.
+    creado = await client.post(
+        "/api/v1/workers/me/profile", headers=propia, json={"skills": ["mozo"]}
+    )
+    assert creado.status_code == 201, creado.text
+
+
+@pytest.mark.asyncio
+async def test_ver_como_un_comercio_no_publica(client, session_factory):
+    viendo, propia = await _viendo_como(client, session_factory, "employer", "vista_e@test.com")
+    await client.post(
+        "/api/v1/companies/me/profile", headers=propia, json={"name": "Bar", "city": "Palermo"}
+    )
+
+    assert (await client.get("/api/v1/shifts/me", headers=viendo)).status_code == 200
+    publicado = await client.post("/api/v1/shifts", headers=viendo, json={})
+    assert publicado.status_code == 403
+    assert publicado.json()["detail"]["code"] == "impersonation_read_only"

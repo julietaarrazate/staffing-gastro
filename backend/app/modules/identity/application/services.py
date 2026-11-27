@@ -144,7 +144,17 @@ EMAIL_VERIFICATION_RESEND_WINDOW = timedelta(minutes=5)
 # dos pasos (o por su alta). Va en el access y en el refresh, así sobrevive a
 # la rotación: una sesión verificada sigue verificada al renovarse, y una de
 # antes de activar la verificación no se vuelve verificada sola (ADR-0023).
+def _uuid_o_nada(valor: object) -> UUID | None:
+    try:
+        return UUID(str(valor)) if valor else None
+    except ValueError:
+        return None
+
+
 TWO_FACTOR_CLAIM = "mfa"
+# Marca de un access token de «Ver como»: lleva el id de la admin que lo
+# pidió. Una sesión así es de sólo lectura (PRI-09, `get_current_session`).
+IMPERSONATED_BY_CLAIM = "imp"
 
 
 class IdentityService:
@@ -509,7 +519,11 @@ class IdentityService:
             raise InactiveUserError()
         expires_at = payload.get("exp")
         if not TwoFactorService.applies_to(user) or self._two_factor is None:
-            return AuthenticatedSession(user=user, token_expires_at=expires_at)
+            return AuthenticatedSession(
+                user=user,
+                token_expires_at=expires_at,
+                impersonated_by=_uuid_o_nada(payload.get(IMPERSONATED_BY_CLAIM)),
+            )
         # Se mira en cada pedido de un admin (una consulta por clave
         # primaria; hay un admin): si soporte desactiva la verificación, sus
         # tokens verificados dejan de servir para lo de admin en el acto.

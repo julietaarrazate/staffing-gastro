@@ -46,7 +46,10 @@ from app.modules.admin.application.exceptions import (
 from app.modules.admin.application.periods import day_bounds, period_bounds, week_bounds
 from app.modules.application.domain.repositories import ShiftApplicationRepository
 from app.modules.company.domain.repositories import CompanyProfileRepository
-from app.modules.identity.application.services import GUEST_ACCOUNT_EMAILS
+from app.modules.identity.application.services import (
+    GUEST_ACCOUNT_EMAILS,
+    IMPERSONATED_BY_CLAIM,
+)
 from app.modules.identity.domain.entities import User
 from app.modules.identity.domain.repositories import (
     RefreshSessionRepository,
@@ -886,7 +889,7 @@ class AdminService:
         user.promote_to_admin()
         return await self._users.update(user)
 
-    async def impersonate(self, user_id: UUID) -> tuple[User, str]:
+    async def impersonate(self, user_id: UUID, admin_id: UUID) -> tuple[User, str]:
         """"Ver como": emite un access token del usuario destino para que la
         administradora pueda probar la app tal cual la ve un comercio o un
         trabajador real, sin conocer su contraseña.
@@ -901,7 +904,12 @@ class AdminService:
         user = await self._get(user_id)
         if user.role == UserRole.ADMIN:
             raise CannotImpersonateAdminError()
-        token = create_access_token(str(user.id), extra_claims={"role": user.role.value})
+        # La marca hace que la sesión sea de sólo lectura (PRI-09) y deja en
+        # cada pedido rechazado quién era la admin.
+        token = create_access_token(
+            str(user.id),
+            extra_claims={"role": user.role.value, IMPERSONATED_BY_CLAIM: str(admin_id)},
+        )
         return user, token
 
     async def _get(self, user_id: UUID) -> User:
