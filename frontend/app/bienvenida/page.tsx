@@ -77,7 +77,8 @@ import PantallaAcceso from "@/components/acceso/PantallaAcceso";
 import { Button, TextField } from "@/components/ui";
 import { CheckIcon, MapPinIcon } from "@/components/icons";
 import { LIMITES } from "@/lib/limites";
-import { AVISO_MAIL, tomarAvisoMail } from "@/lib/aviso-mail";
+import { tomarAvisoMail } from "@/lib/aviso-mail";
+import AvisoMail from "@/components/acceso/AvisoMail";
 
 // maplibre pesa ~286 KB comprimidos: se carga recién cuando se muestra el
 // mapa, no con la página (medido 2026-10-22, ver historial).
@@ -134,23 +135,16 @@ function Shell({
   bajada: string;
   children: React.ReactNode;
 }) {
-  // Tras el alta con email: aviso (una sola vez) de que llegó el mail de
-  // confirmación (U042).
+  // Tras el alta con email: aviso (una sola vez) del mail de
+  // confirmación (U042). No afirma que llegó: el alta no lo sabe.
+  const { user } = useAuth();
   const [avisoMail, setAvisoMail] = useState(false);
   useEffect(() => {
     if (tomarAvisoMail()) setAvisoMail(true);
   }, []);
   return (
     <PantallaAcceso titulo={titulo} bajada={bajada} pasos={pasos}>
-      {avisoMail && (
-        <p
-          role="status"
-          data-testid="aviso-mail"
-          className="mb-4 rounded-2xl bg-[var(--suave-campo)] px-4 py-3 text-sm text-ink-soft"
-        >
-          {AVISO_MAIL}
-        </p>
-      )}
+      {avisoMail && user?.email && <AvisoMail email={user.email} />}
       {children}
     </PantallaAcceso>
   );
