@@ -414,6 +414,10 @@ pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
 
 ## Pendiente de Julieta (operativo, no es código)
 
+- **Teaser «El futuro de la gastronomía» (2026-11-27):** antes de publicar los
+  videos o la presentación, repasar la lista «Antes de publicarlo» de la página
+  privada del archivo. Qué es y dónde está cada pieza:
+  [`reference/TEASER_FUTURO_GASTRONOMIA.md`](./reference/TEASER_FUTURO_GASTRONOMIA.md).
 - **Redes (2026-11-22):** crear **@oidoapp** y **@turnosgastro** en Instagram,
   Facebook y TikTok (mismo Centro de cuentas de Meta, sin sincronizar nombre y
   foto; las dos como cuenta profesional, cada una con su página de Facebook),

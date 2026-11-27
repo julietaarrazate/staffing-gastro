@@ -1,0 +1,9 @@
+{
+  "name": "teaser-futuro-gastronomia",
+  "private": true,
+  "description": "Receta del teaser «El futuro de la gastronomía» (ver docs/reference/TEASER_FUTURO_GASTRONOMIA.md)",
+  "dependencies": {
+    "acorn": "8.19.0",
+    "acorn-walk": "8.3.5"
+  }
+}

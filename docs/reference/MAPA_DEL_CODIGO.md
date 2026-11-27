@@ -153,6 +153,7 @@ el no-show es automático (ADR-0008). **No hace falta QR.**
 | Encuesta para locales: respuestas, regla de contacto/consentimiento, resumen con mediana, borrado del contacto (nombre, teléfono y email) por respuesta o de todas, sin borrado automático | `backend/app/modules/encuesta/` (`application/services.py`), `backend/scripts/clear_survey_contacts.py`; ADR-0025 |
 | Videos promocionales (se renderizan desde HTML) | `marketing/videos/` |
 | Videos verticales para redes en Remotion (10 piezas, 5 historias y 6 de guion del 1 al 4/12 con láminas en `src/kit/lamina.tsx` y una versión con tomas reales de stock en `src/kit/toma.tsx`, pantallas reales de la app, datos de cada pieza aparte, sonidos CC0) | `marketing/remotion/` (`src/piezas/*.tsx` y `*.datos.ts`, `src/kit/`, `capturar/`, `sonidos/FUENTES.md`; [`README.md`](../../marketing/remotion/README.md)) |
+| Teaser «El futuro de la gastronomía»: presentación 3D interactiva y sus videos (los videos, el guion y la referencia viven en una página privada; acá, la receta que los rehace) | `tools/teaser-futuro-gastronomia/` (`receta.sh`); qué es y dónde está cada pieza en [`TEASER_FUTURO_GASTRONOMIA.md`](./TEASER_FUTURO_GASTRONOMIA.md) |
 | Probar la app de punta a punta en local: backend y base reales, terceros simulados, kit de Playwright para dos sesiones a la vez | `tools/e2e-local/` (`README.md`; receta en [`SESION_CLOUD.md`](./SESION_CLOUD.md) §7) |
 
 ## Endpoints por módulo (`/api/v1/…`)
