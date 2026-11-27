@@ -54,6 +54,11 @@ def _esperar_corte(ws) -> int:
     return corte.value.code
 
 
+# Margen para que la conexión se establezca con el token todavía vigente.
+VIDA_DEL_TOKEN_CORTO = timedelta(seconds=4)
+ESPERA_HASTA_QUE_VENCE = 5
+
+
 def test_el_socket_de_avisos_se_corta_cuando_vence_el_token():
     from fastapi.testclient import TestClient
 
@@ -63,10 +68,13 @@ def test_el_socket_de_avisos_se_corta_cuando_vence_el_token():
             _, employer_headers, worker_token, worker_user_id = _setup_assigned_shift_sync(
                 client, "pri04_emp@staffya.com", "pri04_w@staffya.com"
             )
-            # Un token que vence en 1 segundo (el real dura 15 minutos).
-            corto = _create_token(worker_user_id, ACCESS_TOKEN, timedelta(seconds=1))
+            # Un token que vence enseguida (el real dura 15 minutos). Con 1
+            # segundo, en un CI lento el token vencía ANTES de terminar de
+            # conectar y el socket ni se abría (falló así el 2026-11-27): se
+            # le da margen para conectar y se espera a que venza.
+            corto = _create_token(worker_user_id, ACCESS_TOKEN, VIDA_DEL_TOKEN_CORTO)
             with client.websocket_connect(f"/api/v1/notifications/ws?token={corto}") as ws:
-                time.sleep(2)  # el token ya venció
+                time.sleep(ESPERA_HASTA_QUE_VENCE)  # el token ya venció
                 assert _esperar_corte(ws) == 1008
     finally:
         app.dependency_overrides.clear()
@@ -81,9 +89,9 @@ def test_el_socket_de_chat_se_corta_cuando_vence_el_token():
             shift_id, _, _, worker_user_id = _setup_assigned_shift_sync(
                 client, "pri04_chat_emp@staffya.com", "pri04_chat_w@staffya.com"
             )
-            corto = _create_token(worker_user_id, ACCESS_TOKEN, timedelta(seconds=1))
+            corto = _create_token(worker_user_id, ACCESS_TOKEN, VIDA_DEL_TOKEN_CORTO)
             with client.websocket_connect(f"/api/v1/chats/{shift_id}/ws?token={corto}") as ws:
-                time.sleep(2)
+                time.sleep(ESPERA_HASTA_QUE_VENCE)
                 assert _esperar_corte(ws) == 1008
     finally:
         app.dependency_overrides.clear()
