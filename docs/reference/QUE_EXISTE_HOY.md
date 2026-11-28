@@ -90,6 +90,11 @@ listados más abajo.
   72 Oído lo cierra con la puntualidad de la llegada; la persona ya puede
   calificar y el comercio, marcarlo como pagado. La persona lo ve en «Mis
   turnos» mientras espera, y el panel del comercio dice cuándo se cierra solo.
+- **La persona dice si cobró** (2026-11-27): en un turno terminado, «¿Ya
+  cobraste este turno?» con «Sí, cobré» (definitivo) y «Todavía no» (una vez;
+  desde que el comercio marca «pagado», o 24 h después del fin si no marcó
+  nada). Avisa al comercio y «Todavía no» abre un ticket de pagos. Sólo
+  registra y avisa: no sanciona ni cambia la reputación del comercio.
 - **Turno "no cubierto"** (ADR-0015): un turno ASIGNADO cuyo trabajador nunca
   confirma ni rechaza, o uno PUBLICADO/BUSCANDO_PERSONAL que nadie tomó,
   cuyo `start_at` ya pasó, se resuelve solo — **sin** impacto de reputación

@@ -18,8 +18,18 @@ from app.modules.shift.domain.exceptions import (
     InvalidShiftScheduleError,
     InvalidShiftTransitionError,
     OverlappingShiftError,
+    PaymentReportNotAllowedError,
     ShiftNotEditableError,
     WorkerTooFarFromShiftError,
+)
+from app.modules.shift.domain.cobro import (
+    TODAVIA_NO_TERMINO,
+    TURNO_CANCELADO,
+    TURNO_NO_CUBIERTO,
+    YA_CONFIRMASTE_EL_COBRO,
+    aun_no_se_puede_avisar,
+    puede_avisar_desde,
+    ya_paso,
 )
 from app.modules.shift.domain.mensajes import (
     CIERRE_ADMIN_CAMBIO,
@@ -158,6 +168,15 @@ class Shift:
     check_out_longitude: float | None = None
     check_out_at: datetime | None = None
     paid_at: datetime | None = None
+    # «¿Ya cobraste?» (2026-11-27): lo que dijo la persona asignada de un turno
+    # terminado. Registro en el propio turno, como `paid_at`; reglas en
+    # `domain/cobro.py`. Los dos pueden estar puestos: avisó que no cobró y
+    # después lo confirmó.
+    worker_confirmed_paid_at: datetime | None = None
+    worker_reported_unpaid_at: datetime | None = None
+    # Ticket de soporte que abrió «Todavía no cobré». Sin él, la marca todavía
+    # no completó sus avisos: un reintento los termina.
+    unpaid_report_ticket_id: UUID | None = None
 
     # No-show (ADR-0007): registro de auditoría directo en el turno, mismo
     # criterio que `check_in_at`/`check_out_at`. `worker_profile_id` se
@@ -986,6 +1005,50 @@ class Shift:
         """FINALIZADO → PAGADO: el comercio confirma que pagó el turno."""
         self._transition(ShiftStatus.FINALIZADO, ShiftStatus.PAGADO, "pagar")
         self.paid_at = datetime.now(timezone.utc)
+
+    @property
+    def unpaid_report_opens_at(self) -> datetime | None:
+        """Desde cuándo la persona puede avisar que no cobró. `None` si el turno
+        no terminó. No mira si ya avisó o si ya confirmó: eso lo dicen sus
+        propias marcas."""
+        if self.status not in (ShiftStatus.FINALIZADO, ShiftStatus.PAGADO):
+            return None
+        return puede_avisar_desde(self.end_at, self.paid_at)
+
+    def worker_confirm_payment(self, now: datetime | None = None) -> bool:
+        """La persona asignada confirma que cobró. Definitivo e idempotente:
+        devuelve `False` (sin tocar nada) si ya lo había confirmado."""
+        self._require_finished_for_payment_report()
+        if self.worker_confirmed_paid_at is not None:
+            return False
+        self.worker_confirmed_paid_at = now or datetime.now(timezone.utc)
+        return True
+
+    def worker_report_unpaid(self, now: datetime | None = None) -> bool:
+        """La persona asignada avisa que todavía no cobró. Una sola vez por
+        turno: devuelve `False` (sin tocar nada) si ya avisó. Con el cobro ya
+        confirmado no se puede."""
+        self._require_finished_for_payment_report()
+        if self.worker_confirmed_paid_at is not None:
+            raise PaymentReportNotAllowedError(YA_CONFIRMASTE_EL_COBRO)
+        if self.worker_reported_unpaid_at is not None:
+            return False
+        now = now or datetime.now(timezone.utc)
+        desde = self.unpaid_report_opens_at
+        assert desde is not None
+        if not ya_paso(desde, now):
+            raise PaymentReportNotAllowedError(aun_no_se_puede_avisar(desde))
+        self.worker_reported_unpaid_at = now
+        return True
+
+    def _require_finished_for_payment_report(self) -> None:
+        if self.status in (ShiftStatus.FINALIZADO, ShiftStatus.PAGADO):
+            return
+        if self.status == ShiftStatus.CANCELADO:
+            raise PaymentReportNotAllowedError(TURNO_CANCELADO)
+        if self.status == ShiftStatus.NO_CUBIERTO:
+            raise PaymentReportNotAllowedError(TURNO_NO_CUBIERTO)
+        raise PaymentReportNotAllowedError(TODAVIA_NO_TERMINO)
 
     def _transition(
         self, expected: ShiftStatus, target: ShiftStatus, accion: str

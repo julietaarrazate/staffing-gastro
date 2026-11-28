@@ -106,6 +106,11 @@ class ShiftResponse(BaseModel):
     check_out_longitude: float | None
     check_out_at: datetime | None
     paid_at: datetime | None
+    # «¿Ya cobraste?» (2026-11-27): lo que dijo la persona asignada del cobro, y
+    # desde cuándo puede avisar que no cobró (`None` si el turno no terminó).
+    worker_confirmed_paid_at: datetime | None = None
+    worker_reported_unpaid_at: datetime | None = None
+    unpaid_report_opens_at: datetime | None = None
     no_show_at: datetime | None = None
     last_no_show_worker_profile_id: UUID | None = None
     event_id: UUID | None = None
@@ -211,6 +216,9 @@ WORKER_DATA_FIELDS = (
     # quedó, o a quien sólo lo guardó, no le corresponde (pasada de
     # privacidad 2026-11-19, PRI-05).
     "paid_at",
+    "worker_confirmed_paid_at",
+    "worker_reported_unpaid_at",
+    "unpaid_report_opens_at",
     "no_show_at",
     "last_no_show_worker_profile_id",
     "prorated_pay_amount",

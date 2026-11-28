@@ -124,6 +124,13 @@ export interface Shift {
   check_out_longitude: number | null;
   check_out_at: string | null;
   paid_at: string | null;
+  // «¿Ya cobraste?» (2026-11-27): lo que dijo la persona asignada del cobro de
+  // un turno terminado. Sólo llegan al comercio dueño y a la persona asignada
+  // (a cualquier otra vista, `null`). `unpaid_report_opens_at`: desde cuándo la
+  // persona puede avisar que no cobró; `null` si el turno no terminó.
+  worker_confirmed_paid_at?: string | null;
+  worker_reported_unpaid_at?: string | null;
+  unpaid_report_opens_at?: string | null;
   // No-show (ADR-0007): registro auditable de cuándo/quién fue marcado
   // ausente antes de que el turno se reabra a `buscando_personal`.
   no_show_at: string | null;

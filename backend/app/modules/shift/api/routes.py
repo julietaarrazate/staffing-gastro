@@ -58,6 +58,7 @@ from app.modules.shift.domain.exceptions import (
     InvalidShiftScheduleError,
     InvalidShiftTransitionError,
     OverlappingShiftError,
+    PaymentReportNotAllowedError,
     ShiftNotAssignedToWorkerError,
     ShiftNotEditableError,
     ShiftNotFoundError,
@@ -984,6 +985,50 @@ async def finish(
     except InvalidShiftTransitionError as exc:
         raise _bad_request(str(exc)) from exc
     response = ShiftResponse.model_validate(shift)
+    await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
+    return response
+
+
+@router.post(
+    "/{shift_id}/payment-received",
+    response_model=ShiftResponse,
+    summary="«Sí, cobré»: la persona confirma que cobró un turno terminado (trabajador)",
+)
+async def payment_received(
+    shift_id: UUID,
+    worker_profile_id: WorkerProfileIdDep,
+    service: ServiceDep,
+    recorder: RecorderDep,
+):
+    try:
+        shift = await service.confirm_payment_received(worker_profile_id, shift_id)
+    except (ShiftNotFoundError, ShiftNotAssignedToWorkerError) as exc:
+        raise _not_found() from exc
+    except PaymentReportNotAllowedError as exc:
+        raise _bad_request(str(exc)) from exc
+    response = for_worker(ShiftResponse.model_validate(shift), worker_profile_id)
+    await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
+    return response
+
+
+@router.post(
+    "/{shift_id}/payment-missing",
+    response_model=ShiftResponse,
+    summary="«Todavía no cobré»: la persona avisa que no le pagaron (trabajador)",
+)
+async def payment_missing(
+    shift_id: UUID,
+    worker_profile_id: WorkerProfileIdDep,
+    service: ServiceDep,
+    recorder: RecorderDep,
+):
+    try:
+        shift = await service.report_payment_missing(worker_profile_id, shift_id)
+    except (ShiftNotFoundError, ShiftNotAssignedToWorkerError) as exc:
+        raise _not_found() from exc
+    except PaymentReportNotAllowedError as exc:
+        raise _bad_request(str(exc)) from exc
+    response = for_worker(ShiftResponse.model_validate(shift), worker_profile_id)
     await recorder.save(status.HTTP_200_OK, response.model_dump(mode="json"))
     return response
 

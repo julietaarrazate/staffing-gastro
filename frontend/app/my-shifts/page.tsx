@@ -26,6 +26,7 @@ import {
 import TurnoSuave, { CLASE_TONO, TONO_ESTADO } from "@/components/worker/TurnoSuave";
 import ShareShiftButton from "@/components/ShareShiftButton";
 import ReviewBox from "@/components/ReviewBox";
+import CobroDeLaPersona from "@/components/CobroDeLaPersona";
 import EnRouteToggle from "@/components/worker/EnRouteToggle";
 import { ShiftCoveredIllustration } from "@/components/illustrations";
 import dynamic from "next/dynamic";
@@ -699,6 +700,9 @@ function MatchesContent() {
               <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-success-text">
                 <CheckIcon size={16} /> {shift.status === "pagado" ? "Turno pagado" : "Turno finalizado"}
               </p>
+              {/* «¿Ya cobraste?»: primero lo que importa a la persona (la plata),
+                  después calificar. */}
+              <CobroDeLaPersona shift={shift} now={now} onChanged={() => load({ silent: true })} />
               <ReviewBox shiftId={shift.id} />
             </div>
           )}

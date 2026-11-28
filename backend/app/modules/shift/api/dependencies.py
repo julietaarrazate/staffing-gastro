@@ -33,6 +33,7 @@ from app.modules.matching.infrastructure.repositories import (
 from app.modules.shift.application.services import ShiftService
 from app.modules.shift.domain.nearby import FeedOrigin
 from app.modules.shift.infrastructure.repositories import SqlAlchemyShiftRepository
+from app.modules.shift.infrastructure.support_gateway import SupportPaymentReportOpener
 from app.modules.subscription.infrastructure.repositories import (
     SqlAlchemySubscriptionRepository,
 )
@@ -73,6 +74,8 @@ def get_shift_service(
         identity_verified=lambda user_ids: SqlAlchemyClaimRepository(session).verified_user_ids(
             user_ids, ClaimType.DOCUMENTO_VERIFICADO
         ),
+        # «No cobré» abre un ticket de pagos en nombre de la persona.
+        payment_reports=SupportPaymentReportOpener(session),
     )
 
 
