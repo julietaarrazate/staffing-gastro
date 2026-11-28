@@ -20,16 +20,12 @@ from app.modules.application.domain.exceptions import (
     InvalidApplicationTransitionError,
     ShiftNotApplicableError,
 )
-from app.modules.identity.api.dependencies import (
-    es_cuenta_invitada,
-    get_current_user,
-    per_account_quota_key,
-)
+from app.modules.identity.api.dependencies import get_current_user, per_account_quota_key
 from app.modules.identity.domain.entities import User
 from app.modules.matching.api.dependencies import get_matching_service
 from app.modules.matching.application.services import MatchingService
 from app.modules.shift.api.dependencies import get_my_company_id, get_my_worker_profile_id
-from app.modules.shift.api.schemas import ShiftResponse, for_worker, without_address
+from app.modules.shift.api.schemas import ShiftResponse, for_worker
 from app.modules.shift.domain.entities import Shift
 from app.modules.shift.domain.exceptions import ShiftNotFoundError
 from app.modules.verification.api.dependencies import get_verification_service
@@ -131,7 +127,6 @@ async def withdraw_application(
     summary="Mis postulaciones (trabajador)",
 )
 async def my_applications(
-    current_user: Annotated[User, Depends(get_current_user)],
     worker_profile_id: WorkerProfileIdDep,
     service: ServiceDep,
     companies: CompaniesDep,
@@ -154,13 +149,6 @@ async def my_applications(
     verified_owner_ids = (
         await verification.verified_business_user_ids(owner_ids) if owner_ids else set()
     )
-    guest = es_cuenta_invitada(current_user)
-
-    def _shift(shift):
-        vista = _shift_for_applicant(shift, worker_profile_id, companies_by_id, verified_owner_ids)
-        # La cuenta invitada no recibe la dirección exacta.
-        return without_address(vista) if guest and vista is not None else vista
-
     return [
         ApplicationResponse(
             id=application.id,
@@ -169,7 +157,9 @@ async def my_applications(
             status=application.status.value,
             motivo=application.motivo.value if application.motivo else None,
             created_at=application.created_at,
-            shift=_shift(shift),
+            shift=_shift_for_applicant(
+                shift, worker_profile_id, companies_by_id, verified_owner_ids
+            ),
         )
         for application, shift in enriched
     ]

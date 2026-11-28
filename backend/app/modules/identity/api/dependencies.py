@@ -245,12 +245,6 @@ def per_account_quota_key(user: User, request: Request, account_key: str | None 
     return key
 
 
-def es_cuenta_invitada(user: User) -> bool:
-    """¿Es una de las cuentas invitadas de la beta (una por rol, compartida por
-    todos los que entran con el PIN)? No es «una persona» identificada."""
-    return user.email in GUEST_ACCOUNT_EMAILS
-
-
 def require_roles(*roles: UserRole) -> Callable[[User], User]:
     """Factory de dependencia que exige que el usuario tenga uno de los roles dados."""
 
