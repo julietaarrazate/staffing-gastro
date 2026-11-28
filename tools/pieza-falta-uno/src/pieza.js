@@ -237,7 +237,7 @@ export async function crearPieza(motor, guion) {
         });
       }
       // el cierre: «oído» plano y la dirección
-      const f = sat((t - 65.3) / 0.6);
+      const f = t < 69 ? sat((t - 65.3) / 0.6) : 0;
       if (f > 0) items.push({ logo: true, alfa: easeOut(f, 3), blur: (1 - easeOut(f, 3)) * 8 }, { txt: guion.sitio || '', tam: 34, mono: true, alfa: sat((t - 65.9) / 0.5), blur: 0 });
       return items;
     },

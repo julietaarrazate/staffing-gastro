@@ -13,16 +13,17 @@ una obra ajena, acá **todas las escenas son propias y están dibujadas por
 código**. Del teaser se estudiaron la luz, la cámara, las transiciones y el
 sonido. Su código no trae licencia y no se reusó.
 
-Se hace por etapas. Primero la escena 3 sola («Una mesa. Otra. Otra. Otra.
-Otra.»: la pila de comandas que sube hasta el cielo), puesta al lado de la
-torre del teaser. Con el sí de Julieta siguen el resto del guion y los tres
-cortes para redes.
+Primero se hizo la escena 3 sola (la pila de comandas que sube hasta el cielo),
+puesta al lado de la torre del teaser. Con el sí de Julieta (28/11) se hizo la
+toma entera de 68 s y los tres cortes para redes: dos para @oidoapp y uno para
+@turnosgastro, que lleva el pinche chico en una esquina.
 
 ## Dónde está cada cosa
 
 | Pieza | Dónde |
 |---|---|
 | El guion, la vara de calidad y los límites | Documento privado de crecimiento, pestaña «Pieza 3D · guion» |
+| Los textos en pantalla, los tiempos y los tramos de cada corte (`entrada/guion.json`) y el plan de cada escena (`entrada/plan.md`) | Página privada, abajo; se bajan a `tools/pieza-falta-uno/trabajo/entrada/` |
 | Los videos, el avance y la comparación con el teaser | Página privada **«Pieza Falta uno»**: <https://claude.ai/artifact/TobQSft57XY8cMg5m2xRLw> |
 | La receta: los programas que dibujan, suenan y arman | [`tools/pieza-falta-uno/`](../../tools/pieza-falta-uno/README.md) |
 
@@ -33,11 +34,12 @@ cuadros sueltos tampoco: la receta los vuelve a dibujar idénticos.
 
 1. `cd tools/pieza-falta-uno && npm ci` (instala three; Playwright, Chromium y
    ffmpeg los trae el entorno, ver [`SESION_CLOUD.md`](./SESION_CLOUD.md)).
-2. Seguir el README de la receta. Un cuadro tarda de 2 a 9 segundos a
-   1080 × 1920 según cuántos instantes promedie; la escena 3 entera, de 15 a
-   20 minutos con dos procesos. Cada cuadro se dibuja solo, así que un cambio
+2. Bajar `entrada/guion.json` y `entrada/plan.md` de la página privada a
+   `trabajo/entrada/` (con `Artifact`, `action: "read"`, `paths` y `out_dir`).
+3. Seguir el README de la receta. Un cuadro tarda de 1 a 9 segundos a
+   1080 × 1920; la toma entera, unos 45 minutos con cuatro procesos. Cada cuadro se dibuja solo, así que un cambio
    se arregla redibujando sólo su tramo (por ejemplo, `node render.js 3 8.24 10 …`).
-3. Lo que se rehaga se vuelve a publicar en la página privada, pasando su
+4. Lo que se rehaga se vuelve a publicar en la página privada, pasando su
    `url` a la herramienta `Artifact`. La versión de máxima calidad va partida
    en `maestros/*.pN.mp4` (`split -b 14M`; se une con `cat`, en orden), porque
    cada archivo publicado puede pesar hasta 15 MB.

@@ -30,6 +30,13 @@ el teaser.
 segunda dijo «casi» (faltaba el cielo). Después se rehízo el final con nubes
 iluminadas desde abajo; ese arreglo no tuvo una tercera revisión.
 
-**Queda abierto:** el sí de Julieta a la escena 3. Con su sí siguen el resto del
-guion (escenas 1, 2 y 4 a 11, con el «¡Oído!» fileteado y la campanita al final)
-y los tres cortes para redes.
+**La toma entera:** con el sí de Julieta («me gusta cómo va quedando», sin
+comparación al lado) se armó la pieza de 68 s en un solo mundo (`src/pieza.js`):
+bodegón con salón y fachada, la calle, el edificio de enfrente, la ciudad que se
+prende, y el «¡Oído!» fileteado una sola vez con la campanita. Además salieron
+los tres cortes. Los textos en pantalla viven en un guion privado, no en el repo.
+Después de verla, Julieta pidió además que la pila subiera más a la vista, un
+cruce del techo más lento y bordes limpios en la torre; se hizo antes del render final.
+
+**Queda abierto:** que Julieta vea la pieza entera y los cortes, y los ajustes
+que pida.

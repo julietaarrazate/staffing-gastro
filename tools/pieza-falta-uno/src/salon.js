@@ -204,10 +204,10 @@ export function crearCelular(guion) {
       for (const [x, col] of [[110, '#c0392b'], [322, '#2e9e5b']]) { k.fillStyle = col; k.beginPath(); k.arc(x, 760, 52 * (col === '#2e9e5b' ? pulso : 1), 0, Math.PI * 2); k.fill(); }
     } else if (m === 'aviso') {
       k.font = '300 120px "Inter", Arial, sans-serif'; k.fillText('19:41', 216, 230);
-      k.fillStyle = 'rgba(235,240,248,.94)'; k.beginPath(); k.roundRect(24, 330, 384, 170, 26); k.fill();
+      k.fillStyle = 'rgba(235,240,248,.94)'; k.beginPath(); k.roundRect(18, 320, 396, 220, 28); k.fill();
       k.fillStyle = '#163f5c'; k.beginPath(); k.roundRect(48, 356, 44, 44, 10); k.fill(); k.fillStyle = '#f2ead8'; k.fillRect(68, 364, 4, 30); k.beginPath(); k.ellipse(70, 394, 14, 4, 0, 0, Math.PI * 2); k.fill();
       k.fillStyle = '#121722'; k.textAlign = 'left'; k.font = '600 26px "Inter", Arial, sans-serif'; k.fillText(T0.aviso_titulo || '', 108, 388);
-      k.font = '500 29px "Inter", Arial, sans-serif'; k.fillText(T0.aviso || '', 52, 458);
+      const partes = (T0.aviso || '').split(' · '), ult = partes.pop(); k.font = '500 32px "Inter", Arial, sans-serif'; k.fillText(partes.join(' · '), 44, 452); k.font = '600 40px "Inter", Arial, sans-serif'; k.fillText(ult || '', 44, 506);
       k.fillStyle = '#6b7484'; k.font = '400 20px "Inter", Arial, sans-serif'; k.textAlign = 'right'; k.fillText('ahora', 384, 388);
     }
     tx.needsUpdate = true;
