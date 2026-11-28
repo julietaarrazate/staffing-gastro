@@ -145,14 +145,21 @@ listados más abajo.
   los guards viven en el DOMINIO (`Shift.report_en_route_location`), no en la
   UI. Está reflejado en `/privacidad` — si tocás esto, esa página se actualiza
   en el mismo PR.
-- **Dirección exacta del local** (Julieta, 2026-11-27): quien tiene sesión de
-  trabajador la ve en el detalle del turno (antes y después de postularse) y en
-  «Mis turnos», con «Cómo llegar» (enlace universal de Google Maps,
+- **Dirección exacta del local** (Julieta, 2026-11-27): `address` la ven el
+  **comercio dueño, la admin y los trabajadores con cuenta propia**, en el
+  detalle del turno (antes y después de postularse) y en «Mis turnos», con
+  «Cómo llegar» (enlace universal de Google Maps,
   `frontend/lib/como-llegar.ts`: coordenadas o, sin ellas, la dirección).
-  `/shifts/new` la manda (`address`) cuando el turno es en el local. **Sin
-  sesión no**: `ShiftPublicResponse` (`/turno/[id]`) no trae `address`,
-  `latitude` ni `longitude`, y eso no cambia. Ningún schema para trabajadores
-  la oculta (`for_worker` sólo saca datos de la persona del turno).
+  **No la reciben otro comercio ni las cuentas invitadas** (`GUEST_ACCOUNT_EMAILS`,
+  `es_cuenta_invitada` en `identity/api/dependencies.py`): a ellos la API
+  contesta `address: null`, como si el turno no la tuviera, y la zona sigue
+  (`without_address` en `shift/api/schemas.py`, aplicado en el detalle, el
+  feed, `/shifts/mine`, guardados y `/applications/mine`). **Sin sesión no**:
+  `ShiftPublicResponse` (`/turno/[id]`) no trae `address`, `latitude` ni
+  `longitude`. `/shifts/new` la manda (`address`) cuando el turno es en el
+  local. **Punto abierto:** las coordenadas (`latitude`/`longitude`) siguen
+  viajando a cualquier sesión como antes (a un comercio ajeno y a la cuenta
+  invitada les dan el punto aunque no la calle); no se cambió.
 - **"Disponible ahora"** (ADR-0014): el trabajador prende su posición real
   —una sola captura, no un seguimiento— para que el comercio (mapa y
   matching de un turno) mida la distancia desde ahí y no desde su domicilio.

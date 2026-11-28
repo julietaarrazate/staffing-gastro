@@ -11,6 +11,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from httpx import AsyncClient
 
+from tests.conftest import TEST_GUEST_PIN
 from tests.test_admin import _make_admin
 from tests.test_attendance import (
     _confirmed_shift,
@@ -175,3 +176,64 @@ async def test_assigned_worker_sees_the_address_in_my_shifts(client: AsyncClient
     mine = await client.get("/api/v1/shifts/mine", headers=worker_headers)
     assert mine.status_code == 200
     assert {s["address"] for s in mine.json() if s["id"] == shift_id} == {"Gorriti 5000"}
+
+
+async def test_exact_address_only_for_owner_admin_and_workers_with_their_own_account(
+    client: AsyncClient, session_factory
+):
+    """La dirección exacta (`address`) la ven el comercio dueño, la admin y los
+    trabajadores con cuenta propia, en el detalle y en el feed. Otro comercio y
+    la cuenta invitada reciben `address: null` (la zona sigue)."""
+    ini = (datetime.now(timezone.utc) + timedelta(days=3)).replace(tzinfo=None)
+    owner = await _employer_with_company(client, "dir3_emp@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts",
+        headers=owner,
+        json=_shift_payload(
+            address="Gorriti 5000",
+            city="Palermo",
+            start_at=ini.isoformat(),
+            end_at=(ini + timedelta(hours=6)).isoformat(),
+        ),
+    )
+    shift_id = created.json()["id"]
+    assert (await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=owner)).status_code == 200
+
+    other_employer = await _employer_with_company(client, "dir3_otro@staffya.com")
+    worker, _ = await _worker_with_profile(client, "dir3_w@staffya.com")
+    admin = await _make_admin(client, session_factory, "dir3_admin@staffya.com")
+    guest_resp = await client.post(
+        "/api/v1/auth/guest", json={"pin": TEST_GUEST_PIN, "role": "worker"}
+    )
+    assert guest_resp.status_code == 200
+    guest = {"Authorization": f"Bearer {guest_resp.json()['access_token']}"}
+    guest_emp_resp = await client.post(
+        "/api/v1/auth/guest", json={"pin": TEST_GUEST_PIN, "role": "employer"}
+    )
+    guest_emp = {"Authorization": f"Bearer {guest_emp_resp.json()['access_token']}"}
+
+    async def detalle(headers):
+        r = await client.get(f"/api/v1/shifts/{shift_id}", headers=headers)
+        assert r.status_code == 200, r.text
+        return r.json()
+
+    async def en_feed(headers):
+        r = await client.get("/api/v1/shifts/feed", params={"scope": "all"}, headers=headers)
+        assert r.status_code == 200, r.text
+        return [x for x in r.json() if x["id"] == shift_id]
+
+    for quien in (owner, admin, worker):
+        assert (await detalle(quien))["address"] == "Gorriti 5000"
+    for quien in (other_employer, guest, guest_emp):
+        d = await detalle(quien)
+        assert d["address"] is None
+        assert d["city"] == "Palermo"
+        assert "Gorriti" not in str(d)
+
+    feed_worker = await en_feed(worker)
+    assert [x["address"] for x in feed_worker] == ["Gorriti 5000"]
+    for quien in (other_employer, guest, guest_emp):
+        feed = await en_feed(quien)
+        assert feed, "el turno abierto sigue apareciendo en el feed"
+        assert all(x["address"] is None and x["city"] == "Palermo" for x in feed)
+        assert "Gorriti" not in str(feed)

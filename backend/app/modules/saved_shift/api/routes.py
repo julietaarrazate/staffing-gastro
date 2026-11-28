@@ -12,8 +12,10 @@ from app.modules.saved_shift.api.dependencies import get_saved_shift_service
 from app.modules.saved_shift.api.schemas import SavedShiftIdsResponse, SavedShiftStatusResponse
 from app.modules.saved_shift.application.services import SavedShiftService
 from app.modules.saved_shift.domain.exceptions import ShiftNotSavableError
+from app.modules.identity.api.dependencies import es_cuenta_invitada, get_current_user
+from app.modules.identity.domain.entities import User
 from app.modules.shift.api.dependencies import get_my_worker_profile_id
-from app.modules.shift.api.schemas import ShiftResponse, for_worker
+from app.modules.shift.api.schemas import ShiftResponse, for_worker, without_address
 from app.modules.shift.domain.entities import Shift
 from app.modules.verification.api.dependencies import get_verification_service
 from app.modules.verification.application.services import VerificationService
@@ -24,6 +26,7 @@ ServiceDep = Annotated[SavedShiftService, Depends(get_saved_shift_service)]
 WorkerProfileIdDep = Annotated[UUID, Depends(get_my_worker_profile_id)]
 CompaniesDep = Annotated[CompanyProfileRepository, Depends(get_company_repository)]
 VerificationDep = Annotated[VerificationService, Depends(get_verification_service)]
+AuthUserDep = Annotated[User, Depends(get_current_user)]
 
 _SHIFT_NOT_FOUND = HTTPException(
     status_code=status.HTTP_404_NOT_FOUND, detail="Turno no encontrado"
@@ -66,13 +69,16 @@ async def _with_company_info(
     summary="Mis turnos guardados (trabajador), ordenados por fecha del turno",
 )
 async def list_my_saved_shifts(
+    current_user: AuthUserDep,
     worker_profile_id: WorkerProfileIdDep,
     service: ServiceDep,
     companies: CompaniesDep,
     verification: VerificationDep,
 ):
     shifts = await service.list_my_saved_shifts(worker_profile_id)
-    return await _with_company_info(shifts, worker_profile_id, companies, verification)
+    responses = await _with_company_info(shifts, worker_profile_id, companies, verification)
+    # La cuenta invitada no recibe la dirección exacta.
+    return [without_address(r) for r in responses] if es_cuenta_invitada(current_user) else responses
 
 
 @router.get(

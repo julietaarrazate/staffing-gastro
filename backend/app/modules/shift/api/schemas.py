@@ -234,6 +234,15 @@ def without_worker_data(response: ShiftResponse) -> ShiftResponse:
     return response.model_copy(update={field: None for field in WORKER_DATA_FIELDS})
 
 
+def without_address(response: ShiftResponse) -> ShiftResponse:
+    """El turno sin la dirección exacta (`address: null`, como si no la
+    tuviera; la zona y el resto siguen). La ven el comercio dueño, la admin y
+    los trabajadores con cuenta propia; NO otro comercio ni la cuenta invitada
+    (decisión de Julieta, 2026-11-27). Las coordenadas no se tocan: ya
+    viajaban antes (punto abierto, ver el historial)."""
+    return response.model_copy(update={"address": None})
+
+
 # La última ausencia del turno: quién faltó y cuándo. Es un dato de QUIEN
 # FALTÓ, no de quien tiene el turno ahora. Un turno reofrecido (U080) se
 # reasigna con esos campos puestos, y quien lo tomaba después los heredaba

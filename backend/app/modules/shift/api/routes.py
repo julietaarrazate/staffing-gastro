@@ -18,6 +18,7 @@ from app.core.rate_limit import RateLimiter
 from app.modules.company.api.dependencies import get_company_repository
 from app.modules.company.domain.repositories import CompanyProfileRepository
 from app.modules.identity.api.dependencies import (
+    es_cuenta_invitada,
     get_current_user,
     per_account_quota_key,
     require_roles,
@@ -46,6 +47,7 @@ from app.modules.shift.api.schemas import (
     ShiftPublicResponse,
     ShiftResponse,
     for_worker,
+    without_address,
     without_worker_data,
 )
 from app.modules.shift.application.dtos import EventData, EventRoleData, ShiftData
@@ -324,8 +326,13 @@ async def feed(
     responses = await _with_pay_band(shifts, responses, service)
     # Un turno reabierto por un no-show vuelve al feed con la marca de quién
     # faltó (`last_no_show_worker_profile_id`): otro trabajador no tiene por
-    # qué verla.
-    return [without_worker_data(r) for r in responses]
+    # qué verla. La dirección exacta, sólo para trabajadores con cuenta propia
+    # (ni otro comercio ni la cuenta invitada).
+    ve_direccion = _current_user.role == UserRole.WORKER and not es_cuenta_invitada(_current_user)
+    return [
+        without_worker_data(r) if ve_direccion else without_address(without_worker_data(r))
+        for r in responses
+    ]
 
 
 @router.get(
@@ -367,6 +374,7 @@ async def my_shifts(
     summary="Mis turnos asignados (trabajador)",
 )
 async def my_assigned_shifts(
+    current_user: AuthUserDep,
     worker_profile_id: WorkerProfileIdDep,
     service: ServiceDep,
     companies: CompaniesDep,
@@ -377,7 +385,8 @@ async def my_assigned_shifts(
     shifts = await service.list_worker_shifts(worker_profile_id, limit=limit, offset=offset)
     responses = await _with_company_info(shifts, companies, verification)
     queda_aviso = await service.notice_allowance_left(worker_profile_id)
-    return [for_worker(r, worker_profile_id, queda_aviso=queda_aviso) for r in responses]
+    vistas = [for_worker(r, worker_profile_id, queda_aviso=queda_aviso) for r in responses]
+    return [without_address(v) for v in vistas] if es_cuenta_invitada(current_user) else vistas
 
 
 @router.post(
@@ -485,11 +494,12 @@ async def get_shift(
     if await _is_party_to(shift, current_user, companies, workers):
         if current_user.role == UserRole.WORKER:
             # Parte, pero no de la ausencia de quien lo tuvo antes (PRI-01).
-            return for_worker(
+            parte = for_worker(
                 response,
                 shift.worker_profile_id,
                 queda_aviso=await service.notice_allowance_left(shift.worker_profile_id),
             )
+            return without_address(parte) if es_cuenta_invitada(current_user) else parte
         # Al comercio dueño (y a la admin), cuántas personas se postularon:
         # «Editar turno» lo usa para anticipar que se les avisa del cambio.
         # El panel ya lo traía en la lista; el detalle, no.
@@ -504,7 +514,12 @@ async def get_shift(
     if not await service.company_account_active(shift.company_id):
         # Comercio suspendido (ADR-0024): su turno abierto no se muestra.
         raise _not_found()
-    return without_worker_data(response)
+    # La dirección exacta: trabajadores con cuenta propia; no otro comercio ni
+    # la cuenta invitada.
+    vista = without_worker_data(response)
+    if current_user.role != UserRole.WORKER or es_cuenta_invitada(current_user):
+        vista = without_address(vista)
+    return vista
 
 
 @router.get(
