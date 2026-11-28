@@ -913,9 +913,6 @@ grande y el día anterior a abrir.
   [ADR-0032](../adr/ADR-0032-carril-urgente.md),
   [historial](../historial/2026-11-27-carril-urgente.md)).
 - ✅ Términos con la frase del carril urgente (versión legal `2026-11-28-1`); falta decidir cuándo prender `URGENTE_DIRECTO` en producción.
-- ⚪ Antes de prender `URGENTE_DIRECTO`: texto de `/terminos` que diga que la
-  persona que se ofrece para ya queda confirmada al ser aceptada (sube
-  `LEGAL_TERMS_VERSION`; con el sí de Julieta).
 
 ## Tanda del 2026-11-28
 
