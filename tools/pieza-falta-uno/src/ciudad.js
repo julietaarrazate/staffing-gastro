@@ -57,10 +57,10 @@ export function crearCiudad(escena, { radio = 1300 } = {}) {
           float ven = smoothstep(.16, .2, f.x) * smoothstep(.84, .8, f.x) * smoothstep(.22, .26, f.y) * smoothstep(.82, .78, f.y);
           float h = h21(cel + vS * 31.7), h2 = h21(cel * 1.7 + vS * 3.1 + 9.), h3 = h21(cel.yx + vS * 11.);
           float prende = step(.7 - vS * .15, h) * step(1.5, q.y);
-          vec3 luz = (h2 > .86 ? uFria : uCalida) * (.2 + 1.3 * h3 * h3);
+          vec3 luz = (h2 > .86 ? uFria : uCalida) * (.2 + 1.3 * h3 * h3) * (.55 + .45 * f.y); ven *= smoothstep(.02, .05, abs(f.x - .5));
           float cortina = .55 + .45 * smoothstep(.2, .8, fract(f.x * 3. + h2 * 5.));
-          vec3 pared = vec3(.018, .02, .028) * (.6 + .4 * h21(vec2(vS, 3.)));
-          c = mix(pared, luz * cortina * 1.1, ven * prende) + ven * (1. - prende) * vec3(.01, .015, .03);
+          vec3 pared = vec3(.017, .016, .018) * (.6 + .4 * h21(vec2(vS, 3.)));
+          c = mix(pared, luz * cortina * 1.1, ven * prende) + ven * (1. - prende) * vec3(.012, .02, .04) * (.5 + f.y);
           // planta baja: locales con luz
           float pb = step(q.y, 3.2) * step(.55, h21(vec2(floor(u / 6.), vS)));
           c += pb * uCalida * .9 * smoothstep(.0, 1.5, q.y);
@@ -69,6 +69,12 @@ export function crearCiudad(escena, { radio = 1300 } = {}) {
   });
   const edificios = new THREE.Mesh(ig, matEd); edificios.frustumCulled = false; g.add(edificios);
 
+  // tanques de agua en las azoteas cercanas (siluetas contra el cielo)
+  const cerca = cajas.filter(c => Math.hypot(c[0], c[1]) < 450 && c[4] < 40);
+  const tanques = new THREE.InstancedMesh(new THREE.CylinderGeometry(1, 1, 1, 20), new THREE.MeshStandardMaterial({ color: 0x55585c, roughness: 0.8 }), cerca.length);
+  let nt = 0; const mt = new THREE.Matrix4();
+  for (const [x, z, w, d, h, s] of cerca) { if (s > 0.55) continue; const rad = 0.55 + s * 0.6; mt.compose(new THREE.Vector3(x + (s - .25) * w * .6, -0.95 + h + 0.7 + 0.7, z + (s - .3) * d * .5), new THREE.Quaternion(), new THREE.Vector3(rad, 1.4, rad)); tanques.setMatrixAt(nt++, mt); }
+  tanques.count = nt; g.add(tanques);
   // calle y vereda: plano oscuro
   const suelo = new THREE.Mesh(new THREE.PlaneGeometry(30000, 30000), new THREE.ShaderMaterial({ glslVersion: THREE.GLSL3, uniforms: { ...niebla }, vertexShader: `out vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`, fragmentShader: `${NIEBLA} in vec3 vW; out vec4 o; void main(){ o = vec4(niebla(vec3(.01, .009, .01), length(vW - cameraPosition)), 1.); }` }));
   suelo.rotation.x = -Math.PI / 2; suelo.position.y = -0.96; g.add(suelo);

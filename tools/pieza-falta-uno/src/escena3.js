@@ -23,12 +23,12 @@ const separacion = h => (h < ROOF ? 0.0034 + 0.0018 * smooth(0.3, 3, h) : 0.006)
 export const crece = curva([[7.67, 0.06], [7.8, 0.1], [7.95, 0.55], [8.08, 1.75], [8.17, 3.05], [8.25, 4.6], [8.5, 12], [8.9, 34], [9.4, 88], [10, 165], [10.6, 240]], { log: true });
 
 // cámara: altura, distancia al eje de la pila, giro alrededor, inclinación, campo de visión, rolido
-export const camY = curva([[0, 0.094], [5.6, 0.112], [6.2, 0.118], [7.3, 0.135], [7.7, 0.19], [7.95, 0.48], [8.08, 1.38], [8.17, 2.52], [8.24, 3.66], [8.4, 7.4], [8.7, 14.4], [9.1, 20.8], [9.6, 25.4], [10.3, 27.6]]);
-const camD = curva([[0, 0.44], [5.6, 0.37], [7.3, 0.36], [7.95, 0.52], [8.2, 0.72], [8.6, 1.7], [9.4, 3.4], [10.3, 4.2]]);
-const camA = curva([[0, -0.05], [5.6, 0.05], [7.5, 0.1], [8.2, 0.42], [9.0, 0.82], [10.3, 1.02]]);
-const camP = curva([[0, -0.1], [5.6, -0.075], [7.3, -0.02], [7.9, 0.26], [8.17, 0.52], [8.4, 0.58], [9.0, 0.6], [10.3, 0.64]]);
-const camF = curva([[0, 36], [6.0, 36], [7.6, 41], [8.2, 53], [9.0, 56], [10.3, 58]]);
-const camR = curva([[0, 0], [7.9, 0], [8.2, -0.08], [8.8, 0.05], [9.6, 0.11], [10.3, 0.13]]);
+export const camY = curva([[0, 0.17], [0.55, 0.15], [2.2, 0.122], [3.55, 0.1], [4.65, 0.085], [5.55, 0.07], [6.6, 0.062], [7.3, 0.08], [7.7, 0.19], [7.95, 0.48], [8.08, 1.38], [8.17, 2.52], [8.24, 3.66], [8.4, 7.4], [8.7, 14.4], [9.1, 20.8], [9.6, 25.4], [10.3, 27.6]]);
+const camD = curva([[0, 0.6], [0.55, 0.54], [2.2, 0.47], [3.55, 0.42], [4.65, 0.37], [5.55, 0.33], [7.3, 0.3], [7.95, 0.5], [8.2, 0.72], [8.6, 1.7], [9.3, 3.2], [10.3, 3.6]]);
+const camA = curva([[0, -0.42], [2.2, -0.24], [4.65, -0.02], [6.6, 0.15], [7.5, 0.22], [8.2, 0.5], [9.0, 0.88], [10.3, 1.08]]);
+const camP = curva([[0, -0.2], [2.2, -0.13], [4.65, -0.06], [5.55, -0.03], [6.6, 0.03], [7.3, 0.06], [7.9, 0.26], [8.17, 0.5], [8.45, 0.42], [8.95, 0.4], [9.35, 0.62], [9.75, 1.0], [10.1, 1.2], [10.3, 1.25]]);
+const camF = curva([[0, 36], [6.0, 36], [7.6, 41], [8.2, 53], [9.0, 56], [10.3, 62]]);
+const camR = curva([[0, 0], [7.9, 0], [8.2, -0.08], [8.8, 0.05], [9.4, 0.12], [10.3, 0.42]]);
 
 export async function crearEscena3(motor) {
   const escena = new THREE.Scene();
@@ -81,6 +81,7 @@ export async function crearEscena3(motor) {
     v: i < 5 ? [0, 2, 5, 1, 3][i] : Math.floor(r() * VARIANTES), giro: r() * Math.PI * 2, tx: (r() - .5) * 0.07, tz: (r() - .5) * 0.07,
     caida: 0.7 + r() * 1.6, punta: (r() - .5) * 0.35, fase: r() * 6.28, tono: [0.97 + r() * 0.03, 0.95 + r() * 0.04, 0.9 + r() * 0.07],
   }));
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), p = new THREE.Vector3(), s = new THREE.Vector3(), col = new THREE.Color();
   // comandas que el viento arranca de la torre y se llevan volando
   const sueltas = Array.from({ length: 110 }, () => {
     const hd = 6 + Math.pow(r(), 1.4) * 150; let a = 7.67, b = 12; for (let k = 0; k < 40; k++) { const m = (a + b) / 2; crece(m) < hd ? a = m : b = m; }
@@ -89,6 +90,14 @@ export async function crearEscena3(motor) {
   const cerca = mallaComandas(1200, 10, 14, matPapel, matSombra); cerca.malla.castShadow = true; cerca.malla.receiveShadow = true;
   const lejos = mallaComandas(N + 120, 1, 1, matPapel, matSombra); lejos.malla.receiveShadow = true; lejos.malla.castShadow = true;
   escena.add(cerca.malla, lejos.malla);
+  // comandas esperando, colgadas de la barra del fondo
+  const colgadas = mallaComandas(9, 6, 8, matPapel, matSombra); colgadas.malla.castShadow = colgadas.malla.receiveShadow = true;
+  [-1.12, -0.86, -0.6, -0.36, 0.3, 0.55, 0.82, 1.05, 1.31].forEach((x, i) => {
+    const v = (i * 3 + 1) % VARIANTES; e.set(Math.PI / 2 + (r() - .5) * 0.12, (r() - .5) * 0.3, (r() - .5) * 0.08, 'XYZ'); q.setFromEuler(e);
+    m4.compose(p.set(x, 0.488, -0.232), q, s.set(1, 1, 1)); colgadas.malla.setMatrixAt(i, m4); colgadas.aVar.array[i] = v;
+    colgadas.aForma.array.set([0.25, (r() - .5) * 0.4, r() * 6, 0], i * 4); colgadas.aPin.array.set([0, -0.11 / 2 + 0.006], i * 2); colgadas.malla.instanceColor.array.set([1, .97, .92], i * 3);
+  });
+  colgadas.malla.count = 9; escena.add(colgadas.malla);
 
   // la mano: sólo su sombra, en la capa que ve la luz y no la cámara
   const manoTex = siluetaMano();
@@ -96,7 +105,6 @@ export async function crearEscena3(motor) {
   mano.customDepthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, alphaMap: manoTex, alphaTest: 0.5 });
   mano.layers.set(1); mano.castShadow = true; escena.add(mano);
 
-  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), p = new THREE.Vector3(), s = new THREE.Vector3(), col = new THREE.Color();
   const vaivenX = (h, t) => h < ROOF ? 0 : Math.pow((h - ROOF) / 60, 1.6) * 3.2 * Math.sin(t * 0.55 + h * 0.018) + Math.pow((h - ROOF) / 60, 1.2) * 0.9;
   const vaivenZ = (h, t) => h < ROOF ? 0 : Math.pow((h - ROOF) / 60, 1.6) * 2.4 * Math.sin(t * 0.43 + h * 0.023 + 1.3);
   const topeA = t => { let k = 0; while (k < N && TL[k] <= t) k++; return k; }; // comandas ya clavadas
@@ -167,6 +175,7 @@ export async function crearEscena3(motor) {
     pit += deriva(t * 1.1, 7) * lerp(0.004, 0.012, vuelo); rol += deriva(t * 0.9, 9) * lerp(0.003, 0.012, vuelo);
     // sacudón de cada golpe a mano
     for (let k = 0; k < 9; k++) { const dt = t - GOLPES[k]; if (dt > 0 && dt < 0.4) { y -= 0.0012 * Math.exp(-dt * 22) * Math.cos(dt * 70); pit += 0.004 * Math.exp(-dt * 20) * Math.sin(dt * 60); } }
+    for (const [T] of PALABRAS) { const u = t - T; if (u > 0) { dist -= 0.018 * smooth(0, 0.3, u); fov -= 1.6 * Math.exp(-u * 5) * smooth(0, 0.04, u); } }
     const hx = vaivenX(y, t) * 0.6, hz = vaivenZ(y, t) * 0.6;
     camara.position.set(hx + Math.sin(ang) * dist, y, hz + Math.cos(ang) * dist);
     const mira = new THREE.Vector3(hx * 1.4, y + Math.tan(pit) * dist, hz * 1.4);
@@ -200,7 +209,7 @@ export async function crearEscena3(motor) {
     revelado(t) {
       const a = smooth(8.1, 8.5, t);
       return {
-        exposicion: lerp(0.9, 1.35, a), bloom: lerp(0.3, 0.5, a), umbral: lerp(2.2, 1.2, a), radio: 0.85,
+        exposicion: lerp(0.8, 1.35, a), bloom: lerp(0.3, 0.5, a), umbral: lerp(2.2, 1.2, a), radio: 0.85,
         contraste: lerp(1.07, 1.04, a), saturacion: lerp(1.04, 1.1, a), vineta: lerp(0.36, 0.26, a), grano: 0.034, ca: 0.012, halacion: lerp(0.45, 0.3, a),
         lift: [lerp(0.004, 0.006, a), lerp(0.009, 0.012, a), lerp(0.02, 0.03, a)], gain: [1.03, 1.0, lerp(0.95, 1.0, a)],
         foco: estado.foco, apertura: lerp(15, 0, smooth(7.6, 8.15, t)),

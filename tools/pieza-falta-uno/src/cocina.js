@@ -44,7 +44,7 @@ export function crearCocina(escena) {
   for (const x of [-0.25, 0.55]) { const v = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 2.4, 8), matAceroOscuro); v.position.set(x, 0.66 + 1.2, -0.03); g.add(v); }
 
   // luz principal: la lámpara (cálida, dura, con sombra)
-  const luz = new THREE.SpotLight(new THREE.Color(...kelvin(2600)), 1.7, 6, 0.85, 0.75, 2);
+  const luz = new THREE.SpotLight(new THREE.Color(...kelvin(2600)), 1.35, 6, 0.85, 0.75, 2);
   luz.position.set(0.12, 0.6, -0.02); luz.target.position.set(0.02, 0, 0.02); luz.castShadow = true;
   luz.shadow.mapSize.set(2048, 2048); luz.shadow.camera.near = 0.05; luz.shadow.camera.far = 4; luz.shadow.bias = -0.0002; luz.shadow.normalBias = 0.0015; luz.shadow.radius = 4;
   luz.shadow.camera.layers.enable(1);
@@ -74,16 +74,16 @@ export function crearCocina(escena) {
 
   // bombitas del fondo (bokeh)
   const bulbos = [];
-  for (let i = 0; i < 14; i++) {
+  for (let i = 0; i < 30; i++) {
     const k = r() < 0.7 ? kelvin(2400 + r() * 600) : kelvin(5200);
     const m = new THREE.Mesh(new THREE.SphereGeometry(0.018 + r() * 0.02, 12, 8), new THREE.MeshBasicMaterial({ color: new THREE.Color(...k).multiplyScalar(3 + r() * 8) }));
-    m.position.set(-3 + r() * 6, 0.4 + r() * 1.8, -2.05 + r() * 0.3); g.add(m); bulbos.push(m);
+    m.position.set(-3.2 + r() * 6.4, 0.15 + r() * 2.0, -2.05 + r() * 1.1); g.add(m); bulbos.push(m);
   }
   const fluo = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.03, 0.03), new THREE.MeshBasicMaterial({ color: new THREE.Color(...kelvin(5600)).multiplyScalar(9) })); fluo.position.set(-0.9, 1.75, -2.0); g.add(fluo);
   const luzFondo = new THREE.PointLight(new THREE.Color(...kelvin(6000)), 0.9, 6, 2); luzFondo.position.set(-0.9, 1.6, -1.6); g.add(luzFondo);
   const relleno = new THREE.HemisphereLight(0x2a3a58, 0x140c08, 0.08); g.add(relleno);
   // contraluz fría desde la cocina: filo en la aguja y en los bordes del papel
-  const contra = new THREE.SpotLight(new THREE.Color(...kelvin(7000)), 1.6, 4, 0.35, 0.9, 2); contra.position.set(-0.55, 0.32, -1.1); contra.target.position.set(0, 0.08, 0); g.add(contra, contra.target);
+  const contra = new THREE.SpotLight(new THREE.Color(...kelvin(7000)), 3.2, 4, 0.35, 0.9, 2); contra.position.set(-0.55, 0.32, -1.1); contra.target.position.set(0, 0.08, 0); g.add(contra, contra.target);
 
   // cielorraso: vigas de madera, revoque oscuro y el agujero por donde sale la pila
   const matTecho = new THREE.MeshStandardMaterial({ map: T.revoque('#4a4038', 8), roughness: 0.9 });
@@ -108,8 +108,8 @@ export function crearCocina(escena) {
   const texHumo = T.humo();
   const vapor = [];
   for (let i = 0; i < 9; i++) {
-    const s = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.5), new THREE.MeshBasicMaterial({ map: texHumo, transparent: true, depthWrite: false, color: new THREE.Color(...kelvin(2600)).multiplyScalar(0.55), opacity: 0.0 }));
-    g.add(s); vapor.push({ s, f: r(), x: -0.45 + r() * 0.1, rot: r() * 6 });
+    const s = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.5), new THREE.MeshBasicMaterial({ map: texHumo, transparent: true, depthWrite: false, color: new THREE.Color(...kelvin(2600)).multiplyScalar(0.9), opacity: 0.0 }));
+    g.add(s); vapor.push({ s, f: r(), x: -0.75 + r() * 0.5, rot: r() * 6 });
   }
   const NP = 420, pos = new Float32Array(NP * 3), sem = new Float32Array(NP);
   for (let i = 0; i < NP; i++) { pos[i * 3] = (r() - .5) * 1.0; pos[i * 3 + 1] = r() * 0.6; pos[i * 3 + 2] = (r() - .5) * 0.8; sem[i] = r(); }
@@ -126,14 +126,25 @@ export function crearCocina(escena) {
   });
   const polvo = new THREE.Points(geoP, matP); g.add(polvo);
 
+  // cocineros de espaldas que cruzan el fondo (siempre fuera de foco)
+  const matChaqueta = new THREE.MeshStandardMaterial({ color: 0xa9a49c, roughness: 0.85 }), matPelo = new THREE.MeshStandardMaterial({ color: 0x15110e, roughness: 0.9 });
+  const cocineros = [[1.3, 4.6, -1.0, 1.6], [5.0, 7.8, 1.0, -1.7], [0.0, 2.4, 2.2, 0.6]].map(([t0, t1, x0, x1]) => {
+    const c = new THREE.Group();
+    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 0.55, 6, 16), matChaqueta); torso.scale.set(1, 1, 0.62); torso.position.y = 0.55; c.add(torso);
+    const cabeza = new THREE.Mesh(new THREE.SphereGeometry(0.105, 16, 12), matPelo); cabeza.position.y = 1.08; c.add(cabeza);
+    const gorro = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.12, 16), matChaqueta); gorro.position.y = 1.17; c.add(gorro);
+    c.position.set(x0, PISO + 0.6, -1.38); g.add(c); return { c, t0, t1, x0, x1 };
+  });
+
   return {
     grupo: g, luz, polvo, matP,
     poner(t, H) {
       matP.uniforms.uT.value = t; matP.uniforms.uPx.value = H;
+      for (const k of cocineros) { const u = (t - k.t0) / (k.t1 - k.t0); k.c.visible = u > 0 && u < 1; k.c.position.x = k.x0 + (k.x1 - k.x0) * u; k.c.position.y = PISO + 0.6 + Math.abs(Math.sin(u * 14)) * 0.02; k.c.rotation.z = Math.sin(u * 14) * 0.02; }
       for (const v of vapor) {
         const f = (t * 0.22 + v.f) % 1, y = 0.25 + f * 1.3;
-        v.s.position.set(v.x + Math.sin(t * 0.4 + v.rot) * 0.06 * f, y, -1.62);
-        v.s.scale.setScalar(0.5 + f * 1.4); v.s.material.opacity = Math.sin(Math.PI * f) * 0.5; v.s.rotation.z = v.rot + t * 0.15;
+        v.s.position.set(v.x + Math.sin(t * 0.4 + v.rot) * 0.06 * f, y - 0.15, -1.05);
+        v.s.scale.setScalar(0.5 + f * 1.4); v.s.material.opacity = Math.sin(Math.PI * f) * 0.85; v.s.rotation.z = v.rot + t * 0.15;
       }
     },
   };
@@ -165,6 +176,6 @@ export function crearAzotea(escena) {
   const mastil = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 4, 8), matFierro); mastil.position.set(2.8, y0 + 2, -7); g.add(mastil);
   for (let i = 0; i < 5; i++) { const b = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 1.2 - i * 0.15, 6), matFierro); b.rotation.z = Math.PI / 2; b.position.set(2.8, y0 + 3.2 + i * 0.18, -7); g.add(b); }
   // medianera alta a la izquierda y edificio de atrás con ventanas
-  const medianera = new THREE.Mesh(new THREE.BoxGeometry(0.3, 26, 24), new THREE.MeshStandardMaterial({ map: T.revoque('#5e5a55', 19), roughness: 1 })); medianera.position.set(-4.6, 13, -3); g.add(medianera);
+  const medianera = new THREE.Mesh(new THREE.BoxGeometry(0.3, 9, 24), new THREE.MeshStandardMaterial({ map: T.revoque('#5e5a55', 19), roughness: 1 })); medianera.position.set(-4.6, y0 + 4.5, -3); g.add(medianera);
   return { grupo: g };
 }
