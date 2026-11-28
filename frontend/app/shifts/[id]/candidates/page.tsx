@@ -157,9 +157,17 @@ function ShiftCandidatesContent() {
   }, [compu, idsClave, verId]);
   const fichaDe = (id: string) => {
     const a = tab === "postulantes" ? applicants.find((x) => x.worker_profile_id === id) : undefined;
-    if (a) return { nombre: a.full_name, foto: a.photo_url, faltaVerificar: canAssign && a.falta_verificar };
+    if (a)
+      return {
+        nombre: a.full_name,
+        foto: a.photo_url,
+        faltaVerificar: canAssign && a.falta_verificar,
+        puedeIrYa: Boolean(a.se_ofrecio_para_ya),
+      };
     const c = candidates.find((x) => x.profile_id === id);
-    return c ? { nombre: c.full_name, foto: c.photo_url, faltaVerificar: canAssign && c.falta_verificar } : null;
+    return c
+      ? { nombre: c.full_name, foto: c.photo_url, faltaVerificar: canAssign && c.falta_verificar, puedeIrYa: false }
+      : null;
   };
   const destacar = !compu && primero;
   const restoPostulantes = destacar ? applicants.slice(1) : applicants;
@@ -171,7 +179,7 @@ function ShiftCandidatesContent() {
   // al panel. La decisión se VE, en vez de sólo un toast sobre una pantalla
   // que ya se fue (hasta el 2026-11-20, la tarjeta subía con «Asignado» y a
   // los 1,1 s se volvía sola al panel).
-  const [elegido, setElegido] = useState<{ nombre: string; foto: string | null } | null>(null);
+  const [elegido, setElegido] = useState<{ nombre: string; foto: string | null; confirmado: boolean } | null>(null);
   const { keyFor, clear: clearIdempotencyKey } = useIdempotencyKeys();
 
   const load = useCallback(({ silent = false }: { silent?: boolean } = {}) => {
@@ -216,7 +224,7 @@ function ShiftCandidatesContent() {
       // Idempotencia (product/IDEMPOTENCIA_SPEC.md): mismo intento (mismo
       // turno+candidato) reusa la key hasta que la asignación termine bien.
       const attemptKey = `${shiftId}:${profileId}`;
-      await api.post(
+      const asignado = await api.post<Shift>(
         `/shifts/${shiftId}/assign`,
         { worker_profile_id: profileId },
         token,
@@ -225,7 +233,9 @@ function ShiftCandidatesContent() {
       );
       clearIdempotencyKey(attemptKey);
       // `assigning` queda puesto: detrás de «¡Oído!» nadie vuelve a elegir.
-      setElegido(persona);
+      // Carril urgente: si la persona se había ofrecido para ya, el turno
+      // vuelve CONFIRMADO (no hay nada que esperar de ella).
+      setElegido({ ...persona, confirmado: asignado?.status === "confirmado" });
     } catch (err) {
       toast(getErrorMessage(err, "No se pudo asignar"), "error");
       setAssigning(null);
@@ -397,6 +407,7 @@ function ShiftCandidatesContent() {
                     foto={primero.photo_url}
                     verificada={primero.identidad_verificada}
                     faltaVerificar={canAssign && primero.falta_verificar}
+                    puedeIrYa={Boolean(primero.se_ofrecio_para_ya)}
                     signals={primero}
                     rotulo={rotuloPrimero}
                     onElegir={elegir(primero.worker_profile_id, primero.full_name, primero.photo_url)}
@@ -416,6 +427,7 @@ function ShiftCandidatesContent() {
                             foto={a.photo_url}
                             verificada={a.identidad_verificada}
                             faltaVerificar={canAssign && a.falta_verificar}
+                            puedeIrYa={Boolean(a.se_ofrecio_para_ya)}
                             signals={a}
                             disponible={a.is_available}
                             // Tuvo este turno y lo dejó: va al final, con su
@@ -516,6 +528,7 @@ function ShiftCandidatesContent() {
               token={token}
               onElegir={elegir(fichaId, ficha.nombre, ficha.foto)}
               faltaVerificar={ficha.faltaVerificar}
+              puedeIrYa={ficha.puedeIrYa}
               eligiendo={assigning === fichaId}
               bloqueado={assigning !== null}
             />
@@ -528,6 +541,7 @@ function ShiftCandidatesContent() {
         <OidoElegido
           nombre={elegido.nombre}
           foto={elegido.foto}
+          confirmado={elegido.confirmado}
           local={shift?.company_name ?? null}
           fotoLocal={shift?.company_cover_url ?? shift?.company_logo_url ?? null}
           fotoLocalEsLogo={!shift?.company_cover_url && Boolean(shift?.company_logo_url)}

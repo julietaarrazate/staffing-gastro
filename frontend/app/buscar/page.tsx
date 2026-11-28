@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { useEsCompu } from "@/lib/use-es-compu";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { api, ApiError } from "@/lib/api";
-import { appliedShiftIds } from "@/lib/applications";
+import { enviarPostulacion, appliedShiftIds } from "@/lib/applications";
 import { getErrorMessage } from "@/lib/errors";
 import { useLiveRefresh } from "@/lib/live-refresh";
 import { useRequireAuth } from "@/lib/use-require-auth";
@@ -27,6 +27,7 @@ import {
 import { sortByBestPay } from "@/lib/pay";
 import { FlameIcon, StarIcon } from "@/components/icons";
 import OportunidadFila from "@/components/worker/OportunidadFila";
+import { avisoPostulacion, useConfirmarPuedoIr } from "@/components/worker/ConfirmarPuedoIr";
 import { SKILL_ACCENT } from "@/lib/skill-style";
 import { EmptyState, ErrorState, NubesCielo, Skeleton, useToast } from "@/components/ui";
 import { EmptyFeedIllustration } from "@/components/illustrations";
@@ -155,6 +156,7 @@ export default function BuscarPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [decidingId, setDecidingId] = useState<string | null>(null);
+  const { confirmar, dialogo } = useConfirmarPuedoIr();
   // "Urgentes" y "Mejores pagos" vivían en el Inicio y se mudaron acá
   // (2026-09-28, diagnóstico de sobrecarga): el Inicio muestra qué tomar,
   // Buscar es donde se filtra. Filtro y orden client-side, sobre lo ya
@@ -248,19 +250,16 @@ export default function BuscarPage() {
       return;
     }
     if (!token) return;
+    // Carril urgente: «Puedo ir ya» pregunta antes de postular.
+    if (!(await confirmar(shift))) return;
     setDecidingId(shift.id);
     try {
-      await api.post(
-        `/applications/shifts/${shift.id}`,
-        undefined,
-        token,
-        undefined,
-        keyFor(shift.id)
-      );
+      const enviada = await enviarPostulacion({ token, shift, key: keyFor(shift.id), confirmar });
+      if (!enviada) return;
       clearIdempotencyKey(shift.id);
       ocultos.current.add(shift.id);
       setShifts((prev) => prev.filter((s) => s.id !== shift.id));
-      toast("¡Te postulaste! El comercio ya te puede ver");
+      toast(avisoPostulacion({ apply_commits: enviada.ofrecido }));
       requestOptIn();
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
@@ -456,6 +455,7 @@ export default function BuscarPage() {
           )}
         </div>
         </div>
+        {dialogo}
 
         {/* En la compu, el mapa al lado de la lista (escritorio, renglón 4/10):
             los turnos con su pago en el pin; tocar un pin resalta su fila. Pegado

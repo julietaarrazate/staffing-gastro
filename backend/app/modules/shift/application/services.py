@@ -45,6 +45,7 @@ from app.modules.shift.domain.pay_benchmark import (
 from app.modules.shift.domain.exceptions import (
     AdminCloseNotAllowedError,
     AssigneeNotFoundError,
+    AssigneeBusyError,
     AssigneeNotVerifiedError,
     AssigneeUnavailableError,
     InvalidShiftTransitionError,
@@ -231,6 +232,7 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         # puerto de lectura del dominio Identity: de estos usuarios, cuáles
         # tienen el documento verificado. Sin el puerto, la regla no aplica.
         verificacion_obligatoria: bool = False,
+        urgente_directo: bool = False,
         identity_verified: Callable[[list[UUID]], Awaitable[set[UUID]]] | None = None,
         # «No cobré» abre un ticket de pagos en nombre de la persona (puerto
         # hacia `support`). Sin él (scheduler, tests de servicio) el aviso al
@@ -251,6 +253,7 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         self._run_after_response = run_after_response
         self._reconfirmacion_activa = reconfirmacion_activa
         self._verificacion_obligatoria = verificacion_obligatoria
+        self._urgente_directo = urgente_directo
         self._identity_verified = identity_verified
 
     async def create_shift(self, company_id: UUID, data: ShiftData) -> Shift:
@@ -352,9 +355,19 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
                 "Ya hay personas postuladas: no se puede cambiar el puesto. "
                 "Cancelá este turno y publicá uno nuevo."
             )
-        avisar = bool(postulados) and shift.cambio_importante(
+        importante = shift.cambio_importante(
             start_at=data.start_at, end_at=data.end_at, pay_amount=data.pay_amount
         )
+        avisar = bool(postulados) and importante
+        # Carril urgente (ADR-0032): quien dijo «Puedo ir ya» lo dijo para ESTE
+        # horario, pago y lugar. Si cambia cualquiera de los tres, vuelve a pedirse.
+        cambia_lugar = (shift.address, shift.city, shift.latitude, shift.longitude) != (
+            data.address,
+            data.city,
+            data.latitude,
+            data.longitude,
+        )
+        borrar_reconocimientos = importante or cambia_lugar
 
         # La regla de horario de un turno nuevo (inicio no pasado, 1 a 16 h)
         # sólo corre si se cambia el horario: reenviar el mismo de un borrador
@@ -381,9 +394,18 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         shift.description = data.description
 
         updated = await self._shifts.update(shift)
+        if borrar_reconocimientos:
+            # Si el comercio la acepta ahora, vuelve a pedirse que confirme.
+            await self._borrar_reconocimientos_urgentes(shift.id)
         if avisar:
             await self._notify_applicants_of_change(updated, postulados)
         return updated
+
+    async def _borrar_reconocimientos_urgentes(self, shift_id: UUID) -> None:
+        for application in await self._applications.list_by_shift(shift_id):
+            if application.se_ofrecio_para_ya:
+                application.se_ofrecio_para_ya = False
+                await self._applications.update(application)
 
     async def _active_applicants(self, shift: Shift) -> list[UUID]:
         """Perfiles con una postulación en carrera a un turno ya publicado."""
@@ -1663,6 +1685,8 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         if self._verificacion_obligatoria and self._identity_verified is not None:
             if user.id not in await self._identity_verified([user.id]):
                 raise AssigneeNotVerifiedError()
+        if await self._se_ofrecio_para_ya(shift, worker_profile_id):
+            return await self._aceptar_y_confirmar(shift, worker_profile_id, company_id)
         shift.assign(worker_profile_id)
         updated = await self._shifts.update(shift)
         logger.info(
@@ -1682,6 +1706,68 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
             f"Te asignaron el turno \"{updated.title or updated.position.label}\". Confirmá tu asistencia.",
         )
         await self._send_acceptance_email(worker_profile_id, updated)
+        return updated
+
+    async def _se_ofrecio_para_ya(self, shift: Shift, worker_profile_id: UUID) -> bool:
+        """Carril urgente (`shift/domain/urgente.py`, ADR-0032): la persona
+        reconoció «Puedo ir ya» al postularse, y eso se GUARDÓ en la
+        postulación (`se_ofrecio_para_ya`): acá no se recalcula con fechas.
+        Sólo cuenta una postulación vigente (PENDIENTE): a quien el comercio
+        elige desde «Recomendados», o vuelve a elegir después de que dejó el
+        turno, se le sigue pidiendo que confirme."""
+        if not self._urgente_directo:
+            return False
+        application = await self._applications.get_by_shift_and_worker(
+            shift.id, worker_profile_id
+        )
+        return (
+            application is not None
+            and application.status == ApplicationStatus.PENDIENTE
+            and application.se_ofrecio_para_ya
+        )
+
+    async def _aceptar_y_confirmar(
+        self, shift: Shift, worker_profile_id: UUID, company_id: UUID
+    ) -> Shift:
+        """El comercio acepta a quien se ofreció para ya: el turno pasa a
+        CONFIRMADO en el mismo paso. Mismas guardas que `confirm_assignment`
+        (agenda serializada y regla de doble turno): si mientras tanto la
+        persona quedó comprometida en otro lado, el turno no se toca."""
+        await self._workers.lock_agenda(worker_profile_id)
+        others = await self._shifts.list_by_worker_and_statuses(
+            worker_profile_id, COMMITTED_STATUSES
+        )
+        others = [s for s in others if s.id != shift.id]
+        if any(shift.overlaps(other) for other in others):
+            raise AssigneeBusyError()
+        shift.assign(worker_profile_id)
+        shift.confirm(others)
+        updated = await self._shifts.update(shift)
+        logger.info(
+            "shift.assigned_and_confirmed",
+            extra={
+                "shift_id": str(updated.id),
+                "worker_profile_id": str(worker_profile_id),
+                "company_id": str(company_id),
+            },
+        )
+        await self._accept_application(updated.id, worker_profile_id)
+        await self._reject_pending_applicants(updated.id)
+        nombre = await self._shift_name_with_company(updated)
+        await self._notify_worker(
+            worker_profile_id,
+            NotificationType.SHIFT_ASSIGNED,
+            "¡Te aceptaron! El turno es tuyo",
+            (
+                f"{nombre}, {format_turno_art(updated.start_at, updated.end_at)}. "
+                "Ya quedó confirmado: no hace falta que hagas nada más. Avisá cuando salgas."
+            ),
+            link="/my-shifts",
+        )
+        await self._withdraw_overlapping_applications(worker_profile_id, updated)
+        # El mismo mail de aceptación, en su variante «ya quedó confirmado».
+        await self._send_acceptance_email(worker_profile_id, updated, confirmado=True)
+        notify_scheduler()
         return updated
 
     async def _accept_application(self, shift_id: UUID, worker_profile_id: UUID) -> None:
@@ -1832,7 +1918,7 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
                 await self._applications.update(application)
 
     async def _send_acceptance_email(
-        self, worker_profile_id: UUID, shift: Shift
+        self, worker_profile_id: UUID, shift: Shift, *, confirmado: bool = False
     ) -> None:
         """Avisa por email al trabajador aceptado para el turno.
 
@@ -1853,12 +1939,15 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
             company_name = (company.name if company is not None else None) or "Un comercio"
             position_label = shift.position.label
             subject = f"Te aceptaron: {position_label} en {company_name}"
+            if confirmado:
+                subject = f"Turno confirmado: {position_label} en {company_name}"
             html = render_shift_accepted_email_html(
                 user.full_name,
                 position_label,
                 company_name,
                 format_turno_art(shift.start_at, shift.end_at),
                 f"{settings.frontend_url}/my-shifts",
+                confirmado=confirmado,
             )
         except Exception:
             logger.exception(

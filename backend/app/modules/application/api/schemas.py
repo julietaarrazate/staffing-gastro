@@ -9,6 +9,13 @@ from app.modules.shift.api.schemas import ShiftResponse
 from app.modules.worker.domain.value_objects import GamificationLevel, WorkerBadge
 
 
+class ApplyRequest(BaseModel):
+    """Cuerpo (opcional) de `POST /applications/shifts/{id}`."""
+
+    # Carril urgente: la persona tocó «Sí, puedo ir» en la confirmación.
+    puedo_ir_ya: bool = False
+
+
 class ApplicationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -24,6 +31,11 @@ class ApplicationResponse(BaseModel):
     # (ver ApplicationService.list_my_applications). Opcional para no romper la
     # respuesta de `apply`/`withdraw`, que sólo devuelven la postulación.
     shift: ShiftResponse | None = None
+    # Carril urgente: el reconocimiento «Puedo ir ya» que se guardó al postular
+    # (con la regla prendida y la postulación pendiente). Es lo que dice «Te
+    # ofreciste…»: `apply_commits` del turno sólo vale para el botón de antes
+    # de postularse.
+    se_ofrecio_para_ya: bool = False
 
 
 class ApplicantResponse(BaseModel):
@@ -62,3 +74,7 @@ class ApplicantResponse(BaseModel):
     # Sello «Nuevo en Oído · identidad verificada»: sin turnos hechos, con la
     # identidad verificada y sin ausencias.
     nuevo_verificado: bool = False
+    # Carril urgente: se postuló con el turno a menos de 6 horas («Puedo ir
+    # ya») y la postulación sigue vigente. Si el comercio la acepta, el turno
+    # queda confirmado en el momento.
+    se_ofrecio_para_ya: bool = False

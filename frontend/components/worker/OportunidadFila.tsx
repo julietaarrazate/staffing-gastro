@@ -1,5 +1,6 @@
 "use client";
 
+import { textoPostularse } from "@/components/worker/ConfirmarPuedoIr";
 import Link from "next/link";
 import { useState } from "react";
 import { SKILL_LABELS, Shift } from "@/lib/types";
@@ -191,7 +192,7 @@ export default function OportunidadFila({
               disabled={applying || locked}
               onClick={onApply}
             >
-              Postularme
+              {textoPostularse(shift)}
             </Button>
           </div>
         </div>

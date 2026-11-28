@@ -57,6 +57,11 @@ class ShiftApplication:
     # `EmployerWorkerRelation`); una fila que escribió el sistema, no. Tampoco
     # entra en las cuentas de postulaciones del panel de admin.
     se_postulo: bool = True
+    # Carril urgente (ADR-0032): la persona vio «Puedo ir ya», tocó «Sí, puedo
+    # ir» y el turno empezaba en menos de 6 horas al postularse. Es un
+    # reconocimiento que se GUARDA al postular: no se deduce después de la
+    # fecha. Si el comercio la acepta, el turno queda confirmado.
+    se_ofrecio_para_ya: bool = False
 
     def __post_init__(self) -> None:
         if (self.status == ApplicationStatus.DESASIGNADA) != (self.motivo is not None):
@@ -94,6 +99,10 @@ class ShiftApplication:
             )
         self.status = ApplicationStatus.ACEPTADA
         self.motivo = None
+        # El reconocimiento «Puedo ir ya» sólo vale para ESTA aceptación: lo
+        # usó `ShiftService` antes de llamar acá. Si después se suelta, rechaza
+        # o restaura, la persona vuelve como una postulación normal.
+        self.se_ofrecio_para_ya = False
 
     def unassign(self, motivo: MotivoDesasignacion) -> None:
         """ACEPTADA → DESASIGNADA: quien tenía el turno lo rechazó, canceló
@@ -110,6 +119,7 @@ class ShiftApplication:
             )
         self.status = ApplicationStatus.DESASIGNADA
         self.motivo = motivo
+        self.se_ofrecio_para_ya = False
 
     def release(self) -> None:
         """ACEPTADA → PENDIENTE: el turno se le soltó sin que lo decidiera
@@ -127,6 +137,7 @@ class ShiftApplication:
         self.status = (
             ApplicationStatus.PENDIENTE if self.se_postulo else ApplicationStatus.RETIRADA
         )
+        self.se_ofrecio_para_ya = False
 
     def reject(self) -> None:
         """PENDIENTE → RECHAZADA: el comercio eligió a otro candidato (o canceló
@@ -141,6 +152,7 @@ class ShiftApplication:
                 f"No se puede rechazar una postulación en estado {self.status.value}"
             )
         self.status = ApplicationStatus.RECHAZADA
+        self.se_ofrecio_para_ya = False
 
     def restore(self) -> None:
         """RECHAZADA → PENDIENTE: el turno se reabrió (el asignado lo rechazó,
@@ -154,6 +166,7 @@ class ShiftApplication:
                 f"No se puede reabrir una postulación en estado {self.status.value}"
             )
         self.status = ApplicationStatus.PENDIENTE
+        self.se_ofrecio_para_ya = False
 
     def withdraw(self) -> None:
         """PENDIENTE → RETIRADA: el trabajador cancela su propia postulación.
@@ -169,8 +182,9 @@ class ShiftApplication:
                 f"No se puede retirar una postulación en estado {self.status.value}"
             )
         self.status = ApplicationStatus.RETIRADA
+        self.se_ofrecio_para_ya = False
 
-    def reapply(self) -> None:
+    def reapply(self, se_ofrecio_para_ya: bool = False) -> None:
         """RETIRADA → PENDIENTE: el trabajador vuelve a postularse al turno.
 
         Sólo alcanzable desde RETIRADA, que es el único estado que decide el
@@ -187,6 +201,9 @@ class ShiftApplication:
             )
         self.status = ApplicationStatus.PENDIENTE
         self.created_at = datetime.now(timezone.utc)
+        # El reconocimiento se recalcula con el pedido nuevo: el de la
+        # postulación anterior no vale.
+        self.se_ofrecio_para_ya = se_ofrecio_para_ya
         # Ahora sí se postuló ella (la fila pudo haber nacido sin postulación).
         self.se_postulo = True
 
@@ -241,3 +258,5 @@ class EnrichedApplicant:
     # Dueño del perfil: la API lo usa para pedir, de una vez, quiénes tienen la
     # identidad verificada (no sale en la respuesta).
     user_id: UUID | None = None
+    # Carril urgente: el reconocimiento guardado al postular.
+    se_ofrecio_para_ya: bool = False

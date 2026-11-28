@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
-import { appliedShiftIds } from "@/lib/applications";
+import { enviarPostulacion, appliedShiftIds } from "@/lib/applications";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useTapGuard } from "@/lib/use-tap-guard";
@@ -31,6 +31,7 @@ import {
 import LocationBar from "@/components/worker/LocationBar";
 import { CardSkeletons, EmptyState, ErrorState, Skeleton, useToast } from "@/components/ui";
 import CieloInicio from "@/components/worker/CieloInicio";
+import { avisoPostulacion, useConfirmarPuedoIr } from "@/components/worker/ConfirmarPuedoIr";
 import OpportunityCard from "@/components/worker/OpportunityCard";
 import FeedHero from "@/components/worker/FeedHero";
 import UrgentesRow from "@/components/worker/UrgentesRow";
@@ -229,7 +230,10 @@ function WorkerFeedPanel() {
   // marcada «Postulado», hasta la próxima carga (si desapareciera, las demás
   // correrían bajo el dedo y el segundo toque caería en otra «Postularme»).
   const [appliedInGrid, setAppliedInGrid] = useState<ReadonlySet<string>>(() => new Set());
+  // De ésos, a los que la persona se ofreció para ya (lo que confirmó al postular).
+  const [ofrecidosEnGrilla, setOfrecidosEnGrilla] = useState<ReadonlySet<string>>(() => new Set());
   const tapGuard = useTapGuard();
+  const { confirmar, dialogo } = useConfirmarPuedoIr();
   // "Estoy acá ahora": si el trabajador compartió dónde está, el feed se
   // ordena desde ese punto y no desde la zona fija de su perfil. Dura lo que
   // dura la pestaña y NO pisa el perfil (ver lib/current-location.ts).
@@ -307,7 +311,10 @@ function WorkerFeedPanel() {
       // La próxima carga ya trae a los postulados filtrados: la marca de la
       // grilla termina su trabajo (y si se retiró una postulación, el turno
       // vuelve a ofrecerse sin la marca vieja).
-      if (gridApplies.current === appliesAtStart) setAppliedInGrid(new Set());
+      if (gridApplies.current === appliesAtStart) {
+        setAppliedInGrid(new Set());
+        setOfrecidosEnGrilla(new Set());
+      }
       setArrivedEmpty(feed.length === 0);
       // Si la persona guardó su perfil mientras esto cargaba, `prof` es viejo.
       const profFresh = profileSaves.current === savesAtStart && !savingProfile.current;
@@ -423,16 +430,12 @@ function WorkerFeedPanel() {
       // mazo por un error de red y el trabajador vuelve a swipear a la
       // derecha, es el MISMO intento — se reusa la key hasta que postularse
       // termine bien.
-      await api.post(
-        `/applications/shifts/${shift.id}`,
-        undefined,
-        token,
-        undefined,
-        keyFor(shift.id)
-      );
+      const enviada = await enviarPostulacion({ token, shift, key: keyFor(shift.id), confirmar });
+      if (!enviada) return false;
       clearIdempotencyKey(shift.id);
       dropFromCache(shift.id);
-      toast("¡Te postulaste! El comercio ya te puede ver");
+      if (enviada.ofrecido) setOfrecidosEnGrilla((prev) => new Set(prev).add(shift.id));
+      toast(avisoPostulacion({ apply_commits: enviada.ofrecido }));
       // Primera acción significativa del flujo del trabajador: acá, y no al
       // aterrizar en la app, es cuando tiene sentido preguntar si quiere
       // enterarse por push cuando el comercio responda (ver docs/reference/ACCESO_MODERNO.md).
@@ -458,6 +461,8 @@ function WorkerFeedPanel() {
    *  la grilla apenas se resuelve. */
   async function handleGridDecide(shift: Shift, decision: "like" | "pass") {
     if (decidingId !== null) return;
+    // Carril urgente: «Puedo ir ya» pregunta antes de postular.
+    if (decision === "like" && !(await confirmar(shift))) return;
     await tapGuard.run(async () => {
       setDecidingId(shift.id);
       try {
@@ -743,6 +748,7 @@ function WorkerFeedPanel() {
                         applying={decidingId === shift.id}
                         locked={tapGuard.locked}
                         applied={appliedInGrid.has(shift.id)}
+                        ofrecido={ofrecidosEnGrilla.has(shift.id)}
                         onApply={() => handleGridDecide(shift, "like")}
                         onPass={() => handleGridDecide(shift, "pass")}
                         shareable
@@ -781,6 +787,7 @@ function WorkerFeedPanel() {
       )}
 
       {!loading && tourPendiente && <GuidedTour steps={WORKER_FEED_TOUR} storageKey="staffya_tour_worker_feed" />}
+      {dialogo}
     </div>
   );
 }

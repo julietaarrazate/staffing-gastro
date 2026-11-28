@@ -1,4 +1,5 @@
-import type { ApplicationStatus, ShiftApplication } from "@/lib/types";
+import { api, ApiError } from "@/lib/api";
+import type { ApplicationStatus, Shift, ShiftApplication } from "@/lib/types";
 
 /**
  * Estados en los que el trabajador ya está en la lista del comercio y no
@@ -42,4 +43,50 @@ export function unassignedShiftIds(
   applications: readonly Pick<ShiftApplication, "shift_id" | "status">[]
 ): Set<string> {
   return new Set(applications.filter((a) => a.status === "desasignada").map((a) => a.shift_id));
+}
+
+/** Código que manda el servidor cuando el turno ya empieza en menos de 6 horas
+ *  y la persona no reconoció «Puedo ir ya» (pantalla cargada antes). */
+export const PUEDO_IR_YA_REQUERIDO = "puedo_ir_ya_requerido";
+
+export function esPuedoIrYaRequerido(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 409 && err.code === PUEDO_IR_YA_REQUERIDO;
+}
+
+/**
+ * `POST /applications/shifts/{id}`: la única forma de postularse (ADR-0032).
+ *
+ * Quien llama ya preguntó «¿Podés ir a este turno?» si `shift.apply_commits`;
+ * en ese caso se manda `{ puedo_ir_ya: true }` y el servidor GUARDA ese
+ * reconocimiento. Si la pantalla se cargó antes de que el turno entrara en las
+ * 6 horas, el servidor responde 409 `puedo_ir_ya_requerido` sin crear nada:
+ * se abre la pregunta (`confirmar`) y se reintenta con el reconocimiento.
+ * Devuelve `null` si la persona dijo «Ahora no»; si no, `ofrecido` es el
+ * `se_ofrecio_para_ya` que devolvió el servidor (lo que dice «Te ofreciste…»).
+ */
+export async function enviarPostulacion(opts: {
+  token: string;
+  shift: Pick<Shift, "id" | "start_at"> & { apply_commits?: boolean };
+  key: string;
+  confirmar: (shift: Pick<Shift, "start_at"> & { apply_commits?: boolean }) => Promise<boolean>;
+}): Promise<{ ofrecido: boolean } | null> {
+  const { token, shift, key, confirmar } = opts;
+  let reconocido = Boolean(shift.apply_commits);
+  for (;;) {
+    try {
+      const respuesta = await api.post<{ se_ofrecio_para_ya?: boolean } | null>(
+        `/applications/shifts/${shift.id}`,
+        reconocido ? { puedo_ir_ya: true } : undefined,
+        token,
+        undefined,
+        key
+      );
+      // Lo que el servidor GUARDÓ, no lo que la pantalla creyó mandar.
+      return { ofrecido: Boolean(respuesta?.se_ofrecio_para_ya) };
+    } catch (err) {
+      if (reconocido || !esPuedoIrYaRequerido(err)) throw err;
+      if (!(await confirmar({ ...shift, apply_commits: true }))) return null;
+      reconocido = true;
+    }
+  }
 }

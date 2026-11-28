@@ -1,13 +1,14 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { avisoPostulacion, textoPostularse, useConfirmarPuedoIr } from "@/components/worker/ConfirmarPuedoIr";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLiveRefresh } from "@/lib/live-refresh";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
-import { appliedShiftIds } from "@/lib/applications";
+import { enviarPostulacion, appliedShiftIds } from "@/lib/applications";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
@@ -100,6 +101,7 @@ function ShiftRow({
   active,
   applying,
   justApplied,
+  ofrecido,
   disabled,
   onSelect,
   onApply,
@@ -109,6 +111,8 @@ function ShiftRow({
   active: boolean;
   applying: boolean;
   justApplied: boolean;
+  /** Con `justApplied`: se ofreció para ya (lo que confirmó al postular). */
+  ofrecido: boolean;
   disabled: boolean;
   onSelect: () => void;
   onApply: () => void;
@@ -153,10 +157,10 @@ function ShiftRow({
           disabled={disabled}
           onClick={onApply}
         >
-          Postularme
+          {textoPostularse(shift)}
         </Button>
       </div>
-      {justApplied && <ConfirmOverlay label="Te postulaste" />}
+      {justApplied && <ConfirmOverlay label={ofrecido ? "Te ofreciste" : "Te postulaste"} />}
     </div>
   );
 }
@@ -201,9 +205,12 @@ export default function MapPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [applyingId, setApplyingId] = useState<string | null>(null);
+  const { confirmar, dialogo } = useConfirmarPuedoIr();
   // Turno recién postulado: su tarjeta muestra la confirmación un instante
   // (ConfirmOverlay) y recién después sale de la lista.
   const [justAppliedId, setJustAppliedId] = useState<string | null>(null);
+  // Lo que la persona confirmó al postular (carril urgente), para el cartel.
+  const [justOfrecido, setJustOfrecido] = useState(false);
   const removeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reducedMotion = useReducedMotion();
   useEffect(() => () => {
@@ -388,23 +395,21 @@ export default function MapPage() {
       toast("Estás viendo el mapa como admin — sólo lectura", "error");
       return;
     }
+    // Carril urgente: «Puedo ir ya» pregunta antes de postular.
+    if (!(await confirmar(shift))) return;
     setApplyingId(shift.id);
     try {
       // Idempotencia (product/IDEMPOTENCIA_SPEC.md): mismo intento (mismo
       // turno) reusa la key hasta que postularse termine bien; el `busy`
       // (`applyingId`) además deshabilita el botón mientras está en vuelo.
-      await api.post(
-        `/applications/shifts/${shift.id}`,
-        undefined,
-        token,
-        undefined,
-        keyFor(shift.id)
-      );
+      const enviada = await enviarPostulacion({ token, shift, key: keyFor(shift.id), confirmar });
+      if (!enviada) return;
       clearIdempotencyKey(shift.id);
       postulados.current.add(shift.id);
-      toast("¡Te postulaste! El comercio ya te puede ver");
+      toast(avisoPostulacion({ apply_commits: enviada.ofrecido }));
       setPreviewShift((prev) => (prev?.id === shift.id ? null : prev));
       setJustAppliedId(shift.id);
+      setJustOfrecido(enviada.ofrecido);
       removeTimer.current = setTimeout(
         () => {
           setShifts((prev) => prev.filter((s) => s.id !== shift.id));
@@ -524,6 +529,7 @@ export default function MapPage() {
                       active={shift.id === activeId}
                       applying={applyingId === shift.id}
                       justApplied={justAppliedId === shift.id}
+                      ofrecido={justOfrecido}
                       disabled={applyingId !== null || justAppliedId !== null}
                       onSelect={() => selectById(shift.id)}
                       onApply={() => apply(shift)}
@@ -680,10 +686,10 @@ export default function MapPage() {
                     disabled={applyingId !== null || justAppliedId !== null}
                     onClick={() => apply(shift)}
                   >
-                    Postularme
+                    {textoPostularse(shift)}
                   </Button>
                 </div>
-                {justAppliedId === shift.id && <ConfirmOverlay label="Te postulaste" />}
+                {justAppliedId === shift.id && <ConfirmOverlay label={justOfrecido ? "Te ofreciste" : "Te postulaste"} />}
               </motion.div>
             );
           })}
@@ -774,13 +780,14 @@ export default function MapPage() {
                   disabled={applyingId !== null}
                   onClick={() => apply(shift)}
                 >
-                  Postularme
+                  {textoPostularse(shift)}
                 </Button>
               </div>
             );
           })()}
         </Sheet>
       )}
+      {dialogo}
     </div>
   );
 }

@@ -108,3 +108,46 @@ describe("SwipeDeck: toque vs arrastre (U069)", () => {
     expect(onOpen).toHaveBeenCalledWith(shifts[0]);
   });
 });
+
+describe("SwipeDeck: carril urgente (ADR-0032)", () => {
+  const urgentes = ["a", "b"].map((id) => ({ id, start_at: "2026-11-27T20:00:00-03:00", apply_commits: true }) as Shift);
+
+  function renderUrgente(onApply = vi.fn(async () => true)) {
+    render(
+      <SwipeDeck
+        shifts={urgentes}
+        onApply={onApply}
+        renderCard={(s) => <div>Turno {s.id}</div>}
+        empty={<div>Sin turnos</div>}
+      />
+    );
+    return onApply;
+  }
+
+  it("el botón dice «Puedo ir ya» y la carta no se va ni postula hasta confirmar", async () => {
+    const onApply = renderUrgente();
+    await userEvent.click(screen.getByRole("button", { name: "Puedo ir ya" }));
+    expect(screen.getByRole("dialog", { name: "¿Podés ir a este turno?" })).toBeInTheDocument();
+    expect(onApply).not.toHaveBeenCalled();
+    expect(screen.getByTestId("swipe-deck-position")).toHaveTextContent("1 de 2");
+
+    await userEvent.click(screen.getByRole("button", { name: "Sí, puedo ir" }));
+    await waitFor(() => expect(onApply).toHaveBeenCalledWith(urgentes[0]));
+  });
+
+  it("«Ahora no» deja la carta donde estaba y no postula", async () => {
+    const onApply = renderUrgente();
+    await userEvent.click(screen.getByRole("button", { name: "Puedo ir ya" }));
+    await userEvent.click(screen.getByRole("button", { name: "Ahora no" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(onApply).not.toHaveBeenCalled();
+    expect(screen.getByTestId("swipe-deck-position")).toHaveTextContent("1 de 2");
+  });
+
+  it("sin apply_commits sigue siendo «Postularme» y postula directo", async () => {
+    const onApply = renderDeck();
+    await userEvent.click(screen.getByRole("button", { name: "Postularme" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await waitFor(() => expect(onApply).toHaveBeenCalledTimes(1));
+  });
+});

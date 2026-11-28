@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Avatar, Button } from "@/components/ui";
 import { ChevronRightIcon, ShieldIcon, StarIcon, XCircleIcon } from "@/components/icons";
+import { PUEDE_IR_YA, textoElegir } from "@/lib/applicants";
 import { datosCandidato, type CandidateSignals } from "./CandidateSignals";
 
 /**
@@ -31,6 +32,7 @@ export default function CandidatoFila({
   eligiendo = false,
   bloqueado = false,
   faltaVerificar = false,
+  puedeIrYa = false,
 }: {
   perfilId: string;
   nombre: string;
@@ -54,6 +56,8 @@ export default function CandidatoFila({
   bloqueado?: boolean;
   /** No verificó su identidad y hace falta para elegirla: se dice, y no hay «Elegir». */
   faltaVerificar?: boolean;
+  /** Se ofreció para ya (carril urgente): lleva la marca y «Aceptar». */
+  puedeIrYa?: boolean;
 }) {
   const datos = datosCandidato(signals);
   return (
@@ -90,8 +94,13 @@ export default function CandidatoFila({
               </span>
             )}
           </span>
-          {!marca && (rotulo || motivos.length > 0) && (
+          {!marca && (puedeIrYa || rotulo || motivos.length > 0) && (
             <span data-motivos className="mt-1 flex flex-wrap gap-1">
+              {puedeIrYa && (
+                <span data-testid="puede-ir-ya" className="chip-suave">
+                  {PUEDE_IR_YA}
+                </span>
+              )}
               {rotulo && !motivos.includes(rotulo) && <span className="chip-suave">{rotulo}</span>}
               {motivos.map((m) => (
                 <span key={m} className="chip-suave">
@@ -155,10 +164,10 @@ export default function CandidatoFila({
           onClick={onElegir}
           loading={eligiendo}
           disabled={bloqueado}
-          aria-label={`Elegir a ${nombre}`}
+          aria-label={textoElegir(puedeIrYa, nombre)}
           className="boton-quieto min-h-[44px] shrink-0"
         >
-          Elegir
+          {textoElegir(puedeIrYa)}
         </Button>
       ) : (
         <ChevronRightIcon size={18} className="shrink-0 text-ink-mute" aria-hidden />

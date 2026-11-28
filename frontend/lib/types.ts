@@ -166,6 +166,8 @@ export interface Shift {
   /** Cancelar ahora es avisar con tiempo: no suma una cancelación. `null` si
    *  la reconfirmación está apagada o el turno no está confirmado. */
   cancel_with_notice?: boolean | null;
+  /** Carril urgente (ADR-0032): postularse ahora compromete («Puedo ir ya»). */
+  apply_commits: boolean;
   company_name: string | null;
   company_logo_url: string | null;
   /** Foto del local (fachada/salón). Opcional: mocks y respuestas viejas no la traen. */
@@ -477,6 +479,8 @@ export interface ShiftApplication {
   /** Sólo con `status: "desasignada"`. */
   motivo?: UnassignedReason | null;
   created_at: string | null;
+  /** Carril urgente: se ofreció para ya (sólo lo calcula `GET /applications/mine`). */
+  se_ofrecio_para_ya: boolean;
   // Turno embebido en GET /applications/mine para pintar la tarjeta sin un
   // GET /shifts/{id} por postulación (ver backend ApplicationResponse.shift).
   shift?: Shift | null;
@@ -508,6 +512,8 @@ export interface Applicant {
   trabajo_aca: boolean;
   /** Turnos terminados en Oído en el puesto de este turno. */
   turnos_en_el_puesto: number;
+  /** Carril urgente (ADR-0032): se postuló con el turno a menos de 6 horas. Aceptarla lo deja confirmado. */
+  se_ofrecio_para_ya: boolean;
   /** Sello «Nuevo en Oído · identidad verificada»: sin turnos hechos, con la
    *  identidad verificada y sin ausencias. */
   nuevo_verificado: boolean;

@@ -71,6 +71,7 @@ def get_shift_service(
         run_after_response=background_tasks.add_task,
         reconfirmacion_activa=settings.reconfirmacion_enabled,
         verificacion_obligatoria=settings.verificacion_obligatoria,
+        urgente_directo=settings.urgente_directo,
         identity_verified=lambda user_ids: SqlAlchemyClaimRepository(session).verified_user_ids(
             user_ids, ClaimType.DOCUMENTO_VERIFICADO
         ),

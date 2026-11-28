@@ -53,6 +53,7 @@ from app.modules.shift.application.services import ShiftService
 from app.modules.shift.domain.entities import Shift
 from app.modules.shift.domain.exceptions import (
     AssigneeNotFoundError,
+    AssigneeBusyError,
     AssigneeNotVerifiedError,
     AssigneeUnavailableError,
     InvalidShiftScheduleError,
@@ -695,6 +696,11 @@ async def assign_worker(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Esta persona no puede tomar turnos por ahora. Elegí a otra.",
+        ) from exc
+    except AssigneeBusyError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Esta persona ya tomó otro turno en ese horario. Elegí a otra.",
         ) from exc
     except AssigneeNotVerifiedError as exc:
         # Esto sí se le dice: no es una sanción, y la persona lo resuelve sola.

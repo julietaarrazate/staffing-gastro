@@ -7,6 +7,7 @@ import SinFoto from "@/components/ui/SinFoto";
 import { ShieldIcon, StarIcon } from "@/components/icons";
 import { cldThumb } from "@/lib/cloudinary";
 import { NEW_LABEL, NEW_VERIFIED_LABEL } from "@/lib/reputation";
+import { PUEDE_IR_YA, textoElegir } from "@/lib/applicants";
 import { firstNameOf } from "@/lib/shift-next-step";
 import { datosCandidato, type CandidateSignals, type DatoCandidato } from "./CandidateSignals";
 
@@ -38,6 +39,7 @@ export default function CandidatoDestacado({
   rotulo,
   onElegir,
   faltaVerificar = false,
+  puedeIrYa = false,
   eligiendo = false,
   bloqueado = false,
 }: {
@@ -52,6 +54,8 @@ export default function CandidatoDestacado({
   onElegir?: () => void;
   /** No verificó su identidad y hace falta para elegirla. */
   faltaVerificar?: boolean;
+  /** Se ofreció para ya (carril urgente): lleva la marca y «Aceptar a …». */
+  puedeIrYa?: boolean;
   eligiendo?: boolean;
   bloqueado?: boolean;
 }) {
@@ -76,7 +80,7 @@ export default function CandidatoDestacado({
       // Un nombre largo baja a dos renglones en vez de desbordar.
       className="h-auto whitespace-normal break-words py-3 text-center"
     >
-      Elegir a {firstNameOf(nombre) ?? nombre}
+      {textoElegir(puedeIrYa, firstNameOf(nombre) ?? nombre)}
     </Button>
   );
 
@@ -97,7 +101,16 @@ export default function CandidatoDestacado({
               nombre en blanco da 3,9 en su renglón más alto (el segundo desde
               abajo) y más de 7 en los chips: letra grande, pide 3. */}
           <div aria-hidden className="foto-destacada-velo absolute inset-0 -z-10" />
-          {rotulo && <span className="chip-foto absolute left-3 top-3 max-w-[calc(100%-1.5rem)]">{rotulo}</span>}
+          {(rotulo || puedeIrYa) && (
+            <div className="absolute left-3 top-3 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-1.5">
+              {rotulo && <span className="chip-foto">{rotulo}</span>}
+              {puedeIrYa && (
+                <span data-testid="puede-ir-ya" className="chip-foto">
+                  {PUEDE_IR_YA}
+                </span>
+              )}
+            </div>
+          )}
           <div className="absolute inset-x-4 bottom-4 text-white">
             <Link
               href={perfil}
@@ -135,9 +148,18 @@ export default function CandidatoDestacado({
     <div data-destacado className="tarjeta-destacada no-select relative">
       <div className="app-cielo cielo-limpio cielo-hondo p-4">
         <NubesCielo nubes={[{ forma: "b", ancho: 110, pos: { right: -10, top: 4 } }]} />
-        {rotulo && <span className="chip-vidrio">{rotulo}</span>}
+        {(rotulo || puedeIrYa) && (
+          <div className="flex flex-wrap gap-1.5">
+            {rotulo && <span className="chip-vidrio">{rotulo}</span>}
+            {puedeIrYa && (
+              <span data-testid="puede-ir-ya" className="chip-vidrio">
+                {PUEDE_IR_YA}
+              </span>
+            )}
+          </div>
+        )}
         {/* Con la letra muy grande el nombre baja debajo de las iniciales. */}
-        <div className={`flex flex-wrap items-center gap-x-3.5 gap-y-2 ${rotulo ? "mt-3.5" : ""}`}>
+        <div className={`flex flex-wrap items-center gap-x-3.5 gap-y-2 ${rotulo || puedeIrYa ? "mt-3.5" : ""}`}>
           {/* El cielo con la inicial (`SinFoto`), no un círculo de color liso. */}
           <span aria-hidden className="block h-16 w-16 shrink-0 overflow-hidden rounded-full ring-2 ring-white/70">
             <SinFoto nombre={nombre} id={perfilId} tamano={64} />

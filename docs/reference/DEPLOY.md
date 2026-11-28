@@ -334,6 +334,25 @@ El default del código (`gemini_model` en `app/core/config.py`) sigue siendo
 la referencia cuando la variable está vacía; conviene actualizarlo en el
 repo después de un cambio de modelo así el próximo entorno arranca bien.
 
+## Runbook: interruptor `URGENTE_DIRECTO` (carril urgente, ADR-0032)
+
+Apagado por defecto. Se prende en Render con `URGENTE_DIRECTO=true`. El
+reconocimiento «Puedo ir ya» se guarda en cada postulación
+(`shift_applications.se_ofrecio_para_ya`) y vale mientras el turno no empiece.
+
+- **Apagar y volver a prender en menos de un día:** antes de prenderlo de
+  nuevo, limpiar las marcas con
+  `UPDATE shift_applications SET se_ofrecio_para_ya = false;`. Con la regla
+  apagada no se guardan marcas nuevas, pero las que quedaron de antes siguen
+  en la base y, al prenderla, el comercio vería «Puede ir ya» y aceptarlas
+  confirmaría el turno de gente que ya cambió de idea sin que nadie se lo
+  preguntara de nuevo.
+- **Pasado un día ya no hace falta:** el carril sólo alcanza a turnos que
+  empiezan en menos de 6 horas al postularse, así que los turnos de esas
+  postulaciones ya empezaron (y se cerraron o vencieron).
+- Nada de esto toca los Términos: la frase ya está publicada
+  (`LEGAL_TERMS_VERSION` `2026-11-28-1`).
+
 ## Runbook: prender el email transaccional (Resend)
 
 **Síntoma si está apagado:** "Recuperar contraseña" responde *"si el mail

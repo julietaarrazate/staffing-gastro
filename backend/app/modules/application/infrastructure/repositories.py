@@ -53,6 +53,7 @@ def _to_entity(model: ShiftApplicationModel) -> ShiftApplication:
         created_at=model.created_at,
         motivo=MotivoDesasignacion(model.motivo) if model.motivo else None,
         se_postulo=model.se_postulo,
+        se_ofrecio_para_ya=model.se_ofrecio_para_ya,
     )
 
 
@@ -85,6 +86,7 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
             status=application.status.value,
             motivo=application.motivo.value if application.motivo else None,
             se_postulo=application.se_postulo,
+            se_ofrecio_para_ya=application.se_ofrecio_para_ya,
         )
         self._session.add(model)
         try:
@@ -109,6 +111,7 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
         model.status = application.status.value
         model.motivo = application.motivo.value if application.motivo else None
         model.se_postulo = application.se_postulo
+        model.se_ofrecio_para_ya = application.se_ofrecio_para_ya
         # La fecha sólo cambia cuando el trabajador vuelve a postularse
         # (`ShiftApplication.reapply`); en el resto de las transiciones es la
         # misma que se leyó y no se reescribe.
@@ -218,6 +221,7 @@ class SqlAlchemyShiftApplicationRepository(ShiftApplicationRepository):
                 badges=tuple(WorkerBadge(b) for b in (worker.badges or [])),
                 level=GamificationLevel(worker.level),
                 user_id=worker.user_id,
+                se_ofrecio_para_ya=application.se_ofrecio_para_ya,
             )
             for application, worker, full_name in result.all()
         ]

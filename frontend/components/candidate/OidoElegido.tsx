@@ -23,7 +23,8 @@ import { iniciales } from "./CandidatoDestacado";
  * Tapa toda la pantalla, también el encabezado y la barra de abajo: es un
  * diálogo (foco atrapado, Escape vuelve al panel). No decide nada: el turno ya
  * quedó asignado cuando se muestra, y la persona todavía tiene que confirmar,
- * así que el texto no dice que «toma» el turno.
+ * así que el texto no dice que «toma» el turno. Salvo en el carril urgente
+ * (ADR-0032): si se había ofrecido para ya, el turno quedó confirmado y se dice.
  */
 export default function OidoElegido({
   nombre,
@@ -32,6 +33,7 @@ export default function OidoElegido({
   fotoLocal,
   fotoLocalEsLogo = false,
   detalle,
+  confirmado = false,
   chatHref,
   panelHref,
   onCerrar,
@@ -46,6 +48,9 @@ export default function OidoElegido({
   fotoLocalEsLogo?: boolean;
   /** «Cocinero/a, hoy a las 21:00.» */
   detalle: string | null;
+  /** Carril urgente: la persona ya se había ofrecido y el turno quedó
+   *  confirmado en el momento (no falta que confirme). */
+  confirmado?: boolean;
   chatHref: string;
   panelHref: string;
   /** Escape: lo mismo que «Volver al panel». */
@@ -142,7 +147,10 @@ export default function OidoElegido({
               Elegiste a {primerNombre}
             </h1>
             <p id={bajadaId} className="mt-1.5 text-base font-medium">
-              {detalle ? `${detalle} ` : ""}Ya le avisamos: falta que confirme.
+              {detalle ? `${detalle} ` : ""}
+              {confirmado
+                ? `${primerNombre} ya se había ofrecido: el turno quedó confirmado.`
+                : "Ya le avisamos: falta que confirme."}
             </p>
 
             <div className="mt-auto pt-6">

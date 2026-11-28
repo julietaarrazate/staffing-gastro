@@ -440,7 +440,13 @@ def render_identity_verification_email_html(full_name: str, profile_link: str) -
 
 
 def render_shift_accepted_email_html(
-    full_name: str, position_label: str, company_name: str, when_label: str, link: str
+    full_name: str,
+    position_label: str,
+    company_name: str,
+    when_label: str,
+    link: str,
+    *,
+    confirmado: bool = False,
 ) -> str:
     """"Te aceptaron para un turno": el mail que decide si alguien llega.
 
@@ -448,10 +454,26 @@ def render_shift_accepted_email_html(
     marca, con el puesto crudo ("ayudante_cocina") y la hora en UTC (un turno
     de las 20:00 decía "23:00"). `when_label` llega ya formateado en hora
     argentina (`core/tz.format_turno_art`): esta función no toca fechas.
-    `company_name` lo escribe el comercio, así que se escapa."""
+    `company_name` lo escribe el comercio, así que se escapa.
+
+    `confirmado` (carril urgente, ADR-0032): la persona ya había dicho «Puedo
+    ir ya», así que el turno quedó confirmado al aceptarla: el mail no pide
+    confirmar nada."""
+    if confirmado:
+        intro = f"<strong>{escape(company_name)}</strong> te aceptó. Como ya habías dicho que podías ir, el turno quedó confirmado: no hace falta que hagas nada más."
+        cta = "Ver mi turno"
+        nota = "Si después no podés ir, avisá desde el mismo lugar: según cuánto falte, cuenta como una cancelación."
+        pre = "Ya quedó confirmado."
+        titulo = "¡Turno confirmado!"
+    else:
+        intro = f"<strong>{escape(company_name)}</strong> te eligió para este turno. Falta un paso: confirmá que vas."
+        cta = "Confirmar que voy"
+        nota = "Si no podés ir, avisá desde el mismo lugar: el comercio busca a otra persona a tiempo y no te afecta la reputación."
+        pre = "Confirmá que vas."
+        titulo = "¡Te eligieron!"
     body = f"""
     <p style="margin:0 0 4px;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.6;color:{_TINTA};">Hola {escape(full_name)},</p>
-    <p style="margin:0 0 20px;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.6;color:{_TINTA};"><strong>{escape(company_name)}</strong> te eligió para este turno. Falta un paso: confirmá que vas.</p>
+    <p style="margin:0 0 20px;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.6;color:{_TINTA};">{intro}</p>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="{_fondo_glow()}border:1px solid {_LINEA};border-radius:16px;margin-bottom:8px;">
       <tr><td style="padding:16px 18px;">
         <p style="margin:0 0 2px;font-family:Inter,Arial,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.04em;color:{_TINTA_SUAVE};text-transform:uppercase;">{escape(position_label)}</p>
@@ -459,13 +481,13 @@ def render_shift_accepted_email_html(
         <p style="margin:0;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.5;color:{_TINTA};">{escape(when_label)}</p>
       </td></tr>
     </table>
-    {_cta_button("Confirmar que voy", link)}
-    <p style="margin:18px 0 0;font-family:Inter,Arial,sans-serif;font-size:13px;line-height:1.6;color:{_TINTA_APAGADA};">Si no podés ir, avisá desde el mismo lugar: el comercio busca a otra persona a tiempo y no te afecta la reputación.</p>
+    {_cta_button(cta, link)}
+    <p style="margin:18px 0 0;font-family:Inter,Arial,sans-serif;font-size:13px;line-height:1.6;color:{_TINTA_APAGADA};">{nota}</p>
     """
     return _shell(
-        preheader=escape(f"{position_label} en {company_name}, {when_label}. Confirmá que vas."),
-        eyebrow="TURNO ASIGNADO",
-        title_html="¡Te eligieron!",
+        preheader=escape(f"{position_label} en {company_name}, {when_label}. {pre}"),
+        eyebrow="TURNO CONFIRMADO" if confirmado else "TURNO ASIGNADO",
+        title_html=titulo,
         subtitle_html="",
         body_html=body,
         footer_note="Recibís este mail porque te postulaste a un turno en Oído.",

@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_session
 from app.modules.application.application.services import ApplicationService
 from app.modules.application.infrastructure.repositories import (
@@ -33,4 +34,5 @@ def get_application_service(
         notifications=SqlAlchemyNotificationRepository(session),
         workers=SqlAlchemyWorkerProfileRepository(session),
         users=SqlAlchemyUserRepository(session),
+        urgente_directo=settings.urgente_directo,
     )

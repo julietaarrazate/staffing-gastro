@@ -66,3 +66,8 @@ class PaymentReportNotAllowedError(ShiftError):
     """La persona no puede decir ahora si cobró (el turno no terminó, ya
     confirmó el cobro, o todavía es pronto para avisar que no cobró). El
     mensaje es para ella."""
+
+
+class AssigneeBusyError(ShiftError):
+    """Carril urgente: la persona se ofreció («Puedo ir ya») pero mientras
+    tanto quedó comprometida con otro turno que se superpone."""

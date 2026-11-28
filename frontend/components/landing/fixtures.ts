@@ -33,6 +33,7 @@ export function storyShift(status: ShiftStatus = "publicado", overrides: Partial
     company_id: "historia",
     position: "mozo",
     quantity: 1,
+    apply_commits: false,
     start_at: FIXED_START,
     end_at: FIXED_END,
     pay_amount: "70000",

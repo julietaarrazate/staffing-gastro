@@ -319,6 +319,7 @@
     "body": [
       {
         "address": "Thames 1234",
+        "apply_commits": false,
         "arrival_marked_by_company_at": null,
         "arrival_on_time": null,
         "cancel_with_notice": null,
@@ -555,6 +556,7 @@
       "created_at": "2026-11-01T12:00:00+00:00",
       "id": "application-2",
       "motivo": null,
+      "se_ofrecio_para_ya": false,
       "shift": null,
       "shift_id": "shift-1",
       "status": "retirada",
@@ -574,8 +576,10 @@
         "created_at": "2026-11-01T12:00:00+00:00",
         "id": "application-1",
         "motivo": null,
+        "se_ofrecio_para_ya": false,
         "shift": {
           "address": "Thames 1234",
+          "apply_commits": false,
           "arrival_marked_by_company_at": null,
           "arrival_on_time": null,
           "cancel_with_notice": null,
@@ -659,6 +663,7 @@
         "photo_url": null,
         "punctuality_rate": 0.0,
         "rating": 0.0,
+        "se_ofrecio_para_ya": false,
         "status": "pendiente",
         "trabajo_aca": false,
         "turnos_en_el_puesto": 0,
@@ -681,6 +686,7 @@
         "photo_url": null,
         "punctuality_rate": 0.0,
         "rating": 0.0,
+        "se_ofrecio_para_ya": false,
         "status": "pendiente",
         "trabajo_aca": false,
         "turnos_en_el_puesto": 0,
@@ -701,6 +707,7 @@
       "created_at": "2026-11-01T12:00:00+00:00",
       "id": "application-1",
       "motivo": null,
+      "se_ofrecio_para_ya": false,
       "shift": null,
       "shift_id": "shift-1",
       "status": "pendiente",
@@ -713,6 +720,7 @@
       "created_at": "2026-11-01T12:00:00+00:00",
       "id": "application-2",
       "motivo": null,
+      "se_ofrecio_para_ya": false,
       "shift": null,
       "shift_id": "shift-1",
       "status": "pendiente",
@@ -804,6 +812,7 @@
   "turno_asignado_comercio": {
     "body": {
       "address": "Thames 1234",
+      "apply_commits": false,
       "arrival_marked_by_company_at": null,
       "arrival_on_time": null,
       "cancel_with_notice": null,
@@ -867,6 +876,7 @@
   "turno_asignar": {
     "body": {
       "address": "Thames 1234",
+      "apply_commits": false,
       "arrival_marked_by_company_at": null,
       "arrival_on_time": null,
       "cancel_with_notice": null,
@@ -948,6 +958,7 @@
   "turno_borrador_comercio": {
     "body": {
       "address": "Thames 1234",
+      "apply_commits": false,
       "arrival_marked_by_company_at": null,
       "arrival_on_time": null,
       "cancel_with_notice": null,
@@ -1041,6 +1052,7 @@
   "turno_cancelar": {
     "body": {
       "address": "Thames 1234",
+      "apply_commits": false,
       "arrival_marked_by_company_at": null,
       "arrival_on_time": null,
       "cancel_with_notice": null,
@@ -1110,6 +1122,7 @@
   "turno_confirmado_trabajador": {
     "body": {
       "address": "Thames 1234",
+      "apply_commits": false,
       "arrival_marked_by_company_at": null,
       "arrival_on_time": null,
       "cancel_with_notice": true,
@@ -1173,6 +1186,7 @@
   "turno_confirmar": {
     "body": {
       "address": "Thames 1234",
+      "apply_commits": false,
       "arrival_marked_by_company_at": null,
       "arrival_on_time": null,
       "cancel_with_notice": true,
@@ -1242,6 +1256,7 @@
   "turno_crear": {
     "body": {
       "address": "Thames 1234",
+      "apply_commits": false,
       "arrival_marked_by_company_at": null,
       "arrival_on_time": null,
       "cancel_with_notice": null,
@@ -1305,6 +1320,7 @@
   "turno_en_camino": {
     "body": {
       "address": "Thames 1234",
+      "apply_commits": false,
       "arrival_marked_by_company_at": null,
       "arrival_on_time": null,
       "cancel_with_notice": false,
@@ -1374,6 +1390,7 @@
   "turno_en_camino_comercio": {
     "body": {
       "address": "Thames 1234",
+      "apply_commits": false,
       "arrival_marked_by_company_at": null,
       "arrival_on_time": null,
       "cancel_with_notice": false,
@@ -1443,6 +1460,7 @@
   "turno_publicado_comercio": {
     "body": {
       "address": "Thames 1234",
+      "apply_commits": false,
       "arrival_marked_by_company_at": null,
       "arrival_on_time": null,
       "cancel_with_notice": null,
@@ -1506,6 +1524,7 @@
   "turno_publicado_trabajador": {
     "body": {
       "address": "Thames 1234",
+      "apply_commits": false,
       "arrival_marked_by_company_at": null,
       "arrival_on_time": null,
       "cancel_with_notice": null,
@@ -1569,6 +1588,7 @@
   "turno_publicar": {
     "body": {
       "address": "Thames 1234",
+      "apply_commits": false,
       "arrival_marked_by_company_at": null,
       "arrival_on_time": null,
       "cancel_with_notice": null,
@@ -1655,6 +1675,7 @@
     "body": [
       {
         "address": "Thames 1234",
+        "apply_commits": false,
         "arrival_marked_by_company_at": null,
         "arrival_on_time": null,
         "cancel_with_notice": null,
@@ -1720,6 +1741,7 @@
     "body": [
       {
         "address": "Thames 1234",
+        "apply_commits": false,
         "arrival_marked_by_company_at": null,
         "arrival_on_time": null,
         "cancel_with_notice": null,
@@ -1785,6 +1807,7 @@
     "body": [
       {
         "address": "Thames 1234",
+        "apply_commits": false,
         "arrival_marked_by_company_at": null,
         "arrival_on_time": null,
         "cancel_with_notice": true,

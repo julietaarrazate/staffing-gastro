@@ -16,6 +16,7 @@ function applicant(overrides: Partial<Applicant>): Applicant {
     rating: 0,
     is_available: true,
     status: "pendiente",
+    se_ofrecio_para_ya: false,
     created_at: "2026-09-22T10:00:00Z",
     events_completed: 0,
     punctuality_rate: 0,
@@ -112,5 +113,16 @@ describe("quien tuvo el turno y lo dejó (G4)", () => {
   it("un postulante en carrera no lleva marca", () => {
     expect(unassignedLabel(nuevo)).toBeNull();
     expect(unassignedLabel({ status: "aceptada", motivo: null })).toBeNull();
+  });
+});
+
+describe("carril urgente (ADR-0032)", () => {
+  it("el botón dice «Aceptar» si ya se ofreció para ya, «Elegir» si no", async () => {
+    const { textoElegir, PUEDE_IR_YA } = await import("./applicants");
+    expect(PUEDE_IR_YA).toBe("Puede ir ya");
+    expect(textoElegir(true)).toBe("Aceptar");
+    expect(textoElegir(false)).toBe("Elegir");
+    expect(textoElegir(undefined, "Sofía")).toBe("Elegir a Sofía");
+    expect(textoElegir(true, "Sofía")).toBe("Aceptar a Sofía");
   });
 });

@@ -1,5 +1,6 @@
 "use client";
 
+import { enviarPostulacion } from "@/lib/applications";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNow } from "@/lib/use-now";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -15,6 +16,7 @@ import { claveDeVista, diaEnPalabras, semanaArgentina, semanasHasta, turnosPorDi
 import MasAdelante, { type FilaFutura } from "@/components/MasAdelante";
 import SemanaTira from "@/components/SemanaTira";
 import { autoFinishWorkerNote } from "@/lib/shift-next-step";
+import { avisoPostulacion, textoPostularse, useConfirmarPuedoIr } from "@/components/worker/ConfirmarPuedoIr";
 import { SKILL_LABELS, STATUS_LABELS, Shift, ShiftApplication, WorkerProfile } from "@/lib/types";
 import { formatPayCompact } from "@/lib/pay";
 import { getCurrentPosition } from "@/lib/geolocation";
@@ -65,6 +67,12 @@ const APPLICATION_LABELS: Record<string, string> = {
   rechazada: "No quedaste esta vez",
   retirada: "Retiraste la postulación",
 };
+
+// Carril urgente: quien se ofreció para ya ve «Te ofreciste», no «Postulado».
+function etiquetaPostulacion(a: ShiftApplication): string {
+  if (a.status === "pendiente" && a.se_ofrecio_para_ya) return "Te ofreciste · esperando respuesta";
+  return APPLICATION_LABELS[a.status] ?? "Pendiente";
+}
 
 // Una postulación pendiente sólo «espera respuesta» mientras el turno sigue
 // abierto (U088). Si el turno se cerró sin llegar a nadie, decirlo.
@@ -164,6 +172,7 @@ function MatchesContent() {
   const [withdrawing, setWithdrawing] = useState<string | null>(null);
   const [unsaving, setUnsaving] = useState<string | null>(null);
   const [applyingSaved, setApplyingSaved] = useState<string | null>(null);
+  const { confirmar, dialogo } = useConfirmarPuedoIr();
   const [confirmWithdrawId, setConfirmWithdrawId] = useState<string | null>(null);
   // "Turno cubierto" (ART_DIRECTION.md §10.4): confirmar un turno asignado
   // antes no daba ningún feedback de éxito (ni toast) — se recargaba la
@@ -453,17 +462,14 @@ function MatchesContent() {
 
   async function applyToSavedShift(shift: Shift) {
     if (!token) return;
+    // Carril urgente: «Puedo ir ya» pregunta antes de postular.
+    if (!(await confirmar(shift))) return;
     setApplyingSaved(shift.id);
     try {
-      await api.post(
-        `/applications/shifts/${shift.id}`,
-        undefined,
-        token,
-        undefined,
-        keyFor(shift.id)
-      );
+      const enviada = await enviarPostulacion({ token, shift, key: keyFor(shift.id), confirmar });
+      if (!enviada) return;
       clearIdempotencyKey(shift.id);
-      toast("¡Te postulaste! El comercio ya te puede ver");
+      toast(avisoPostulacion({ apply_commits: enviada.ofrecido }));
       // Ya avanzó de "para evaluar" a "postulado" — sale de guardados solo.
       // Si falla, el trabajador lo puede sacar a mano: no se avisa. Pero se
       // espera a que termine antes de releer: si no, la relectura le ganaba
@@ -724,7 +730,7 @@ function MatchesContent() {
       : tab === "postulaciones"
         ? pending.flatMap((a) => {
             const s = appShifts[a.shift_id];
-            return s ? [{ shift: s, estado: APPLICATION_LABELS[a.status] ?? "Pendiente", tono: CLASE_TONO.azul }] : [];
+            return s ? [{ shift: s, estado: etiquetaPostulacion(a), tono: CLASE_TONO.azul }] : [];
           })
         : savedShifts.map((s) => ({ shift: s, estado: "Guardado", tono: CLASE_TONO.azul }));
   const semana = semanaArgentina(now, semanaOffset);
@@ -965,7 +971,7 @@ function MatchesContent() {
                   {isOpen ? (
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="chip-suave text-primary-text">
-                        <ClockIcon size={15} /> {APPLICATION_LABELS[application.status]}
+                        <ClockIcon size={15} /> {etiquetaPostulacion(application)}
                       </p>
                       {/* Compartir a un colega: este turno sigue abierto, pasarlo
                           por WhatsApp suma gente a la plataforma (mismas piezas
@@ -1080,7 +1086,7 @@ function MatchesContent() {
                             loading={applyingSaved === shift.id}
                             disabled={applyingSaved !== null || unsaving !== null}
                           >
-                            Postularme
+                            {textoPostularse(shift)}
                           </Button>
                           <ShareShiftButton shift={shift} shiftId={shift.id} />
                           <Button
@@ -1212,6 +1218,7 @@ function MatchesContent() {
           </Button>
         </div>
       </Modal>
+      {dialogo}
     </div>
   );
 }

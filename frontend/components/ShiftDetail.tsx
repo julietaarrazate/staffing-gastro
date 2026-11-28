@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
-import { appliedShiftIds, unassignedShiftIds } from "@/lib/applications";
+import { enviarPostulacion, appliedShiftIds, unassignedShiftIds } from "@/lib/applications";
 import { useAuth } from "@/lib/auth-context";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
@@ -25,6 +25,7 @@ import Filete from "@/components/landing/Filete";
 import { LETRAS_APP } from "@/lib/letras";
 import DrawnCheck from "@/components/ui/DrawnCheck";
 import { loginHref, registerHref } from "@/lib/safe-next";
+import { avisoPostulacion, estadoPostulado, textoPostularse, useConfirmarPuedoIr } from "@/components/worker/ConfirmarPuedoIr";
 import { reportShiftHref } from "@/lib/support-reference";
 import { shiftHeroPhoto } from "@/lib/company-photo";
 import { comoLlegarHref } from "@/lib/como-llegar";
@@ -85,8 +86,12 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
   const toast = useToast();
   const { requestOptIn } = usePushPrompt();
   const { keyFor, clear } = useIdempotencyKeys();
+  const { confirmar, dialogo } = useConfirmarPuedoIr();
   const [full, setFull] = useState<Shift | null>(null);
   const [apply, setApply] = useState<ApplyState>("unknown");
+  // La postulación vigente es un ofrecimiento «Puedo ir ya» (carril urgente).
+  // Sale de SU postulación (`/applications/mine`) o de lo que confirmó recién.
+  const [ofrecido, setOfrecido] = useState(false);
   // El servidor contestó 404 al pedir el turno completo: quien no es parte ya
   // no lo ve (se cubrió, se canceló o venció). Se muestra el aviso en lugar de
   // seguir ofreciendo «Postularme» (VIE-03).
@@ -169,6 +174,11 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
               if (mine !== latestLoad.current) return;
               const applied = appliedShiftIds(mine_).has(publicShift.id);
               const released = unassignedShiftIds(mine_).has(publicShift.id);
+              if (epoch === applyEpoch.current) {
+                setOfrecido(
+                  mine_.some((a) => a.shift_id === publicShift.id && a.status === "pendiente" && a.se_ofrecio_para_ya)
+                );
+              }
               isParty = applied || released;
               setApply((prev) => {
                 // Se postuló (o está postulándose) después de que salió este
@@ -240,14 +250,22 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
 
   async function onApply() {
     if (!token) return;
+    // Carril urgente: «Puedo ir ya» pregunta antes de postular.
+    if (!(await confirmar(shift))) return;
     applyEpoch.current += 1;
     setApply("applying");
     try {
-      await api.post(`/applications/shifts/${shift.id}`, undefined, token, undefined, keyFor(shift.id));
+      const enviada = await enviarPostulacion({ token, shift, key: keyFor(shift.id), confirmar });
+      if (!enviada) {
+        // «Ahora no» en la pregunta que abrió el servidor (pantalla vieja).
+        setApply("can_apply");
+        return;
+      }
       clear(shift.id);
       setJustApplied(true);
+      setOfrecido(enviada.ofrecido);
       setApply("applied");
-      toast("¡Te postulaste! El comercio ya te puede ver");
+      toast(avisoPostulacion({ apply_commits: enviada.ofrecido }));
       // La invitación a notificaciones espera a que se vea la confirmación
       // (el check se dibuja en ~0,5 s): si sale junto, su hoja la tapa.
       window.setTimeout(requestOptIn, reducedMotion ? 0 : 1200);
@@ -522,11 +540,14 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
               shiftId={shift.id}
               apply={apply}
               justApplied={justApplied}
+              commits={Boolean(shift.apply_commits)}
+              ofrecido={ofrecido}
               onApply={onApply}
             />
           </div>
         )}
       </section>
+      {dialogo}
     </div>
   );
 }
@@ -584,6 +605,8 @@ function PrimaryAction({
   shiftId,
   apply,
   justApplied,
+  commits,
+  ofrecido,
   onApply,
 }: {
   loading: boolean;
@@ -593,6 +616,10 @@ function PrimaryAction({
   shiftId: string;
   apply: ApplyState;
   justApplied: boolean;
+  /** Carril urgente: postularse compromete («Puedo ir ya»). */
+  commits: boolean;
+  /** Se ofreció para ya: `se_ofrecio_para_ya` de su postulación. */
+  ofrecido: boolean;
   onApply: () => void;
 }) {
   const reducedMotion = useReducedMotion();
@@ -651,8 +678,8 @@ function PrimaryAction({
           >
             <DrawnCheck size={24} animate={justApplied} className="shrink-0 text-success-text" />
             <div className="min-w-0 flex-1">
-              <p className="text-body font-semibold text-ink">Ya te postulaste</p>
-              <p className="text-sm text-ink-soft">Te avisamos cuando el comercio responda.</p>
+              <p className="text-body font-semibold text-ink">{estadoPostulado(ofrecido).titulo}</p>
+              <p className="text-sm text-ink-soft">{estadoPostulado(ofrecido).detalle}</p>
             </div>
             <Link
               href="/my-shifts"
@@ -671,7 +698,7 @@ function PrimaryAction({
             disabled={apply === "applying"}
             className={PRIMARY_BUTTON}
           >
-            {apply === "applying" ? "Enviando…" : "Postularme"}
+            {apply === "applying" ? "Enviando…" : textoPostularse({ apply_commits: commits })}
           </motion.button>
         )}
       </AnimatePresence>

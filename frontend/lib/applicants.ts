@@ -66,3 +66,14 @@ export function motivosDe(
   }
   return motivos;
 }
+
+/** Carril urgente (ADR-0032): la marca de quien se ofreció para ya. */
+export const PUEDE_IR_YA = "Puede ir ya";
+
+/** El botón que elige a alguien: «Aceptar» si ya se ofreció para ya
+ *  (el turno queda confirmado en el momento), «Elegir» si no. Con `nombre`,
+ *  «Aceptar a <nombre>» / «Elegir a <nombre>». */
+export function textoElegir(puedeIrYa: boolean | undefined, nombre?: string): string {
+  const verbo = puedeIrYa ? "Aceptar" : "Elegir";
+  return nombre ? `${verbo} a ${nombre}` : verbo;
+}

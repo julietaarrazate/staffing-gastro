@@ -11,13 +11,19 @@ from app.core.rate_limit import RateLimiter
 from app.modules.company.api.dependencies import get_company_repository
 from app.modules.company.domain.repositories import CompanyProfileRepository
 from app.modules.application.api.dependencies import get_application_service
-from app.modules.application.api.schemas import ApplicantResponse, ApplicationResponse
+from app.modules.application.api.schemas import (
+    ApplicantResponse,
+    ApplicationResponse,
+    ApplyRequest,
+)
 from app.modules.application.application.services import ApplicationService
+from app.modules.application.domain.value_objects import ApplicationStatus
 from app.modules.application.domain.exceptions import (
     AlreadyAppliedError,
     AlreadyUnassignedError,
     ApplicationNotFoundError,
     InvalidApplicationTransitionError,
+    PuedoIrYaRequeridoError,
     ShiftNotApplicableError,
 )
 from app.modules.identity.api.dependencies import get_current_user, per_account_quota_key
@@ -73,14 +79,33 @@ async def apply_to_shift(
     worker_profile_id: WorkerProfileIdDep,
     service: ServiceDep,
     recorder: RecorderDep,
+    payload: ApplyRequest | None = None,
 ):
     _apply_to_shift_rate_limit.check(
         f"{per_account_quota_key(current_user, request)}:{shift_id}"
     )
     try:
-        application = await service.apply(worker_profile_id, shift_id)
+        application = await service.apply(
+            worker_profile_id,
+            shift_id,
+            puedo_ir_ya=bool(payload and payload.puedo_ir_ya),
+        )
     except ShiftNotApplicableError as exc:
         raise _SHIFT_NOT_FOUND from exc
+    except PuedoIrYaRequeridoError as exc:
+        # Código estable: la pantalla abre «¿Podés ir a este turno?» y reintenta.
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "puedo_ir_ya_requerido",
+                # Lo lee tal cual un cliente viejo (PWA con caché) que no tiene el
+                # diálogo; el nuevo no lo muestra: abre la pregunta por el `code`.
+                "message": (
+                    "Este turno empieza pronto. Cerrá la app y volvé a abrirla "
+                    "para poder postularte."
+                ),
+            },
+        ) from exc
     except AlreadyUnassignedError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -159,6 +184,12 @@ async def my_applications(
             created_at=application.created_at,
             shift=_shift_for_applicant(
                 shift, worker_profile_id, companies_by_id, verified_owner_ids
+            ),
+            # Sólo el reconocimiento guardado al postular (ADR-0032).
+            se_ofrecio_para_ya=(
+                settings.urgente_directo
+                and application.status == ApplicationStatus.PENDIENTE
+                and application.se_ofrecio_para_ya
             ),
         )
         for application, shift in enriched
@@ -240,6 +271,13 @@ async def shift_applicants(
             trabajo_aca=fila.trabajo_aca,
             turnos_en_el_puesto=fila.turnos_en_el_puesto,
             nuevo_verificado=fila.nuevo_verificado,
+            # Carril urgente: se ofreció para ya (se mide contra cuándo se
+            # postuló). El comercio ve «Puede ir ya» y «Aceptar».
+            se_ofrecio_para_ya=(
+                settings.urgente_directo
+                and applicant.status == ApplicationStatus.PENDIENTE
+                and applicant.se_ofrecio_para_ya
+            ),
         )
         for fila in ordenados
         for applicant in (fila.postulante,)
