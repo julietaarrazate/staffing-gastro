@@ -13,6 +13,7 @@ describe("companyPlaceFromProfile", () => {
   it("toma ciudad y coordenadas del local, y muestra la dirección", () => {
     expect(companyPlaceFromProfile(local)).toEqual({
       label: "Honduras 5200, Palermo",
+      address: "Honduras 5200, Palermo",
       city: "Palermo",
       latitude: -34.5875,
       longitude: -58.43,
@@ -21,6 +22,8 @@ describe("companyPlaceFromProfile", () => {
 
   it("sin dirección muestra la ciudad, y sin ciudad el nombre del comercio", () => {
     expect(companyPlaceFromProfile({ ...local, address: null })?.label).toBe("Palermo");
+    // Sin dirección escrita no hay dirección exacta que mandar al publicar.
+    expect(companyPlaceFromProfile({ ...local, address: null })?.address).toBeNull();
     expect(companyPlaceFromProfile({ ...local, address: null, city: null })).toMatchObject({
       label: "Bar La Esquina",
       city: "",
