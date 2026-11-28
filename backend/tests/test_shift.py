@@ -883,7 +883,7 @@ async def test_public_shift_published_returns_only_safe_fields(client: AsyncClie
         headers=headers,
         json=_shift_payload(
             city="Palermo",
-            address="Av. Secreta 1234",
+            address="Av. Publica 1234",
             dress_code="Camisa negra",
             description="Instrucciones internas para el candidato",
         ),
@@ -900,6 +900,9 @@ async def test_public_shift_published_returns_only_safe_fields(client: AsyncClie
     assert body["id"] == shift_id
     assert body["position"] == "mozo"
     assert body["city"] == "Palermo"
+    # La dirección escrita de un turno en el local es pública (Julieta,
+    # 2026-11-27); las coordenadas exactas, no.
+    assert body["address"] == "Av. Publica 1234"
     assert float(body["pay_amount"]) == 70000.0
     assert body["currency"] == "ARS"
     assert body["company_name"] == "Bar Palermo"
@@ -917,7 +920,6 @@ async def test_public_shift_published_returns_only_safe_fields(client: AsyncClie
     sensitive_fields = {
         "company_id",
         "worker_profile_id",
-        "address",
         "latitude",
         "longitude",
         "description",

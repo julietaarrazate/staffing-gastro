@@ -346,6 +346,12 @@ class ShiftPublicResponse(BaseModel):
     position: WorkerSkill
     start_at: datetime
     end_at: datetime
+    # La dirección escrita del local (decisión de Julieta, 2026-11-27: la de un
+    # local ya es pública y ayuda a postularse y a Google). Sólo la trae un
+    # turno publicado EN el local: uno «en otra zona» o un evento no tienen
+    # `address` (nunca se completa con la del local). Las coordenadas exactas
+    # siguen FUERA de la vista pública.
+    address: str | None = None
     city: str | None
     pay_amount: Decimal
     currency: str
@@ -356,7 +362,7 @@ class ShiftPublicResponse(BaseModel):
     company_name: str | None = None
     # Las condiciones del turno, que es con lo que alguien decide si le
     # conviene registrarse (Julieta, 2026-09-22). Son del turno, no de una
-    # persona. Siguen FUERA: la dirección exacta, la descripción libre (la
+    # persona. Siguen FUERA: las coordenadas, la descripción libre (la
     # escribe el comercio y puede traer un teléfono) y el logo del comercio.
     tips: bool = False
     meal: bool = False

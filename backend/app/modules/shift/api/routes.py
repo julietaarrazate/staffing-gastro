@@ -562,6 +562,8 @@ async def get_shift_public(
         position=shift.position,
         start_at=shift.start_at,
         end_at=shift.end_at,
+        # Un turno de evento no lleva dirección exacta en la vista pública.
+        address=None if shift.event_id else shift.address,
         city=shift.city,
         pay_amount=shift.pay_amount,
         currency=shift.currency,

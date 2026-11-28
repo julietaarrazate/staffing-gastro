@@ -322,10 +322,19 @@ describe("ShiftDetail", () => {
     await waitFor(() => expect(screen.getByText("Traer delantal")).toBeInTheDocument());
   });
 
-  it("sin sesión no hay dirección ni «Cómo llegar»: la vista pública sólo trae la zona", () => {
+  it("sin sesión ya muestra la dirección escrita del local y «Cómo llegar» por esa dirección (sin coordenadas)", () => {
+    render(<ShiftDetail publicShift={{ ...SHIFT, address: "Gorriti 5000" }} />);
+
+    expect(screen.getByText("Gorriti 5000")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Cómo llegar" })).toHaveAttribute(
+      "href",
+      "https://www.google.com/maps/dir/?api=1&destination=Gorriti%205000%2C%20Palermo"
+    );
+  });
+
+  it("sin sesión y sin dirección (otra zona o evento) sólo dice la zona y no ofrece «Cómo llegar»", () => {
     render(<ShiftDetail publicShift={SHIFT} />);
 
-    expect(screen.getByText("Palermo", { selector: "dd *, dd" })).toBeInTheDocument();
     expect(screen.queryByText(/Gorriti/)).toBeNull();
     expect(screen.queryByRole("link", { name: "Cómo llegar" })).toBeNull();
   });
