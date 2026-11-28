@@ -9,6 +9,7 @@ import { crearSalon, FACHADA } from './salon.js';
 import { crearEnfrente, crearTalonario, crearHoja, crearSello, crearConfeti, crearFlechas, crearBici, crearCopas, ENFRENTE } from './objetos.js';
 
 export const DURACION = 68;
+export const camY3 = (...a) => p3.y(...a); // la altura de la cámara en la escena 3 (para el viento)
 const T3 = 10; // la escena 3 empieza a los 10 s
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 
@@ -119,6 +120,7 @@ export async function crearPieza(motor, guion) {
       const fin = smooth(46.2, 47.0, t); pos.lerp(V3(...R.pos8(47.0)), fin); look.lerp(V3(...R.look8(47.0)), fin); fov = lerp(fov, 44, fin);
     }
     else if (t < 53.6) { pos = V3(...R.pos8(t)); look = V3(...R.look8(t)); fov = lerp(44, 40, smooth(51, 53.4, t)); roll = deriva(t * 0.8, 9) * 0.01; }
+    else if (t >= 69.5) { const u = smooth(69.5, 73.6, t); pos = V3(5.975, lerp(6.34, 6.24, u), lerp(25.84, 25.95, u)); look = V3(5.95, 6.07, 26.12); fov = 40; roll = deriva(t * 0.6, 12) * 0.008; }
     else { pos = V3(...R.pos9(t)); look = V3(...R.look9(t)); fov = lerp(40, 50, smooth(57, 59.4, t)); fov = lerp(fov, 60, smooth(63, 65, t)); const cen = smooth(58.4, 59.4, t) * (1 - smooth(62.9, 64.2, t)); up = V3(0, 1 - cen, -cen).normalize(); roll = smooth(59.4, 62.8, t) * 0.25 * (1 - smooth(62.9, 64.2, t)); }
     // empujones de cámara en los golpes fuertes
     for (const [T0, a] of [[54.6, 0.006], [8.15, 0.0015], [8.75, 0.0015]]) { const u = t - T0; if (u > 0 && u < 0.5) pos.y -= a * Math.exp(-u * 14) * Math.cos(u * 60); }
@@ -142,6 +144,7 @@ export async function crearPieza(motor, guion) {
     if (t < 53.6) return [t < 51 ? V3(3.0, 0.2, 24.8) : V3(0, 0.3, 12), lerp(3, 6, smooth(51.5, 53.4, t))];
     if (t < 57.2) return [V3(0, 0.16, 0), 10];
     if (t < 63) return [t < 58.6 ? V3(0.6, 0.02, 0.4) : V3(-2.3, -0.17, 5.7), t < 58.6 ? 7 : 4];
+    if (t >= 69.5) return [V3(5.95, 6.07, 26.12), 11];
     return [V3(0, 0, 0), 0];
   };
 

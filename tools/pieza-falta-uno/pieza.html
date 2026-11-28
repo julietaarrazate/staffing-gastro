@@ -13,9 +13,7 @@ for (const [n, u] of fuentes) { const f = new FontFace(n, `url(${u})`); await f.
 const guion = await (await fetch('./trabajo/entrada/guion.json')).json();
 const lienzo = document.getElementById('lienzo'); lienzo.width = W; lienzo.height = H;
 const motor = crearMotor(lienzo, W, H);
-let escena;
-if (cual === 'pieza') { const { crearPieza } = await import('./src/pieza.js'); escena = await crearPieza(motor, guion); }
-else { const { crearEscena3 } = await import('./src/escena3.js'); escena = await crearEscena3(motor); }
+const { crearPieza } = await import('./src/pieza.js'); const escena = await crearPieza(motor, guion); void cual;
 const letras = await crearLetras(W, H, 'Young Serif', { logo: '/marca/oido-plano-blanco.svg' });
 window.pieza = {
   escena,

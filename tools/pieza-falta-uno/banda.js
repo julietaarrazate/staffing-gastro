@@ -1,6 +1,6 @@
 // Calcula la banda de sonido (sin tiempo real) y la guarda en WAV. Uso: node banda.js <salida.wav> [duración s=10]
 const { chromium } = require('playwright'); const http = require('http'); const fs = require('fs'); const path = require('path');
-const [,, salida = 'trabajo/sonido.wav', dur = '10'] = process.argv;
+const [,, salida = 'trabajo/sonido.wav', dur = '68'] = process.argv;
 const RAIZ = path.resolve(__dirname, '..');
 const tipos = { '.html': 'text/html', '.js': 'text/javascript', '.woff2': 'font/woff2' };
 const srv = http.createServer((req, res) => { const f = path.join(RAIZ, decodeURIComponent(req.url.split('?')[0])); if (!f.startsWith(RAIZ) || !fs.existsSync(f)) { res.writeHead(404); return res.end(); } res.writeHead(200, { 'content-type': tipos[path.extname(f)] || 'application/octet-stream' }); fs.createReadStream(f).pipe(res); });

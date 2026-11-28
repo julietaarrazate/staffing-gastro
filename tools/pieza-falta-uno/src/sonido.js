@@ -2,9 +2,9 @@
 // Nada grabado ni de catálogo: ruido filtrado, senos con envolventes, reverberación por convolución con salas generadas.
 import { rng, clamp, lerp, smooth } from './util.js';
 
-export async function bandaEscena3({ GOLPES, crece, camY, TECHO }, { dur = 10, sr = 48000 } = {}) {
+function caja(dur, sr, semilla) {
   const ac = new OfflineAudioContext({ numberOfChannels: 2, length: Math.ceil(dur * sr), sampleRate: sr });
-  const R = rng(4242);
+  const R = rng(semilla);
 
   // ---------- utilidades ----------
   const buf = (seg, f) => { const n = Math.max(1, Math.round(seg * sr)), b = ac.createBuffer(2, n, sr); for (let c = 0; c < 2; c++) { const d = b.getChannelData(c); f(d, c, n); } return b; };
@@ -44,6 +44,11 @@ export async function bandaEscena3({ GOLPES, crece, camY, TECHO }, { dur = 10, s
   const salaAbierta = conv(sala(4.2, 3.6, 23, .55, .03), 1.0);
   const envios = (dest, cocina, abierta) => { const n = nodo.gan(1); n.connect(dest); if (cocina) { const g = nodo.gan(cocina); n.connect(g); g.connect(salaCocina); } if (abierta) { const g = nodo.gan(abierta); n.connect(g); g.connect(salaAbierta); } return n; };
 
+  return { ac, R, buf, ruido, sala, nodo, cadena, env, envExp, tocar, osc, master, envios, salaCocina, salaAbierta };
+}
+
+export async function bandaEscena3({ GOLPES, crece, camY, TECHO }, { dur = 10, sr = 48000 } = {}) {
+  const { ac, R, buf, ruido, sala, nodo, cadena, env, envExp, tocar, osc, master, envios } = caja(dur, sr, 4242);
   const T_TECHO = 8.17, T_AFUERA = 8.24;
 
   // ---------- 1. el salón y la cocina (adentro) ----------
@@ -152,6 +157,109 @@ export async function bandaEscena3({ GOLPES, crece, camY, TECHO }, { dur = 10, s
     for (const f of [1318.5, 1760]) { const o = ac.createOscillator(); o.type = 'sine'; o.frequency.value = f; const v = ac.createOscillator(); v.frequency.value = 5.2; const vgn = nodo.gan(f * .004); v.connect(vgn); vgn.connect(o.frequency); o.connect(br); o.start(8.6); o.stop(dur); v.start(8.6); v.stop(dur); }
   }
 
+  return await ac.startRendering();
+}
+
+// ---------- la banda de la pieza entera (68 s) ----------
+// La escena 3 se calcula aparte (bandaEscena3) y se monta a los 10 s; el resto se arma acá, escena por escena.
+export async function bandaPieza({ GOLPES, crece, camY3, TECHO }, { dur = 68, sr = 48000 } = {}) {
+  const b3 = await bandaEscena3({ GOLPES, crece, camY: camY3, TECHO }, { dur: 10.9, sr });
+  const { ac, R, ruido, nodo, cadena, env, envExp, tocar, osc, master, envios } = caja(dur, sr, 777);
+  const H = { pink: ruido(dur + 1, 'rosa', 11), blanco: ruido(3, 'blanco', 12), marron: ruido(dur + 1, 'marron', 13) };
+
+  // ---------- piezas sonoras ----------
+  const parciales = (t, f, lista, dest, g = 1, ataque = 0.002) => { const gg = nodo.gan(1); gg.connect(dest); for (const [m, a, d] of lista) { const x = nodo.gan(0); x.connect(gg); envExp(x.gain, [[t, 1e-4], [t + ataque, a * g], [t + d, 1e-4]]); osc('sine', f * m, t, t + d + 0.05, x); } };
+  const campana = (t, g, dest) => { for (const det of [1, 1.0016]) parciales(t, 2093 * det, [[1, 0.5, 2.8], [2.41, 0.28, 1.6], [3.93, 0.16, 0.9], [5.43, 0.08, 0.5], [0.5, 0.06, 1.8]], dest, g * 0.5, 0.0015); const c = nodo.filtro('bandpass', 3800, 1.2), x = nodo.gan(0); cadena(c, x, dest); tocar(H.blanco, t, c, { desde: 0.3, dura: 0.02 }); envExp(x.gain, [[t, 1e-4], [t + 0.001, 0.4 * g], [t + 0.02, 1e-4]]); };
+  const nota = (t, f, g, dest, d = 1.3) => parciales(t, f, [[1, 0.5, d], [3.0, 0.12, d * 0.4], [4.1, 0.05, d * 0.25]], dest, g, 0.003);
+  const vibra = (t, d, dest, g = 1) => { const bp = nodo.filtro('bandpass', 360, 2.5), x = nodo.gan(0); cadena(bp, x, dest); osc('square', 172, t, t + d, bp); osc('square', 344.5, t, t + d, bp); env(x.gain, [[t, 0], [t + 0.02, 0.09 * g], [t + d - 0.03, 0.09 * g], [t + d, 0]]); const hp = nodo.filtro('highpass', 1800, 0.8), y = nodo.gan(0); cadena(hp, y, dest); tocar(H.blanco, t, hp, { desde: 0.5, dura: d }); env(y.gain, [[t, 0], [t + 0.02, 0.025 * g], [t + d, 0]]); };
+  const zumbido = (t, d, f0, f1, g, dest, q = 1, tipo = 'pink') => { const bp = nodo.filtro('bandpass', f0, q), x = nodo.gan(0); cadena(bp, x, dest); tocar(tipo === 'pink' ? H.pink : H.blanco, t, bp, { desde: (t * 0.37) % 2, dura: d + 0.05 }); envExp(bp.frequency, [[t, f0], [t + d, f1]]); env(x.gain, [[t, 0], [t + d * 0.55, g], [t + d, 0]]); };
+  const granos = (t0, t1, porSeg, f0, f1, g, dest, q = 2, dura = 0.02) => { let t = t0; while (t < t1) { const u = (t - t0) / Math.max(1e-3, t1 - t0), bp = nodo.filtro('bandpass', lerp(f0, f1, R()), q), x = nodo.gan(0), p = nodo.pan((R() - .5) * 0.8); cadena(bp, x, p, dest); tocar(H.blanco, t, bp, { desde: R() * 2.5, dura }); env(x.gain, [[t, 0], [t + 0.002, g * (0.5 + R() * 0.5)], [t + dura, 0]]); t += (1 / (typeof porSeg === 'function' ? porSeg(u) : porSeg)) * (0.4 + R() * 1.2); } };
+  const golpeGrave = (t, f0, f1, d, g, dest) => { const o = ac.createOscillator(), x = nodo.gan(0); o.type = 'sine'; envExp(o.frequency, [[t, f0], [t + d * 0.4, f1]]); o.connect(x); x.connect(dest); o.start(t); o.stop(t + d + 0.05); envExp(x.gain, [[t, 1e-4], [t + 0.003, g], [t + d, 1e-4]]); };
+  const murmullo = (t0, t1, curva, dest, semilla = 1) => { const r = rng(semilla); for (const [f, q, g] of [[320, 1.1, .05], [850, 1.4, .045], [2300, 2.2, .018]]) { const bp = nodo.filtro('bandpass', f, q), a = nodo.gan(0), p = nodo.pan((r() - .5) * .7); cadena(bp, a, p, dest); tocar(H.pink, t0, bp, { desde: r() * 3, dura: t1 - t0 + 0.1 }); let t = t0; a.gain.setValueAtTime(0, t0); while (t < t1) { t += .12 + r() * .2; a.gain.linearRampToValueAtTime(g * (.35 + r() * .9) * curva(t), t); } a.gain.linearRampToValueAtTime(0, t1 + 0.1); } };
+  const acorde = (t0, t1, notas, pts, lp, dest) => { const f = nodo.filtro('lowpass', 600, .5), x = nodo.gan(0); cadena(f, x, dest); env(x.gain, pts); envExp(f.frequency, lp); for (const [hz, d] of notas) { osc('sawtooth', hz, t0, t1, f, d); osc('sawtooth', hz, t0, t1, f, d + 8); } };
+
+  // ---------- buses ----------
+  const seco = envios(master, 0, 0.25), cuarto = envios(master, 0.9, 0), abierto = envios(master, 0, 1.0), salon = envios(master, 0.5, 0);
+
+  // ---------- 1. la calle al atardecer (0–5) ----------
+  { const lp = nodo.filtro('lowpass', 320, .6), x = nodo.gan(0); cadena(lp, x, abierto); tocar(H.marron, 0, lp, { dura: 6 }); env(x.gain, [[0, 0], [0.4, 0.11], [4.2, 0.09], [5.0, 0]]); }
+  zumbido(0.6, 2.4, 300, 1400, 0.09, abierto, 1.2); zumbido(1.4, 1.8, 1400, 380, 0.07, abierto, 1.4); // un auto que pasa
+  { const g = nodo.gan(0), p = nodo.pan(0.3); cadena(g, p, abierto); env(g.gain, [[0, 1], [1, 1]]); for (const [t, f] of [[1.1, 3400], [1.32, 4200], [2.9, 3800]]) { const o = ac.createOscillator(), x = nodo.gan(0); o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * 1.35, t + 0.09); o.connect(x); x.connect(g); o.start(t); o.stop(t + 0.12); env(x.gain, [[t, 0], [t + 0.01, 0.025], [t + 0.1, 0]]); } } // pájaros de la tarde
+  murmullo(0, 10.3, t => lerp(0.15, 1, smooth(1.5, 5, t)) * (t > 8.15 ? lerp(1, 0.4, smooth(8.15, 8.5, t)) : 1) * (1 - smooth(9.8, 10.3, t)), salon, 21);
+  for (const t of [3.7, 4.25, 5.6, 6.3]) parciales(t, 3100 + R() * 900, [[1, 0.35, 0.5], [2.71, 0.15, 0.3], [5.2, 0.06, 0.15]], salon, 0.12); // copas
+  zumbido(4.3, 0.7, 500, 2200, 0.1, seco, 0.9); // cruzar la puerta
+
+  // ---------- 2. el salón, el delantal, la vibración (5–10) ----------
+  { const lp = nodo.filtro('lowpass', 8000, .5), x = nodo.gan(0); cadena(lp, x, salon); envExp(lp.frequency, [[5, 8000], [8.1, 8000], [8.5, 900], [9.9, 1200]]); for (let i = 0; i < 10; i++) { const t = 5 + R() * 3.4; parciales(t, 1500 + R() * 2500, [[1, 0.4, 0.2], [2.7, 0.2, 0.12]], x, 0.06); } env(x.gain, [[5, 1], [9.9, 1], [10.2, 0]]); }
+  vibra(8.15, 0.5, seco, 1.2); vibra(8.75, 0.5, seco, 1.2);
+  { const x = nodo.gan(0); x.connect(abierto); env(x.gain, [[6.2, 0], [7.2, 0.03], [9.6, 0.02], [10.2, 0]]); for (const [f, d] of [[73.42, -5], [110, 4], [146.83, 0]]) osc('sawtooth', f, 6.2, 10.3, (() => { const lp = nodo.filtro('lowpass', 420, .8); lp.connect(x); return lp; })(), d); } // un bordón grave para «Falta uno.»
+
+  // ---------- 3. la escena terminada, montada a los 10 s ----------
+  { const s3 = ac.createBufferSource(), g3 = nodo.gan(0); s3.buffer = b3; s3.connect(g3); g3.connect(master); env(g3.gain, [[10, 1], [20.25, 1], [20.85, 0]]); s3.start(10); }
+
+  // ---------- 4. arriba de las nubes (20–26) ----------
+  { const vb = nodo.filtro('bandpass', 600, .5), vg = nodo.gan(0); cadena(vb, vg, abierto); tocar(H.pink, 20, vb, { desde: 1, dura: 10 }); env(vg.gain, [[20, 0], [20.5, 0.22], [22.6, 0.3], [23.6, 0.08], [26, 0.12], [27.5, 0.35], [29.6, 0]]); envExp(vb.frequency, [[20, 900], [22.6, 1400], [23.6, 400], [26, 500], [28.5, 1600], [29.6, 300]]); }
+  acorde(20, 30.2, [[146.83, -4], [220, 5], [293.66, -3], [329.63, 4], [392, -6], [440, 3]], [[20, 0], [20.6, 0.045], [23.4, 0.05], [26, 0.03], [29.4, 0.02], [29.8, 0]], [[20, 2600], [23.4, 3200], [27, 1400], [29.8, 400]], abierto);
+  golpeGrave(21.2, 60, 38, 2.2, 0.35, abierto); // «La noche entera.»
+  nota(23.6, 1174.66, 0.2, abierto, 2.2); nota(23.62, 1760, 0.12, abierto, 2.0); // la flecha en la punta
+
+  // ---------- 5. la picada, la ventana, dos llamadas (26–33) ----------
+  zumbido(26.3, 2.2, 400, 3200, 0.35, abierto, 0.8); zumbido(28.3, 1.4, 3000, 300, 0.3, abierto, 0.9, 'blanco');
+  golpeGrave(27.4, 70, 45, 1.2, 0.25, abierto); // «Llamás.»
+  { const lp = nodo.filtro('lowpass', 260, .6), x = nodo.gan(0); cadena(lp, x, cuarto); tocar(H.marron, 29.5, lp, { desde: 2, dura: 4 }); env(x.gain, [[29.5, 0], [29.9, 0.05], [32.9, 0.04], [33.3, 0]]); } // el cuarto: la ciudad apagada del otro lado del vidrio
+  for (const [t0, t1] of [[29.9, 31.15], [31.55, 32.55]]) { for (let t = t0; t < t1 - 0.2; t += 0.52) { nota(t, 1318.5, 0.22, cuarto, 0.4); nota(t + 0.13, 987.77, 0.2, cuarto, 0.4); nota(t + 0.26, 1661.2, 0.18, cuarto, 0.5); } vibra(t0, 0.45, cuarto, 1.6); vibra(t0 + 0.55, 0.45, cuarto, 1.6); }
+
+  // ---------- 6. «Cantalo.»: la birome, la hoja que se arranca y un soplo (33–39) ----------
+  { const lp = nodo.filtro('lowpass', 240, .8), x = nodo.gan(0); cadena(lp, x, seco); osc('sawtooth', 50, 33.2, 39.2, lp); env(x.gain, [[33.2, 0], [33.6, 0.008], [39, 0.008], [39.3, 0]]); }
+  { const bp = nodo.filtro('bandpass', 4200, 1.4), x = nodo.gan(0); cadena(bp, x, cuarto); tocar(H.blanco, 33.7, bp, { desde: 0.2, dura: 2.8 }); x.gain.setValueAtTime(0, 33.7); let t = 33.7; while (t < 36.4) { const trazo = 0.05 + R() * 0.12; x.gain.linearRampToValueAtTime(0.09 + R() * 0.07, t + 0.01); x.gain.linearRampToValueAtTime(0.01, t + trazo); t += trazo + (R() < 0.15 ? 0.12 : 0.02); } x.gain.linearRampToValueAtTime(0, 36.5); }
+  golpeGrave(34.3, 80, 52, 0.8, 0.22, seco); // «Cantalo.»
+  granos(36.85, 37.15, 140, 2000, 6000, 0.28, cuarto, 2.5, 0.012); // se arranca la hoja
+  zumbido(37.0, 0.9, 500, 1100, 0.14, seco, 0.8); // un soplo
+  zumbido(38.6, 0.9, 700, 2600, 0.12, abierto, 1.0); // sale por la puerta
+  for (let k = 0; k < 4; k++) parciales(37.2 + k * 0.5, 1700 + k * 220, [[1, 0.3, 0.3]], seco, 0.03);
+
+  // ---------- 7. «Cerca. Todos a la vez.»: una nota por cada luz (39–47) ----------
+  { const vb = nodo.filtro('bandpass', 700, .45), vg = nodo.gan(0); cadena(vb, vg, abierto); tocar(H.pink, 39, vb, { desde: 2, dura: 9 }); env(vg.gain, [[39, 0], [40, 0.12], [46, 0.1], [47.4, 0.02]]); }
+  const escala = [587.33, 659.25, 739.99, 880, 987.77]; // re mayor pentatónica
+  [[40.3, 587.33], [41.0, 880], [41.6, 739.99], [42.2, 659.25], [42.7, 987.77]].forEach(([t, f]) => nota(t, f, 0.22, abierto, 2.2));
+  { let t = 43.2; while (t < 46.8) { const u = (t - 43.2) / 3.6, f = escala[Math.floor(R() * 5)] * [0.5, 1, 1, 2][Math.floor(R() * 4)]; nota(t, f, 0.06 + 0.06 * (1 - u), abierto, 1.6); t += 1 / (3 + u * 26) * (0.5 + R()); } }
+  acorde(43.0, 53.8, [[146.83, -3], [220, 4], [293.66, 0], [369.99, -4], [440, 3], [659.25, -2]], [[43, 0], [45.5, 0.04], [47.4, 0.035], [52.5, 0.02], [53.6, 0]], [[43, 500], [46.5, 2800], [49, 1500], [53.6, 600]], abierto);
+
+  // ---------- 8. «Voy.»: la puerta, los pasos, la bici (47–53.6) ----------
+  { const lp = nodo.filtro('lowpass', 300, .6), x = nodo.gan(0); cadena(lp, x, abierto); tocar(H.marron, 47, lp, { desde: 9, dura: 7 }); env(x.gain, [[47, 0], [47.5, 0.07], [53.2, 0.06], [53.6, 0]]); }
+  { const bp = nodo.filtro('bandpass', 900, 5), x = nodo.gan(0); cadena(bp, x, abierto); const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(95, 47.4); for (let t = 47.4; t < 48.2; t += 0.05) o.frequency.linearRampToValueAtTime(85 + R() * 30, t); o.connect(bp); o.start(47.4); o.stop(48.3); env(x.gain, [[47.4, 0], [47.5, 0.12], [48.1, 0.06], [48.25, 0]]); parciales(47.36, 1900, [[1, 0.4, 0.06], [2.3, 0.2, 0.04]], abierto, 0.2); }
+  golpeGrave(48.4, 90, 55, 0.7, 0.25, seco); // «Voy.»
+  for (let t = 48.3; t < 52.7; t += 0.52 + R() * 0.04) { golpeGrave(t, 110, 62, 0.12, 0.18, abierto); granos(t, t + 0.04, 400, 2500, 5000, 0.05, abierto, 1.5, 0.015); }
+  { const ruedas = nodo.pan(-0.9); ruedas.connect(abierto); env(ruedas.pan, [[50.4, -0.9], [51.8, 0.9]]); granos(50.45, 51.8, 22, 3200, 3800, 0.08, ruedas, 3, 0.008); zumbido(50.4, 1.4, 600, 2400, 0.14, ruedas, 0.7); parciales(50.9, 2600, [[1, 0.5, 0.5], [2.1, 0.2, 0.3]], ruedas, 0.08); }
+  zumbido(51.3, 1.6, 400, 2600, 0.2, seco, 0.8); // de vuelta al bodegón, de un tirón
+  murmullo(51.8, 64, t => smooth(51.8, 52.6, t) * lerp(0.5, 0.9, smooth(57, 59, t)) * (1 - smooth(62.8, 64, t)), salon, 33);
+
+  // ---------- 9. «¡Oído!»: la columna de papel cae, el sello, la campanita (53.6–57) ----------
+  granos(52.6, 54.4, u => 30 + 160 * Math.sin(Math.PI * u), 1500, 5500, 0.12, salon, 2, 0.03); // la pila que se desarma
+  zumbido(52.6, 1.8, 2500, 900, 0.12, salon, 0.7, 'blanco');
+  golpeGrave(54.6, 120, 60, 0.5, 0.6, seco); // el sello sobre la comanda
+  campana(54.6, 1.0, abierto); // la campanita del pase, una sola vez
+  granos(54.7, 57.5, u => 40 * (1 - u) + 6, 2500, 6500, 0.05, salon, 2.2, 0.02); // papel picado
+  acorde(54.6, 64.5, [[146.83, 0], [185, -3], [220, 4], [293.66, -2], [369.99, 3], [440, -4]], [[54.6, 0], [55.4, 0.05], [58, 0.035], [63, 0.025], [64.4, 0]], [[54.6, 900], [56, 3200], [63, 1800], [64.4, 500]], abierto); // re mayor: resuelve
+
+  // ---------- 10. «Sale.»: platos que salen, copas que brindan (57–63) ----------
+  for (const t of [57.15, 57.27, 57.39]) { const bp = nodo.filtro('bandpass', 1700, 2.2), x = nodo.gan(0); cadena(bp, x, salon); tocar(H.blanco, t, bp, { desde: 1, dura: 0.5 }); x.gain.setValueAtTime(0, t); for (let k = 0; k < 14; k++) x.gain.linearRampToValueAtTime(0.06 * (0.4 + R() * 0.6), t + 0.03 * k); x.gain.linearRampToValueAtTime(0, t + 0.45); parciales(t + 0.45, 2400, [[1, 0.3, 0.12], [2.6, 0.15, 0.08]], salon, 0.1); }
+  golpeGrave(57.4, 90, 60, 0.6, 0.2, seco); // «Sale.»
+  for (let k = 0; k < 4; k++) parciales(60.4 + k * 0.013 + R() * 0.01, 3000 + k * 420, [[1, 0.5, 0.9], [2.71, 0.2, 0.5], [5.4, 0.08, 0.3]], salon, 0.16, 0.001); // el brindis
+  for (let i = 0; i < 12; i++) { const t = 57.6 + R() * 5; parciales(t, 1800 + R() * 2500, [[1, 0.4, 0.2], [2.7, 0.15, 0.1]], salon, 0.05); } // cubiertos
+
+  // ---------- 11. el cielo, la pregunta, «oído» (63–68) ----------
+  zumbido(63.0, 1.6, 300, 1800, 0.12, abierto, 0.8);
+  { const vb = nodo.filtro('bandpass', 500, .45), vg = nodo.gan(0); cadena(vb, vg, abierto); tocar(H.pink, 63.3, vb, { desde: 4, dura: 5 }); env(vg.gain, [[63.3, 0], [64.5, 0.06], [67.5, 0.05], [68, 0]]); }
+  campana(65.5, 0.4, abierto); // un último toque, suave
+  { const x = nodo.gan(0); x.connect(abierto); env(x.gain, [[64.6, 0], [65.6, 0.02], [67.6, 0.012], [68, 0]]); for (const f of [293.66, 440, 587.33, 739.99]) { const lp = nodo.filtro('lowpass', 1500, .5); lp.connect(x); osc('triangle', f, 64.6, 68, lp, (R() - .5) * 8); } }
+
+  // ---------- extra (70–73,6): el aviso del turno en el celular de la habitación, para el corte «Voy» ----------
+  if (dur > 70) {
+    { const lp = nodo.filtro('lowpass', 260, .6), x = nodo.gan(0); cadena(lp, x, cuarto); tocar(H.marron, 69.8, lp, { desde: 3, dura: 4.2 }); env(x.gain, [[69.8, 0], [70.1, 0.05], [dur - 0.2, 0.05], [dur, 0]]); }
+    nota(70.4, 1318.5, 0.25, cuarto, 0.9); nota(70.55, 1760, 0.2, cuarto, 1.2); vibra(70.4, 0.4, cuarto, 1.5);
+    acorde(70.6, dur, [[293.66, -3], [369.99, 4], [440, 0], [587.33, -2]], [[70.6, 0], [72, 0.025], [dur, 0.03]], [[70.6, 600], [dur, 2200]], abierto);
+  }
   return await ac.startRendering();
 }
 
