@@ -24,7 +24,7 @@ export const crece = curva([[7.67, 0.06], [7.8, 0.1], [7.95, 0.55], [8.08, 1.75]
 
 // cámara: altura, distancia al eje de la pila, giro alrededor, inclinación, campo de visión, rolido
 export const camY = curva([[0, 0.17], [0.55, 0.15], [2.2, 0.122], [3.55, 0.1], [4.65, 0.085], [5.55, 0.07], [6.6, 0.062], [7.3, 0.08], [7.7, 0.19], [7.95, 0.48], [8.08, 1.38], [8.17, 2.52], [8.24, 3.66], [8.4, 7.4], [8.7, 14.4], [9.1, 20.8], [9.6, 25.4], [10.3, 27.6]]);
-const camD = curva([[0, 0.6], [0.55, 0.54], [2.2, 0.47], [3.55, 0.42], [4.65, 0.37], [5.55, 0.33], [7.3, 0.3], [7.95, 0.5], [8.2, 0.72], [8.6, 1.7], [9.3, 3.2], [10.3, 3.6]]);
+const camD = curva([[0, 0.6], [0.55, 0.54], [2.2, 0.47], [3.55, 0.42], [4.65, 0.37], [5.55, 0.33], [7.3, 0.31], [7.7, 0.42], [7.95, 0.68], [8.2, 0.9], [8.6, 1.8], [9.3, 3.2], [10.3, 3.6]]);
 const camA = curva([[0, -0.42], [2.2, -0.24], [4.65, -0.02], [6.6, 0.15], [7.5, 0.22], [8.2, 0.5], [9.0, 0.88], [10.3, 1.08]]);
 const camP = curva([[0, -0.2], [2.2, -0.13], [4.65, -0.06], [5.55, -0.03], [6.6, 0.03], [7.3, 0.06], [7.9, 0.26], [8.17, 0.5], [8.45, 0.42], [8.95, 0.4], [9.35, 0.62], [9.75, 1.0], [10.1, 1.2], [10.3, 1.25]]);
 const camF = curva([[0, 36], [6.0, 36], [7.6, 41], [8.2, 53], [9.0, 56], [10.3, 62]]);
@@ -101,9 +101,9 @@ export async function crearEscena3(motor) {
 
   // la mano: sólo su sombra, en la capa que ve la luz y no la cámara
   const manoTex = siluetaMano();
-  const mano = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 0.24), new THREE.MeshBasicMaterial({ alphaMap: manoTex, alphaTest: 0.5, transparent: false, side: THREE.DoubleSide }));
+  const mano = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 0.24), new THREE.MeshBasicMaterial({ alphaMap: manoTex, alphaTest: 0.5, transparent: false, side: THREE.DoubleSide, colorWrite: false, depthWrite: false }));
   mano.customDepthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, alphaMap: manoTex, alphaTest: 0.5, side: THREE.DoubleSide });
-  mano.layers.set(1); mano.castShadow = true; escena.add(mano);
+  mano.castShadow = true; mano.frustumCulled = false; escena.add(mano); // no se dibuja: sólo proyecta sombra
 
   const vaivenX = (h, t) => h < ROOF ? 0 : Math.pow((h - ROOF) / 60, 1.6) * 3.2 * Math.sin(t * 0.55 + h * 0.018) + Math.pow((h - ROOF) / 60, 1.2) * 0.9;
   const vaivenZ = (h, t) => h < ROOF ? 0 : Math.pow((h - ROOF) / 60, 1.6) * 2.4 * Math.sin(t * 0.43 + h * 0.023 + 1.3);
@@ -116,14 +116,14 @@ export async function crearEscena3(motor) {
     // la última comanda clavada marca la punta de la pila
     estado.tope = caidas ? Y[caidas - 1] : BASE;
     for (let i = 0; i < N; i++) {
-      const Ti = TL[i], manual = i < GOLPES.length, dur = manual ? 0.14 : 0.1;
+      const Ti = TL[i], manual = i < GOLPES.length, dur = manual ? 0.14 : 0.055;
       if (t < Ti - dur) break;
       const d = datos[i], h = Y[i], sc = escalaPapel(h);
       let y = h, ox = 0, oz = 0, tilX = d.tx, tilZ = d.tz, giro = d.giro, aleteo = 0;
       // aplastamiento de la pila con cada golpe a mano
       for (let k = Math.max(i, 0); k < Math.min(GOLPES.length, i + 6); k++) { const dt = t - GOLPES[k]; if (dt > 0 && dt < 0.6) y -= 0.0035 * Math.exp(-(k - i) / 2.5) * Math.exp(-dt * 16) * Math.cos(dt * 42); }
       if (t < Ti) { // cayendo
-        const u = (t - (Ti - dur)) / dur; y = h + (manual ? 0.32 : 0.22 * sc) * (1 - easeIn(u, 1.7));
+        const u = (t - (Ti - dur)) / dur; y = h + (manual ? 0.32 : 0.05 * sc) * (1 - easeIn(u, 1.7));
         tilX += (1 - u) * 0.35 * Math.sin(d.fase); tilZ += (1 - u) * 0.3 * Math.cos(d.fase); giro += (1 - u) * 0.6; aleteo = 0.5;
       } else {
         const dt = t - Ti; tilX += rebote(dt, 6, 7) * 0.12 * Math.sin(d.fase); tilZ += rebote(dt, 5, 7) * 0.1 * Math.cos(d.fase); aleteo = 0.55 * Math.exp(-dt * 5);
@@ -158,10 +158,10 @@ export async function crearEscena3(motor) {
       const u = t - GOLPES[k]; if (u < -0.32 || u > 0.34) continue;
       const h = Y[k] + 0.012; vis = true;
       const ida = easeOut((u + 0.32) / 0.32, 2.2), vuelta = easeIn(u / 0.34, 1.6);
-      const x = u < 0 ? lerp(-0.14, 0.01, ida) : lerp(0.01, -0.1, vuelta);
-      const y = u < 0 ? lerp(h + 0.28, h + 0.03, ida) : lerp(h + 0.03, h + 0.3, vuelta);
-      const z = u < 0 ? lerp(0.2, 0.06, ida) : lerp(0.06, 0.22, vuelta);
-      mano.position.set(x, y, z); mano.rotation.set(-Math.PI / 2 + 0.25, 0, 0.5 + k * 0.17);
+      const x = u < 0 ? lerp(-0.06, 0.015, ida) : lerp(0.015, -0.05, vuelta);
+      const y = u < 0 ? lerp(h + 0.36, h + 0.035, ida) : lerp(h + 0.035, h + 0.34, vuelta);
+      const z = u < 0 ? lerp(-0.05, 0.01, ida) : lerp(0.01, -0.07, vuelta);
+      mano.position.set(x, y, z); mano.rotation.set(-Math.PI / 2 + 0.12, 0, 2.4 + k * 0.17);
     }
     mano.visible = vis;
   }
@@ -200,7 +200,7 @@ export async function crearEscena3(motor) {
       ciudad.matF.uniforms.uPx.value = motor.H;
       const afuera = estado.afuera;
       escena.environment = afuera ? ambNoche : ambCocina;
-      luna.intensity = afuera ? 1.1 : 0; hemi.intensity = afuera ? 0.32 : 0.1;
+      luna.intensity = afuera ? 1.6 : 0; hemi.intensity = afuera ? 0.32 : 0.1;
       if (afuera) { const cy = camara.position.y + 4; luna.target.position.set(vaivenX(cy, t), cy, vaivenZ(cy, t)); luna.position.copy(luna.target.position).add(new THREE.Vector3(-34, 52, 30)); luna.target.updateMatrixWorld(); luna.shadow.camera.updateProjectionMatrix(); }
       luzHueco.intensity = afuera ? 2.5 : 0;
       matPapel.userData.uTrans.value = afuera ? 0.9 : 0.6;
@@ -212,7 +212,7 @@ export async function crearEscena3(motor) {
         exposicion: lerp(0.8, 1.35, a), bloom: lerp(0.3, 0.5, a), umbral: lerp(2.2, 1.2, a), radio: 0.85,
         contraste: lerp(1.07, 1.04, a), saturacion: lerp(1.04, 1.1, a), vineta: lerp(0.36, 0.26, a), grano: 0.034, ca: 0.012, halacion: lerp(0.45, 0.3, a),
         lift: [lerp(0.004, 0.006, a), lerp(0.009, 0.012, a), lerp(0.02, 0.03, a)], gain: [1.03, 1.0, lerp(0.95, 1.0, a)],
-        foco: estado.foco, apertura: lerp(15, 0, smooth(7.6, 8.15, t)),
+        foco: estado.foco, apertura: lerp(15, 0, smooth(7.35, 7.9, t)),
         negro: 0,
       };
     },
@@ -227,9 +227,9 @@ export async function crearEscena3(motor) {
       const items = [];
       for (let i = 0; i < PALABRAS.length; i++) {
         const [t0, txt] = PALABRAS[i], t1 = i + 1 < PALABRAS.length ? PALABRAS[i + 1][0] : 6.35;
-        if (t < t0 - 0.05 || t > t1 + 0.25) continue;
+        if (t < t0 - 0.05 || t > t1 + 0.05) continue;
         const tam = [56, 64, 78, 96, 120][i];
-        const sale = sat((t - t1) / 0.22);
+        const sale = sat((t - (t1 - 0.13)) / 0.15);
         txt.split(' ').forEach((w, k) => {
           const u = sat((t - t0 - k * 0.13) / 0.42), e1 = easeOut(u, 3);
           items.push({ txt: w, tam, k, alfa: e1 * (1 - sale), blur: (1 - e1) * 9 + sale * 10, dy: (1 - e1) * tam * 0.32 - sale * tam * 0.25 });
