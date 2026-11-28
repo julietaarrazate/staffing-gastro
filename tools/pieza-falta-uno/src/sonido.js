@@ -305,6 +305,20 @@ function musicaTango(cj, k, { t0, t1, bpm = 116, modo = 'menor', dest, semilla =
   }
   k.granos(t0, t1, 6, 2500, 7000, 0.012, bus, 1, 0.004); // el púa del tocadiscos
 }
+// Agenda los eventos de fn() con el tiempo deformado por W (base → video): rampas, arranques y paradas.
+function conTiempo(W, fn) {
+  if (!W) return fn();
+  const AP = AudioParam.prototype, ABS = AudioBufferSourceNode.prototype, ASN = AudioScheduledSourceNode.prototype;
+  const o = { sv: AP.setValueAtTime, lr: AP.linearRampToValueAtTime, er: AP.exponentialRampToValueAtTime, st: AP.setTargetAtTime, ab: ABS.start, os: ASN.start, sp: ASN.stop };
+  AP.setValueAtTime = function (v, t) { return o.sv.call(this, v, W(t)); };
+  AP.linearRampToValueAtTime = function (v, t) { return o.lr.call(this, v, W(t)); };
+  AP.exponentialRampToValueAtTime = function (v, t) { return o.er.call(this, v, W(t)); };
+  AP.setTargetAtTime = function (v, t, c) { return o.st.call(this, v, W(t), c); };
+  ABS.start = function (when = 0, off = 0, dura) { return dura === undefined ? o.ab.call(this, W(when), off) : o.ab.call(this, W(when), off, Math.max(0.001, W(when + dura) - W(when))); };
+  ASN.start = function (when = 0) { return o.os.call(this, W(when)); };
+  ASN.stop = function (when = 0) { return o.sp.call(this, W(when)); };
+  try { return fn(); } finally { Object.assign(AP, { setValueAtTime: o.sv, linearRampToValueAtTime: o.lr, exponentialRampToValueAtTime: o.er, setTargetAtTime: o.st }); ABS.start = o.ab; ASN.start = o.os; ASN.stop = o.sp; }
+}
 async function bandaTango(dur, sr, tramos) {
   const cj = caja(dur, sr, 31), k = kit(cj, dur);
   for (const tr of tramos) musicaTango(cj, k, { ...tr, dest: k.salon });
@@ -314,12 +328,19 @@ async function bandaTango(dur, sr, tramos) {
 // ---------- la banda de la versión 2 (58 s): el bodegón de barrio ----------
 // Las mismas piezas sonoras que la primera; la escena de las comandas (bandaEscena3) se monta a los 9 s y se corta
 // en seco cuando el pinche rebalsa: ahí no hay techo que atravesar, el servicio se tranca.
-export async function bandaPieza2({ GOLPES, crece, camY3, TECHO }, { dur = 58, sr = 48000, tango = 1 } = {}) {
+export async function bandaPieza2({ GOLPES, crece, camY3, TECHO, aNuevo = null }, { dur = 58, sr = 48000, tango = 1 } = {}) {
+  // dur está en tiempo base; el video dura W(dur): todo lo que se agenda acá pasa por W
+  const W = aNuevo || (t => t), largo = W(dur);
   const b3 = await bandaEscena3({ GOLPES, crece, camY: camY3, TECHO }, { dur: 8.6, sr });
   // el tango: tres tramos de la misma música del salón (re menor; la milonga en re mayor cuando todo fluye)
-  const bT = await bandaTango(dur, sr, [{ t0: 0, t1: 11, bpm: 116 }, { t0: 21.0, t1: 28.2, bpm: 116, semilla: 6 }, { t0: 37.6, t1: dur, bpm: 124, modo: 'mayor', semilla: 7 }]);
-  const cj = caja(dur, sr, 2027), { ac, R, nodo, cadena, env, tocar, osc, master } = cj;
-  const { H, parciales, campana, nota, vibra, zumbido, granos, golpeGrave, murmullo, acorde, seco, cuarto, abierto, salon } = kit(cj, dur);
+  const bT = await bandaTango(largo, sr, [{ t0: 0, t1: W(11), bpm: 116 }, { t0: W(21.0), t1: W(28.2), bpm: 116, semilla: 6 }, { t0: W(37.6), t1: largo, bpm: 124, modo: 'mayor', semilla: 7 }]);
+  const cj = caja(largo, sr, 2027), { ac, R, nodo, cadena, env, tocar, osc, master } = cj;
+  conTiempo(aNuevo, () => agenda2({ cj, b3, bT, dur, tango }));
+  return await ac.startRendering();
+}
+function agenda2({ cj, b3, bT, dur, tango }) {
+  const { ac, R, nodo, cadena, env, tocar, osc, master } = cj;
+  const { H, parciales, campana, nota, vibra, zumbido, granos, golpeGrave, murmullo, acorde, seco, cuarto, abierto, salon } = kit(cj, dur + 10);
   const T3 = 9.0, TS = 41.0;
   const lejos = nodo.filtro('lowpass', 1500, 0.6); lejos.connect(salon); // el salón oído desde la cocina o desde la vereda
   // el tango, montado con el volumen y el filtro de cada lugar (desde la vereda, adentro, desde la cocina)
@@ -331,6 +352,21 @@ export async function bandaPieza2({ GOLPES, crece, camY3, TECHO }, { dur = 58, s
   const calle = (t0, t1, g) => { const lp = nodo.filtro('lowpass', 320, .6), x = nodo.gan(0); cadena(lp, x, abierto); tocar(H.marron, t0, lp, { desde: (t0 * 0.7) % 20, dura: t1 - t0 + 0.1 }); env(x.gain, [[t0, 0], [t0 + 0.45, g], [t1 - 0.4, g * 0.9], [t1, 0]]); };
   const viento = (t0, t1, g, f = 600) => { const vb = nodo.filtro('bandpass', f, .45), vg = nodo.gan(0); cadena(vb, vg, abierto); tocar(H.pink, t0, vb, { desde: (t0 * 0.3) % 20, dura: t1 - t0 + 0.1 }); env(vg.gain, [[t0, 0], [t0 + 0.7, g], [t1 - 0.6, g * 0.85], [t1, 0]]); };
   const pasos = (t0, t1, cada, g) => { for (let t = t0; t < t1; t += cada + R() * 0.04) { golpeGrave(t, 110, 62, 0.12, g, abierto); granos(t, t + 0.04, 400, 2500, 5000, g * 0.28, abierto, 1.5, 0.015); } };
+
+  // ---------- el personal: el caos (platos, la sartén y sus llamaradas, el barman, la caja, el mozo apurado) y después el orden ----------
+  { const chispa = (t0, t1, g, dest) => { const bp = nodo.filtro('bandpass', 5200, 0.8), x = nodo.gan(0); cadena(bp, x, dest); tocar(H.blanco, t0, bp, { desde: 0.1, dura: Math.min(2.8, t1 - t0) }); let t = t0; x.gain.setValueAtTime(0, t0); while (t < t1) { t += 0.03 + R() * 0.05; x.gain.linearRampToValueAtTime(g * (0.4 + R() * 0.6), t); } x.gain.linearRampToValueAtTime(0, t1 + 0.05); if (t1 - t0 > 2.8) chispa(t0 + 2.8, t1, g, dest); };
+    chispa(4.6, 9.0, 0.025, salon); chispa(16.9, 21.1, 0.06, cuarto); // la sartén: lejos desde el salón, al lado desde la cocina
+    for (let t = 4.95; t < 9.0; t += 1.1) zumbido(t + 0.33, 0.5, 300, 1100, 0.05, salon, 0.6); // llamaradas
+    for (let t = 17.05; t < 21.0; t += 1.1) { zumbido(t + 0.33, 0.55, 260, 1300, 0.12, cuarto, 0.6); golpeGrave(t + 0.33, 70, 45, 0.3, 0.12, cuarto); }
+    for (let i = 0; i < 26; i++) { const t = 4.7 + R() * 4.2; parciales(t, 1500 + R() * 2800, [[1, 0.4, 0.18], [2.7, 0.2, 0.1]], salon, 0.05 + R() * 0.04); } // vajilla, cubiertos
+    for (let i = 0; i < 14; i++) { const t = 17.3 + R() * 3.6; parciales(t, 1500 + R() * 2800, [[1, 0.4, 0.18], [2.7, 0.2, 0.1]], lejos, 0.06); }
+    { const bp = nodo.filtro('bandpass', 900, 3), am = nodo.gan(0), x = nodo.gan(0); cadena(bp, am, x, salon); tocar(H.blanco, 5.3, bp, { desde: 1.2, dura: 1.4 }); const lfo = ac.createOscillator(); lfo.frequency.value = 17; const lg = nodo.gan(0.5); lfo.connect(lg); lg.connect(am.gain); am.gain.value = 0.5; lfo.start(5.3); lfo.stop(6.8); env(x.gain, [[5.3, 0], [5.45, 0.06], [6.5, 0.05], [6.7, 0]]); } // el barman sirve
+    golpeGrave(5.95, 140, 80, 0.12, 0.1, salon); granos(5.95, 6.1, 200, 1800, 3200, 0.06, salon, 1.5, 0.02); // el cajón de la caja
+    for (let t = 5.7; t < 7.0; t += 0.26) golpeGrave(t, 120, 70, 0.08, 0.07, salon); // pasos apurados del mozo
+    zumbido(6.15, 0.6, 500, 2200, 0.1, seco, 0.9); // pasa al lado de la cámara
+    for (let i = 0; i < 10; i++) parciales(43.6 + i * 0.55 + R() * 0.2, 1800 + R() * 1500, [[1, 0.35, 0.15]], salon, 0.04); // el orden: platos apoyados con calma
+    for (let t = 43.4; t < 49.0; t += 0.5 + R() * 0.05) golpeGrave(t, 110, 65, 0.09, 0.04, salon);
+  }
 
   // ---------- 1. la vereda, la fila (0–4,65) ----------
   calle(0, 5.0, 0.11);
@@ -410,7 +446,6 @@ export async function bandaPieza2({ GOLPES, crece, camY3, TECHO }, { dur = 58, s
   viento(53.5, dur, 0.06, 500);
   campana(55.2, 0.4, abierto); // un último toque, suave, con «oído»
   { const x = nodo.gan(0); x.connect(abierto); env(x.gain, [[54.2, 0], [55.4, 0.02], [57.4, 0.012], [dur, 0]]); for (const f of [293.66, 440, 587.33, 739.99]) { const lp = nodo.filtro('lowpass', 1500, .5); lp.connect(x); osc('triangle', f, 54.2, dur, lp, (R() - .5) * 8); } }
-  return await ac.startRendering();
 }
 
 // AudioBuffer → WAV de 24 bits

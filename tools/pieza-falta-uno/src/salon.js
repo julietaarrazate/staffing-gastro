@@ -198,7 +198,7 @@ export function crearCelular(guion) {
       k.font = '300 120px "Inter", Arial, sans-serif'; k.fillText(T0.hora_mensaje || '19:02', 216, 230); k.font = '500 26px "Inter", Arial, sans-serif'; k.fillText('viernes', 216, 280);
       k.fillStyle = 'rgba(235,240,248,.94)'; k.beginPath(); k.roundRect(18, 340, 396, 200, 28); k.fill();
       k.fillStyle = '#121722'; k.textAlign = 'left'; k.font = '600 34px "Inter", Arial, sans-serif'; k.fillText(T0.remitente || '', 44, 400);
-      k.font = '500 44px "Inter", Arial, sans-serif'; k.fillText(T0.mensaje || '', 44, 478);
+      let fs = 44; do { k.font = `500 ${fs}px "Inter", Arial, sans-serif`; fs -= 2; } while (k.measureText(T0.mensaje || '').width > 350 && fs > 26); k.fillText(T0.mensaje || '', 44, 478);
       k.fillStyle = '#6b7484'; k.font = '400 24px "Inter", Arial, sans-serif'; k.textAlign = 'right'; k.fillText('ahora', 392, 400);
     } else if (m === 'llamada') {
       k.font = '400 30px "Inter", Arial, sans-serif'; k.fillStyle = '#9fb0c8'; k.fillText('llamada entrante', 216, 250);

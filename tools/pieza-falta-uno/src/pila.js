@@ -2,7 +2,7 @@
 // Recibe el tiempo local de la escena 3 (t - 10). Todo es función del tiempo.
 import * as THREE from 'three';
 import { lerp, smooth, easeIn, easeOut, rng, rebote, curva } from './util.js';
-import { atlas, materialPapel, materialSombraPapel, mallaComandas, pinLocal, VARIANTES } from './comandas.js';
+import { atlas, materialPapel, materialSombraPapel, mallaComandas, pinLocal, VARIANTES, PINCHE as PINCHE_UV } from './comandas.js';
 import { TECHO, LOSA, PISO as PISO_PILA } from './cocina.js';
 import { siluetaMano } from './texturas.js';
 
@@ -35,6 +35,7 @@ export function crearPila(escena, camara, { desde = -1, sinTorre = false, tSale 
     let a = 7.67, b = 16; for (let k = 0; k < 50; k++) { const m = (a + b) / 2; crece(m) < Y[i] ? a = m : b = m; } TL.push((a + b) / 2);
   }
   const N = Y.length, P = sinTorre ? Y.filter(h => h <= TOPE).length : N; // P: las que entran en el pinche
+  const iS = sinTorre ? N - 1 : -1, SELLO_POS = [0.03, 0.0095, 0.2]; // la que se sella: cae última, adelante del pinche
   const datos = Array.from({ length: N }, (_, i) => ({
     v: i < 5 ? [0, 2, 5, 1, 3][i] : Math.floor(r() * VARIANTES), giro: r() * Math.PI * 2, tx: (r() - .5) * 0.07, tz: (r() - .5) * 0.07,
     caida: 0.7 + r() * 1.6, punta: (r() - .5) * 0.35, fase: r() * 6.28, tono: [0.97 + r() * 0.03, 0.95 + r() * 0.04, 0.9 + r() * 0.07],
@@ -48,6 +49,16 @@ export function crearPila(escena, camara, { desde = -1, sinTorre = false, tSale 
   const matLejos = materialPapel(mapa, { trans: 0.6, opaco: true }); matLejos.userData.uTrans = matPapel.userData.uTrans;
   const lejos = mallaComandas(N + 120, 1, 1, matLejos, matSombra); lejos.malla.receiveShadow = true; lejos.malla.castShadow = true;
   escena.add(cerca.malla, lejos.malla);
+  // la comanda de arriba del pinche, sellada (versión 2): su propio atlas con la tinta dibujada en el papel
+  const sello = { t: Infinity, malla: null };
+  function sellar(tinta, tSello, { x = null, y = null, ancho = 0.92, rot = -0.08 } = {}) {
+    const c = document.createElement('canvas'); c.width = mapa.image.width; c.height = mapa.image.height; const g = c.getContext('2d'); g.drawImage(mapa.image, 0, 0);
+    const v = datos[iS].v, CW = c.width / 4, CH = c.height / 2, x0 = (v % 4) * CW, y0 = Math.floor(v / 4) * CH, w = CW * ancho, h = w * tinta.height / tinta.width;
+    g.save(); g.translate(x0 + CW * (x ?? PINCHE_UV[v][0]), y0 + CH * (y ?? PINCHE_UV[v][1])); g.rotate(rot); g.globalCompositeOperation = 'multiply'; g.globalAlpha = 0.92; g.drawImage(tinta, -w / 2, -h / 2, w, h); g.restore();
+    const t2 = new THREE.CanvasTexture(c); t2.colorSpace = mapa.colorSpace; t2.anisotropy = mapa.anisotropy; t2.flipY = mapa.flipY;
+    const m2 = materialPapel(t2, { trans: 0.6 }); m2.userData.uTrans = matPapel.userData.uTrans;
+    sello.malla = mallaComandas(1, 10, 14, m2, matSombra); sello.malla.malla.castShadow = sello.malla.malla.receiveShadow = true; sello.malla.malla.count = 0; escena.add(sello.malla.malla); sello.t = tSello;
+  }
   // comandas esperando, colgadas de la barra del fondo
   const colgadas = mallaComandas(9, 6, 8, matPapel, matSombra); colgadas.malla.castShadow = colgadas.malla.receiveShadow = true;
   [-1.12, -0.86, -0.6, -0.36, 0.3, 0.55, 0.82, 1.05, 1.31].forEach((x, i) => {
@@ -67,6 +78,7 @@ export function crearPila(escena, camara, { desde = -1, sinTorre = false, tSale 
 
   const estado = { t: 0, tope: BASE };
   function ponerComandas(t) {
+    if (sello.malla) { const S = sello.malla; S.malla.count = 0; S.malla.instanceMatrix.needsUpdate = true; S.aVar.needsUpdate = S.aForma.needsUpdate = S.aPin.needsUpdate = true; S.malla.instanceColor.needsUpdate = true; }
     const caidas = topeA(t), camPos = camara.position;
     let nc = 0, nl = 0;
     // la última comanda clavada marca la punta de la pila
@@ -91,6 +103,7 @@ export function crearPila(escena, camara, { desde = -1, sinTorre = false, tSale 
         ox = Math.cos(a) * rad * k; oz = Math.sin(a) * rad * 0.75 * k;
         y = Math.max(0.002 + (i % 9) * 0.0007, h + 0.03 * Math.sin(Math.PI * k) - (h - 0.002) * k * k);
         tilX = d.tx + (k < 1 ? Math.sin(a) * 0.9 * (1 - k) : 0); tilZ = d.tz + (k < 1 ? Math.cos(a) * 0.9 * (1 - k) : 0); aleteo = k < 1 ? 0.5 : 0;
+        if (i === iS) { ox = SELLO_POS[0] * k; oz = SELLO_POS[2] * k; y = Math.max(SELLO_POS[1], y); tilX *= 1 - k; tilZ *= 1 - k; giro = lerp(giro, 0.12, k); }
       }
       if (t > tSale) { // sale el servicio: primero las del pinche (de arriba hacia abajo), después las del mostrador
         const sale = rebalsa ? 0.5 + 1.7 * (i - P) / Math.max(1, N - P) : 1.3 * (P - 1 - i) / Math.max(1, P - 1), u = t - (tSale + sale);
@@ -118,6 +131,7 @@ export function crearPila(escena, camara, { desde = -1, sinTorre = false, tSale 
       L.malla.setMatrixAt(j, m4); L.aVar.array[j] = d.v;
       L.aForma.array.set([caidaPapel, d.punta / sc, d.fase + t * (h > ROOF ? 3 : 0), aleteo], j * 4);
       const pl = pinLocal(d.v); L.aPin.array.set(pl, j * 2);
+      if (sello.malla && i === iS && t >= sello.t) { L === cerca ? nc-- : nl--; const S = sello.malla; S.malla.setMatrixAt(0, m4); S.aVar.array[0] = d.v; S.aForma.array.set([caidaPapel, d.punta / sc, d.fase, aleteo], 0); S.aPin.array.set(pl, 0); S.malla.instanceColor.array.set(d.tono, 0); S.malla.count = 1; continue; }
       L.malla.instanceColor.array.set(d.tono, j * 3);
     }
     for (const sl of sueltas) {
@@ -148,7 +162,7 @@ export function crearPila(escena, camara, { desde = -1, sinTorre = false, tSale 
 
 
   return {
-    estado, mapa, matPapel, matSombra, Y, TL,
+    estado, mapa, matPapel, matSombra, Y, TL, sellar, SELLO_POS,
     poner(t) { estado.t = t; ponerComandas(t); ponerMano(t); },
   };
 }

@@ -9,10 +9,15 @@ import { crearCiudad, crearCielo } from './ciudad.js';
 import { crearPila, GOLPES, vaivenX, vaivenZ } from './pila.js';
 import { crearSalon, FACHADA } from './salon.js';
 import { MESAS_VEREDA } from './fachada.js';
-import { crearEnfrente, crearTalonario, crearHoja, crearSello, crearConfeti, crearFlechas, crearBici, crearCopas, crearGente, crearReloj, ENFRENTE } from './objetos.js';
+import { crearTrabajadores } from './trabajadores.js';
+import { crearEnfrente, crearTalonario, crearHoja, crearSelloGoma, crearConfeti, crearFlechas, crearBici, crearCopas, crearGente, crearReloj, ENFRENTE } from './objetos.js';
 import { camPila, R as R1 } from './pieza.js';
 
-export const DURACION = 58;
+// Momentos estirados: [desde, hasta (en tiempo base), cuánto dura en el video]. El salón con el caos y el celular.
+export const ESTIRAR = [[5.2, 6.6, 2.4], [7.55, 8.85, 2.9]];
+export function aBase(t) { let d = 0; for (const [a, b, L] of ESTIRAR) { const na = a + d; if (t < na) return t - d; if (t < na + L) return a + (t - na) * (b - a) / L; d += L - (b - a); } return t - d; }
+export function aNuevo(tb) { let d = 0; for (const [a, b, L] of ESTIRAR) { if (tb < a) return tb + d; if (tb < b) return a + d + (tb - a) * L / (b - a); d += L - (b - a); } return tb + d; }
+export const DURACION_BASE = 58, DURACION = aNuevo(DURACION_BASE);
 const T3 = 9.0; // las comandas empiezan a los 9 s
 const T_SALE = 43.2; // las comandas dejan el pinche, en orden
 const TS = 41.0; // el sello «¡Oído!» y la campanita
@@ -37,8 +42,8 @@ const R = {
   pos5: ruta([[30.0, 5.3, 6.4, 23.6], [30.6, 6.0, 6.55, 25.2], [31.2, 5.98, 6.4, 25.7], [32.6, 5.97, 6.3, 25.86], [33.4, 5.96, 6.2, 25.98]]),
   look5: ruta([[30.0, 5.75, 6.35, 25.4], [30.6, 5.8, 6.15, 25.95], [31.2, 5.95, 6.07, 26.12], [33.4, 5.95, 6.07, 26.12]]),
   // 9 y 10: el sello, los platos, la mesa del brindis (la primera, 13,6 s antes; un poco más arriba: la pila es más alta)
-  pos9: ruta([[40.0, 0.12, 0.4, 0.45], [40.7, 0.06, 0.545, 0.26], [41.3, 0.05, 0.495, 0.22], [42.0, 0.12, 0.52, 0.4], [43.4, 0.3, 0.55, 0.85], [44.2, 0.55, 0.62, 1.05], [45.0, -0.8, 1.4, 3.6], [45.8, -2.28, 1.9, 5.74], [49.2, -2.3, 1.95, 5.72]]),
-  look9: ruta([[40.0, 0.0, 0.17, 0.0], [40.7, 0.0, 0.185, 0.0], [41.3, 0.0, 0.185, 0.0], [42.0, 0.0, 0.32, 0.0], [43.4, 0.4, 0.05, 0.1], [44.2, 0.6, 0.02, 0.25], [45.0, -1.8, -0.2, 5.0], [45.8, -2.3, -0.2, 5.7], [49.2, -2.3, -0.2, 5.7]]),
+  pos9: ruta([[40.0, 0.12, 0.4, 0.45], [40.6, 0.1, 0.27, 0.46], [41.3, 0.07, 0.21, 0.4], [42.0, 0.1, 0.26, 0.46], [42.7, 0.16, 0.42, 0.62], [43.4, 0.3, 0.55, 0.85], [44.2, 0.55, 0.62, 1.05], [45.0, -0.8, 1.4, 3.6], [45.8, -2.28, 1.9, 5.74], [49.2, -2.3, 1.95, 5.72]]),
+  look9: ruta([[40.0, 0.0, 0.17, 0.0], [40.6, 0.03, 0.01, 0.2], [41.3, 0.03, 0.009, 0.2], [42.0, 0.03, 0.01, 0.19], [42.7, 0.1, 0.08, 0.1], [43.4, 0.4, 0.05, 0.1], [44.2, 0.6, 0.02, 0.25], [45.0, -1.8, -0.2, 5.0], [45.8, -2.3, -0.2, 5.7], [49.2, -2.3, -0.2, 5.7]]),
   // 11: afuera, la vereda sin fila, y la cámara que sube al cielo
   // 11: la vereda (mesitas a la izquierda, la fila que entra a la derecha) y la grúa que sube por la fachada hasta el cielo
   pos10: ruta([[49.2, 0.2, -0.15, 21.6], [51.6, 0.2, 0.0, 20.9], [53.5, 0.25, 3.0, 19.8], [55.4, 0.35, 9.5, 18.6], [58.0, 0.4, 13.5, 17.8]]),
@@ -66,11 +71,25 @@ export async function crearPieza(motor, guion) {
   const pila = crearPila(escena, camara, { sinTorre: true, tSale: T_SALE - T3 });
   const talonario = crearTalonario(escena, guion);
   const hoja = crearHoja(escena, talonario.tx);
-  const sello = await crearSello(escena);
+  const sello = await crearSelloGoma(escena); pila.sellar(sello.tinta, TS + 0.12 - T3);
   const confeti = crearConfeti(escena);
   const flechas = crearFlechas(escena);
   const bici = crearBici(escena);
   const copas = crearCopas(escena, V3(-2.3, PISO, 5.7));
+  const trabajadores = crearTrabajadores(escena, { caos: [0, 22], orden: [38.4, 60] });
+  const brindis = (() => {
+    const mat = new THREE.MeshStandardMaterial({ color: 0x171210, roughness: 0.85 }), piel = new THREE.MeshStandardMaterial({ color: 0x3a2a22, roughness: 0.7 }), g = new THREE.Group(); g.position.copy(copas.g.position); g.visible = false; escena.add(g);
+    const gente = copas.copas.map(k => {
+      const ca = Math.cos(k.a), sa = Math.sin(k.a);
+      const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.17, 0.3, 6, 14), mat); torso.scale.set(1, 1, 0.62); torso.position.set(ca * 0.78, 0.86, sa * 0.78); torso.rotation.y = -k.a; torso.castShadow = true; g.add(torso);
+      const cabeza = new THREE.Mesh(new THREE.SphereGeometry(0.1, 18, 14), mat); cabeza.position.set(ca * 0.8, 1.27, sa * 0.8); cabeza.castShadow = true; g.add(cabeza);
+      const brazo = new THREE.Mesh(new THREE.CapsuleGeometry(0.052, 1, 4, 10), mat); brazo.castShadow = true; g.add(brazo);
+      const mano = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 10), piel); mano.scale.set(1, 0.8, 1.3); g.add(mano);
+      return { k, brazo, mano, hombro: new THREE.Vector3(ca * 0.66, 1.08, sa * 0.66) };
+    });
+    const arriba = new THREE.Vector3(0, 1, 0), dir = new THREE.Vector3(), q = new THREE.Quaternion();
+    return { g, poner() { for (const p of gente) { const h = p.k.c.position.clone().add(new THREE.Vector3(0, 0.07, 0)); p.mano.position.copy(h); dir.subVectors(h, p.hombro); const l = dir.length(); p.brazo.position.copy(p.hombro).addScaledVector(dir, 0.5); p.brazo.quaternion.copy(q.setFromUnitVectors(arriba, dir.normalize())); p.brazo.scale.set(1, Math.max(0.1, l - 0.08), 1); } } };
+  })();
   const reloj = crearReloj(escena, V3(0, 2.25, FACHADA - 0.2), Math.PI, 0.22);
 
   // ---------- la gente (siluetas a contraluz) ----------
@@ -86,6 +105,7 @@ export async function crearPieza(motor, guion) {
   for (const [mx, mz] of [[-2.3, 3.1], [2.1, 3.3], [-2.3, 5.7], [2.1, 5.9], [-2.3, 8.3], [2.1, 8.5], [-2.2, 10.7], [2.0, 10.8]]) for (const [dx, dz] of [[0, 0.66], [0.66, 0], [-0.66, 0], [0, -0.66]]) {
     if ((mx * 7 + dx * 3 + dz * 5 + 10) % 3 <= 0.5) continue;
     const p = { x: mx + dx, y: PISO + 0.2, z: mz + dz, sentada: true };
+    if (mx === -2.3 && mz === 5.7) p.hasta = 44.9; // la mesa del brindis: desde ahí la gente es de verdad (brindis)
     if (mx === 2.1 && mz === 8.5 && seVan.length < 2) { p.hasta = 19.0; seVan.push(p); }
     L.push(p);
   }
@@ -94,7 +114,7 @@ export async function crearPieza(motor, guion) {
   MESAS_VEREDA.forEach(([mx, mz], i) => { for (const s of [-1, 1]) if (i !== 2 || s < 0) L.push({ x: mx + s * 0.5, y: PISO + 0.35, z: mz, sentada: true }); });
   // gente de pie: esperando mesa junto a la puerta y en la barra del pase
   for (const [x, z] of [[-2.2, 11.0], [-1.5, 11.3], [1.3, 11.1]]) L.push({ x, y: PISO, z });
-  for (const [x, z] of [[1.5, 1.6], [2.4, 1.75]]) L.push({ x, y: PISO, z });
+  for (const [x, z] of [[2.72, 1.3], [2.76, 2.05]]) L.push({ x, y: PISO, z }); // clientes acodados en la barra
   const gente = crearGente(escena, L);
 
   // ---------- luces de la noche ----------
@@ -114,7 +134,8 @@ export async function crearPieza(motor, guion) {
   const hojaEn = t => V3(...R.hoja(Math.min(Math.max(t, 25.5), 31.25)));
   function ponerCamara(t) {
     let pos, look, fov = 50, roll = 0, yaw = 0, up = null;
-    if (t < T3) { const u = tv12(t); pos = V3(...R1.pos12(u)); look = V3(...R1.look12(u)); fov = R1.fov12(u); roll = deriva(u * 0.6, 3) * 0.008; }
+    if (t < T3) { const u = tv12(t); pos = V3(...R1.pos12(u)); look = V3(...R1.look12(u)); fov = R1.fov12(u); roll = deriva(u * 0.6, 3) * 0.008;
+      const barra = smoother(5.0, 5.7, t) * (1 - smoother(6.3, 6.95, t)); look.lerp(V3(3.2, 0.3, 2.8), barra * 0.85); }
     else if (t < 16.6) { const c = camPila(t - T3); pos = c.pos; look = c.look; fov = c.fov; roll = c.roll; yaw = c.yaw; }
     else if (t < 21.85) { pos = V3(...R.pos4(t)); look = V3(...R.look4(t)); fov = lerp(lerp(41, 46, smooth(16.6, 18.5, t)), 38, smooth(21.0, 21.8, t)); roll = deriva(t * 0.7, 4) * 0.012 + Math.sin(Math.PI * sat((t - 17.4) / 2)) * 0.06; }
     else if (t < 25.5) { pos = V3(...R.pos6(t)); look = V3(...R.look6(t)); fov = 38; roll = deriva(t * 0.7, 6) * 0.01; }
@@ -151,14 +172,14 @@ export async function crearPieza(motor, guion) {
     if (t < 30.8) return [hojaEn(t), lerp(7, 3, smooth(27.4, 28.2, t))];
     if (t < 33.4) return [V3(5.95, 6.07, 26.12), 11];
     if (t < 40.0) return [r8(t) < 51 ? V3(3.0, 0.2, 24.8) : V3(0, 0.3, 12), lerp(3, 6, smooth(37.9, 39.8, t))];
-    if (t < 43.6) return [V3(0, pila.estado.tope, 0), 10];
+    if (t < 43.6) return [t < 40.5 ? V3(0, pila.estado.tope, 0) : V3(0.03, 0.01, 0.2), 10];
     if (t < 49.2) return [t < 45.0 ? V3(0.6, 0.02, 0.4) : V3(-2.3, -0.17, 5.7), t < 45.0 ? 7 : 4];
     return [V3(0.6, 0.9, 12.2), 1.5];
   };
 
   const tarde = t => 1 - smooth(4.8, 16, t);
   const luces = []; escena.traverse(o => { if (o.isLight) luces.push(o); });
-  return {
+  const obj = {
     escena, camara, estado: est,
     poner(t) {
       ponerCamara(t);
@@ -187,17 +208,19 @@ export async function crearPieza(motor, guion) {
       flechas.ponerCamino(sat((t - 35.6) / 1.4), (1 - smooth(39.0, 39.6, t)) * (t > 35.4 && t < 40 ? 1 : 0));
       flechas.ponerPunta(V3(0, -50, 0), camara.position, 0, 1);
       bici.poner(lerp(-40, 45, sat((t - 36.8) / 1.4)), FACHADA + 5.0, t > 36.7 && t < 38.3);
-      // «¡Oído!»: el sello cae sobre la comanda de arriba del pinche; cuando sale el servicio, se va con ella
-      const us = t - TS; sello.grupo.visible = t > TS - 0.35 && t < T_SALE + 0.7;
+      // «¡Oído!»: el sello de goma baja, aprieta la comanda que quedó adelante del pinche y se va; la tinta queda en el papel
+      const us = t - TS; sello.grupo.visible = us > -0.45 && us < 0.75;
       if (sello.grupo.visible) {
-        const cae = us < 0 ? easeIn(1 + us / 0.35, 2) : 1, sv = Math.max(0, t - T_SALE);
-        sello.grupo.position.set(sv * sv * 3.2, pila.estado.tope + 0.003 + (1 - cae) * 0.45 + Math.max(0, -rebote(us, 3, 9)) * 0.01 + sv * 0.7, 0.0);
-        sello.grupo.rotation.set(us < 0 ? 0.25 * (-us / 0.35) : 0, -0.3, (us < 0 ? 0.1 * (-us / 0.35) : 0) + sv * 2.2); sello.frente.material.emissiveIntensity = 0;
+        const [sx, sy, sz] = pila.SELLO_POS, baja = us < 0 ? easeIn(1 + us / 0.45, 2.2) : 1, sube = us > 0.16 ? easeIn(sat((us - 0.16) / 0.55), 1.8) : 0;
+        const aprieta = us > 0 && us < 0.16 ? Math.sin(Math.PI * us / 0.16) * 0.0025 : 0;
+        sello.grupo.position.set(sx + sube * 0.18, sy + 0.0012 + (1 - baja) * 0.42 + sube * 0.42 - aprieta, sz - sube * 0.05);
+        sello.grupo.rotation.set((1 - baja) * 0.35 + sube * -0.3, 0.12, (1 - baja) * -0.12 + sube * 0.25);
       }
       confeti.poner(t, 39.8);
       // «Sale.»: los platos salen por el pase; brindis en la mesa
       cocina.platos.forEach((p, i) => { const u = sat((t - 43.55 - i * 0.12) / 0.6), v = sat((t - 44.3 - i * 0.12) / 0.6); p.position.z = [-0.06, 0.02, -0.1][i] + 0.42 * easeOut(u, 2) + 0.4 * v; p.position.y = 0.6 * easeIn(v, 2); });
-      copas.poner(t, 46.8);
+      copas.poner(t, 46.8); brindis.g.visible = t > 44.9 && t < 49.25; if (brindis.g.visible) brindis.poner();
+      trabajadores.poner(t, camara);
       gente.poner(t, camara.position);
       // el cielo: del atardecer a la noche
       cielo.domo.position.copy(camara.position); cielo.mat.uniforms.uTarde.value = tarde(t);
@@ -250,4 +273,6 @@ export async function crearPieza(motor, guion) {
       return items;
     },
   };
+  // la pieza vive en tiempo «base»; el video estira algunos momentos (ESTIRAR) sin tocar el resto
+  return { escena, camara, estado: est, poner: t => obj.poner(aBase(t)), revelado: t => obj.revelado(aBase(t)), obturador: t => obj.obturador(aBase(t)), subcuadros: t => obj.subcuadros(aBase(t)), letras: t => obj.letras(aBase(t)) };
 }

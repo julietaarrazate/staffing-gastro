@@ -247,7 +247,7 @@ export function crearCopas(escena, centro) {
     return { c, base, a };
   });
   return {
-    g,
+    g, copas,
     poner(t, t0) { // t0: el choque
       for (const k of copas) {
         const u = t - t0; const sube = smooth(-1.2, -0.3, u) * (1 - smooth(0.5, 1.4, u));
@@ -352,4 +352,29 @@ export function crearReloj(escena, pos, rotY = 0, radio = 0.26) {
   const aguja = (largo, ancho) => { const p = new THREE.Group(); const m = new THREE.Mesh(new THREE.BoxGeometry(ancho, largo, 0.006), matA); m.position.y = largo / 2 - largo * 0.12; p.add(m); p.position.z = 0.012; g.add(p); return p; };
   const hh = aguja(radio * 0.55, radio * 0.07), mm = aguja(radio * 0.82, radio * 0.045);
   return { grupo: g, poner(horas) { mm.rotation.z = -(horas % 1) * Math.PI * 2; hh.rotation.z = -((horas % 12) / 12) * Math.PI * 2; } };
+}
+
+// ---------- el sello de goma (versión 2): mango de madera, taco y goma; deja «¡Oído!» en tinta azul en la comanda ----------
+export async function crearSelloGoma(escena, url = '/marca/oido-filete-cinta.svg') {
+  const img = new Image(); img.src = url; await img.decode();
+  // la tinta: las caras de las letras del «¡Oído!» (sin el volumen de colores), con un marco redondeado y el grano de un sello real
+  const W = 1000, H = 400, c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
+  const lw = 840, lh = lw * 551 / 1820, tmp = document.createElement('canvas'); tmp.width = lw; tmp.height = Math.round(lh); const tg = tmp.getContext('2d'); tg.drawImage(img, 0, 0, lw, lh);
+  const d = tg.getImageData(0, 0, tmp.width, tmp.height), px = d.data, r = rng(4321);
+  for (let i = 0; i < px.length; i += 4) { const lum = (px[i] * 0.3 + px[i + 1] * 0.59 + px[i + 2] * 0.11) / 255, a = px[i + 3] / 255; const k = a * Math.min(1, Math.max(0, (lum - 0.62) / 0.16)); px[i] = 18; px[i + 1] = 58; px[i + 2] = 165; px[i + 3] = 255 * k * (0.78 + r() * 0.22); }
+  tg.putImageData(d, 0, 0);
+  g.drawImage(tmp, (W - lw) / 2, (H - lh) / 2 + 6);
+  g.strokeStyle = 'rgba(18,58,165,.92)'; g.lineWidth = 16; g.beginPath(); g.roundRect(14, 14, W - 28, H - 28, 46); g.stroke(); g.lineWidth = 5; g.beginPath(); g.roundRect(40, 40, W - 80, H - 80, 30); g.stroke();
+  g.globalCompositeOperation = 'destination-out'; for (let i = 0; i < 1400; i++) { g.fillStyle = `rgba(0,0,0,${0.3 + r() * 0.7})`; g.beginPath(); g.arc(r() * W, r() * H, 0.6 + r() * 2.6, 0, Math.PI * 2); g.fill(); }
+  for (let i = 0; i < 6; i++) { g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(r() * W, r() * H, 40 + r() * 90, 8 + r() * 20, r() * 3, 0, Math.PI * 2); g.fill(); } // donde la goma apoyó menos
+  g.globalCompositeOperation = 'source-over';
+  // el sello: mango torneado, taco de madera y la goma roja
+  const grupo = new THREE.Group(); grupo.visible = false; escena.add(grupo);
+  const mad = new THREE.MeshStandardMaterial({ map: T.madera(), color: 0x9a6a44, roughness: 0.45 });
+  const perfil = [[0, 0], [0.012, 0], [0.012, 0.012], [0.008, 0.02], [0.008, 0.05], [0.016, 0.062], [0.018, 0.075], [0.012, 0.086], [0, 0.088]].map(([x, y]) => new THREE.Vector2(x, y));
+  const mango = new THREE.Mesh(new THREE.LatheGeometry(perfil, 24), mad); mango.position.y = 0.024; mango.castShadow = true; grupo.add(mango);
+  const taco = new THREE.Mesh(new THREE.BoxGeometry(0.084, 0.022, 0.036), mad); taco.position.y = 0.013; taco.castShadow = true; grupo.add(taco);
+  const goma = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.004, 0.032), new THREE.MeshStandardMaterial({ color: 0x5a1712, roughness: 0.8 })); goma.position.y = 0.002; goma.castShadow = true; grupo.add(goma);
+  const placa = new THREE.Mesh(new THREE.PlaneGeometry(0.06, 0.012), new THREE.MeshStandardMaterial({ color: 0xe6dcc6, roughness: 0.6 })); placa.position.set(0, 0.016, 0.0181); grupo.add(placa); // etiqueta en el canto
+  return { grupo, tinta: c };
 }
