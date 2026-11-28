@@ -151,3 +151,50 @@ test("turno ajeno o inexistente (404): «No encontramos este turno» con vuelta 
   await page.getByRole("button", { name: "Volver al panel" }).click();
   await expect(page).toHaveURL(/\/shifts$/);
 });
+
+const NO_ENCONTRADO = "No encontramos este turno";
+const encabezado = (page: Page) => page.getByTestId("candidatos-turno");
+
+test("el 404 sólo del turno (postulantes bien) también dice «No encontramos este turno» y no deja el encabezado", async ({ page }) => {
+  await setup(page, { apps: () => json([APPLICANT]), cands: () => json([]) });
+  await page.route("**/api/v1/shifts/shift-1", (r) => r.fulfill(json({ detail: "Turno no encontrado" }, 404)));
+  await page.goto("/shifts/shift-1/candidates");
+  await expect(page.getByRole("heading", { name: NO_ENCONTRADO })).toBeVisible();
+  await expect(encabezado(page)).toHaveCount(0);
+  await expect(page.getByText("Lucía Postulada")).toHaveCount(0);
+  await expect(page.getByText("No pudimos cargar el estado del turno")).toHaveCount(0);
+});
+
+test("una recarga silenciosa que da 404 con el turno ya en pantalla: todo pasa a «No encontramos», sin encabezado", async ({ page }) => {
+  let ajeno = false;
+  await setup(page, {
+    apps: () => (ajeno ? json({ detail: "Turno no encontrado" }, 404) : json([APPLICANT])),
+    cands: () => json([]),
+  });
+  await page.route("**/api/v1/shifts/shift-1", (r) =>
+    r.fulfill(ajeno ? json({ detail: "Turno no encontrado" }, 404) : json(deContrato("turno_publicado_comercio")))
+  );
+  await page.goto("/shifts/shift-1/candidates");
+  await expect(page.getByText("Lucía Postulada")).toBeVisible();
+  await expect(encabezado(page)).toBeVisible();
+
+  ajeno = true;
+  await page.evaluate(() => window.dispatchEvent(new Event("online")));
+  await expect(page.getByRole("heading", { name: NO_ENCONTRADO })).toBeVisible();
+  await expect(encabezado(page)).toHaveCount(0);
+  await expect(page.getByText("Lucía Postulada")).toHaveCount(0);
+});
+
+test("una recarga silenciosa que da 404 sólo en postulantes también oculta el encabezado del turno", async ({ page }) => {
+  let ajeno = false;
+  await setup(page, {
+    apps: () => (ajeno ? json({ detail: "Turno no encontrado" }, 404) : json([APPLICANT])),
+    cands: () => json([]),
+  });
+  await page.goto("/shifts/shift-1/candidates");
+  await expect(encabezado(page)).toBeVisible();
+  ajeno = true;
+  await page.evaluate(() => window.dispatchEvent(new Event("online")));
+  await expect(page.getByRole("heading", { name: NO_ENCONTRADO })).toBeVisible();
+  await expect(encabezado(page)).toHaveCount(0);
+});
