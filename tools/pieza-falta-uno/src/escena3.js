@@ -101,8 +101,8 @@ export async function crearEscena3(motor) {
 
   // la mano: sólo su sombra, en la capa que ve la luz y no la cámara
   const manoTex = siluetaMano();
-  const mano = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.2), new THREE.MeshBasicMaterial({ alphaMap: manoTex, alphaTest: 0.5, transparent: false }));
-  mano.customDepthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, alphaMap: manoTex, alphaTest: 0.5 });
+  const mano = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 0.24), new THREE.MeshBasicMaterial({ alphaMap: manoTex, alphaTest: 0.5, transparent: false, side: THREE.DoubleSide }));
+  mano.customDepthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, alphaMap: manoTex, alphaTest: 0.5, side: THREE.DoubleSide });
   mano.layers.set(1); mano.castShadow = true; escena.add(mano);
 
   const vaivenX = (h, t) => h < ROOF ? 0 : Math.pow((h - ROOF) / 60, 1.6) * 3.2 * Math.sin(t * 0.55 + h * 0.018) + Math.pow((h - ROOF) / 60, 1.2) * 0.9;
@@ -158,9 +158,9 @@ export async function crearEscena3(motor) {
       const u = t - GOLPES[k]; if (u < -0.32 || u > 0.34) continue;
       const h = Y[k] + 0.012; vis = true;
       const ida = easeOut((u + 0.32) / 0.32, 2.2), vuelta = easeIn(u / 0.34, 1.6);
-      const x = u < 0 ? lerp(0.05, 0.012, ida) : lerp(0.012, 0.08, vuelta);
+      const x = u < 0 ? lerp(-0.14, 0.01, ida) : lerp(0.01, -0.1, vuelta);
       const y = u < 0 ? lerp(h + 0.28, h + 0.03, ida) : lerp(h + 0.03, h + 0.3, vuelta);
-      const z = u < 0 ? lerp(0.3, 0.05, ida) : lerp(0.05, 0.32, vuelta);
+      const z = u < 0 ? lerp(0.2, 0.06, ida) : lerp(0.06, 0.22, vuelta);
       mano.position.set(x, y, z); mano.rotation.set(-Math.PI / 2 + 0.25, 0, 0.5 + k * 0.17);
     }
     mano.visible = vis;
