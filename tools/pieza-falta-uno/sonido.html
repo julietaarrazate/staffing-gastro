@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Falta uno · sonido</title>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js"}}</script>
+</head><body><script type="module">
+import { bandaEscena3, wav } from './src/sonido.js';
+import { GOLPES, crece, camY } from './src/escena3.js';
+import { TECHO } from './src/cocina.js';
+window.banda = async (dur) => {
+  const b = await bandaEscena3({ GOLPES, crece, camY, TECHO }, { dur });
+  const u = wav(b); let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000));
+  return btoa(s);
+};
+window.listo = true;
+</script></body></html>
