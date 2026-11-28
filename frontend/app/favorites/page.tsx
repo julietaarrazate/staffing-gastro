@@ -64,8 +64,8 @@ export default function FavoritesPage() {
         <div>
           <EmptyState
             icon={<HeartIcon size={28} />}
-            title="Todavía no marcaste favoritos"
-            subtitle="Desde el perfil de cualquier trabajador, tocá 'Agregar a favoritos' para encontrarlo rápido la próxima vez."
+            title="Tu gente de confianza va acá"
+            subtitle="Cuando alguien trabaje bien en tu local, sumalo desde su perfil con «Agregar a favoritos». La próxima vez lo encontrás rápido."
           />
         </div>
       )}

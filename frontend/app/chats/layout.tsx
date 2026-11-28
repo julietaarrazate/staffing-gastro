@@ -9,7 +9,6 @@ import { useRequireAuth } from "@/lib/use-require-auth";
 import { CHAT_ROLES } from "@/lib/chat-roles";
 import { Conversation } from "@/lib/types";
 import { Avatar, EmptyState, ErrorBanner, Skeleton } from "@/components/ui";
-import { MessageIcon } from "@/components/icons";
 import { ConversationsContext, ConversationsControlContext, shiftLabel } from "./ConversationsContext";
 import { useLiveRefresh } from "@/lib/live-refresh";
 import { formatMessageWhen } from "@/lib/datetime";
@@ -124,10 +123,10 @@ export default function ChatsLayout({ children }: { children: React.ReactNode })
             )}
             {!loading && conversations.length === 0 && !error && (
               <div className="px-5 pt-3">
+                {/* Sin `icon`: el pinche, como en los otros vacíos de turnos. */}
                 <EmptyState
-                  icon={<MessageIcon size={28} />}
-                  title="Todavía no tenés conversaciones"
-                  subtitle="Apenas se asigne un turno, vas a poder chatear acá con la otra parte."
+                  title="Acá se arreglan los detalles"
+                  subtitle="Cuando un turno tiene a alguien elegido se abre su chat: a qué hora llegar, por dónde entrar, qué llevar."
                 />
               </div>
             )}
@@ -135,7 +134,7 @@ export default function ChatsLayout({ children }: { children: React.ReactNode })
             {conversations.length > 0 && (
               <>
                 <p className="px-5 pb-1 pt-3.5 text-caption font-bold text-ink-soft">
-                  Coordiná los detalles de cada turno con la otra parte.
+                  Un chat por cada turno.
                 </p>
                 <ul>
                   {conversations.map((c) => {

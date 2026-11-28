@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ApplicationStatus } from "@/lib/types";
-import { appliedShiftIds, unassignedShiftIds } from "./applications";
+import { appliedShiftIds, postulacionEnviada, unassignedShiftIds } from "./applications";
 
 function application(shift_id: string, status: ApplicationStatus) {
   return { shift_id, status };
@@ -30,5 +30,18 @@ describe("appliedShiftIds", () => {
 
   it("sin postulaciones no hay turnos postulados", () => {
     expect(appliedShiftIds([]).size).toBe(0);
+  });
+});
+
+describe("postulacionEnviada", () => {
+  it("dice a qué local fue y qué pasa ahora", () => {
+    expect(postulacionEnviada("Bar Palermo Soho")).toBe(
+      "Postulación enviada a Bar Palermo Soho. Te avisamos apenas responda."
+    );
+  });
+
+  it("sin nombre del local no deja un hueco", () => {
+    expect(postulacionEnviada(null)).toBe("Postulación enviada. Te avisamos apenas el local responda.");
+    expect(postulacionEnviada("")).toBe("Postulación enviada. Te avisamos apenas el local responda.");
   });
 });

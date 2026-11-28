@@ -1113,7 +1113,8 @@ async def test_assign_worker_sends_acceptance_email(
     assert len(fake_email_sender.sent) == 3
     sent = fake_email_sender.sent[-1]
     assert sent.to == "w_email@staffya.com"
-    assert "aceptaron" in sent.subject.lower()
+    # Un verbo por acto (voz de la app, 2026-11-28): el local elige.
+    assert sent.subject == "Te eligieron: Mozo/a en Bar Palermo. Falta que confirmes"
     # El puesto como lo lee una persona, no el identificador ("mozo").
     assert "Mozo/a" in sent.subject
     assert "Bar Palermo" in sent.html

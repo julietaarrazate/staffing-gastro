@@ -136,7 +136,7 @@ async def test_resend_verification_already_verified_sends_nothing(
     token = _extract_token(fake_email_sender.sent[0].html)
     await client.post("/api/v1/auth/verify-email", json={"token": token})
     assert len(fake_email_sender.sent) == 2
-    assert "Bienvenido" in fake_email_sender.sent[1].subject
+    assert fake_email_sender.sent[1].subject == "Ya estás en Oído: 3 cosas para que te lleguen turnos"
 
     response = await client.post(
         "/api/v1/auth/resend-verification", json={"email": "yaverificado@staffya.com"}

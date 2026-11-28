@@ -105,7 +105,7 @@ test("un día sin turnos es una línea tranquila, no un estado vacío grande", a
   await dia(page, "martes 17").click();
   await expect(page.getByTestId("dia-vacio")).toHaveText("Nada el martes 17");
   await expect(visibles(page)).toHaveCount(0);
-  await expect(page.getByText("Todavía no tenés turnos asignados")).toHaveCount(0);
+  await expect(page.getByText("Todavía no hay turno a tu nombre")).toHaveCount(0);
   // «Más adelante» sigue ahí, y volver a tocar el día trae la semana.
   await expect(page.getByTestId("mas-adelante")).toBeVisible();
   await dia(page, "martes 17").click();
@@ -246,7 +246,7 @@ test("un aviso a un turno de otra semana abre esa semana, no una lista sin la ta
 
 test("sin turnos la pantalla sigue siendo la de siempre: estado vacío y la tira quieta, sin «Más adelante»", async ({ page }) => {
   await abrir(page, []);
-  await expect(page.getByText("Todavía no tenés turnos asignados")).toBeVisible();
+  await expect(page.getByText("Todavía no hay turno a tu nombre")).toBeVisible();
   await expect(page.getByTestId("mas-adelante")).toHaveCount(0);
   await expect(page.getByTestId("dia-vacio")).toHaveCount(0);
   await expect(page.locator("[data-con-turno]")).toHaveCount(0);

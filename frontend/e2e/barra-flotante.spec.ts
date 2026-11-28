@@ -69,7 +69,7 @@ test("celular: sin encabezado; fuera del Inicio la cuenta de avisos va en su pes
 }) => {
   await abrir(page, "worker", "/buscar");
   await expect(page.getByRole("banner")).toBeHidden();
-  await expect(page.getByRole("button", { name: "Notificaciones" })).toBeHidden();
+  await expect(page.getByRole("button", { name: "Avisos" })).toBeHidden();
   const inicio = barra(page).getByRole("link", { name: "Inicio, 2 avisos sin leer" });
   await expect(inicio).toBeVisible();
 
@@ -77,11 +77,11 @@ test("celular: sin encabezado; fuera del Inicio la cuenta de avisos va en su pes
   await expect(page).toHaveURL(/\/feed$/);
   // En el Inicio la cuenta está en la campanita, no repetida en la pestaña.
   await expect(barra(page).getByRole("link", { name: "Inicio", exact: true })).toBeVisible();
-  const campanita = page.getByTestId("inicio-cielo").getByRole("button", { name: "Notificaciones" });
+  const campanita = page.getByTestId("inicio-cielo").getByRole("button", { name: "Avisos" });
   await expect(campanita).toContainText("2");
 
   await campanita.click();
-  const hoja = page.getByRole("dialog", { name: "Notificaciones" });
+  const hoja = page.getByRole("dialog", { name: "Avisos" });
   await expect(hoja.getByRole("button", { name: "Marcar todas como leídas" })).toBeVisible();
   // La hoja entra en la pantalla: no se sale por los costados.
   const caja = await hoja.boundingBox();
@@ -98,7 +98,7 @@ test("celular, comercio: «oído» y la campanita sobre el cielo del Panel, y el
   await expect(page.getByRole("banner")).toBeHidden();
   const cielo = page.getByTestId("panel-cielo");
   await expect(cielo.getByRole("img", { name: "Oído" })).toBeVisible();
-  await expect(cielo.getByRole("button", { name: "Notificaciones" })).toBeVisible();
+  await expect(cielo.getByRole("button", { name: "Avisos" })).toBeVisible();
 
   const mas = page.locator(".barra-app").getByRole("link", { name: "Publicar turno" });
   const [cajaBarra, cajaMas] = await Promise.all([barra(page).boundingBox(), mas.boundingBox()]);
@@ -121,7 +121,7 @@ for (const tema of ["light", "dark"] as const) {
     await expect(barra(page)).toBeHidden();
     const arriba = page.getByRole("banner");
     await expect(arriba.getByRole("link", { name: "Buscar" })).toHaveAttribute("aria-current", "page");
-    await expect(arriba.getByRole("button", { name: "Notificaciones" })).toContainText("2");
+    await expect(arriba.getByRole("button", { name: "Avisos" })).toContainText("2");
     await arriba.getByRole("link", { name: "Publicar turno" }).click();
     await expect(page).toHaveURL(/\/shifts\/new$/);
   });

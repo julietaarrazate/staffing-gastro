@@ -739,10 +739,14 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
                     "Postulate ahora, antes de que lo tomen."
                 )
             else:
-                title = f"Turno de {puesto} cerca tuyo"
+                # El dato antes que el adjetivo (voz de la app, 2026-11-28):
+                # cuándo, quién, cuánto y por cuántas horas.
+                title = f"{puesto} {format_inicio_art(shift.start_at)}, cerca tuyo"
+                quien = company.name if company is not None else "Un local"
+                horas = format_duracion(shift.end_at - shift.start_at)
                 message = (
-                    f"{lugar} está buscando {puesto}. "
-                    "Entrá y postulate antes de que lo tomen."
+                    f"{quien} paga {_pesos(shift.pay_amount)} por {horas}. "
+                    "Si te sirve, postulate."
                 )
             await self._notifications.add_many(
                 [
@@ -1675,11 +1679,15 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         )
         await self._accept_application(shift_id, worker_profile_id)
         await self._reject_pending_applicants(shift_id)
+        # Un verbo por acto: el local elige, quien trabaja confirma.
+        company = await self._companies.get_by_id(updated.company_id)
+        local = (company.name if company is not None else None) or "Un local"
         await self._notify_worker(
             worker_profile_id,
             NotificationType.SHIFT_ASSIGNED,
-            "Te asignaron un turno",
-            f"Te asignaron el turno \"{updated.title or updated.position.label}\". Confirmá tu asistencia.",
+            f"Te eligieron para {updated.title or updated.position.label}",
+            f"{local} te eligió para {format_inicio_art(updated.start_at)}. "
+            "Falta que digas «¡oído!»: confirmá que vas.",
         )
         await self._send_acceptance_email(worker_profile_id, updated)
         return updated
@@ -1852,7 +1860,7 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
             company = await self._companies.get_by_id(shift.company_id)
             company_name = (company.name if company is not None else None) or "Un comercio"
             position_label = shift.position.label
-            subject = f"Te aceptaron: {position_label} en {company_name}"
+            subject = f"Te eligieron: {position_label} en {company_name}. Falta que confirmes"
             html = render_shift_accepted_email_html(
                 user.full_name,
                 position_label,
@@ -1914,11 +1922,16 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         others = [s for s in others if s.id != shift.id]
         shift.confirm(others)
         updated = await self._shifts.update(shift)
+        # «¡Oído!» sólo cuando alguien dijo que sí. «Va en camino» lo prende
+        # la persona (nunca arranca solo): el aviso no promete que llegue.
+        nombre = await self._worker_name(worker_profile_id) or "La persona elegida"
         await self._notify_company(
             updated.company_id,
             NotificationType.SHIFT_CONFIRMED,
-            "Confirmaron un turno",
-            f"El trabajador asignado confirmó su asistencia al turno \"{updated.title or updated.position.label}\".",
+            f"¡Oído! {nombre} confirmó",
+            f"Va {format_inicio_art(updated.start_at)} a cubrir "
+            f"{updated.title or updated.position.label}. "
+            "Si avisa que sale para allá, te llega otro aviso.",
         )
         await self._withdraw_overlapping_applications(worker_profile_id, updated)
         # Nuevas deadlines: recordatorio de salida, de check-in y no-show
@@ -2509,11 +2522,13 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         shift = await self._get_assigned_to(worker_profile_id, shift_id)
         shift.check_out(latitude, longitude)
         updated = await self._shifts.update(shift)
+        nombre = await self._worker_name(worker_profile_id) or "La persona elegida"
         await self._notify_company(
             updated.company_id,
             NotificationType.SHIFT_CHECKED_OUT,
-            "Terminó un turno",
-            f"El trabajador terminó el turno \"{updated.title or updated.position.label}\".",
+            f"{nombre} terminó el turno",
+            f"Marcó la salida de {updated.title or updated.position.label}. "
+            "Cerralo para calificar y registrar el pago.",
         )
         return updated
 

@@ -95,7 +95,7 @@ test("lista de favoritos: muestra al trabajador y 'Quitar' lo saca de la lista",
   await expect(page.getByText("2 turnos juntos")).toBeVisible();
 
   await page.getByRole("button", { name: "Quitar" }).click();
-  await expect(page.getByText("Todavía no marcaste favoritos")).toBeVisible();
+  await expect(page.getByText("Tu gente de confianza va acá")).toBeVisible();
 });
 
 test("perfil del trabajador: el comercio puede marcarlo como favorito", async ({ page }) => {

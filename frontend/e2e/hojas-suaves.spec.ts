@@ -193,8 +193,8 @@ test.describe("avisos de la campanita", () => {
   for (const theme of ["light", "dark"] as const) {
     test(`${theme}: la lista va en una hoja suave con una tarjeta por aviso; el que no se leyó, con el relleno del campo y un punto`, async ({ page }) => {
       await conAvisos(page, theme);
-      await page.getByRole("button", { name: "Notificaciones" }).click();
-      const hoja = page.getByRole("dialog", { name: "Notificaciones" });
+      await page.getByRole("button", { name: "Avisos" }).click();
+      const hoja = page.getByRole("dialog", { name: "Avisos" });
       await expect(hoja).toHaveClass(/hoja-flotante/);
       const avisos = hoja.locator(".aviso-fila");
       await expect(avisos).toHaveCount(2);
@@ -215,7 +215,7 @@ test.describe("avisos de la campanita", () => {
   test("en la compu el desplegable de la barra también es suave", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await conAvisos(page, "light");
-    await page.getByRole("button", { name: "Notificaciones" }).first().click();
+    await page.getByRole("button", { name: "Avisos" }).first().click();
     const panel = page.locator(".panel-avisos");
     await expect(panel).toBeVisible();
     await expect(panel).toHaveCSS("border-top-left-radius", "22px");

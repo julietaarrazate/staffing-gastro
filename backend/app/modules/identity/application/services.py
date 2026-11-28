@@ -698,17 +698,19 @@ class IdentityService:
         el mismo instante se sienten a spam. Best-effort, mismo contrato que
         el resto."""
         if user.role == UserRole.EMPLOYER:
+            subject = "¡Bienvenido/a a Oído! Estos son tus próximos pasos"
             html = render_welcome_employer_email_html(
                 user.full_name, f"{settings.frontend_url}/shifts/new"
             )
         else:
+            subject = "Ya estás en Oído: 3 cosas para que te lleguen turnos"
             html = render_welcome_worker_email_html(
                 user.full_name, f"{settings.frontend_url}/feed"
             )
         try:
             await self._email_sender.send(
                 to=user.email,
-                subject="¡Bienvenido/a a Oído! Estos son tus próximos pasos",
+                subject=subject,
                 html=html,
             )
         except Exception:

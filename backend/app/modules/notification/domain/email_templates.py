@@ -248,18 +248,18 @@ def render_welcome_worker_email_html(full_name: str, link: str) -> str:
     pasos que el onboarding no cubre y que deciden si le llegan turnos."""
     body = f"""
     <p style="margin:0 0 4px;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.6;color:{_TINTA};">Hola {escape(full_name)},</p>
-    <p style="margin:0 0 20px;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.6;color:{_TINTA};">Gracias por sumarte. Tu cuenta ya está activa. Esto es lo que hace que te lleguen turnos:</p>
+    <p style="margin:0 0 20px;font-family:Inter,Arial,sans-serif;font-size:15px;line-height:1.6;color:{_TINTA};">Tu cuenta está activa. Tres cosas hacen que te lleguen turnos:</p>
     {_step_box(1, "Bajá Oído a tu celular", "Desde Chrome en Android: tocá los tres puntos ⋮ y elegí <strong>Instalar app</strong>. Desde Safari en iPhone: tocá Compartir y elegí <strong>Agregar a inicio</strong>. Abrila desde el ícono y tocá Activar cuando te lo pida: así te avisamos al instante cuando un comercio cerca tuyo necesita a alguien.", accent="destacado")}
     {_step_box(2, "Verificá tu identidad", "Subí tu DNI y una selfie desde tu perfil. Cuando un comercio mira a quién elegir, ve el sello de perfil verificado.", accent="tinte")}
-    {_step_box(3, "Postulate a tu primer turno", "Elegí uno del feed y tocá Postularme. Si dejaste tu zona o tu oficio para después, cargalos en tu perfil para ver los turnos que te sirven.")}
+    {_step_box(3, "Postulate a tu primer turno", "Elegí uno en Inicio y tocá Postularme. Si dejaste tu zona o tu oficio para después, cargalos en tu perfil para ver los turnos que te sirven.")}
     {_cta_button("Ver turnos cerca", link)}
     <p style="margin:24px 0 0;font-family:Inter,Arial,sans-serif;font-size:14px;line-height:1.6;color:{_TINTA};">Cualquier duda, respondé este mail.</p>
-    <p style="margin:4px 0 0;font-family:Inter,Arial,sans-serif;font-size:14px;line-height:1.6;color:{_TINTA};">¡Bienvenido/a!<br><strong>El equipo de Oído</strong></p>
+    <p style="margin:4px 0 0;font-family:Inter,Arial,sans-serif;font-size:14px;line-height:1.6;color:{_TINTA};">Nos vemos en el turno.<br><strong>Oído</strong></p>
     """
     return _shell(
         preheader="Bajá Oído a tu celular y empezá a recibir turnos cerca tuyo.",
-        eyebrow="TRABAJADOR · CUENTA NUEVA",
-        title_html="Ya sos parte de Oído",
+        eyebrow="CUENTA NUEVA",
+        title_html="Ya estás adentro",
         subtitle_html="",
         body_html=body,
         footer_note="Recibís este mail porque te registraste en Oído.",

@@ -369,7 +369,7 @@ test("el aviso al postulante se lee en la campanita y abre el Inicio", async ({ 
   // en la pestaña «Inicio», y la campanita está sobre el cielo del Inicio.
   await page.getByRole("navigation", { name: "Secciones" }).getByRole("link", { name: /^Inicio, .* sin leer$/ }).click();
   await expect(page).toHaveURL(/\/feed$/);
-  await page.getByTestId("inicio-cielo").getByRole("button", { name: "Notificaciones" }).click();
+  await page.getByTestId("inicio-cielo").getByRole("button", { name: "Avisos" }).click();
   await page.getByRole("button", { name: /Se canceló un turno al que te postulaste/ }).click();
 
   await expect(page).toHaveURL(/\/feed$/);
@@ -386,7 +386,7 @@ test("el aviso al asignado sin confirmar abre «Mis turnos»", async ({ page }) 
   );
   await page.goto("/feed");
 
-  await page.getByRole("button", { name: "Notificaciones" }).click();
+  await page.getByRole("button", { name: "Avisos" }).click();
   await page.getByRole("button", { name: /El comercio canceló el turno/ }).click();
 
   await expect(page).toHaveURL(/\/my-shifts$/);
