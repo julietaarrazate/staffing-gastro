@@ -1,5 +1,7 @@
 # ADR-0009 — Escalada automática de urgencia si un turno no se cubre rápido
 
+> **Vigente desde el 2026-11-28:** los topes pasaron a 20 (primera tanda) y 40 (escalada), con una cuarta parte del cupo para gente nueva verificada (`shift/domain/cupo_de_avisos.py`, [historial](../historial/2026-11-28-cupo-de-avisos-con-lugar-para-nuevos.md)). Las cifras de abajo son las de la decisión original.
+
 **Estado:** aceptado · **Fecha:** 2026-08-02
 
 ## Contexto

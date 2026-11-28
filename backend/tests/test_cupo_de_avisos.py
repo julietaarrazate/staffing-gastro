@@ -53,13 +53,44 @@ def test_sin_gente_nueva_el_cupo_vuelve_al_ranking():
 
 
 def test_una_nueva_que_ya_entraba_por_ranking_no_gasta_lugar_reservado():
+    """Con tope 8 hay 2 lugares reservados y 6 por ranking. La nueva que va
+    primera entra por ranking; los dos reservados son para otras dos."""
     primera = P("nueva-primera", events_completed=0)
-    otra = P("nueva-otra", events_completed=0, distance_km=3)
-    ranked = [primera] + [P(f"h{i}") for i in range(8)] + [otra]
+    otras = [P(f"nueva-{i}", events_completed=0, distance_km=i) for i in (3, 4, 5)]
+    ranked = [primera] + [P(f"h{i}") for i in range(12)] + otras
 
-    elegidos = repartir_cupo(ranked, 4, {primera.user_id, otra.user_id})
+    elegidos = repartir_cupo(ranked, 8, {primera.user_id, *(o.user_id for o in otras)})
 
-    assert _nombres(elegidos) == ["nueva-primera", "h0", "h1", "nueva-otra"]
+    assert _nombres(elegidos) == [
+        "nueva-primera", "h0", "h1", "h2", "h3", "h4", "nueva-3", "nueva-4",
+    ]
+
+
+def test_con_tope_menor_a_cuatro_no_hay_lugares_reservados():
+    nueva = P("nueva", events_completed=0, distance_km=0.1)
+    ranked = [P(f"h{i}") for i in range(6)] + [nueva]
+    for tope in (1, 2, 3):
+        assert _nombres(repartir_cupo(ranked, tope, {nueva.user_id})) == [
+            f"h{i}" for i in range(tope)
+        ]
+    assert repartir_cupo([], 20, set()) == []
+
+
+def test_sin_distancia_va_ultima_entre_las_nuevas():
+    sin_distancia = P("sin-distancia", events_completed=0, distance_km=None)
+    con_distancia = P("con-distancia", events_completed=0, distance_km=20)
+    ranked = [P(f"h{i}") for i in range(8)] + [sin_distancia, con_distancia]
+    elegidos = repartir_cupo(ranked, 4, {sin_distancia.user_id, con_distancia.user_id})
+    assert _nombres(elegidos)[-1] == "con-distancia"
+
+
+def test_pocas_nuevas_verificadas_el_resto_del_cupo_vuelve_al_ranking():
+    nueva = P("nueva", events_completed=0)
+    ranked = [P(f"h{i}") for i in range(12)] + [nueva]
+    # Tope 8: 6 por ranking, 2 reservados, pero hay una sola nueva.
+    assert _nombres(repartir_cupo(ranked, 8, {nueva.user_id})) == [
+        "h0", "h1", "h2", "h3", "h4", "h5", "h6", "nueva",
+    ]
 
 
 def test_nunca_pasa_del_tope_ni_repite():
@@ -68,3 +99,71 @@ def test_nunca_pasa_del_tope_ni_repite():
     assert len(elegidos) == 20
     assert len({p.profile_id for p in elegidos}) == 20
     assert repartir_cupo(ranked, 0, set()) == []
+
+
+async def test_al_publicar_la_nueva_verificada_que_no_entraba_por_ranking_recibe_el_aviso(
+    client, session_factory, monkeypatch
+):
+    """De punta a punta: con el tope en 4 (3 por ranking y 1 reservado), de
+    seis personas nuevas a distancia creciente la más lejana no entraría;
+    como es la única verificada, se queda con el lugar reservado."""
+    from datetime import timedelta
+    from uuid import UUID as _UUID
+
+    from app.modules.verification.domain.value_objects import ClaimStatus, ClaimType
+    from app.modules.verification.infrastructure.models import IdentityClaimModel
+    from app.modules.worker.infrastructure.models import WorkerProfileModel
+    from tests.conftest import auth_headers
+    from tests.test_favorite import PALERMO, _employer_with_company, _now_naive
+
+    monkeypatch.setattr(ShiftService, "NEARBY_NOTIFICATION_LIMIT", 4)
+    employer = await _employer_with_company(client, "cupo_emp@staffya.com")
+    personas = []
+    for i in range(6):
+        headers = await auth_headers(client, "worker", f"cupo_w{i}@staffya.com")
+        perfil = await client.post(
+            "/api/v1/workers/me/profile",
+            headers=headers,
+            # Cada una unos 550 m más lejos del local que la anterior.
+            json={
+                "skills": ["mozo"],
+                "latitude": PALERMO["latitude"] + 0.005 * i,
+                "longitude": PALERMO["longitude"],
+            },
+        )
+        personas.append((headers, perfil.json()["id"]))
+    async with session_factory() as session:
+        lejana = await session.get(WorkerProfileModel, _UUID(personas[-1][1]))
+        session.add(
+            IdentityClaimModel(
+                user_id=lejana.user_id,
+                claim_type=ClaimType.DOCUMENTO_VERIFICADO.value,
+                status=ClaimStatus.VERIFICADA.value,
+            )
+        )
+        await session.commit()
+
+    inicio = _now_naive() + timedelta(days=1)
+    creado = await client.post(
+        "/api/v1/shifts",
+        headers=employer,
+        json={
+            "position": "mozo",
+            "quantity": 1,
+            "start_at": inicio.isoformat(),
+            "end_at": (inicio + timedelta(hours=6)).isoformat(),
+            "pay_amount": "60000.00",
+            "city": "Palermo",
+            **PALERMO,
+        },
+    )
+    await client.post(f"/api/v1/shifts/{creado.json()['id']}/publish", headers=employer)
+
+    recibieron = []
+    for headers, _ in personas:
+        avisos = (await client.get("/api/v1/notifications", headers=headers)).json()
+        recibieron.append(any(a["type"] == "new_shift_nearby" for a in avisos))
+
+    assert sum(recibieron) == 4
+    assert recibieron[-1] is True, "la nueva verificada tiene su lugar reservado"
+    assert recibieron[:3] == [True, True, True], "las tres más cercanas entran por ranking"

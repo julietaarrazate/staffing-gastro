@@ -53,7 +53,7 @@ from app.modules.shift.domain.exceptions import (
     ShiftNotFoundError,
     ShiftNotEditableError,
 )
-from app.modules.shift.domain.cupo_de_avisos import repartir_cupo
+from app.modules.shift.domain.cupo_de_avisos import PARTE_PARA_NUEVOS, repartir_cupo
 from app.modules.shift.domain.nearby import FeedOrigin, closest_first, is_nearby, urgent_first
 from app.modules.shift.domain.mensajes import no_se_puede
 from app.modules.shift.domain.punctuality import PASO_AVISO_AL_COMERCIO, punctuality_of
@@ -532,9 +532,24 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
             ]
         resto = [m for m in ranked_all if m.profile_id not in favorite_ids]
         verificados: set[UUID] = set()
-        if len(resto) > limit and self._identity_verified is not None:
-            # Sólo si el tope corta a alguien: una consulta para todos.
-            verificados = await self._identity_verified([m.user_id for m in resto])
+        nuevos = [m.user_id for m in resto if m.events_completed == 0]
+        if (
+            len(resto) > limit
+            and limit // PARTE_PARA_NUEVOS > 0
+            and nuevos
+            and self._identity_verified is not None
+        ):
+            # Sólo si el tope corta a alguien y hay lugares que reservar: una
+            # consulta, y sólo por la gente nueva. Si falla, el aviso sale
+            # igual por ranking: no puede caerse por esto.
+            try:
+                verificados = await self._identity_verified(nuevos)
+            except Exception:
+                logger.exception(
+                    "Cupo de avisos: no se pudo leer quién está verificado; "
+                    "se avisa por ranking (shift_id=%s)",
+                    shift.id,
+                )
         return [m for m in ranked_all if m.profile_id in favorite_ids] + repartir_cupo(
             resto, limit, verificados
         )

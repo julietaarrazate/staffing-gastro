@@ -132,6 +132,10 @@ Las notificaciones son el efecto visible de los hitos del dominio. Tipos
   Ni el aviso de publicación ni el de la escalada le llegan a quien ya está
   confirmado (o más adelante) en otro puesto del mismo evento cuyo horario se
   pisa; eso se saca antes del tope, así el lugar lo ocupa el que sigue.
+- **A cuántos les llega (2026-11-28):** 20 en la primera tanda y 40 en la
+  escalada, más los favoritos del comercio. Una cuarta parte del cupo es para
+  gente nueva (sin turnos hechos) con la identidad verificada, la más cercana
+  primero (`shift/domain/cupo_de_avisos.py`).
 - **Destino de los avisos de turno cerca:** abren `/turno/<id>`, donde la
   persona se postula (primera tanda y escalada). Los viejos guardados con
   `/feed` siguen yendo al Inicio.
