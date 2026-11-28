@@ -913,7 +913,7 @@ grande y el día anterior a abrir.
   parte del cupo para gente nueva verificada (#762,
   [historial](../historial/2026-11-28-cupo-de-avisos-con-lugar-para-nuevos.md)).
 - ✅ La persona confirma si cobró el turno («Sí, cobré» / «Todavía no cobré»),
-  con aviso al comercio y ticket de pagos (#PENDIENTE,
+  con aviso al comercio y ticket de pagos (#765,
   [historial](../historial/2026-11-27-la-persona-confirma-el-cobro.md)).
 - ⚪ Que lo que dice la persona del cobro entre en la reputación «pago a
   tiempo» del comercio (decisión pendiente).

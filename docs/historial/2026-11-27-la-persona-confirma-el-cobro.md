@@ -1,4 +1,4 @@
-# La persona confirma si cobró el turno (#PENDIENTE)
+# La persona confirma si cobró el turno (#765)
 
 **Pedido:** la dueña (2026-11-27). Oído no mueve plata: el comercio le paga a la persona por fuera y hasta hoy sólo el comercio marcaba el turno como «pagado». La persona también tiene que poder decir si cobró.
 
