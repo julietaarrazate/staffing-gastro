@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useLiveRefresh } from "@/lib/live-refresh";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
+import { postulacionEnviada } from "@/lib/applications";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
@@ -42,7 +43,6 @@ import {
 } from "@/components/ui";
 import {
   BookmarkIcon,
-  BriefcaseIcon,
   CheckIcon,
   ClockIcon,
   CloseIcon,
@@ -463,7 +463,7 @@ function MatchesContent() {
         keyFor(shift.id)
       );
       clearIdempotencyKey(shift.id);
-      toast("¡Te postulaste! El comercio ya te puede ver");
+      toast(postulacionEnviada(shift.company_name));
       // Ya avanzó de "para evaluar" a "postulado" — sale de guardados solo.
       // Si falla, el trabajador lo puede sacar a mano: no se avisa. Pero se
       // espera a que termine antes de releer: si no, la relectura le ganaba
@@ -858,10 +858,11 @@ function MatchesContent() {
       {!loading && !error && tab === "asignados" && (
         <div className="mt-5">
           {shifts.length === 0 ? (
+            // Sin `icon`: va el pinche, lo que espera turno (firma de la app,
+            // 2026-11-28). El maletín era de oficina.
             <EmptyState
-              icon={<BriefcaseIcon size={28} />}
-              title="Todavía no tenés turnos asignados"
-              subtitle="Cuando un comercio te elija de entre los postulantes, el turno aparece acá."
+              title="Todavía no hay turno a tu nombre"
+              subtitle="Cuando un local te elija, queda clavado acá, con el horario y cómo llegar."
             />
           ) : (
             activeShifts.length > 0 && (

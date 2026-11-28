@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { useEsCompu } from "@/lib/use-es-compu";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { api, ApiError } from "@/lib/api";
-import { appliedShiftIds } from "@/lib/applications";
+import { appliedShiftIds, postulacionEnviada } from "@/lib/applications";
 import { getErrorMessage } from "@/lib/errors";
 import { useLiveRefresh } from "@/lib/live-refresh";
 import { useRequireAuth } from "@/lib/use-require-auth";
@@ -260,7 +260,7 @@ export default function BuscarPage() {
       clearIdempotencyKey(shift.id);
       ocultos.current.add(shift.id);
       setShifts((prev) => prev.filter((s) => s.id !== shift.id));
-      toast("¡Te postulaste! El comercio ya te puede ver");
+      toast(postulacionEnviada(shift.company_name));
       requestOptIn();
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
@@ -329,7 +329,7 @@ export default function BuscarPage() {
           <h1 className="titulo-pantalla min-w-0 break-words">Buscar turnos</h1>
           <ListaMapa actual="lista" className="shrink-0 lg:hidden!" />
         </div>
-        <p className="mt-1 text-sm">Explorá oportunidades de cualquier rubro, no sólo el tuyo.</p>
+        <p className="mt-1 text-sm">Todos los turnos abiertos, también los que no son de tu puesto.</p>
       </div>
 
       <div className="hoja -mt-7 flex-1 px-4 pb-8 pt-5 md:px-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-6 lg:gap-y-4">

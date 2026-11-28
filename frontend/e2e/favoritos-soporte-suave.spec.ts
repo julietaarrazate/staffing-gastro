@@ -121,7 +121,7 @@ test("un ticket con un asunto larguísimo y sin espacios no corre la página", a
 
 test("Favoritos vacío: el estado vacío de siempre, sobre la hoja", async ({ page }) => {
   await abrir(page, "/favorites", { favoritos: [] });
-  await expect(hoja(page).getByText("Todavía no marcaste favoritos")).toBeVisible();
+  await expect(hoja(page).getByText("Tu gente de confianza va acá")).toBeVisible();
 });
 
 test("Soporte: la vuelta lleva a Ajustes, y con tickets el único ámbar es «Nuevo»", async ({ page }) => {

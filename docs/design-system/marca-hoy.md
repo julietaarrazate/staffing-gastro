@@ -1,6 +1,7 @@
 # La marca hoy (ficha corta)
 
 > Estado al **2026-11-18** (letra Shrikhand e ícono «el pinche con oído»; la landing «con convicción» es del 2026-11-13). Una página para arrancar sin leer el historial.
+> Cómo habla la app (avisos, vacíos, mails) y dónde va el pinche: [`voz.md`](./voz.md) (2026-11-28).
 > Brand system navegable para el diseñador (colores en los dos temas,
 > tipografía, piezas y logos en vector): https://claude.ai/artifact/J8s5yUUpW3Ufz2hbWKYYns
 > (privado: compartirlo desde su menú Share). Los vectores, con la letra
@@ -90,7 +91,8 @@ Buenos Aires, el papel de la comanda y el filete de los carteles de bodegón.
    `/bienvenida`: `logo-mark-chico.svg`): la misma comanda con la «o» sola,
    sin relieve, porque la palabra no entra y el relieve se empasta. En
    **silueta de un solo color** (papel, pinche y base, con la «o» calada)
-   para el badge de las notificaciones de Android y los estados vacíos
+   para el badge de las notificaciones de Android y los estados vacíos de
+   turnos ([`voz.md`](./voz.md))
    (`logo-figure.svg`) de 24 px para arriba; **por debajo de 24 px** (el
    glifo de 14 y 18 px en el asistente y las réplicas de la landing) la
    silueta entera no se lee y va **la «o» sola** de un color (`logo-o.svg`).

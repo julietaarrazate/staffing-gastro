@@ -36,7 +36,7 @@ const BOTON = { name: "Marcar todas como leídas" };
 
 async function abrirPanel() {
   render(<AvisosProvider><NotificationBell /></AvisosProvider>);
-  const campana = screen.getByRole("button", { name: "Notificaciones" });
+  const campana = screen.getByRole("button", { name: "Avisos" });
   await waitFor(() => expect(campana).toHaveTextContent("2"));
   fireEvent.click(campana);
   return campana;
@@ -92,7 +92,7 @@ describe("NotificationBell: marcar todas como leídas", () => {
   it("sin avisos sin leer no aparece", async () => {
     apiGet.mockResolvedValue([aviso("c", true)]);
     render(<AvisosProvider><NotificationBell /></AvisosProvider>);
-    fireEvent.click(screen.getByRole("button", { name: "Notificaciones" }));
+    fireEvent.click(screen.getByRole("button", { name: "Avisos" }));
 
     expect(await screen.findByText("Turno c")).toBeInTheDocument();
     expect(screen.queryByRole("button", BOTON)).not.toBeInTheDocument();
@@ -104,7 +104,7 @@ describe("NotificationBell: abrir un aviso", () => {
     apiPost.mockResolvedValue({});
     apiGet.mockResolvedValue([{ ...aviso("a", false), link: "/turno/abc" }]);
     render(<AvisosProvider><NotificationBell /></AvisosProvider>);
-    const campana = screen.getByRole("button", { name: "Notificaciones" });
+    const campana = screen.getByRole("button", { name: "Avisos" });
     await waitFor(() => expect(campana).toHaveTextContent("1"));
     fireEvent.click(campana);
     fireEvent.click(screen.getByText("Turno a"));

@@ -102,7 +102,7 @@ test.describe("estados vacíos que no se contradicen", () => {
 
     await page.goto("/chats");
 
-    await expect(page.getByText("Todavía no tenés conversaciones")).toBeVisible({
+    await expect(page.getByText("Acá se arreglan los detalles")).toBeVisible({
       timeout: 15_000,
     });
     await expect(page.getByText("Elegí una conversación")).toHaveCount(0);

@@ -119,13 +119,13 @@ export default function NotificationBell({ variante = "barra" }: { variante?: "b
         <button
           type="button"
           onClick={() => setOpen(true)}
-          aria-label="Notificaciones"
+          aria-label="Avisos"
           className="boton-vidrio relative h-11 w-11 shrink-0"
         >
           <BellIcon size={22} />
           <CuentaAvisos cuantos={unreadCount} className="absolute right-0 top-0" />
         </button>
-        <Sheet open={open} onClose={() => setOpen(false)} title="Notificaciones">
+        <Sheet open={open} onClose={() => setOpen(false)} title="Avisos">
           {marcarTodas && <div className="flex justify-end px-2">{marcarTodas}</div>}
           {lista}
         </Sheet>
@@ -137,7 +137,7 @@ export default function NotificationBell({ variante = "barra" }: { variante?: "b
     <div ref={containerRef} className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        aria-label="Notificaciones"
+        aria-label="Avisos"
         className="relative flex h-10 w-10 items-center justify-center rounded-full text-ink-soft hover:bg-surface"
       >
         <BellIcon size={21} />
@@ -147,7 +147,7 @@ export default function NotificationBell({ variante = "barra" }: { variante?: "b
       {open && (
         <div className="estilo-suave ventana-suave panel-avisos absolute right-0 z-50 mt-2 w-80 overflow-hidden">
           <div className="flex min-h-[44px] items-center justify-between gap-2 pl-4 pr-2 pt-1">
-            <span className="text-sm font-extrabold text-ink">Notificaciones</span>
+            <span className="text-sm font-extrabold text-ink">Avisos</span>
             {marcarTodas}
           </div>
           <div className="max-h-96 overflow-y-auto pb-2">{lista}</div>

@@ -24,7 +24,7 @@ describe("NotificationBell: admin con el alta de 2FA pendiente (U133)", () => {
   it("no se dibuja, no pide notificaciones y no abre el socket", () => {
     auth = { token: "tok", user: { id: "u" }, loading: false, twoFactorSetupPending: true };
     render(<AvisosProvider><NotificationBell /></AvisosProvider>);
-    expect(screen.queryByRole("button", { name: "Notificaciones" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Avisos" })).not.toBeInTheDocument();
     expect(apiGet).not.toHaveBeenCalled();
     expect(useWebSocket.mock.calls.every((c) => c[0] === null && c[1] === null)).toBe(true);
   });

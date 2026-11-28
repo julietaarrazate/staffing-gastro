@@ -145,7 +145,7 @@ test("admin con el alta de dos pasos pendiente: se sabe al abrir la sesión y no
   // carga (no hace falta esperar al primer 403 del panel).
   await expect(page.getByText("Administración")).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Secciones", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Notificaciones" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Avisos" })).toHaveCount(0);
   expect(pedidos).toEqual([]);
 });
 

@@ -68,7 +68,7 @@ describe("NotificationBell: reaperturas del socket", () => {
     await act(async () => {});
     act(() => ws.onOpen?.());
     expect(emit).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "Notificaciones" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Avisos" })).toBeInTheDocument();
   });
 });
 
@@ -77,7 +77,7 @@ describe("NotificationBell: cuadro de refresco (VIE-01)", () => {
     await montar();
     act(() => ws.onMessage?.({ type: "live_refresh" }));
     expect(emit).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole("button", { name: "Notificaciones" })).not.toHaveTextContent(/\d/);
+    expect(screen.getByRole("button", { name: "Avisos" })).not.toHaveTextContent(/\d/);
   });
 
   it("un aviso de verdad sigue sumando y pidiendo el refresco", async () => {
@@ -86,6 +86,6 @@ describe("NotificationBell: cuadro de refresco (VIE-01)", () => {
       ws.onMessage?.({ id: "n1", type: "new_applicant", title: "t", message: "m", read: false, link: null, created_at: null })
     );
     expect(emit).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole("button", { name: "Notificaciones" })).toHaveTextContent("1");
+    expect(screen.getByRole("button", { name: "Avisos" })).toHaveTextContent("1");
   });
 });

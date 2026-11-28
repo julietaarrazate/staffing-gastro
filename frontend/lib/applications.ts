@@ -43,3 +43,14 @@ export function unassignedShiftIds(
 ): Set<string> {
   return new Set(applications.filter((a) => a.status === "desasignada").map((a) => a.shift_id));
 }
+
+/**
+ * El aviso de «ya te postulaste», igual en las cinco pantallas donde se puede
+ * postular (Inicio, Buscar, Mapa, Guardados y el detalle del turno). Primero
+ * el dato: a qué local fue y qué pasa ahora (voz de la app, 2026-11-28).
+ */
+export function postulacionEnviada(comercio: string | null | undefined): string {
+  return comercio
+    ? `Postulación enviada a ${comercio}. Te avisamos apenas responda.`
+    : "Postulación enviada. Te avisamos apenas el local responda.";
+}

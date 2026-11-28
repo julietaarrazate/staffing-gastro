@@ -88,6 +88,10 @@ async def test_assign_notifies_worker(client: AsyncClient):
     assert len(body) == 1
     assert body[0]["type"] == "shift_assigned"
     assert body[0]["read"] is False
+    # Voz de la app (2026-11-28): el local elige, quien trabaja confirma.
+    assert body[0]["title"] == "Te eligieron para Mozo/a"
+    assert body[0]["message"].startswith("Bar Palermo te eligió para el domingo 28/06 a las ")
+    assert body[0]["message"].endswith(". Falta que digas «¡oído!»: confirmá que vas.")
 
     mark_read = await client.post(
         f"/api/v1/notifications/{body[0]['id']}/read", headers=worker_headers
@@ -120,6 +124,14 @@ async def test_confirm_notifies_company(client: AsyncClient):
     body = notifications.json()
     assert len(body) == 1
     assert body[0]["type"] == "shift_confirmed"
+    # Nombre propio antes que rol; «¡Oído!» porque alguien dijo que sí. No
+    # promete el aviso de «Va en camino»: lo prende la persona, si quiere.
+    nombre = (await client.get("/api/v1/auth/me", headers=worker_headers)).json()["full_name"]
+    assert body[0]["title"] == f"¡Oído! {nombre} confirmó"
+    assert body[0]["message"].startswith("Va el domingo 28/06 a las ")
+    assert body[0]["message"].endswith(
+        " a cubrir Mozo/a. Si avisa que sale para allá, te llega otro aviso."
+    )
 
 
 @pytest.mark.asyncio
@@ -417,3 +429,43 @@ async def test_finish_notifies_worker_to_rate_the_company(client: AsyncClient):
     assert finished[0]["message"].startswith("Calificá a ")
     assert finished[0]["link"] == f"/my-shifts?turno={shift_id}"
     assert "Bar Palermo" in finished[0]["message"]
+
+
+@pytest.mark.asyncio
+async def test_check_out_notifies_company_with_the_name(client: AsyncClient):
+    """Voz de la app (2026-11-28): «Beto terminó el turno», no «El trabajador terminó»."""
+    from tests.test_admin import _run_shift_to_finish  # noqa: PLC0415
+
+    employer_headers = await _employer_with_company(client, "n_emp_out@staffya.com")
+    worker_headers, worker_profile_id = await _worker_with_profile(
+        client, "n_worker_out@staffya.com"
+    )
+    await _run_shift_to_finish(client, employer_headers, worker_headers, worker_profile_id)
+    nombre = (await client.get("/api/v1/auth/me", headers=worker_headers)).json()["full_name"]
+
+    body = (await client.get("/api/v1/notifications", headers=employer_headers)).json()
+    salida = [n for n in body if n["type"] == "shift_checked_out"]
+    assert len(salida) == 1
+    assert salida[0]["title"] == f"{nombre} terminó el turno"
+    assert salida[0]["message"].startswith("Marcó la salida de ")
+    assert salida[0]["message"].endswith(". Cerralo para calificar y registrar el pago.")
+
+
+@pytest.mark.asyncio
+async def test_new_shift_nearby_says_when_and_how_much(client: AsyncClient):
+    """Voz de la app (2026-11-28): el aviso de turno nuevo da el dato primero
+    (puesto, cuándo, cuánto y por cuántas horas)."""
+    worker_headers, _ = await _worker_with_profile(client, "n_worker_near@staffya.com")
+    employer_headers = await _employer_with_company(client, "n_emp_near@staffya.com")
+    created = await client.post(
+        "/api/v1/shifts", headers=employer_headers, json=_shift_payload(urgent=False)
+    )
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer_headers)
+
+    body = (await client.get("/api/v1/notifications", headers=worker_headers)).json()
+    cerca = [n for n in body if n["type"] == "new_shift_nearby"]
+    assert len(cerca) == 1
+    assert cerca[0]["title"].startswith("Mozo/a el domingo 28/06 a las ")
+    assert cerca[0]["title"].endswith(", cerca tuyo")
+    assert cerca[0]["message"] == "Bar Palermo paga $70.000 por 7 horas. Si te sirve, postulate."

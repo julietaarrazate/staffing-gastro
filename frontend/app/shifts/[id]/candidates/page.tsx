@@ -375,8 +375,8 @@ function ShiftCandidatesContent() {
         {tab === "postulantes" && !loadingApps && (!appsError || applicants.length > 0) && (
           <div className="mt-4">
             {applicants.length === 0 ? (
+              // Sin `icon`: el pinche, como en los otros vacíos de turnos.
               <EmptyState
-                icon={<UsersIcon size={28} />}
                 title="Todavía nadie se postuló"
                 subtitle="Cuando un trabajador se postule a tu turno, aparece acá. Mientras tanto, mirá los recomendados."
               />
@@ -447,10 +447,10 @@ function ShiftCandidatesContent() {
         {tab === "recomendados" && !loadingCands && (!candsError || candidates.length > 0) && (
           <div className="mt-4">
             {candidates.length === 0 ? (
+              // Sin `icon`: el pinche, como en los otros vacíos de turnos.
               <EmptyState
-                icon={<UsersIcon size={28} />}
                 title="Sin recomendados por ahora"
-                subtitle="El sistema sigue buscando trabajadores disponibles para este turno en tiempo real."
+                subtitle="Seguimos buscando gente disponible para este turno."
               />
             ) : (
               <>

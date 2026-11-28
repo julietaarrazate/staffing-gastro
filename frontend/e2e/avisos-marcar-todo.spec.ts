@@ -44,7 +44,7 @@ test("marcar todas manda sólo los avisos que se mostraron", async ({ page }) =>
   const { pedidos } = await setup(page);
   await page.goto("/feed");
 
-  const campana = page.getByRole("button", { name: "Notificaciones" });
+  const campana = page.getByRole("button", { name: "Avisos" });
   await expect(campana).toHaveText("2");
   await campana.click();
   await page.getByRole("button", { name: "Marcar todas como leídas" }).click();
@@ -58,7 +58,7 @@ test("marcar todas manda sólo los avisos que se mostraron", async ({ page }) =>
 test("un aviso que llega por el socket y ya se ve va en la lista", async ({ page }) => {
   const { sockets, pedidos } = await setup(page);
   await page.goto("/feed");
-  const campana = page.getByRole("button", { name: "Notificaciones" });
+  const campana = page.getByRole("button", { name: "Avisos" });
   await expect(campana).toHaveText("2");
 
   const [nuevo] = deContrato("avisos_trabajador", [

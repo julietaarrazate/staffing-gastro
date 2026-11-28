@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
-import { appliedShiftIds, unassignedShiftIds } from "@/lib/applications";
+import { appliedShiftIds, unassignedShiftIds, postulacionEnviada } from "@/lib/applications";
 import { useAuth } from "@/lib/auth-context";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
@@ -247,7 +247,7 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
       clear(shift.id);
       setJustApplied(true);
       setApply("applied");
-      toast("¡Te postulaste! El comercio ya te puede ver");
+      toast(postulacionEnviada(shift.company_name));
       // La invitación a notificaciones espera a que se vea la confirmación
       // (el check se dibuja en ~0,5 s): si sale junto, su hoja la tapa.
       window.setTimeout(requestOptIn, reducedMotion ? 0 : 1200);

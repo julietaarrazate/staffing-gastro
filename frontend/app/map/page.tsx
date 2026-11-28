@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLiveRefresh } from "@/lib/live-refresh";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
-import { appliedShiftIds } from "@/lib/applications";
+import { appliedShiftIds, postulacionEnviada } from "@/lib/applications";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
@@ -402,7 +402,7 @@ export default function MapPage() {
       );
       clearIdempotencyKey(shift.id);
       postulados.current.add(shift.id);
-      toast("¡Te postulaste! El comercio ya te puede ver");
+      toast(postulacionEnviada(shift.company_name));
       setPreviewShift((prev) => (prev?.id === shift.id ? null : prev));
       setJustAppliedId(shift.id);
       removeTimer.current = setTimeout(

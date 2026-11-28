@@ -43,7 +43,7 @@ describe("NotificationBell: chat abierto (U017)", () => {
     pathname = "/chats/s1";
     apiGet.mockResolvedValue([chat("a", "s1"), chat("b", "s2")]);
     render(<AvisosProvider><NotificationBell /></AvisosProvider>);
-    const campana = screen.getByRole("button", { name: "Notificaciones" });
+    const campana = screen.getByRole("button", { name: "Avisos" });
     await waitFor(() => expect(apiPost).toHaveBeenCalledTimes(1));
     expect(apiPost).toHaveBeenCalledWith("/notifications/a/read", undefined, "tok");
     // Queda sólo el de la otra conversación.
@@ -54,7 +54,7 @@ describe("NotificationBell: chat abierto (U017)", () => {
     pathname = "/feed";
     apiGet.mockResolvedValue([chat("a", "s1")]);
     render(<AvisosProvider><NotificationBell /></AvisosProvider>);
-    const campana = screen.getByRole("button", { name: "Notificaciones" });
+    const campana = screen.getByRole("button", { name: "Avisos" });
     await waitFor(() => expect(campana).toHaveTextContent("1"));
     expect(apiPost).not.toHaveBeenCalled();
   });
@@ -64,7 +64,7 @@ describe("NotificationBell: chat abierto (U017)", () => {
     apiGet.mockResolvedValue([chat("a", "s1")]);
     const vis = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
     render(<AvisosProvider><NotificationBell /></AvisosProvider>);
-    const campana = screen.getByRole("button", { name: "Notificaciones" });
+    const campana = screen.getByRole("button", { name: "Avisos" });
     await waitFor(() => expect(campana).toHaveTextContent("1"));
     expect(apiPost).not.toHaveBeenCalled();
     vis.mockReturnValue("visible");

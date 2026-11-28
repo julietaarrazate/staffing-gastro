@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
-import { appliedShiftIds } from "@/lib/applications";
+import { appliedShiftIds, postulacionEnviada } from "@/lib/applications";
 import { getErrorMessage } from "@/lib/errors";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useTapGuard } from "@/lib/use-tap-guard";
@@ -432,7 +432,7 @@ function WorkerFeedPanel() {
       );
       clearIdempotencyKey(shift.id);
       dropFromCache(shift.id);
-      toast("¡Te postulaste! El comercio ya te puede ver");
+      toast(postulacionEnviada(shift.company_name));
       // Primera acción significativa del flujo del trabajador: acá, y no al
       // aterrizar en la app, es cuando tiene sentido preguntar si quiere
       // enterarse por push cuando el comercio responda (ver docs/reference/ACCESO_MODERNO.md).

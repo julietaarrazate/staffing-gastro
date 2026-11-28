@@ -80,7 +80,7 @@ class ReviewService:
                 user_id=reviewee_user_id,
                 type=NotificationType.REVIEW_RECEIVED,
                 title="Te dejaron una reseña",
-                message="Calificaron tu desempeño en un turno cerrado.",
+                message="Te calificaron por un turno que ya cerró.",
             )
         )
         return review
