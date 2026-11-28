@@ -1,4 +1,4 @@
-# Arreglos del ensayo general: candidatos ajenos, «Volver a admin» desde el chat y el aviso del mail (#PENDIENTE)
+# Arreglos del ensayo general: candidatos ajenos, «Volver a admin» desde el chat y el aviso del mail (#763)
 
 **Pedido:** el ensayo general encontró cuatro fallas; se arreglan las cuatro.
 
