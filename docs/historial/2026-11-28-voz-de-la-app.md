@@ -1,4 +1,4 @@
-# La app habla con la voz de Oído: avisos, vacíos y mails (#PR)
+# La app habla con la voz de Oído: avisos, vacíos y mails (#767)
 
 **Pedido:** Julieta, 2026-11-28: aplicar los textos de la revisión de voz
 (documento privado de crecimiento, pestaña «Voz y firma», sección 2) según la
