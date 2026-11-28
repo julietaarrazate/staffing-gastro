@@ -75,8 +75,8 @@ export function crearCocina(escena) {
   // bombitas del fondo (bokeh)
   const bulbos = [];
   for (let i = 0; i < 30; i++) {
-    const k = r() < 0.7 ? kelvin(2400 + r() * 600) : kelvin(5200);
-    const m = new THREE.Mesh(new THREE.SphereGeometry(0.018 + r() * 0.02, 12, 8), new THREE.MeshBasicMaterial({ color: new THREE.Color(...k).multiplyScalar(3 + r() * 8) }));
+    const k = r() < 0.72 ? kelvin(2200 + r() * 1100) : kelvin(4800 + r() * 1800);
+    const k2 = r() < 0.08 ? [1, 0.12, 0.05] : k; const m = new THREE.Mesh(new THREE.SphereGeometry(0.006 + Math.pow(r(), 2) * 0.04, 12, 8), new THREE.MeshBasicMaterial({ color: new THREE.Color(...k2).multiplyScalar(1.2 + r() * 6) }));
     m.position.set(-3.2 + r() * 6.4, 0.15 + r() * 2.0, -2.05 + r() * 1.1); g.add(m); bulbos.push(m);
   }
   const fluo = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.03, 0.03), new THREE.MeshBasicMaterial({ color: new THREE.Color(...kelvin(5600)).multiplyScalar(9) })); fluo.position.set(-0.9, 1.75, -2.0); g.add(fluo);
@@ -96,7 +96,7 @@ export function crearCocina(escena) {
   for (let i = -5; i <= 5; i++) { if (Math.abs(i * 0.7 + 0.35) < 0.3) continue; const v = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.22, 12), matViga); v.position.set(i * 0.7 + 0.35, TECHO - 0.11, 0); g.add(v); }
 
   // lámparas de globo colgando (una pasa cerca de la cámara cuando sube)
-  const matGlobo = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: new THREE.Color(...kelvin(2500)), emissiveIntensity: 8 });
+  const matGlobo = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: new THREE.Color(...kelvin(2500)), emissiveIntensity: 5 });
   const colgantes = [[0.62, 2.2, 0.75], [-1.1, 2.25, 1.3], [1.7, 2.3, -0.5], [-0.5, 2.35, 2.4], [-1.9, 2.2, -0.2]];
   for (const [x, y, z] of colgantes) {
     const b = new THREE.Mesh(new THREE.SphereGeometry(0.11, 32, 16), matGlobo); b.position.set(x, y, z); g.add(b);

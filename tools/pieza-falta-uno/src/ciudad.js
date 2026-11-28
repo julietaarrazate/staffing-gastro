@@ -155,7 +155,7 @@ export function crearNubes(motor, { y0 = 92, y1 = 160 } = {}) {
       float T = 1.; vec3 C = vec3(0.);
       for(int i = 0; i < N; i++){ vec3 p = uCam + rd * (t0 + (float(i) + j) * dt); float d = dens(p); if(d > .001){
           float hh = clamp((p.y - uY0) / (uY1 - uY0), 0., 1.);
-          vec3 abajo = vec3(.19, .095, .055), arriba = vec3(.012, .02, .045);
+          vec3 abajo = vec3(.27, .13, .07), arriba = vec3(.014, .024, .052);
           float sombra = exp(-dens(p + vec3(0., -9., 0.)) * 1.4);
           vec3 col = mix(abajo * (.35 + .65 * sombra), arriba, smoothstep(.0, .9, hh));
           float a = d * dt * .045; C += T * col * (1. - exp(-a)); T *= exp(-a); if(T < .02) break; } }

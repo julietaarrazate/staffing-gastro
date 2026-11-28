@@ -16,17 +16,17 @@ const BASE = 0.0125; // donde apoya la primera comanda (arriba de la base del pi
 const ROOF = TECHO + LOSA;
 
 // escala de la comanda según la altura: arriba de la azotea crece, y en perspectiva la torre se ve pareja hasta las nubes
-export const escalaPapel = h => h < ROOF ? 1 : 1 + Math.pow((h - ROOF) / 12, 1.3);
-const separacion = h => (h < ROOF ? 0.0034 + 0.0018 * smooth(0.3, 3, h) : 0.006) * escalaPapel(h);
+export const escalaPapel = h => h < ROOF ? 1 : 1 + Math.pow((h - ROOF) / 7, 1.3);
+const separacion = h => (h < ROOF ? lerp(0.0058, 0.004, smooth(0.08, 0.5, h)) + 0.0014 * smooth(0.5, 3, h) : 0.006 + 0.006 * smooth(ROOF, ROOF + 6, h)) * escalaPapel(h);
 
 // altura de la punta de la pila después del último golpe a mano (escala logarítmica)
-export const crece = curva([[7.67, 0.06], [7.8, 0.1], [7.95, 0.55], [8.08, 1.75], [8.17, 3.05], [8.25, 4.6], [8.5, 12], [8.9, 34], [9.4, 88], [10, 165], [10.6, 240]], { log: true });
+export const crece = curva([[7.67, 0.09], [7.8, 0.13], [7.95, 0.55], [8.08, 1.75], [8.17, 3.05], [8.25, 4.6], [8.5, 12], [8.9, 34], [9.4, 88], [10, 165], [10.6, 240]], { log: true });
 
 // cámara: altura, distancia al eje de la pila, giro alrededor, inclinación, campo de visión, rolido
-export const camY = curva([[0, 0.17], [0.55, 0.15], [2.2, 0.122], [3.55, 0.1], [4.65, 0.085], [5.55, 0.07], [6.6, 0.062], [7.3, 0.08], [7.7, 0.19], [7.95, 0.48], [8.08, 1.38], [8.17, 2.52], [8.24, 3.66], [8.4, 7.4], [8.7, 14.4], [9.1, 20.8], [9.6, 25.4], [10.3, 27.6]]);
-const camD = curva([[0, 0.6], [0.55, 0.54], [2.2, 0.47], [3.55, 0.42], [4.65, 0.37], [5.55, 0.33], [7.3, 0.31], [7.7, 0.42], [7.95, 0.68], [8.2, 0.9], [8.6, 1.8], [9.3, 3.2], [10.3, 3.6]]);
+export const camY = curva([[0, 0.2], [0.55, 0.19], [2.2, 0.177], [3.55, 0.168], [4.65, 0.162], [5.55, 0.157], [6.6, 0.152], [7.3, 0.16], [7.7, 0.19], [7.95, 0.48], [8.08, 1.38], [8.17, 2.52], [8.24, 3.66], [8.4, 7.4], [8.7, 14.4], [9.1, 20.8], [9.6, 25.4], [10.3, 27.6]]);
+const camD = curva([[0, 0.56], [0.55, 0.51], [2.2, 0.46], [3.55, 0.43], [4.65, 0.4], [5.55, 0.37], [7.3, 0.35], [7.7, 0.42], [7.95, 0.68], [8.2, 0.9], [8.6, 1.3], [9.3, 1.9], [10.3, 2.2]]);
 const camA = curva([[0, -0.42], [2.2, -0.24], [4.65, -0.02], [6.6, 0.15], [7.5, 0.22], [8.2, 0.5], [9.0, 0.88], [10.3, 1.08]]);
-const camP = curva([[0, -0.2], [2.2, -0.13], [4.65, -0.06], [5.55, -0.03], [6.6, 0.03], [7.3, 0.06], [7.9, 0.26], [8.17, 0.5], [8.45, 0.42], [8.95, 0.4], [9.35, 0.62], [9.75, 1.0], [10.1, 1.2], [10.3, 1.25]]);
+const camP = curva([[0, -0.28], [2.2, -0.25], [4.65, -0.22], [5.55, -0.2], [6.6, -0.16], [7.3, -0.1], [7.9, 0.26], [8.17, 0.5], [8.45, 0.42], [8.95, 0.4], [9.35, 0.62], [9.75, 1.0], [10.1, 1.2], [10.3, 1.25]]);
 const camF = curva([[0, 36], [6.0, 36], [7.6, 41], [8.2, 53], [9.0, 56], [10.3, 62]]);
 const camR = curva([[0, 0], [7.9, 0], [8.2, -0.08], [8.8, 0.05], [9.4, 0.12], [10.3, 0.42]]);
 
@@ -48,8 +48,8 @@ export async function crearEscena3(motor) {
     return pm.fromScene(s, 0.02).texture;
   })();
   const ambNoche = (() => {
-    const s = new THREE.Scene(); s.background = new THREE.Color(0.02, 0.035, 0.08);
-    const suelo = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.12, 0.07, 0.04), side: THREE.DoubleSide })); suelo.rotation.x = -Math.PI / 2; suelo.position.y = -5; s.add(suelo);
+    const s = new THREE.Scene(); s.background = new THREE.Color(0.03, 0.05, 0.11);
+    const suelo = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.05, 0.05, 0.065), side: THREE.DoubleSide })); suelo.rotation.x = -Math.PI / 2; suelo.position.y = -5; s.add(suelo);
     return pm.fromScene(s, 0.04).texture;
   })();
   escena.environment = ambCocina;
@@ -63,7 +63,7 @@ export async function crearEscena3(motor) {
   // luz de afuera: luna fría desde arriba y el cielo
   const luna = new THREE.DirectionalLight(new THREE.Color(...kelvin(9000)), 0.0); luna.position.set(-30, 80, 40); escena.add(luna, luna.target);
   luna.castShadow = true; luna.shadow.mapSize.set(2048, 2048); Object.assign(luna.shadow.camera, { left: -7, right: 7, top: 7, bottom: -7, near: 1, far: 140 }); luna.shadow.bias = -0.0004; luna.shadow.normalBias = 0.02; luna.shadow.radius = 3;
-  const hemi = new THREE.HemisphereLight(0x22386a, 0x7a4420, 0.0); escena.add(hemi);
+  const hemi = new THREE.HemisphereLight(0x34508c, 0x3e3c44, 0.0); escena.add(hemi);
   const luzHueco = new THREE.PointLight(new THREE.Color(...kelvin(2300)), 0, 9, 2); luzHueco.position.set(0, ROOF - 0.15, 0); escena.add(luzHueco);
 
   // comandas
@@ -128,7 +128,7 @@ export async function crearEscena3(motor) {
       } else {
         const dt = t - Ti; tilX += rebote(dt, 6, 7) * 0.12 * Math.sin(d.fase); tilZ += rebote(dt, 5, 7) * 0.1 * Math.cos(d.fase); aleteo = 0.55 * Math.exp(-dt * 5);
       }
-      if (h > ROOF) { tilX += Math.sin(t * 1.7 + i) * 0.08; tilZ += Math.cos(t * 1.3 + i * 0.7) * 0.08; aleteo += 0.25; giro += Math.sin(t * 0.3 + i) * 0.1; }
+      if (h > ROOF) { const f = smooth(ROOF, ROOF + 6, h); tilX += d.tx * 1.6 * f + Math.sin(t * 1.7 + i) * 0.12 * f; tilZ += d.tz * 1.6 * f + Math.cos(t * 1.3 + i * 0.7) * 0.12 * f; aleteo += 0.25; giro += Math.sin(t * 0.3 + i) * 0.1; }
       ox = vaivenX(h, t); oz = vaivenZ(h, t);
       const hondo = Math.max(0, caidas - 1 - i); // cuántas tiene encima
       const caidaPapel = d.caida * (0.25 + 0.75 * Math.exp(-hondo / 5)) / sc;
@@ -200,22 +200,23 @@ export async function crearEscena3(motor) {
       ciudad.matF.uniforms.uPx.value = motor.H;
       const afuera = estado.afuera;
       escena.environment = afuera ? ambNoche : ambCocina;
-      luna.intensity = afuera ? 1.6 : 0; hemi.intensity = afuera ? 0.32 : 0.1;
+      luna.intensity = afuera ? 2.3 : 0; hemi.intensity = afuera ? 0.4 : 0.1;
       if (afuera) { const cy = camara.position.y + 4; luna.target.position.set(vaivenX(cy, t), cy, vaivenZ(cy, t)); luna.position.copy(luna.target.position).add(new THREE.Vector3(-34, 52, 30)); luna.target.updateMatrixWorld(); luna.shadow.camera.updateProjectionMatrix(); }
       luzHueco.intensity = afuera ? 2.5 : 0;
       matPapel.userData.uTrans.value = afuera ? 0.9 : 0.6;
     },
-    despuesOpaco(rr, rt, t) { if (estado.afuera) nubes.dibujar(rr, rt, camara, t, 0.58, [vaivenX(130, t), vaivenZ(130, t)]); },
+    despuesOpaco(rr, rt, t) { if (estado.afuera) nubes.dibujar(rr, rt, camara, t, 0.64, [vaivenX(130, t), vaivenZ(130, t)]); },
     revelado(t) {
       const a = smooth(8.1, 8.5, t);
       return {
         exposicion: lerp(0.8, 1.35, a), bloom: lerp(0.3, 0.5, a), umbral: lerp(2.2, 1.2, a), radio: 0.85,
         contraste: lerp(1.07, 1.04, a), saturacion: lerp(1.04, 1.1, a), vineta: lerp(0.36, 0.26, a), grano: 0.034, ca: 0.012, halacion: lerp(0.45, 0.3, a),
         lift: [lerp(0.004, 0.006, a), lerp(0.009, 0.012, a), lerp(0.02, 0.03, a)], gain: [1.03, 1.0, lerp(0.95, 1.0, a)],
-        foco: estado.foco, apertura: lerp(15, 0, smooth(7.35, 7.9, t)),
+        foco: estado.foco, apertura: lerp(10, 0, smooth(7.35, 7.9, t)),
         negro: 0,
       };
     },
+    obturador(t) { return lerp(1 / 60, 1 / 110, smooth(8.2, 8.6, t)); },
     subcuadros(t) {
       let k = 3;
       for (const g of GOLPES) if (Math.abs(t - g) < 0.18) k = 8;
@@ -228,7 +229,7 @@ export async function crearEscena3(motor) {
       for (let i = 0; i < PALABRAS.length; i++) {
         const [t0, txt] = PALABRAS[i], t1 = i + 1 < PALABRAS.length ? PALABRAS[i + 1][0] : 6.35;
         if (t < t0 - 0.05 || t > t1 + 0.05) continue;
-        const tam = [56, 64, 78, 96, 120][i];
+        const tam = [72, 80, 96, 118, 144][i];
         const sale = sat((t - (t1 - 0.13)) / 0.15);
         txt.split(' ').forEach((w, k) => {
           const u = sat((t - t0 - k * 0.13) / 0.42), e1 = easeOut(u, 3);

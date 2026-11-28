@@ -18,7 +18,7 @@ window.pieza = {
   escena,
   cuadro(t, { sub } = {}) {
     const tex = letras.dibujar(escena.letras(t));
-    motor.cuadro(escena, t, { sub: sub ?? escena.subcuadros(t), obtur: 1 / 60, texto: tex });
+    motor.cuadro(escena, t, { sub: sub ?? escena.subcuadros(t), obtur: escena.obturador ? escena.obturador(t) : 1 / 60, texto: tex });
     return lienzo.toDataURL('image/jpeg', 0.96);
   },
 };
