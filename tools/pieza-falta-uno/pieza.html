@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Falta uno</title>
+<style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js"}}</script>
+</head><body><canvas id="lienzo"></canvas>
+<script type="module">
+import { crearMotor } from './src/motor.js';
+import { crearLetras } from './src/letras.js';
+const q = new URLSearchParams(location.search), W = +(q.get('w') || 720), H = +(q.get('h') || 1280), cual = q.get('escena') || 'pieza';
+const fuentes = [['Mansalva', './fuentes/mansalva.woff2'], ['Inter', './fuentes/inter.woff2'], ['Young Serif', '../teaser-futuro-gastronomia/fuentes/young-serif.woff2']];
+for (const [n, u] of fuentes) { const f = new FontFace(n, `url(${u})`); await f.load(); document.fonts.add(f); }
+// el guion es privado: vive en trabajo/entrada/guion.json (se baja de la página privada de la pieza)
+const v2 = cual === 'pieza2', guion = await (await fetch(`./trabajo/entrada/${v2 ? 'guion2' : 'guion'}.json`)).json();
+const lienzo = document.getElementById('lienzo'); lienzo.width = W; lienzo.height = H;
+const motor = crearMotor(lienzo, W, H);
+const { crearPieza } = await import(v2 ? './src/pieza2.js' : './src/pieza.js'); const escena = await crearPieza(motor, guion);
+const letras = await crearLetras(W, H, 'Young Serif', { logo: '/marca/oido-plano-blanco.svg' });
+window.pieza = {
+  escena,
+  cuadro(t, { sub } = {}) {
+    const tex = letras.dibujar(q.get('sinTexto') ? [] : escena.letras(t)); // las fotos para redes van sin las palabras del video
+    motor.cuadro(escena, t, { sub: sub ?? escena.subcuadros(t), obtur: escena.obturador ? escena.obturador(t) : 1 / 60, texto: tex });
+    return lienzo.toDataURL('image/jpeg', 0.96);
+  },
+};
+window.listo = true;
+</script></body></html>

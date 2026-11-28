@@ -427,6 +427,15 @@ pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
 
 ## Pendiente de Julieta (operativo, no es código)
 
+- **Pieza 3D «Falta uno» (2026-11-28):** la versión 1 (68 s y tres cortes) está en
+  la página privada «Pieza Falta uno». La versión 2, más porteña y cotidiana (fila
+  en la vereda, salón lleno, el pinche que rebalsa, llega alguien por Oído y todo
+  fluye; 58 s, fachada porteña de estilo francés, mesas en la vereda y un tango bajo; la
+  gente en siluetas sin gastar créditos), está en la misma página
+  y espera su mirada; los textos se ajustan después con ella. Faltan los cortes de
+  la versión 2 si los quiere, el carrusel C3-01 y los tips diarios de @turnosgastro
+  (el calendario está en la página). Qué es y cómo se rehace:
+  [`reference/PIEZA_FALTA_UNO.md`](./reference/PIEZA_FALTA_UNO.md).
 - **Teaser «El futuro de la gastronomía» (2026-11-27):** antes de publicar los
   videos o la presentación, repasar la lista «Antes de publicarlo» de la página
   privada del archivo. Qué es y dónde está cada pieza:
