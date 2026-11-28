@@ -16,12 +16,14 @@ los invariantes que hacen que un mail sea de Oído y no de cualquiera.
 
 import re
 from datetime import timedelta
+from pathlib import Path
 
 import pytest
 
 from app.modules.identity.application.services import PASSWORD_RESET_TOKEN_TTL
 from app.modules.notification.domain.email_templates import (
     _AMBAR,
+    _MARCA_URL,
     render_confirm_email_html,
     render_identity_verification_email_html,
     render_password_reset_email_html,
@@ -73,11 +75,12 @@ def test_ningun_mail_usa_el_naranja_pre_rebrand(nombre: str):
 
 @todas
 def test_todo_mail_lleva_la_marca_y_el_link_pedido(nombre: str):
-    """Lo que separa un mail de Oído de un `<p>` suelto: el tile ámbar del
-    isotipo, el pie con la marca, y el link que el emisor pidió mandar."""
+    """Lo que separa un mail de Oído de un `<p>` suelto: el botón ámbar, el
+    pie con la marca (desde el 2026-11-28 es la palabra «oído» como imagen, en
+    la letra de la marca) y el link que el emisor pidió mandar."""
     html = _PLANTILLAS[nombre]()
     assert _AMBAR in html, f"{nombre} no lleva el ámbar de marca en ningún lado"
-    assert ">oído</strong>" in html, f"{nombre} no lleva el pie de marca (el wordmark)"
+    assert f'<img src="{_MARCA_URL}/oido.png"' in html, f"{nombre} no lleva el pie de marca (el wordmark)"
     assert _LINK in html, f"{nombre} perdió el link que le pasaron"
 
 
@@ -232,3 +235,56 @@ def test_todo_fondo_con_degrade_tiene_color_de_respaldo(nombre: str):
     html = _PLANTILLAS[nombre]()
     for estilo in re.findall(r'style="([^"]*background-image[^"]*)"', html):
         assert "background-color:" in estilo, estilo
+
+
+# ── La marca vigente (2026-11-28, Julieta: "los mail tienen identidad vieja") ──
+# El mail seguía con el ícono que la app dejó el 2026-11-18 (las manos y la
+# oreja sobre ámbar), un brillo ámbar que se veía beige y dos letras que la
+# app ya no usa. Nadie lo veía por lo mismo que con el naranja de #315: un
+# mail no está en pantalla cuando uno mira la app.
+_RAIZ = Path(__file__).resolve().parents[2]
+_MAIL_PUBLICO = _RAIZ / "frontend" / "public" / "mail"
+
+
+@todas
+def test_el_logo_es_el_pinche_como_imagen_y_no_un_svg(nombre: str):
+    """Gmail no muestra SVG: el logo va como PNG del sitio público, con `alt`
+    para cuando el cliente bloquea las imágenes."""
+    html = _PLANTILLAS[nombre]()
+    assert "<svg" not in html, f"{nombre} lleva un SVG en línea: Gmail no lo muestra"
+    logo = re.search(r'<img src="([^"]+/pinche\.png)"[^>]*>', html)
+    assert logo, f"{nombre} no lleva el pinche"
+    assert 'alt="Oído"' in logo.group(0)
+    palabra = re.search(r'<img src="([^"]+/oido\.png)"[^>]*>', html)
+    assert palabra, f"{nombre} no lleva la palabra «oído» en el pie"
+    assert 'alt="oído"' in palabra.group(0)
+    for src in (logo.group(1), palabra.group(1)):
+        assert src.startswith(f"{_MARCA_URL}/"), src
+
+
+def test_las_imagenes_que_pide_el_mail_existen_en_el_sitio():
+    """Si alguien borra o renombra el PNG, el mail queda sin logo y nada más
+    avisa. Los escribe `frontend/scripts/build-icons.mjs`."""
+    html = _PLANTILLAS["bienvenida_trabajador"]()
+    pedidas = set(re.findall(re.escape(_MARCA_URL) + r'/([^"]+)"', html))
+    assert pedidas == {"pinche.png", "oido.png"}
+    for archivo in pedidas:
+        assert (_MAIL_PUBLICO / archivo).is_file(), f"falta frontend/public/mail/{archivo}"
+
+
+@todas
+def test_el_ambar_queda_solo_en_el_boton(nombre: str):
+    """Un solo ámbar por pantalla: la acción. Antes estaba además en el logo,
+    en el número de cada paso y en dos brillos de fondo."""
+    html = _PLANTILLAS[nombre]()
+    usos = [m.start() for m in re.finditer(re.escape(_AMBAR), html)]
+    botones = len(re.findall(r'<td style="border-radius:999px;background-color:' + re.escape(_AMBAR), html))
+    assert botones >= 1 and len(usos) == botones, f"{nombre}: {len(usos)} ámbar, {botones} botones"
+    assert "217,119,6" not in html, f"{nombre} todavía lleva un brillo ámbar de fondo"
+
+
+@todas
+def test_ningun_mail_usa_las_letras_que_la_app_dejo(nombre: str):
+    html = _PLANTILLAS[nombre]()
+    for letra in ("Bricolage", "Fraunces"):
+        assert letra not in html, f"{nombre} todavía pide {letra}"

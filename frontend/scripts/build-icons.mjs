@@ -14,7 +14,7 @@
 // notificaciones de Android (logo-figure.svg: Android usa sólo el alfa).
 // Los SVG (letra ya convertida a trazos) los escribe
 // `python3 scripts/build-isotipo-pinche.py`; este script sólo los rasteriza.
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import sharp from "sharp";
 
 const pub = new URL("../public/", import.meta.url);
@@ -56,4 +56,23 @@ const entries = sizes.map((s, i) => {
   return e;
 });
 await writeFile(new URL("favicon.ico", pub), Buffer.concat([header, ...entries, ...images]));
-console.log("íconos regenerados: icon-192/512, apple-icon, icon-maskable-512, badge-96, favicon.ico (16/32/48)");
+
+// Las dos imágenes de los mails: la plantilla
+// (`backend/app/modules/notification/domain/email_templates.py`) las pide a
+// `https://www.oido.com.ar/mail/…`. Van como PNG porque Gmail no muestra SVG,
+// ni en línea ni como `<img>`: hasta el 2026-11-28 el logo del mail era un
+// SVG en línea y además era el ícono anterior. Se muestran a 56 px (el ícono
+// de la app, el mismo de icon-192: Julieta, 2026-11-28, «el ícono que va es
+// la miniatura de la app»; el chico con la «o» sola no) y a 26 px de alto (la
+// palabra plana en azul hondo); salen al triple para pantallas densas.
+await mkdir(new URL("mail/", pub), { recursive: true });
+const palabra = await readFile(new URL("../../docs/design-system/marca/oido-plano.svg", import.meta.url));
+await writeFile(new URL("mail/pinche.png", pub), await png(mark, 168));
+await writeFile(
+  new URL("mail/oido.png", pub),
+  await sharp(palabra, { density: 384 }).resize({ height: 78 }).png().toBuffer(),
+);
+
+console.log(
+  "íconos regenerados: icon-192/512, apple-icon, icon-maskable-512, badge-96, favicon.ico (16/32/48), mail/pinche.png, mail/oido.png",
+);
