@@ -64,6 +64,7 @@ Duplicar componentes o lógica · acoplar módulos por dentro · credenciales en
 | Índice completo de `docs/` y ADRs | `docs/reference/MAPA_DE_DOCS.md` |
 | Correr tests/Playwright/capturas en la nube | `docs/reference/SESION_CLOUD.md` |
 | La presentación 3D «El futuro de la gastronomía» y sus videos: qué es, dónde está guardada cada pieza, cómo se rehace | `docs/reference/TEASER_FUTURO_GASTRONOMIA.md` |
+| La pieza 3D «Falta uno» (escenas propias por código): dónde están los videos, cómo se rehace | `docs/reference/PIEZA_FALTA_UNO.md` |
 | Bugs ya resueltos / deuda vigente | `docs/BUGS.md` · `docs/TECH_DEBT.md` |
 | Bitácora de cambios (solo escribir) | `docs/historial/` |
 

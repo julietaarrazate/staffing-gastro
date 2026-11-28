@@ -427,6 +427,10 @@ pasaron y no hay que reintroducir: [`BUGS.md`](./BUGS.md).
 
 ## Pendiente de Julieta (operativo, no es código)
 
+- **Pieza 3D «Falta uno» (2026-11-28):** ver la escena 3 en la página
+  privada «Pieza Falta uno» (al lado de la torre del teaser) y dar el sí para
+  seguir con el resto del guion y los tres cortes. Qué es y cómo se rehace:
+  [`reference/PIEZA_FALTA_UNO.md`](./reference/PIEZA_FALTA_UNO.md).
 - **Teaser «El futuro de la gastronomía» (2026-11-27):** antes de publicar los
   videos o la presentación, repasar la lista «Antes de publicarlo» de la página
   privada del archivo. Qué es y dónde está cada pieza:
