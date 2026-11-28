@@ -49,7 +49,7 @@ function caja(dur, sr, semilla) {
 
 export async function bandaEscena3({ GOLPES, crece, camY, TECHO }, { dur = 10, sr = 48000 } = {}) {
   const { ac, R, buf, ruido, sala, nodo, cadena, env, envExp, tocar, osc, master, envios } = caja(dur, sr, 4242);
-  const T_TECHO = 8.17, T_AFUERA = 8.24;
+  const T_TECHO = 8.4, T_AFUERA = 8.5;
 
   // ---------- 1. el salón y la cocina (adentro) ----------
   {
@@ -105,7 +105,7 @@ export async function bandaEscena3({ GOLPES, crece, camY, TECHO }, { dur = 10, s
     for (const [f, d] of [[73.42, -6], [73.42, 7], [110, -4], [110, 5], [146.83, 0]]) osc('sawtooth', f, .8, dur, lp, d);
     // cuerdas agudas en trémolo desde el último «otra»
     const gt = nodo.gan(0), bp = nodo.filtro('bandpass', 1500, .8), trem = nodo.gan(.5); cadena(bp, trem, gt, envios(master, .2, .5));
-    env(gt.gain, [[5.7, 0], [7.4, .02], [8.17, .05], [8.4, .0]]);
+    env(gt.gain, [[5.7, 0], [7.4, .02], [T_TECHO, .05], [T_TECHO + 0.23, .0]]);
     const lfo = ac.createOscillator(); lfo.frequency.value = 9; const lg = nodo.gan(.5); lfo.connect(lg); lg.connect(trem.gain); lfo.start(5.6); lfo.stop(9);
     for (const [f, d] of [[587.33, -5], [659.25, 6], [880, -3], [1174.66, 4]]) osc('sawtooth', f, 5.6, 9, bp, d);
   }
@@ -122,9 +122,9 @@ export async function bandaEscena3({ GOLPES, crece, camY, TECHO }, { dur = 10, s
     }
     // subida: ruido que barre y tonos que trepan
     const sb = nodo.filtro('bandpass', 400, 1.1), sg = nodo.gan(0); cadena(sb, sg, envios(master, .1, .4)); tocar(ruido(1.6, 'rosa', 91), 7.1, sb);
-    envExp(sb.frequency, [[7.1, 300], [8.17, 6500], [8.6, 3000]]); env(sg.gain, [[7.1, 0], [8.1, .2], [8.24, .12], [8.7, 0]]);
-    const tg = nodo.gan(0); tg.connect(envios(master, 0, .6)); env(tg.gain, [[7.0, 0], [8.1, .05], [8.3, 0]]);
-    for (let o = 0; o < 4; o++) { const os = ac.createOscillator(); os.type = 'sine'; envExp(os.frequency, [[7.0, 146.83 * Math.pow(2, o)], [8.2, 146.83 * Math.pow(2, o + 1)]]); const og = nodo.gan([.4, .8, .6, .25][o]); os.connect(og); og.connect(tg); os.start(7); os.stop(8.4); }
+    envExp(sb.frequency, [[7.1, 300], [T_TECHO, 6500], [T_TECHO + 0.45, 3000]]); env(sg.gain, [[7.1, 0], [T_TECHO - 0.07, .2], [T_AFUERA, .12], [T_AFUERA + 0.45, 0]]);
+    const tg = nodo.gan(0); tg.connect(envios(master, 0, .6)); env(tg.gain, [[7.0, 0], [T_TECHO - 0.07, .05], [T_TECHO + 0.13, 0]]);
+    for (let o = 0; o < 4; o++) { const os = ac.createOscillator(); os.type = 'sine'; envExp(os.frequency, [[7.0, 146.83 * Math.pow(2, o)], [T_TECHO, 146.83 * Math.pow(2, o + 1)]]); const og = nodo.gan([.4, .8, .6, .25][o]); os.connect(og); og.connect(tg); os.start(7); os.stop(8.4); }
   }
 
   // ---------- 5. el techo: zumbido de paso y un crujido sordo ----------

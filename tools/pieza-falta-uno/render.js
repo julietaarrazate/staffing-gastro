@@ -17,6 +17,7 @@ const srv = http.createServer((req, res) => { const u = decodeURIComponent(req.u
   const f0 = Math.round(+desde * fps), f1 = Math.round(+hasta * fps), t0 = Date.now(); let n = 0;
   for (let f = f0; f < f1; f += cada) {
     if (((f - f0) / cada) % tn !== ti) continue;
+    if (process.env.SALTEAR && fs.existsSync(path.join(salida, `c${String(f).padStart(5, '0')}.jpg`))) continue; // ya dibujado
     const url = await p.evaluate(([t, sub]) => window.pieza.cuadro(t, sub === 'auto' ? {} : { sub: +sub }), [f / fps, subA]);
     fs.writeFileSync(path.join(salida, `c${String(f).padStart(5, '0')}.jpg`), Buffer.from(url.slice(url.indexOf(',') + 1), 'base64'));
     if (++n % 10 === 0) console.log(`[${ti}] ${n} cuadros · ${((Date.now() - t0) / n / 1000).toFixed(2)} s por cuadro`);

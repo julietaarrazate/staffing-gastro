@@ -82,8 +82,8 @@ vMapUv = vec2((mod(aVar, ${COLS}.) + uv.x) / ${COLS}., 1. - (floor(aVar / ${COLS
 #endif
 `;
 
-export function materialPapel(mapa, { trans = 0.55, color = 0xffffff } = {}) {
-  const m = new THREE.MeshStandardMaterial({ map: mapa, color, roughness: 0.78, metalness: 0, side: THREE.DoubleSide, alphaTest: 0.5, envMapIntensity: 0.6 });
+export function materialPapel(mapa, { trans = 0.55, color = 0xffffff, opaco = false } = {}) {
+  const m = new THREE.MeshStandardMaterial({ map: mapa, color, roughness: 0.78, metalness: 0, side: THREE.DoubleSide, alphaTest: opaco ? 0 : 0.5, envMapIntensity: 0.6 });
   m.userData.uTrans = { value: trans };
   m.onBeforeCompile = s => {
     s.uniforms.uTrans = m.userData.uTrans;
@@ -93,7 +93,7 @@ export function materialPapel(mapa, { trans = 0.55, color = 0xffffff } = {}) {
         vec4 tm = texture2D(map, vMapUv);
         vec3 papel = vec3(.91, .87, .79);
         vec3 cara = gl_FrontFacing ? tm.rgb : mix(papel, tm.rgb, .18);
-        diffuseColor *= vec4(cara, tm.a);`)
+        diffuseColor *= vec4(cara, ${opaco ? '1.' : 'tm.a'});`)
       .replace('#include <lights_fragment_begin>', `
         #undef RE_Direct
         #define RE_Direct RE_Direct_Papel
@@ -106,7 +106,7 @@ export function materialPapel(mapa, { trans = 0.55, color = 0xffffff } = {}) {
           reflectedLight.directDiffuse += (b * .8 + haz * .5) * uTrans * directLight.color * BRDF_Lambert(material.diffuseColor) * vec3(1., .93, .82);
         }`);
   };
-  m.customProgramCacheKey = () => 'papel' + trans;
+  m.customProgramCacheKey = () => 'papel' + trans + (opaco ? 'o' : '');
   return m;
 }
 

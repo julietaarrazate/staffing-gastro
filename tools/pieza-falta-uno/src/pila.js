@@ -11,7 +11,7 @@ const BASE = 0.0125;
 export const ROOF = TECHO + LOSA;
 export const escalaPapel = h => h < ROOF ? 1 : 1 + Math.pow((h - ROOF) / 7, 1.3);
 const separacion = h => (h < ROOF ? lerp(0.0058, 0.004, smooth(0.08, 0.5, h)) + 0.0014 * smooth(0.5, 3, h) : 0.006 + 0.006 * smooth(ROOF, ROOF + 6, h)) * escalaPapel(h);
-export const crece = curva([[7.67, 0.09], [7.8, 0.13], [7.95, 0.55], [8.08, 1.75], [8.17, 3.05], [8.25, 4.6], [8.5, 12], [8.9, 34], [9.4, 88], [10, 165], [10.6, 240], [11.6, 300], [13, 330], [15, 340]], { log: true });
+export const crece = curva([[7.67, 0.12], [7.8, 0.16], [7.95, 0.55], [8.08, 1.75], [8.17, 3.05], [8.25, 4.6], [8.5, 12], [8.9, 34], [9.4, 88], [10, 165], [10.6, 240], [11.6, 300], [13, 330], [15, 340]], { log: true });
 export const vaivenX = (h, t) => h < ROOF ? 0 : Math.pow((h - ROOF) / 60, 1.6) * 3.2 * Math.sin(t * 0.55 + h * 0.018) + Math.pow((h - ROOF) / 60, 1.2) * 0.9;
 export const vaivenZ = (h, t) => h < ROOF ? 0 : Math.pow((h - ROOF) / 60, 1.6) * 2.4 * Math.sin(t * 0.43 + h * 0.023 + 1.3);
 // la torre se desarma desde arriba (tiempo local)
@@ -26,7 +26,7 @@ export function crearPila(escena, camara, { desde = -1 } = {}) {
   const matPapel = materialPapel(mapa, { trans: 0.6 }), matSombra = materialSombraPapel(mapa);
   // alturas de reposo de cada comanda y el momento en que cae
   const Y = [], TL = [];
-  for (let h = BASE + 0.0017, i = 0; h < 345; i++) { Y.push(h); h += separacion(h); }
+  for (let h = BASE + 0.0017, i = 0; h < 345; i++) { Y.push(h); h += i < 5 ? 0.0115 : separacion(h); }
   for (let i = 0; i < Y.length; i++) {
     if (i < GOLPES.length) { TL.push(GOLPES[i]); continue; }
     let a = 7.67, b = 16; for (let k = 0; k < 50; k++) { const m = (a + b) / 2; crece(m) < Y[i] ? a = m : b = m; } TL.push((a + b) / 2);
@@ -42,7 +42,8 @@ export function crearPila(escena, camara, { desde = -1 } = {}) {
     return { hd, td: (a + b) / 2 + 0.05 + r() * 0.6, v: [2 + r() * 5, (r() - .35) * 1.6, (r() - .5) * 4], w: [r() * 6, r() * 6, r() * 6], var: Math.floor(r() * VARIANTES), fase: r() * 6 };
   });
   const cerca = mallaComandas(1200, 10, 14, matPapel, matSombra); cerca.malla.castShadow = true; cerca.malla.receiveShadow = true;
-  const lejos = mallaComandas(N + 120, 1, 1, matPapel, matSombra); lejos.malla.receiveShadow = true; lejos.malla.castShadow = true;
+  const matLejos = materialPapel(mapa, { trans: 0.6, opaco: true }); matLejos.userData.uTrans = matPapel.userData.uTrans;
+  const lejos = mallaComandas(N + 120, 1, 1, matLejos, matSombra); lejos.malla.receiveShadow = true; lejos.malla.castShadow = true;
   escena.add(cerca.malla, lejos.malla);
   // comandas esperando, colgadas de la barra del fondo
   const colgadas = mallaComandas(9, 6, 8, matPapel, matSombra); colgadas.malla.castShadow = colgadas.malla.receiveShadow = true;
@@ -73,7 +74,7 @@ export function crearPila(escena, camara, { desde = -1 } = {}) {
       const d = datos[i], h = Y[i], sc = escalaPapel(h);
       let y = h, ox = 0, oz = 0, tilX = d.tx, tilZ = d.tz, giro = d.giro, aleteo = 0;
       // aplastamiento de la pila con cada golpe a mano
-      for (let k = Math.max(i, 0); k < Math.min(GOLPES.length, i + 6); k++) { const dt = t - GOLPES[k]; if (dt > 0 && dt < 0.6) y -= 0.0035 * Math.exp(-(k - i) / 2.5) * Math.exp(-dt * 16) * Math.cos(dt * 42); }
+      for (let k = Math.max(i, 0); k < Math.min(GOLPES.length, i + 6); k++) { const dt = t - GOLPES[k]; if (dt > 0 && dt < 0.6) y -= 0.006 * Math.exp(-(k - i) / 2.5) * Math.exp(-dt * 16) * Math.cos(dt * 42); }
       if (t < Ti) { // cayendo
         const u = (t - (Ti - dur)) / dur; y = h + (manual ? 0.32 : 0.05 * sc) * (1 - easeIn(u, 1.7));
         tilX += (1 - u) * 0.35 * Math.sin(d.fase); tilZ += (1 - u) * 0.3 * Math.cos(d.fase); giro += (1 - u) * 0.6; aleteo = 0.5;
