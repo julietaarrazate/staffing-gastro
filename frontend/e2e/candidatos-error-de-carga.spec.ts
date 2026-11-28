@@ -198,3 +198,17 @@ test("una recarga silenciosa que da 404 sólo en postulantes también oculta el 
   await expect(page.getByRole("heading", { name: NO_ENCONTRADO })).toBeVisible();
   await expect(encabezado(page)).toHaveCount(0);
 });
+
+for (const [nombre, respuesta] of [
+  ["500", (r: import("@playwright/test").Route) => r.fulfill(json({ detail: "boom" }, 500))],
+  ["pedido abortado (red cortada)", (r: import("@playwright/test").Route) => r.abort("failed")],
+] as const) {
+  test(`el pedido del turno falla por algo que NO es 404 (${nombre}): no dice «No encontramos este turno»; sigue la lista y avisa`, async ({ page }) => {
+    await setup(page, { apps: () => json([APPLICANT]), cands: () => json([]) });
+    await page.route("**/api/v1/shifts/shift-1", respuesta);
+    await page.goto("/shifts/shift-1/candidates");
+    await expect(page.getByText("Lucía Postulada")).toBeVisible();
+    await expect(page.getByText("No pudimos cargar el estado del turno")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "No encontramos este turno" })).toHaveCount(0);
+  });
+}

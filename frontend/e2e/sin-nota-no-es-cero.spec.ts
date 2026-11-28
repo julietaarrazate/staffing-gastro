@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { deContrato } from "./contrato";
 import { blockExternalHosts, injectSession, mockEmptyNotifications } from "./mocks";
 
 /**
@@ -108,7 +109,7 @@ const POSTULANTE = (over: Record<string, unknown>) => ({
 
 test("candidatos: la persona nueva dice «Nuevo en Oído» y la veterana muestra nota y puntualidad", async ({ page }) => {
   await setup(page);
-  await page.route("**/api/v1/shifts/shift-1", (r) => r.fulfill(json({}, 404)));
+  await page.route("**/api/v1/shifts/shift-1", (r) => r.fulfill(json(deContrato("turno_publicado_comercio"))));
   await page.route("**/api/v1/shifts/shift-1/candidates", (r) => r.fulfill(json([])));
   await page.route("**/api/v1/applications/shifts/shift-1", (r) =>
     r.fulfill(
