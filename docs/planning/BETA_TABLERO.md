@@ -910,5 +910,5 @@ grande y el día anterior a abrir.
 ## Tanda del 2026-11-28
 
 - ✅ El aviso de turno cerca llega a 20 (40 en la escalada), con una cuarta
-  parte del cupo para gente nueva verificada (#PENDIENTE,
+  parte del cupo para gente nueva verificada (#762,
   [historial](../historial/2026-11-28-cupo-de-avisos-con-lugar-para-nuevos.md)).

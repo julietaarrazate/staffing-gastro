@@ -1,4 +1,4 @@
-# El aviso de turno cerca llega a 20, con 5 lugares para gente nueva (#PENDIENTE)
+# El aviso de turno cerca llega a 20, con 5 lugares para gente nueva (#762)
 
 **Antes:** el aviso de un turno publicado le llegaba a los 10 mejor
 rankeados cerca (más los favoritos del comercio), y a 20 en la escalada de
