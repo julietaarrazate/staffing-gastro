@@ -28,7 +28,7 @@ const turno = (o: Record<string, unknown>) =>
     },
   ])[0];
 
-async function misTurnos(page: Page, turnos: () => unknown[], rutas?: () => Promise<void>) {
+async function misTurnos(page: Page, turnos: () => unknown[], rutas?: () => Promise<unknown>) {
   await page.clock.setFixedTime(AHORA);
   await injectSession(page);
   await skipSplash(page);
@@ -43,13 +43,15 @@ async function misTurnos(page: Page, turnos: () => unknown[], rutas?: () => Prom
   await page.goto("/my-shifts");
 }
 
-const captura = async (page: Page, nombre: string, theme: string) => {
-  if (process.env.CAPTURAS_DIR) await page.screenshot({ path: `${process.env.CAPTURAS_DIR}/${nombre}-${theme}.png`, fullPage: true });
+const captura = async (page: Page, nombre: string, theme: string, ancho: number) => {
+  if (process.env.CAPTURAS_DIR) await page.screenshot({ path: `${process.env.CAPTURAS_DIR}/${nombre}-${theme}-${ancho}.png`, fullPage: true });
 };
 
-for (const theme of ["light", "dark"] as const) {
-  test(`${theme}: antes de las 24 h «Todavía no» está apagado y dice cuándo; «Sí, cobré» pasa a «Confirmaste el cobro»`, async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
+const ANCHOS = [390, 320] as const;
+
+for (const [theme, ancho] of ANCHOS.flatMap((a) => (["light", "dark"] as const).map((t) => [t, a] as const))) {
+  test(`${theme} ${ancho}: antes de las 24 h «Todavía no» está apagado y dice cuándo; «Sí, cobré» pasa a «Confirmaste el cobro»`, async ({ page }) => {
+    await page.setViewportSize({ width: ancho, height: 844 });
     await setTheme(page, theme);
     let estado: Record<string, unknown> = {};
     const posts: string[] = [];
@@ -66,16 +68,16 @@ for (const theme of ["light", "dark"] as const) {
     await expect(caja.getByText("¿Ya cobraste este turno?")).toBeVisible();
     await expect(caja.getByRole("button", { name: "Todavía no" })).toBeDisabled();
     await expect(caja).toContainText("Podés avisar que todavía no cobraste el 20/11 a las 13:00");
-    await captura(page, "cobro-pregunta", theme);
+    await captura(page, "cobro-pregunta", theme, ancho);
 
     await caja.getByRole("button", { name: "Sí, cobré" }).click();
     await expect(page.getByTestId("cobro-confirmado")).toHaveText("Confirmaste el cobro");
     expect(posts).toEqual(["payment-received"]);
-    await captura(page, "cobro-confirmado", theme);
+    await captura(page, "cobro-confirmado", theme, ancho);
   });
 
-  test(`${theme}: con el pago del comercio «Todavía no» se puede; avisado dice que soporte ya lo sabe y deja confirmar`, async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
+  test(`${theme} ${ancho}: con el pago del comercio «Todavía no» se puede; avisado dice que soporte ya lo sabe y deja confirmar`, async ({ page }) => {
+    await page.setViewportSize({ width: ancho, height: 844 });
     await setTheme(page, theme);
     let estado: Record<string, unknown> = { status: "pagado", paid_at: isoEnDias(0, "14:00"), unpaid_report_opens_at: ABIERTO };
     await misTurnos(page, () => [turno(estado)], () =>
@@ -93,7 +95,7 @@ for (const theme of ["light", "dark"] as const) {
     const avisado = page.getByTestId("cobro-avisado");
     await expect(avisado).toContainText("Avisaste que no cobraste: soporte ya lo sabe");
     await expect(avisado.getByRole("button", { name: "Sí, cobré" })).toBeEnabled();
-    await captura(page, "cobro-avisado", theme);
+    await captura(page, "cobro-avisado", theme, ancho);
   });
 }
 
@@ -114,9 +116,9 @@ test("«Ver como» (sólo lectura): el 403 se explica en el lugar y la pantalla 
   await expect(page.getByRole("button", { name: "Sí, cobré" })).toBeEnabled();
 });
 
-for (const theme of ["light", "dark"] as const) {
-  test(`${theme}: el comercio ve lo que dijo la persona en su turno`, async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
+for (const [theme, ancho] of ANCHOS.flatMap((a) => (["light", "dark"] as const).map((t) => [t, a] as const))) {
+  test(`${theme} ${ancho}: el comercio ve lo que dijo la persona en su turno`, async ({ page }) => {
+    await page.setViewportSize({ width: ancho, height: 844 });
     await setTheme(page, theme);
     await page.clock.setFixedTime(AHORA);
     await injectSession(page);
@@ -139,6 +141,6 @@ for (const theme of ["light", "dark"] as const) {
     await expect(dicen).toHaveCount(2);
     await expect(dicen.nth(0)).toContainText("Lucía Pérez confirmó que cobró");
     await expect(dicen.nth(1)).toContainText("Mateo Gómez avisó que todavía no cobró");
-    await captura(page, "cobro-comercio", theme);
+    await captura(page, "cobro-comercio", theme, ancho);
   });
 }

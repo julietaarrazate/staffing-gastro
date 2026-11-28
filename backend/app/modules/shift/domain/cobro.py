@@ -17,9 +17,8 @@ Reglas (la entidad `Shift` las aplica; acá, la parte de plazos y textos):
 
 Sólo reglas y textos; sin imports de afuera del dominio."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
-from app.core.dt import naive as _naive
 from app.core.tz import to_art
 
 # Cuánto después del fin del turno se puede avisar «todavía no cobré» si el
@@ -31,6 +30,8 @@ YA_CONFIRMASTE_EL_COBRO = (
     "desde Soporte."
 )
 TODAVIA_NO_TERMINO = "Este turno todavía no terminó."
+TURNO_CANCELADO = "Este turno se canceló: no hay cobro que confirmar."
+TURNO_NO_CUBIERTO = "Este turno venció sin cubrirse: no hay cobro que confirmar."
 
 
 def puede_avisar_desde(end_at: datetime, paid_at: datetime | None) -> datetime:
@@ -53,5 +54,15 @@ def aun_no_se_puede_avisar(desde: datetime) -> str:
     )
 
 
+def _a_utc(momento: datetime) -> datetime:
+    """Instante en UTC. Un datetime sin zona se toma como UTC (así lo devuelve
+    SQLite y así lo guarda la base); uno con zona se convierte, no se le tira
+    la zona."""
+    if momento.tzinfo is None:
+        return momento.replace(tzinfo=timezone.utc)
+    return momento.astimezone(timezone.utc)
+
+
 def ya_paso(desde: datetime, ahora: datetime) -> bool:
-    return _naive(ahora) >= _naive(desde)
+    """¿`ahora` es `desde` o después? Sin importar en qué zona vengan."""
+    return _a_utc(ahora) >= _a_utc(desde)

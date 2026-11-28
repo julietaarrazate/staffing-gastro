@@ -31,7 +31,8 @@ class SupportPaymentReportOpener(PaymentReportOpener):
 
     async def open_unpaid_ticket(
         self, *, worker_user_id: UUID, shift_id: UUID, subject: str, body: str
-    ) -> None:
-        await self._support.create_ticket(
+    ) -> UUID:
+        ticket, _ = await self._support.create_ticket(
             worker_user_id, TicketCategory.PAGOS, subject, body, shift_id=shift_id
         )
+        return ticket.id

@@ -24,6 +24,8 @@ from app.modules.shift.domain.exceptions import (
 )
 from app.modules.shift.domain.cobro import (
     TODAVIA_NO_TERMINO,
+    TURNO_CANCELADO,
+    TURNO_NO_CUBIERTO,
     YA_CONFIRMASTE_EL_COBRO,
     aun_no_se_puede_avisar,
     puede_avisar_desde,
@@ -172,6 +174,9 @@ class Shift:
     # después lo confirmó.
     worker_confirmed_paid_at: datetime | None = None
     worker_reported_unpaid_at: datetime | None = None
+    # Ticket de soporte que abrió «Todavía no cobré». Sin él, la marca todavía
+    # no completó sus avisos: un reintento los termina.
+    unpaid_report_ticket_id: UUID | None = None
 
     # No-show (ADR-0007): registro de auditoría directo en el turno, mismo
     # criterio que `check_in_at`/`check_out_at`. `worker_profile_id` se
@@ -1037,8 +1042,13 @@ class Shift:
         return True
 
     def _require_finished_for_payment_report(self) -> None:
-        if self.status not in (ShiftStatus.FINALIZADO, ShiftStatus.PAGADO):
-            raise PaymentReportNotAllowedError(TODAVIA_NO_TERMINO)
+        if self.status in (ShiftStatus.FINALIZADO, ShiftStatus.PAGADO):
+            return
+        if self.status == ShiftStatus.CANCELADO:
+            raise PaymentReportNotAllowedError(TURNO_CANCELADO)
+        if self.status == ShiftStatus.NO_CUBIERTO:
+            raise PaymentReportNotAllowedError(TURNO_NO_CUBIERTO)
+        raise PaymentReportNotAllowedError(TODAVIA_NO_TERMINO)
 
     def _transition(
         self, expected: ShiftStatus, target: ShiftStatus, accion: str

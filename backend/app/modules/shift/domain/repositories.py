@@ -486,5 +486,5 @@ class PaymentReportOpener(ABC):
     @abstractmethod
     async def open_unpaid_ticket(
         self, *, worker_user_id: UUID, shift_id: UUID, subject: str, body: str
-    ) -> None:
-        """Crea el ticket de pagos atado al turno."""
+    ) -> UUID:
+        """Crea el ticket de pagos atado al turno y devuelve su id."""

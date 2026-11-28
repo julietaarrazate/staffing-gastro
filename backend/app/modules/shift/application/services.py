@@ -2734,43 +2734,56 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         abre un ticket de pagos para que la admin lo vea. Oído no sanciona a
         nadie por esto: sólo registra y avisa."""
         shift = await self._get_assigned_to(worker_profile_id, shift_id)
-        if not shift.worker_report_unpaid(now):
+        changed = shift.worker_report_unpaid(now)
+        if changed:
+            shift = await self._shifts.update(shift)
+        # Los pasos que siguen (ticket y aviso) pueden fallar después de que la
+        # marca quedó guardada: el reintento los completa. Sin ticket guardado,
+        # la marca todavía no terminó sus avisos.
+        profile = await self._workers.get_by_id(worker_profile_id)
+        abrir_ticket = self._payment_reports is not None and shift.unpaid_report_ticket_id is None
+        if abrir_ticket and profile is None:
+            logger.error(
+                "shift.unpaid_report_without_profile",
+                extra={"shift_id": str(shift.id), "worker_profile_id": str(worker_profile_id)},
+            )
+            abrir_ticket = False
+        if not changed and not abrir_ticket:
             return shift
-        updated = await self._shifts.update(shift)
         nombre = await self._worker_name(worker_profile_id) or "La persona asignada"
-        fecha = f"{to_art(updated.start_at):%d/%m}"
+        fecha = f"{to_art(shift.start_at):%d/%m}"
+        if abrir_ticket:
+            assert self._payment_reports is not None and profile is not None
+            titulo = shift.title or shift.position.label
+            comercio = await self._companies.get_by_id(shift.company_id)
+            de = (comercio.name if comercio is not None else None) or "el comercio"
+            marcado = (
+                "El comercio ya había marcado el turno como pagado."
+                if shift.paid_at is not None
+                else "El comercio no marcó el turno como pagado."
+            )
+            shift.unpaid_report_ticket_id = await self._payment_reports.open_unpaid_ticket(
+                worker_user_id=profile.user_id,
+                shift_id=shift.id,
+                subject=f"No cobré el turno del {fecha}",
+                body=(
+                    f"{nombre} avisó desde la app que todavía no cobró el turno "
+                    f"\"{titulo}\" del {fecha} en {de}. {marcado} Oído no mueve "
+                    "plata: lo cobra por fuera, directo del comercio."
+                ),
+            )
+            shift = await self._shifts.update(shift)
         await self._notify_company(
-            updated.company_id,
+            shift.company_id,
             NotificationType.WORKER_REPORTED_UNPAID,
             f"{nombre} avisó que todavía no cobró",
             (
                 f"{nombre} avisó que todavía no cobró el turno del {fecha}. Si ya "
                 "le pagaste, pedile que lo confirme; si no, coordinalo por el chat."
             ),
-            link=f"/shifts?turno={updated.id}",
+            link=f"/shifts?turno={shift.id}",
         )
-        if self._payment_reports is not None:
-            profile = await self._workers.get_by_id(worker_profile_id)
-            if profile is not None:
-                titulo = updated.title or updated.position.label
-                comercio = await self._companies.get_by_id(updated.company_id)
-                de = (comercio.name if comercio is not None else None) or "el comercio"
-                marcado = (
-                    "El comercio ya había marcado el turno como pagado."
-                    if updated.paid_at is not None
-                    else "El comercio no marcó el turno como pagado."
-                )
-                await self._payment_reports.open_unpaid_ticket(
-                    worker_user_id=profile.user_id,
-                    shift_id=updated.id,
-                    subject=f"No cobré el turno del {fecha}",
-                    body=(
-                        f"{nombre} avisó desde la app que todavía no cobró el turno "
-                        f"\"{titulo}\" del {fecha} en {de}. {marcado} Oído no mueve "
-                        "plata: lo cobra por fuera, directo del comercio."
-                    ),
-                )
-        return updated
+        return shift
 
     async def _notify_worker(
         self,

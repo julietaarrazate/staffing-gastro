@@ -353,3 +353,197 @@ async def test_reintento_con_la_misma_clave_repite_la_respuesta(client: AsyncCli
         assert reintento.json() == primera.json()
     assert len(await _avisos(client, employer, "worker_reported_unpaid")) == 1
     assert len(await _avisos(client, employer, "worker_confirmed_paid")) == 1
+
+
+# --- Revisión independiente (2026-11-28) --------------------------------------
+
+
+def test_la_comparacion_de_plazos_no_depende_de_la_zona_de_quien_llama():
+    from datetime import timezone as tz
+
+    from app.modules.shift.domain.cobro import ya_paso
+
+    arg = timezone(timedelta(hours=-3))
+    desde = datetime(2026, 11, 28, 3, 58, tzinfo=timezone.utc)
+    # El mismo instante dicho en hora argentina.
+    assert ya_paso(desde, datetime(2026, 11, 28, 0, 58, tzinfo=arg)) is True
+    assert ya_paso(desde, datetime(2026, 11, 28, 0, 57, tzinfo=arg)) is False
+    # Sin zona se toma como UTC.
+    assert ya_paso(desde, datetime(2026, 11, 28, 3, 58)) is True
+    assert ya_paso(desde, datetime(2026, 11, 28, 3, 57)) is False
+    assert ya_paso(datetime(2026, 11, 28, 3, 58), datetime(2026, 11, 28, 0, 58, tzinfo=arg)) is True
+    assert tz.utc is timezone.utc
+
+
+def test_un_turno_cancelado_no_dice_que_no_termino():
+    for estado, texto in (
+        (ShiftStatus.CANCELADO, "Este turno se canceló"),
+        (ShiftStatus.NO_CUBIERTO, "venció sin cubrirse"),
+    ):
+        turno = _turno(estado)
+        for accion in (turno.worker_confirm_payment, turno.worker_report_unpaid):
+            with pytest.raises(PaymentReportNotAllowedError) as error:
+                accion()
+            assert texto in str(error.value)
+            assert "todavía no terminó" not in str(error.value)
+
+
+@pytest.mark.asyncio
+async def test_el_borde_exacto_de_las_24_horas_por_la_api(client: AsyncClient, session_factory):
+    # Fin hace 24 h menos 1 minuto: todavía no. Fin hace 24 h y 1 minuto: sí.
+    shift_id, _emp, worker = await _turno_terminado(
+        client, "borde1", session_factory=session_factory, horas_desde_el_fin=24 - 1 / 60
+    )
+    assert (await client.post(_url(shift_id, "payment-missing"), headers=worker)).status_code == 400
+    await _fin_hace(session_factory, shift_id, 24 + 1 / 60)
+    assert (await client.post(_url(shift_id, "payment-missing"), headers=worker)).status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_turno_cancelado_responde_con_su_propio_mensaje(client: AsyncClient):
+    employer = await _employer_with_company(client, "cobro_canc_emp@staffya.com")
+    start = (datetime.now(timezone.utc) + timedelta(days=2)).replace(tzinfo=None)
+    created = await client.post(
+        "/api/v1/shifts",
+        headers=employer,
+        json=_shift_payload(
+            start_at=start.isoformat(), end_at=(start + timedelta(hours=5)).isoformat()
+        ),
+    )
+    shift_id = created.json()["id"]
+    await client.post(f"/api/v1/shifts/{shift_id}/publish", headers=employer)
+    worker, worker_id = await _worker_con_perfil(client, "cobro_canc_w@staffya.com")
+    await client.post(
+        f"/api/v1/shifts/{shift_id}/assign", headers=employer, json={"worker_profile_id": worker_id}
+    )
+    await client.post(f"/api/v1/shifts/{shift_id}/confirm", headers=worker)
+    cancelado = await client.post(f"/api/v1/shifts/{shift_id}/cancel", headers=employer)
+    assert cancelado.status_code == 200, cancelado.text
+    # La persona quedó desasignada al cancelar: lo que pida es 404 (ajeno).
+    for accion in ("payment-received", "payment-missing"):
+        r = await client.post(_url(shift_id, accion), headers=worker)
+        assert r.status_code in (400, 404), r.text
+        assert "todavía no terminó" not in r.text
+
+
+@pytest.mark.asyncio
+async def test_turno_con_ausencia_de_otra_persona_no_admite_cobro_del_que_no_lo_tiene(
+    client: AsyncClient, session_factory
+):
+    # Un turno reofrecido tras un no-show: quien faltó ya no es la persona
+    # asignada, así que no puede decir nada del cobro.
+    from tests._turno_empezado import empezar_turno
+    from tests.test_no_show_and_late_cancellation import _confirmed_shift
+
+    shift_id, employer, ausente, _ = await _confirmed_shift(
+        client, "cobro_aus_emp@staffya.com", "cobro_aus_w@staffya.com", city="CobroAusCity"
+    )
+    await empezar_turno(session_factory, shift_id)
+    assert (await client.post(f"/api/v1/shifts/{shift_id}/no-show", headers=employer)).status_code == 200
+    for accion in ("payment-received", "payment-missing"):
+        r = await client.post(_url(shift_id, accion), headers=ausente)
+        assert r.status_code == 404, r.text
+
+
+@pytest.mark.asyncio
+async def test_bajo_ver_como_los_dos_botones_dan_403_de_solo_lectura(
+    client: AsyncClient, session_factory
+):
+    shift_id, _emp, worker = await _turno_terminado(client, "vercomo", pagar=True)
+    admin = await make_admin(client, session_factory, "admin_vercomo@staffya.com")
+    users = (await client.get("/api/v1/admin/users", headers=admin)).json()
+    target = next(u["id"] for u in users if u["email"] == "cobro_vercomo_w@staffya.com")
+    imp = await client.post(f"/api/v1/admin/users/{target}/impersonate", headers=admin)
+    assert imp.status_code == 200, imp.text
+    como = {"Authorization": f"Bearer {imp.json()['access_token']}"}
+    for accion in ("payment-received", "payment-missing"):
+        r = await client.post(_url(shift_id, accion), headers=como)
+        assert r.status_code == 403, r.text
+        assert r.json()["detail"]["code"] == "impersonation_read_only"
+    turno = (await client.get(f"/api/v1/shifts/{shift_id}", headers=worker)).json()
+    assert turno["worker_confirmed_paid_at"] is None
+    assert turno["worker_reported_unpaid_at"] is None
+
+
+@pytest.mark.asyncio
+async def test_con_el_comercio_suspendido_la_persona_igual_puede_decir_si_cobro(
+    client: AsyncClient, session_factory
+):
+    shift_id, _emp, worker = await _turno_terminado(client, "susp", pagar=True)
+    admin = await make_admin(client, session_factory, "admin_susp_cobro@staffya.com")
+    users = (await client.get("/api/v1/admin/users", headers=admin)).json()
+    emp = next(u["id"] for u in users if u["email"] == "cobro_susp_emp@staffya.com")
+    assert (await client.post(f"/api/v1/admin/users/{emp}/suspend", headers=admin)).status_code == 200
+    r = await client.post(_url(shift_id, "payment-missing"), headers=worker)
+    assert r.status_code == 200, r.text
+    assert r.json()["worker_reported_unpaid_at"] is not None
+
+
+@pytest.mark.asyncio
+async def test_la_persona_suspendida_no_puede_usar_los_botones(client: AsyncClient, session_factory):
+    shift_id, _emp, worker = await _turno_terminado(client, "suspw", pagar=True)
+    admin = await make_admin(client, session_factory, "admin_suspw_cobro@staffya.com")
+    users = (await client.get("/api/v1/admin/users", headers=admin)).json()
+    w = next(u["id"] for u in users if u["email"] == "cobro_suspw_w@staffya.com")
+    assert (await client.post(f"/api/v1/admin/users/{w}/suspend", headers=admin)).status_code == 200
+    for accion in ("payment-received", "payment-missing"):
+        r = await client.post(_url(shift_id, accion), headers=worker)
+        assert r.status_code in (401, 403), r.text
+
+
+@pytest.mark.asyncio
+async def test_carrera_entre_si_y_no_nunca_queda_un_no_despues_del_si(
+    client: AsyncClient
+):
+    import asyncio
+
+    shift_id, _emp, worker = await _turno_terminado(client, "carrera", pagar=True)
+    si, no = await asyncio.gather(
+        client.post(_url(shift_id, "payment-received"), headers=worker),
+        client.post(_url(shift_id, "payment-missing"), headers=worker),
+    )
+    assert si.status_code in (200, 409), si.text
+    assert no.status_code in (200, 400, 409), no.text
+    turno = (await client.get(f"/api/v1/shifts/{shift_id}", headers=worker)).json()
+    # Alguno ganó; y si hay un «no» sin «sí», o un «sí» (con o sin «no» antes),
+    # el estado es uno que se puede alcanzar de a uno por vez.
+    assert turno["worker_confirmed_paid_at"] or turno["worker_reported_unpaid_at"]
+    if si.status_code == 200:
+        assert turno["worker_confirmed_paid_at"] is not None
+    if no.status_code == 200:
+        assert turno["worker_reported_unpaid_at"] is not None
+    if si.status_code == 200 and no.status_code == 200:
+        assert turno["worker_reported_unpaid_at"] <= turno["worker_confirmed_paid_at"]
+
+
+@pytest.mark.asyncio
+async def test_si_el_ticket_falla_el_reintento_lo_completa_sin_duplicar(
+    client: AsyncClient, monkeypatch
+):
+    from app.modules.shift.infrastructure.support_gateway import SupportPaymentReportOpener
+
+    original = SupportPaymentReportOpener.open_unpaid_ticket
+    llamadas = {"n": 0}
+
+    async def falla_la_primera(self, **kwargs):
+        llamadas["n"] += 1
+        if llamadas["n"] == 1:
+            raise RuntimeError("soporte caído")
+        return await original(self, **kwargs)
+
+    monkeypatch.setattr(SupportPaymentReportOpener, "open_unpaid_ticket", falla_la_primera)
+    shift_id, employer, worker = await _turno_terminado(client, "ticketfalla", pagar=True)
+    try:
+        primera = await client.post(_url(shift_id, "payment-missing"), headers=worker)
+        assert primera.status_code >= 500
+    except RuntimeError:
+        pass  # el transporte de pruebas propaga el error del servidor
+    assert await _avisos(client, employer, "worker_reported_unpaid") == []
+
+    segunda = await client.post(_url(shift_id, "payment-missing"), headers=worker)
+    assert segunda.status_code == 200, segunda.text
+    tercera = await client.post(_url(shift_id, "payment-missing"), headers=worker)
+    assert tercera.status_code == 200
+    mios = (await client.get("/api/v1/support/tickets/mine", headers=worker)).json()
+    assert len([t for t in mios if t["shift_id"] == shift_id]) == 1
+    assert len(await _avisos(client, employer, "worker_reported_unpaid")) == 1

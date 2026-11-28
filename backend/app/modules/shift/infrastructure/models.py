@@ -102,6 +102,7 @@ class ShiftModel(Base):
     worker_reported_unpaid_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    unpaid_report_ticket_id: Mapped[uuid.UUID | None] = mapped_column(GUID(), nullable=True)
 
     no_show_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_no_show_worker_profile_id: Mapped[uuid.UUID | None] = mapped_column(
