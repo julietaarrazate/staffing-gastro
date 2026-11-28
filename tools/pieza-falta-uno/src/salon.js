@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { rng, kelvin, smooth, rebote } from './util.js';
 import * as T from './texturas.js';
 import { PISO, TECHO, LOSA } from './cocina.js';
-import { crearFachadaFrancesa, Y1 } from './fachada.js';
+import { crearFachadaFrancesa, texCartelPorteno, Y1 } from './fachada.js';
 
 export const FACHADA = 12; // z de la fachada
 const ANCHO = 4.33;
@@ -18,7 +18,7 @@ export function crearSalon(escena, guion, { frances = false } = {}) {
   const matMadera = new THREE.MeshStandardMaterial({ map: madera, roughness: 0.55, color: 0x8a6a50 });
   const matMaderaOsc = new THREE.MeshStandardMaterial({ map: madera, roughness: 0.6, color: 0x5a3c28 });
   const matRevoque = new THREE.MeshStandardMaterial({ map: T.revoque('#cbbd9f', 31), roughness: 0.92 });
-  const matFachada = new THREE.MeshStandardMaterial({ map: T.revoque('#b8ad99', 32), roughness: 0.95 });
+  const matFachada = new THREE.MeshStandardMaterial({ map: T.revoque(frances ? '#c08a81' : '#b8ad99', 32), roughness: 0.95 });
 
   // piso calcáreo
   const piso = new THREE.Mesh(new THREE.PlaneGeometry(ANCHO * 2, FACHADA + 0.4), new THREE.MeshStandardMaterial({ map: T.calcareo(), roughness: 0.32, envMapIntensity: 0.7 }));
@@ -132,19 +132,19 @@ export function crearSalon(escena, guion, { frances = false } = {}) {
     hoja.rotation.y = s * -1.25;
   }
   for (const x of [-2.55, 2.55]) {
-    const marco = new THREE.Mesh(new THREE.BoxGeometry(1.7, 2.1, 0.06), new THREE.MeshStandardMaterial({ color: 0x2a1a10, roughness: 0.6, transparent: true, opacity: 1 }));
+    const marco = new THREE.Mesh(new THREE.BoxGeometry(1.7, 2.1, 0.06), new THREE.MeshStandardMaterial({ color: frances ? 0x1d3a2e : 0x2a1a10, roughness: 0.6, transparent: true, opacity: 1 }));
     const mg = new THREE.Group(); mg.position.set(x, 1.1, FACHADA + 0.06); g.add(mg);
     for (const [w, h, px, py] of [[1.7, 0.06, 0, 1.02], [1.7, 0.06, 0, -1.02], [0.06, 2.1, -0.82, 0], [0.06, 2.1, 0.82, 0], [0.04, 2.1, 0, 0], [1.7, 0.04, 0, 0.35]]) { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.07), marco.material); b.position.set(px, py, 0); mg.add(b); }
   }
   // el cartel, con su lamparita
-  const matCartel = new THREE.MeshStandardMaterial({ map: T.cartel(guion.cartel || ''), roughness: 0.6, emissive: new THREE.Color(1, 1, 1), emissiveIntensity: 0, emissiveMap: null });
+  const matCartel = new THREE.MeshStandardMaterial({ map: frances ? texCartelPorteno(guion.cartel || '', guion.cartel_bajada || '') : T.cartel(guion.cartel || ''), roughness: 0.6, emissive: new THREE.Color(1, 1, 1), emissiveIntensity: 0, emissiveMap: null });
   const cartel = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.82, 0.06), [matFachada, matFachada, matFachada, matFachada, matCartel, matFachada]); cartel.position.set(0, 2.95, FACHADA + 0.2); g.add(cartel);
   const luzCartel = new THREE.SpotLight(new THREE.Color(...kelvin(2700)), 0, 4, 0.9, 0.6, 2); luzCartel.position.set(0, 3.6, FACHADA + 0.9); luzCartel.target.position.set(0, 2.9, FACHADA + 0.2); g.add(luzCartel, luzCartel.target);
   // apliques a los lados de la puerta
   const matAplique = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: new THREE.Color(...kelvin(2400)), emissiveIntensity: 0 });
   for (const x of [-1.25, 1.25]) { const a = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 10), matAplique); a.position.set(x, 1.75, FACHADA + 0.3); g.add(a); }
   const luzPuerta = new THREE.PointLight(new THREE.Color(...kelvin(2500)), 0, 7, 2); luzPuerta.position.set(0, 1.6, FACHADA + 0.7); g.add(luzPuerta);
-  if (frances) crearFachadaFrancesa(g, { matMaderaOsc });
+  const porteno = frances ? crearFachadaFrancesa(g, { matMaderaOsc, guion }) : null;
 
   // la calle: veredas de baldosas, cordón, adoquines, faroles
   const largo = 320, texV = T.vereda(); texV.repeat.set(largo / 0.4, 3 / 0.4);
@@ -172,7 +172,7 @@ export function crearSalon(escena, guion, { frances = false } = {}) {
       matGlobo.emissiveIntensity = 5 * adentro; for (const f of focos) f.intensity = 3.2 * adentro;
       matFarol.emissiveIntensity = 14 * calle; for (const l of lucesCalle) l.intensity = 9 * calle;
       for (const c of cuerpos) { c.cuerpo.rotation.y = Math.sin(t * 0.8 + c.f) * 0.15; c.cuerpo.position.z = -0.02 + Math.sin(t * 0.6 + c.f * 2) * 0.03; c.brazo.rotation.z = Math.sin(t * 1.3 + c.f) * 0.2; }
-      tel.poner(t);
+      tel.poner(t); if (porteno) porteno.poner(t);
     },
   };
 }

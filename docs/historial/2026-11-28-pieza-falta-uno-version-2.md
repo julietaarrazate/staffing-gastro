@@ -32,6 +32,14 @@ resuelve. Se mezcla unos 4 o 5 dB por debajo del resto (medido con y sin tango).
 final sube con una grúa por la fachada hasta el cielo de noche, sin las nubes de la
 primera (vistas desde abajo se veían naranjas).
 
+**Las referencias de Julieta:** con fotos de cafés y bodegones porteños, la planta baja
+quedó pintada de rosa viejo con carpintería verde oscura, letras de fileteado en las
+vidrieras y tomates en el alféizar; el cartel es de madera verde con letras doradas y
+el nombre sale del guion privado (Julieta lo llamó «La Vasca»). En la vereda, manteles
+a cuadros, sifón de malla roja, cerveza sin marca, vermú y aceitunas; adentro, bovedilla
+de ladrillo entre perfiles de hierro y dos ventiladores de techo. No se copia ningún
+lugar real ni ninguna marca.
+
 **Por qué así:** reusar el mundo de la primera da la misma calidad sin rehacerla,
 y cada versión se redibuja sola. Las personas como siluetas oscuras con un filo de
 luz cálida respetan la regla «manos, sombras, espaldas y luces» y no cuestan
