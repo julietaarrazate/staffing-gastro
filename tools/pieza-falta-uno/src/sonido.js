@@ -37,7 +37,7 @@ export async function bandaEscena3({ GOLPES, crece, camY, TECHO }, { dur = 10, s
   const master = nodo.gan(1);
   const comp = ac.createDynamicsCompressor(); Object.assign(comp, {}); comp.threshold.value = -16; comp.knee.value = 8; comp.ratio.value = 3.2; comp.attack.value = .004; comp.release.value = .2;
   const lim = ac.createWaveShaper(); { const c = new Float32Array(4097); for (let i = 0; i < 4097; i++) { const x = i / 2048 - 1; c[i] = Math.tanh(x * 1.25) / Math.tanh(1.25); } lim.curve = c; lim.oversample = '4x'; }
-  const salida = nodo.gan(0.95);
+  const salida = nodo.gan(0.84);
   cadena(master, comp, lim, salida); salida.connect(ac.destination);
   const conv = (b, g) => { const c = ac.createConvolver(); c.normalize = true; c.buffer = b; const o = nodo.gan(g); cadena(c, o, master); return c; };
   const salaCocina = conv(sala(0.9, 0.7, 11, .75, .006), 0.9);
