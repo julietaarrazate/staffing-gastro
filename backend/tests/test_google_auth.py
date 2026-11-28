@@ -244,7 +244,7 @@ async def test_la_cuenta_nueva_con_google_recibe_la_bienvenida(client: AsyncClie
         )
         await client.post("/api/v1/auth/google", json={"id_token": "tok", "role": "worker", "accepted_terms": True, "birth_date": "1995-05-20"})
         assert [e.to for e in fake.sent] == ["bienve@gmail.com"]
-        assert "Bienvenido" in fake.sent[0].subject
+        assert fake.sent[0].subject == "Ya estás en Oído: 3 cosas para que te lleguen turnos"
 
         # Volver a entrar no la repite.
         await client.post("/api/v1/auth/google", json={"id_token": "tok"})

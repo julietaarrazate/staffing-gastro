@@ -375,8 +375,8 @@ function ShiftCandidatesContent() {
         {tab === "postulantes" && !loadingApps && (!appsError || applicants.length > 0) && (
           <div className="mt-4">
             {applicants.length === 0 ? (
+              // Sin `icon`: el pinche, como en los otros vacíos de turnos.
               <EmptyState
-                icon={<UsersIcon size={28} />}
                 title="Todavía nadie se postuló"
                 subtitle="Cuando un trabajador se postule a tu turno, aparece acá. Mientras tanto, mirá los recomendados."
               />

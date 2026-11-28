@@ -71,6 +71,14 @@ def test_un_datetime_sin_zona_se_toma_como_utc():
     assert tz.format_turno_art(start, end) == "domingo 27/09, de 20:00 a 02:00"
 
 
+def test_el_aviso_dice_dia_y_fecha_aunque_sea_manana():
+    """Un aviso queda en la campanita: leído al otro día, «mañana» mentiría."""
+    start = dt_module.datetime(2026, 9, 27, 23, 0)  # domingo 20:00 ART, sin zona
+    assert tz.format_dia_y_hora_art(start) == "el domingo 27/09 a las 20:00"
+    un_rato_antes = dt_module.datetime(2026, 9, 26, 15, 0, tzinfo=dt_module.timezone.utc)
+    assert tz.format_inicio_art(start, un_rato_antes) == "mañana a las 20:00"
+
+
 # --- format_duracion / format_desde_art (G9) --------------------------------
 
 

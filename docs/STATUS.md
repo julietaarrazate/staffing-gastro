@@ -89,8 +89,10 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
      (`design-system/marca-hoy.md`); la landing queda como está. Los mails ya
      la llevan desde el 2026-11-28
      ([historial](./historial/2026-11-28-mails-con-la-marca-vigente.md)); falta
-     mirarlos en una casilla real de Gmail y de Outlook, y sus textos esperan
-     la revisión de voz (documento privado de crecimiento, pestaña «Voz y firma»).
+     mirarlos en una casilla real de Gmail y de Outlook. Sus textos ya tienen
+     la voz de la app (2026-11-28, [voz](./design-system/voz.md)); queda por
+     decidir, con captura a la vista, si la cinta «¡Oído!» va también al
+     confirmar y en el mail «Te eligieron» (cambia la regla 3 de la marca).
 
 - 🟠 **Crecimiento en redes y propuesta de horarios (2026-11-22).** Estado en
   el documento de crecimiento (https://claude.ai/artifact/HPGMp7JFA9prJmBdEazLPP:

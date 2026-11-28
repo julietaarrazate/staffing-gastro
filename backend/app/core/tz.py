@@ -56,6 +56,15 @@ def format_inicio_art(start_at: datetime, now: datetime | None = None) -> str:
         return f"hoy a las {inicio:%H:%M}"
     if inicio.date() == hoy + timedelta(days=1):
         return f"mañana a las {inicio:%H:%M}"
+    return format_dia_y_hora_art(start_at)
+
+
+def format_dia_y_hora_art(start_at: datetime) -> str:
+    """Cuándo empieza un turno, con día y fecha siempre: "el sábado 27/09 a las
+    20:00", en hora argentina. Para un aviso que queda guardado en la
+    campanita: se puede leer al otro día, y un «mañana» escrito al mandarlo
+    ya diría otro día."""
+    inicio = to_art(start_at)
     return f"el {_DIAS[inicio.weekday()]} {inicio:%d/%m} a las {inicio:%H:%M}"
 
 

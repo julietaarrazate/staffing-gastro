@@ -7,7 +7,14 @@ from uuid import UUID, uuid4
 
 from app.core.dt import naive as _naive
 from app.core.geo import bounding_box, haversine_km
-from app.core.tz import ARG_TZ, format_duracion, format_inicio_art, format_turno_art, to_art
+from app.core.tz import (
+    ARG_TZ,
+    format_dia_y_hora_art,
+    format_duracion,
+    format_inicio_art,
+    format_turno_art,
+    to_art,
+)
 from app.modules.application.domain.repositories import ShiftApplicationRepository
 from app.modules.application.domain.entities import ASSIGNABLE_FROM, ShiftApplication
 from app.modules.application.domain.value_objects import (
@@ -741,7 +748,7 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
             else:
                 # El dato antes que el adjetivo (voz de la app, 2026-11-28):
                 # cuándo, quién, cuánto y por cuántas horas.
-                title = f"{puesto} {format_inicio_art(shift.start_at)}, cerca tuyo"
+                title = f"{puesto} {format_dia_y_hora_art(shift.start_at)}, cerca tuyo"
                 quien = company.name if company is not None else "Un local"
                 horas = format_duracion(shift.end_at - shift.start_at)
                 message = (
@@ -1686,7 +1693,7 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
             worker_profile_id,
             NotificationType.SHIFT_ASSIGNED,
             f"Te eligieron para {updated.title or updated.position.label}",
-            f"{local} te eligió para {format_inicio_art(updated.start_at)}. "
+            f"{local} te eligió para {format_dia_y_hora_art(updated.start_at)}. "
             "Falta que digas «¡oído!»: confirmá que vas.",
         )
         await self._send_acceptance_email(worker_profile_id, updated)
@@ -1929,7 +1936,7 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
             updated.company_id,
             NotificationType.SHIFT_CONFIRMED,
             f"¡Oído! {nombre} confirmó",
-            f"Va {format_inicio_art(updated.start_at)} a cubrir "
+            f"Va {format_dia_y_hora_art(updated.start_at)} a cubrir "
             f"{updated.title or updated.position.label}. "
             "Si avisa que sale para allá, te llega otro aviso.",
         )
