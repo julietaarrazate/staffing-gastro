@@ -18,6 +18,13 @@ puesta al lado de la torre del teaser. Con el sí de Julieta (28/11) se hizo la
 toma entera de 68 s y los tres cortes para redes: dos para @oidoapp y uno para
 @turnosgastro, que lleva el pinche chico en una esquina.
 
+Después Julieta pidió una **versión 2** más porteña y cotidiana: sin rascacielos
+ni futuro, un bodegón de barrio lleno, la fila en la vereda, el servicio que se
+tranca por falta de personal y alguien que llega por Oído para que todo
+vuelva a fluir. Las personas, sin gastar créditos: siluetas a contraluz dentro
+del mundo 3D. Usa el mismo mundo y las mismas piezas (`src/pieza2.js`, 56,5 s)
+y sus textos van en otro archivo privado, `entrada/guion2.json`.
+
 ## Dónde está cada cosa
 
 | Pieza | Dónde |
@@ -34,7 +41,7 @@ cuadros sueltos tampoco: la receta los vuelve a dibujar idénticos.
 
 1. `cd tools/pieza-falta-uno && npm ci` (instala three; Playwright, Chromium y
    ffmpeg los trae el entorno, ver [`SESION_CLOUD.md`](./SESION_CLOUD.md)).
-2. Bajar `entrada/guion.json` y `entrada/plan.md` de la página privada a
+2. Bajar `entrada/guion.json`, `entrada/guion2.json` y `entrada/plan.md` de la página privada a
    `trabajo/entrada/` (con `Artifact`, `action: "read"`, `paths` y `out_dir`).
 3. Seguir el README de la receta. Un cuadro tarda de 1 a 9 segundos a
    1080 × 1920; la toma entera, unos 45 minutos con cuatro procesos. Cada cuadro se dibuja solo, así que un cambio

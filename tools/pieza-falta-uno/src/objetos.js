@@ -323,6 +323,33 @@ export function crearGente(escena, lugares) {
   });
   return {
     grupo: g,
-    poner(t, cam) { for (const p of personas) { const dx = cam.x - p.m.position.x, dz = cam.z - p.m.position.z; p.m.rotation.y = Math.atan2(dx, dz); p.m.position.y = p.L.y + p.m.geometry.parameters.height / 2 + Math.sin(t * 1.3 + p.f) * 0.004; p.m.position.x = p.L.x + (p.L.sentada ? 0 : Math.sin(t * 0.4 + p.f) * 0.02); } },
+    poner(t, cam) {
+      for (const p of personas) {
+        let x = p.L.x, z = p.L.z, anda = 0, yR = null;
+        const R = p.L.ruta;
+        if (R) { if (t <= R[0][0]) { x = R[0][1]; z = R[0][2]; } else if (t >= R[R.length - 1][0]) { x = R[R.length - 1][1]; z = R[R.length - 1][2]; } else { let k = 0; while (t > R[k + 1][0]) k++; const u = (t - R[k][0]) / (R[k + 1][0] - R[k][0]); x = R[k][1] + (R[k + 1][1] - R[k][1]) * u; z = R[k][2] + (R[k + 1][2] - R[k][2]) * u; if (R[k].length > 3) yR = R[k][3] + (R[k + 1][3] - R[k][3]) * u; anda = 1; } }
+        p.m.visible = !(p.L.hasta && t > p.L.hasta) && !(p.L.desde && t < p.L.desde);
+        const dx = cam.x - x, dz = cam.z - z; p.m.rotation.y = Math.atan2(dx, dz);
+        p.m.position.set(x + (p.L.sentada || anda ? 0 : Math.sin(t * 0.4 + p.f) * 0.02), (yR ?? p.L.y) + p.m.geometry.parameters.height / 2 + (anda ? Math.abs(Math.sin(t * 9 + p.f)) * 0.025 : Math.sin(t * 1.3 + p.f) * 0.004), z);
+        p.m.rotation.z = anda ? Math.sin(t * 9 + p.f) * 0.03 : 0;
+      }
+    },
   };
+}
+
+// ---------- el reloj de pared del salón (versión 2): las agujas corren mientras se cae la noche ----------
+export function crearReloj(escena, pos, rotY = 0, radio = 0.26) {
+  const g = new THREE.Group(); g.position.copy(pos); g.rotation.y = rotY; escena.add(g);
+  const c = document.createElement('canvas'); c.width = c.height = 512; const k = c.getContext('2d');
+  k.fillStyle = '#efe6d2'; k.beginPath(); k.arc(256, 256, 250, 0, Math.PI * 2); k.fill();
+  k.fillStyle = '#1b1712'; k.textAlign = 'center'; k.textBaseline = 'middle'; k.font = '500 54px "Young Serif", Georgia, serif';
+  for (let h = 1; h <= 12; h++) { const a = h / 12 * Math.PI * 2; k.fillText(String(h), 256 + Math.sin(a) * 190, 256 - Math.cos(a) * 190); }
+  for (let m = 0; m < 60; m++) { const a = m / 60 * Math.PI * 2, l = m % 5 ? 10 : 22; k.lineWidth = m % 5 ? 3 : 6; k.strokeStyle = '#1b1712'; k.beginPath(); k.moveTo(256 + Math.sin(a) * 238, 256 - Math.cos(a) * 238); k.lineTo(256 + Math.sin(a) * (238 - l), 256 - Math.cos(a) * (238 - l)); k.stroke(); }
+  const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; tx.anisotropy = 8;
+  const cara = new THREE.Mesh(new THREE.CircleGeometry(radio, 48), new THREE.MeshStandardMaterial({ map: tx, roughness: 0.5, emissive: 0xffffff, emissiveMap: tx, emissiveIntensity: 0.05 })); g.add(cara);
+  const aro = new THREE.Mesh(new THREE.TorusGeometry(radio * 1.02, radio * 0.07, 10, 48), new THREE.MeshStandardMaterial({ color: 0x2b1d12, roughness: 0.4, metalness: 0.2 })); g.add(aro);
+  const matA = new THREE.MeshStandardMaterial({ color: 0x0d0b09, roughness: 0.5 });
+  const aguja = (largo, ancho) => { const p = new THREE.Group(); const m = new THREE.Mesh(new THREE.BoxGeometry(ancho, largo, 0.006), matA); m.position.y = largo / 2 - largo * 0.12; p.add(m); p.position.z = 0.012; g.add(p); return p; };
+  const hh = aguja(radio * 0.55, radio * 0.07), mm = aguja(radio * 0.82, radio * 0.045);
+  return { grupo: g, poner(horas) { mm.rotation.z = -(horas % 1) * Math.PI * 2; hh.rotation.z = -((horas % 12) / 12) * Math.PI * 2; } };
 }

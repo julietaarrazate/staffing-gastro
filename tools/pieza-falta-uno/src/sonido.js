@@ -160,11 +160,9 @@ export async function bandaEscena3({ GOLPES, crece, camY, TECHO }, { dur = 10, s
   return await ac.startRendering();
 }
 
-// ---------- la banda de la pieza entera (68 s) ----------
-// La escena 3 se calcula aparte (bandaEscena3) y se monta a los 10 s; el resto se arma acá, escena por escena.
-export async function bandaPieza({ GOLPES, crece, camY3, TECHO }, { dur = 68, sr = 48000 } = {}) {
-  const b3 = await bandaEscena3({ GOLPES, crece, camY: camY3, TECHO }, { dur: 10.9, sr });
-  const { ac, R, ruido, nodo, cadena, env, envExp, tocar, osc, master, envios } = caja(dur, sr, 777);
+// ---------- las piezas sonoras de la pieza entera (las usan las dos versiones) ----------
+function kit(cj, dur) {
+  const { ac, R, ruido, nodo, cadena, env, envExp, tocar, osc, master, envios } = cj;
   const H = { pink: ruido(dur + 1, 'rosa', 11), blanco: ruido(3, 'blanco', 12), marron: ruido(dur + 1, 'marron', 13) };
 
   // ---------- piezas sonoras ----------
@@ -180,6 +178,16 @@ export async function bandaPieza({ GOLPES, crece, camY3, TECHO }, { dur = 68, sr
 
   // ---------- buses ----------
   const seco = envios(master, 0, 0.25), cuarto = envios(master, 0.9, 0), abierto = envios(master, 0, 1.0), salon = envios(master, 0.5, 0);
+
+  return { H, parciales, campana, nota, vibra, zumbido, granos, golpeGrave, murmullo, acorde, seco, cuarto, abierto, salon };
+}
+
+// ---------- la banda de la pieza entera (68 s) ----------
+// La escena 3 se calcula aparte (bandaEscena3) y se monta a los 10 s; el resto se arma acá, escena por escena.
+export async function bandaPieza({ GOLPES, crece, camY3, TECHO }, { dur = 68, sr = 48000 } = {}) {
+  const b3 = await bandaEscena3({ GOLPES, crece, camY: camY3, TECHO }, { dur: 10.9, sr });
+  const cj = caja(dur, sr, 777), { ac, R, ruido, nodo, cadena, env, envExp, tocar, osc, master, envios } = cj; void envios;
+  const { H, parciales, campana, nota, vibra, zumbido, granos, golpeGrave, murmullo, acorde, seco, cuarto, abierto, salon } = kit(cj, dur);
 
   // ---------- 1. la calle al atardecer (0–5) ----------
   { const lp = nodo.filtro('lowpass', 320, .6), x = nodo.gan(0); cadena(lp, x, abierto); tocar(H.marron, 0, lp, { dura: 6 }); env(x.gain, [[0, 0], [0.4, 0.11], [4.2, 0.09], [5.0, 0]]); }
@@ -260,6 +268,100 @@ export async function bandaPieza({ GOLPES, crece, camY3, TECHO }, { dur = 68, sr
     nota(70.4, 1318.5, 0.25, cuarto, 0.9); nota(70.55, 1760, 0.2, cuarto, 1.2); vibra(70.4, 0.4, cuarto, 1.5);
     acorde(70.6, dur, [[293.66, -3], [369.99, 4], [440, 0], [587.33, -2]], [[70.6, 0], [72, 0.025], [dur, 0.03]], [[70.6, 600], [dur, 2200]], abierto);
   }
+  return await ac.startRendering();
+}
+
+// ---------- la banda de la versión 2 (56,5 s): el bodegón de barrio ----------
+// Las mismas piezas sonoras que la primera; la escena de las comandas (bandaEscena3) se monta a los 9 s y se corta
+// en seco cuando el pinche rebalsa: ahí no hay techo que atravesar, el servicio se tranca.
+export async function bandaPieza2({ GOLPES, crece, camY3, TECHO }, { dur = 56.5, sr = 48000 } = {}) {
+  const b3 = await bandaEscena3({ GOLPES, crece, camY: camY3, TECHO }, { dur: 8.6, sr });
+  const cj = caja(dur, sr, 2027), { ac, R, nodo, cadena, env, tocar, osc, master } = cj;
+  const { H, parciales, campana, nota, vibra, zumbido, granos, golpeGrave, murmullo, acorde, seco, cuarto, abierto, salon } = kit(cj, dur);
+  const T3 = 9.0, TS = 41.0;
+  const lejos = nodo.filtro('lowpass', 1500, 0.6); lejos.connect(salon); // el salón oído desde la cocina o desde la vereda
+  const calle = (t0, t1, g) => { const lp = nodo.filtro('lowpass', 320, .6), x = nodo.gan(0); cadena(lp, x, abierto); tocar(H.marron, t0, lp, { desde: (t0 * 0.7) % 20, dura: t1 - t0 + 0.1 }); env(x.gain, [[t0, 0], [t0 + 0.45, g], [t1 - 0.4, g * 0.9], [t1, 0]]); };
+  const viento = (t0, t1, g, f = 600) => { const vb = nodo.filtro('bandpass', f, .45), vg = nodo.gan(0); cadena(vb, vg, abierto); tocar(H.pink, t0, vb, { desde: (t0 * 0.3) % 20, dura: t1 - t0 + 0.1 }); env(vg.gain, [[t0, 0], [t0 + 0.7, g], [t1 - 0.6, g * 0.85], [t1, 0]]); };
+  const pasos = (t0, t1, cada, g) => { for (let t = t0; t < t1; t += cada + R() * 0.04) { golpeGrave(t, 110, 62, 0.12, g, abierto); granos(t, t + 0.04, 400, 2500, 5000, g * 0.28, abierto, 1.5, 0.015); } };
+
+  // ---------- 1. la vereda, la fila (0–4,65) ----------
+  calle(0, 5.0, 0.11);
+  zumbido(0.6, 2.4, 300, 1400, 0.09, abierto, 1.2); zumbido(1.4, 1.8, 1400, 380, 0.07, abierto, 1.4); // un auto que pasa
+  murmullo(0, 9.3, t => lerp(0.15, 1, smooth(1.5, 5, t)) * (t > 7.5 ? lerp(1, 0.4, smooth(7.5, 7.85, t)) : 1) * (1 - smooth(8.8, 9.3, t)), salon, 21);
+  for (const t of [3.7, 4.25, 5.6, 6.3]) parciales(t, 3100 + R() * 900, [[1, 0.35, 0.5], [2.71, 0.15, 0.3], [5.2, 0.06, 0.15]], salon, 0.12); // copas
+  zumbido(4.3, 0.7, 500, 2200, 0.1, seco, 0.9); // cruzar la puerta
+
+  // ---------- 2. el salón, el delantal, «No llego» (4,65–9) ----------
+  { const lp = nodo.filtro('lowpass', 8000, .5), x = nodo.gan(0); cadena(lp, x, salon); env(lp.frequency, [[5, 8000], [7.45, 8000], [7.85, 900], [8.95, 1200]]); for (let i = 0; i < 10; i++) parciales(5 + R() * 2.8, 1500 + R() * 2500, [[1, 0.4, 0.2], [2.7, 0.2, 0.12]], x, 0.06); env(x.gain, [[5, 1], [8.9, 1], [9.2, 0]]); }
+  vibra(7.5, 0.5, seco, 1.2); vibra(7.98, 0.5, seco, 1.2);
+  { const x = nodo.gan(0); x.connect(abierto); env(x.gain, [[5.6, 0], [6.4, 0.03], [8.5, 0.02], [9.2, 0]]); for (const [f, d] of [[73.42, -5], [110, 4], [146.83, 0]]) { const lp = nodo.filtro('lowpass', 420, .8); lp.connect(x); osc('sawtooth', f, 5.6, 9.3, lp, d); } } // bordón para «Falta uno.»
+
+  // ---------- 3. las comandas: la escena terminada, montada a los 9 s y cortada cuando rebalsa ----------
+  { const s3 = ac.createBufferSource(), g3 = nodo.gan(0); s3.buffer = b3; s3.connect(g3); g3.connect(master); env(g3.gain, [[T3, 1], [16.95, 1], [17.25, 0]]); s3.start(T3); }
+  // las que ya no entran: se clavan apenas y se resbalan al mostrador
+  { let tt = 7.67; for (let k = 0; k < 50; k++) { tt += Math.max(0.035, 0.09 * Math.pow(0.95, k)); const T = T3 + tt;
+    if (k < 12) { granos(T, T + 0.02, 400, 2500, 5000, 0.1, salon, 2, 0.015); parciales(T, 3760, [[1, 0.3, 0.04], [2.76, 0.15, 0.03]], seco, 0.05); }
+    else { zumbido(T, 0.3, 2600, 1200, 0.035, salon, 1.5, 'blanco'); granos(T + 0.38, T + 0.4, 300, 1500, 3500, 0.08, salon, 1.8, 0.02); } } }
+
+  // ---------- 4. «Se te va la gente.»: el hueco, el reloj que corre, sillas (17,25–21) ----------
+  golpeGrave(17.25, 55, 34, 1.6, 0.4, abierto);
+  murmullo(17.2, 21.1, t => lerp(0.5, 1.1, smooth(17.2, 19, t)) * (1 - smooth(20.7, 21.0, t)), lejos, 55);
+  { let t = 17.6, per = 0.5, k = 0; while (t < 20.75) { parciales(t, k % 2 ? 3100 : 2600, [[1, 0.5, 0.05], [2.3, 0.2, 0.03]], seco, 0.09, 0.001); per = Math.max(0.06, per * 0.87); t += per; k++; } } // tic, tac, cada vez más rápido
+  zumbido(19.0, 0.4, 700, 1100, 0.07, salon, 4, 'blanco'); zumbido(19.25, 0.35, 650, 1000, 0.06, salon, 4, 'blanco'); // dos sillas
+  acorde(17.25, 21.0, [[73.42, -5], [110, 4], [155.56, 0], [103.83, 3]], [[17.25, 0], [17.7, 0.03], [20.6, 0.05], [20.85, 0]], [[17.25, 300], [20.6, 900], [20.85, 500]], abierto);
+  zumbido(20.95, 0.9, 300, 3500, 0.28, seco, 0.8); // de un tirón, al talonario
+
+  // ---------- 5. «Cantalo.»: la birome, la hoja que se arranca, un soplo (21,8–27,6) ----------
+  { const lp = nodo.filtro('lowpass', 240, .8), x = nodo.gan(0); cadena(lp, x, seco); osc('sawtooth', 50, 21.8, 27.9, lp); env(x.gain, [[21.8, 0], [22.2, 0.008], [27.6, 0.008], [27.9, 0]]); }
+  murmullo(21.8, 27.8, t => 0.45 * smooth(21.8, 22.4, t) * (1 - smooth(27.3, 27.8, t)), lejos, 66);
+  { const bp = nodo.filtro('bandpass', 4200, 1.4), x = nodo.gan(0); cadena(bp, x, cuarto); tocar(H.blanco, 22.3, bp, { desde: 0.2, dura: 2.8 }); x.gain.setValueAtTime(0, 22.3); let t = 22.3; while (t < 25.0) { const trazo = 0.05 + R() * 0.12; x.gain.linearRampToValueAtTime(0.09 + R() * 0.07, t + 0.01); x.gain.linearRampToValueAtTime(0.01, t + trazo); t += trazo + (R() < 0.15 ? 0.12 : 0.02); } x.gain.linearRampToValueAtTime(0, 25.1); }
+  golpeGrave(22.6, 80, 52, 0.8, 0.22, seco); // «Cantalo.»
+  granos(25.45, 25.75, 140, 2000, 6000, 0.28, cuarto, 2.5, 0.012); // se arranca la hoja
+  zumbido(25.6, 0.9, 500, 1100, 0.14, seco, 0.8); // un soplo
+  for (let k = 0; k < 4; k++) parciales(25.8 + k * 0.5, 1700 + k * 220, [[1, 0.3, 0.3]], seco, 0.03);
+  zumbido(27.2, 0.9, 700, 2600, 0.12, abierto, 1.0); // sale por la puerta
+
+  // ---------- 6. «Alguien cerca.»: la cuadra se prende, la hoja entra por la ventana, el aviso (27,6–33,4) ----------
+  calle(27.3, 30.9, 0.09); viento(27.4, 30.9, 0.1, 700);
+  [[27.85, 587.33], [28.3, 880], [28.75, 739.99], [29.15, 659.25], [29.5, 987.77]].forEach(([t, f]) => nota(t, f, 0.2, abierto, 2.0));
+  { const escala = [587.33, 659.25, 739.99, 880, 987.77]; let t = 29.7; while (t < 30.6) { const u = (t - 29.7) / 0.9; nota(t, escala[Math.floor(R() * 5)] * [0.5, 1, 1, 2][Math.floor(R() * 4)], 0.07, abierto, 1.4); t += 1 / (4 + u * 14) * (0.5 + R()); } }
+  acorde(27.6, 33.6, [[146.83, -4], [220, 5], [293.66, -3], [329.63, 4], [392, -6], [440, 3]], [[27.6, 0], [28.6, 0.035], [30.8, 0.04], [33.2, 0.02], [33.45, 0]], [[27.6, 600], [30.4, 2600], [33.4, 900]], abierto);
+  { const lp = nodo.filtro('lowpass', 260, .6), x = nodo.gan(0); cadena(lp, x, cuarto); tocar(H.marron, 30.6, lp, { desde: 2, dura: 3 }); env(x.gain, [[30.6, 0], [31.0, 0.05], [33.2, 0.04], [33.45, 0]]); } // el cuarto
+  granos(31.22, 31.26, 300, 2000, 4000, 0.08, cuarto, 2, 0.02); // la hoja se apoya en la mesa
+  nota(31.35, 1318.5, 0.25, cuarto, 0.9); nota(31.5, 1760, 0.2, cuarto, 1.2); vibra(31.35, 0.4, cuarto, 1.5); vibra(31.85, 0.4, cuarto, 1.5);
+
+  // ---------- 7. «Voy.»: la puerta, los pasos, la bici (33,4–40) ----------
+  calle(33.4, 40.0, 0.07);
+  { const bp = nodo.filtro('bandpass', 900, 5), x = nodo.gan(0); cadena(bp, x, abierto); const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(95, 33.8); for (let t = 33.8; t < 34.6; t += 0.05) o.frequency.linearRampToValueAtTime(85 + R() * 30, t); o.connect(bp); o.start(33.8); o.stop(34.7); env(x.gain, [[33.8, 0], [33.9, 0.12], [34.5, 0.06], [34.65, 0]]); parciales(33.76, 1900, [[1, 0.4, 0.06], [2.3, 0.2, 0.04]], abierto, 0.2); }
+  golpeGrave(34.8, 90, 55, 0.7, 0.25, seco); // «Voy.»
+  pasos(34.7, 39.1, 0.52, 0.18);
+  { const ruedas = nodo.pan(-0.9); ruedas.connect(abierto); env(ruedas.pan, [[36.8, -0.9], [38.2, 0.9]]); granos(36.85, 38.2, 22, 3200, 3800, 0.08, ruedas, 3, 0.008); zumbido(36.8, 1.4, 600, 2400, 0.14, ruedas, 0.7); parciales(37.3, 2600, [[1, 0.5, 0.5], [2.1, 0.2, 0.3]], ruedas, 0.08); }
+  acorde(33.4, 40.6, [[146.83, -3], [220, 4], [293.66, 0], [369.99, -4], [440, 3], [659.25, -2]], [[33.4, 0], [34.0, 0.03], [38.9, 0.02], [40.0, 0]], [[33.4, 1500], [40, 600]], abierto);
+  zumbido(37.7, 1.6, 400, 2600, 0.2, seco, 0.8); // de vuelta al bodegón, de un tirón
+  murmullo(38.2, 49.4, t => smooth(38.2, 39.0, t) * lerp(0.5, 0.9, smooth(43.4, 45.4, t)) * (1 - smooth(49.0, 49.3, t)), salon, 33);
+
+  // ---------- 8. «¡Oído!»: el sello y la campanita del pase, una sola vez (40–43,4) ----------
+  zumbido(40.45, 0.55, 600, 2400, 0.12, seco, 0.9);
+  golpeGrave(TS, 120, 60, 0.5, 0.6, seco);
+  campana(TS, 1.0, abierto);
+  granos(TS + 0.1, TS + 2.9, u => 40 * (1 - u) + 6, 2500, 6500, 0.05, salon, 2.2, 0.02); // papel picado
+  acorde(TS, 50.9, [[146.83, 0], [185, -3], [220, 4], [293.66, -2], [369.99, 3], [440, -4]], [[TS, 0], [41.8, 0.05], [44.4, 0.035], [49.4, 0.025], [50.8, 0]], [[TS, 900], [42.4, 3200], [49.4, 1800], [50.8, 500]], abierto); // re mayor: resuelve
+
+  // ---------- 9. «Sale.»: las comandas dejan el pinche, los platos salen, brindis (43,2–49,2) ----------
+  granos(43.2, 45.4, u => 26 - u * 12, 1500, 4500, 0.07, salon, 1.4, 0.05);
+  for (const t of [43.55, 43.67, 43.79]) { const bp = nodo.filtro('bandpass', 1700, 2.2), x = nodo.gan(0); cadena(bp, x, salon); tocar(H.blanco, t, bp, { desde: 1, dura: 0.5 }); x.gain.setValueAtTime(0, t); for (let k = 0; k < 14; k++) x.gain.linearRampToValueAtTime(0.06 * (0.4 + R() * 0.6), t + 0.03 * k); x.gain.linearRampToValueAtTime(0, t + 0.45); parciales(t + 0.45, 2400, [[1, 0.3, 0.12], [2.6, 0.15, 0.08]], salon, 0.1); }
+  golpeGrave(43.8, 90, 60, 0.6, 0.2, seco); // «Sale.»
+  for (let k = 0; k < 4; k++) parciales(46.8 + k * 0.013 + R() * 0.01, 3000 + k * 420, [[1, 0.5, 0.9], [2.71, 0.2, 0.5], [5.4, 0.08, 0.3]], salon, 0.16, 0.001); // el brindis
+  for (let i = 0; i < 12; i++) parciales(44.0 + R() * 5, 1800 + R() * 2500, [[1, 0.4, 0.2], [2.7, 0.15, 0.1]], salon, 0.05); // cubiertos
+
+  // ---------- 10. la vereda: la fila entra; la cámara sube; «oído» (49,2–56,5) ----------
+  calle(49.2, dur, 0.08);
+  murmullo(49.2, 53.6, t => 0.6 * smooth(49.2, 49.6, t) * (1 - smooth(52.5, 53.5, t)), lejos, 77);
+  for (let i = 0; i < 9; i++) { const tp = 49.5 + i * 0.3; for (let k = -3; k <= 1; k++) { const t = tp + k * 0.36 + R() * 0.05; if (t > 49.25) golpeGrave(t, 120, 70, 0.1, 0.05, abierto); } }
+  zumbido(52.2, 1.8, 300, 1600, 0.12, abierto, 0.8);
+  viento(52.5, dur, 0.06, 500);
+  campana(53.2, 0.4, abierto); // un último toque, suave
+  { const x = nodo.gan(0); x.connect(abierto); env(x.gain, [[52.4, 0], [53.4, 0.02], [56.0, 0.012], [dur, 0]]); for (const f of [293.66, 440, 587.33, 739.99]) { const lp = nodo.filtro('lowpass', 1500, .5); lp.connect(x); osc('triangle', f, 52.4, dur, lp, (R() - .5) * 8); } }
   return await ac.startRendering();
 }
 

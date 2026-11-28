@@ -6,7 +6,7 @@ import { rng, kelvin } from './util.js';
 export const OFFZ = -31.3; // el damero corrido: la calle del bodegón pasa por z de 12 a 25
 const NIEBLA = `uniform vec3 uNiebla; uniform float uDens; vec3 niebla(vec3 c, float d){ return mix(c, uNiebla, 1. - exp(-uDens * uDens * d * d)); }`;
 
-export function crearCiudad(escena, { radio = 1300 } = {}) {
+export function crearCiudad(escena, { radio = 1300, bajo = false } = {}) {
   const g = new THREE.Group(); escena.add(g);
   const r = rng(303);
   const niebla = { uNiebla: { value: new THREE.Color(0.035, 0.045, 0.08) }, uDens: { value: 0.00055 } };
@@ -22,6 +22,7 @@ export function crearCiudad(escena, { radio = 1300 } = {}) {
       while (s < lote / 2 - 4) {
         const ancho = Math.min(lote / 2 - s, 8.66 * (1 + Math.floor(r() * 3))), fondo = 12 + r() * 16;
         let alto = 6 + r() * 14; if (r() < 0.25) alto = 18 + r() * 22; if (torre && r() < 0.3) alto = 45 + r() * 70;
+        if (bajo) { alto = 4.5 + r() * 6; if (r() < 0.12) alto = 10 + r() * 5; } // el barrio de casas bajas y PH
         const enX = lado % 2 === 0, signo = lado < 2 ? 1 : -1;
         const px = enX ? cx + s + ancho / 2 : cx + signo * (lote / 2 - fondo / 2);
         const pz = enX ? cz + signo * (lote / 2 - fondo / 2) : cz + s + ancho / 2;
@@ -33,7 +34,8 @@ export function crearCiudad(escena, { radio = 1300 } = {}) {
     }
   }
   // vecinos inmediatos, a mano: el edificio de atrás y el de la derecha (con ventanas que se ven desde la azotea)
-  cajas.push([0, -24, 8.66, 12, 34, 0.37], [8.66, 1, 8.66, 22, 12.5, 0.71], [-8.66, 2, 8.66, 20, 13.4, 0.13]);
+  if (bajo) cajas.push([0, -24, 8.66, 12, 9.2, 0.37], [8.66, 1, 8.66, 22, 7.4, 0.71], [-8.66, 2, 8.66, 20, 10.1, 0.13]); // en el barrio, PH y casas
+  else cajas.push([0, -24, 8.66, 12, 34, 0.37], [8.66, 1, 8.66, 22, 12.5, 0.71], [-8.66, 2, 8.66, 20, 13.4, 0.13]);
   const geo = new THREE.BoxGeometry(1, 1, 1); geo.translate(0, 0.5, 0);
   const ig = new THREE.InstancedBufferGeometry(); ig.index = geo.index; ig.setAttribute('position', geo.getAttribute('position')); ig.setAttribute('normal', geo.getAttribute('normal'));
   const n = cajas.length, aCaja = new Float32Array(n * 4), aDim = new Float32Array(n * 3);

@@ -10,10 +10,10 @@ const q = new URLSearchParams(location.search), W = +(q.get('w') || 720), H = +(
 const fuentes = [['Mansalva', './fuentes/mansalva.woff2'], ['Inter', './fuentes/inter.woff2'], ['Young Serif', '../teaser-futuro-gastronomia/fuentes/young-serif.woff2']];
 for (const [n, u] of fuentes) { const f = new FontFace(n, `url(${u})`); await f.load(); document.fonts.add(f); }
 // el guion es privado: vive en trabajo/entrada/guion.json (se baja de la página privada de la pieza)
-const guion = await (await fetch('./trabajo/entrada/guion.json')).json();
+const v2 = cual === 'pieza2', guion = await (await fetch(`./trabajo/entrada/${v2 ? 'guion2' : 'guion'}.json`)).json();
 const lienzo = document.getElementById('lienzo'); lienzo.width = W; lienzo.height = H;
 const motor = crearMotor(lienzo, W, H);
-const { crearPieza } = await import('./src/pieza.js'); const escena = await crearPieza(motor, guion); void cual;
+const { crearPieza } = await import(v2 ? './src/pieza2.js' : './src/pieza.js'); const escena = await crearPieza(motor, guion);
 const letras = await crearLetras(W, H, 'Young Serif', { logo: '/marca/oido-plano-blanco.svg' });
 window.pieza = {
   escena,

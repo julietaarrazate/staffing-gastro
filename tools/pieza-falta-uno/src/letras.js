@@ -27,7 +27,7 @@ export async function crearLetras(W, H, fuente, { logo = null, mono = 'Inter' } 
           const tam = it.tam * esc; g.font = `${tam}px "${fuente}"`;
           if (it.k === 0) cx = it.centro ? (W - (renglones[it.tam] || 0) + g.measureText(' ').width) / 2 : x * W;
           g.shadowBlur = tam * 0.5; g.shadowOffsetY = tam * 0.04; g.fillStyle = color;
-          g.fillText(it.txt, cx, (it.centro ? 0.36 : it.y ?? y) * H + it.dy * esc);
+          g.fillText(it.txt, cx, (it.centro ? it.y ?? 0.36 : it.y ?? y) * H + it.dy * esc);
           g.restore(); g.save(); g.font = `${tam}px "${fuente}"`;
           cx += g.measureText(it.txt + ' ').width;
         }

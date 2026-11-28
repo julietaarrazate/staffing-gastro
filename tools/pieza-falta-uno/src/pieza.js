@@ -23,7 +23,7 @@ const p3 = {
   r: curva([[0, 0], [7.9, 0], [8.2, -0.08], [8.8, 0.05], [9.4, 0.12], [10.3, 0.42]]),
 };
 const PALABRAS3 = [0.55, 2.2, 3.55, 4.65, 5.55];
-function camPila(t) {
+export function camPila(t) {
   let y = p3.y(t), dist = p3.d(t), ang = p3.a(t), pit = p3.p(t), fov = p3.f(t), rol = p3.r(t);
   const vuelo = smooth(7.8, 8.6, t), amp = lerp(0.0016, 0.05, vuelo);
   y += deriva(t, 1) * amp; ang += deriva(t * 0.8, 4) * lerp(0.006, 0.02, vuelo);
@@ -37,7 +37,7 @@ function camPila(t) {
 // ---------- recorridos de las otras escenas: [t, x, y, z] para la cámara y para el punto que mira ----------
 const pila0 = camPila(0), pila1 = camPila(10.3), pila1b = camPila(10.25);
 const v1 = pila1.pos.clone().sub(pila1b.pos).multiplyScalar(1 / 0.05);
-const R = {
+export const R = {
   // 1 y 2: la calle, la puerta, el salón, el delantal, el celular, el pinche
   pos12: ruta([[0, -1.6, -0.25, 23.6], [1.6, -1.1, -0.05, 21.2], [3.0, -0.45, 0.2, 17.6], [4.1, -0.05, 0.38, 13.8], [4.65, 0.05, 0.45, 12.0], [5.4, 0.2, 0.55, 9.4], [6.3, 0.15, 0.7, 6.2], [7.2, -1.25, 0.92, 1.55], [8.0, -0.85, 0.42, 0.62], [8.6, -0.55, 0.24, 0.36], [9.25, -0.5, 0.23, 0.38], [9.65, -0.3, 0.21, 0.52], [10, pila0.pos.x, pila0.pos.y, pila0.pos.z]]),
   look12: ruta([[0, 0, 2.2, 12], [1.6, 0, 1.6, 12], [3.0, 0, 0.9, 12], [4.1, 0, 0.55, 10], [4.65, 0.1, 0.45, 7], [5.4, -0.2, 0.3, 5], [6.3, -1.2, 0.65, 2.2], [7.2, -2.0, 0.72, 0.46], [8.0, -0.6, 0.0, 0.22], [8.6, -0.46, 0.0, 0.17], [9.25, -0.45, 0.0, 0.16], [9.65, -0.05, 0.07, 0.02], [10, pila0.look.x, pila0.look.y, pila0.look.z]]),

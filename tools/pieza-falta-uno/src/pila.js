@@ -18,7 +18,8 @@ export const vaivenZ = (h, t) => h < ROOF ? 0 : Math.pow((h - ROOF) / 60, 1.6) *
 export const DESARME = 43.6; // afuera, de arriba hacia abajo
 export const DESARME_ADENTRO = 42.55; // adentro, la columna sobre el pinche cae sobre el mostrador
 
-export function crearPila(escena, camara, { desde = -1 } = {}) {
+// sinTorre: la versión cotidiana, las comandas se amontonan, se caen del pinche al mostrador y, en tSale, salen en orden
+export function crearPila(escena, camara, { desde = -1, sinTorre = false, tSale = Infinity, tope: TOPE = 0.19 } = {}) {
   const r = rng(7);
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), p = new THREE.Vector3(), s = new THREE.Vector3();
   // comandas
@@ -26,18 +27,20 @@ export function crearPila(escena, camara, { desde = -1 } = {}) {
   const matPapel = materialPapel(mapa, { trans: 0.6 }), matSombra = materialSombraPapel(mapa);
   // alturas de reposo de cada comanda y el momento en que cae
   const Y = [], TL = [];
-  for (let h = BASE + 0.0017, i = 0; h < 345; i++) { Y.push(h); h += i < 5 ? 0.0115 : separacion(h); }
+  for (let h = BASE + 0.0017, i = 0; h < 345 && (!sinTorre || i < 64); i++) { Y.push(h); h += i < 5 ? 0.0115 : separacion(h); }
+  let tRebalse = 7.67;
   for (let i = 0; i < Y.length; i++) {
     if (i < GOLPES.length) { TL.push(GOLPES[i]); continue; }
+    if (sinTorre) { tRebalse += Math.max(0.035, 0.09 * Math.pow(0.95, i - GOLPES.length)); TL.push(tRebalse); continue; }
     let a = 7.67, b = 16; for (let k = 0; k < 50; k++) { const m = (a + b) / 2; crece(m) < Y[i] ? a = m : b = m; } TL.push((a + b) / 2);
   }
-  const N = Y.length;
+  const N = Y.length, P = sinTorre ? Y.filter(h => h <= TOPE).length : N; // P: las que entran en el pinche
   const datos = Array.from({ length: N }, (_, i) => ({
     v: i < 5 ? [0, 2, 5, 1, 3][i] : Math.floor(r() * VARIANTES), giro: r() * Math.PI * 2, tx: (r() - .5) * 0.07, tz: (r() - .5) * 0.07,
     caida: 0.7 + r() * 1.6, punta: (r() - .5) * 0.35, fase: r() * 6.28, tono: [0.97 + r() * 0.03, 0.95 + r() * 0.04, 0.9 + r() * 0.07],
   }));
   // comandas que el viento arranca de la torre y se llevan volando
-  const sueltas = Array.from({ length: 110 }, () => {
+  const sueltas = Array.from({ length: sinTorre ? 0 : 110 }, () => {
     const hd = 6 + Math.pow(r(), 1.4) * 150; let a = 7.67, b = 12; for (let k = 0; k < 40; k++) { const m = (a + b) / 2; crece(m) < hd ? a = m : b = m; }
     return { hd, td: (a + b) / 2 + 0.05 + r() * 0.6, v: [2 + r() * 5, (r() - .35) * 1.6, (r() - .5) * 4], w: [r() * 6, r() * 6, r() * 6], var: Math.floor(r() * VARIANTES), fase: r() * 6 };
   });
@@ -67,11 +70,11 @@ export function crearPila(escena, camara, { desde = -1 } = {}) {
     const caidas = topeA(t), camPos = camara.position;
     let nc = 0, nl = 0;
     // la última comanda clavada marca la punta de la pila
-    estado.tope = caidas ? Y[caidas - 1] : BASE;
+    estado.tope = caidas ? Math.min(Y[caidas - 1], sinTorre ? Y[P - 1] : Infinity) : BASE;
     for (let i = 0; i < N; i++) {
       const Ti = TL[i], manual = i < GOLPES.length, dur = manual ? 0.14 : 0.055;
       if (t < Ti - dur) break;
-      const d = datos[i], h = Y[i], sc = escalaPapel(h);
+      const d = datos[i], rebalsa = sinTorre && Y[i] > TOPE, h = rebalsa ? TOPE + 0.004 : Y[i], sc = escalaPapel(h);
       let y = h, ox = 0, oz = 0, tilX = d.tx, tilZ = d.tz, giro = d.giro, aleteo = 0;
       // aplastamiento de la pila con cada golpe a mano
       for (let k = Math.max(i, 0); k < Math.min(GOLPES.length, i + 6); k++) { const dt = t - GOLPES[k]; if (dt > 0 && dt < 0.6) y -= 0.006 * Math.exp(-(k - i) / 2.5) * Math.exp(-dt * 16) * Math.cos(dt * 42); }
@@ -83,7 +86,17 @@ export function crearPila(escena, camara, { desde = -1 } = {}) {
       }
       if (h > ROOF) { const f = smooth(ROOF, ROOF + 6, h); tilX += d.tx * 1.6 * f + Math.sin(t * 1.7 + i) * 0.12 * f; tilZ += d.tz * 1.6 * f + Math.cos(t * 1.3 + i * 0.7) * 0.12 * f; aleteo += 0.25; giro += Math.sin(t * 0.3 + i) * 0.1; }
       ox = vaivenX(h, t); oz = vaivenZ(h, t);
-      if (h > 0.165 && h <= ROOF + 0.5 && t > DESARME_ADENTRO) {
+      if (rebalsa && t >= Ti) { // se resbala de la pila y cae al mostrador
+        const u = t - Ti, a = d.giro, rad = Math.cos(a) > 0.75 ? 0.12 + (d.fase % 1) * 0.1 : 0.13 + (d.fase % 1) * 0.35, k = Math.min(1, u / 0.38);
+        ox = Math.cos(a) * rad * k; oz = Math.sin(a) * rad * 0.75 * k;
+        y = Math.max(0.002 + (i % 9) * 0.0007, h + 0.03 * Math.sin(Math.PI * k) - (h - 0.002) * k * k);
+        tilX = d.tx + (k < 1 ? Math.sin(a) * 0.9 * (1 - k) : 0); tilZ = d.tz + (k < 1 ? Math.cos(a) * 0.9 * (1 - k) : 0); aleteo = k < 1 ? 0.5 : 0;
+      }
+      if (t > tSale) { // sale el servicio: primero las del pinche (de arriba hacia abajo), después las del mostrador
+        const sale = rebalsa ? 0.5 + 1.7 * (i - P) / Math.max(1, N - P) : 1.3 * (P - 1 - i) / Math.max(1, P - 1), u = t - (tSale + sale);
+        if (u > 0) { if (u > 0.7) continue; y += u * 0.7 + (rebalsa ? 0.02 : 0); ox += u * u * 3.2; tilZ += u * 2.2; aleteo = 0.4; }
+      }
+      if (!sinTorre && h > 0.165 && h <= ROOF + 0.5 && t > DESARME_ADENTRO) {
         const suelta = DESARME_ADENTRO + (1 - h / (ROOF + 0.5)) * 0.5 + (d.fase % 1) * 0.15, u = t - suelta;
         if (u > 0) {
           const a = d.giro, rad = 0.12 + (d.fase % 1) * 0.5, sale = 1 - Math.exp(-u * 1.6);
@@ -93,7 +106,7 @@ export function crearPila(escena, camara, { desde = -1 } = {}) {
           const enPiso = y <= piso + 1e-4; tilX = enPiso ? d.tx * 0.3 : tilX + u * 3.1; tilZ = enPiso ? d.tz * 0.3 : tilZ + u * 2.3; aleteo = enPiso ? 0 : 0.6;
         }
       }
-      if (h > ROOF + 0.5 && t > DESARME) {
+      if (!sinTorre && h > ROOF + 0.5 && t > DESARME) {
         const suelta = DESARME + (1 - Math.min(1, (h - ROOF) / 330)) * 2.2 + d.fase * 0.05, u = t - suelta;
         if (u > 0) { const g = Math.min(u, 6); y -= (1.6 + 1.2 * sc * 0.08) * g * g * 0.35 / (1 + g * 0.4); ox += Math.sin(d.fase * 3) * u * sc * 0.6; oz += Math.cos(d.fase * 5) * u * sc * 0.6; tilX += u * (2 + d.fase); tilZ += u * (1.5 + d.fase * 0.7); aleteo = 0.7; }
       }
