@@ -46,4 +46,4 @@ cuadros sueltos tampoco: la receta los vuelve a dibujar idénticos.
 
 - La sesión de la nube no tiene placa de video: se dibuja con SwiftShader.
 - Claude no escucha audio: el sonido se controla con el espectrograma, la
-  sonoridad (−14 LUFS integrados) y los tiempos de cada golpe.
+  sonoridad (−16 LUFS integrados, pico de −1,2 dB) y los tiempos de cada golpe.
