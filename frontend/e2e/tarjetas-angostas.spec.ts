@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { deContrato } from "./contrato";
 import { blockExternalHosts, injectSession, mockEmptyNotifications, skipSplash } from "./mocks";
 
 /**
@@ -121,7 +122,7 @@ function candidate(id: string) {
 
 async function mockCandidatos(page: Page) {
   await base(page, "employer");
-  await page.route("**/api/v1/shifts/shift-1", (r) => r.fulfill(json({}, 404)));
+  await page.route("**/api/v1/shifts/shift-1", (r) => r.fulfill(json(deContrato("turno_publicado_comercio"))));
   await page.route("**/api/v1/applications/shifts/shift-1", (r) =>
     r.fulfill(json([applicant("wp-1", true), applicant("wp-2", true), applicant("wp-3", false)]))
   );

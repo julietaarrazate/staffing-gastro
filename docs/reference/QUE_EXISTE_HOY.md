@@ -145,6 +145,23 @@ listados más abajo.
   los guards viven en el DOMINIO (`Shift.report_en_route_location`), no en la
   UI. Está reflejado en `/privacidad` — si tocás esto, esa página se actualiza
   en el mismo PR.
+- **Dirección del local: pública** (Julieta, 2026-11-27: la dirección de un
+  local ya es pública y ayuda a postularse y a Google). Un turno publicado
+  **en el local** guarda `address` (`/shifts/new` la manda, `frontend/app/shifts/new/page.tsx`)
+  y **cualquiera** la ve: toda sesión (trabajador, otro comercio, invitado) en
+  el detalle, el feed, «Mis turnos» y el resto de las respuestas con
+  `ShiftResponse`, y también **sin sesión**: `ShiftPublicResponse`
+  (`/turno/[id]`) trae `address`, con «Cómo llegar» por la dirección escrita
+  (`frontend/lib/como-llegar.ts`: coordenadas si las hay, si no la dirección) y
+  `jobLocation.address.streetAddress` en el JSON-LD (`lib/seo.ts`). **Límites que
+  quedan:** un turno «en otra zona» (elegido a mano) y un turno de evento NO
+  tienen dirección exacta: `address: null` (el servidor nunca la completa con la
+  del local, y la vista pública omite la de un turno con `event_id`); y las
+  **coordenadas exactas siguen fuera de la respuesta pública**. La caché del
+  Worker de `/turno/[id]` (`frontend/cloudflare/turno-cache.mjs`, clave sólo la
+  ruta, fresca 60 s y vigente 10 min) no cambia: no guarda nada de sesión, sólo
+  hay más datos públicos (una dirección corregida tarda a lo sumo ese rato en
+  verse sin sesión). Las coordenadas siguen viajando a toda sesión como antes.
 - **"Disponible ahora"** (ADR-0014): el trabajador prende su posición real
   —una sola captura, no un seguimiento— para que el comercio (mapa y
   matching de un turno) mida la distancia desde ahí y no desde su domicilio.

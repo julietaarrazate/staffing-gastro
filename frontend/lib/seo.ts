@@ -43,6 +43,9 @@ export function jobPostingDe(shift: ShiftPublic, url: string): Record<string, un
         "@type": "PostalAddress",
         // La zona es texto que escribe el comercio: no se le agrega una región
         // fija que podría no ser la suya.
+        // La dirección escrita del local es pública (2026-11-27); sólo viene en
+        // un turno publicado en el local.
+        ...(shift.address ? { streetAddress: shift.address } : {}),
         ...(shift.city ? { addressLocality: shift.city } : {}),
         addressCountry: "AR",
       },

@@ -27,6 +27,7 @@ import DrawnCheck from "@/components/ui/DrawnCheck";
 import { loginHref, registerHref } from "@/lib/safe-next";
 import { reportShiftHref } from "@/lib/support-reference";
 import { shiftHeroPhoto } from "@/lib/company-photo";
+import { comoLlegarHref } from "@/lib/como-llegar";
 import {
   ChevronLeftIcon,
   ClockIcon,
@@ -231,6 +232,9 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
   const pay = payView(shift);
   const isOwner = Boolean(full && myCompanyId && full.company_id === myCompanyId);
   const hasCoords = shift.latitude != null && shift.longitude != null;
+  // Sólo con sesión llegan la dirección y las coordenadas (la página pública
+  // no las trae): «Cómo llegar» usa las coordenadas o, sin ellas, la dirección.
+  const comoLlegar = comoLlegarHref(shift);
 
   const hayAccion = loading || !user || isWorker || isOwner;
 
@@ -431,9 +435,9 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
             titulo={shift.address ?? shift.city ?? "Zona a confirmar"}
             detalle={shift.address ? shift.city : null}
           >
-            {hasCoords && (
+            {comoLlegar && (
               <a
-                href={`https://www.google.com/maps/dir/?api=1&destination=${shift.latitude},${shift.longitude}`}
+                href={comoLlegar}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex min-h-11 shrink-0 items-center text-sm font-semibold text-primary-text"

@@ -1589,6 +1589,7 @@
   },
   "turno_publico": {
     "body": {
+      "address": "Thames 1234",
       "city": "Palermo",
       "company_cover_url": null,
       "company_name": "Bar Palermo",

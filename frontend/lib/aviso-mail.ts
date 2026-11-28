@@ -1,5 +1,5 @@
 /**
- * Aviso de "te mandamos un mail para confirmar tu dirección" tras el alta con
+ * Aviso del mail para confirmar la dirección (`components/acceso/AvisoMail.tsx`) tras el alta con
  * email y contraseña (U042). El alta termina en `/bienvenida`, otra pantalla:
  * el aviso viaja por `sessionStorage` (esta pestaña, una sola vez) y la
  * bienvenida lo muestra y lo borra. Cada acceso va con try/catch: sin
@@ -7,9 +7,6 @@
  */
 
 const CLAVE = "staffya_aviso_mail";
-
-export const AVISO_MAIL =
-  "Te mandamos un mail para confirmar tu dirección. Si no lo ves, revisá la carpeta de spam.";
 
 export function guardarAvisoMail(): void {
   try {

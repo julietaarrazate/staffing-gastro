@@ -578,6 +578,10 @@ function NewShiftWizard() {
       meal,
       urgent,
       dress_code: dressCode || null,
+      // La dirección exacta sólo viaja si el turno es en el local (lo que dice
+      // el resumen: «Así lo van a ver»). En otra zona elegida a mano no hay
+      // calle, y no se arrastra la del local.
+      address: usingCompanyPlace ? (companyPlace?.address ?? null) : null,
       city: city || null,
       latitude,
       longitude,

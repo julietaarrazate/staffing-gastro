@@ -39,6 +39,15 @@ describe("jobPostingDe", () => {
     expect(oferta.url).toBe(URL);
   });
 
+  it("con dirección escrita del local la suma como streetAddress; sin ella, no inventa ninguna", () => {
+    const con = jobPostingDe({ ...TURNO, address: "Gorriti 5000" }, URL)!;
+    expect(con.jobLocation).toMatchObject({
+      address: { streetAddress: "Gorriti 5000", addressLocality: "Palermo", addressCountry: "AR" },
+    });
+    const sin = jobPostingDe(TURNO, URL)!;
+    expect(JSON.stringify(sin.jobLocation)).not.toContain("streetAddress");
+  });
+
   it("un turno reofrecido informa su valor por hora y vale hasta que termina", () => {
     const oferta = jobPostingDe({ ...TURNO, hourly_pay_amount: "15000" }, URL)!;
     expect(oferta.baseSalary).toMatchObject({ value: { value: 15000, unitText: "HOUR" } });

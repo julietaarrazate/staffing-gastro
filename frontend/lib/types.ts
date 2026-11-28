@@ -279,6 +279,9 @@ export interface ShiftPublic {
   position: WorkerSkill;
   start_at: string;
   end_at: string;
+  /** La dirección escrita del local, sólo en un turno publicado en el local
+   * (pública desde 2026-11-27). Sin coordenadas. */
+  address?: string | null;
   city: string | null;
   pay_amount: string;
   currency: string;
@@ -287,7 +290,7 @@ export interface ShiftPublic {
   hourly_pay_amount?: string | null;
   company_name: string | null;
   // Condiciones del turno (van también sin sesión desde 2026-09-22). La
-  // dirección exacta, la descripción y el logo siguen fuera.
+  // descripción, las coordenadas y el logo siguen fuera.
   tips: boolean;
   meal: boolean;
   dress_code: string | null;

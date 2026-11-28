@@ -10,7 +10,14 @@ import type { CompanyProfile } from "@/lib/types";
  * dos arrancan en el local y dejan cambiarlo, para no pedir la zona en cada
  * publicación (auditoría de interfaz 2026-10-11, U04/B03).
  */
-export type CompanyPlace = { label: string; city: string; latitude: number; longitude: number };
+export type CompanyPlace = {
+  label: string;
+  /** La dirección escrita del local, si la tiene (`label` cae a la ciudad o al nombre). */
+  address: string | null;
+  city: string;
+  latitude: number;
+  longitude: number;
+};
 
 /** `null` si el local todavía no tiene coordenadas: sin ellas no hay zona. */
 export function companyPlaceFromProfile(
@@ -19,6 +26,7 @@ export function companyPlaceFromProfile(
   if (company.latitude == null || company.longitude == null) return null;
   return {
     label: company.address || company.city || company.name,
+    address: company.address?.trim() || null,
     city: company.city ?? "",
     latitude: company.latitude,
     longitude: company.longitude,
