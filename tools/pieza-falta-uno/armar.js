@@ -23,10 +23,10 @@ if (modo === 'video') {
   const [dir, dirExtra, wav, guionF, nombre, sal, marca] = a, fs = require('fs'), path = require('path');
   const tramos = JSON.parse(fs.readFileSync(guionF, 'utf8')).cortes[nombre].tramos, F = 0.2, tmp = sal + '.tmp'; fs.mkdirSync(tmp, { recursive: true });
   const partes = tramos.map(([t0, t1], i) => {
-    const d = t0 >= 69 ? dirExtra : dir, f0 = Math.round(t0 * 30), n = Math.round((t1 - t0) * 30), o = path.join(tmp, `p${i}.mp4`);
+    const d = t0 >= 69 ? dirExtra : dir, f0 = Math.round(t0 * 30), n = Math.round((t1 - t0) * 30), o = path.join(tmp, `p${i}.mkv`);
     ff(['-framerate', '30', '-start_number', String(f0), '-i', `${d}/c%05d.jpg`, '-ss', String(t0), '-t', String(t1 - t0), '-i', wav, '-frames:v', String(n),
-      '-vf', 'scale=1080:1920:flags=lanczos,unsharp=5:5:0.35:5:5:0,format=yuv420p', '-c:v', 'libx264', '-crf', '15', '-preset', 'slow', '-c:a', 'pcm_s24le', '-ar', '48000', o.replace('.mp4', '.mkv')]);
-    return { o: o.replace('.mp4', '.mkv'), dur: n / 30 };
+      '-vf', 'scale=1080:1920:flags=lanczos,unsharp=5:5:0.35:5:5:0,format=yuv420p', '-c:v', 'libx264', '-crf', '15', '-preset', 'slow', '-c:a', 'pcm_s24le', '-ar', '48000', o]);
+    return { o, dur: n / 30 };
   });
   const ent = partes.flatMap(p => ['-i', p.o]); let fv = '', fa = '', acc = partes[0].dur, lv = '0:v', la = '0:a';
   for (let i = 1; i < partes.length; i++) { const ov = `v${i}`, oa = `a${i}`; fv += `[${lv}][${i}:v]xfade=transition=fade:duration=${F}:offset=${(acc - F).toFixed(3)}[${ov}];`; fa += `[${la}][${i}:a]acrossfade=d=${F}[${oa}];`; acc += partes[i].dur - F; lv = ov; la = oa; }

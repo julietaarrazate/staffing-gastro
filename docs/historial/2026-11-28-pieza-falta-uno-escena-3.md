@@ -35,8 +35,8 @@ comparación al lado) se armó la pieza de 68 s en un solo mundo (`src/pieza.js`
 bodegón con salón y fachada, la calle, el edificio de enfrente, la ciudad que se
 prende, y el «¡Oído!» fileteado una sola vez con la campanita. Además salieron
 los tres cortes. Los textos en pantalla viven en un guion privado, no en el repo.
-Después de verla, Julieta pidió además que la pila subiera más a la vista, un
-cruce del techo más lento y bordes limpios en la torre; se hizo antes del render final.
+Julieta pidió además arreglar lo que Claude había marcado en la escena 3: la pila
+que suba más a la vista, un cruce del techo más lento y bordes limpios en la torre.
 
 **Queda abierto:** que Julieta vea la pieza entera y los cortes, y los ajustes
 que pida.
