@@ -906,3 +906,9 @@ grande y el día anterior a abrir.
   [historial](../historial/2026-11-27-quien-falta-verificar-a-la-vista.md)).
 - ⚪ Avisarle a la persona cuando un comercio quiso elegirla y no pudo por
   falta de verificación (acción propia y tope para no repetir el aviso).
+
+## Tanda del 2026-11-28
+
+- ✅ El aviso de turno cerca llega a 20 (40 en la escalada), con una cuarta
+  parte del cupo para gente nueva verificada (#PENDIENTE,
+  [historial](../historial/2026-11-28-cupo-de-avisos-con-lugar-para-nuevos.md)).
