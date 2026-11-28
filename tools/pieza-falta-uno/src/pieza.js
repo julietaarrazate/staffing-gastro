@@ -6,7 +6,7 @@ import { crearCocina, crearAzotea, TECHO, LOSA, PISO } from './cocina.js';
 import { crearCiudad, crearCielo, crearNubes } from './ciudad.js';
 import { crearPila, GOLPES, vaivenX, vaivenZ, crece, ROOF } from './pila.js';
 import { crearSalon, FACHADA } from './salon.js';
-import { crearEnfrente, crearTalonario, crearHoja, crearSello, crearConfeti, crearFlechas, crearBici, crearCopas, ENFRENTE } from './objetos.js';
+import { crearEnfrente, crearTalonario, crearHoja, crearSello, crearConfeti, crearFlechas, crearBici, crearCopas, crearGente, ENFRENTE } from './objetos.js';
 
 export const DURACION = 68;
 export const camY3 = (...a) => p3.y(...a); // la altura de la cámara en la escena 3 (para el viento)
@@ -88,6 +88,12 @@ export async function crearPieza(motor, guion) {
   const flechas = crearFlechas(escena);
   const bici = crearBici(escena);
   const copas = crearCopas(escena, V3(-2.3, PISO, 5.7));
+  // la gente: la fila en la vereda y el salón lleno (siluetas a contraluz)
+  const lugaresGente = [];
+  for (let i = 0; i < 9; i++) lugaresGente.push({ x: 1.35 + i * 0.62 + Math.sin(i * 3.1) * 0.12, y: PISO + 0.15, z: FACHADA + 0.75 + Math.sin(i * 1.7) * 0.25, espejo: i % 3 === 0 });
+  for (const [mx, mz] of [[-2.3, 3.1], [2.1, 3.3], [-2.3, 5.7], [2.1, 5.9], [-2.3, 8.3], [2.1, 8.5], [-2.2, 10.7], [2.0, 10.8]]) for (const [dx, dz] of [[0, 0.66], [0.66, 0], [-0.66, 0], [0, -0.66]]) if ((mx * 7 + dx * 3 + dz * 5 + 10) % 3 > 0.5) lugaresGente.push({ x: mx + dx, y: PISO + 0.2, z: mz + dz, sentada: true });
+  for (let i = 0; i < 4; i++) lugaresGente.push({ x: -0.9 + i * 0.7, y: PISO, z: 1.4 + (i % 2) * 0.5 }); // gente de pie esperando mesa
+  const gente = crearGente(escena, lugaresGente);
 
   // la luz de la noche
   const luna = new THREE.DirectionalLight(new THREE.Color(...kelvin(9000)), 0); escena.add(luna, luna.target);
@@ -189,6 +195,7 @@ export async function crearPieza(motor, guion) {
       // escena 10: los platos salen por el pase; las copas brindan
       cocina.platos.forEach((p, i) => { const u = sat((t - 57.15 - i * 0.12) / 0.6), v = sat((t - 57.9 - i * 0.12) / 0.6); p.position.z = [-0.06, 0.02, -0.1][i] + 0.42 * easeOut(u, 2) + 0.4 * v; p.position.y = 0.6 * easeIn(v, 2); });
       copas.poner(t, 60.4);
+      gente.poner(t, camara.position);
       // el cielo: del atardecer a la noche
       cielo.domo.position.copy(camara.position); cielo.mat.uniforms.uTarde.value = tarde(t);
       ciudad.matF.uniforms.uPx.value = motor.H;

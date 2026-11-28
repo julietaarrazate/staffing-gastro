@@ -258,3 +258,71 @@ export function crearCopas(escena, centro) {
     },
   };
 }
+
+// ---------- gente: siluetas a contraluz (dibujadas, no muñecos) ----------
+// Cada persona es un recorte oscuro con forma real de persona, de pie o sentada, sobre un plano que mira a la cámara.
+function dibujarPersona(g, W, H, r, sentada, trazo = false) {
+  const s = H / 1000, cx = W / 2, alt = 0.92 + r() * 0.12;
+  g.save(); g.translate(cx, H); g.scale(s, s);
+  const y = v => -v * alt; // de abajo hacia arriba
+  g.beginPath();
+  if (!sentada) {
+    const abrigo = r() < 0.6, cart = r() < 0.4, pelo = r();
+    // piernas
+    g.moveTo(-70, 0); g.lineTo(-62, y(420)); g.lineTo(-10, y(430)); g.lineTo(-4, 0); g.closePath();
+    g.moveTo(8, 0); g.lineTo(14, y(430)); g.lineTo(66, y(420)); g.lineTo(74, 0); g.closePath();
+    // torso con hombros redondeados (abrigo largo o campera)
+    const base = abrigo ? 300 : 430, ancho = 120 + r() * 30;
+    g.moveTo(-ancho * 0.85, y(base)); g.bezierCurveTo(-ancho, y(560), -ancho * 1.05, y(700), -ancho * 0.9, y(760));
+    g.bezierCurveTo(-ancho * 0.7, y(800), -40, y(805), -30, y(815)); g.lineTo(30, y(815));
+    g.bezierCurveTo(40, y(805), ancho * 0.7, y(800), ancho * 0.9, y(760)); g.bezierCurveTo(ancho * 1.05, y(700), ancho, y(560), ancho * 0.85, y(base)); g.closePath();
+    // brazos
+    g.moveTo(-ancho * 0.95, y(750)); g.bezierCurveTo(-ancho * 1.2, y(620), -ancho * 1.15, y(520), -ancho * 1.05, y(450)); g.lineTo(-ancho * 0.85, y(460)); g.bezierCurveTo(-ancho * 0.9, y(560), -ancho * 0.85, y(650), -ancho * 0.75, y(740)); g.closePath();
+    const tel = r() < 0.35;
+    if (tel) { g.moveTo(ancho * 0.9, y(750)); g.bezierCurveTo(ancho * 1.15, y(640), ancho * 0.9, y(600), ancho * 0.3, y(640)); g.lineTo(ancho * 0.28, y(600)); g.bezierCurveTo(ancho * 0.9, y(560), ancho * 1.05, y(620), ancho * 0.75, y(740)); g.closePath(); g.rect(ancho * 0.1, y(675), 34, 60); }
+    else { g.moveTo(ancho * 0.95, y(750)); g.bezierCurveTo(ancho * 1.2, y(620), ancho * 1.15, y(520), ancho * 1.05, y(450)); g.lineTo(ancho * 0.85, y(460)); g.bezierCurveTo(ancho * 0.9, y(560), ancho * 0.85, y(650), ancho * 0.75, y(740)); g.closePath(); }
+    if (cart) { g.moveTo(-ancho * 1.1, y(560)); g.lineTo(-ancho * 1.45, y(470)); g.lineTo(-ancho * 1.45, y(380)); g.lineTo(-ancho * 1.0, y(380)); g.closePath(); }
+    // cuello y cabeza (algo de pelo o gorra)
+    g.rect(-26, y(870), 52, 70);
+    g.ellipse(0, y(925), 62, 78 * alt, 0, 0, Math.PI * 2);
+    if (pelo < 0.3) g.ellipse(-30, y(905), 30, 60, 0.4, 0, Math.PI * 2); // pelo atado
+    else if (pelo < 0.5) { g.ellipse(0, y(975), 72, 26, 0, 0, Math.PI * 2); g.rect(0, y(975), 100, 14); } // gorra
+  } else {
+    // sentada, de espaldas: cabeza, hombros, espalda y un brazo apoyado
+    const ancho = 150 + r() * 40;
+    g.moveTo(-ancho, 0); g.bezierCurveTo(-ancho * 1.05, y(200), -ancho * 1.1, y(330), -ancho * 0.9, y(380));
+    g.bezierCurveTo(-ancho * 0.6, y(420), -40, y(425), -30, y(440)); g.lineTo(30, y(440));
+    g.bezierCurveTo(40, y(425), ancho * 0.6, y(420), ancho * 0.9, y(380)); g.bezierCurveTo(ancho * 1.1, y(330), ancho * 1.05, y(200), ancho, 0); g.closePath();
+    g.rect(-28, y(500), 56, 80); g.ellipse(0, y(560), 66, 80, 0, 0, Math.PI * 2);
+    if (r() < 0.4) g.ellipse(-24, y(530), 40, 70, 0.3, 0, Math.PI * 2);
+    g.moveTo(ancho * 0.8, y(360)); g.bezierCurveTo(ancho * 1.3, y(300), ancho * 1.4, y(200), ancho * 1.2, y(120)); g.lineTo(ancho * 0.95, y(150)); g.bezierCurveTo(ancho * 1.05, y(230), ancho * 0.95, y(280), ancho * 0.7, y(330)); g.closePath();
+  }
+  if (trazo) g.stroke(); else g.fill('nonzero'); g.restore();
+}
+
+export function crearGente(escena, lugares) {
+  // lugares: [{ x, y, z, alto, sentada, ry }]
+  const g = new THREE.Group(); escena.add(g);
+  const r = rng(808), cols = [0x0d0f14, 0x121014, 0x0f1311, 0x16100f, 0x101218];
+  const personas = lugares.map((L, i) => {
+    const c = document.createElement('canvas'); c.width = 256; c.height = 512; const k = c.getContext('2d'); k.fillStyle = '#fff';
+    dibujarPersona(k, 256, 512, rng(900 + i * 13), L.sentada);
+    const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.NoColorSpace;
+    // el color: ropa oscura con un filo de luz cálida de un lado (contraluz)
+    const cc = document.createElement('canvas'); cc.width = 256; cc.height = 512; const kc = cc.getContext('2d');
+    const ropa = ['#0c0e13', '#130c0d', '#0d110f', '#11100e', '#0e0e12'][i % 5]; kc.fillStyle = ropa; kc.fillRect(0, 0, 256, 512);
+    kc.save(); kc.globalCompositeOperation = 'source-over'; kc.filter = 'blur(5px)'; kc.strokeStyle = 'rgba(255,160,80,.5)'; kc.lineWidth = 5; kc.translate(-6, 0);
+    dibujarPersona(kc, 256, 512, rng(900 + i * 13), L.sentada, true); kc.restore();
+    kc.globalCompositeOperation = 'destination-in'; kc.drawImage(c, 0, 0);
+    const txc = new THREE.CanvasTexture(cc); txc.colorSpace = THREE.SRGBColorSpace;
+    const alto = L.alto || (L.sentada ? 0.95 : 1.62 + r() * 0.22);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(alto * 0.5, alto), new THREE.MeshStandardMaterial({ map: txc, alphaMap: tx, alphaTest: 0.4, roughness: 0.95, side: THREE.DoubleSide, emissive: 0xffffff, emissiveMap: txc, emissiveIntensity: 0.1 }));
+    m.customDepthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, alphaMap: tx, alphaTest: 0.4, side: THREE.DoubleSide });
+    m.castShadow = true; m.position.set(L.x, L.y + alto / 2, L.z); if (L.espejo) m.scale.x = -1; g.add(m);
+    return { m, L, f: r() * 6 };
+  });
+  return {
+    grupo: g,
+    poner(t, cam) { for (const p of personas) { const dx = cam.x - p.m.position.x, dz = cam.z - p.m.position.z; p.m.rotation.y = Math.atan2(dx, dz); p.m.position.y = p.L.y + p.m.geometry.parameters.height / 2 + Math.sin(t * 1.3 + p.f) * 0.004; p.m.position.x = p.L.x + (p.L.sentada ? 0 : Math.sin(t * 0.4 + p.f) * 0.02); } },
+  };
+}
