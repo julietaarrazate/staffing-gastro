@@ -25,6 +25,11 @@ pila porque el acero del mostrador no la muestra. El sonido se calcula en un
 OfflineAudioContext y no se graba en tiempo real, para que no se atrase como en
 el teaser.
 
+**Revisión:** otro agente la comparó dos veces con el teaser. La primera dijo
+«no llega» (pila chata, cámara baja y borrosa, torre como una soga marrón). La
+segunda dijo «casi» (faltaba el cielo). Después se rehízo el final con nubes
+iluminadas desde abajo; ese arreglo no tuvo una tercera revisión.
+
 **Queda abierto:** el sí de Julieta a la escena 3. Con su sí siguen el resto del
 guion (escenas 1, 2 y 4 a 11, con el «¡Oído!» fileteado y la campanita al final)
 y los tres cortes para redes.

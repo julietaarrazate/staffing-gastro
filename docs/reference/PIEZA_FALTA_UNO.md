@@ -34,10 +34,13 @@ cuadros sueltos tampoco: la receta los vuelve a dibujar idénticos.
 1. `cd tools/pieza-falta-uno && npm ci` (instala three; Playwright, Chromium y
    ffmpeg los trae el entorno, ver [`SESION_CLOUD.md`](./SESION_CLOUD.md)).
 2. Seguir el README de la receta. Un cuadro tarda de 2 a 9 segundos a
-   1080 × 1920 según cuántos instantes promedie; la escena 3 entera, unos
-   30 minutos con dos procesos.
+   1080 × 1920 según cuántos instantes promedie; la escena 3 entera, de 15 a
+   20 minutos con dos procesos. Cada cuadro se dibuja solo, así que un cambio
+   se arregla redibujando sólo su tramo (por ejemplo, `node render.js 3 8.24 10 …`).
 3. Lo que se rehaga se vuelve a publicar en la página privada, pasando su
-   `url` a la herramienta `Artifact`.
+   `url` a la herramienta `Artifact`. La versión de máxima calidad va partida
+   en `maestros/*.pN.mp4` (`split -b 14M`; se une con `cat`, en orden), porque
+   cada archivo publicado puede pesar hasta 15 MB.
 
 ## Límites conocidos
 

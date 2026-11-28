@@ -11,7 +11,7 @@ guion»). Los videos y el avance, en la página privada «Pieza Falta uno»
 
 ```bash
 npm ci                                                       # instala three (0.171.0)
-node render.js 3 0 10 trabajo/cuadros 1080 1920              # dibuja la escena 3 (unos 30 a 45 min)
+node render.js 3 0 10 trabajo/cuadros 1080 1920              # dibuja la escena 3 (de 15 a 20 min con dos procesos)
 node banda.js trabajo/sonido.wav 10                          # calcula el sonido (segundos)
 node armar.js video trabajo/cuadros trabajo/sonido.wav trabajo/escena3.mp4
 ```
