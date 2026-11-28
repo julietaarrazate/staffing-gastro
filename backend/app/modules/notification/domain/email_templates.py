@@ -96,14 +96,16 @@ _MARCA_URL = "https://www.oido.com.ar/mail"
 _PALABRA_ANCHO_SOBRE_ALTO = 233.9 / 81
 
 
-def _logo_img(size: int = 48) -> str:
-    """El pinche con la «o», chico y plano (el ícono de 48 px para abajo).
+def _logo_img(size: int = 56) -> str:
+    """El ícono de la app: el pinche con la palabra «oído», el mismo que se ve
+    en el celular (Julieta, 2026-11-28: «el ícono que va es la miniatura de la
+    app»; el chico con la «o» sola se probó y no).
     Hasta el 2026-11-28 acá seguía el ícono anterior (las manos y la oreja
     sobre ámbar), que la app dejó el 2026-11-18. El `alt` es lo que se lee si
     el cliente bloquea las imágenes."""
     return (
         f'<img src="{_MARCA_URL}/pinche.png" width="{size}" height="{size}" alt="Oído" '
-        f'style="display:block;width:{size}px;height:{size}px;border-radius:11px;'
+        f'style="display:block;width:{size}px;height:{size}px;border-radius:13px;'
         f'font-family:Inter,Arial,sans-serif;font-size:14px;font-weight:700;color:{_TEXTO_DESTACADO};">'
     )
 

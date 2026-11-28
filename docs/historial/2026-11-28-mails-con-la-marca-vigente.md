@@ -5,7 +5,8 @@ tienen identidad vieja». Era además el ítem 4 de «Qué sigue» en `STATUS.md
 
 **Qué cambió:** lo que ve quien recibe un mail de Oído.
 
-- **El logo** es el pinche con la «o» (el chico y plano, a 48 px). Seguía el
+- **El logo** es el ícono de la app: el pinche con la palabra «oído», el
+  mismo que se ve en el celular, a 56 px. Seguía el
   ícono anterior, las manos y la oreja sobre ámbar, que la app dejó el
   2026-11-18.
 - **El fondo** es el lienzo claro de la app (`#f8fbfc`), liso. Antes llevaba
@@ -26,7 +27,7 @@ Técnico:
   `_palabra_img` reemplazan a `_logo_svg`; se fueron `_WASH` y el ámbar de
   `_GLOW`; `_MARCA_URL` es la dirección de las imágenes.
 - `frontend/public/mail/pinche.png` y `oido.png`: los escribe
-  `frontend/scripts/build-icons.mjs` desde `logo-mark-chico.svg` y
+  `frontend/scripts/build-icons.mjs` desde `logo-mark.svg` y
   `docs/design-system/marca/oido-plano.svg`.
 - `backend/tests/test_email_templates.py`: cuatro tests nuevos (el logo es
   una imagen con `alt` y no un SVG; las imágenes pedidas existen en
@@ -45,6 +46,9 @@ Técnico:
 - **Inter y no Young Serif en el título:** las fuentes web casi no llegan a
   los clientes de mail, y el respaldo de Inter (Arial gruesa) se parece al
   título de la app; el de una serif, no.
+- **El ícono de la app y no el chico.** Se probó primero el chico y plano,
+  con la «o» sola; Julieta: «ese tampoco es el ícono de Oído, el ícono que va
+  es la miniatura de la app».
 - **Sin cielo en el encabezado.** Se pensó y se dejó afuera: el pedido era
   poner al día la identidad, no rediseñar el mail.
 

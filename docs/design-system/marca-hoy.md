@@ -99,9 +99,10 @@ Buenos Aires, el papel de la comanda y el filete de los carteles de bodegón.
    usa. La letra va **convertida a trazos** (no depende de la fuente):
    `frontend/scripts/build-isotipo-pinche.py` escribe los vectores (en
    `public/` y en [`marca/`](./marca/)) y `node scripts/build-icons.mjs` los
-   PNG y el `.ico`. **En los mails** (desde el 2026-11-28) va la chica arriba
-   y la palabra «oído» plana en azul hondo en el pie, las dos como PNG del
-   sitio (`frontend/public/mail/`, del mismo script): Gmail no muestra SVG.
+   PNG y el `.ico`. **En los mails** (desde el 2026-11-28) va la grande arriba,
+   a 56 px (el ícono de la app, no la chica), y la palabra «oído» plana en
+   azul hondo en el pie, las dos como PNG del sitio (`frontend/public/mail/`,
+   del mismo script): Gmail no muestra SVG.
    El resto del mail sigue las reglas de pantalla: lienzo claro sin brillos
    ámbar, título en Inter gruesa y el ámbar sólo en el botón.
 5. **Lo que no se hace, para no parecerse a otra marca del rubro** (crema,

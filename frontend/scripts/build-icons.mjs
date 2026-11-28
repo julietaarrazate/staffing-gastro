@@ -61,12 +61,13 @@ await writeFile(new URL("favicon.ico", pub), Buffer.concat([header, ...entries, 
 // (`backend/app/modules/notification/domain/email_templates.py`) las pide a
 // `https://www.oido.com.ar/mail/…`. Van como PNG porque Gmail no muestra SVG,
 // ni en línea ni como `<img>`: hasta el 2026-11-28 el logo del mail era un
-// SVG en línea y además era el ícono anterior. Se muestran a 48 px (el pinche
-// chico, plano) y a 26 px de alto (la palabra plana en azul hondo); salen al
-// triple para pantallas densas.
+// SVG en línea y además era el ícono anterior. Se muestran a 56 px (el ícono
+// de la app, el mismo de icon-192: Julieta, 2026-11-28, «el ícono que va es
+// la miniatura de la app»; el chico con la «o» sola no) y a 26 px de alto (la
+// palabra plana en azul hondo); salen al triple para pantallas densas.
 await mkdir(new URL("mail/", pub), { recursive: true });
 const palabra = await readFile(new URL("../../docs/design-system/marca/oido-plano.svg", import.meta.url));
-await writeFile(new URL("mail/pinche.png", pub), await png(chico, 144));
+await writeFile(new URL("mail/pinche.png", pub), await png(mark, 168));
 await writeFile(
   new URL("mail/oido.png", pub),
   await sharp(palabra, { density: 384 }).resize({ height: 78 }).png().toBuffer(),
