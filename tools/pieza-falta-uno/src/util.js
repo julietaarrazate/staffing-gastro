@@ -54,3 +54,21 @@ export function curva(pts, { log = false } = {}) {
     return log ? Math.exp(y) : y;
   };
 }
+
+// recorrido por puntos con tiempos [[t, x, y, z], ...] o escalares [[t, v], ...]: Catmull-Rom con tiempos no parejos (pasa por cada punto, sin quiebres)
+export function ruta(keys) {
+  const n = keys.length, dim = keys[0].length - 1;
+  const tang = i => {
+    const a = keys[Math.max(0, i - 1)], b = keys[Math.min(n - 1, i + 1)], dt = b[0] - a[0];
+    return Array.from({ length: dim }, (_, k) => (i === 0 || i === n - 1) ? 0 : (b[k + 1] - a[k + 1]) / dt);
+  };
+  const T = keys.map((_, i) => tang(i));
+  return t => {
+    if (t <= keys[0][0]) return keys[0].slice(1);
+    if (t >= keys[n - 1][0]) return keys[n - 1].slice(1);
+    let i = 0; while (t > keys[i + 1][0]) i++;
+    const a = keys[i], b = keys[i + 1], h = b[0] - a[0], u = (t - a[0]) / h, u2 = u * u, u3 = u2 * u;
+    const h00 = 2 * u3 - 3 * u2 + 1, h10 = u3 - 2 * u2 + u, h01 = -2 * u3 + 3 * u2, h11 = u3 - u2;
+    return Array.from({ length: dim }, (_, k) => h00 * a[k + 1] + h10 * h * T[i][k] + h01 * b[k + 1] + h11 * h * T[i + 1][k]);
+  };
+}

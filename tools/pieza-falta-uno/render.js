@@ -1,10 +1,11 @@
 // Dibuja la pieza cuadro por cuadro en Chromium sin placa de video (SwiftShader).
 // Uso: node render.js <escena> <desde s> <hasta s> <carpeta> [ancho=720] [alto=1280] [fps=30] [cada=1] [sub=auto] [trabajador=0/1]
 const { chromium } = require('playwright'); const http = require('http'); const fs = require('fs'); const path = require('path');
-const [,, escena = '3', desde = '0', hasta = '10', salida = 'trabajo/cuadros', ancho = '720', alto = '1280', fpsA = '30', cadaA = '1', subA = 'auto', trab = '0/1'] = process.argv;
+const [,, escena = 'pieza', desde = '0', hasta = '10', salida = 'trabajo/cuadros', ancho = '720', alto = '1280', fpsA = '30', cadaA = '1', subA = 'auto', trab = '0/1'] = process.argv;
 const RAIZ = path.resolve(__dirname, '..'), fps = +fpsA, cada = +cadaA, [ti, tn] = trab.split('/').map(Number);
-const tipos = { '.html': 'text/html', '.js': 'text/javascript', '.woff2': 'font/woff2', '.json': 'application/json' };
-const srv = http.createServer((req, res) => { const f = path.join(RAIZ, decodeURIComponent(req.url.split('?')[0])); if (!f.startsWith(RAIZ) || !fs.existsSync(f)) { res.writeHead(404); return res.end(); } res.writeHead(200, { 'content-type': tipos[path.extname(f)] || 'application/octet-stream' }); fs.createReadStream(f).pipe(res); });
+const tipos = { '.html': 'text/html', '.js': 'text/javascript', '.woff2': 'font/woff2', '.json': 'application/json', '.svg': 'image/svg+xml' };
+const MARCA = path.resolve(__dirname, '../../docs/design-system/marca');
+const srv = http.createServer((req, res) => { const u = decodeURIComponent(req.url.split('?')[0]); const f = u.startsWith('/marca/') ? path.join(MARCA, u.slice(7)) : path.join(RAIZ, u); if (!(f.startsWith(RAIZ) || f.startsWith(MARCA)) || !fs.existsSync(f)) { res.writeHead(404); return res.end(); } res.writeHead(200, { 'content-type': tipos[path.extname(f)] || 'application/octet-stream' }); fs.createReadStream(f).pipe(res); });
 (async () => {
   await new Promise(r => srv.listen(0, '127.0.0.1', r)); const port = srv.address().port;
   fs.mkdirSync(salida, { recursive: true });

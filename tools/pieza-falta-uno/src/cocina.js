@@ -31,9 +31,10 @@ export function crearCocina(escena) {
   const matLoza = new THREE.MeshStandardMaterial({ color: 0xf2efe8, roughness: 0.25 });
   const plato = () => { const p = new THREE.Group(); const pts = [[0, 0], [0.1, 0], [0.12, 0.012], [0.135, 0.022], [0.13, 0.024], [0.105, 0.014], [0, 0.012]].map(([x, y]) => new THREE.Vector2(x, y)); p.add(sombra(new THREE.Mesh(new THREE.LatheGeometry(pts, 48), matLoza))); return p; };
   const matComida = new THREE.MeshStandardMaterial({ color: 0xa4642c, roughness: 0.6 });
+  const platos = [];
   for (const [x, z] of [[-0.62, -0.06], [0.58, 0.02], [1.15, -0.1]]) {
-    const p = plato(); p.position.set(x, 0, z); g.add(p);
-    const c = sombra(new THREE.Mesh(new THREE.SphereGeometry(0.07, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), matComida)); c.scale.set(1, 0.35, 0.75); c.position.set(x, 0.014, z); g.add(c);
+    const p = plato(); p.position.set(x, 0, z); g.add(p); platos.push(p);
+    const c = sombra(new THREE.Mesh(new THREE.SphereGeometry(0.07, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), matComida)); c.scale.set(1, 0.35, 0.75); c.position.set(0, 0.014, 0); p.add(c);
   }
 
   // la lámpara de calor sobre el pase
@@ -87,13 +88,13 @@ export function crearCocina(escena) {
 
   // cielorraso: vigas de madera, revoque oscuro y el agujero por donde sale la pila
   const matTecho = new THREE.MeshStandardMaterial({ map: T.revoque('#4a4038', 8), roughness: 0.9 });
-  const forma = new THREE.Shape(); forma.moveTo(-6, -6); forma.lineTo(6, -6); forma.lineTo(6, 6); forma.lineTo(-6, 6); forma.closePath();
+  const forma = new THREE.Shape(); forma.moveTo(-4.33, -12.15); forma.lineTo(4.33, -12.15); forma.lineTo(4.33, 6); forma.lineTo(-4.33, 6); forma.closePath();
   const hueco = new THREE.Path(); for (let i = 0; i <= 28; i++) { const a = i / 28 * Math.PI * 2, rr = 0.2 + (r() - .5) * 0.06; i ? hueco.lineTo(Math.cos(a) * rr, Math.sin(a) * rr) : hueco.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); }
   forma.holes.push(hueco);
   const losaGeo = new THREE.ExtrudeGeometry(forma, { depth: LOSA, bevelEnabled: false, curveSegments: 4 }); losaGeo.rotateX(-Math.PI / 2);
   const losa = new THREE.Mesh(losaGeo, [matTecho, new THREE.MeshStandardMaterial({ color: 0x2a2724, roughness: 1, side: THREE.DoubleSide })]); losa.position.y = TECHO; losa.receiveShadow = true; g.add(losa);
   const matViga = new THREE.MeshStandardMaterial({ map: T.madera(), roughness: 0.7 });
-  for (let i = -5; i <= 5; i++) { if (Math.abs(i * 0.7 + 0.35) < 0.3) continue; const v = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.22, 12), matViga); v.position.set(i * 0.7 + 0.35, TECHO - 0.11, 0); g.add(v); }
+  for (let i = -5; i <= 5; i++) { if (Math.abs(i * 0.7 + 0.35) < 0.3) continue; if (Math.abs(i * 0.7 + 0.35) > 4.2) continue; const v = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.22, 18), matViga); v.position.set(i * 0.7 + 0.35, TECHO - 0.11, 3); g.add(v); }
 
   // lámparas de globo colgando (una pasa cerca de la cámara cuando sube)
   const matGlobo = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: new THREE.Color(...kelvin(2500)), emissiveIntensity: 5 });
@@ -137,7 +138,7 @@ export function crearCocina(escena) {
   });
 
   return {
-    grupo: g, luz, polvo, matP,
+    grupo: g, luz, polvo, matP, platos,
     poner(t, H) {
       matP.uniforms.uT.value = t; matP.uniforms.uPx.value = H;
       for (const k of cocineros) { const u = (t - k.t0) / (k.t1 - k.t0); k.c.visible = u > 0 && u < 1; k.c.position.x = k.x0 + (k.x1 - k.x0) * u; k.c.position.y = PISO + 0.6 + Math.abs(Math.sin(u * 14)) * 0.02; k.c.rotation.z = Math.sin(u * 14) * 0.02; }
@@ -157,7 +158,7 @@ export function crearAzotea(escena) {
   const y0 = TECHO + LOSA;
   const matBaldosa = new THREE.MeshStandardMaterial({ map: T.baldosas(), roughness: 0.85 });
   // el piso de la azotea ya es la cara de arriba de la losa: se le pone baldosa con un plano apenas por encima, con su propio agujero
-  const forma = new THREE.Shape(); forma.moveTo(-4.33, -12); forma.lineTo(4.33, -12); forma.lineTo(4.33, 9); forma.lineTo(-4.33, 9); forma.closePath();
+  const forma = new THREE.Shape(); forma.moveTo(-4.33, -12); forma.lineTo(4.33, -12); forma.lineTo(4.33, 18); forma.lineTo(-4.33, 18); forma.closePath();
   const hueco = new THREE.Path(); for (let i = 0; i <= 28; i++) { const a = i / 28 * Math.PI * 2, rr = 0.22 + (r() - .5) * 0.08; i ? hueco.lineTo(Math.cos(a) * rr, Math.sin(a) * rr) : hueco.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); } forma.holes.push(hueco);
   const piso = new THREE.Mesh(new THREE.ShapeGeometry(forma, 6), matBaldosa); piso.rotation.x = -Math.PI / 2; piso.position.y = y0 + 0.003; piso.receiveShadow = true; g.add(piso);
   // escombro alrededor del agujero
@@ -165,7 +166,7 @@ export function crearAzotea(escena) {
   for (let i = 0; i < 26; i++) { const a = r() * Math.PI * 2, d = 0.25 + r() * 0.5, s = 0.02 + r() * 0.06; const e = new THREE.Mesh(new THREE.BoxGeometry(s, s * 0.4, s * 0.8), matEscombro); e.position.set(Math.cos(a) * d, y0 + s * 0.2, Math.sin(a) * d); e.rotation.set(r(), r() * 3, r()); g.add(e); }
   const matPared = new THREE.MeshStandardMaterial({ map: T.revoque('#8a8178', 12), roughness: 0.95 });
   // parapetos
-  for (const [x, z, w, d] of [[-4.33, -1.5, 0.15, 21], [4.33, -1.5, 0.15, 21], [0, 9, 8.8, 0.15]]) { const p = new THREE.Mesh(new THREE.BoxGeometry(w, 1.0, d), matPared); p.position.set(x, y0 + 0.5, z); g.add(p); }
+  for (const [x, z, w, d] of [[-4.33, -3, 0.15, 30], [4.33, -3, 0.15, 30], [0, 12, 8.8, 0.15], [0, -18, 8.8, 0.15]]) { const p = new THREE.Mesh(new THREE.BoxGeometry(w, 1.0, d), matPared); p.position.set(x, y0 + 0.5, z); g.add(p); }
   // tanque de agua sobre su base
   const matTanque = new THREE.MeshStandardMaterial({ color: 0x8d9094, roughness: 0.7 });
   const tanque = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 1.3, 40), matTanque); tanque.position.set(-2.9, y0 + 1.25 + 0.65, -5.5); g.add(tanque);

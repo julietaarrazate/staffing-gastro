@@ -77,3 +77,49 @@ export function humo() {
   for (let i = 0; i < 70; i++) { const x = 64 + r() * 128, y = 64 + r() * 128, rad = 20 + r() * 50, gr = g.createRadialGradient(x, y, 0, x, y, rad); gr.addColorStop(0, `rgba(255,255,255,${.05 + r() * .08})`); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 256, 256); }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.NoColorSpace; return t;
 }
+
+// piso calcáreo en damero, gastado
+export function calcareo() {
+  const [c, g] = lienzo(1024, 1024), r = rng(55), S = 128;
+  for (let y = 0; y < 1024; y += S) for (let x = 0; x < 1024; x += S) {
+    const n = ((x / S + y / S) % 2) === 0, v = n ? 228 - r() * 14 : 26 + r() * 10;
+    g.fillStyle = `rgb(${v},${v - 2},${v - 6})`; g.fillRect(x + 1, y + 1, S - 2, S - 2);
+    for (let k = 0; k < 30; k++) { g.fillStyle = `rgba(${n ? '90,80,70' : '200,190,170'},${r() * .06})`; g.fillRect(x + r() * S, y + r() * S, 2 + r() * 10, 2 + r() * 10); }
+  }
+  for (let i = 0; i < 14; i++) { const x = r() * 1024, y = r() * 1024, rad = 60 + r() * 200, gr = g.createRadialGradient(x, y, 0, x, y, rad); gr.addColorStop(0, 'rgba(120,100,80,.12)'); gr.addColorStop(1, 'rgba(120,100,80,0)'); g.fillStyle = gr; g.fillRect(x - rad, y - rad, rad * 2, rad * 2); }
+  return tex(c, { rep: [3, 4] });
+}
+
+// baldosa vainilla de vereda porteña (20 × 20 cm, con estrías)
+export function vereda() {
+  const [c, g] = lienzo(512, 512), r = rng(66), S = 128;
+  for (let y = 0; y < 512; y += S) for (let x = 0; x < 512; x += S) {
+    const v = 150 + r() * 25; g.fillStyle = `rgb(${v},${v - 6},${v - 14})`; g.fillRect(x + 2, y + 2, S - 4, S - 4);
+    for (let k = 0; k < 6; k++) { g.fillStyle = 'rgba(40,34,28,.35)'; g.fillRect(x + 12 + k * 18, y + 14, 6, S - 28); }
+    for (let k = 0; k < 20; k++) { g.fillStyle = `rgba(0,0,0,${r() * .15})`; g.fillRect(x + r() * S, y + r() * S, 3 + r() * 12, 3 + r() * 12); }
+  }
+  return tex(c, { rep: [1, 1] });
+}
+
+// adoquines de la calle
+export function adoquines() {
+  const [c, g] = lienzo(1024, 1024), r = rng(77);
+  g.fillStyle = '#16130f'; g.fillRect(0, 0, 1024, 1024);
+  const W = 64, H = 128;
+  for (let y = 0; y < 1024; y += W) for (let x = -((y / W) % 2) * H / 2; x < 1024; x += H) {
+    const v = 58 + r() * 30, gr = g.createRadialGradient(x + H / 2, y + W / 2, 4, x + H / 2, y + W / 2, H * 0.6);
+    gr.addColorStop(0, `rgb(${v + 20},${v + 16},${v + 10})`); gr.addColorStop(1, `rgb(${v - 18},${v - 20},${v - 22})`);
+    g.fillStyle = gr; g.beginPath(); g.roundRect(x + 4, y + 4, H - 8, W - 8, 14); g.fill();
+  }
+  return tex(c, { rep: [40, 2] });
+}
+
+// cartel pintado del bodegón
+export function cartel(texto) {
+  const [c, g] = lienzo(1024, 256);
+  g.fillStyle = '#163f5c'; g.fillRect(0, 0, 1024, 256);
+  g.strokeStyle = '#e8dcc0'; g.lineWidth = 6; g.strokeRect(18, 18, 988, 220);
+  g.fillStyle = '#efe4c8'; g.font = '150px "Young Serif", Georgia, serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.letterSpacing = '14px';
+  g.fillText(texto, 512, 140);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
+}

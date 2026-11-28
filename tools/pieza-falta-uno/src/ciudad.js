@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { rng, kelvin } from './util.js';
 
+export const OFFZ = -31.3; // el damero corrido: la calle del bodegón pasa por z de 12 a 25
 const NIEBLA = `uniform vec3 uNiebla; uniform float uDens; vec3 niebla(vec3 c, float d){ return mix(c, uNiebla, 1. - exp(-uDens * uDens * d * d)); }`;
 
 export function crearCiudad(escena, { radio = 1300 } = {}) {
@@ -14,7 +15,7 @@ export function crearCiudad(escena, { radio = 1300 } = {}) {
   const cajas = [];
   const lote = 86.6, paso = 100;
   for (let bx = -Math.ceil(radio / paso); bx <= Math.ceil(radio / paso); bx++) for (let bz = -Math.ceil(radio / paso); bz <= Math.ceil(radio / paso); bz++) {
-    const cx = bx * paso, cz = bz * paso; if (Math.hypot(cx, cz) > radio) continue;
+    const cx = bx * paso, cz = bz * paso + OFFZ; if (Math.hypot(cx, cz) > radio) continue;
     const torre = r() < 0.1;
     for (let lado = 0; lado < 4; lado++) {
       let s = -lote / 2;
@@ -25,14 +26,14 @@ export function crearCiudad(escena, { radio = 1300 } = {}) {
         const px = enX ? cx + s + ancho / 2 : cx + signo * (lote / 2 - fondo / 2);
         const pz = enX ? cz + signo * (lote / 2 - fondo / 2) : cz + s + ancho / 2;
         // el lote propio (x≈0, z≈0) queda libre: ahí está el bodegón
-        if (Math.abs(px) < 14 && Math.abs(pz) < 22) { s += ancho; continue; }
+        if ((Math.abs(px) < 13.2 && pz > -20 && pz < 12.5) || (px > -1 && px < 13 && pz > 24 && pz < 46)) { s += ancho; continue; }
         cajas.push([px, pz, enX ? ancho : fondo, enX ? fondo : ancho, alto, r()]);
         s += ancho;
       }
     }
   }
   // vecinos inmediatos, a mano: el edificio de atrás y el de la derecha (con ventanas que se ven desde la azotea)
-  cajas.push([0, -24, 8.66, 12, 34, 0.37], [9.5, -4, 8.66, 22, 12.5, 0.71], [-9.5, -14, 8.66, 18, 26, 0.13], [10, 14, 8.66, 16, 21, 0.52], [-18, 6, 8.66, 26, 17, 0.9]);
+  cajas.push([0, -24, 8.66, 12, 34, 0.37], [8.66, 1, 8.66, 22, 12.5, 0.71], [-8.66, 2, 8.66, 20, 13.4, 0.13]);
   const geo = new THREE.BoxGeometry(1, 1, 1); geo.translate(0, 0.5, 0);
   const ig = new THREE.InstancedBufferGeometry(); ig.index = geo.index; ig.setAttribute('position', geo.getAttribute('position')); ig.setAttribute('normal', geo.getAttribute('normal'));
   const n = cajas.length, aCaja = new Float32Array(n * 4), aDim = new Float32Array(n * 3);
@@ -41,11 +42,11 @@ export function crearCiudad(escena, { radio = 1300 } = {}) {
   const [wr, wg, wb] = kelvin(2700), [cr, cg, cb] = kelvin(6500);
   const matEd = new THREE.ShaderMaterial({
     glslVersion: THREE.GLSL3,
-    uniforms: { ...niebla, uCalida: { value: new THREE.Vector3(wr, wg, wb) }, uFria: { value: new THREE.Vector3(cr * .7, cg * .85, cb * 1.2) }, uPiso: { value: -0.95 } },
+    uniforms: { ...niebla, uCalida: { value: new THREE.Vector3(wr, wg, wb) }, uFria: { value: new THREE.Vector3(cr * .7, cg * .85, cb * 1.2) }, uPiso: { value: -0.95 }, uUmbral: { value: 0.7 }, uOla: { value: new THREE.Vector4(0, 0, 0, 0) } },
     vertexShader: `in vec4 aCaja; in vec3 aDim; uniform float uPiso; out vec3 vW; out vec3 vN; out float vS; out vec3 vDim; out vec3 vLoc;
       void main(){ vec3 p = position * aDim; p.y += uPiso; p.xz += aCaja.xy; vW = p; vN = normal; vS = aCaja.z; vDim = aDim; vLoc = position;
         gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.); }`,
-    fragmentShader: `${NIEBLA} uniform vec3 uCalida, uFria; in vec3 vW; in vec3 vN; in float vS; in vec3 vDim; in vec3 vLoc; out vec4 o;
+    fragmentShader: `${NIEBLA} uniform vec3 uCalida, uFria; uniform float uUmbral; uniform vec4 uOla; in vec3 vW; in vec3 vN; in float vS; in vec3 vDim; in vec3 vLoc; out vec4 o;
       float h21(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
       void main(){
         vec3 c;
@@ -56,7 +57,7 @@ export function crearCiudad(escena, { radio = 1300 } = {}) {
           vec2 cel = floor(q / vec2(1.7, 2.9)), f = fract(q / vec2(1.7, 2.9));
           float ven = smoothstep(.16, .2, f.x) * smoothstep(.84, .8, f.x) * smoothstep(.22, .26, f.y) * smoothstep(.82, .78, f.y);
           float h = h21(cel + vS * 31.7), h2 = h21(cel * 1.7 + vS * 3.1 + 9.), h3 = h21(cel.yx + vS * 11.);
-          float prende = step(.7 - vS * .15, h) * step(1.5, q.y);
+          float ola = step(length(vW.xz - uOla.xy), uOla.z) * step(.22, h3); float prende = max(step(uUmbral - vS * .15, h), ola) * step(1.5, q.y);
           vec3 luz = (h2 > .86 ? uFria : uCalida) * (.2 + 1.3 * h3 * h3) * (.55 + .45 * f.y); ven *= smoothstep(.02, .05, abs(f.x - .5));
           float cortina = .55 + .45 * smoothstep(.2, .8, fract(f.x * 3. + h2 * 5.));
           vec3 pared = vec3(.017, .016, .018) * (.6 + .4 * h21(vec2(vS, 3.)));
@@ -83,9 +84,10 @@ export function crearCiudad(escena, { radio = 1300 } = {}) {
   const pts = [], col = [];
   const farol = (x, y, z, k, b) => { pts.push(x, y, z); const c = kelvin(k); col.push(c[0] * b, c[1] * b, c[2] * b); };
   for (let s = -radio; s <= radio; s += 100) for (let u = -radio; u <= radio; u += 32) {
+    const sz = s + OFFZ;
     if (Math.hypot(s, u) > radio) continue;
     const k = r() < 0.6 ? 3800 : 2100;
-    farol(s + 50 + (r() < .5 ? -5.5 : 5.5), 6.5, u, k, 30 + r() * 20); farol(u, 6.5, s + 50 + (r() < .5 ? -5.5 : 5.5), k, 30 + r() * 20);
+    farol(s + 50 + (r() < .5 ? -5.5 : 5.5), 6.5, u, k, 30 + r() * 20); farol(u, 6.5, sz + 50 + (r() < .5 ? -5.5 : 5.5), k, 30 + r() * 20);
   }
   for (let i = 0; i < 26000; i++) {
     const a = r() * Math.PI * 2, d = radio + Math.pow(r(), 0.7) * 14000, x = Math.cos(a) * d, z = Math.sin(a) * d;
@@ -102,16 +104,41 @@ export function crearCiudad(escena, { radio = 1300 } = {}) {
   });
   const faroles = new THREE.Points(geoF, matF); faroles.frustumCulled = false; g.add(faroles);
 
-  return { grupo: g, niebla, matF };
+  // celulares: puntitos fríos en ventanas, balcones y veredas, que se prenden con la ola
+  const cel = [], celS = [];
+  for (const [x, z, w, d, h, sd] of cajas) {
+    if (Math.hypot(x, z) > 1100) continue;
+    const n = Math.round(1 + h / 6);
+    for (let k = 0; k < n; k++) {
+      const lado = Math.floor(r() * 4), yy = -0.95 + 1.5 + r() * Math.max(1, h - 2.5);
+      const px = lado < 2 ? x + (r() - .5) * w : x + (lado === 2 ? 1 : -1) * (w / 2 + 0.05), pz = lado < 2 ? z + (lado === 0 ? 1 : -1) * (d / 2 + 0.05) : z + (r() - .5) * d;
+      cel.push(px, yy, pz); celS.push(r());
+    }
+  }
+  for (let i = 0; i < 900; i++) { const a = r() * Math.PI * 2, dd = 20 + r() * 900; cel.push(Math.cos(a) * dd, -0.95 + 1.3, Math.sin(a) * dd); celS.push(r()); }
+  const geoC = new THREE.BufferGeometry(); geoC.setAttribute('position', new THREE.Float32BufferAttribute(cel, 3)); geoC.setAttribute('aSem', new THREE.Float32BufferAttribute(celS, 1));
+  const matC = new THREE.ShaderMaterial({
+    uniforms: { ...niebla, uPx: { value: 720 }, uOla: { value: new THREE.Vector4(0, 0, 0, 0) }, uT: { value: 0 } },
+    vertexShader: `attribute float aSem; uniform float uPx, uT; uniform vec4 uOla; varying float vA; varying float vD;
+      void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.); gl_Position = projectionMatrix * mv; vD = -mv.z;
+        float dentro = smoothstep(uOla.z, uOla.z - 6., length(position.xz - uOla.xy)) * step(.35, aSem);
+        float pop = 1. + 2.5 * exp(-max(0., uOla.z - length(position.xz - uOla.xy)) * .08);
+        vA = dentro * pop * (.6 + .4 * sin(uT * 3. + aSem * 40.)); gl_PointSize = max(1.5, uPx * .22 / vD); }`,
+    fragmentShader: `${NIEBLA} varying float vA; varying float vD; void main(){ if(vA < .01) discard; float d = length(gl_PointCoord - .5); float a = smoothstep(.5, .1, d) * vA; gl_FragColor = vec4(niebla(vec3(.55, .75, 1.6) * 14. * a, vD) * a, 1.); }`,
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  });
+  const celulares = new THREE.Points(geoC, matC); celulares.frustumCulled = false; g.add(celulares);
+
+  return { grupo: g, niebla, matF, matEd, matC, cajas };
 }
 
 export function crearCielo(escena) {
   const [tr, tg, tb] = kelvin(1900);
   const mat = new THREE.ShaderMaterial({
     glslVersion: THREE.GLSL3, side: THREE.BackSide, depthWrite: false,
-    uniforms: { uOeste: { value: new THREE.Vector3(-1, 0, -0.35).normalize() }, uCrep: { value: new THREE.Vector3(tr, tg, tb) }, uLuz: { value: 1 } },
+    uniforms: { uOeste: { value: new THREE.Vector3(-0.45, 0, -1).normalize() }, uCrep: { value: new THREE.Vector3(tr, tg, tb) }, uLuz: { value: 1 }, uTarde: { value: 0 } },
     vertexShader: `out vec3 vD; void main(){ vD = position; vec4 p = projectionMatrix * modelViewMatrix * vec4(position, 1.); gl_Position = p.xyww; }`,
-    fragmentShader: `uniform vec3 uOeste, uCrep; uniform float uLuz; in vec3 vD; out vec4 o;
+    fragmentShader: `uniform vec3 uOeste, uCrep; uniform float uLuz, uTarde; in vec3 vD; out vec4 o;
       float h31(vec3 p){ p = fract(p * .1031); p += dot(p, p.yzx + 33.33); return fract((p.x + p.y) * p.z); }
       void main(){ vec3 d = normalize(vD); float el = d.y;
         vec3 cenit = vec3(.003, .007, .022), medio = vec3(.01, .02, .05), horiz = vec3(.07, .06, .07);
@@ -122,6 +149,10 @@ export function crearCielo(escena) {
         // estrellas
         vec3 q = d * 420.; vec3 cel = floor(q); float h = h31(cel); float est = step(.9985, h) * smoothstep(.15, .6, el) * (.4 + .6 * h31(cel + 3.));
         float dd = length(fract(q) - .5); c += vec3(.8, .85, 1.) * est * smoothstep(.35, .0, dd) * .6;
+        // la tarde: cielo azul claro arriba y el horizonte encendido del lado del oeste
+        vec3 tarde = mix(vec3(.85, .42, .2), vec3(.18, .3, .55), smoothstep(-.02, .35, el)); tarde = mix(tarde, vec3(.05, .11, .26), smoothstep(.3, .95, el));
+        tarde += vec3(1.3, .5, .18) * pow(w, 2.) * exp(-max(el, 0.) * 7.) * .9;
+        c = mix(c, tarde * .55, uTarde);
         if(el < 0.) c = mix(horiz * .5, vec3(.012, .012, .016), smoothstep(0., -.08, el));
         o = vec4(c * uLuz, 1.); }`,
   });
@@ -157,7 +188,7 @@ export function crearNubes(motor, { y0 = 92, y1 = 160 } = {}) {
           float hh = clamp((p.y - uY0) / (uY1 - uY0), 0., 1.);
           vec3 abajo = vec3(.5, .24, .12), arriba = vec3(.02, .035, .075);
           float sombra = exp(-dens(p + vec3(0., -9., 0.)) * 1.4);
-          vec3 col = mix(abajo * (.25 + .75 * sombra), arriba, smoothstep(.0, .75, hh));
+          vec3 col = mix(abajo * (.25 + .75 * sombra), arriba, smoothstep(.0, .75, hh)); col += vec3(.1, .125, .18) * exp(-dens(p + vec3(0., 10., 0.)) * 1.6) * smoothstep(.35, 1., hh);
           float a = d * dt * .07; C += T * col * (1. - exp(-a)); T *= exp(-a); if(T < .02) break; } }
       float lejos = 1. - exp(-t0 * .00045); C = mix(C, vec3(.06, .06, .09) * (1. - T), lejos * .6);
       o = vec4(C, T); }`,

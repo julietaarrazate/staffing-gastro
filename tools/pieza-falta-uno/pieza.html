@@ -6,14 +6,17 @@
 <script type="module">
 import { crearMotor } from './src/motor.js';
 import { crearLetras } from './src/letras.js';
-const q = new URLSearchParams(location.search), W = +(q.get('w') || 720), H = +(q.get('h') || 1280), cual = q.get('escena') || '3';
-const fuentes = [['Mansalva', './fuentes/mansalva.woff2'], ['Young Serif', '../teaser-futuro-gastronomia/fuentes/young-serif.woff2']];
+const q = new URLSearchParams(location.search), W = +(q.get('w') || 720), H = +(q.get('h') || 1280), cual = q.get('escena') || 'pieza';
+const fuentes = [['Mansalva', './fuentes/mansalva.woff2'], ['Inter', './fuentes/inter.woff2'], ['Young Serif', '../teaser-futuro-gastronomia/fuentes/young-serif.woff2']];
 for (const [n, u] of fuentes) { const f = new FontFace(n, `url(${u})`); await f.load(); document.fonts.add(f); }
+// el guion es privado: vive en trabajo/entrada/guion.json (se baja de la página privada de la pieza)
+const guion = await (await fetch('./trabajo/entrada/guion.json')).json();
 const lienzo = document.getElementById('lienzo'); lienzo.width = W; lienzo.height = H;
 const motor = crearMotor(lienzo, W, H);
-const { crearEscena3 } = await import('./src/escena' + cual + '.js');
-const escena = await crearEscena3(motor);
-const letras = crearLetras(W, H, 'Young Serif');
+let escena;
+if (cual === 'pieza') { const { crearPieza } = await import('./src/pieza.js'); escena = await crearPieza(motor, guion); }
+else { const { crearEscena3 } = await import('./src/escena3.js'); escena = await crearEscena3(motor); }
+const letras = await crearLetras(W, H, 'Young Serif', { logo: '/marca/oido-plano-blanco.svg' });
 window.pieza = {
   escena,
   cuadro(t, { sub } = {}) {
