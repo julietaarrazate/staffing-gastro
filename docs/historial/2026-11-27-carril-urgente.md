@@ -1,4 +1,4 @@
-# Carril urgente: «Puedo ir ya» y confirmación directa (#PENDIENTE)
+# Carril urgente: «Puedo ir ya» y confirmación directa (#766)
 
 **Pedido:** Julieta (2026-11-27): en un turno que empieza pronto, que la
 persona que se ofrece quede confirmada apenas el comercio la acepta, sin

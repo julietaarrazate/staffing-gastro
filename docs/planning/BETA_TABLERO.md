@@ -523,7 +523,7 @@ Cada una lleva su ADR antes del código y es un PR aparte de los graves.
 | P1 | Puntualidad real (§4, sin marcar por ubicación). Cambia el ADR-0008 y `REPUTATION.md` | Antes de la beta | ✅ #749 (2026-11-26): 5 minutos de margen, tres recordatorios, «Ya llegó» del comercio y «No se presentó» desde los 10 minutos ([historial](../historial/2026-11-26-puntualidad-real.md)) |
 | P2 | Orden de los postulantes en turnos programados: local y favoritos, experiencia comprobada, cumplimiento, calificación; la distancia sólo filtra (§3) | Antes de la beta | ✅ #745 (2026-11-26): el orden en el backend, el sello «Nuevo en Oído · identidad verificada» y los recomendados de programados sin premio a la cercanía ([historial](../historial/2026-11-26-orden-de-postulantes-p2.md)) |
 | P3 | Reconfirmación 24 y 3 horas antes (§3 y §5) | Antes de la beta si entra | ✅ #746 (2026-11-26): construida y apagada (`RECONFIRMACION_ENABLED`); se prende cuando la asesoría apruebe los textos del final del ADR-0031 ([historial](../historial/2026-11-26-reconfirmacion-p3.md)) |
-| P4 | Tomar el turno urgente con un toque (§2) | Primer cambio después de los graves | 🟡 construido y apagado (`URGENTE_DIRECTO`, PR `#PENDIENTE`, 2026-11-27): «Puedo ir ya» y confirmación directa al ser aceptada; no es «gana el primero» ([ADR-0032](../adr/ADR-0032-carril-urgente.md), [historial](../historial/2026-11-27-carril-urgente.md)). Los Términos ya lo dicen (`2026-11-28-1`); falta decidir cuándo prenderlo |
+| P4 | Tomar el turno urgente con un toque (§2) | Primer cambio después de los graves | 🟡 construido y apagado (`URGENTE_DIRECTO`, PR `#766`, 2026-11-27): «Puedo ir ya» y confirmación directa al ser aceptada; no es «gana el primero» ([ADR-0032](../adr/ADR-0032-carril-urgente.md), [historial](../historial/2026-11-27-carril-urgente.md)). Los Términos ya lo dicen (`2026-11-28-1`); falta decidir cuándo prenderlo |
 | P5 | Agenda del trabajador: días, franjas, barrios y rubros; el comercio filtra por fecha, horario, rubro y zona (§3.1). Pedido expreso de Julieta | Paso A apenas cierren los graves; B y C con la beta andando | ⚪ sin empezar |
 
 Referencias verificadas, «Traé a tu equipo» y los suplentes de eventos
@@ -909,7 +909,7 @@ grande y el día anterior a abrir.
 - 🟡 P4, carril urgente: en un turno que empieza en menos de 6 horas,
   postularse es «Puedo ir ya» (con una pregunta antes) y, si el comercio
   acepta, el turno queda confirmado en el momento. Detrás de
-  `URGENTE_DIRECTO`, apagado (PR `#PENDIENTE`,
+  `URGENTE_DIRECTO`, apagado (PR `#766`,
   [ADR-0032](../adr/ADR-0032-carril-urgente.md),
   [historial](../historial/2026-11-27-carril-urgente.md)).
 - ✅ Términos con la frase del carril urgente (versión legal `2026-11-28-1`); falta decidir cuándo prender `URGENTE_DIRECTO` en producción.
