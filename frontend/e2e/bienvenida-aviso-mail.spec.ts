@@ -35,7 +35,8 @@ for (const tema of ["light", "dark"] as const) {
     await page.screenshot({ path: `/tmp/claude-0/aviso-${tema}.png` });
 
     await aviso.getByRole("button", { name: "Pedir el mail de nuevo" }).click();
-    await expect(page.getByTestId("aviso-mail-pedido")).toBeVisible();
+    await expect(page.getByTestId("aviso-mail-pedido")).toContainText("Lo pedimos.");
+    await expect(page.getByTestId("aviso-mail-pedido")).not.toContainText("enviado");
     expect(pedido).toEqual({ email: "ana@correo.com" });
   });
 }

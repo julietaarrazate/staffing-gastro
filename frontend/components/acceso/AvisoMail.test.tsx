@@ -30,6 +30,9 @@ describe("AvisoMail", () => {
     fireEvent.click(screen.getByRole("button", { name: "Pedir el mail de nuevo" }));
     await waitFor(() => expect(screen.getByTestId("aviso-mail-pedido")).toBeInTheDocument());
     expect(post).toHaveBeenCalledWith("/auth/resend-verification", { email: "ana@correo.com" });
+    // No afirma que salió: el pedido se hizo, el mail puede tardar o no salir.
+    expect(screen.getByTestId("aviso-mail-pedido")).toHaveTextContent("Lo pedimos. Si la dirección es correcta");
+    expect(screen.getByTestId("aviso-mail-pedido")).not.toHaveTextContent(/enviado/i);
   });
 
   it("si el límite de intentos corta, lo dice y deja volver a probar", async () => {

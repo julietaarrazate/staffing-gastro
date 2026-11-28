@@ -44,7 +44,7 @@ export default function AvisoMail({ email }: { email: string }) {
       </p>
       {pedido ? (
         <p data-testid="aviso-mail-pedido" className="mt-2 font-medium text-ink">
-          Pedido enviado. Si la dirección es correcta, en unos minutos te llega.
+          Lo pedimos. Si la dirección es correcta, en unos minutos te llega; si ya te lo mandamos hace poco, puede tardar en salir otro.
         </p>
       ) : (
         <button
