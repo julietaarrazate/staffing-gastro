@@ -205,7 +205,7 @@ export async function crearEscena3(motor) {
       luzHueco.intensity = afuera ? 2.5 : 0;
       matPapel.userData.uTrans.value = afuera ? 0.9 : 0.6;
     },
-    despuesOpaco(rr, rt, t) { if (estado.afuera) nubes.dibujar(rr, rt, camara, t, 0.64, [vaivenX(130, t), vaivenZ(130, t)]); },
+    despuesOpaco(rr, rt, t) { if (estado.afuera) nubes.dibujar(rr, rt, camara, t, 0.5, [vaivenX(130, t), vaivenZ(130, t)]); },
     revelado(t) {
       const a = smooth(8.1, 8.5, t);
       return {

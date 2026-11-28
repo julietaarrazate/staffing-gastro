@@ -10,7 +10,7 @@ if (modo === 'video') {
   const [dir, wav, sal, w = '1080', h = '1920', kbps = ''] = a;
   const v = ['-framerate', '30', '-pattern_type', 'glob', '-i', `${dir}/*.jpg`, '-i', wav,
     '-vf', `scale=${w}:${h}:flags=lanczos,unsharp=5:5:0.35:5:5:0,format=yuv420p`, '-c:v', 'libx264', '-preset', 'slow', '-profile:v', 'high', '-movflags', '+faststart'];
-  if (kbps) v.push('-b:v', kbps + 'k', '-maxrate', Math.round(kbps * 1.4) + 'k', '-bufsize', kbps * 2 + 'k'); else v.push('-crf', '15', '-tune', 'film');
+  if (kbps) v.push('-b:v', kbps + 'k', '-maxrate', Math.round(kbps * 1.4) + 'k', '-bufsize', kbps * 2 + 'k'); else v.push('-crf', '17', '-tune', 'film');
   ff([...v, '-c:a', 'aac', '-b:a', kbps ? '160k' : '256k', '-ar', '48000', '-shortest', sal]);
 } else if (modo === 'comparar') {
   const [nuestro, teaser, desde, hasta, sal] = a, dur = +hasta - +desde;

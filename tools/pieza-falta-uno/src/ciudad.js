@@ -141,8 +141,8 @@ export function crearNubes(motor, { y0 = 92, y1 = 160 } = {}) {
       return mix(mix(mix(h(i), h(i + vec3(1,0,0)), f.x), mix(h(i + vec3(0,1,0)), h(i + vec3(1,1,0)), f.x), f.y), mix(mix(h(i + vec3(0,0,1)), h(i + vec3(1,0,1)), f.x), mix(h(i + vec3(0,1,1)), h(i + vec3(1,1,1)), f.x), f.y), f.z); }
     float fbm(vec3 p){ float a = .5, s = 0.; for(int i = 0; i < 4; i++){ s += a * vn(p); p = p * 2.03 + vec3(1.7, 9.2, 3.1); a *= .5; } return s; }
     float dens(vec3 p){ float hh = (p.y - uY0) / (uY1 - uY0); float perfil = smoothstep(0., .25, hh) * smoothstep(1., .55, hh);
-      vec3 q = p * .0085 + vec3(uT * .012, 0., uT * .006); float n = fbm(q) * .75 + fbm(q * 3.1) * .25;
-      float torre = exp(-length(p.xz - uEje) / 75.) * .32; return max(0., n + torre - (1. - uCob)) * perfil * 3.2; }
+      vec3 q = p * .0115 + vec3(uT * .03, 0., uT * .012); float n = fbm(q) * .7 + fbm(q * 3.3) * .3;
+      float torre = exp(-length(p.xz - uEje) / 60.) * .22; return smoothstep(1. - uCob, 1. - uCob + .16, n + torre) * perfil * 2.4; }
     void main(){
       if(uOn < .5){ o = vec4(0., 0., 0., 1.); return; }
       vec4 v = uProjInv * vec4(vUv * 2. - 1., 1., 1.); vec3 rv = normalize(v.xyz / v.w);
@@ -155,10 +155,10 @@ export function crearNubes(motor, { y0 = 92, y1 = 160 } = {}) {
       float T = 1.; vec3 C = vec3(0.);
       for(int i = 0; i < N; i++){ vec3 p = uCam + rd * (t0 + (float(i) + j) * dt); float d = dens(p); if(d > .001){
           float hh = clamp((p.y - uY0) / (uY1 - uY0), 0., 1.);
-          vec3 abajo = vec3(.27, .13, .07), arriba = vec3(.014, .024, .052);
+          vec3 abajo = vec3(.5, .24, .12), arriba = vec3(.02, .035, .075);
           float sombra = exp(-dens(p + vec3(0., -9., 0.)) * 1.4);
-          vec3 col = mix(abajo * (.35 + .65 * sombra), arriba, smoothstep(.0, .9, hh));
-          float a = d * dt * .045; C += T * col * (1. - exp(-a)); T *= exp(-a); if(T < .02) break; } }
+          vec3 col = mix(abajo * (.25 + .75 * sombra), arriba, smoothstep(.0, .75, hh));
+          float a = d * dt * .07; C += T * col * (1. - exp(-a)); T *= exp(-a); if(T < .02) break; } }
       float lejos = 1. - exp(-t0 * .00045); C = mix(C, vec3(.06, .06, .09) * (1. - T), lejos * .6);
       o = vec4(C, T); }`,
     { tD: null, uProjInv: new TH.Matrix4(), uCamMat: new TH.Matrix4(), uCam: new TH.Vector3(), uNear: .1, uFar: 100, uT: 0, uY0: y0, uY1: y1, uCob: .5, uOn: 1, uEje: new TH.Vector2() });
