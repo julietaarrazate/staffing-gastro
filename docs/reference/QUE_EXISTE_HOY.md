@@ -188,10 +188,12 @@ listados más abajo.
   `URGENTE_DIRECTO`): en un turno que empieza en menos de 6 horas, postularse
   compromete. El botón dice «Puedo ir ya» y pregunta antes («¿Podés ir a este
   turno?»); si el comercio acepta a esa persona, el turno queda **confirmado**
-  en el momento y ella no confirma de nuevo. Siempre aceptan las dos partes:
-  el comercio ve «Puede ir ya» y «Aceptar», y es él quien decide. Se mide
-  contra cuándo se postuló: quien lo hizo con anticipación, o a quien el
-  comercio elige desde «Recomendados», sigue confirmando como siempre. Con la
+  en el momento y ella no confirma de nuevo. La persona dice «Sí, puedo ir» y eso se guarda al postular; el cambio de horario lo borra. Siempre aceptan las dos partes:
+  el comercio ve «Puede ir ya» y «Aceptar», y es él quien decide. Quien se
+  postuló sin ese reconocimiento (con anticipación, con la regla apagada), o a
+  quien el comercio elige desde «Recomendados», sigue confirmando como
+  siempre; una pantalla vieja recibe un aviso y vuelve a preguntar. La
+  pregunta aclara que, si después no puede ir, cuenta como una cancelación. Con la
   regla apagada, todo igual.
 - **«Cerca» es un límite, no una preferencia** (2026-11-13): el aviso
   «Turno cerca tuyo» sale sólo a quien está a 25 km o menos del turno (40 km

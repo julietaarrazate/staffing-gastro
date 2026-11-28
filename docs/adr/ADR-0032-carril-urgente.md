@@ -30,18 +30,36 @@ En un turno que empieza en pocas horas, la espera más cara es la de
    turno es tuyo».
 4. **El comercio ve quién se ofreció.** `ApplicantResponse.se_ofrecio_para_ya`
    marca a esas personas («Puede ir ya») y su botón dice «Aceptar».
-5. **Se mide contra el momento de la postulación**, no contra el de la
-   asignación. Quien se postuló con días de anticipación vio «Postularme», no
-   «Puedo ir ya»: nadie le prometió que aceptar la confirmaba, así que se le
-   sigue pidiendo que confirme aunque el comercio la acepte a 3 horas del
-   turno. Tampoco cuenta quien el comercio elige desde «Recomendados» sin que
-   se haya postulado, ni quien vuelve a ser elegida después de dejar el turno:
-   sólo una postulación vigente (pendiente) hecha dentro de la ventana.
+5. **El reconocimiento se guarda, no se deduce de la fecha.** Al postularse,
+   la pantalla manda `{"puedo_ir_ya": true}` si la persona tocó «Sí, puedo
+   ir». El servidor guarda en la postulación `se_ofrecio_para_ya` = regla
+   prendida **y** `puedo_ir_ya` **y** el turno empieza en menos de 6 horas
+   *en ese momento*. Lo demás lee sólo esa columna: aceptar (confirma directo
+   sólo si es verdadera), «Puede ir ya» del comercio y «Te ofreciste…» de la
+   persona. Una primera versión lo calculaba después con `created_at`; no
+   alcanzaba, porque el servidor decidía por una fecha y no por lo que la
+   persona vio: una pantalla cargada con «Postularme» antes de las 6 horas
+   quedaba «ofrecida» sin haber leído la pregunta. Casos:
+   - **Pantalla vieja** (regla prendida, turno dentro de la ventana, sin
+     `puedo_ir_ya`): 409 `puedo_ir_ya_requerido` («Este turno empieza pronto:
+     confirmá que podés ir.») y no se crea la postulación; la pantalla abre
+     la pregunta y reintenta.
+   - **Reconoció pero el turno no estaba en la ventana:** se crea normal, con
+     `se_ofrecio_para_ya = false`.
+   - **Postulación hecha con la regla apagada** y aceptada con la regla
+     prendida: queda «asignado» y confirma como siempre.
+   - **Volver a postularse** (`reapply`) recalcula el campo con el pedido
+     nuevo; retirar lo borra.
+   - **Si el comercio cambia el horario**, todas las postulaciones del turno
+     vuelven a `false`: la persona dijo que sí a otro horario (el aviso
+     «cambió un turno al que te postulaste» ya existe).
+   - **Consecuencia dicha de frente:** la pregunta cierra con «Si después no
+     podés ir, cuenta como una cancelación», y el mail de un turno confirmado
+     directo dice lo mismo (con menos de 24 horas no hay aviso sin peso).
 6. **Detrás de `URGENTE_DIRECTO`, apagado por defecto.** Con la regla apagada
    nada cambia: `apply_commits` y `se_ofrecio_para_ya` salen en `false`. Se
-   prende en producción cuando los Términos digan que quien se ofrece para ya
-   queda confirmada al ser aceptada (cambia `/terminos`, sube
-   `LEGAL_TERMS_VERSION`, con el sí de Julieta).
+   prende en producción una vez que los Términos lo dicen (frase agregada el 2026-11-28, versión
+   legal `2026-11-28-1`).
 
 ## Qué se descartó
 
@@ -65,5 +83,9 @@ confirmación de la persona, que en un urgente es la más cara.
 
 - Quien toca «Puedo ir ya» asume un compromiso: la pregunta lo dice antes y
   «Ahora no» no manda nada.
+- Hay una columna nueva (`shift_applications.se_ofrecio_para_ya`, migración
+  0067, NOT NULL, falso para lo que ya existía).
+- Al aceptar a quien se ofreció, el mail de aceptación sale en su variante
+  «ya quedó confirmado» (no pide confirmar).
 - Un turno puede pasar de «publicado» a «confirmado» en un solo paso del
   comercio; los avisos y el scheduler ya tratan al confirmado.

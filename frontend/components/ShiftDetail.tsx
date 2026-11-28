@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
-import { appliedShiftIds, unassignedShiftIds } from "@/lib/applications";
+import { enviarPostulacion, appliedShiftIds, unassignedShiftIds } from "@/lib/applications";
 import { useAuth } from "@/lib/auth-context";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
@@ -255,12 +255,17 @@ export default function ShiftDetail({ publicShift }: { publicShift: ShiftPublic 
     applyEpoch.current += 1;
     setApply("applying");
     try {
-      await api.post(`/applications/shifts/${shift.id}`, undefined, token, undefined, keyFor(shift.id));
+      const enviada = await enviarPostulacion({ token, shift, key: keyFor(shift.id), confirmar });
+      if (!enviada) {
+        // «Ahora no» en la pregunta que abrió el servidor (pantalla vieja).
+        setApply("can_apply");
+        return;
+      }
       clear(shift.id);
       setJustApplied(true);
-      setOfrecido(Boolean(shift.apply_commits));
+      setOfrecido(enviada.ofrecido);
       setApply("applied");
-      toast(avisoPostulacion(shift));
+      toast(avisoPostulacion({ apply_commits: enviada.ofrecido }));
       // La invitación a notificaciones espera a que se vea la confirmación
       // (el check se dibuja en ~0,5 s): si sale junto, su hoja la tapa.
       window.setTimeout(requestOptIn, reducedMotion ? 0 : 1200);

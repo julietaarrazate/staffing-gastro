@@ -55,7 +55,8 @@ export function ConfirmarPuedoIr({
     <Modal open={open} onClose={onCancel} title="¿Podés ir a este turno?">
       <p className="text-sm text-ink-soft" data-testid="confirmar-puedo-ir">
         {shift ? `Empieza ${formatShiftStartPhrase(shift.start_at)}. ` : ""}
-        Si el comercio te acepta, el turno queda confirmado en el momento: no vas a tener que confirmar de nuevo.
+        Si el comercio te acepta, el turno queda confirmado en el momento: no vas a tener que confirmar de nuevo. Si
+        después no podés ir, cuenta como una cancelación.
       </p>
       <div className="mt-4 flex flex-col-reverse gap-2 min-[380px]:flex-row min-[380px]:justify-end">
         <Button variant="surface" size="sm" onClick={onCancel}>

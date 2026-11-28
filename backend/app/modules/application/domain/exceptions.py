@@ -19,6 +19,15 @@ class AlreadyAppliedError(ApplicationError):
     Una RETIRADA no cae acá: se reactiva."""
 
 
+class PuedoIrYaRequeridoError(ApplicationError):
+    """Carril urgente: el turno empieza en menos de 6 horas y la persona no
+    reconoció «Puedo ir ya» (una pantalla vieja, cargada antes de la ventana).
+    La postulación no se crea: la pantalla tiene que preguntar y reintentar."""
+
+    def __init__(self, shift_id: str = "") -> None:
+        super().__init__(f"El turno {shift_id} empieza pronto: hace falta confirmar que puede ir")
+
+
 class AlreadyUnassignedError(AlreadyAppliedError):
     """El trabajador tuvo ese turno asignado y lo dejó (rechazó, canceló o no
     se presentó): su postulación está DESASIGNADA. Sigue en la lista del

@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { useEsCompu } from "@/lib/use-es-compu";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { api, ApiError } from "@/lib/api";
-import { appliedShiftIds } from "@/lib/applications";
+import { enviarPostulacion, appliedShiftIds } from "@/lib/applications";
 import { getErrorMessage } from "@/lib/errors";
 import { useLiveRefresh } from "@/lib/live-refresh";
 import { useRequireAuth } from "@/lib/use-require-auth";
@@ -254,17 +254,12 @@ export default function BuscarPage() {
     if (!(await confirmar(shift))) return;
     setDecidingId(shift.id);
     try {
-      await api.post(
-        `/applications/shifts/${shift.id}`,
-        undefined,
-        token,
-        undefined,
-        keyFor(shift.id)
-      );
+      const enviada = await enviarPostulacion({ token, shift, key: keyFor(shift.id), confirmar });
+      if (!enviada) return;
       clearIdempotencyKey(shift.id);
       ocultos.current.add(shift.id);
       setShifts((prev) => prev.filter((s) => s.id !== shift.id));
-      toast(avisoPostulacion(shift));
+      toast(avisoPostulacion({ apply_commits: enviada.ofrecido }));
       requestOptIn();
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {

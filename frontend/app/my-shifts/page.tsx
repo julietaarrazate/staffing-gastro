@@ -1,5 +1,6 @@
 "use client";
 
+import { enviarPostulacion } from "@/lib/applications";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNow } from "@/lib/use-now";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -465,15 +466,10 @@ function MatchesContent() {
     if (!(await confirmar(shift))) return;
     setApplyingSaved(shift.id);
     try {
-      await api.post(
-        `/applications/shifts/${shift.id}`,
-        undefined,
-        token,
-        undefined,
-        keyFor(shift.id)
-      );
+      const enviada = await enviarPostulacion({ token, shift, key: keyFor(shift.id), confirmar });
+      if (!enviada) return;
       clearIdempotencyKey(shift.id);
-      toast(avisoPostulacion(shift));
+      toast(avisoPostulacion({ apply_commits: enviada.ofrecido }));
       // Ya avanzó de "para evaluar" a "postulado" — sale de guardados solo.
       // Si falla, el trabajador lo puede sacar a mano: no se avisa. Pero se
       // espera a que termine antes de releer: si no, la relectura le ganaba

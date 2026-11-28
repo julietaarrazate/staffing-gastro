@@ -52,7 +52,7 @@ describe("useConfirmarPuedoIr", () => {
     await userEvent.click(screen.getByRole("button", { name: "urgente" }));
     expect(screen.getByRole("heading", { name: "¿Podés ir a este turno?" })).toBeInTheDocument();
     expect(screen.getByTestId("confirmar-puedo-ir")).toHaveTextContent(
-      /^Empieza .+\. Si el comercio te acepta, el turno queda confirmado en el momento: no vas a tener que confirmar de nuevo\.$/
+      /^Empieza .+\. Si el comercio te acepta, el turno queda confirmado en el momento: no vas a tener que confirmar de nuevo\. Si después no podés ir, cuenta como una cancelación\.$/
     );
     expect(onResultado).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole("button", { name: "Ahora no" }));

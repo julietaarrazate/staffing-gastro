@@ -401,10 +401,28 @@ describe("ShiftDetail: carril urgente (ADR-0032)", () => {
     expect(screen.getByText(/Si el comercio te acepta, el turno queda confirmado en el momento/)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Sí, puedo ir" }));
-    expect(post).toHaveBeenCalledWith("/applications/shifts/s1", undefined, "tok", undefined, expect.any(String));
+    expect(post).toHaveBeenCalledWith("/applications/shifts/s1", { puedo_ir_ya: true }, "tok", undefined, expect.any(String));
     expect(await screen.findByText("Te ofreciste para este turno.")).toBeInTheDocument();
     expect(screen.getByText("Si te aceptan, queda confirmado.")).toBeInTheDocument();
     expect(screen.queryByText("Ya te postulaste")).not.toBeInTheDocument();
+  });
+
+  it("pantalla vieja: el 409 del servidor abre la pregunta y, con «Sí, puedo ir», postula con el reconocimiento", async () => {
+    auth.value = { user: { role: "worker" }, token: "tok", loading: false };
+    conCompromiso(false);
+    post
+      .mockRejectedValueOnce(new ApiError(409, "Este turno empieza pronto: confirmá que podés ir.", "puedo_ir_ya_requerido"))
+      .mockResolvedValueOnce({ id: "a1" });
+    const user = userEvent.setup();
+    render(<ShiftDetail publicShift={SHIFT} />);
+
+    await user.click(await screen.findByRole("button", { name: "Postularme" }));
+    expect(await screen.findByRole("dialog", { name: "¿Podés ir a este turno?" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Sí, puedo ir" }));
+
+    expect(post).toHaveBeenCalledTimes(2);
+    expect(post).toHaveBeenLastCalledWith("/applications/shifts/s1", { puedo_ir_ya: true }, "tok", undefined, expect.any(String));
+    expect(await screen.findByText("Te ofreciste para este turno.")).toBeInTheDocument();
   });
 
   it("«Ahora no» no postula y deja el botón para volver a intentarlo", async () => {

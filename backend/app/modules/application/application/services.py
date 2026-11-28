@@ -9,6 +9,7 @@ from app.modules.application.domain.exceptions import (
     AlreadyAppliedError,
     AlreadyUnassignedError,
     ApplicationNotFoundError,
+    PuedoIrYaRequeridoError,
     ShiftNotApplicableError,
 )
 from app.modules.application.domain.repositories import ShiftApplicationRepository
@@ -20,6 +21,7 @@ from app.modules.notification.domain.repositories import NotificationRepository
 from app.modules.notification.domain.value_objects import NotificationType
 from app.modules.shift.domain.entities import Shift
 from app.modules.shift.domain.repositories import ShiftRepository
+from app.modules.shift.domain.urgente import postularse_compromete
 from app.modules.shift.domain.value_objects import OPEN_STATUSES
 from app.modules.worker.domain.repositories import WorkerProfileRepository
 
@@ -42,7 +44,9 @@ class ApplicationService:
         notifications: NotificationRepository,
         workers: WorkerProfileRepository,
         users: UserRepository,
+        urgente_directo: bool = False,
     ) -> None:
+        self._urgente_directo = urgente_directo
         self._applications = applications
         self._shifts = shifts
         self._companies = companies
@@ -51,7 +55,7 @@ class ApplicationService:
         self._users = users
 
     async def apply(
-        self, worker_profile_id: UUID, shift_id: UUID
+        self, worker_profile_id: UUID, shift_id: UUID, puedo_ir_ya: bool = False
     ) -> ShiftApplication:
         """Registra el interés de un trabajador por un turno abierto.
 
@@ -81,15 +85,30 @@ class ApplicationService:
             # postulaciones. Mismo error que un turno que no está abierto.
             raise ShiftNotApplicableError(str(shift_id))
 
+        # Carril urgente (ADR-0032): postularse a un turno que empieza pronto
+        # compromete, y el reconocimiento se GUARDA (no se deduce de la fecha).
+        # Sin él (pantalla vieja, cargada antes de la ventana) no se crea nada:
+        # la pantalla pregunta y reintenta con `puedo_ir_ya`.
+        en_ventana = self._urgente_directo and postularse_compromete(
+            shift.start_at, datetime.now(timezone.utc)
+        )
+        if en_ventana and not puedo_ir_ya:
+            raise PuedoIrYaRequeridoError(str(shift_id))
+        se_ofrecio_para_ya = bool(en_ventana and puedo_ir_ya)
+
         existing = await self._applications.get_by_shift_and_worker(
             shift_id, worker_profile_id
         )
         if existing is None:
             application = await self._applications.add(
-                ShiftApplication(shift_id=shift_id, worker_profile_id=worker_profile_id)
+                ShiftApplication(
+                    shift_id=shift_id,
+                    worker_profile_id=worker_profile_id,
+                    se_ofrecio_para_ya=se_ofrecio_para_ya,
+                )
             )
         elif existing.status == ApplicationStatus.RETIRADA:
-            existing.reapply()
+            existing.reapply(se_ofrecio_para_ya=se_ofrecio_para_ya)
             application = await self._applications.update(existing)
         elif existing.status == ApplicationStatus.DESASIGNADA:
             raise AlreadyUnassignedError(str(shift_id))
@@ -191,18 +210,17 @@ class ApplicationService:
 
     async def list_applicants(
         self, company_id: UUID, shift_id: UUID
-    ) -> tuple[Shift, list[EnrichedApplicant]]:
+    ) -> list[EnrichedApplicant]:
         """Lista los postulantes a un turno propio del comercio, ya enriquecidos
         con los datos del trabajador (sin N+1, ver P2 en PERFORMANCE_REPORT.md).
 
         Sin las cuentas suspendidas (ADR-0024): no se las puede asignar, el
-        mismo criterio que «Recomendados» (lo filtra la consulta). Devuelve
-        también el turno: la ruta lo usa para el carril urgente."""
+        mismo criterio que «Recomendados» (lo filtra la consulta)."""
         shift = await self._shifts.get_by_id(shift_id)
         # No-disclosure: turno ajeno o inexistente se trata igual (404).
         if shift is None or shift.company_id != company_id:
             raise ShiftNotApplicableError(str(shift_id))
-        return shift, await self._applications.list_by_shift_enriched(shift_id)
+        return await self._applications.list_by_shift_enriched(shift_id)
 
     async def list_my_applications(
         self, worker_profile_id: UUID, *, limit: int = 50, offset: int = 0

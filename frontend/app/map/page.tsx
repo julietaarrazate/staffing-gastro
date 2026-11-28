@@ -8,7 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLiveRefresh } from "@/lib/live-refresh";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { api, ApiError } from "@/lib/api";
-import { appliedShiftIds } from "@/lib/applications";
+import { enviarPostulacion, appliedShiftIds } from "@/lib/applications";
 import { useRequireAuth } from "@/lib/use-require-auth";
 import { useIdempotencyKeys } from "@/lib/idempotency";
 import { usePushPrompt } from "@/lib/push-prompt-context";
@@ -402,19 +402,14 @@ export default function MapPage() {
       // Idempotencia (product/IDEMPOTENCIA_SPEC.md): mismo intento (mismo
       // turno) reusa la key hasta que postularse termine bien; el `busy`
       // (`applyingId`) además deshabilita el botón mientras está en vuelo.
-      await api.post(
-        `/applications/shifts/${shift.id}`,
-        undefined,
-        token,
-        undefined,
-        keyFor(shift.id)
-      );
+      const enviada = await enviarPostulacion({ token, shift, key: keyFor(shift.id), confirmar });
+      if (!enviada) return;
       clearIdempotencyKey(shift.id);
       postulados.current.add(shift.id);
-      toast(avisoPostulacion(shift));
+      toast(avisoPostulacion({ apply_commits: enviada.ofrecido }));
       setPreviewShift((prev) => (prev?.id === shift.id ? null : prev));
       setJustAppliedId(shift.id);
-      setJustOfrecido(Boolean(shift.apply_commits));
+      setJustOfrecido(enviada.ofrecido);
       removeTimer.current = setTimeout(
         () => {
           setShifts((prev) => prev.filter((s) => s.id !== shift.id));

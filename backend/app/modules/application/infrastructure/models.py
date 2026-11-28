@@ -10,6 +10,7 @@ from sqlalchemy import (
     ForeignKey,
     String,
     UniqueConstraint,
+    false,
     func,
     true,
 )
@@ -55,6 +56,10 @@ class ShiftApplicationModel(Base):
     # dejó el turno: no cuenta como postulación suya (privacidad, métricas).
     se_postulo: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default=true()
+    )
+    # Carril urgente (ADR-0032): reconocimiento «Puedo ir ya» guardado al postular.
+    se_ofrecio_para_ya: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=false()
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

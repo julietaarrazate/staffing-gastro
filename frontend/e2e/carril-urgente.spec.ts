@@ -20,8 +20,9 @@ const turno = (id: string, company: string, extra: Record<string, unknown> = {})
   status: "publicado", worker_profile_id: null, created_at: "2026-11-01T12:00:00-03:00", company_name: company, company_logo_url: null, company_verified: false, ...extra,
 });
 
-async function buscar(page: Page, commits: boolean, theme: "light" | "dark" = "light") {
+async function buscar(page: Page, commits: boolean, theme: "light" | "dark" = "light", exigeReconocer = false) {
   const posts: string[] = [];
+  const cuerpos: (Record<string, unknown> | null)[] = [];
   await setTheme(page, theme);
   await page.setViewportSize({ width: 390, height: 844 });
   await injectSession(page);
@@ -33,12 +34,18 @@ async function buscar(page: Page, commits: boolean, theme: "light" | "dark" = "l
   await page.route("**/api/v1/shifts/feed*", (r) => r.fulfill(json([turno("b1", "Bar Lavalle", { apply_commits: commits }), turno("b2", "Café Belgrano", { apply_commits: commits })])));
   await page.route("**/api/v1/applications/shifts/*", (r) => {
     if (r.request().method() !== "POST") return r.fulfill(json([]));
+    const cuerpo = r.request().postDataJSON() as Record<string, unknown> | null;
+    // Pantalla vieja: el turno ya entró en las 6 h y falta el reconocimiento.
+    if (exigeReconocer && !cuerpo?.puedo_ir_ya) {
+      return r.fulfill(json({ detail: { code: "puedo_ir_ya_requerido", message: "Este turno empieza pronto: confirmá que podés ir." } }, 409));
+    }
     posts.push(r.request().url());
+    cuerpos.push(cuerpo);
     return r.fulfill(json({ id: "a1", shift_id: "b1", worker_profile_id: "wp", status: "pendiente" }, 201));
   });
   await page.goto("/buscar");
   await expect(page.getByTestId("buscar-card")).toHaveCount(2);
-  return posts;
+  return Object.assign(posts, { cuerpos });
 }
 
 for (const theme of ["light", "dark"] as const) {
@@ -52,7 +59,7 @@ for (const theme of ["light", "dark"] as const) {
     const dialogo = page.getByRole("dialog", { name: "¿Podés ir a este turno?" });
     await expect(dialogo).toBeVisible();
     await expect(dialogo).toContainText("Empieza hoy a las 23:30.");
-    await expect(dialogo).toContainText("Si el comercio te acepta, el turno queda confirmado en el momento: no vas a tener que confirmar de nuevo.");
+    await expect(dialogo).toContainText("Si el comercio te acepta, el turno queda confirmado en el momento: no vas a tener que confirmar de nuevo. Si después no podés ir, cuenta como una cancelación.");
     // El único ámbar de la confirmación es «Sí, puedo ir».
     await expect(dialogo.locator("button.boton-relieve")).toHaveCount(1);
     await expect(dialogo.getByRole("button", { name: "Sí, puedo ir" })).toHaveClass(/boton-relieve/);
@@ -77,6 +84,8 @@ for (const theme of ["light", "dark"] as const) {
     await page.getByRole("button", { name: "Sí, puedo ir" }).click();
     await expect.poll(() => posts.length).toBe(1);
     expect(posts[0]).toContain("/applications/shifts/b1");
+    // El reconocimiento viaja en el cuerpo: el servidor lo guarda.
+    expect(posts.cuerpos[0]).toEqual({ puedo_ir_ya: true });
     await expect(page.getByTestId("buscar-card")).toHaveCount(1);
   });
 }
@@ -87,6 +96,31 @@ test("con apply_commits en false todo sigue igual: «Postularme» y postula dire
   await page.getByTestId("buscar-card").first().getByRole("button", { name: "Postularme" }).click();
   await expect.poll(() => posts.length).toBe(1);
   await expect(page.getByRole("dialog", { name: "¿Podés ir a este turno?" })).toHaveCount(0);
+  // Sin reconocimiento, sin cuerpo.
+  expect(posts.cuerpos[0]).toBeNull();
+});
+
+test("pantalla vieja: el servidor contesta 409 con código, se abre la pregunta y «Sí, puedo ir» reintenta con el reconocimiento", async ({ page }) => {
+  const posts = await buscar(page, false, "light", true);
+  const primero = page.getByTestId("buscar-card").first();
+  // La pantalla cargó «Postularme» (apply_commits en false).
+  await primero.getByRole("button", { name: "Postularme" }).click();
+  const dialogo = page.getByRole("dialog", { name: "¿Podés ir a este turno?" });
+  await expect(dialogo).toBeVisible();
+  expect(posts).toHaveLength(0);
+  await dialogo.getByRole("button", { name: "Sí, puedo ir" }).click();
+  await expect.poll(() => posts.length).toBe(1);
+  expect(posts.cuerpos[0]).toEqual({ puedo_ir_ya: true });
+  await expect(page.getByTestId("buscar-card")).toHaveCount(1);
+});
+
+test("pantalla vieja: «Ahora no» después del 409 no postula y deja el turno", async ({ page }) => {
+  const posts = await buscar(page, false, "light", true);
+  await page.getByTestId("buscar-card").first().getByRole("button", { name: "Postularme" }).click();
+  await page.getByRole("dialog", { name: "¿Podés ir a este turno?" }).getByRole("button", { name: "Ahora no" }).click();
+  await expect(page.getByRole("dialog", { name: "¿Podés ir a este turno?" })).toBeHidden();
+  expect(posts).toHaveLength(0);
+  await expect(page.getByTestId("buscar-card")).toHaveCount(2);
 });
 
 // ---------- Comercio ----------

@@ -57,6 +57,11 @@ class ShiftApplication:
     # `EmployerWorkerRelation`); una fila que escribió el sistema, no. Tampoco
     # entra en las cuentas de postulaciones del panel de admin.
     se_postulo: bool = True
+    # Carril urgente (ADR-0032): la persona vio «Puedo ir ya», tocó «Sí, puedo
+    # ir» y el turno empezaba en menos de 6 horas al postularse. Es un
+    # reconocimiento que se GUARDA al postular: no se deduce después de la
+    # fecha. Si el comercio la acepta, el turno queda confirmado.
+    se_ofrecio_para_ya: bool = False
 
     def __post_init__(self) -> None:
         if (self.status == ApplicationStatus.DESASIGNADA) != (self.motivo is not None):
@@ -169,8 +174,9 @@ class ShiftApplication:
                 f"No se puede retirar una postulación en estado {self.status.value}"
             )
         self.status = ApplicationStatus.RETIRADA
+        self.se_ofrecio_para_ya = False
 
-    def reapply(self) -> None:
+    def reapply(self, se_ofrecio_para_ya: bool = False) -> None:
         """RETIRADA → PENDIENTE: el trabajador vuelve a postularse al turno.
 
         Sólo alcanzable desde RETIRADA, que es el único estado que decide el
@@ -187,6 +193,9 @@ class ShiftApplication:
             )
         self.status = ApplicationStatus.PENDIENTE
         self.created_at = datetime.now(timezone.utc)
+        # El reconocimiento se recalcula con el pedido nuevo: el de la
+        # postulación anterior no vale.
+        self.se_ofrecio_para_ya = se_ofrecio_para_ya
         # Ahora sí se postuló ella (la fila pudo haber nacido sin postulación).
         self.se_postulo = True
 
@@ -241,3 +250,5 @@ class EnrichedApplicant:
     # Dueño del perfil: la API lo usa para pedir, de una vez, quiénes tienen la
     # identidad verificada (no sale en la respuesta).
     user_id: UUID | None = None
+    # Carril urgente: el reconocimiento guardado al postular.
+    se_ofrecio_para_ya: bool = False

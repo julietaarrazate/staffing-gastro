@@ -11,7 +11,11 @@ from app.core.rate_limit import RateLimiter
 from app.modules.company.api.dependencies import get_company_repository
 from app.modules.company.domain.repositories import CompanyProfileRepository
 from app.modules.application.api.dependencies import get_application_service
-from app.modules.application.api.schemas import ApplicantResponse, ApplicationResponse
+from app.modules.application.api.schemas import (
+    ApplicantResponse,
+    ApplicationResponse,
+    ApplyRequest,
+)
 from app.modules.application.application.services import ApplicationService
 from app.modules.application.domain.value_objects import ApplicationStatus
 from app.modules.application.domain.exceptions import (
@@ -19,6 +23,7 @@ from app.modules.application.domain.exceptions import (
     AlreadyUnassignedError,
     ApplicationNotFoundError,
     InvalidApplicationTransitionError,
+    PuedoIrYaRequeridoError,
     ShiftNotApplicableError,
 )
 from app.modules.identity.api.dependencies import get_current_user, per_account_quota_key
@@ -28,7 +33,6 @@ from app.modules.matching.application.services import MatchingService
 from app.modules.shift.api.dependencies import get_my_company_id, get_my_worker_profile_id
 from app.modules.shift.api.schemas import ShiftResponse, for_worker
 from app.modules.shift.domain.entities import Shift
-from app.modules.shift.domain.urgente import postularse_compromete
 from app.modules.shift.domain.exceptions import ShiftNotFoundError
 from app.modules.verification.api.dependencies import get_verification_service
 from app.modules.verification.application.services import VerificationService
@@ -75,14 +79,28 @@ async def apply_to_shift(
     worker_profile_id: WorkerProfileIdDep,
     service: ServiceDep,
     recorder: RecorderDep,
+    payload: ApplyRequest | None = None,
 ):
     _apply_to_shift_rate_limit.check(
         f"{per_account_quota_key(current_user, request)}:{shift_id}"
     )
     try:
-        application = await service.apply(worker_profile_id, shift_id)
+        application = await service.apply(
+            worker_profile_id,
+            shift_id,
+            puedo_ir_ya=bool(payload and payload.puedo_ir_ya),
+        )
     except ShiftNotApplicableError as exc:
         raise _SHIFT_NOT_FOUND from exc
+    except PuedoIrYaRequeridoError as exc:
+        # Código estable: la pantalla abre «¿Podés ir a este turno?» y reintenta.
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "puedo_ir_ya_requerido",
+                "message": "Este turno empieza pronto: confirmá que podés ir.",
+            },
+        ) from exc
     except AlreadyUnassignedError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -162,12 +180,11 @@ async def my_applications(
             shift=_shift_for_applicant(
                 shift, worker_profile_id, companies_by_id, verified_owner_ids
             ),
+            # Sólo el reconocimiento guardado al postular (ADR-0032).
             se_ofrecio_para_ya=(
                 settings.urgente_directo
-                and shift is not None
                 and application.status == ApplicationStatus.PENDIENTE
-                and application.created_at is not None
-                and postularse_compromete(shift.start_at, application.created_at)
+                and application.se_ofrecio_para_ya
             ),
         )
         for application, shift in enriched
@@ -208,7 +225,7 @@ async def shift_applicants(
     matching: MatchingDep,
 ):
     try:
-        turno, applicants = await service.list_applicants(company_id, shift_id)
+        applicants = await service.list_applicants(company_id, shift_id)
     except ShiftNotApplicableError as exc:
         raise _SHIFT_NOT_FOUND from exc
 
@@ -254,8 +271,7 @@ async def shift_applicants(
             se_ofrecio_para_ya=(
                 settings.urgente_directo
                 and applicant.status == ApplicationStatus.PENDIENTE
-                and applicant.created_at is not None
-                and postularse_compromete(turno.start_at, applicant.created_at)
+                and applicant.se_ofrecio_para_ya
             ),
         )
         for fila in ordenados

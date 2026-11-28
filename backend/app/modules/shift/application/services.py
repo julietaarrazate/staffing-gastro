@@ -58,7 +58,6 @@ from app.modules.shift.domain.cupo_de_avisos import PARTE_PARA_NUEVOS, repartir_
 from app.modules.shift.domain.nearby import FeedOrigin, closest_first, is_nearby, urgent_first
 from app.modules.shift.domain.mensajes import no_se_puede
 from app.modules.shift.domain.punctuality import PASO_AVISO_AL_COMERCIO, punctuality_of
-from app.modules.shift.domain.urgente import postularse_compromete
 from app.modules.shift.domain.reconfirmacion import (
     PasoReconfirmacion,
     cancelacion_sin_peso,
@@ -366,6 +365,10 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         inicio_igual = mismo_instante(shift.start_at, data.start_at)
         if not (inicio_igual and mismo_instante(shift.end_at, data.end_at)):
             validar_horario_nuevo(data.start_at, data.end_at, validar_inicio=not inicio_igual)
+        horario_nuevo = not (
+            mismo_instante(shift.start_at, data.start_at)
+            and mismo_instante(shift.end_at, data.end_at)
+        )
         shift.position = data.position
         shift.quantity = data.quantity
         shift.start_at = data.start_at
@@ -385,9 +388,19 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         shift.description = data.description
 
         updated = await self._shifts.update(shift)
+        if horario_nuevo:
+            # La persona dijo «Puedo ir ya» para OTRO horario (ADR-0032): si
+            # el comercio la acepta ahora, vuelve a pedirse que confirme.
+            await self._borrar_reconocimientos_urgentes(shift.id)
         if avisar:
             await self._notify_applicants_of_change(updated, postulados)
         return updated
+
+    async def _borrar_reconocimientos_urgentes(self, shift_id: UUID) -> None:
+        for application in await self._applications.list_by_shift(shift_id):
+            if application.se_ofrecio_para_ya:
+                application.se_ofrecio_para_ya = False
+                await self._applications.update(application)
 
     async def _active_applicants(self, shift: Shift) -> list[UUID]:
         """Perfiles con una postulación en carrera a un turno ya publicado."""
@@ -1691,11 +1704,12 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         return updated
 
     async def _se_ofrecio_para_ya(self, shift: Shift, worker_profile_id: UUID) -> bool:
-        """Carril urgente (`shift/domain/urgente.py`): la persona se postuló
-        con el turno a menos de 6 horas, viendo «Puedo ir ya». Sólo cuenta
-        una postulación vigente (PENDIENTE): a quien el comercio elige desde
-        «Recomendados», o vuelve a elegir después de que dejó el turno, se le
-        sigue pidiendo que confirme."""
+        """Carril urgente (`shift/domain/urgente.py`, ADR-0032): la persona
+        reconoció «Puedo ir ya» al postularse, y eso se GUARDÓ en la
+        postulación (`se_ofrecio_para_ya`): acá no se recalcula con fechas.
+        Sólo cuenta una postulación vigente (PENDIENTE): a quien el comercio
+        elige desde «Recomendados», o vuelve a elegir después de que dejó el
+        turno, se le sigue pidiendo que confirme."""
         if not self._urgente_directo:
             return False
         application = await self._applications.get_by_shift_and_worker(
@@ -1704,8 +1718,7 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         return (
             application is not None
             and application.status == ApplicationStatus.PENDIENTE
-            and application.created_at is not None
-            and postularse_compromete(shift.start_at, application.created_at)
+            and application.se_ofrecio_para_ya
         )
 
     async def _aceptar_y_confirmar(
@@ -1747,6 +1760,8 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
             link="/my-shifts",
         )
         await self._withdraw_overlapping_applications(worker_profile_id, updated)
+        # El mismo mail de aceptación, en su variante «ya quedó confirmado».
+        await self._send_acceptance_email(worker_profile_id, updated, confirmado=True)
         notify_scheduler()
         return updated
 
@@ -1898,7 +1913,7 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
                 await self._applications.update(application)
 
     async def _send_acceptance_email(
-        self, worker_profile_id: UUID, shift: Shift
+        self, worker_profile_id: UUID, shift: Shift, *, confirmado: bool = False
     ) -> None:
         """Avisa por email al trabajador aceptado para el turno.
 
@@ -1919,12 +1934,15 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
             company_name = (company.name if company is not None else None) or "Un comercio"
             position_label = shift.position.label
             subject = f"Te aceptaron: {position_label} en {company_name}"
+            if confirmado:
+                subject = f"Turno confirmado: {position_label} en {company_name}"
             html = render_shift_accepted_email_html(
                 user.full_name,
                 position_label,
                 company_name,
                 format_turno_art(shift.start_at, shift.end_at),
                 f"{settings.frontend_url}/my-shifts",
+                confirmado=confirmado,
             )
         except Exception:
             logger.exception(

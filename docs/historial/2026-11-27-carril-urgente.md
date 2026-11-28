@@ -26,21 +26,33 @@ diálogo, el hook `useConfirmarPuedoIr` y los textos: un solo lugar),
 `frontend/lib/applicants.ts` (`PUEDE_IR_YA`, `textoElegir`) y
 `frontend/components/candidate/*`. Contrato de e2e regenerado.
 
-**Por qué así:** [ADR-0032](../adr/ADR-0032-carril-urgente.md). Se mide contra
-el momento de la postulación (quien se postuló con días de anticipación no vio
-«Puedo ir ya»), y se descartó «gana el primero sin que el comercio elija»
+**Por qué así:** [ADR-0032](../adr/ADR-0032-carril-urgente.md). El
+reconocimiento «Puedo ir ya» se guarda al postular (no se deduce de la fecha),
+y se descartó «gana el primero sin que el comercio elija»
 porque siempre aceptan las dos partes.
 
-**Queda abierto:** prender `URGENTE_DIRECTO` en producción cuando `/terminos`
-diga que quien se ofrece para ya queda confirmada al ser aceptada (cambia el
-texto legal: sube `LEGAL_TERMS_VERSION`, con el sí de Julieta).
-El texto «Te ofreciste…» sale de `ApplicationResponse.se_ofrecio_para_ya`
-(`GET /applications/mine`, calculado con el momento de la postulación), no de
-`apply_commits` del turno: quien se postuló con tiempo y mira cuando faltan
-5 horas sigue viendo «Ya te postulaste». `apply_commits` queda sólo para el
-botón y la pregunta de antes de postularse.
+**Términos (aprobado por la dueña, 2026-11-28):** una sola frase nueva en
+`/terminos`, sección «Publicar y postularse a turnos»: «En turnos que empiezan
+en menos de 6 horas, si te ofrecés con "Puedo ir ya" y el comercio te acepta,
+el turno queda confirmado.» No se tocó ninguna otra frase ni `/privacidad`.
+`LEGAL_TERMS_VERSION` sube a `2026-11-28-1` en el backend
+(`identity/domain/value_objects.py`) y en `frontend/lib/legal.ts`: todas las
+cuentas aceptan de nuevo.
 
-**Pruebas:** `backend/tests/test_urgente_directo.py` (9),
+**Queda abierto:** prender `URGENTE_DIRECTO` en producción (los Términos ya lo dicen).
+
+**Corrección tras la revisión independiente (2026-11-27/28):** el servidor
+decidía por `created_at` y no por lo que la persona vio. Ahora el
+consentimiento es explícito y se guarda: `POST /applications/shifts/{id}`
+acepta `{"puedo_ir_ya": true}` y la postulación guarda `se_ofrecio_para_ya`
+(columna nueva, migración 0067). Una pantalla vieja recibe 409
+`puedo_ir_ya_requerido`, abre la pregunta y reintenta. Aceptar, «Puede ir ya»
+y «Te ofreciste…» leen sólo esa columna; si el comercio cambia el horario se
+borra; volver a postularse la recalcula. El mail de aceptación tiene variante
+«ya quedó confirmado», y la pregunta suma «Si después no podés ir, cuenta como
+una cancelación.» Detalle en el ADR-0032.
+
+**Pruebas:** `backend/tests/test_urgente_directo.py` (16),
 `frontend/components/worker/ConfirmarPuedoIr.test.tsx`, casos nuevos en
 `SwipeDeck.test.tsx`, `ShiftDetail.test.tsx` y `lib/applicants.test.ts`,
 `frontend/e2e/carril-urgente.spec.ts` (9, claro y oscuro).
