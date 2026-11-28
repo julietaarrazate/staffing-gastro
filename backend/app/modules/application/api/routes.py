@@ -98,7 +98,12 @@ async def apply_to_shift(
             status_code=status.HTTP_409_CONFLICT,
             detail={
                 "code": "puedo_ir_ya_requerido",
-                "message": "Este turno empieza pronto: confirmá que podés ir.",
+                # Lo lee tal cual un cliente viejo (PWA con caché) que no tiene el
+                # diálogo; el nuevo no lo muestra: abre la pregunta por el `code`.
+                "message": (
+                    "Este turno empieza pronto. Cerrá la app y volvé a abrirla "
+                    "para poder postularte."
+                ),
             },
         ) from exc
     except AlreadyUnassignedError as exc:

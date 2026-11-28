@@ -99,6 +99,10 @@ class ShiftApplication:
             )
         self.status = ApplicationStatus.ACEPTADA
         self.motivo = None
+        # El reconocimiento «Puedo ir ya» sólo vale para ESTA aceptación: lo
+        # usó `ShiftService` antes de llamar acá. Si después se suelta, rechaza
+        # o restaura, la persona vuelve como una postulación normal.
+        self.se_ofrecio_para_ya = False
 
     def unassign(self, motivo: MotivoDesasignacion) -> None:
         """ACEPTADA → DESASIGNADA: quien tenía el turno lo rechazó, canceló
@@ -115,6 +119,7 @@ class ShiftApplication:
             )
         self.status = ApplicationStatus.DESASIGNADA
         self.motivo = motivo
+        self.se_ofrecio_para_ya = False
 
     def release(self) -> None:
         """ACEPTADA → PENDIENTE: el turno se le soltó sin que lo decidiera
@@ -132,6 +137,7 @@ class ShiftApplication:
         self.status = (
             ApplicationStatus.PENDIENTE if self.se_postulo else ApplicationStatus.RETIRADA
         )
+        self.se_ofrecio_para_ya = False
 
     def reject(self) -> None:
         """PENDIENTE → RECHAZADA: el comercio eligió a otro candidato (o canceló
@@ -146,6 +152,7 @@ class ShiftApplication:
                 f"No se puede rechazar una postulación en estado {self.status.value}"
             )
         self.status = ApplicationStatus.RECHAZADA
+        self.se_ofrecio_para_ya = False
 
     def restore(self) -> None:
         """RECHAZADA → PENDIENTE: el turno se reabrió (el asignado lo rechazó,
@@ -159,6 +166,7 @@ class ShiftApplication:
                 f"No se puede reabrir una postulación en estado {self.status.value}"
             )
         self.status = ApplicationStatus.PENDIENTE
+        self.se_ofrecio_para_ya = False
 
     def withdraw(self) -> None:
         """PENDIENTE → RETIRADA: el trabajador cancela su propia postulación.

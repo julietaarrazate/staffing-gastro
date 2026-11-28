@@ -391,7 +391,7 @@ describe("ShiftDetail: carril urgente (ADR-0032)", () => {
   it("con apply_commits el botón dice «Puedo ir ya» y no postula hasta confirmar", async () => {
     auth.value = { user: { role: "worker" }, token: "tok", loading: false };
     conCompromiso(true);
-    post.mockResolvedValue({ id: "a1" });
+    post.mockResolvedValue({ id: "a1", se_ofrecio_para_ya: true });
     const user = userEvent.setup();
     render(<ShiftDetail publicShift={SHIFT} />);
 
@@ -412,7 +412,7 @@ describe("ShiftDetail: carril urgente (ADR-0032)", () => {
     conCompromiso(false);
     post
       .mockRejectedValueOnce(new ApiError(409, "Este turno empieza pronto: confirmá que podés ir.", "puedo_ir_ya_requerido"))
-      .mockResolvedValueOnce({ id: "a1" });
+      .mockResolvedValueOnce({ id: "a1", se_ofrecio_para_ya: true });
     const user = userEvent.setup();
     render(<ShiftDetail publicShift={SHIFT} />);
 

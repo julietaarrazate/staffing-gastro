@@ -231,7 +231,7 @@ async def test_pantalla_vieja_recibe_409_y_despues_se_postula_con_el_reconocimie
     sin = await _postular(client, shift_id, worker, ya=False)
     assert sin.status_code == 409
     assert sin.json()["detail"]["code"] == "puedo_ir_ya_requerido"
-    assert sin.json()["detail"]["message"] == "Este turno empieza pronto: confirmá que podés ir."
+    assert "Cerrá la app" in sin.json()["detail"]["message"]
     assert await _mias(client, worker) == []
     assert await _postulantes(client, shift_id, employer) == []
 
@@ -331,3 +331,111 @@ async def test_con_la_regla_apagada_mis_postulaciones_no_dicen_nada(client):
     worker, _ = await _persona(client, "ud_mias_off_w@staffya.com")
     await _postular(client, shift_id, worker)
     assert [a["se_ofrecio_para_ya"] for a in await _mias(client, worker)] == [False]
+
+
+async def test_el_compromiso_se_pierde_si_la_postulacion_pasa_por_rechazada(client, directo):
+    """A se ofrece; el comercio acepta a B (A queda rechazada); B cancela y el
+    turno se reabre (A vuelve a pendiente); el comercio acepta a A: queda
+    «asignado» y A confirma, porque su ofrecimiento ya no vale."""
+    employer = await _comercio(client, "ud_h1")
+    shift_id = await _turno(client, employer, empieza_en=3)
+    a, a_id = await _persona(client, "ud_h1_a@staffya.com")
+    b, b_id = await _persona(client, "ud_h1_b@staffya.com")
+    await _postular(client, shift_id, a)
+    await _postular(client, shift_id, b)
+
+    assert (await _aceptar(client, shift_id, employer, b_id)).json()["status"] == "confirmado"
+    cancelado = await client.post(f"/api/v1/shifts/{shift_id}/worker-cancel", headers=b)
+    assert cancelado.status_code == 200, cancelado.text
+
+    mias = await _mias(client, a)
+    assert [m["status"] for m in mias] == ["pendiente"]
+    assert [m["se_ofrecio_para_ya"] for m in mias] == [False]
+    respuesta = await _aceptar(client, shift_id, employer, a_id)
+    assert respuesta.json()["status"] == "asignado"
+
+
+async def _editar(client, shift_id, employer, **cambios):
+    r = await client.put(
+        f"/api/v1/shifts/{shift_id}", headers=employer, json=_shift_payload(**cambios)
+    )
+    assert r.status_code == 200, r.text
+
+
+async def _turno_con_ofrecida(client, prefijo, empieza_en=5):
+    employer = await _comercio(client, prefijo)
+    shift_id = await _turno(client, employer, empieza_en=empieza_en)
+    worker, profile_id = await _persona(client, f"{prefijo}_w@staffya.com")
+    await _postular(client, shift_id, worker)
+    assert [a["se_ofrecio_para_ya"] for a in await _mias(client, worker)] == [True]
+    return employer, shift_id, worker, profile_id
+
+
+async def test_bajar_el_pago_borra_el_compromiso(client, directo):
+    employer, shift_id, worker, profile_id = await _turno_con_ofrecida(client, "ud_h3_pago")
+    inicio = (await client.get(f"/api/v1/shifts/{shift_id}", headers=employer)).json()
+    await _editar(
+        client, shift_id, employer,
+        start_at=inicio["start_at"], end_at=inicio["end_at"], pay_amount="50000.00",
+    )
+    assert [a["se_ofrecio_para_ya"] for a in await _mias(client, worker)] == [False]
+    assert (await _aceptar(client, shift_id, employer, profile_id)).json()["status"] == "asignado"
+
+
+async def test_cambiar_el_lugar_borra_el_compromiso(client, directo):
+    employer, shift_id, worker, profile_id = await _turno_con_ofrecida(client, "ud_h3_lugar")
+    inicio = (await client.get(f"/api/v1/shifts/{shift_id}", headers=employer)).json()
+    await _editar(
+        client, shift_id, employer,
+        start_at=inicio["start_at"], end_at=inicio["end_at"], address="Otra calle 456",
+    )
+    assert [a["se_ofrecio_para_ya"] for a in await _mias(client, worker)] == [False]
+    assert (await _aceptar(client, shift_id, employer, profile_id)).json()["status"] == "asignado"
+
+
+async def test_un_cambio_que_no_afecta_el_trato_conserva_el_compromiso(client, directo):
+    employer, shift_id, worker, profile_id = await _turno_con_ofrecida(client, "ud_h3_igual")
+    inicio = (await client.get(f"/api/v1/shifts/{shift_id}", headers=employer)).json()
+    await _editar(
+        client, shift_id, employer,
+        start_at=inicio["start_at"], end_at=inicio["end_at"], pay_amount="90000.00",
+        description="Subió el pago",
+    )
+    assert [a["se_ofrecio_para_ya"] for a in await _mias(client, worker)] == [True]
+
+
+async def test_el_409_dice_algo_util_a_un_cliente_viejo_y_no_pisa_al_ya_postulado(client, directo):
+    employer = await _comercio(client, "ud_h45")
+    shift_id = await _turno(client, employer, empieza_en=3)
+    worker, _ = await _persona(client, "ud_h45_w@staffya.com")
+    otro, _ = await _persona(client, "ud_h45_o@staffya.com")
+
+    sin = await _postular(client, shift_id, otro, ya=False)
+    assert sin.json()["detail"]["message"] == (
+        "Este turno empieza pronto. Cerrá la app y volvé a abrirla para poder postularte."
+    )
+
+    primera = await _postular(client, shift_id, worker)
+    # H6: la respuesta trae lo que guardó el servidor.
+    assert primera.status_code == 201 and primera.json()["se_ofrecio_para_ya"] is True
+    # H5: quien ya está postulado recibe «ya te postulaste», no la pregunta.
+    repetida = await _postular(client, shift_id, worker, ya=False)
+    assert repetida.status_code == 409
+    assert repetida.json()["detail"] == "Ya te postulaste a este turno"
+
+
+async def test_con_la_regla_apagada_la_columna_guardada_queda_en_falso(client, session_factory):
+    """Se lee la BASE, no la respuesta: así, al prender la regla después, nadie
+    arrastra un compromiso que nunca vio."""
+    from sqlalchemy import select
+
+    from app.modules.application.infrastructure.models import ShiftApplicationModel
+
+    employer = await _comercio(client, "ud_h2")
+    shift_id = await _turno(client, employer, empieza_en=3)
+    worker, _ = await _persona(client, "ud_h2_w@staffya.com")
+    r = await _postular(client, shift_id, worker)  # manda puedo_ir_ya: true
+    assert r.status_code == 201 and r.json()["se_ofrecio_para_ya"] is False
+    async with session_factory() as session:
+        valores = (await session.scalars(select(ShiftApplicationModel.se_ofrecio_para_ya))).all()
+    assert valores == [False]

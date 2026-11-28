@@ -61,8 +61,8 @@ export function esPuedoIrYaRequerido(err: unknown): boolean {
  * reconocimiento. Si la pantalla se cargó antes de que el turno entrara en las
  * 6 horas, el servidor responde 409 `puedo_ir_ya_requerido` sin crear nada:
  * se abre la pregunta (`confirmar`) y se reintenta con el reconocimiento.
- * Devuelve `null` si la persona dijo «Ahora no»; si no, si quedó ofrecida
- * para ya (lo que dice «Te ofreciste…»).
+ * Devuelve `null` si la persona dijo «Ahora no»; si no, `ofrecido` es el
+ * `se_ofrecio_para_ya` que devolvió el servidor (lo que dice «Te ofreciste…»).
  */
 export async function enviarPostulacion(opts: {
   token: string;
@@ -74,14 +74,15 @@ export async function enviarPostulacion(opts: {
   let reconocido = Boolean(shift.apply_commits);
   for (;;) {
     try {
-      await api.post(
+      const respuesta = await api.post<{ se_ofrecio_para_ya?: boolean } | null>(
         `/applications/shifts/${shift.id}`,
         reconocido ? { puedo_ir_ya: true } : undefined,
         token,
         undefined,
         key
       );
-      return { ofrecido: reconocido };
+      // Lo que el servidor GUARDÓ, no lo que la pantalla creyó mandar.
+      return { ofrecido: Boolean(respuesta?.se_ofrecio_para_ya) };
     } catch (err) {
       if (reconocido || !esPuedoIrYaRequerido(err)) throw err;
       if (!(await confirmar({ ...shift, apply_commits: true }))) return null;

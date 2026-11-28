@@ -61,6 +61,27 @@ En un turno que empieza en pocas horas, la espera más cara es la de
    prende en producción una vez que los Términos lo dicen (frase agregada el 2026-11-28, versión
    legal `2026-11-28-1`).
 
+   **Apagar y volver a prender.** Con la regla apagada la columna se guarda en
+   falso (hay un test que lee la base), pero las marcas hechas antes de
+   apagarla siguen ahí. Si se apaga y se vuelve a prender en menos de un día
+   hay que limpiarlas antes con `UPDATE shift_applications SET
+   se_ofrecio_para_ya = false`; pasado un día no hace falta, porque los
+   turnos de esas postulaciones (menos de 6 horas al postular) ya empezaron.
+   Está en el runbook de `reference/DEPLOY.md`. No se resuelve con código a
+   propósito: es una operación rara y de una sola vez.
+7. **El compromiso sólo vale mientras la postulación está pendiente.**
+   Rechazar, soltar, restaurar o desasignar lo borran: si A se ofrece, el
+   comercio acepta a B, B cancela y se reabre el turno, aceptar a A lo deja
+   «asignado» y A confirma. Y también se borra si el comercio cambia el
+   horario, baja el pago o cambia el lugar del turno (los tres definen lo
+   que la persona aceptó).
+8. **El 409 `puedo_ir_ya_requerido`** trae un mensaje legible para clientes
+   viejos sin el diálogo («Cerrá la app y volvé a abrirla para poder
+   postularte.»); el cliente nuevo no lo muestra, abre la pregunta por el
+   `code`. Quien ya está postulado recibe «Ya te postulaste» antes que la
+   pregunta, y la respuesta del `POST` trae el `se_ofrecio_para_ya` que
+   guardó el servidor, que es el que dice «Te ofreciste…».
+
 ## Qué se descartó
 
 **«Gana el primero que toca, sin que el comercio elija»** (propuesta original).

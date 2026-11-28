@@ -46,9 +46,10 @@ describe("enviarPostulacion (carril urgente, ADR-0032)", () => {
   beforeEach(() => post.mockReset());
 
   it("con apply_commits manda el reconocimiento; sin él, sin cuerpo", async () => {
-    post.mockResolvedValue({});
+    post.mockResolvedValue({ se_ofrecio_para_ya: true });
     const confirmar = vi.fn();
-    await enviarPostulacion({ token: "tok", shift: { ...turno, apply_commits: true }, key: "k", confirmar });
+    const r = await enviarPostulacion({ token: "tok", shift: { ...turno, apply_commits: true }, key: "k", confirmar });
+    expect(r).toEqual({ ofrecido: true });
     expect(post).toHaveBeenLastCalledWith("/applications/shifts/t1", { puedo_ir_ya: true }, "tok", undefined, "k");
     await enviarPostulacion({ token: "tok", shift: { ...turno, apply_commits: false }, key: "k", confirmar });
     expect(post).toHaveBeenLastCalledWith("/applications/shifts/t1", undefined, "tok", undefined, "k");
@@ -56,13 +57,20 @@ describe("enviarPostulacion (carril urgente, ADR-0032)", () => {
   });
 
   it("pantalla vieja: el 409 con código abre la pregunta y reintenta con el reconocimiento", async () => {
-    post.mockRejectedValueOnce(requerido()).mockResolvedValueOnce({});
+    post.mockRejectedValueOnce(requerido()).mockResolvedValueOnce({ se_ofrecio_para_ya: true });
     const confirmar = vi.fn().mockResolvedValue(true);
     const ok = await enviarPostulacion({ token: "tok", shift: { ...turno, apply_commits: false }, key: "k", confirmar });
     expect(ok).toEqual({ ofrecido: true });
     expect(confirmar).toHaveBeenCalledWith(expect.objectContaining({ id: "t1", apply_commits: true }));
     expect(post).toHaveBeenCalledTimes(2);
     expect(post).toHaveBeenLastCalledWith("/applications/shifts/t1", { puedo_ir_ya: true }, "tok", undefined, "k");
+  });
+
+  it("«Te ofreciste» es lo que guardó el servidor, no lo que mandó la pantalla", async () => {
+    // Mandó el reconocimiento pero el servidor lo guardó en falso (el turno ya no estaba en la ventana).
+    post.mockResolvedValue({ se_ofrecio_para_ya: false });
+    const r = await enviarPostulacion({ token: "tok", shift: { ...turno, apply_commits: true }, key: "k", confirmar: vi.fn() });
+    expect(r).toEqual({ ofrecido: false });
   });
 
   it("«Ahora no» después del 409 no reintenta", async () => {

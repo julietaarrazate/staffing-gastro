@@ -92,13 +92,19 @@ class ApplicationService:
         en_ventana = self._urgente_directo and postularse_compromete(
             shift.start_at, datetime.now(timezone.utc)
         )
-        if en_ventana and not puedo_ir_ya:
-            raise PuedoIrYaRequeridoError(str(shift_id))
         se_ofrecio_para_ya = bool(en_ventana and puedo_ir_ya)
 
         existing = await self._applications.get_by_shift_and_worker(
             shift_id, worker_profile_id
         )
+        # Primero «ya postulado» / «ya tuvo el turno»: a quien ya está en la
+        # lista no se le pregunta nada.
+        if existing is not None and existing.status not in (ApplicationStatus.RETIRADA,):
+            if existing.status == ApplicationStatus.DESASIGNADA:
+                raise AlreadyUnassignedError(str(shift_id))
+            raise AlreadyAppliedError(str(shift_id))
+        if en_ventana and not puedo_ir_ya:
+            raise PuedoIrYaRequeridoError(str(shift_id))
         if existing is None:
             application = await self._applications.add(
                 ShiftApplication(

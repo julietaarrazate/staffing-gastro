@@ -355,9 +355,19 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
                 "Ya hay personas postuladas: no se puede cambiar el puesto. "
                 "Cancelá este turno y publicá uno nuevo."
             )
-        avisar = bool(postulados) and shift.cambio_importante(
+        importante = shift.cambio_importante(
             start_at=data.start_at, end_at=data.end_at, pay_amount=data.pay_amount
         )
+        avisar = bool(postulados) and importante
+        # Carril urgente (ADR-0032): quien dijo «Puedo ir ya» lo dijo para ESTE
+        # horario, pago y lugar. Si cambia cualquiera de los tres, vuelve a pedirse.
+        cambia_lugar = (shift.address, shift.city, shift.latitude, shift.longitude) != (
+            data.address,
+            data.city,
+            data.latitude,
+            data.longitude,
+        )
+        borrar_reconocimientos = importante or cambia_lugar
 
         # La regla de horario de un turno nuevo (inicio no pasado, 1 a 16 h)
         # sólo corre si se cambia el horario: reenviar el mismo de un borrador
@@ -365,10 +375,6 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         inicio_igual = mismo_instante(shift.start_at, data.start_at)
         if not (inicio_igual and mismo_instante(shift.end_at, data.end_at)):
             validar_horario_nuevo(data.start_at, data.end_at, validar_inicio=not inicio_igual)
-        horario_nuevo = not (
-            mismo_instante(shift.start_at, data.start_at)
-            and mismo_instante(shift.end_at, data.end_at)
-        )
         shift.position = data.position
         shift.quantity = data.quantity
         shift.start_at = data.start_at
@@ -388,9 +394,8 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
         shift.description = data.description
 
         updated = await self._shifts.update(shift)
-        if horario_nuevo:
-            # La persona dijo «Puedo ir ya» para OTRO horario (ADR-0032): si
-            # el comercio la acepta ahora, vuelve a pedirse que confirme.
+        if borrar_reconocimientos:
+            # Si el comercio la acepta ahora, vuelve a pedirse que confirme.
             await self._borrar_reconocimientos_urgentes(shift.id)
         if avisar:
             await self._notify_applicants_of_change(updated, postulados)
