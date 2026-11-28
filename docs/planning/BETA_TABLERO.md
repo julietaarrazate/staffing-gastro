@@ -917,3 +917,20 @@ grande y el día anterior a abrir.
   [historial](../historial/2026-11-27-la-persona-confirma-el-cobro.md)).
 - ⚪ Que lo que dice la persona del cobro entre en la reputación «pago a
   tiempo» del comercio (decisión pendiente).
+
+## Sesión propia de seguridad (pedida por Julieta para el jueves 2026-12-03)
+
+Va con el modelo más capaz y antes de abrir. Un solo cambio, delicado: toca
+el ingreso, la renovación de sesión, el chat en vivo y «Ver como».
+
+- ⚪ El pase corto de la sesión (15 minutos) deja de guardarse donde el código
+  de la página lo puede leer y pasa a una cookie `httpOnly`, junto con la
+  llave larga, que ya está así.
+- ⚪ Protección contra pedidos falsificados desde otros sitios, que ese cambio
+  vuelve necesaria (la app y el servidor están en dominios distintos).
+- ⚪ El chat en vivo deja de llevar la sesión en la dirección de la conexión:
+  se conecta con un pase de un solo uso que vence en segundos.
+- ⚪ Términos nuevos también del lado del servidor: hoy el cartel frena en
+  pantalla, pero el servidor deja operar a quien no aceptó.
+- Red de seguridad: el ensayo general (`tools/e2e-local/ensayo/`) recorre el
+  ingreso de los tres roles, el chat y «Ver como»; correrlo antes y después.
