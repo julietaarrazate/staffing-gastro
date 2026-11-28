@@ -128,7 +128,10 @@ export default function TerminosPage() {
             </p>
             <p>
               El trabajador decide libremente si se postula o no a cada
-              turno. Nadie está obligado a aceptar uno que no le cierra.
+              turno. Nadie está obligado a aceptar uno que no le cierra. En
+              turnos que empiezan en menos de 6 horas, si te ofrecés con
+              &quot;Puedo ir ya&quot; y el comercio te acepta, el turno queda
+              confirmado.
             </p>
           </Section>
 
