@@ -1,17 +1,18 @@
-// «Falta uno», versión 2 (56,5 s): la porteña y cotidiana. Sin torre ni ciudad de rascacielos: un bodegón de barrio
+// «Falta uno», versión 2 (58 s): la porteña y cotidiana. Sin torre ni ciudad de rascacielos: un bodegón de barrio
 // un viernes a la noche, la fila en la vereda, el servicio que se tranca por un mozo que no llega, el pedido que sale
 // a la cuadra, alguien que contesta «Voy» y todo empieza a fluir: el sello «¡Oído!», las comandas que salen, la fila que entra.
 // Mismo mundo y mismas piezas que la primera (pieza.js), otra línea de tiempo. Los textos salen de trabajo/entrada/guion2.json (privado).
 import * as THREE from 'three';
 import { lerp, sat, smooth, smoother, easeOut, easeIn, deriva, kelvin, ruta, rebote, curva } from './util.js';
-import { crearCocina, crearAzotea, PISO } from './cocina.js';
-import { crearCiudad, crearCielo, crearNubes } from './ciudad.js';
+import { crearCocina, PISO } from './cocina.js';
+import { crearCiudad, crearCielo } from './ciudad.js';
 import { crearPila, GOLPES, vaivenX, vaivenZ } from './pila.js';
 import { crearSalon, FACHADA } from './salon.js';
+import { MESAS_VEREDA } from './fachada.js';
 import { crearEnfrente, crearTalonario, crearHoja, crearSello, crearConfeti, crearFlechas, crearBici, crearCopas, crearGente, crearReloj, ENFRENTE } from './objetos.js';
 import { camPila, R as R1 } from './pieza.js';
 
-export const DURACION = 56.5;
+export const DURACION = 58;
 const T3 = 9.0; // las comandas empiezan a los 9 s
 const T_SALE = 43.2; // las comandas dejan el pinche, en orden
 const TS = 41.0; // el sello «¡Oído!» y la campanita
@@ -39,8 +40,9 @@ const R = {
   pos9: ruta([[40.0, 0.12, 0.4, 0.45], [40.7, 0.06, 0.545, 0.26], [41.3, 0.05, 0.495, 0.22], [42.0, 0.12, 0.52, 0.4], [43.4, 0.3, 0.55, 0.85], [44.2, 0.55, 0.62, 1.05], [45.0, -0.8, 1.4, 3.6], [45.8, -2.28, 1.9, 5.74], [49.2, -2.3, 1.95, 5.72]]),
   look9: ruta([[40.0, 0.0, 0.17, 0.0], [40.7, 0.0, 0.185, 0.0], [41.3, 0.0, 0.185, 0.0], [42.0, 0.0, 0.32, 0.0], [43.4, 0.4, 0.05, 0.1], [44.2, 0.6, 0.02, 0.25], [45.0, -1.8, -0.2, 5.0], [45.8, -2.3, -0.2, 5.7], [49.2, -2.3, -0.2, 5.7]]),
   // 11: afuera, la vereda sin fila, y la cámara que sube al cielo
-  pos10: ruta([[49.2, 1.9, -0.15, 21.6], [51.2, 1.8, 0.0, 20.9], [53.0, 1.5, 2.2, 19.6], [56.5, 1.2, 5.5, 18.6]]),
-  look10: ruta([[49.2, 0.5, 1.0, 12], [51.2, 0.5, 1.15, 12], [53.0, 0.4, 7.5, 8], [56.5, 0.3, 16, 2]]),
+  // 11: la vereda (mesitas a la izquierda, la fila que entra a la derecha) y la grúa que sube por la fachada hasta el cielo
+  pos10: ruta([[49.2, 0.2, -0.15, 21.6], [51.6, 0.2, 0.0, 20.9], [53.5, 0.25, 3.0, 19.8], [55.4, 0.35, 9.5, 18.6], [58.0, 0.4, 13.5, 17.8]]),
+  look10: ruta([[49.2, -0.1, 1.0, 12], [51.6, -0.1, 1.2, 12], [53.5, 0.1, 4.6, 12], [55.4, 0.3, 12.5, 10], [58.0, 0.3, 16.5, 4]]),
 };
 const D8 = 13.6; // «Voy.»: la escena 8 de la primera, 13,6 s antes
 const r8 = t => t + D8;
@@ -57,11 +59,9 @@ export async function crearPieza(motor, guion) {
   const ambCuarto = amb(new THREE.Color(0.01, 0.012, 0.018), [[2, 1.5, new THREE.Color(0.08, 0.1, 0.16), 0, 1, -3]], null);
 
   const cocina = crearCocina(escena);
-  crearAzotea(escena);
   const ciudad = crearCiudad(escena, { bajo: true });
   const cielo = crearCielo(escena);
-  const nubes = crearNubes(motor);
-  const salon = crearSalon(escena, guion);
+  const salon = crearSalon(escena, guion, { frances: true });
   const enfrente = crearEnfrente(escena, guion);
   const pila = crearPila(escena, camara, { sinTorre: true, tSale: T_SALE - T3 });
   const talonario = crearTalonario(escena, guion);
@@ -90,6 +90,8 @@ export async function crearPieza(motor, guion) {
     L.push(p);
   }
   seVan.forEach((p, k) => L.push({ x: p.x, y: PISO, z: p.z, desde: 19.0, hasta: 21.6, ruta: [[19.15 + k * 0.25, p.x, p.z], [20.9 + k * 0.25, 0.35 - k * 0.3, FACHADA - 0.5], [21.6 + k * 0.25, 0.1 - k * 0.3, FACHADA + 0.6]] }));
+  // la vereda: gente sentada en las mesitas de mármol (se quedan toda la noche)
+  MESAS_VEREDA.forEach(([mx, mz], i) => { for (const s of [-1, 1]) if (i !== 2 || s < 0) L.push({ x: mx + s * 0.5, y: PISO + 0.35, z: mz, sentada: true }); });
   // gente de pie: esperando mesa junto a la puerta y en la barra del pase
   for (const [x, z] of [[-2.2, 11.0], [-1.5, 11.3], [1.3, 11.1]]) L.push({ x, y: PISO, z });
   for (const [x, z] of [[1.5, 1.6], [2.4, 1.75]]) L.push({ x, y: PISO, z });
@@ -128,7 +130,7 @@ export async function crearPieza(motor, guion) {
     }
     else if (t < 40.0) { pos = V3(...R1.pos8(r8(t))); look = V3(...R1.look8(r8(t))); fov = lerp(44, 40, smooth(37.4, 39.8, t)); roll = deriva(t * 0.8, 9) * 0.01; }
     else if (t < 49.2) { pos = V3(...R.pos9(t)); look = V3(...R.look9(t)); fov = lerp(40, 50, smooth(43.4, 45.8, t)); const cen = smooth(44.8, 45.8, t); up = V3(0, 1 - cen, -cen).normalize(); roll = smooth(45.8, 49.2, t) * 0.25; }
-    else { pos = V3(...R.pos10(t)); look = V3(...R.look10(t)); fov = lerp(50, 54, smooth(52, 56, t)); roll = deriva(t * 0.5, 13) * 0.006; }
+    else { pos = V3(...R.pos10(t)); look = V3(...R.look10(t)); fov = lerp(56, 54, smooth(52, 56, t)); roll = deriva(t * 0.5, 13) * 0.006; }
     for (const [T0, a] of [[TS, 0.006], [7.5, 0.0015], [7.98, 0.0015]]) { const u = t - T0; if (u > 0 && u < 0.5) pos.y -= a * Math.exp(-u * 14) * Math.cos(u * 60); }
     camara.position.copy(pos); camara.up.copy(up || V3(0, 1, 0)); camara.lookAt(look); if (yaw) camara.rotateY(yaw); camara.rotateZ(roll);
     camara.fov = fov;
@@ -141,6 +143,7 @@ export async function crearPieza(motor, guion) {
   // la profundidad de campo
   const focoEn = t => {
     if (t < 4.6) return [V3(0, 0.8, 12.2), 2.5];
+    if (t >= 49.2) return [V3(0, lerp(0.9, 11, smooth(52, 56, t)), 12.2), 1.5];
     if (t < T3) { const u = tv12(t); return [u < 7.8 ? V3(-2.0, 0.75, 0.46) : u < 9.4 ? V3(-0.46, 0.01, 0.17) : V3(0, 0.06, 0), lerp(4, 9, smooth(5, 6.5, u))]; }
     if (t < 16.6) return [V3(0, Math.max(pila.estado.tope, 0.04), 0), 10];
     if (t < 21.0) return [V3(0, 0.08, 0).lerp(V3(0.3, 0.3, 9.5), smooth(19.0, 20.2, t)), lerp(7, 3.5, smooth(19.0, 20.2, t))];
@@ -208,9 +211,8 @@ export async function crearPieza(motor, guion) {
       pila.matPapel.userData.uTrans.value = af ? 0.9 : 0.6;
       const [fp, ap] = focoEn(t); est.foco = Math.max(0.05, camara.position.distanceTo(fp)); est.apertura = ap;
       const lejos = camara.position.distanceTo(V3(0, 1, 4)) > 70;
-      for (const l of luces) { const deAdentro = l.parent === cocina.grupo || l.parent === salon.grupo; l.visible = l.intensity > 0 && !(lejos && deAdentro && !l.isHemisphereLight); }
+      for (const l of luces) { const deAdentro = (l.parent === cocina.grupo || l.parent === salon.grupo) && !l.userData.fachada; l.visible = l.intensity > 0 && !(lejos && deAdentro && !l.isHemisphereLight) && !(l.userData.fachada && !est.afuera); }
     },
-    despuesOpaco(rr, rt, t) { if (est.afuera && camara.position.y > 3) nubes.dibujar(rr, rt, camara, t, 0.5, [0, 0]); },
     revelado(t) {
       const af = est.afuera ? 1 : 0, cu = est.cuarto ? 1 : 0, ta = tarde(t);
       const exp = (cu ? 1.7 : af ? lerp(1.35, 1.0, ta) : 0.82) * (1 - 0.3 * smooth(40.3, 40.8, t) * (1 - smooth(43.0, 43.8, t)));
@@ -243,8 +245,8 @@ export async function crearPieza(motor, guion) {
         });
       }
       // el cierre: «oído» plano y la dirección
-      const f = sat((t - 53.2) / 0.6);
-      if (f > 0) items.push({ logo: true, alfa: easeOut(f, 3), blur: (1 - easeOut(f, 3)) * 8 }, { txt: guion.sitio || '', tam: 34, mono: true, alfa: sat((t - 53.8) / 0.5), blur: 0 });
+      const f = sat((t - 55.2) / 0.6);
+      if (f > 0) items.push({ logo: true, alfa: easeOut(f, 3), blur: (1 - easeOut(f, 3)) * 8 }, { txt: guion.sitio || '', tam: 34, mono: true, alfa: sat((t - 55.8) / 0.5), blur: 0 });
       return items;
     },
   };

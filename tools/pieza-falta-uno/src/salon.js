@@ -4,11 +4,13 @@ import * as THREE from 'three';
 import { rng, kelvin, smooth, rebote } from './util.js';
 import * as T from './texturas.js';
 import { PISO, TECHO, LOSA } from './cocina.js';
+import { crearFachadaFrancesa, Y1 } from './fachada.js';
 
 export const FACHADA = 12; // z de la fachada
 const ANCHO = 4.33;
 
-export function crearSalon(escena, guion) {
+// frances: la versión 2, con la fachada porteña de estilo francés y mesas en la vereda (fachada.js)
+export function crearSalon(escena, guion, { frances = false } = {}) {
   const g = new THREE.Group(); escena.add(g);
   const r = rng(404);
   const sombra = o => { o.castShadow = true; o.receiveShadow = true; return o; };
@@ -115,13 +117,13 @@ export function crearSalon(escena, guion) {
   tel.grupo.position.set(-0.46, 0.004, 0.17); tel.grupo.rotation.y = 0.35; g.add(tel.grupo);
 
   // la fachada: pared con puerta y dos ventanas
-  const forma = new THREE.Shape(); forma.moveTo(-ANCHO, PISO); forma.lineTo(ANCHO, PISO); forma.lineTo(ANCHO, TECHO + LOSA + 1); forma.lineTo(-ANCHO, TECHO + LOSA + 1); forma.closePath();
+  const forma = new THREE.Shape(); forma.moveTo(-ANCHO, PISO); forma.lineTo(ANCHO, PISO); const topeF = frances ? Y1 : TECHO + LOSA + 1; forma.lineTo(ANCHO, topeF); forma.lineTo(-ANCHO, topeF); forma.closePath();
   const hueco = (x0, y0, x1, y1) => { const h = new THREE.Path(); h.moveTo(x0, y0); h.lineTo(x1, y0); h.lineTo(x1, y1); h.lineTo(x0, y1); h.closePath(); forma.holes.push(h); };
   hueco(-0.85, PISO, 0.85, 1.95); hueco(-3.4, 0.05, -1.7, 2.15); hueco(1.7, 0.05, 3.4, 2.15);
   const fGeo = new THREE.ExtrudeGeometry(forma, { depth: 0.32, bevelEnabled: false });
   const fachada = new THREE.Mesh(fGeo, matFachada); fachada.position.z = FACHADA - 0.16; fachada.receiveShadow = true; fachada.castShadow = true; g.add(fachada);
   // cornisa y molduras
-  for (const [y, h, d] of [[2.45, 0.12, 0.12], [TECHO + LOSA + 0.1, 0.2, 0.2], [TECHO + LOSA + 1, 0.1, 0.18]]) { const mo = new THREE.Mesh(new THREE.BoxGeometry(ANCHO * 2 + 0.1, h, d), matFachada); mo.position.set(0, y, FACHADA + 0.16 + d / 2); mo.castShadow = true; g.add(mo); }
+  for (const [y, h, d] of [[2.45, 0.12, 0.12], [TECHO + LOSA + 0.1, 0.2, 0.2], [TECHO + LOSA + 1, 0.1, 0.18]].slice(0, frances ? 2 : 3)) { const mo = new THREE.Mesh(new THREE.BoxGeometry(ANCHO * 2 + 0.1, h, d), matFachada); mo.position.set(0, y, FACHADA + 0.16 + d / 2); mo.castShadow = true; g.add(mo); }
   // puertas abiertas hacia adentro y marcos de ventana
   for (const s of [-1, 1]) {
     const hoja = new THREE.Group(); hoja.position.set(s * 0.85, PISO, FACHADA - 0.1); g.add(hoja);
@@ -142,6 +144,7 @@ export function crearSalon(escena, guion) {
   const matAplique = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: new THREE.Color(...kelvin(2400)), emissiveIntensity: 0 });
   for (const x of [-1.25, 1.25]) { const a = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 10), matAplique); a.position.set(x, 1.75, FACHADA + 0.3); g.add(a); }
   const luzPuerta = new THREE.PointLight(new THREE.Color(...kelvin(2500)), 0, 7, 2); luzPuerta.position.set(0, 1.6, FACHADA + 0.7); g.add(luzPuerta);
+  if (frances) crearFachadaFrancesa(g, { matMaderaOsc });
 
   // la calle: veredas de baldosas, cordón, adoquines, faroles
   const largo = 320, texV = T.vereda(); texV.repeat.set(largo / 0.4, 3 / 0.4);
@@ -155,8 +158,8 @@ export function crearSalon(escena, guion) {
   const matFarol = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: new THREE.Color(...kelvin(3200)), emissiveIntensity: 0 });
   const faroles = [];
   for (let x = -150; x <= 150; x += 25) for (const z of [FACHADA + 2.6, FACHADA + 10.8]) {
-    const p = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 5.2, 8), matPoste); p.position.set(x + (z > 20 ? 12 : 0), PISO + 2.6, z); g.add(p);
-    const l = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 10), matFarol); l.position.set(x + (z > 20 ? 12 : 0), PISO + 5.3, z); g.add(l); faroles.push(l.position.clone());
+    const p = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 5.2, 8), matPoste); const xf = x + (z > 20 ? 12 : frances ? 6 : 0); p.position.set(xf, PISO + 2.6, z); g.add(p);
+    const l = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 10), matFarol); l.position.set(xf, PISO + 5.3, z); g.add(l); faroles.push(l.position.clone());
   }
   const lucesCalle = [];
   for (const [x, z] of [[0, FACHADA + 2.6], [12, FACHADA + 10.8], [-25, FACHADA + 2.6]]) { const pl = new THREE.PointLight(new THREE.Color(...kelvin(3200)), 0, 22, 2); pl.position.set(x, PISO + 5.0, z); g.add(pl); lucesCalle.push(pl); }

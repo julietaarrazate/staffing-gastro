@@ -22,8 +22,11 @@ Después Julieta pidió una **versión 2** más porteña y cotidiana: sin rascac
 ni futuro, un bodegón de barrio lleno, la fila en la vereda, el servicio que se
 tranca por falta de personal y alguien que llega por Oído para que todo
 vuelva a fluir. Las personas, sin gastar créditos: siluetas a contraluz dentro
-del mundo 3D. Usa el mismo mundo y las mismas piezas (`src/pieza2.js`, 56,5 s)
-y sus textos van en otro archivo privado, `entrada/guion2.json`.
+del mundo 3D. Después sumó una fachada más argentina, «europea francesa porteña»,
+mesas en la vereda con gente sentada y un tango bajo, debajo del murmullo (sintetizado
+como el resto: bandoneón, marcato y contrabajo; la milonga en mayor cuando todo fluye).
+Usa el mismo mundo y las mismas piezas (`src/pieza2.js`, 58 s) y sus textos van en
+otro archivo privado, `entrada/guion2.json`.
 
 ## Dónde está cada cosa
 

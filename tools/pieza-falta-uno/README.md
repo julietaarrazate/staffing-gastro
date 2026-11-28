@@ -20,9 +20,9 @@ node armar.js corte trabajo/cuadros trabajo/cuadros-extra trabajo/sonido-pieza.w
 node marca.js ../../docs/design-system/marca/isotipo-pinche-silueta.svg trabajo/marca-pinche.png 84   # el pinche chico de @turnosgastro
 node armar.js corte … voy trabajo/salida/corte-voy.mp4 trabajo/marca-pinche.png
 
-# la versión 2 (porteña y cotidiana, 56,5 s): mismo mundo, otra línea de tiempo (src/pieza2.js) y su guion privado entrada/guion2.json
-for i in 0 1 2 3; do SALTEAR=1 node render.js pieza2 0 56.5 trabajo/cuadros2 1080 1920 30 1 auto $i/4 & done; wait   # (unos 70 min)
-node banda.js trabajo/sonido-pieza2.wav 56.5 pieza2
+# la versión 2 (porteña y cotidiana, 58 s): mismo mundo, otra línea de tiempo (src/pieza2.js) y su guion privado entrada/guion2.json
+for i in 0 1 2 3; do SALTEAR=1 node render.js pieza2 0 58 trabajo/cuadros2 1080 1920 30 1 auto $i/4 & done; wait   # (unos 75 min)
+node banda.js trabajo/sonido-pieza2.wav 58 pieza2          # con el tango; un 0 al final la calcula sin tango (para medir)
 node armar.js video trabajo/cuadros2 trabajo/sonido-pieza2.wav trabajo/salida/falta-uno-v2.mp4
 ```
 
@@ -35,6 +35,7 @@ Playwright, Chromium y ffmpeg los trae el entorno de la sesión de la nube.
 |---|---|
 | `pieza.html`, `render.js` | La página que dibuja un cuadro a cualquier tiempo y el programa que la recorre (`pieza` es la primera versión; `pieza2`, la segunda) |
 | `src/pieza2.js` | La versión 2: un bodegón de barrio, sin torre ni rascacielos (el pinche rebalsa, el barrio de casas bajas, la gente que entra y sale); reusa todas las piezas de la primera |
+| `src/fachada.js` | La fachada porteña de estilo francés de la versión 2 (piedra París, balcones de hierro forjado, mansarda con buhardillas) y las mesitas de la vereda |
 | `sonido.html`, `banda.js` | La página que calcula la banda de sonido y el programa que la guarda en WAV |
 | `armar.js`, `marca.js` | Une cuadros y sonido en MP4; arma los tres cortes con fundidos cortos (los tramos están en el guion privado) y la comparación con el teaser; dibuja el pinche de la esquina |
 | `src/motor.js` | Render en alto rango, desenfoque de movimiento por subcuadros, profundidad de campo, bloom y revelado |
