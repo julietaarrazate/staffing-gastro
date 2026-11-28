@@ -118,6 +118,7 @@ from app.modules.shift.domain.exceptions import (
     InvalidShiftTransitionError,
     ShiftConcurrentModificationError,
 )
+from app.modules.shift.infrastructure.identidad import verificados_con
 from app.modules.shift.infrastructure.repositories import SqlAlchemyShiftRepository
 from app.modules.subscription.infrastructure.expiry_job import (
     run_subscription_expiry_check,
@@ -204,6 +205,10 @@ def _build_service(session) -> ShiftService:
         candidates=SqlAlchemyCandidateRepository(session),
         favorites=SqlAlchemyFavoriteRepository(session),
         reconfirmacion_activa=settings.reconfirmacion_enabled,
+        # La escalada reserva una parte del cupo para gente nueva verificada
+        # (`domain/cupo_de_avisos.py`): sin este puerto serían los 40 mejores
+        # por ranking y nada más.
+        identity_verified=verificados_con(session),
     )
 
 

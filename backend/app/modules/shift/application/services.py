@@ -53,6 +53,7 @@ from app.modules.shift.domain.exceptions import (
     ShiftNotFoundError,
     ShiftNotEditableError,
 )
+from app.modules.shift.domain.cupo_de_avisos import PARTE_PARA_NUEVOS, repartir_cupo
 from app.modules.shift.domain.nearby import FeedOrigin, closest_first, is_nearby, urgent_first
 from app.modules.shift.domain.mensajes import no_se_puede
 from app.modules.shift.domain.punctuality import PASO_AVISO_AL_COMERCIO, punctuality_of
@@ -447,7 +448,13 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
     # para que el aviso siga siendo señal y no ruido: si le llegara a todos,
     # el trabajador termina apagando las notificaciones y perdemos el canal
     # que sostiene la promesa de los 10 minutos.
-    NEARBY_NOTIFICATION_LIMIT = 10
+    #
+    # 20 desde el 2026-11-28 (antes 10; decisión de Julieta): en la beta hay
+    # pocos turnos por día, así que el riesgo no es el ruido sino avisar a
+    # pocos. Una cuarta parte del cupo va a gente nueva verificada
+    # (`domain/cupo_de_avisos.py`). Revisarlo cuando haya volumen: si una
+    # persona recibe más de cinco o seis avisos por día, bajarlo.
+    NEARBY_NOTIFICATION_LIMIT = 20
 
     # Escalada (`escalate_urgency`): círculo más amplio que la primera tanda
     # —más candidatos y más radio (`ESCALATION_RADIUS_KM`, 40 km contra 25,
@@ -457,7 +464,7 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
     # solapamiento; se acepta como costo menor: un recordatorio duplicado
     # para quien lo vio y no se postuló es, si acaso, la señal de urgencia
     # haciendo su trabajo, no un bug.
-    ESCALATION_NOTIFICATION_LIMIT = 20
+    ESCALATION_NOTIFICATION_LIMIT = 40
 
     async def _rank_nearby(
         self,
@@ -523,9 +530,29 @@ class ShiftService(AccountSuspensionEffects, SuspendedAccountShiftCloser):
             ranked_all = [
                 m for m in ranked_all if not await self._committed_in_event(m, shift)
             ]
-        return [m for m in ranked_all if m.profile_id in favorite_ids] + [
-            m for m in ranked_all if m.profile_id not in favorite_ids
-        ][:limit]
+        resto = [m for m in ranked_all if m.profile_id not in favorite_ids]
+        verificados: set[UUID] = set()
+        nuevos = [m.user_id for m in resto if m.events_completed == 0]
+        if (
+            len(resto) > limit
+            and limit // PARTE_PARA_NUEVOS > 0
+            and nuevos
+            and self._identity_verified is not None
+        ):
+            # Sólo si el tope corta a alguien y hay lugares que reservar: una
+            # consulta, y sólo por la gente nueva. Si falla, el aviso sale
+            # igual por ranking: no puede caerse por esto.
+            try:
+                verificados = await self._identity_verified(nuevos)
+            except Exception:
+                logger.exception(
+                    "Cupo de avisos: no se pudo leer quién está verificado; "
+                    "se avisa por ranking (shift_id=%s)",
+                    shift.id,
+                )
+        return [m for m in ranked_all if m.profile_id in favorite_ids] + repartir_cupo(
+            resto, limit, verificados
+        )
 
     async def _committed_in_event(self, match: MatchResult, shift: Shift) -> bool:
         """¿Ya está confirmada (o más adelante) en otro puesto del mismo evento
