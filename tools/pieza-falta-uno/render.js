@@ -12,7 +12,7 @@ const srv = http.createServer((req, res) => { const u = decodeURIComponent(req.u
   const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
   const p = await b.newPage({ viewport: { width: +ancho, height: +alto }, deviceScaleFactor: 1 }); p.setDefaultTimeout(0);
   p.on('pageerror', e => console.log('PAGEERROR', String(e).slice(0, 400))); p.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') console.log('consola', m.type(), m.text().slice(0, 400)); });
-  await p.goto(`http://127.0.0.1:${port}/pieza-falta-uno/pieza.html?w=${ancho}&h=${alto}&escena=${escena}`);
+  await p.goto(`http://127.0.0.1:${port}/pieza-falta-uno/pieza.html?w=${ancho}&h=${alto}&escena=${escena}${process.env.SIN_TEXTO ? '&sinTexto=1' : ''}`);
   await p.waitForFunction(() => window.listo === true);
   const f0 = Math.round(+desde * fps), f1 = Math.round(+hasta * fps), t0 = Date.now(); let n = 0;
   for (let f = f0; f < f1; f += cada) {

@@ -18,7 +18,7 @@ const letras = await crearLetras(W, H, 'Young Serif', { logo: '/marca/oido-plano
 window.pieza = {
   escena,
   cuadro(t, { sub } = {}) {
-    const tex = letras.dibujar(escena.letras(t));
+    const tex = letras.dibujar(q.get('sinTexto') ? [] : escena.letras(t)); // las fotos para redes van sin las palabras del video
     motor.cuadro(escena, t, { sub: sub ?? escena.subcuadros(t), obtur: escena.obturador ? escena.obturador(t) : 1 / 60, texto: tex });
     return lienzo.toDataURL('image/jpeg', 0.96);
   },
