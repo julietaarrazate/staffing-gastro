@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { avisoPostulacion, textoPostularse, useConfirmarPuedoIr } from "@/components/worker/ConfirmarPuedoIr";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -153,10 +154,10 @@ function ShiftRow({
           disabled={disabled}
           onClick={onApply}
         >
-          Postularme
+          {textoPostularse(shift)}
         </Button>
       </div>
-      {justApplied && <ConfirmOverlay label="Te postulaste" />}
+      {justApplied && <ConfirmOverlay label={shift.apply_commits ? "Te ofreciste" : "Te postulaste"} />}
     </div>
   );
 }
@@ -201,6 +202,7 @@ export default function MapPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [applyingId, setApplyingId] = useState<string | null>(null);
+  const { confirmar, dialogo } = useConfirmarPuedoIr();
   // Turno recién postulado: su tarjeta muestra la confirmación un instante
   // (ConfirmOverlay) y recién después sale de la lista.
   const [justAppliedId, setJustAppliedId] = useState<string | null>(null);
@@ -388,6 +390,8 @@ export default function MapPage() {
       toast("Estás viendo el mapa como admin — sólo lectura", "error");
       return;
     }
+    // Carril urgente: «Puedo ir ya» pregunta antes de postular.
+    if (!(await confirmar(shift))) return;
     setApplyingId(shift.id);
     try {
       // Idempotencia (product/IDEMPOTENCIA_SPEC.md): mismo intento (mismo
@@ -402,7 +406,7 @@ export default function MapPage() {
       );
       clearIdempotencyKey(shift.id);
       postulados.current.add(shift.id);
-      toast("¡Te postulaste! El comercio ya te puede ver");
+      toast(avisoPostulacion(shift));
       setPreviewShift((prev) => (prev?.id === shift.id ? null : prev));
       setJustAppliedId(shift.id);
       removeTimer.current = setTimeout(
@@ -680,10 +684,10 @@ export default function MapPage() {
                     disabled={applyingId !== null || justAppliedId !== null}
                     onClick={() => apply(shift)}
                   >
-                    Postularme
+                    {textoPostularse(shift)}
                   </Button>
                 </div>
-                {justAppliedId === shift.id && <ConfirmOverlay label="Te postulaste" />}
+                {justAppliedId === shift.id && <ConfirmOverlay label={shift.apply_commits ? "Te ofreciste" : "Te postulaste"} />}
               </motion.div>
             );
           })}
@@ -774,13 +778,14 @@ export default function MapPage() {
                   disabled={applyingId !== null}
                   onClick={() => apply(shift)}
                 >
-                  Postularme
+                  {textoPostularse(shift)}
                 </Button>
               </div>
             );
           })()}
         </Sheet>
       )}
+      {dialogo}
     </div>
   );
 }

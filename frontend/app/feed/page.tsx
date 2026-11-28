@@ -31,6 +31,7 @@ import {
 import LocationBar from "@/components/worker/LocationBar";
 import { CardSkeletons, EmptyState, ErrorState, Skeleton, useToast } from "@/components/ui";
 import CieloInicio from "@/components/worker/CieloInicio";
+import { avisoPostulacion, useConfirmarPuedoIr } from "@/components/worker/ConfirmarPuedoIr";
 import OpportunityCard from "@/components/worker/OpportunityCard";
 import FeedHero from "@/components/worker/FeedHero";
 import UrgentesRow from "@/components/worker/UrgentesRow";
@@ -230,6 +231,7 @@ function WorkerFeedPanel() {
   // correrían bajo el dedo y el segundo toque caería en otra «Postularme»).
   const [appliedInGrid, setAppliedInGrid] = useState<ReadonlySet<string>>(() => new Set());
   const tapGuard = useTapGuard();
+  const { confirmar, dialogo } = useConfirmarPuedoIr();
   // "Estoy acá ahora": si el trabajador compartió dónde está, el feed se
   // ordena desde ese punto y no desde la zona fija de su perfil. Dura lo que
   // dura la pestaña y NO pisa el perfil (ver lib/current-location.ts).
@@ -432,7 +434,7 @@ function WorkerFeedPanel() {
       );
       clearIdempotencyKey(shift.id);
       dropFromCache(shift.id);
-      toast("¡Te postulaste! El comercio ya te puede ver");
+      toast(avisoPostulacion(shift));
       // Primera acción significativa del flujo del trabajador: acá, y no al
       // aterrizar en la app, es cuando tiene sentido preguntar si quiere
       // enterarse por push cuando el comercio responda (ver docs/reference/ACCESO_MODERNO.md).
@@ -458,6 +460,8 @@ function WorkerFeedPanel() {
    *  la grilla apenas se resuelve. */
   async function handleGridDecide(shift: Shift, decision: "like" | "pass") {
     if (decidingId !== null) return;
+    // Carril urgente: «Puedo ir ya» pregunta antes de postular.
+    if (decision === "like" && !(await confirmar(shift))) return;
     await tapGuard.run(async () => {
       setDecidingId(shift.id);
       try {
@@ -781,6 +785,7 @@ function WorkerFeedPanel() {
       )}
 
       {!loading && tourPendiente && <GuidedTour steps={WORKER_FEED_TOUR} storageKey="staffya_tour_worker_feed" />}
+      {dialogo}
     </div>
   );
 }

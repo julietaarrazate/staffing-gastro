@@ -376,6 +376,69 @@ describe("ShiftDetail", () => {
   });
 });
 
+describe("ShiftDetail: carril urgente (ADR-0032)", () => {
+  function conCompromiso(commits: boolean, applications: { shift_id: string; status: ApplicationStatus }[] = []) {
+    get.mockImplementation((path: string) => {
+      if (path.startsWith("/applications/mine")) return Promise.resolve(applications);
+      if (path === "/shifts/s1") return Promise.resolve({ ...SHIFT, apply_commits: commits });
+      return Promise.reject(new Error(`sin mock: ${path}`));
+    });
+  }
+
+  it("con apply_commits el botón dice «Puedo ir ya» y no postula hasta confirmar", async () => {
+    auth.value = { user: { role: "worker" }, token: "tok", loading: false };
+    conCompromiso(true);
+    post.mockResolvedValue({ id: "a1" });
+    const user = userEvent.setup();
+    render(<ShiftDetail publicShift={SHIFT} />);
+
+    await user.click(await screen.findByRole("button", { name: "Puedo ir ya" }));
+    expect(post).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog", { name: "¿Podés ir a este turno?" })).toBeInTheDocument();
+    expect(screen.getByText(/Si el comercio te acepta, el turno queda confirmado en el momento/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Sí, puedo ir" }));
+    expect(post).toHaveBeenCalledWith("/applications/shifts/s1", undefined, "tok", undefined, expect.any(String));
+    expect(await screen.findByText("Te ofreciste para este turno.")).toBeInTheDocument();
+    expect(screen.getByText("Si te aceptan, queda confirmado.")).toBeInTheDocument();
+    expect(screen.queryByText("Ya te postulaste")).not.toBeInTheDocument();
+  });
+
+  it("«Ahora no» no postula y deja el botón para volver a intentarlo", async () => {
+    auth.value = { user: { role: "worker" }, token: "tok", loading: false };
+    conCompromiso(true);
+    const user = userEvent.setup();
+    render(<ShiftDetail publicShift={SHIFT} />);
+
+    await user.click(await screen.findByRole("button", { name: "Puedo ir ya" }));
+    await user.click(screen.getByRole("button", { name: "Ahora no" }));
+
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Sí, puedo ir" })).not.toBeInTheDocument());
+    expect(post).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Puedo ir ya" })).toBeEnabled();
+  });
+
+  it("sin apply_commits todo sigue igual: «Postularme», sin pregunta", async () => {
+    auth.value = { user: { role: "worker" }, token: "tok", loading: false };
+    conCompromiso(false);
+    post.mockResolvedValue({ id: "a1" });
+    const user = userEvent.setup();
+    render(<ShiftDetail publicShift={SHIFT} />);
+
+    await user.click(await screen.findByRole("button", { name: "Postularme" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(post).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText("Ya te postulaste")).toBeInTheDocument();
+  });
+
+  it("si ya se había ofrecido, al volver a entrar ve que se ofreció", async () => {
+    auth.value = { user: { role: "worker" }, token: "tok", loading: false };
+    conCompromiso(true, [{ shift_id: "s1", status: "pendiente" }]);
+    render(<ShiftDetail publicShift={SHIFT} />);
+    expect(await screen.findByText("Te ofreciste para este turno.")).toBeInTheDocument();
+  });
+});
+
 describe("ShiftDetail: respuesta vieja de una recarga silenciosa", () => {
   it("una lista de postulaciones que salió antes de postularse no vuelve a ofrecer «Postularme»", async () => {
     auth.value = { user: { role: "worker" }, token: "tok", loading: false };

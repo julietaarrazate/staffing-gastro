@@ -8,6 +8,7 @@ import type { WorkerProfile } from "@/lib/types";
 import { Avatar, Button, ErrorBanner, Skeleton } from "@/components/ui";
 import FichaTrabajadorContenido from "@/components/profile/FichaTrabajadorContenido";
 import { CheckIcon } from "@/components/icons";
+import { PUEDE_IR_YA, textoElegir } from "@/lib/applicants";
 import { firstNameOf } from "@/lib/shift-next-step";
 
 /**
@@ -27,6 +28,7 @@ export default function FichaCandidato({
   token,
   onElegir,
   faltaVerificar = false,
+  puedeIrYa = false,
   eligiendo = false,
   bloqueado = false,
 }: {
@@ -38,6 +40,8 @@ export default function FichaCandidato({
   onElegir?: () => void;
   /** No verificó su identidad y hace falta para elegirla. */
   faltaVerificar?: boolean;
+  /** Se ofreció para ya (carril urgente): lleva la marca y «Aceptar a …». */
+  puedeIrYa?: boolean;
   eligiendo?: boolean;
   bloqueado?: boolean;
 }) {
@@ -92,6 +96,11 @@ export default function FichaCandidato({
             {datos?.age != null ? `${nombre}, ${datos.age}` : nombre}
           </h2>
           {datos?.city && <p className="mt-1 break-words text-fila font-semibold text-ink-soft">{datos.city}</p>}
+          {puedeIrYa && (
+            <span data-testid="puede-ir-ya" className="chip-suave mr-1.5 mt-2">
+              {PUEDE_IR_YA}
+            </span>
+          )}
           {datos?.identidad_verificada && (
             <span className="chip-suave mt-2 text-success-text">
               <CheckIcon size={14} strokeWidth={2.6} aria-hidden />
@@ -115,7 +124,7 @@ export default function FichaCandidato({
           disabled={bloqueado}
           className="mt-5 h-auto whitespace-normal break-words py-3 text-center"
         >
-          Elegir a {firstNameOf(nombre) ?? nombre}
+          {textoElegir(puedeIrYa, firstNameOf(nombre) ?? nombre)}
         </Button>
       )}
 

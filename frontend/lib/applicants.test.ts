@@ -114,3 +114,14 @@ describe("quien tuvo el turno y lo dejó (G4)", () => {
     expect(unassignedLabel({ status: "aceptada", motivo: null })).toBeNull();
   });
 });
+
+describe("carril urgente (ADR-0032)", () => {
+  it("el botón dice «Aceptar» si ya se ofreció para ya, «Elegir» si no", async () => {
+    const { textoElegir, PUEDE_IR_YA } = await import("./applicants");
+    expect(PUEDE_IR_YA).toBe("Puede ir ya");
+    expect(textoElegir(true)).toBe("Aceptar");
+    expect(textoElegir(false)).toBe("Elegir");
+    expect(textoElegir(undefined, "Sofía")).toBe("Elegir a Sofía");
+    expect(textoElegir(true, "Sofía")).toBe("Aceptar a Sofía");
+  });
+});

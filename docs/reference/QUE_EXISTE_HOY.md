@@ -184,6 +184,15 @@ listados más abajo.
   cercanía del horario, no la marca «Urgente» del comercio. Sale de los
   turnos que el Inicio ya muestra (mismo radio, sin los que ya se postuló);
   sin ninguno, la sección no aparece. Siguen estando también en «Para vos».
+- **Carril urgente: «Puedo ir ya»** (2026-11-27, ADR-0032, **apagado** tras
+  `URGENTE_DIRECTO`): en un turno que empieza en menos de 6 horas, postularse
+  compromete. El botón dice «Puedo ir ya» y pregunta antes («¿Podés ir a este
+  turno?»); si el comercio acepta a esa persona, el turno queda **confirmado**
+  en el momento y ella no confirma de nuevo. Siempre aceptan las dos partes:
+  el comercio ve «Puede ir ya» y «Aceptar», y es él quien decide. Se mide
+  contra cuándo se postuló: quien lo hizo con anticipación, o a quien el
+  comercio elige desde «Recomendados», sigue confirmando como siempre. Con la
+  regla apagada, todo igual.
 - **«Cerca» es un límite, no una preferencia** (2026-11-13): el aviso
   «Turno cerca tuyo» sale sólo a quien está a 25 km o menos del turno (40 km
   en la escalada a urgente), y lo mismo los recomendados que ve el comercio.

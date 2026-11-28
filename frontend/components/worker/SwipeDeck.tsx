@@ -5,6 +5,7 @@ import { motion, useAnimationControls, useMotionValue, useReducedMotion, useTran
 import { Shift } from "@/lib/types";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
 import { Button } from "@/components/ui";
+import { textoPostularse, useConfirmarPuedoIr } from "@/components/worker/ConfirmarPuedoIr";
 import { MOTION_UI } from "@/lib/motion";
 import { useTapGuard } from "@/lib/use-tap-guard";
 
@@ -72,6 +73,7 @@ export default function SwipeDeck({
   // anterior) la postularía sin que nadie la eligiera. Un `busy` de ~0.3s no
   // alcanza: el segundo toque llega a los 500–700 ms.
   const tapGuard = useTapGuard();
+  const { confirmar, dialogo } = useConfirmarPuedoIr();
 
   useEffect(() => {
     setDeck(shifts);
@@ -113,9 +115,12 @@ export default function SwipeDeck({
     void slide(dir, () => setIndex(safeIndex + dir));
   }
 
-  function apply() {
-    if (busy || !current) return;
-    void tapGuard.run(() => applyCurrent(current));
+  async function apply() {
+    if (busy || !current || tapGuard.locked) return;
+    const shift = current;
+    // Carril urgente: «Puedo ir ya» pregunta antes de que la carta se vaya.
+    if (!(await confirmar(shift))) return;
+    void tapGuard.run(() => applyCurrent(shift));
   }
 
   async function applyCurrent(shift: Shift) {
@@ -231,7 +236,7 @@ export default function SwipeDeck({
           <ChevronLeftIcon size={20} />
         </button>
         <Button fullWidth onClick={apply} disabled={busy || tapGuard.locked}>
-          Postularme
+          {current ? textoPostularse(current) : "Postularme"}
         </Button>
         <button type="button" aria-label="Turno siguiente" onClick={() => go(1)} disabled={!hasNext || busy} className={navButton}>
           <ChevronRightIcon size={20} />
@@ -240,6 +245,7 @@ export default function SwipeDeck({
       <p aria-live="polite" data-testid="swipe-deck-position" className="mt-2 text-center font-mono text-caption text-ink/55">
         {safeIndex + 1} de {deck.length}
       </p>
+      {dialogo}
     </div>
   );
 }
