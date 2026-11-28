@@ -16,6 +16,7 @@ function applicant(overrides: Partial<Applicant>): Applicant {
     rating: 0,
     is_available: true,
     status: "pendiente",
+    se_ofrecio_para_ya: false,
     created_at: "2026-09-22T10:00:00Z",
     events_completed: 0,
     punctuality_rate: 0,

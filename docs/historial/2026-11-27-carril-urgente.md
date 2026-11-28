@@ -33,10 +33,12 @@ porque siempre aceptan las dos partes.
 
 **Queda abierto:** prender `URGENTE_DIRECTO` en producción cuando `/terminos`
 diga que quien se ofrece para ya queda confirmada al ser aceptada (cambia el
-texto legal: sube `LEGAL_TERMS_VERSION`, con el sí de Julieta). Un turno que
-cruza las 6 horas mientras la persona ya estaba postulada muestra «Te
-ofreciste» aunque se haya postulado antes (el servidor igual le pide
-confirmar): sólo el texto del estado, no la regla.
+texto legal: sube `LEGAL_TERMS_VERSION`, con el sí de Julieta).
+El texto «Te ofreciste…» sale de `ApplicationResponse.se_ofrecio_para_ya`
+(`GET /applications/mine`, calculado con el momento de la postulación), no de
+`apply_commits` del turno: quien se postuló con tiempo y mira cuando faltan
+5 horas sigue viendo «Ya te postulaste». `apply_commits` queda sólo para el
+botón y la pregunta de antes de postularse.
 
 **Pruebas:** `backend/tests/test_urgente_directo.py` (9),
 `frontend/components/worker/ConfirmarPuedoIr.test.tsx`, casos nuevos en

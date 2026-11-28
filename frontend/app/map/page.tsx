@@ -101,6 +101,7 @@ function ShiftRow({
   active,
   applying,
   justApplied,
+  ofrecido,
   disabled,
   onSelect,
   onApply,
@@ -110,6 +111,8 @@ function ShiftRow({
   active: boolean;
   applying: boolean;
   justApplied: boolean;
+  /** Con `justApplied`: se ofreció para ya (lo que confirmó al postular). */
+  ofrecido: boolean;
   disabled: boolean;
   onSelect: () => void;
   onApply: () => void;
@@ -157,7 +160,7 @@ function ShiftRow({
           {textoPostularse(shift)}
         </Button>
       </div>
-      {justApplied && <ConfirmOverlay label={shift.apply_commits ? "Te ofreciste" : "Te postulaste"} />}
+      {justApplied && <ConfirmOverlay label={ofrecido ? "Te ofreciste" : "Te postulaste"} />}
     </div>
   );
 }
@@ -206,6 +209,8 @@ export default function MapPage() {
   // Turno recién postulado: su tarjeta muestra la confirmación un instante
   // (ConfirmOverlay) y recién después sale de la lista.
   const [justAppliedId, setJustAppliedId] = useState<string | null>(null);
+  // Lo que la persona confirmó al postular (carril urgente), para el cartel.
+  const [justOfrecido, setJustOfrecido] = useState(false);
   const removeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reducedMotion = useReducedMotion();
   useEffect(() => () => {
@@ -409,6 +414,7 @@ export default function MapPage() {
       toast(avisoPostulacion(shift));
       setPreviewShift((prev) => (prev?.id === shift.id ? null : prev));
       setJustAppliedId(shift.id);
+      setJustOfrecido(Boolean(shift.apply_commits));
       removeTimer.current = setTimeout(
         () => {
           setShifts((prev) => prev.filter((s) => s.id !== shift.id));
@@ -528,6 +534,7 @@ export default function MapPage() {
                       active={shift.id === activeId}
                       applying={applyingId === shift.id}
                       justApplied={justAppliedId === shift.id}
+                      ofrecido={justOfrecido}
                       disabled={applyingId !== null || justAppliedId !== null}
                       onSelect={() => selectById(shift.id)}
                       onApply={() => apply(shift)}
@@ -687,7 +694,7 @@ export default function MapPage() {
                     {textoPostularse(shift)}
                   </Button>
                 </div>
-                {justAppliedId === shift.id && <ConfirmOverlay label={shift.apply_commits ? "Te ofreciste" : "Te postulaste"} />}
+                {justAppliedId === shift.id && <ConfirmOverlay label={justOfrecido ? "Te ofreciste" : "Te postulaste"} />}
               </motion.div>
             );
           })}

@@ -24,6 +24,12 @@ class ApplicationResponse(BaseModel):
     # (ver ApplicationService.list_my_applications). Opcional para no romper la
     # respuesta de `apply`/`withdraw`, que sólo devuelven la postulación.
     shift: ShiftResponse | None = None
+    # Carril urgente: la persona se ofreció para ya (regla prendida, postulación
+    # pendiente y hecha con el turno a menos de 6 horas). Sólo lo calcula
+    # `GET /applications/mine`, que tiene el turno; en las demás respuestas es
+    # `false`. Es lo que dice «Te ofreciste…»: `apply_commits` del turno sólo
+    # vale para el botón de antes de postularse.
+    se_ofrecio_para_ya: bool = False
 
 
 class ApplicantResponse(BaseModel):

@@ -13,21 +13,29 @@ import type { Shift } from "@/lib/types";
  * pantallas que postulan pasan por acá.
  */
 
+/** Lo único que estos textos miran del turno (opcional: el detalle arma el
+ *  turno con la vista pública, que no lo trae). */
+type ConCompromiso = { apply_commits?: boolean };
+type ConTurno = ConCompromiso & Pick<Shift, "start_at">;
+
 /** Lo que dice el botón que postula, según el turno. */
-export function textoPostularse(shift: Pick<Shift, "apply_commits">): string {
+export function textoPostularse(shift: ConCompromiso): string {
   return shift.apply_commits ? "Puedo ir ya" : "Postularme";
 }
 
 /** El aviso al terminar de postularse. */
-export function avisoPostulacion(shift: Pick<Shift, "apply_commits">): string {
+export function avisoPostulacion(shift: ConCompromiso): string {
   return shift.apply_commits
     ? "¡Te ofreciste! Si el comercio te acepta, el turno queda confirmado"
     : "¡Te postulaste! El comercio ya te puede ver";
 }
 
-/** Dónde la persona ve que ya se postuló (título y renglón de abajo). */
-export function estadoPostulado(shift: Pick<Shift, "apply_commits">): { titulo: string; detalle: string } {
-  return shift.apply_commits
+/** Dónde la persona ve que ya se postuló (título y renglón de abajo).
+ *  `ofrecido` es `se_ofrecio_para_ya` de SU postulación (o que acaba de
+ *  confirmar la pregunta), no `apply_commits` del turno al mirar: quien se
+ *  postuló con tiempo no recibió esa promesa. */
+export function estadoPostulado(ofrecido: boolean): { titulo: string; detalle: string } {
+  return ofrecido
     ? { titulo: "Te ofreciste para este turno.", detalle: "Si te aceptan, queda confirmado." }
     : { titulo: "Ya te postulaste", detalle: "Te avisamos cuando el comercio responda." };
 }
@@ -66,8 +74,6 @@ export function ConfirmarPuedoIr({
  * si compromete abre la pregunta y resuelve según lo que toque la persona.
  * `dialogo` va una sola vez en el árbol de la pantalla.
  */
-type ConTurno = Pick<Shift, "apply_commits" | "start_at">;
-
 export function useConfirmarPuedoIr(): {
   confirmar: (shift: ConTurno) => Promise<boolean>;
   dialogo: ReactNode;

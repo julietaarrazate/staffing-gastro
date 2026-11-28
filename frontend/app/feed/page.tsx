@@ -230,6 +230,8 @@ function WorkerFeedPanel() {
   // marcada «Postulado», hasta la próxima carga (si desapareciera, las demás
   // correrían bajo el dedo y el segundo toque caería en otra «Postularme»).
   const [appliedInGrid, setAppliedInGrid] = useState<ReadonlySet<string>>(() => new Set());
+  // De ésos, a los que la persona se ofreció para ya (lo que confirmó al postular).
+  const [ofrecidosEnGrilla, setOfrecidosEnGrilla] = useState<ReadonlySet<string>>(() => new Set());
   const tapGuard = useTapGuard();
   const { confirmar, dialogo } = useConfirmarPuedoIr();
   // "Estoy acá ahora": si el trabajador compartió dónde está, el feed se
@@ -309,7 +311,10 @@ function WorkerFeedPanel() {
       // La próxima carga ya trae a los postulados filtrados: la marca de la
       // grilla termina su trabajo (y si se retiró una postulación, el turno
       // vuelve a ofrecerse sin la marca vieja).
-      if (gridApplies.current === appliesAtStart) setAppliedInGrid(new Set());
+      if (gridApplies.current === appliesAtStart) {
+        setAppliedInGrid(new Set());
+        setOfrecidosEnGrilla(new Set());
+      }
       setArrivedEmpty(feed.length === 0);
       // Si la persona guardó su perfil mientras esto cargaba, `prof` es viejo.
       const profFresh = profileSaves.current === savesAtStart && !savingProfile.current;
@@ -470,6 +475,7 @@ function WorkerFeedPanel() {
         if (decision === "like") {
           gridApplies.current += 1;
           setAppliedInGrid((prev) => new Set(prev).add(shift.id));
+          if (shift.apply_commits) setOfrecidosEnGrilla((prev) => new Set(prev).add(shift.id));
         }
         else setShifts((prev) => prev.filter((s) => s.id !== shift.id));
       } finally {
@@ -747,6 +753,7 @@ function WorkerFeedPanel() {
                         applying={decidingId === shift.id}
                         locked={tapGuard.locked}
                         applied={appliedInGrid.has(shift.id)}
+                        ofrecido={ofrecidosEnGrilla.has(shift.id)}
                         onApply={() => handleGridDecide(shift, "like")}
                         onPass={() => handleGridDecide(shift, "pass")}
                         shareable

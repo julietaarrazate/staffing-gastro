@@ -204,3 +204,45 @@ async def test_con_la_regla_apagada_nadie_lleva_la_marca(client):
 
     lista = await _postulantes(client, shift_id, employer)
     assert [p["se_ofrecio_para_ya"] for p in lista] == [False]
+
+
+async def _mias(client: AsyncClient, worker: dict) -> list[dict]:
+    r = await client.get("/api/v1/applications/mine", headers=worker)
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+async def test_mis_postulaciones_dicen_si_se_ofrecio_para_ya(client, directo):
+    employer = await _comercio(client, "ud_mias")
+    shift_id = await _turno(client, employer, empieza_en=3)
+    worker, _ = await _persona(client, "ud_mias_w@staffya.com")
+    await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
+    assert [a["se_ofrecio_para_ya"] for a in await _mias(client, worker)] == [True]
+
+
+async def test_se_postulo_hace_7_horas_y_faltan_5_no_se_ofrecio(client, directo, session_factory):
+    """El turno ahora está a 5 horas (en la ventana), pero la postulación es de
+    cuando faltaban 12: vio «Postularme». No se le promete confirmación."""
+    from sqlalchemy import update
+
+    from app.modules.application.infrastructure.models import ShiftApplicationModel
+
+    employer = await _comercio(client, "ud_mias7")
+    shift_id = await _turno(client, employer, empieza_en=5)
+    worker, _ = await _persona(client, "ud_mias7_w@staffya.com")
+    await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
+    async with session_factory() as session:
+        await session.execute(update(ShiftApplicationModel).values(created_at=_en(-7)))
+        await session.commit()
+    # El turno sí compromete a quien mire ahora, pero esta postulación no.
+    visto = await client.get(f"/api/v1/shifts/{shift_id}", headers=worker)
+    assert visto.json()["apply_commits"] is True
+    assert [a["se_ofrecio_para_ya"] for a in await _mias(client, worker)] == [False]
+
+
+async def test_con_la_regla_apagada_mis_postulaciones_no_dicen_nada(client):
+    employer = await _comercio(client, "ud_mias_off")
+    shift_id = await _turno(client, employer, empieza_en=3)
+    worker, _ = await _persona(client, "ud_mias_off_w@staffya.com")
+    await client.post(f"/api/v1/applications/shifts/{shift_id}", headers=worker)
+    assert [a["se_ofrecio_para_ya"] for a in await _mias(client, worker)] == [False]

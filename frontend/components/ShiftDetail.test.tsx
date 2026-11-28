@@ -377,7 +377,10 @@ describe("ShiftDetail", () => {
 });
 
 describe("ShiftDetail: carril urgente (ADR-0032)", () => {
-  function conCompromiso(commits: boolean, applications: { shift_id: string; status: ApplicationStatus }[] = []) {
+  function conCompromiso(
+    commits: boolean,
+    applications: { shift_id: string; status: ApplicationStatus; se_ofrecio_para_ya?: boolean }[] = []
+  ) {
     get.mockImplementation((path: string) => {
       if (path.startsWith("/applications/mine")) return Promise.resolve(applications);
       if (path === "/shifts/s1") return Promise.resolve({ ...SHIFT, apply_commits: commits });
@@ -433,9 +436,18 @@ describe("ShiftDetail: carril urgente (ADR-0032)", () => {
 
   it("si ya se había ofrecido, al volver a entrar ve que se ofreció", async () => {
     auth.value = { user: { role: "worker" }, token: "tok", loading: false };
-    conCompromiso(true, [{ shift_id: "s1", status: "pendiente" }]);
+    conCompromiso(true, [{ shift_id: "s1", status: "pendiente", se_ofrecio_para_ya: true }]);
     render(<ShiftDetail publicShift={SHIFT} />);
     expect(await screen.findByText("Te ofreciste para este turno.")).toBeInTheDocument();
+  });
+
+  it("se postuló hace 7 horas y faltan 5: el turno compromete ahora, pero dice que se postuló, no que se ofreció", async () => {
+    auth.value = { user: { role: "worker" }, token: "tok", loading: false };
+    conCompromiso(true, [{ shift_id: "s1", status: "pendiente", se_ofrecio_para_ya: false }]);
+    render(<ShiftDetail publicShift={SHIFT} />);
+    expect(await screen.findByText("Ya te postulaste")).toBeInTheDocument();
+    expect(screen.queryByText(/Te ofreciste/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/queda confirmado/)).not.toBeInTheDocument();
   });
 });
 

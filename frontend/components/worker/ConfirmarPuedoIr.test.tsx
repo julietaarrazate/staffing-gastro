@@ -16,11 +16,11 @@ describe("textos del carril urgente", () => {
   });
 
   it("el estado después de postularse cambia sólo si compromete", () => {
-    expect(estadoPostulado({ apply_commits: true })).toEqual({
+    expect(estadoPostulado(true)).toEqual({
       titulo: "Te ofreciste para este turno.",
       detalle: "Si te aceptan, queda confirmado.",
     });
-    expect(estadoPostulado({ apply_commits: false }).titulo).toBe("Ya te postulaste");
+    expect(estadoPostulado(false).titulo).toBe("Ya te postulaste");
     expect(avisoPostulacion({ apply_commits: false })).toBe("¡Te postulaste! El comercio ya te puede ver");
   });
 });

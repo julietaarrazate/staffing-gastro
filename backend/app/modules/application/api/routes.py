@@ -162,6 +162,13 @@ async def my_applications(
             shift=_shift_for_applicant(
                 shift, worker_profile_id, companies_by_id, verified_owner_ids
             ),
+            se_ofrecio_para_ya=(
+                settings.urgente_directo
+                and shift is not None
+                and application.status == ApplicationStatus.PENDIENTE
+                and application.created_at is not None
+                and postularse_compromete(shift.start_at, application.created_at)
+            ),
         )
         for application, shift in enriched
     ]

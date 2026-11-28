@@ -68,8 +68,8 @@ const APPLICATION_LABELS: Record<string, string> = {
 };
 
 // Carril urgente: quien se ofreció para ya ve «Te ofreciste», no «Postulado».
-function etiquetaPostulacion(a: ShiftApplication, shift: Shift | undefined): string {
-  if (a.status === "pendiente" && shift?.apply_commits) return "Te ofreciste · esperando respuesta";
+function etiquetaPostulacion(a: ShiftApplication): string {
+  if (a.status === "pendiente" && a.se_ofrecio_para_ya) return "Te ofreciste · esperando respuesta";
   return APPLICATION_LABELS[a.status] ?? "Pendiente";
 }
 
@@ -734,7 +734,7 @@ function MatchesContent() {
       : tab === "postulaciones"
         ? pending.flatMap((a) => {
             const s = appShifts[a.shift_id];
-            return s ? [{ shift: s, estado: etiquetaPostulacion(a, s), tono: CLASE_TONO.azul }] : [];
+            return s ? [{ shift: s, estado: etiquetaPostulacion(a), tono: CLASE_TONO.azul }] : [];
           })
         : savedShifts.map((s) => ({ shift: s, estado: "Guardado", tono: CLASE_TONO.azul }));
   const semana = semanaArgentina(now, semanaOffset);
@@ -975,7 +975,7 @@ function MatchesContent() {
                   {isOpen ? (
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="chip-suave text-primary-text">
-                        <ClockIcon size={15} /> {etiquetaPostulacion(application, shift)}
+                        <ClockIcon size={15} /> {etiquetaPostulacion(application)}
                       </p>
                       {/* Compartir a un colega: este turno sigue abierto, pasarlo
                           por WhatsApp suma gente a la plataforma (mismas piezas

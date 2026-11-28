@@ -29,6 +29,7 @@ export default function OpportunityCard({
   applying = false,
   locked = false,
   applied = false,
+  ofrecido = false,
   shareable = false,
   acento = true,
   preview = false,
@@ -50,6 +51,8 @@ export default function OpportunityCard({
   /** Ya se postuló desde esta tarjeta: queda en su lugar, marcada
    *  «Postulado», en vez de desaparecer y correr las demás bajo el dedo. */
   applied?: boolean;
+  /** Con `applied`: se ofreció para ya (carril urgente), no sólo se postuló. */
+  ofrecido?: boolean;
   /** Botón "Compartir" al lado de "Cómo llegar", para pasarle el turno a un
    *  colega (Web Share nativo en el celu, `wa.me` de respaldo). Sólo en las
    *  grillas (`/buscar`, feed de escritorio), donde la tarjeta tiene alto
@@ -370,7 +373,7 @@ export default function OpportunityCard({
               {onApply &&
                 (applied ? (
                   <p className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-full bg-success-tint text-sm font-semibold text-success-text">
-                    <CheckIcon size={16} /> {shift.apply_commits ? "Te ofreciste" : "Postulado"}
+                    <CheckIcon size={16} /> {ofrecido ? "Te ofreciste" : "Postulado"}
                   </p>
                 ) : (
                   <Button
