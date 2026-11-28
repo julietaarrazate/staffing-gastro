@@ -85,8 +85,12 @@ Si arrancás una sesión sin otra instrucción, esto es lo que hay, en orden.
   Starter (urgente, lo hace Julieta), el resto de su lista del día que abre,
   el ensayo general automático y las páginas de contenido de SEO (ver el
   tablero).
-  4. Mails (plantillas del backend) y piezas de redes/campañas/videos con la
-     marca vigente (`design-system/marca-hoy.md`); la landing queda como está.
+  4. Piezas de redes/campañas/videos con la marca vigente
+     (`design-system/marca-hoy.md`); la landing queda como está. Los mails ya
+     la llevan desde el 2026-11-28
+     ([historial](./historial/2026-11-28-mails-con-la-marca-vigente.md)); falta
+     mirarlos en una casilla real de Gmail y de Outlook, y sus textos esperan
+     la revisión de voz (documento privado de crecimiento, pestaña «Voz y firma»).
 
 - 🟠 **Crecimiento en redes y propuesta de horarios (2026-11-22).** Estado en
   el documento de crecimiento (https://claude.ai/artifact/HPGMp7JFA9prJmBdEazLPP:
