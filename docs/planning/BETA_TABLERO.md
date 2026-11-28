@@ -912,3 +912,8 @@ grande y el día anterior a abrir.
 - ✅ El aviso de turno cerca llega a 20 (40 en la escalada), con una cuarta
   parte del cupo para gente nueva verificada (#762,
   [historial](../historial/2026-11-28-cupo-de-avisos-con-lugar-para-nuevos.md)).
+- ✅ La persona confirma si cobró el turno («Sí, cobré» / «Todavía no cobré»),
+  con aviso al comercio y ticket de pagos (#PENDIENTE,
+  [historial](../historial/2026-11-27-la-persona-confirma-el-cobro.md)).
+- ⚪ Que lo que dice la persona del cobro entre en la reputación «pago a
+  tiempo» del comercio (decisión pendiente).

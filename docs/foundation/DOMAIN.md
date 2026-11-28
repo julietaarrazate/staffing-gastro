@@ -275,7 +275,9 @@ campos, estados o transiciones. Se documenta la realidad y se marca cada caso.
 
 - **Placeholder.** Hoy la acción `mark-paid` sólo cambia el `Shift` a `pagado`
   (registra que el comercio pagó por fuera); **no procesa un cobro**. La
-  integración real (MercadoPago) es roadmap. Ver
+  integración real (MercadoPago) es roadmap. Desde 2026-11-27 la persona
+  asignada también dice si cobró (`worker_confirmed_paid_at`,
+  `worker_reported_unpaid_at`): registros y avisos, sin cambiar el estado. Ver
   [PRODUCT.md](./PRODUCT.md#fuera-de-alcance-hoy) y `PAYMENTS.md` (Fase 2).
 
 ---

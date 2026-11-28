@@ -40,6 +40,7 @@ import ShiftActions from "@/components/ShiftActions";
 import AIAssistantBar from "@/components/AIAssistantBar";
 import PerfilFaltanteCard from "@/components/PerfilFaltanteCard";
 import ReviewBox from "@/components/ReviewBox";
+import CobroEnElTurno from "@/components/CobroEnElTurno";
 import PlanLimitModal from "@/components/subscription/PlanLimitModal";
 import ShiftPublishedNextSteps from "@/components/ShiftPublishedNextSteps";
 import { payView } from "@/lib/pay";
@@ -708,7 +709,8 @@ function MyShiftsPanel() {
                           onCancel={() => void askCancel(shift.id)}
                         />
                         {(shift.status === "finalizado" || shift.status === "pagado") && (
-                          <div className="mt-3">
+                          <div className="mt-3 flex flex-col gap-2">
+                            <CobroEnElTurno shift={shift} />
                             <ReviewBox shiftId={shift.id} />
                           </div>
                         )}
